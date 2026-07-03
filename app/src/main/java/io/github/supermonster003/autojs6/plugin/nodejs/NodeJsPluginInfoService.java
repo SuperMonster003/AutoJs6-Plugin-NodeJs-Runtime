@@ -1,0 +1,50 @@
+package io.github.supermonster003.autojs6.plugin.nodejs;
+
+import android.app.Service;
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.os.RemoteException;
+
+import org.autojs.plugin.common.api.IPluginInfoProvider;
+import org.autojs.plugin.common.api.PluginCapabilityKeys;
+import org.autojs.plugin.common.api.PluginInfo;
+import org.autojs.plugin.nodejs.api.NodeJsPluginCapabilityKeys;
+import org.autojs.plugin.nodejs.api.NodeJsPluginIds;
+
+public class NodeJsPluginInfoService extends Service {
+
+    private static final String[] SUPPORTED_ABIS = {"arm64-v8a", "armeabi-v7a", "x86_64"};
+
+    private final IPluginInfoProvider.Stub binder = new IPluginInfoProvider.Stub() {
+        @Override
+        public PluginInfo getInfo() throws RemoteException {
+            Bundle capabilities = new Bundle();
+            capabilities.putInt(PluginCapabilityKeys.REQUIRES_HOST_VERSION, 3923);
+            capabilities.putString(NodeJsPluginCapabilityKeys.NODE_VERSION, "24.5.0");
+            capabilities.putString(NodeJsPluginCapabilityKeys.RUNTIME_SLOT, NodeJsPluginIds.VARIANT_NODE_24_5);
+            capabilities.putString(NodeJsPluginCapabilityKeys.NATIVE_LIBRARY_NAME, "node");
+
+            return new PluginInfo(
+                    getString(R.string.app_name),
+                    null,
+                    null,
+                    "SuperMonster003",
+                    null,
+                    BuildConfig.VERSION_NAME,
+                    BuildConfig.VERSION_CODE,
+                    BuildConfig.VERSION_DATE,
+                    NodeJsPluginIds.ID,
+                    NodeJsPluginIds.ENGINE,
+                    NodeJsPluginIds.VARIANT_NODE_24_5,
+                    SUPPORTED_ABIS,
+                    capabilities
+            );
+        }
+    };
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
+    }
+}

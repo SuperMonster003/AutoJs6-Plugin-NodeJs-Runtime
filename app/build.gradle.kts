@@ -28,6 +28,9 @@ android {
         versionCode = versions.appVersionCode
         versionName = versions.appVersionName
 
+        multiDexEnabled = true
+        multiDexKeepProguard = file("multidex-keep.pro")
+
         buildConfigField("String", "VERSION_DATE", "\"${utils.getDateString("MMM d, yyyy", "GMT+08:00")}\"")
 
         ndk {
@@ -59,12 +62,12 @@ android {
             signingConfigs.getByName(buildTypeRelease)
         }
         debug {
-            isMinifyEnabled = getByName(buildTypeRelease).isMinifyEnabled
+            isMinifyEnabled = false
             proguardFiles(*proguardFiles)
             niceSigningConfig?.let { signingConfig = it }
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(*proguardFiles)
             niceSigningConfig?.let { signingConfig = it }
         }
@@ -76,7 +79,9 @@ android {
 
     @Suppress("DEPRECATION")
     packagingOptions {
-        jniLibs.useLegacyPackaging = false
+        // The host app loads libnode.so from this plugin with System.load(absPath).
+        // Keep native libraries extracted under applicationInfo.nativeLibraryDir.
+        jniLibs.useLegacyPackaging = true
 
         listOf(
             "META-INF/DEPENDENCIES",
@@ -125,6 +130,8 @@ androidComponents {
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.21")
+    implementation("org.jetbrains:annotations:26.0.2")
     implementation(files("$rootDir/libs/common-plugin-api.aar"))
     implementation(files("$rootDir/libs/nodejs-api.aar"))
 }
