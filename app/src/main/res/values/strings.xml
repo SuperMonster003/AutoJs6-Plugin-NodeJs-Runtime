@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">AutoJs6 Node.js Runtime</string>
+    <string name="plugin_description">Provides the Node.js 24.5.0 native runtime for AutoJs6.</string>
+</resources>
