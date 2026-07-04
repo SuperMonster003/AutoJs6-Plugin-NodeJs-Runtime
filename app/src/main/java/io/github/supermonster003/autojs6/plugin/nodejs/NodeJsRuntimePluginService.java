@@ -220,6 +220,7 @@ public class NodeJsRuntimePluginService extends Service {
                 NodeJsRuntimeContract.CAPABILITY_BUNDLE_TRANSPORT,
                 NodeJsRuntimeContract.CAPABILITY_NATIVE_EMBEDDED_RUNTIME,
                 NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_BROKER,
+                NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_LIVE_BRIDGE,
         });
         return info;
     }
