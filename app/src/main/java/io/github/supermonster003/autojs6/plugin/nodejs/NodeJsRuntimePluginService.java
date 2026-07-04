@@ -3,6 +3,8 @@ package io.github.supermonster003.autojs6.plugin.nodejs;
 import android.app.Application;
 import android.app.Service;
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -61,6 +63,13 @@ public class NodeJsRuntimePluginService extends Service {
     private static final String BRIDGE_PROCESS_DEAD = "ERR_AUTOJS6_BRIDGE_PROCESS_DEAD";
     private static final String BRIDGE_PROVIDER_FAILED = "ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED";
     private static final long BRIDGE_DISPATCH_WAIT_MS = 1000L;
+    private static final String[] CAPABILITIES = new String[]{
+            NodeJsRuntimeContract.CAPABILITY_SYNC_SCRIPT_EXECUTION,
+            NodeJsRuntimeContract.CAPABILITY_BUNDLE_TRANSPORT,
+            NodeJsRuntimeContract.CAPABILITY_NATIVE_EMBEDDED_RUNTIME,
+            NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_BROKER,
+            NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_LIVE_BRIDGE,
+    };
 
     private final Object executionLock = new Object();
 
@@ -202,6 +211,7 @@ public class NodeJsRuntimePluginService extends Service {
             String[] queuedBridgePayload = dispatchQueuedBridgeRequests(nativePayload, hostBroker);
             String[] hostBrokerDiagnosticsPayload = hostBrokerNativeDiagnosticsPayload(hostBroker);
             String[] runtimeModulePayload = runtimeModuleInjection.nativePayload();
+            String[] runtimePluginPayload = runtimePluginPayload(request, hostBroker);
             Bundle result = resultBundleFromNativePayload(
                     request,
                     sourceName,
@@ -216,7 +226,7 @@ public class NodeJsRuntimePluginService extends Service {
                                     ),
                                     queuedBridgePayload
                             ),
-                            hostBrokerDiagnosticsPayload
+                            appendNativePayload(hostBrokerDiagnosticsPayload, runtimePluginPayload)
                     ),
                     startedAt
             );
@@ -249,13 +259,7 @@ public class NodeJsRuntimePluginService extends Service {
         info.putString(NodeJsRuntimeContract.KEY_NODE_VERSION, NODE_VERSION);
         info.putString(NodeJsRuntimeContract.KEY_NATIVE_LIBRARY_NAME, NATIVE_LIBRARY_NAME);
         info.putString(NodeJsRuntimeContract.KEY_BRIDGE_LIBRARY_NAME, BRIDGE_LIBRARY_NAME);
-        info.putStringArray(NodeJsRuntimeContract.KEY_CAPABILITIES, new String[]{
-                NodeJsRuntimeContract.CAPABILITY_SYNC_SCRIPT_EXECUTION,
-                NodeJsRuntimeContract.CAPABILITY_BUNDLE_TRANSPORT,
-                NodeJsRuntimeContract.CAPABILITY_NATIVE_EMBEDDED_RUNTIME,
-                NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_BROKER,
-                NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_LIVE_BRIDGE,
-        });
+        info.putStringArray(NodeJsRuntimeContract.KEY_CAPABILITIES, CAPABILITIES.clone());
         return info;
     }
 
@@ -327,6 +331,58 @@ public class NodeJsRuntimePluginService extends Service {
 
     private static String[] liveBridgePayload(PluginNodeBridgeFileTransportSession liveBridgeSession) {
         return liveBridgeSession == null ? new String[0] : liveBridgeSession.nativePayload();
+    }
+
+    private String[] runtimePluginPayload(Bundle request, INodeJsHostCapabilityBroker hostBroker) {
+        LinkedHashMap<String, String> values = new LinkedHashMap<>();
+        values.put("embedded_script.runtime_plugin.enabled", "true");
+        values.put("embedded_script.runtime_plugin.diagnostics_source", "plugin");
+        values.put("embedded_script.runtime_plugin.contract_version", Integer.toString(NodeJsRuntimeContract.CONTRACT_VERSION));
+        values.put("embedded_script.runtime_plugin.package_name", getPackageName());
+        values.put("embedded_script.runtime_plugin.service_name", getClass().getName());
+        values.put("embedded_script.runtime_plugin.package_version_code", Long.toString(packageVersionCode()));
+        values.put("embedded_script.runtime_plugin.runtime_slot", NodeJsPluginIds.VARIANT_NODE_24_5);
+        values.put("embedded_script.runtime_plugin.node_version", NODE_VERSION);
+        values.put("embedded_script.runtime_plugin.capability_count", Integer.toString(CAPABILITIES.length));
+        values.put(
+                "embedded_script.runtime_plugin.capability_host_broker",
+                Boolean.toString(hasCapability(NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_BROKER))
+        );
+        values.put(
+                "embedded_script.runtime_plugin.capability_live_bridge",
+                Boolean.toString(hasCapability(NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_LIVE_BRIDGE))
+        );
+        values.put("embedded_script.runtime_plugin.host_broker.attached", Boolean.toString(hostBroker != null));
+        values.put(
+                "embedded_script.runtime_plugin.host_broker.contract_version",
+                Integer.toString(request.getInt(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_BROKER_VERSION, 0))
+        );
+        return nativePayloadFromMap(values);
+    }
+
+    @SuppressWarnings("deprecation")
+    private long packageVersionCode() {
+        try {
+            PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                return packageInfo.getLongVersionCode();
+            }
+            return packageInfo.versionCode;
+        } catch (PackageManager.NameNotFoundException ignored) {
+            return 0L;
+        }
+    }
+
+    private static boolean hasCapability(String capability) {
+        if (capability == null) {
+            return false;
+        }
+        for (String item : CAPABILITIES) {
+            if (capability.equals(item)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private RuntimeModuleInjection withPluginRuntimeModules(
