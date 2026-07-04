@@ -29,6 +29,7 @@ sync.ffs_db
 !.idea/shared-intellij-idea-settings.zip
 
 /build/
+/app/.cxx/
 /app/**/build/
 /build-logic/build/
 /build-logic/*/build/

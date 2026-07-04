@@ -36,6 +36,15 @@ android {
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }
+
+        externalNativeBuild {
+            cmake {
+                arguments += "-DAUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE=OFF"
+                arguments += "-DAUTOJS6_NODE_ENABLE_EMBEDDED_SCRIPT_EXECUTION=ON"
+                arguments += "-DAUTOJS6_NODE_RUNTIME_SLOT=node24_5"
+                cppFlags += "-std=c++20"
+            }
+        }
     }
 
     lint {
@@ -75,6 +84,12 @@ android {
 
     buildFeatures {
         buildConfig = true
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+        }
     }
 
     @Suppress("DEPRECATION")
