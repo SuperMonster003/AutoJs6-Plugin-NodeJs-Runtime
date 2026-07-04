@@ -23,6 +23,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -148,7 +150,8 @@ public class NodeJsRuntimePluginService extends Service {
             RuntimeModuleInjection runtimeModuleInjection = withPluginRuntimeModules(
                     runtimeModuleSources,
                     request,
-                    hostBrokerInfo
+                    hostBrokerInfo,
+                    workingDirectory
             );
             runtimeModuleSources = runtimeModuleInjection.sources;
             if (hostBroker != null) {
@@ -318,7 +321,8 @@ public class NodeJsRuntimePluginService extends Service {
     private RuntimeModuleInjection withPluginRuntimeModules(
             Map<String, String> runtimeModuleSources,
             Bundle request,
-            Bundle hostBrokerInfo
+            Bundle hostBrokerInfo,
+            String workingDirectory
     ) {
         RuntimeModuleInjection injection = RuntimeModuleInjection.from(runtimeModuleSources);
         String engineInfo = preferredEngineInfo(runtimeModuleSources, request, hostBrokerInfo);
@@ -340,6 +344,12 @@ public class NodeJsRuntimePluginService extends Service {
                 DEVICE_INFO_RUNTIME_MODULE_NAME,
                 deviceInfoRuntimeModuleSource(),
                 "plugin_context"
+        );
+        injection = injection.withRuntimeModule(
+                "bridge_limits",
+                PluginNodeBridgeFileTransportSession.BRIDGE_LIMITS_RUNTIME_MODULE_NAME,
+                bridgeLimitsRuntimeModuleSource(workingDirectory),
+                "working_directory"
         );
         return injection;
     }
@@ -416,6 +426,14 @@ public class NodeJsRuntimePluginService extends Service {
         }
     }
 
+    private static String bridgeLimitsRuntimeModuleSource(String workingDirectory) {
+        try {
+            return BridgeLimitPolicy.fromWorkingDirectory(workingDirectory).toJson();
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
     private static JSONObject parseJsonObject(String json) {
         if (json == null || json.isEmpty()) {
             return null;
@@ -423,6 +441,26 @@ public class NodeJsRuntimePluginService extends Service {
         try {
             return new JSONObject(json);
         } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static String readTextIfFile(File file) {
+        if (file == null || !file.isFile()) {
+            return null;
+        }
+        try (FileInputStream input = new FileInputStream(file)) {
+            byte[] bytes = new byte[(int) Math.min(file.length(), Integer.MAX_VALUE)];
+            int offset = 0;
+            while (offset < bytes.length) {
+                int read = input.read(bytes, offset, bytes.length - offset);
+                if (read < 0) {
+                    break;
+                }
+                offset += read;
+            }
+            return new String(bytes, 0, offset, StandardCharsets.UTF_8);
+        } catch (IOException ignored) {
             return null;
         }
     }
@@ -867,6 +905,195 @@ public class NodeJsRuntimePluginService extends Service {
                     "embedded_script.runtime_plugin.runtime_module." + name + "_source",
                     source == null ? "missing" : source
             );
+        }
+    }
+
+    private static final class BridgeLimitPolicy {
+        private static final String PROJECT_JSON = "project.json";
+        private static final String PACKAGE_JSON = "package.json";
+        private static final String[] FIELD_NAMES = {
+                "maxPendingBridgeCalls",
+                "maxImageHandles",
+                "maxShellCommands",
+                "maxNetworkRequests",
+                "maxWebSocketConnections",
+                "accessibilityQueriesPerSecond",
+        };
+        private static final int[] DEFAULT_VALUES = {32, 32, 2, 16, 2, 20};
+        private static final int[] MIN_VALUES = {1, 0, 0, 0, 0, 1};
+        private static final int[] HARD_MAX_VALUES = {128, 128, 4, 32, 4, 60};
+
+        private final int[] values;
+        private final List<String> sources;
+        private final List<String> warnings;
+
+        private BridgeLimitPolicy(int[] values, List<String> sources, List<String> warnings) {
+            this.values = values;
+            this.sources = sources == null || sources.isEmpty()
+                    ? Collections.singletonList("default")
+                    : sources;
+            this.warnings = warnings == null ? Collections.emptyList() : warnings;
+        }
+
+        static BridgeLimitPolicy fromWorkingDirectory(String workingDirectory) {
+            Builder builder = new Builder();
+            List<String> warnings = new ArrayList<>();
+            File root = canonicalDirectory(workingDirectory);
+            if (root == null) {
+                return builder.build(warnings);
+            }
+            collectProjectJson(readTextIfFile(new File(root, PROJECT_JSON)), builder, warnings);
+            collectPackageJson(readTextIfFile(new File(root, PACKAGE_JSON)), builder, warnings);
+            return builder.build(warnings);
+        }
+
+        String toJson() {
+            try {
+                JSONObject json = new JSONObject()
+                        .put("version", 1)
+                        .put("sources", new JSONArray(sources))
+                        .put("warnings", new JSONArray(warnings));
+                JSONObject defaults = new JSONObject();
+                JSONObject hardMax = new JSONObject();
+                for (int index = 0; index < FIELD_NAMES.length; index++) {
+                    json.put(FIELD_NAMES[index], values[index]);
+                    defaults.put(FIELD_NAMES[index], DEFAULT_VALUES[index]);
+                    hardMax.put(FIELD_NAMES[index], HARD_MAX_VALUES[index]);
+                }
+                json.put("defaults", defaults);
+                json.put("hardMax", hardMax);
+                return json.toString();
+            } catch (Throwable ignored) {
+                return null;
+            }
+        }
+
+        private static File canonicalDirectory(String workingDirectory) {
+            String path = nonBlank(workingDirectory, null);
+            if (path == null) {
+                return null;
+            }
+            try {
+                File file = new File(path).getCanonicalFile();
+                return file.isDirectory() ? file : null;
+            } catch (IOException ignored) {
+                return null;
+            }
+        }
+
+        private static void collectProjectJson(String text, Builder builder, List<String> warnings) {
+            JSONObject json = parseBridgeLimitJsonObject(text, PROJECT_JSON, warnings);
+            if (json == null) {
+                return;
+            }
+            JSONObject node = json.optJSONObject("node");
+            collectLimitObject(node == null ? null : node.optJSONObject("bridgeLimits"), "project.json:node.bridgeLimits", builder);
+            collectLimitObject(node == null ? null : node.optJSONObject("limits"), "project.json:node.limits", builder);
+        }
+
+        private static void collectPackageJson(String text, Builder builder, List<String> warnings) {
+            JSONObject json = parseBridgeLimitJsonObject(text, PACKAGE_JSON, warnings);
+            if (json == null) {
+                return;
+            }
+            JSONObject autojs6 = json.optJSONObject("autojs6");
+            collectLimitObject(autojs6 == null ? null : autojs6.optJSONObject("bridgeLimits"), "package.json:autojs6.bridgeLimits", builder);
+            JSONObject node = autojs6 == null ? null : autojs6.optJSONObject("node");
+            collectLimitObject(node == null ? null : node.optJSONObject("bridgeLimits"), "package.json:autojs6.node.bridgeLimits", builder);
+            collectLimitObject(node == null ? null : node.optJSONObject("limits"), "package.json:autojs6.node.limits", builder);
+        }
+
+        private static JSONObject parseBridgeLimitJsonObject(String text, String source, List<String> warnings) {
+            if (text == null || text.isEmpty()) {
+                return null;
+            }
+            try {
+                return new JSONObject(text);
+            } catch (Throwable error) {
+                warnings.add(source + " bridge limits could not be parsed: " + messageOf(error));
+                return null;
+            }
+        }
+
+        private static void collectLimitObject(JSONObject json, String source, Builder builder) {
+            if (json == null) {
+                return;
+            }
+            boolean consumed = false;
+            for (int index = 0; index < FIELD_NAMES.length; index++) {
+                String name = FIELD_NAMES[index];
+                if (!json.has(name) || json.isNull(name)) {
+                    continue;
+                }
+                consumed = true;
+                builder.set(index, json.opt(name), source);
+            }
+            if (consumed) {
+                builder.addSource(source);
+            }
+        }
+
+        private static final class Builder {
+            private final int[] values = DEFAULT_VALUES.clone();
+            private final List<String> sources = new ArrayList<>();
+            private final List<String> warnings = new ArrayList<>();
+
+            void addSource(String source) {
+                if (!sources.contains(source)) {
+                    sources.add(source);
+                }
+            }
+
+            void set(int index, Object rawValue, String source) {
+                Integer parsed = parseInt(rawValue);
+                String name = FIELD_NAMES[index];
+                if (parsed == null) {
+                    warnings.add(source + "." + name + " ignored: expected an integer.");
+                    return;
+                }
+                if (parsed < MIN_VALUES[index] || parsed > HARD_MAX_VALUES[index]) {
+                    warnings.add(
+                            source + "." + name + " ignored: " + parsed + " is outside " +
+                                    MIN_VALUES[index] + ".." + HARD_MAX_VALUES[index] + "."
+                    );
+                    return;
+                }
+                values[index] = parsed;
+            }
+
+            BridgeLimitPolicy build(List<String> extraWarnings) {
+                List<String> mergedWarnings = new ArrayList<>(warnings);
+                if (extraWarnings != null) {
+                    for (String warning : extraWarnings) {
+                        if (!mergedWarnings.contains(warning)) {
+                            mergedWarnings.add(warning);
+                        }
+                    }
+                }
+                return new BridgeLimitPolicy(values.clone(), new ArrayList<>(sources), mergedWarnings);
+            }
+
+            private static Integer parseInt(Object rawValue) {
+                if (rawValue instanceof Integer) {
+                    return (Integer) rawValue;
+                }
+                if (rawValue instanceof Long) {
+                    long value = (Long) rawValue;
+                    return value > Integer.MAX_VALUE || value < Integer.MIN_VALUE ? null : (int) value;
+                }
+                if (rawValue instanceof Number) {
+                    double value = ((Number) rawValue).doubleValue();
+                    return Double.isFinite(value) ? (int) value : null;
+                }
+                if (rawValue instanceof String) {
+                    try {
+                        return Integer.parseInt(((String) rawValue).trim());
+                    } catch (NumberFormatException ignored) {
+                        return null;
+                    }
+                }
+                return null;
+            }
         }
     }
 
