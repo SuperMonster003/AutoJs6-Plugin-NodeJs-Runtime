@@ -40,6 +40,7 @@ public class NodeJsRuntimePluginService extends Service {
     private static final String NATIVE_LIBRARY_NAME = "node";
     private static final String BRIDGE_LIBRARY_NAME = "autojs6-node";
     private static final String DEFAULT_SOURCE_NAME = "<plugin-node-script.js>";
+    private static final String ENGINE_INFO_RUNTIME_MODULE_NAME = "autojs6:engine-info";
     private static final String ERROR_BUSY = "ERR_AUTOJS6_NODE_PLUGIN_BUSY";
     private static final String ERROR_UNAVAILABLE = "ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE";
     private static final String BRIDGE_PROCESS_DEAD = "ERR_AUTOJS6_BRIDGE_PROCESS_DEAD";
@@ -141,6 +142,12 @@ public class NodeJsRuntimePluginService extends Service {
             );
             hostBroker = hostBrokerFrom(request);
             Bundle hostBrokerInfo = hostBrokerInfo(hostBroker);
+            RuntimeModuleInjection engineInfoInjection = withEngineInfoRuntimeModule(
+                    runtimeModuleSources,
+                    request,
+                    hostBrokerInfo
+            );
+            runtimeModuleSources = engineInfoInjection.sources;
             if (hostBroker != null) {
                 liveBridgeSession = new PluginNodeBridgeFileTransportSession(
                         getCacheDir(),
@@ -177,14 +184,18 @@ public class NodeJsRuntimePluginService extends Service {
             String[] liveBridgePayload = liveBridgePayload(liveBridgeSession);
             String[] queuedBridgePayload = dispatchQueuedBridgeRequests(nativePayload, hostBroker);
             String[] hostBrokerDiagnosticsPayload = hostBrokerNativeDiagnosticsPayload(hostBroker);
+            String[] runtimeModulePayload = engineInfoInjection.nativePayload();
             Bundle result = resultBundleFromNativePayload(
                     request,
                     sourceName,
                     appendNativePayload(
                             appendNativePayload(
                                     appendNativePayload(
-                                            appendNativePayload(nativePayload, liveBridgePayload),
-                                            hostBrokerPayload(hostBroker, hostBrokerInfo)
+                                            appendNativePayload(
+                                                    appendNativePayload(nativePayload, liveBridgePayload),
+                                                    hostBrokerPayload(hostBroker, hostBrokerInfo)
+                                            ),
+                                            runtimeModulePayload
                                     ),
                                     queuedBridgePayload
                             ),
@@ -299,6 +310,38 @@ public class NodeJsRuntimePluginService extends Service {
 
     private static String[] liveBridgePayload(PluginNodeBridgeFileTransportSession liveBridgeSession) {
         return liveBridgeSession == null ? new String[0] : liveBridgeSession.nativePayload();
+    }
+
+    private static RuntimeModuleInjection withEngineInfoRuntimeModule(
+            Map<String, String> runtimeModuleSources,
+            Bundle request,
+            Bundle hostBrokerInfo
+    ) {
+        String existing = runtimeModuleSources == null
+                ? null
+                : nonBlank(runtimeModuleSources.get(ENGINE_INFO_RUNTIME_MODULE_NAME), null);
+        if (existing != null) {
+            return new RuntimeModuleInjection(runtimeModuleSources, "existing", true);
+        }
+        String requestEngineInfo = nonBlank(request.getString(NodeJsRuntimeContract.KEY_BRIDGE_ENGINE_INFO), null);
+        if (requestEngineInfo != null) {
+            return new RuntimeModuleInjection(
+                    withRuntimeModuleSource(runtimeModuleSources, ENGINE_INFO_RUNTIME_MODULE_NAME, requestEngineInfo),
+                    "request",
+                    true
+            );
+        }
+        String brokerEngineInfo = hostBrokerInfo == null
+                ? null
+                : nonBlank(hostBrokerInfo.getString(NodeJsRuntimeContract.KEY_BRIDGE_ENGINE_INFO), null);
+        if (brokerEngineInfo != null) {
+            return new RuntimeModuleInjection(
+                    withRuntimeModuleSource(runtimeModuleSources, ENGINE_INFO_RUNTIME_MODULE_NAME, brokerEngineInfo),
+                    "host_broker",
+                    true
+            );
+        }
+        return new RuntimeModuleInjection(runtimeModuleSources, "missing", false);
     }
 
     private String[] hostBrokerNativeDiagnosticsPayload(INodeJsHostCapabilityBroker hostBroker) {
@@ -662,6 +705,35 @@ public class NodeJsRuntimePluginService extends Service {
         }
         result.put(name, source == null ? "" : source);
         return result;
+    }
+
+    private static final class RuntimeModuleInjection {
+        final Map<String, String> sources;
+        final String engineInfoSource;
+        final boolean engineInfoPresent;
+
+        RuntimeModuleInjection(
+                Map<String, String> sources,
+                String engineInfoSource,
+                boolean engineInfoPresent
+        ) {
+            this.sources = sources == null ? Collections.emptyMap() : sources;
+            this.engineInfoSource = engineInfoSource;
+            this.engineInfoPresent = engineInfoPresent;
+        }
+
+        String[] nativePayload() {
+            LinkedHashMap<String, String> values = new LinkedHashMap<>();
+            values.put(
+                    "embedded_script.runtime_plugin.runtime_module.engine_info_present",
+                    Boolean.toString(engineInfoPresent)
+            );
+            values.put(
+                    "embedded_script.runtime_plugin.runtime_module.engine_info_source",
+                    engineInfoSource == null ? "missing" : engineInfoSource
+            );
+            return nativePayloadFromMap(values);
+        }
     }
 
     private static Map<String, String> parseNativePayload(String[] payload) {
