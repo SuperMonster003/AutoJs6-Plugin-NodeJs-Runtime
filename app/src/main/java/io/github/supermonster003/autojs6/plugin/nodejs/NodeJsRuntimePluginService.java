@@ -13,15 +13,25 @@ import android.util.Log;
 
 import org.autojs.autojs.engine.NativeNodeEmbeddedRuntimeBridge;
 import org.autojs.plugin.nodejs.api.INodeJsHostCapabilityBroker;
+import org.autojs.plugin.nodejs.api.INodeJsHostCapabilityCallback;
 import org.autojs.plugin.nodejs.api.INodeJsRuntimeCallback;
 import org.autojs.plugin.nodejs.api.INodeJsRuntimePlugin;
 import org.autojs.plugin.nodejs.api.NodeJsPluginIds;
 import org.autojs.plugin.nodejs.api.NodeJsRuntimeContract;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class NodeJsRuntimePluginService extends Service {
 
@@ -32,6 +42,9 @@ public class NodeJsRuntimePluginService extends Service {
     private static final String DEFAULT_SOURCE_NAME = "<plugin-node-script.js>";
     private static final String ERROR_BUSY = "ERR_AUTOJS6_NODE_PLUGIN_BUSY";
     private static final String ERROR_UNAVAILABLE = "ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE";
+    private static final String BRIDGE_PROCESS_DEAD = "ERR_AUTOJS6_BRIDGE_PROCESS_DEAD";
+    private static final String BRIDGE_PROVIDER_FAILED = "ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED";
+    private static final long BRIDGE_DISPATCH_WAIT_MS = 1000L;
 
     private final Object executionLock = new Object();
 
@@ -145,7 +158,10 @@ public class NodeJsRuntimePluginService extends Service {
             Bundle result = resultBundleFromNativePayload(
                     request,
                     sourceName,
-                    appendNativePayload(nativePayload, hostBrokerPayload(hostBroker, hostBrokerInfo)),
+                    appendNativePayload(
+                            appendNativePayload(nativePayload, hostBrokerPayload(hostBroker, hostBrokerInfo)),
+                            dispatchQueuedBridgeRequests(nativePayload, hostBroker)
+                    ),
                     startedAt
             );
             notifyOutput(callback, result);
@@ -232,6 +248,192 @@ public class NodeJsRuntimePluginService extends Service {
             );
         }
         return nativePayloadFromMap(values);
+    }
+
+    private String[] dispatchQueuedBridgeRequests(String[] nativePayload, INodeJsHostCapabilityBroker hostBroker) {
+        Map<String, String> nativeValues = parseNativePayload(nativePayload);
+        List<JSONObject> requests = bridgeRequestsFromJson(nativeValues.get("embedded_script.bridge_requests_json"));
+        if (requests.isEmpty()) {
+            return new String[0];
+        }
+        if (hostBroker == null) {
+            return bridgeDispatchPayload(
+                    requests.size(),
+                    requests.size(),
+                    0,
+                    "missing_broker",
+                    bridgeFailureResponsesJson(requests, "AutoJs6 host capability broker is not available.", BRIDGE_PROCESS_DEAD)
+            );
+        }
+
+        CountDownLatch latch = new CountDownLatch(requests.size());
+        AtomicInteger completed = new AtomicInteger(0);
+        AtomicInteger failed = new AtomicInteger(0);
+        List<String> responseJsonValues = Collections.synchronizedList(new ArrayList<>());
+
+        for (JSONObject request : requests) {
+            AtomicBoolean responded = new AtomicBoolean(false);
+            BridgeRequestIdentity identity = bridgeRequestIdentity(request);
+            INodeJsHostCapabilityCallback callback = new INodeJsHostCapabilityCallback.Stub() {
+                @Override
+                public void onResponse(Bundle response) {
+                    if (!responded.compareAndSet(false, true)) {
+                        return;
+                    }
+                    String responseJson = response == null
+                            ? bridgeFailureResponseJson(
+                            identity,
+                            "AutoJs6 host capability broker returned an empty response.",
+                            BRIDGE_PROVIDER_FAILED
+                    )
+                            : nonBlank(
+                            response.getString(NodeJsRuntimeContract.KEY_BRIDGE_RESPONSE_JSON),
+                            bridgeFailureResponseJson(
+                                    identity,
+                                    response.getString(
+                                            NodeJsRuntimeContract.KEY_BRIDGE_ERROR_MESSAGE,
+                                            "AutoJs6 host capability broker returned a malformed response."
+                                    ),
+                                    BRIDGE_PROVIDER_FAILED
+                            )
+                    );
+                    responseJsonValues.add(responseJson);
+                    completed.incrementAndGet();
+                    if (!bridgeResponseOk(responseJson)) {
+                        failed.incrementAndGet();
+                    }
+                    latch.countDown();
+                }
+            };
+            try {
+                Bundle brokerRequest = new Bundle();
+                brokerRequest.putString(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_JSON, request.toString());
+                hostBroker.dispatch(brokerRequest, callback);
+            } catch (Throwable error) {
+                if (responded.compareAndSet(false, true)) {
+                    responseJsonValues.add(bridgeFailureResponseJson(identity, messageOf(error), BRIDGE_PROVIDER_FAILED));
+                    completed.incrementAndGet();
+                    failed.incrementAndGet();
+                    latch.countDown();
+                }
+            }
+        }
+
+        try {
+            latch.await(BRIDGE_DISPATCH_WAIT_MS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        int pending = Math.max(0, (int) latch.getCount());
+        return bridgeDispatchPayload(
+                completed.get(),
+                failed.get(),
+                pending,
+                pending == 0 ? "done" : "pending",
+                bridgeResponsesJson(responseJsonValues)
+        );
+    }
+
+    private static List<JSONObject> bridgeRequestsFromJson(String requestsJson) {
+        if (requestsJson == null || requestsJson.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            JSONArray array = new JSONArray(requestsJson);
+            ArrayList<JSONObject> requests = new ArrayList<>();
+            for (int index = 0; index < array.length(); index++) {
+                JSONObject request = array.optJSONObject(index);
+                if (request != null) {
+                    requests.add(request);
+                }
+            }
+            return requests;
+        } catch (Throwable error) {
+            return Collections.emptyList();
+        }
+    }
+
+    private static String[] bridgeDispatchPayload(
+            int completed,
+            int failed,
+            int pending,
+            String status,
+            String responsesJson
+    ) {
+        LinkedHashMap<String, String> values = new LinkedHashMap<>();
+        values.put("embedded_script.bridge_dispatch_count", Integer.toString(completed));
+        values.put("embedded_script.bridge_dispatch_failed_count", Integer.toString(failed));
+        values.put("embedded_script.bridge_dispatch_pending_count", Integer.toString(pending));
+        values.put("embedded_script.bridge_dispatch_status", status);
+        values.put("embedded_script.bridge_responses_json", responsesJson);
+        values.put("embedded_script.runtime_plugin.host_broker.queued_dispatch_count", Integer.toString(completed));
+        values.put("embedded_script.runtime_plugin.host_broker.queued_dispatch_failed_count", Integer.toString(failed));
+        values.put("embedded_script.runtime_plugin.host_broker.queued_dispatch_pending_count", Integer.toString(pending));
+        values.put("embedded_script.runtime_plugin.host_broker.queued_dispatch_status", status);
+        return nativePayloadFromMap(values);
+    }
+
+    private static String bridgeResponsesJson(List<String> responseJsonValues) {
+        JSONArray responses = new JSONArray();
+        synchronized (responseJsonValues) {
+            for (String responseJson : responseJsonValues) {
+                try {
+                    responses.put(new JSONObject(responseJson));
+                } catch (Throwable ignored) {
+                    responses.put(JSONObject.NULL);
+                }
+            }
+        }
+        return responses.toString();
+    }
+
+    private static String bridgeFailureResponsesJson(List<JSONObject> requests, String message, String code) {
+        JSONArray responses = new JSONArray();
+        for (JSONObject request : requests) {
+            try {
+                responses.put(new JSONObject(bridgeFailureResponseJson(bridgeRequestIdentity(request), message, code)));
+            } catch (Throwable ignored) {
+                responses.put(JSONObject.NULL);
+            }
+        }
+        return responses.toString();
+    }
+
+    private static String bridgeFailureResponseJson(BridgeRequestIdentity request, String message, String code) {
+        try {
+            return new JSONObject()
+                    .put("id", request.id)
+                    .put("ok", false)
+                    .put("error", new JSONObject()
+                            .put("name", "Error")
+                            .put("message", nonBlank(message, "AutoJs6 host capability broker dispatch failed."))
+                            .put("code", nonBlank(code, BRIDGE_PROVIDER_FAILED))
+                            .put("category", BRIDGE_PROVIDER_FAILED.equals(code) ? "provider-failed" : "process-dead")
+                            .put("module", request.module)
+                            .put("method", request.method)
+                    )
+                    .toString();
+        } catch (Throwable ignored) {
+            return "{\"id\":\"invalid\",\"ok\":false,\"error\":{\"name\":\"Error\",\"message\":\"AutoJs6 host capability broker dispatch failed.\",\"code\":\""
+                    + BRIDGE_PROVIDER_FAILED
+                    + "\",\"category\":\"provider-failed\"}}";
+        }
+    }
+
+    private static BridgeRequestIdentity bridgeRequestIdentity(JSONObject request) {
+        return new BridgeRequestIdentity(
+                request == null ? "invalid" : nonBlank(request.optString("id"), "invalid"),
+                request == null ? "" : nonBlank(request.optString("module"), ""),
+                request == null ? "" : nonBlank(request.optString("method"), "")
+        );
+    }
+
+    private static boolean bridgeResponseOk(String responseJson) {
+        try {
+            return new JSONObject(responseJson).optBoolean("ok", false);
+        } catch (Throwable error) {
+            return false;
+        }
     }
 
     private static String[] appendNativePayload(String[] base, String[] extra) {
@@ -485,5 +687,17 @@ public class NodeJsRuntimePluginService extends Service {
             return Application.getProcessName();
         }
         return "pid:" + Process.myPid();
+    }
+
+    private static final class BridgeRequestIdentity {
+        final String id;
+        final String module;
+        final String method;
+
+        BridgeRequestIdentity(String id, String module, String method) {
+            this.id = id;
+            this.module = module;
+            this.method = method;
+        }
     }
 }
