@@ -22,3 +22,4 @@ tasks {
 }
 
 apply(from = "node-plugin-examples.gradle.kts")
+apply(from = "node-plugin-tools.gradle.kts")
