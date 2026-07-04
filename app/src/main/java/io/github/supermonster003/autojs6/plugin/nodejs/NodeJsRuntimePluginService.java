@@ -211,7 +211,7 @@ public class NodeJsRuntimePluginService extends Service {
             String[] queuedBridgePayload = dispatchQueuedBridgeRequests(nativePayload, hostBroker);
             String[] hostBrokerDiagnosticsPayload = hostBrokerNativeDiagnosticsPayload(hostBroker);
             String[] runtimeModulePayload = runtimeModuleInjection.nativePayload();
-            String[] runtimePluginPayload = runtimePluginPayload(request, hostBroker);
+            String[] runtimePluginPayload = runtimePluginPayload(hostBroker);
             Bundle result = resultBundleFromNativePayload(
                     request,
                     sourceName,
@@ -336,7 +336,7 @@ public class NodeJsRuntimePluginService extends Service {
         return liveBridgeSession == null ? new String[0] : liveBridgeSession.nativePayload();
     }
 
-    private String[] runtimePluginPayload(Bundle request, INodeJsHostCapabilityBroker hostBroker) {
+    private String[] runtimePluginPayload(INodeJsHostCapabilityBroker hostBroker) {
         LinkedHashMap<String, String> values = new LinkedHashMap<>();
         values.put("embedded_script.runtime_plugin.enabled", "true");
         values.put("embedded_script.runtime_plugin.diagnostics_source", "plugin");
@@ -356,10 +356,6 @@ public class NodeJsRuntimePluginService extends Service {
                 Boolean.toString(hasCapability(NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_LIVE_BRIDGE))
         );
         values.put("embedded_script.runtime_plugin.host_broker.attached", Boolean.toString(hostBroker != null));
-        values.put(
-                "embedded_script.runtime_plugin.host_broker.contract_version",
-                Integer.toString(request.getInt(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_BROKER_VERSION, 0))
-        );
         return nativePayloadFromMap(values);
     }
 
