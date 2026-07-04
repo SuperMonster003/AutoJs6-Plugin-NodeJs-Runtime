@@ -99,6 +99,7 @@ public class NodeJsRuntimePluginService extends Service {
     private Bundle runScriptLocked(Bundle request, INodeJsRuntimeCallback callback) {
         long startedAt = SystemClock.elapsedRealtime();
         INodeJsHostCapabilityBroker hostBroker = null;
+        PluginNodeBridgeFileTransportSession liveBridgeSession = null;
         notifyEvent(callback, NodeJsRuntimeContract.EVENT_STARTED, null, null);
         try {
             loadNativeRuntime();
@@ -140,6 +141,20 @@ public class NodeJsRuntimePluginService extends Service {
             );
             hostBroker = hostBrokerFrom(request);
             Bundle hostBrokerInfo = hostBrokerInfo(hostBroker);
+            if (hostBroker != null) {
+                liveBridgeSession = new PluginNodeBridgeFileTransportSession(
+                        getCacheDir(),
+                        request.getString(NodeJsRuntimeContract.KEY_EXECUTION_ID),
+                        hostBroker,
+                        PluginNodeBridgeFileTransportSession.maxPendingBridgeCallsFromRuntimeModule(runtimeModuleSources)
+                );
+                runtimeModuleSources = withRuntimeModuleSource(
+                        runtimeModuleSources,
+                        PluginNodeBridgeFileTransportSession.RUNTIME_MODULE_NAME,
+                        liveBridgeSession.configJson()
+                );
+                liveBridgeSession.start();
+            }
 
             String[] nativePayload = NativeNodeEmbeddedRuntimeBridge.runEmbeddedScript(
                     source,
@@ -156,11 +171,17 @@ public class NodeJsRuntimePluginService extends Service {
                     request.getBoolean(NodeJsRuntimeContract.KEY_CHILD_PROCESS_EXPERIMENTAL_ENABLED, false),
                     request.getBoolean(NodeJsRuntimeContract.KEY_JAVA_INTEROP_EXPERIMENTAL_ENABLED, false)
             );
+            if (liveBridgeSession != null) {
+                liveBridgeSession.stop();
+            }
             Bundle result = resultBundleFromNativePayload(
                     request,
                     sourceName,
                     appendNativePayload(
-                            appendNativePayload(nativePayload, hostBrokerPayload(hostBroker, hostBrokerInfo)),
+                            appendNativePayload(
+                                    appendNativePayload(nativePayload, liveBridgePayload(liveBridgeSession)),
+                                    hostBrokerPayload(hostBroker, hostBrokerInfo)
+                            ),
                             dispatchQueuedBridgeRequests(nativePayload, hostBroker)
                     ),
                     startedAt
@@ -180,6 +201,9 @@ public class NodeJsRuntimePluginService extends Service {
             notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
             return failure;
         } finally {
+            if (liveBridgeSession != null) {
+                liveBridgeSession.stop();
+            }
             destroyHostBroker(hostBroker, "Node.js runtime plugin execution finished.");
         }
     }
@@ -264,6 +288,10 @@ public class NodeJsRuntimePluginService extends Service {
             );
         }
         return nativePayloadFromMap(values);
+    }
+
+    private static String[] liveBridgePayload(PluginNodeBridgeFileTransportSession liveBridgeSession) {
+        return liveBridgeSession == null ? new String[0] : liveBridgeSession.nativePayload();
     }
 
     private String[] dispatchQueuedBridgeRequests(String[] nativePayload, INodeJsHostCapabilityBroker hostBroker) {
@@ -590,6 +618,19 @@ public class NodeJsRuntimePluginService extends Service {
                 result.put(name, values[index] == null ? "" : values[index]);
             }
         }
+        return result;
+    }
+
+    private static Map<String, String> withRuntimeModuleSource(
+            Map<String, String> base,
+            String name,
+            String source
+    ) {
+        LinkedHashMap<String, String> result = new LinkedHashMap<>();
+        if (base != null) {
+            result.putAll(base);
+        }
+        result.put(name, source == null ? "" : source);
         return result;
     }
 
