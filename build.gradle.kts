@@ -20,3 +20,5 @@ tasks {
         delete(rootProject.layout.buildDirectory)
     }
 }
+
+apply(from = "node-plugin-examples.gradle.kts")
