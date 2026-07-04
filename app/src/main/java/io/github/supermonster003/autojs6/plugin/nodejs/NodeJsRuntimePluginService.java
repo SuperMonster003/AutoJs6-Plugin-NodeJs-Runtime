@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -46,6 +47,15 @@ public class NodeJsRuntimePluginService extends Service {
     private static final String HOST_APP_INFO_RUNTIME_MODULE_NAME = "autojs6:host-app-info";
     private static final String DEVICE_INFO_RUNTIME_MODULE_NAME = "autojs6:device-info";
     private static final String ENGINE_INFO_RUNTIME_MODULE_NAME = "autojs6:engine-info";
+    private static final String LIFECYCLE_CONFIG_RUNTIME_MODULE_NAME = "autojs6:lifecycle-config";
+    private static final int LIFECYCLE_CONFIG_SCHEMA_VERSION = 1;
+    private static final int LIFECYCLE_MAX_CHECKPOINT_BYTES = 64 * 1024;
+    private static final long LIFECYCLE_STOP_POLL_INTERVAL_MS = 50L;
+    private static final long LIFECYCLE_STOP_GRACE_MS = 1500L;
+    private static final String EXECUTION_MODE_INTERACTIVE_LONG_RUNNING = "interactive_long_running";
+    private static final String LAUNCH_SURFACE_SCRIPT = "script";
+    private static final String LAUNCH_SURFACE_INTERACTIVE_SESSION = "interactive_session";
+    private static final String LAUNCH_SURFACE_PACKAGED_LONG_RUNNING = "packaged_long_running";
     private static final String ERROR_BUSY = "ERR_AUTOJS6_NODE_PLUGIN_BUSY";
     private static final String ERROR_UNAVAILABLE = "ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE";
     private static final String BRIDGE_PROCESS_DEAD = "ERR_AUTOJS6_BRIDGE_PROCESS_DEAD";
@@ -351,6 +361,12 @@ public class NodeJsRuntimePluginService extends Service {
                 bridgeLimitsRuntimeModuleSource(workingDirectory),
                 "working_directory"
         );
+        injection = injection.withRuntimeModule(
+                "lifecycle_config",
+                LIFECYCLE_CONFIG_RUNTIME_MODULE_NAME,
+                lifecycleConfigRuntimeModuleSource(injectedEngineInfo, workingDirectory),
+                "bridge_engine_info"
+        );
         return injection;
     }
 
@@ -431,6 +447,71 @@ public class NodeJsRuntimePluginService extends Service {
             return BridgeLimitPolicy.fromWorkingDirectory(workingDirectory).toJson();
         } catch (Throwable ignored) {
             return null;
+        }
+    }
+
+    private String lifecycleConfigRuntimeModuleSource(String engineInfoJson, String workingDirectory) {
+        JSONObject engineInfo = parseJsonObject(engineInfoJson);
+        if (engineInfo == null) {
+            return null;
+        }
+        String packageName = stringJsonValue(engineInfo, "packageName", getPackageName());
+        String cwd = canonicalPath(stringJsonValue(engineInfo, "cwd", workingDirectory));
+        String executionMode = stringJsonValue(engineInfo, "executionMode", "");
+        String launchSurface = stringJsonValue(engineInfo, "launchSurface", LAUNCH_SURFACE_SCRIPT);
+        boolean checkpointEnabled = EXECUTION_MODE_INTERACTIVE_LONG_RUNNING.equals(executionMode) &&
+                (LAUNCH_SURFACE_INTERACTIVE_SESSION.equals(launchSurface) ||
+                        LAUNCH_SURFACE_PACKAGED_LONG_RUNNING.equals(launchSurface));
+        try {
+            return new JSONObject()
+                    .put("schemaVersion", LIFECYCLE_CONFIG_SCHEMA_VERSION)
+                    .put("executionId", stringJsonValue(engineInfo, "id", ""))
+                    .put("sourceName", stringJsonValue(engineInfo, "sourceName", ""))
+                    .put("packageName", packageName)
+                    .put("workingDirectory", cwd)
+                    .put("projectKey", sha256(packageName + "\n" + cwd).substring(0, 32))
+                    .put("executionMode", executionMode)
+                    .put("launchSurface", launchSurface)
+                    .put("checkpoint", new JSONObject()
+                            .put("enabled", checkpointEnabled)
+                            .put("maxBytes", LIFECYCLE_MAX_CHECKPOINT_BYTES)
+                            .put("automaticRestart", false)
+                            .put("restartPolicy", "never"))
+                    .put("stop", new JSONObject()
+                            .put("enabled", false)
+                            .put("requestPath", "")
+                            .put("pollIntervalMs", LIFECYCLE_STOP_POLL_INTERVAL_MS)
+                            .put("graceMs", LIFECYCLE_STOP_GRACE_MS))
+                    .toString();
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private String canonicalPath(String path) {
+        String normalized = nonBlank(path, null);
+        if (normalized == null) {
+            File filesDir = getApplicationContext().getFilesDir();
+            normalized = filesDir == null ? "/" : filesDir.getAbsolutePath();
+        }
+        try {
+            return new File(normalized).getCanonicalPath();
+        } catch (IOException ignored) {
+            return normalized;
+        }
+    }
+
+    private static String sha256(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = digest.digest((value == null ? "" : value).getBytes(StandardCharsets.UTF_8));
+            StringBuilder builder = new StringBuilder(bytes.length * 2);
+            for (byte item : bytes) {
+                builder.append(String.format("%02x", item & 0xff));
+            }
+            return builder.toString();
+        } catch (Throwable ignored) {
+            return "0000000000000000000000000000000000000000000000000000000000000000";
         }
     }
 
