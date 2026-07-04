@@ -10,7 +10,9 @@ import org.autojs.plugin.common.api.IPluginInfoProvider;
 import org.autojs.plugin.common.api.PluginCapabilityKeys;
 import org.autojs.plugin.common.api.PluginInfo;
 import org.autojs.plugin.nodejs.api.NodeJsPluginCapabilityKeys;
+import org.autojs.plugin.nodejs.api.NodeJsPluginActions;
 import org.autojs.plugin.nodejs.api.NodeJsPluginIds;
+import org.autojs.plugin.nodejs.api.NodeJsRuntimeContract;
 
 public class NodeJsPluginInfoService extends Service {
 
@@ -24,6 +26,14 @@ public class NodeJsPluginInfoService extends Service {
             capabilities.putString(NodeJsPluginCapabilityKeys.NODE_VERSION, "24.5.0");
             capabilities.putString(NodeJsPluginCapabilityKeys.RUNTIME_SLOT, NodeJsPluginIds.VARIANT_NODE_24_5);
             capabilities.putString(NodeJsPluginCapabilityKeys.NATIVE_LIBRARY_NAME, "node");
+            capabilities.putInt(
+                    NodeJsPluginCapabilityKeys.RUNTIME_CONTRACT_VERSION,
+                    NodeJsRuntimeContract.CONTRACT_VERSION
+            );
+            capabilities.putString(
+                    NodeJsPluginCapabilityKeys.RUNTIME_SERVICE_ACTION,
+                    NodeJsPluginActions.RUNTIME
+            );
 
             return new PluginInfo(
                     getString(R.string.app_name),

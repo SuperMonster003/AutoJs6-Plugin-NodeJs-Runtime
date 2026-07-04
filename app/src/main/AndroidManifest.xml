@@ -26,6 +26,21 @@
             </intent-filter>
         </service>
 
+        <service
+            android:name=".NodeJsRuntimePluginService"
+            android:exported="true"
+            android:permission="org.autojs.permission.PLUGIN">
+
+            <meta-data
+                android:name="requiresHostVersion"
+                android:value="3923" />
+
+            <intent-filter>
+                <action android:name="org.autojs.plugin.nodejs.RUNTIME" />
+                <category android:name="nodejs" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>
