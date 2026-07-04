@@ -452,13 +452,13 @@ public class NodeJsRuntimePluginService extends Service {
         if (existing != null) {
             return existing;
         }
-        String requestEngineInfo = nonBlank(request.getString(NodeJsRuntimeContract.KEY_BRIDGE_ENGINE_INFO), null);
-        if (requestEngineInfo != null) {
-            return requestEngineInfo;
-        }
-        return hostBrokerInfo == null
+        String hostBrokerEngineInfo = hostBrokerInfo == null
                 ? null
                 : nonBlank(hostBrokerInfo.getString(NodeJsRuntimeContract.KEY_BRIDGE_ENGINE_INFO), null);
+        if (hostBrokerEngineInfo != null) {
+            return hostBrokerEngineInfo;
+        }
+        return nonBlank(request.getString(NodeJsRuntimeContract.KEY_BRIDGE_ENGINE_INFO), null);
     }
 
     private static String preferredEngineInfoSource(
@@ -470,12 +470,12 @@ public class NodeJsRuntimePluginService extends Service {
                 && nonBlank(runtimeModuleSources.get(ENGINE_INFO_RUNTIME_MODULE_NAME), null) != null) {
             return "existing";
         }
-        if (nonBlank(request.getString(NodeJsRuntimeContract.KEY_BRIDGE_ENGINE_INFO), null) != null) {
-            return "request";
-        }
         if (hostBrokerInfo != null
                 && nonBlank(hostBrokerInfo.getString(NodeJsRuntimeContract.KEY_BRIDGE_ENGINE_INFO), null) != null) {
             return "host_broker";
+        }
+        if (nonBlank(request.getString(NodeJsRuntimeContract.KEY_BRIDGE_ENGINE_INFO), null) != null) {
+            return "request";
         }
         return "missing";
     }
