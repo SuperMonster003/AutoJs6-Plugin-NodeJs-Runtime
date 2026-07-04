@@ -105,3 +105,68 @@ tasks.register("verifyNodePluginResolverTool") {
         logger.lifecycle("Verified plugin Node resolver visualizer tool with package-exports fixture.")
     }
 }
+
+tasks.register("verifyNodePluginRuntimeBuildTool") {
+    group = "verification"
+    description = "Verifies the plugin-owned Node runtime build plan assets and checker."
+
+    val runtimeBuildDir = layout.projectDirectory.dir("tools/nodejs/runtime-build")
+    val toolFile = runtimeBuildDir.file("verify-runtime-build-plan.js")
+    val lockFile = runtimeBuildDir.file("runtime-build.lock.json")
+    val windowsBuildScript = runtimeBuildDir.file("build-node-runtime.ps1")
+    val unixBuildScript = runtimeBuildDir.file("build-node-runtime.sh")
+    val dockerFile = runtimeBuildDir.file("container/Dockerfile")
+    val reportDir = layout.buildDirectory.dir("reports/nodejs/runtime-build-tool")
+    val jsonReport = reportDir.map { it.file("runtime-build-plan.json") }
+
+    inputs.files(toolFile, lockFile, windowsBuildScript, unixBuildScript, dockerFile)
+    outputs.file(jsonReport)
+
+    doLast {
+        val tool = toolFile.asFile
+        val runtimeDir = runtimeBuildDir.asFile
+        listOf(tool, lockFile.asFile, windowsBuildScript.asFile, unixBuildScript.asFile, dockerFile.asFile).forEach { file ->
+            if (!file.isFile) {
+                throw GradleException("Missing Node runtime build asset: ${file.absolutePath}")
+            }
+        }
+        val reports = reportDir.get().asFile
+        reports.deleteRecursively()
+        val process = ProcessBuilder(
+            "node",
+            tool.absolutePath,
+            "--repo-root", rootProject.projectDir.absolutePath,
+            "--runtime-build-dir", runtimeDir.absolutePath,
+            "--lock-file", lockFile.asFile.absolutePath,
+            "--report-dir", reports.absolutePath,
+        )
+            .directory(rootProject.projectDir)
+            .redirectErrorStream(true)
+            .start()
+        val output = process.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+        val exitCode = process.waitFor()
+        if (exitCode != 0) {
+            throw GradleException("Node runtime build plan check failed with exit code $exitCode:\n$output")
+        }
+        val reportFile = jsonReport.get().asFile
+        if (!reportFile.isFile) {
+            throw GradleException("Node runtime build plan check did not write ${reportFile.absolutePath}")
+        }
+        val report = JsonSlurper().parse(reportFile) as? Map<*, *>
+            ?: throw GradleException("Expected JSON object in ${reportFile.absolutePath}.")
+        if (report["schema"] != "autojs6-node-runtime-build-plan-check-v1") {
+            throw GradleException("Unexpected Node runtime build plan schema: ${report["schema"]}")
+        }
+        val lockSummary = report["lockSummary"] as? Map<*, *>
+            ?: throw GradleException("Node runtime build plan report did not include lockSummary.")
+        if (lockSummary["targetVersion"] != "24.17.0") {
+            throw GradleException("Unexpected Node target version: ${lockSummary["targetVersion"]}")
+        }
+        val decision = report["decision"] as? Map<*, *>
+            ?: throw GradleException("Node runtime build plan report did not include decision.")
+        if (decision["status"] !in setOf("bootstrap_only", "ready")) {
+            throw GradleException("Unexpected Node runtime build plan decision: ${decision["status"]}")
+        }
+        logger.lifecycle("Verified plugin Node runtime build plan tool with decision ${decision["status"]}.")
+    }
+}
