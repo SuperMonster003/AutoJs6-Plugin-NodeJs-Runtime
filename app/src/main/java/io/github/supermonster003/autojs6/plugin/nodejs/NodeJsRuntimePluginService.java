@@ -9,6 +9,7 @@ import android.os.IBinder;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.util.DisplayMetrics;
 import android.util.Log;
 
 import org.autojs.autojs.engine.NativeNodeEmbeddedRuntimeBridge;
@@ -40,6 +41,8 @@ public class NodeJsRuntimePluginService extends Service {
     private static final String NATIVE_LIBRARY_NAME = "node";
     private static final String BRIDGE_LIBRARY_NAME = "autojs6-node";
     private static final String DEFAULT_SOURCE_NAME = "<plugin-node-script.js>";
+    private static final String HOST_APP_INFO_RUNTIME_MODULE_NAME = "autojs6:host-app-info";
+    private static final String DEVICE_INFO_RUNTIME_MODULE_NAME = "autojs6:device-info";
     private static final String ENGINE_INFO_RUNTIME_MODULE_NAME = "autojs6:engine-info";
     private static final String ERROR_BUSY = "ERR_AUTOJS6_NODE_PLUGIN_BUSY";
     private static final String ERROR_UNAVAILABLE = "ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE";
@@ -142,12 +145,12 @@ public class NodeJsRuntimePluginService extends Service {
             );
             hostBroker = hostBrokerFrom(request);
             Bundle hostBrokerInfo = hostBrokerInfo(hostBroker);
-            RuntimeModuleInjection engineInfoInjection = withEngineInfoRuntimeModule(
+            RuntimeModuleInjection runtimeModuleInjection = withPluginRuntimeModules(
                     runtimeModuleSources,
                     request,
                     hostBrokerInfo
             );
-            runtimeModuleSources = engineInfoInjection.sources;
+            runtimeModuleSources = runtimeModuleInjection.sources;
             if (hostBroker != null) {
                 liveBridgeSession = new PluginNodeBridgeFileTransportSession(
                         getCacheDir(),
@@ -184,7 +187,7 @@ public class NodeJsRuntimePluginService extends Service {
             String[] liveBridgePayload = liveBridgePayload(liveBridgeSession);
             String[] queuedBridgePayload = dispatchQueuedBridgeRequests(nativePayload, hostBroker);
             String[] hostBrokerDiagnosticsPayload = hostBrokerNativeDiagnosticsPayload(hostBroker);
-            String[] runtimeModulePayload = engineInfoInjection.nativePayload();
+            String[] runtimeModulePayload = runtimeModuleInjection.nativePayload();
             Bundle result = resultBundleFromNativePayload(
                     request,
                     sourceName,
@@ -312,7 +315,36 @@ public class NodeJsRuntimePluginService extends Service {
         return liveBridgeSession == null ? new String[0] : liveBridgeSession.nativePayload();
     }
 
-    private static RuntimeModuleInjection withEngineInfoRuntimeModule(
+    private RuntimeModuleInjection withPluginRuntimeModules(
+            Map<String, String> runtimeModuleSources,
+            Bundle request,
+            Bundle hostBrokerInfo
+    ) {
+        RuntimeModuleInjection injection = RuntimeModuleInjection.from(runtimeModuleSources);
+        String engineInfo = preferredEngineInfo(runtimeModuleSources, request, hostBrokerInfo);
+        injection = injection.withRuntimeModule(
+                "engine_info",
+                ENGINE_INFO_RUNTIME_MODULE_NAME,
+                engineInfo,
+                preferredEngineInfoSource(runtimeModuleSources, request, hostBrokerInfo)
+        );
+        String injectedEngineInfo = nonBlank(injection.sources.get(ENGINE_INFO_RUNTIME_MODULE_NAME), engineInfo);
+        injection = injection.withRuntimeModule(
+                "host_app_info",
+                HOST_APP_INFO_RUNTIME_MODULE_NAME,
+                hostAppInfoRuntimeModuleSource(injectedEngineInfo),
+                "bridge_engine_info"
+        );
+        injection = injection.withRuntimeModule(
+                "device_info",
+                DEVICE_INFO_RUNTIME_MODULE_NAME,
+                deviceInfoRuntimeModuleSource(),
+                "plugin_context"
+        );
+        return injection;
+    }
+
+    private static String preferredEngineInfo(
             Map<String, String> runtimeModuleSources,
             Bundle request,
             Bundle hostBrokerInfo
@@ -321,27 +353,100 @@ public class NodeJsRuntimePluginService extends Service {
                 ? null
                 : nonBlank(runtimeModuleSources.get(ENGINE_INFO_RUNTIME_MODULE_NAME), null);
         if (existing != null) {
-            return new RuntimeModuleInjection(runtimeModuleSources, "existing", true);
+            return existing;
         }
         String requestEngineInfo = nonBlank(request.getString(NodeJsRuntimeContract.KEY_BRIDGE_ENGINE_INFO), null);
         if (requestEngineInfo != null) {
-            return new RuntimeModuleInjection(
-                    withRuntimeModuleSource(runtimeModuleSources, ENGINE_INFO_RUNTIME_MODULE_NAME, requestEngineInfo),
-                    "request",
-                    true
-            );
+            return requestEngineInfo;
         }
-        String brokerEngineInfo = hostBrokerInfo == null
+        return hostBrokerInfo == null
                 ? null
                 : nonBlank(hostBrokerInfo.getString(NodeJsRuntimeContract.KEY_BRIDGE_ENGINE_INFO), null);
-        if (brokerEngineInfo != null) {
-            return new RuntimeModuleInjection(
-                    withRuntimeModuleSource(runtimeModuleSources, ENGINE_INFO_RUNTIME_MODULE_NAME, brokerEngineInfo),
-                    "host_broker",
-                    true
-            );
+    }
+
+    private static String preferredEngineInfoSource(
+            Map<String, String> runtimeModuleSources,
+            Bundle request,
+            Bundle hostBrokerInfo
+    ) {
+        if (runtimeModuleSources != null
+                && nonBlank(runtimeModuleSources.get(ENGINE_INFO_RUNTIME_MODULE_NAME), null) != null) {
+            return "existing";
         }
-        return new RuntimeModuleInjection(runtimeModuleSources, "missing", false);
+        if (nonBlank(request.getString(NodeJsRuntimeContract.KEY_BRIDGE_ENGINE_INFO), null) != null) {
+            return "request";
+        }
+        if (hostBrokerInfo != null
+                && nonBlank(hostBrokerInfo.getString(NodeJsRuntimeContract.KEY_BRIDGE_ENGINE_INFO), null) != null) {
+            return "host_broker";
+        }
+        return "missing";
+    }
+
+    private static String hostAppInfoRuntimeModuleSource(String engineInfoJson) {
+        JSONObject engineInfo = parseJsonObject(engineInfoJson);
+        if (engineInfo == null) {
+            return null;
+        }
+        try {
+            return new JSONObject()
+                    .put("packageName", stringJsonValue(engineInfo, "packageName", ""))
+                    .put("versionName", stringJsonValue(engineInfo, "versionName", ""))
+                    .put("versionCode", longJsonValue(engineInfo, "versionCode", 0L))
+                    .toString();
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private String deviceInfoRuntimeModuleSource() {
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        double density = metrics == null || !Double.isFinite(metrics.density) || metrics.density <= 0.0f
+                ? 1.0d
+                : metrics.density;
+        try {
+            return new JSONObject()
+                    .put("sdkInt", Build.VERSION.SDK_INT)
+                    .put("width", metrics == null ? 0 : Math.max(0, metrics.widthPixels))
+                    .put("height", metrics == null ? 0 : Math.max(0, metrics.heightPixels))
+                    .put("density", density)
+                    .toString();
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static JSONObject parseJsonObject(String json) {
+        if (json == null || json.isEmpty()) {
+            return null;
+        }
+        try {
+            return new JSONObject(json);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static String stringJsonValue(JSONObject json, String key, String fallback) {
+        if (json == null || !json.has(key) || json.isNull(key)) {
+            return fallback;
+        }
+        return String.valueOf(json.opt(key));
+    }
+
+    private static long longJsonValue(JSONObject json, String key, long fallback) {
+        if (json == null || !json.has(key) || json.isNull(key)) {
+            return fallback;
+        }
+        Object value = json.opt(key);
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
     }
 
     private String[] hostBrokerNativeDiagnosticsPayload(INodeJsHostCapabilityBroker hostBroker) {
@@ -709,30 +814,59 @@ public class NodeJsRuntimePluginService extends Service {
 
     private static final class RuntimeModuleInjection {
         final Map<String, String> sources;
-        final String engineInfoSource;
-        final boolean engineInfoPresent;
+        final LinkedHashMap<String, String> diagnostics;
 
-        RuntimeModuleInjection(
-                Map<String, String> sources,
-                String engineInfoSource,
-                boolean engineInfoPresent
-        ) {
+        private RuntimeModuleInjection(Map<String, String> sources, LinkedHashMap<String, String> diagnostics) {
             this.sources = sources == null ? Collections.emptyMap() : sources;
-            this.engineInfoSource = engineInfoSource;
-            this.engineInfoPresent = engineInfoPresent;
+            this.diagnostics = diagnostics == null ? new LinkedHashMap<>() : diagnostics;
+        }
+
+        static RuntimeModuleInjection from(Map<String, String> sources) {
+            return new RuntimeModuleInjection(sources, new LinkedHashMap<>());
+        }
+
+        RuntimeModuleInjection withRuntimeModule(
+                String diagnosticName,
+                String moduleName,
+                String source,
+                String sourceLabel
+        ) {
+            String existing = nonBlank(sources.get(moduleName), null);
+            LinkedHashMap<String, String> nextDiagnostics = new LinkedHashMap<>(diagnostics);
+            if (existing != null) {
+                putDiagnostics(nextDiagnostics, diagnosticName, true, "existing");
+                return new RuntimeModuleInjection(sources, nextDiagnostics);
+            }
+            String normalizedSource = nonBlank(source, null);
+            if (normalizedSource == null) {
+                putDiagnostics(nextDiagnostics, diagnosticName, false, "missing");
+                return new RuntimeModuleInjection(sources, nextDiagnostics);
+            }
+            putDiagnostics(nextDiagnostics, diagnosticName, true, nonBlank(sourceLabel, "plugin"));
+            return new RuntimeModuleInjection(
+                    withRuntimeModuleSource(sources, moduleName, normalizedSource),
+                    nextDiagnostics
+            );
         }
 
         String[] nativePayload() {
-            LinkedHashMap<String, String> values = new LinkedHashMap<>();
+            return nativePayloadFromMap(diagnostics);
+        }
+
+        private static void putDiagnostics(
+                LinkedHashMap<String, String> values,
+                String name,
+                boolean present,
+                String source
+        ) {
             values.put(
-                    "embedded_script.runtime_plugin.runtime_module.engine_info_present",
-                    Boolean.toString(engineInfoPresent)
+                    "embedded_script.runtime_plugin.runtime_module." + name + "_present",
+                    Boolean.toString(present)
             );
             values.put(
-                    "embedded_script.runtime_plugin.runtime_module.engine_info_source",
-                    engineInfoSource == null ? "missing" : engineInfoSource
+                    "embedded_script.runtime_plugin.runtime_module." + name + "_source",
+                    source == null ? "missing" : source
             );
-            return nativePayloadFromMap(values);
         }
     }
 
