@@ -13,6 +13,7 @@ val globalApplicationId = "io.github.supermonster003.autojs6.plugin.nodejs"
 
 val buildTypeDebug = "debug"
 val buildTypeRelease = "release"
+val nodeJsNetworkExperimentalEnabled = providers.gradleProperty("autojs.nodejs.network.experimental").orElse("false").get()
 
 android {
 
@@ -32,6 +33,7 @@ android {
         multiDexKeepProguard = file("multidex-keep.pro")
 
         buildConfigField("String", "VERSION_DATE", "\"${utils.getDateString("MMM d, yyyy", "GMT+08:00")}\"")
+        buildConfigField("boolean", "NODEJS_NETWORK_EXPERIMENTAL_ENABLED", nodeJsNetworkExperimentalEnabled)
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")

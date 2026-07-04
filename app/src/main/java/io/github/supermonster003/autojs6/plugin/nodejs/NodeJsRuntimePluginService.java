@@ -161,7 +161,8 @@ public class NodeJsRuntimePluginService extends Service {
                     runtimeModuleSources,
                     request,
                     hostBrokerInfo,
-                    workingDirectory
+                    workingDirectory,
+                    sandboxRoot
             );
             runtimeModuleSources = runtimeModuleInjection.sources;
             if (hostBroker != null) {
@@ -332,7 +333,8 @@ public class NodeJsRuntimePluginService extends Service {
             Map<String, String> runtimeModuleSources,
             Bundle request,
             Bundle hostBrokerInfo,
-            String workingDirectory
+            String workingDirectory,
+            String sandboxRoot
     ) {
         RuntimeModuleInjection injection = RuntimeModuleInjection.from(runtimeModuleSources);
         String engineInfo = preferredEngineInfo(runtimeModuleSources, request, hostBrokerInfo);
@@ -354,6 +356,16 @@ public class NodeJsRuntimePluginService extends Service {
                 DEVICE_INFO_RUNTIME_MODULE_NAME,
                 deviceInfoRuntimeModuleSource(),
                 "plugin_context"
+        );
+        injection = injection.withRuntimeModule(
+                "bridge_permissions",
+                NodeBridgePermissionManifest.RUNTIME_MODULE_NAME,
+                NodeBridgePermissionManifest.INSTANCE.runtimeModuleSourceForWorkingDirectory(
+                        workingDirectory,
+                        sandboxRoot,
+                        BuildConfig.NODEJS_NETWORK_EXPERIMENTAL_ENABLED
+                ),
+                "working_directory"
         );
         injection = injection.withRuntimeModule(
                 "bridge_limits",
