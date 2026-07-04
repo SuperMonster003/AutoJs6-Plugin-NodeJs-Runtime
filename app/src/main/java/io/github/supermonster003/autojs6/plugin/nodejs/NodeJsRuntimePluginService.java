@@ -98,6 +98,7 @@ public class NodeJsRuntimePluginService extends Service {
 
     private Bundle runScriptLocked(Bundle request, INodeJsRuntimeCallback callback) {
         long startedAt = SystemClock.elapsedRealtime();
+        INodeJsHostCapabilityBroker hostBroker = null;
         notifyEvent(callback, NodeJsRuntimeContract.EVENT_STARTED, null, null);
         try {
             loadNativeRuntime();
@@ -137,7 +138,7 @@ public class NodeJsRuntimePluginService extends Service {
                     request.getStringArray(NodeJsRuntimeContract.KEY_ENV_NAMES),
                     request.getStringArray(NodeJsRuntimeContract.KEY_ENV_VALUES)
             );
-            INodeJsHostCapabilityBroker hostBroker = hostBrokerFrom(request);
+            hostBroker = hostBrokerFrom(request);
             Bundle hostBrokerInfo = hostBrokerInfo(hostBroker);
 
             String[] nativePayload = NativeNodeEmbeddedRuntimeBridge.runEmbeddedScript(
@@ -178,6 +179,8 @@ public class NodeJsRuntimePluginService extends Service {
             notifyOutput(callback, failure);
             notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
             return failure;
+        } finally {
+            destroyHostBroker(hostBroker, "Node.js runtime plugin execution finished.");
         }
     }
 
@@ -221,6 +224,19 @@ public class NodeJsRuntimePluginService extends Service {
         } catch (RemoteException e) {
             Log.w(TAG, "Host capability broker info request failed.", e);
             return null;
+        }
+    }
+
+    private void destroyHostBroker(INodeJsHostCapabilityBroker hostBroker, String message) {
+        if (hostBroker == null) {
+            return;
+        }
+        Bundle reason = new Bundle();
+        reason.putString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, message);
+        try {
+            hostBroker.destroy(reason);
+        } catch (RemoteException e) {
+            Log.w(TAG, "Host capability broker destroy request failed.", e);
         }
     }
 
