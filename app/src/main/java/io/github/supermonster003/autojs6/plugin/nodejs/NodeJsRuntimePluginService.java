@@ -174,15 +174,21 @@ public class NodeJsRuntimePluginService extends Service {
             if (liveBridgeSession != null) {
                 liveBridgeSession.stop();
             }
+            String[] liveBridgePayload = liveBridgePayload(liveBridgeSession);
+            String[] queuedBridgePayload = dispatchQueuedBridgeRequests(nativePayload, hostBroker);
+            String[] hostBrokerDiagnosticsPayload = hostBrokerNativeDiagnosticsPayload(hostBroker);
             Bundle result = resultBundleFromNativePayload(
                     request,
                     sourceName,
                     appendNativePayload(
                             appendNativePayload(
-                                    appendNativePayload(nativePayload, liveBridgePayload(liveBridgeSession)),
-                                    hostBrokerPayload(hostBroker, hostBrokerInfo)
+                                    appendNativePayload(
+                                            appendNativePayload(nativePayload, liveBridgePayload),
+                                            hostBrokerPayload(hostBroker, hostBrokerInfo)
+                                    ),
+                                    queuedBridgePayload
                             ),
-                            dispatchQueuedBridgeRequests(nativePayload, hostBroker)
+                            hostBrokerDiagnosticsPayload
                     ),
                     startedAt
             );
@@ -293,6 +299,29 @@ public class NodeJsRuntimePluginService extends Service {
 
     private static String[] liveBridgePayload(PluginNodeBridgeFileTransportSession liveBridgeSession) {
         return liveBridgeSession == null ? new String[0] : liveBridgeSession.nativePayload();
+    }
+
+    private String[] hostBrokerNativeDiagnosticsPayload(INodeJsHostCapabilityBroker hostBroker) {
+        LinkedHashMap<String, String> values = new LinkedHashMap<>();
+        if (hostBroker == null) {
+            values.put("embedded_script.runtime_plugin.host_broker.diagnostics_available", "false");
+            values.put("embedded_script.runtime_plugin.host_broker.diagnostics_status", "missing_broker");
+            return nativePayloadFromMap(values);
+        }
+        try {
+            Bundle diagnostics = hostBroker.getNativeDiagnostics();
+            String[] nativePayload = diagnostics == null
+                    ? null
+                    : diagnostics.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD);
+            values.put("embedded_script.runtime_plugin.host_broker.diagnostics_available", "true");
+            values.put("embedded_script.runtime_plugin.host_broker.diagnostics_status", "ok");
+            return appendNativePayload(nativePayloadFromMap(values), nativePayload);
+        } catch (RemoteException e) {
+            values.put("embedded_script.runtime_plugin.host_broker.diagnostics_available", "false");
+            values.put("embedded_script.runtime_plugin.host_broker.diagnostics_status", "remote_error");
+            values.put("embedded_script.runtime_plugin.host_broker.diagnostics_error", messageOf(e));
+            return nativePayloadFromMap(values);
+        }
     }
 
     private String[] dispatchQueuedBridgeRequests(String[] nativePayload, INodeJsHostCapabilityBroker hostBroker) {
