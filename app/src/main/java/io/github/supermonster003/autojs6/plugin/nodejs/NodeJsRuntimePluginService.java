@@ -307,6 +307,9 @@ public class NodeJsRuntimePluginService extends Service {
         LinkedHashMap<String, String> values = new LinkedHashMap<>();
         values.put("embedded_script.runtime_plugin.host_broker.received", Boolean.toString(hostBroker != null));
         values.put("embedded_script.runtime_plugin.host_broker.info_available", Boolean.toString(hostBrokerInfo != null));
+        values.put("embedded_script.runtime_plugin.host_broker.enabled", Boolean.toString(hostBroker != null));
+        values.put("embedded_script.runtime_plugin.host_broker.destroyed", "false");
+        values.put("embedded_script.runtime_plugin.host_broker.diagnostics_source", "plugin");
         if (hostBrokerInfo != null) {
             values.put(
                     "embedded_script.runtime_plugin.host_broker.id",
