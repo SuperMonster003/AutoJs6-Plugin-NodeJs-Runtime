@@ -12,6 +12,7 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import org.autojs.autojs.engine.NativeNodeEmbeddedRuntimeBridge;
+import org.autojs.plugin.nodejs.api.INodeJsHostCapabilityBroker;
 import org.autojs.plugin.nodejs.api.INodeJsRuntimeCallback;
 import org.autojs.plugin.nodejs.api.INodeJsRuntimePlugin;
 import org.autojs.plugin.nodejs.api.NodeJsPluginIds;
@@ -123,6 +124,8 @@ public class NodeJsRuntimePluginService extends Service {
                     request.getStringArray(NodeJsRuntimeContract.KEY_ENV_NAMES),
                     request.getStringArray(NodeJsRuntimeContract.KEY_ENV_VALUES)
             );
+            INodeJsHostCapabilityBroker hostBroker = hostBrokerFrom(request);
+            Bundle hostBrokerInfo = hostBrokerInfo(hostBroker);
 
             String[] nativePayload = NativeNodeEmbeddedRuntimeBridge.runEmbeddedScript(
                     source,
@@ -139,7 +142,12 @@ public class NodeJsRuntimePluginService extends Service {
                     request.getBoolean(NodeJsRuntimeContract.KEY_CHILD_PROCESS_EXPERIMENTAL_ENABLED, false),
                     request.getBoolean(NodeJsRuntimeContract.KEY_JAVA_INTEROP_EXPERIMENTAL_ENABLED, false)
             );
-            Bundle result = resultBundleFromNativePayload(request, sourceName, nativePayload, startedAt);
+            Bundle result = resultBundleFromNativePayload(
+                    request,
+                    sourceName,
+                    appendNativePayload(nativePayload, hostBrokerPayload(hostBroker, hostBrokerInfo)),
+                    startedAt
+            );
             notifyOutput(callback, result);
             notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
             return result;
@@ -168,6 +176,7 @@ public class NodeJsRuntimePluginService extends Service {
                 NodeJsRuntimeContract.CAPABILITY_SYNC_SCRIPT_EXECUTION,
                 NodeJsRuntimeContract.CAPABILITY_BUNDLE_TRANSPORT,
                 NodeJsRuntimeContract.CAPABILITY_NATIVE_EMBEDDED_RUNTIME,
+                NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_BROKER,
         });
         return info;
     }
@@ -180,6 +189,71 @@ public class NodeJsRuntimePluginService extends Service {
         }
         System.loadLibrary(NATIVE_LIBRARY_NAME);
         System.loadLibrary(BRIDGE_LIBRARY_NAME);
+    }
+
+    private INodeJsHostCapabilityBroker hostBrokerFrom(Bundle request) {
+        IBinder binder = request.getBinder(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_BROKER);
+        return binder == null ? null : INodeJsHostCapabilityBroker.Stub.asInterface(binder);
+    }
+
+    private Bundle hostBrokerInfo(INodeJsHostCapabilityBroker hostBroker) {
+        if (hostBroker == null) {
+            return null;
+        }
+        try {
+            return hostBroker.getBrokerInfo();
+        } catch (RemoteException e) {
+            Log.w(TAG, "Host capability broker info request failed.", e);
+            return null;
+        }
+    }
+
+    private String[] hostBrokerPayload(INodeJsHostCapabilityBroker hostBroker, Bundle hostBrokerInfo) {
+        LinkedHashMap<String, String> values = new LinkedHashMap<>();
+        values.put("embedded_script.runtime_plugin.host_broker.received", Boolean.toString(hostBroker != null));
+        values.put("embedded_script.runtime_plugin.host_broker.info_available", Boolean.toString(hostBrokerInfo != null));
+        if (hostBrokerInfo != null) {
+            values.put(
+                    "embedded_script.runtime_plugin.host_broker.id",
+                    nonBlank(hostBrokerInfo.getString(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_BROKER_ID), "")
+            );
+            values.put(
+                    "embedded_script.runtime_plugin.host_broker.contract_version",
+                    Integer.toString(hostBrokerInfo.getInt(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_BROKER_VERSION, 0))
+            );
+            String[] modules = hostBrokerInfo.getStringArray(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_MODULES);
+            values.put(
+                    "embedded_script.runtime_plugin.host_broker.module_count",
+                    Integer.toString(modules == null ? 0 : modules.length)
+            );
+            values.put(
+                    "embedded_script.runtime_plugin.host_broker.engine_info_present",
+                    Boolean.toString(nonBlank(hostBrokerInfo.getString(NodeJsRuntimeContract.KEY_BRIDGE_ENGINE_INFO), null) != null)
+            );
+        }
+        return nativePayloadFromMap(values);
+    }
+
+    private static String[] appendNativePayload(String[] base, String[] extra) {
+        int baseLength = base == null ? 0 : base.length;
+        int extraLength = extra == null ? 0 : extra.length;
+        String[] result = new String[baseLength + extraLength];
+        if (baseLength > 0) {
+            System.arraycopy(base, 0, result, 0, baseLength);
+        }
+        if (extraLength > 0) {
+            System.arraycopy(extra, 0, result, baseLength, extraLength);
+        }
+        return result;
+    }
+
+    private static String[] nativePayloadFromMap(Map<String, String> values) {
+        String[] payload = new String[values.size()];
+        int index = 0;
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            payload[index++] = entry.getKey() + "=" + (entry.getValue() == null ? "" : entry.getValue());
+        }
+        return payload;
     }
 
     private Bundle resultBundleFromNativePayload(
