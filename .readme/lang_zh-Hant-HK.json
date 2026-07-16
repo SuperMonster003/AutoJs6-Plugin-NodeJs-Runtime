@@ -1,0 +1,40 @@
+{
+  "$name": "繁體中文 (香港)",
+  "text_current_lowercase": "目前",
+  "text_plugin_synopsis": "用於 AutoJs6 的 Node.js 24.5.0 原生運行時插件",
+  "h3_languages_with_ascii": "語言 (Languages)",
+  "p_languages_all_supported_for_readme": "目前 README.md 支援以下語言",
+  "h3_introduction": "簡介",
+  "p_introduction": "AutoJs6 Node.js Runtime 插件為 AutoJs6 提供內嵌 Node.js 24.5.0 原生運行時, 用於執行 Node.js 腳本和插件化運行時任務.",
+  "h3_functions": "功能",
+  "features": [
+    "提供 `nodejs` 插件服務, 插件 ID 為 `nodejs`, 引擎為 `nodejs`.",
+    "通過 `org.autojs.plugin.nodejs.RUNTIME` 為宿主提供同步腳本執行和運行時預熱.",
+    "支援 CommonJS/ESM 源碼, 模組源碼, 工作目錄, 沙盒根目錄, 環境變數, stdout/stderr 結果回傳.",
+    "提供宿主能力代理與 live bridge, 可注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等運行時模組.",
+    "附帶 `sample/nodejs` 示例項目, Node 解析診斷工具和運行時構建計劃校驗工具.",
+    "插件資訊, 使用說明, README 與 CHANGELOG 均支援西班牙語/法語/俄語/阿拉伯語/日語/韓語/英語/簡體中文/香港繁體/台灣繁體."
+  ],
+  "h3_usage": "使用示例",
+  "p_usage_note": "將插件安裝並在 AutoJs6 插件中心啟用後, 以 `\"nodejs\";` 指令啟動 Node.js 腳本. 更多示例位於 `sample/nodejs`.",
+  "h3_runtime_profile": "運行時資料",
+  "runtime_capabilities": [
+    "運行時槽位: `node24_5`.",
+    "插件 ID: `nodejs`, 引擎: `nodejs`.",
+    "運行時服務動作: `org.autojs.plugin.nodejs.RUNTIME`.",
+    "原生運行庫: `libnode.so` 和 `libautojs6-node.so`.",
+    "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.",
+    "能力: 同步腳本執行, bundle transport, 原生內嵌運行時, 宿主能力代理, host capability live bridge."
+  ],
+  "h3_release_history": "發行歷史",
+  "h5_for_more_release_history": "更多發行歷史可參閱",
+  "h3_build": "構建",
+  "text_release_build": "Release 構建",
+  "p_build_params": "構建參數來自 `version.properties`, 目前最低 SDK 為 24, 目標 SDK 為 36",
+  "h3_resource_layout": "資源結構",
+  "p_resource_layout": "`strings.xml` 提供插件描述本地化; `plugin_instruction.md` 提供宿主側展示的插件使用說明. README 與 CHANGELOG 由 `.python/generate_markdown.py` 根據 JSON 源文件生成",
+  "h3_links": "相關連結",
+  "text_link_autojs6_docs": "AutoJs6 文件",
+  "text_link_nodejs_official": "Node.js 官方項目",
+  "text_link_runtime_build_plan": "Node.js 運行時構建計劃"
+}

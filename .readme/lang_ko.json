@@ -1,0 +1,40 @@
+{
+  "$name": "한국어",
+  "text_current_lowercase": "현재",
+  "text_plugin_synopsis": "AutoJs6 용 Node.js 24.5.0 네이티브 런타임 플러그인",
+  "h3_languages_with_ascii": "언어 (Languages)",
+  "p_languages_all_supported_for_readme": "현재 README.md 는 다음 언어를 지원합니다",
+  "h3_introduction": "소개",
+  "p_introduction": "AutoJs6 Node.js Runtime 플러그인은 AutoJs6 에 내장 Node.js 24.5.0 네이티브 런타임을 제공하여 Node.js 스크립트와 플러그인 런타임 작업을 실행합니다.",
+  "h3_functions": "기능",
+  "features": [
+    "`nodejs` 플러그인 서비스를 제공하며 플러그인 ID 는 `nodejs`, 엔진은 `nodejs` 입니다.",
+    "`org.autojs.plugin.nodejs.RUNTIME` 를 통해 동기 스크립트 실행과 런타임 프리웜을 호스트에 제공합니다.",
+    "CommonJS/ESM 소스, 모듈 소스, 작업 디렉터리, 샌드박스 루트, 환경 변수, stdout/stderr 결과 페이로드를 지원합니다.",
+    "호스트 기능 브로커와 live bridge 를 제공하며 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 같은 런타임 모듈을 주입할 수 있습니다.",
+    "`sample/nodejs` 프로젝트, Node resolver 진단 도구, 런타임 빌드 계획 검증 도구를 포함합니다.",
+    "플러그인 정보, 사용 설명, README, CHANGELOG 는 스페인어/프랑스어/러시아어/아랍어/일본어/한국어/영어/간체 중국어/홍콩 번체/대만 번체를 지원합니다."
+  ],
+  "h3_usage": "사용 예",
+  "p_usage_note": "AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 `\"nodejs\";` 지시문으로 Node.js 스크립트를 시작합니다. 더 많은 예제는 `sample/nodejs` 에 있습니다.",
+  "h3_runtime_profile": "런타임 프로필",
+  "runtime_capabilities": [
+    "런타임 슬롯: `node24_5`.",
+    "플러그인 ID: `nodejs`, 엔진: `nodejs`.",
+    "런타임 서비스 액션: `org.autojs.plugin.nodejs.RUNTIME`.",
+    "네이티브 런타임 라이브러리: `libnode.so` 및 `libautojs6-node.so`.",
+    "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 그리고 `universal`.",
+    "기능: 동기 스크립트 실행, bundle transport, 네이티브 내장 런타임, 호스트 기능 브로커, host capability live bridge."
+  ],
+  "h3_release_history": "릴리스 기록",
+  "h5_for_more_release_history": "더 많은 릴리스 기록",
+  "h3_build": "빌드",
+  "text_release_build": "Release 빌드",
+  "p_build_params": "빌드 매개변수는 `version.properties` 에서 가져오며 현재 최소 SDK 는 24, 대상 SDK 는 36 입니다",
+  "h3_resource_layout": "리소스 구조",
+  "p_resource_layout": "`strings.xml` 은 현지화된 플러그인 설명을 제공합니다; `plugin_instruction.md` 는 호스트에 표시되는 사용 설명을 제공합니다. README 와 CHANGELOG 는 `.python/generate_markdown.py` 가 JSON 소스에서 생성합니다",
+  "h3_links": "관련 링크",
+  "text_link_autojs6_docs": "AutoJs6 문서",
+  "text_link_nodejs_official": "Node.js 공식 프로젝트",
+  "text_link_runtime_build_plan": "Node.js 런타임 빌드 계획"
+}

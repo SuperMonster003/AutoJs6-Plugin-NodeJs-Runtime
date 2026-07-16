@@ -1,0 +1,40 @@
+{
+  "$name": "العربية",
+  "text_current_lowercase": "الحالي",
+  "text_plugin_synopsis": "ملحق تشغيل Node.js 24.5.0 الاصلي ل AutoJs6",
+  "h3_languages_with_ascii": "اللغات",
+  "p_languages_all_supported_for_readme": "يدعم README.md الحالي اللغات التالية",
+  "h3_introduction": "مقدمة",
+  "p_introduction": "يوفر ملحق AutoJs6 Node.js Runtime بيئة تشغيل Node.js 24.5.0 اصلية مدمجة ل AutoJs6 من اجل سكربتات Node.js ومهام تشغيل الملحقات.",
+  "h3_functions": "الميزات",
+  "features": [
+    "يوفر خدمة الملحق `nodejs` مع معرف الملحق `nodejs` والمحرك `nodejs`.",
+    "يعرض تنفيذ السكربتات المتزامن وتسخين بيئة التشغيل للمضيف عبر `org.autojs.plugin.nodejs.RUNTIME`.",
+    "يدعم مصدر CommonJS/ESM, مصادر الوحدات, دليل العمل, جذر sandbox, متغيرات البيئة, ونتائج stdout/stderr.",
+    "يوفر وسيط قدرات المضيف و live bridge مع وحدات تشغيل مثل `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, و `autojs6:bridge-permissions`.",
+    "يتضمن مشاريع `sample/nodejs`, اداة تشخيص Node resolver, وادوات التحقق من خطة بناء بيئة التشغيل.",
+    "بيانات الملحق, تعليمات الاستخدام, README, و CHANGELOG مترجمة للاسبانية/الفرنسية/الروسية/العربية/اليابانية/الكورية/الانجليزية/الصينية المبسطة/الصينية التقليدية لهونغ كونغ/الصينية التقليدية لتايوان."
+  ],
+  "h3_usage": "الاستخدام",
+  "p_usage_note": "ثبت الملحق وفعله في مركز ملحقات AutoJs6, ثم ابدأ سكربتات Node.js بالتوجيه `\"nodejs\";`. تتوفر امثلة اضافية في `sample/nodejs`.",
+  "h3_runtime_profile": "ملف بيئة التشغيل",
+  "runtime_capabilities": [
+    "فتحة بيئة التشغيل: `node24_5`.",
+    "معرف الملحق: `nodejs`, المحرك: `nodejs`.",
+    "اجراء خدمة بيئة التشغيل: `org.autojs.plugin.nodejs.RUNTIME`.",
+    "مكتبات بيئة التشغيل الاصلية: `libnode.so` و `libautojs6-node.so`.",
+    "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, و `universal`.",
+    "القدرات: تنفيذ سكربت متزامن, bundle transport, بيئة تشغيل اصلية مدمجة, وسيط قدرات المضيف, host capability live bridge."
+  ],
+  "h3_release_history": "سجل الاصدارات",
+  "h5_for_more_release_history": "لمزيد من سجل الاصدارات",
+  "h3_build": "البناء",
+  "text_release_build": "بناء Release",
+  "p_build_params": "تاتي معاملات البناء من `version.properties`, الحد الادنى الحالي ل SDK هو 24 والهدف SDK هو 36",
+  "h3_resource_layout": "بنية الموارد",
+  "p_resource_layout": "يحتوي `strings.xml` على اوصاف الملحق المترجمة; يحتوي `plugin_instruction.md` على تعليمات الاستخدام التي يعرضها المضيف. يتم توليد README و CHANGELOG من مصادر JSON بواسطة `.python/generate_markdown.py`",
+  "h3_links": "روابط",
+  "text_link_autojs6_docs": "وثائق AutoJs6",
+  "text_link_nodejs_official": "مشروع Node.js الرسمي",
+  "text_link_runtime_build_plan": "خطة بناء بيئة تشغيل Node.js"
+}
