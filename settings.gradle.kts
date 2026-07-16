@@ -1,6 +1,6 @@
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-rootProject.name = "autojs6-plugin-nodejs"
+rootProject.name = "autojs6-plugin-nodejs-runtime"
 
 includeBuild("build-logic")
 
