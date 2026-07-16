@@ -171,7 +171,7 @@ tasks {
         from(src); into(dst); include("*.$ext")
 
         rename { name ->
-            val abi = name.replace(Regex("^app-(.+?)-$src(\\.$ext)$"), "$1")
+            val abi = name.replace(Regex("^(?:.+?)-v${versions.appVersionName}-(.+?)(\\.$ext)$"), "$1")
             val releasedFileNamePrefix = "${rootProject.name}-v${versions.appVersionName}-$abi"
             utils.digestCRC32(file("${src}/$name")).let { digest ->
                 "$releasedFileNamePrefix-$digest.$ext"
