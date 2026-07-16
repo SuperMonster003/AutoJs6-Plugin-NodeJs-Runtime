@@ -1,0 +1,40 @@
+{
+  "$name": "简体中文",
+  "text_current_lowercase": "当前",
+  "text_plugin_synopsis": "用于 AutoJs6 的 Node.js 24.5.0 原生运行时插件",
+  "h3_languages_with_ascii": "语言 (Languages)",
+  "p_languages_all_supported_for_readme": "当前 README.md 支持以下语言",
+  "h3_introduction": "简介",
+  "p_introduction": "AutoJs6 Node.js Runtime 插件为 AutoJs6 提供内嵌 Node.js 24.5.0 原生运行时, 用于执行 Node.js 脚本和插件化运行时任务.",
+  "h3_functions": "功能",
+  "features": [
+    "提供 `nodejs` 插件服务, 插件 ID 为 `nodejs`, 引擎为 `nodejs`.",
+    "通过 `org.autojs.plugin.nodejs.RUNTIME` 为宿主提供同步脚本执行和运行时预热.",
+    "支持 CommonJS/ESM 源码, 模块源码, 工作目录, 沙盒根目录, 环境变量, stdout/stderr 结果回传.",
+    "提供宿主能力代理与 live bridge, 可注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等运行时模块.",
+    "附带 `sample/nodejs` 示例项目, Node 解析诊断工具和运行时构建计划校验工具.",
+    "插件信息, 使用说明, README 与 CHANGELOG 均支持西班牙语/法语/俄语/阿拉伯语/日语/韩语/英语/简体中文/香港繁体/台湾繁体."
+  ],
+  "h3_usage": "使用示例",
+  "p_usage_note": "将插件安装并在 AutoJs6 插件中心启用后, 以 `\"nodejs\";` 指令启动 Node.js 脚本. 更多示例位于 `sample/nodejs`.",
+  "h3_runtime_profile": "运行时资料",
+  "runtime_capabilities": [
+    "运行时槽位: `node24_5`.",
+    "插件 ID: `nodejs`, 引擎: `nodejs`.",
+    "运行时服务动作: `org.autojs.plugin.nodejs.RUNTIME`.",
+    "原生运行库: `libnode.so` 和 `libautojs6-node.so`.",
+    "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.",
+    "能力: 同步脚本执行, bundle transport, 原生内嵌运行时, 宿主能力代理, host capability live bridge."
+  ],
+  "h3_release_history": "发行历史",
+  "h5_for_more_release_history": "更多发行历史可参阅",
+  "h3_build": "构建",
+  "text_release_build": "Release 构建",
+  "p_build_params": "构建参数来自 `version.properties`, 当前最低 SDK 为 24, 目标 SDK 为 36",
+  "h3_resource_layout": "资源结构",
+  "p_resource_layout": "`strings.xml` 提供插件描述本地化; `plugin_instruction.md` 提供宿主侧展示的插件使用说明. README 与 CHANGELOG 由 `.python/generate_markdown.py` 根据 JSON 源文件生成",
+  "h3_links": "相关链接",
+  "text_link_autojs6_docs": "AutoJs6 文档",
+  "text_link_nodejs_official": "Node.js 官方项目",
+  "text_link_runtime_build_plan": "Node.js 运行时构建计划"
+}

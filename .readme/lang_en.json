@@ -1,0 +1,40 @@
+{
+  "$name": "English",
+  "text_current_lowercase": "current",
+  "text_plugin_synopsis": "Node.js 24.5.0 native runtime plugin for AutoJs6",
+  "h3_languages_with_ascii": "Languages",
+  "p_languages_all_supported_for_readme": "The current README.md supports the following languages",
+  "h3_introduction": "Introduction",
+  "p_introduction": "The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.5.0 native runtime for AutoJs6 scripts and plugin runtime tasks.",
+  "h3_functions": "Features",
+  "features": [
+    "Provides the `nodejs` plugin service with plugin ID `nodejs` and engine `nodejs`.",
+    "Exposes synchronous script execution and runtime prewarm to the host through `org.autojs.plugin.nodejs.RUNTIME`.",
+    "Supports CommonJS/ESM source, module sources, working directory, sandbox root, environment variables, and stdout/stderr result payloads.",
+    "Provides host capability broker and live bridge support with runtime modules such as `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, and `autojs6:bridge-permissions`.",
+    "Includes `sample/nodejs` projects, a Node resolver diagnostic tool, and runtime build plan verification tools.",
+    "Plugin metadata, usage instructions, README, and CHANGELOG are localized for Spanish, French, Russian, Arabic, Japanese, Korean, English, Simplified Chinese, Hong Kong Traditional Chinese, and Taiwan Traditional Chinese."
+  ],
+  "h3_usage": "Usage",
+  "p_usage_note": "Install and enable the plugin in the AutoJs6 plugin center, then start Node.js scripts with the `\"nodejs\";` directive. More examples are available in `sample/nodejs`.",
+  "h3_runtime_profile": "Runtime Profile",
+  "runtime_capabilities": [
+    "Runtime slot: `node24_5`.",
+    "Plugin ID: `nodejs`, engine: `nodejs`.",
+    "Runtime service action: `org.autojs.plugin.nodejs.RUNTIME`.",
+    "Native runtime libraries: `libnode.so` and `libautojs6-node.so`.",
+    "ABIs: `arm64-v8a`, `armeabi-v7a`, `x86_64`, and `universal`.",
+    "Capabilities: sync script execution, bundle transport, native embedded runtime, host capability broker, host capability live bridge."
+  ],
+  "h3_release_history": "Release History",
+  "h5_for_more_release_history": "For more release history",
+  "h3_build": "Build",
+  "text_release_build": "Release build",
+  "p_build_params": "Build parameters come from `version.properties`, the current minimum SDK is 24 and target SDK is 36",
+  "h3_resource_layout": "Resource Layout",
+  "p_resource_layout": "`strings.xml` contains localized plugin descriptions; `plugin_instruction.md` contains usage instructions displayed by the host. README and CHANGELOG files are generated from JSON sources by `.python/generate_markdown.py`",
+  "h3_links": "Links",
+  "text_link_autojs6_docs": "AutoJs6 documentation",
+  "text_link_nodejs_official": "Node.js official project",
+  "text_link_runtime_build_plan": "Node.js runtime build plan"
+}

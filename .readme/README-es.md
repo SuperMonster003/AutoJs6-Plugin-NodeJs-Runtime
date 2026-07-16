@@ -1,0 +1,155 @@
+<!--suppress HtmlDeprecatedAttribute, HttpUrlsUsage -->
+
+<div align="center">
+  <p>
+    <img src="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/app/src/main/res/mipmap/ic_launcher.png?raw=true" alt="autojs6-plugin-nodejs-runtime-ic-launcher" border="0" width="128" />
+  </p>
+
+  <p>Plugin de runtime nativo Node.js 24.5.0 para AutoJs6</p>
+
+  <p>
+    <a href="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/releases"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime?label=Release"/></a>
+    <a href="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/issues"><img alt="GitHub closed issues" src="https://img.shields.io/github/issues/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime?color=A24232&label=Issues"/></a>
+    <a href="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/commit/c30d958730a23614c4e430a4bcfe64623a87d4ed"><img alt="Created" src="https://img.shields.io/date/1783047178?color=2e7d32&label=Created"/></a>
+    <br>
+    <a href="https://developer.android.com/studio/archive"><img alt="Android Studio" src="https://img.shields.io/badge/Android%20Studio-2023.3+-B64FC8"/></a>
+    <a href="https://www.jetbrains.com/idea/download/other.html"><img alt="IntelliJ IDEA" src="https://img.shields.io/badge/IntelliJ%20IDEA-2023.3+-EE4677"/></a>
+    <a href="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/LICENSE"><img alt="GitHub License" src="https://img.shields.io/github/license/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime?color=534BAE&label=License"/></a>
+  </p>
+</div>
+
+******
+
+### Idiomas
+
+******
+
+El README.md actual admite los siguientes idiomas:
+
+- [简体中文 [zh-Hans]](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/.readme/README-zh-Hans.md)
+- [繁體中文 (香港) [zh-Hant-HK]](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/.readme/README-zh-Hant-HK.md)
+- [繁體中文 (台灣) [zh-Hant-TW]](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/.readme/README-zh-Hant-TW.md)
+- [English [en]](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/.readme/README-en.md)
+- [Français [fr]](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/.readme/README-fr.md)
+- Español [es] # actual
+- [日本語 [ja]](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/.readme/README-ja.md)
+- [한국어 [ko]](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/.readme/README-ko.md)
+- [Русский [ru]](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/.readme/README-ru.md)
+- [العربية [ar]](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/.readme/README-ar.md)
+
+******
+
+### Introduccion
+
+******
+
+El plugin AutoJs6 Node.js Runtime proporciona a AutoJs6 un runtime nativo integrado de Node.js 24.5.0 para scripts Node.js y tareas de runtime de plugins.
+
+******
+
+### Funciones
+
+******
+
+- Proporciona el servicio de plugin `nodejs` con ID de plugin `nodejs` y motor `nodejs`.
+- Expone ejecucion sincronica de scripts y precalentamiento del runtime al host mediante `org.autojs.plugin.nodejs.RUNTIME`.
+- Admite codigo CommonJS/ESM, fuentes de modulos, directorio de trabajo, raiz de sandbox, variables de entorno y resultados stdout/stderr.
+- Proporciona broker de capacidades del host y live bridge con modulos de runtime como `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config` y `autojs6:bridge-permissions`.
+- Incluye proyectos `sample/nodejs`, una herramienta de diagnostico del resolver de Node y herramientas de verificacion del plan de build del runtime.
+- Los metadatos del plugin, las instrucciones de uso, el README y el CHANGELOG estan localizados en espanol, frances, ruso, arabe, japones, coreano, ingles, chino simplificado, chino tradicional de Hong Kong y chino tradicional de Taiwan.
+
+******
+
+### Uso
+
+******
+
+```js
+"nodejs";
+
+console.log(process.version);
+console.log("AutoJs6 Node.js runtime");
+```
+
+Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scripts Node.js con la directiva `"nodejs";`. Hay mas ejemplos en `sample/nodejs`.
+
+******
+
+### Perfil Del Runtime
+
+******
+
+- Slot de runtime: `node24_5`.
+- ID de plugin: `nodejs`, motor: `nodejs`.
+- Accion del servicio runtime: `org.autojs.plugin.nodejs.RUNTIME`.
+- Bibliotecas nativas de runtime: `libnode.so` y `libautojs6-node.so`.
+- ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64` y `universal`.
+- Capacidades: ejecucion sincronica de scripts, bundle transport, runtime nativo integrado, broker de capacidades del host, host capability live bridge.
+
+******
+
+### Historial De Versiones
+
+******
+
+# v1.0.0
+
+###### 2026/07/04
+
+* `Nuevo` Se agrego el servicio de plugin de runtime Node.js con ID de plugin `nodejs`, motor `nodejs` y slot de runtime `node24_5`
+* `Nuevo` Se proporciono el runtime nativo Node.js 24.5.0 mediante `libnode.so` y `libautojs6-node.so`
+* `Nuevo` Se agrego descubrimiento de informacion del plugin mediante `org.autojs.plugin.INFO` e invocacion del runtime mediante `org.autojs.plugin.nodejs.RUNTIME`
+* `Nuevo` Se admitio codigo CommonJS/ESM, fuentes de modulos, directorio de trabajo, raiz de sandbox, variables de entorno, resultados stdout/stderr y precalentamiento del runtime
+* `Nuevo` Se agrego broker de capacidades del host y live bridge con modulos de runtime como `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config` y `autojs6:bridge-permissions`
+* `Nuevo` Se agregaron builds APK separados por ABI para `arm64-v8a`, `armeabi-v7a`, `x86_64` y un APK `universal`
+* `Nuevo` Se agregaron proyectos `sample/nodejs`, una herramienta de diagnostico del resolver de Node y herramientas de verificacion del plan de build del runtime
+* `Nuevo` Se agregaron metadatos del plugin, instrucciones de uso, README y recursos CHANGELOG localizados en espanol, frances, ruso, arabe, japones, coreano, ingles, chino simplificado, chino tradicional de Hong Kong y chino tradicional de Taiwan
+
+##### Para mas historial de versiones
+
+* [CHANGELOG.md](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/.changelog/CHANGELOG-es.md)
+
+******
+
+### Build
+
+******
+
+```powershell
+.\gradlew.bat :app:assembleDebug
+```
+
+Build Release:
+
+```powershell
+.\gradlew.bat :app:assembleRelease
+```
+
+Los parametros de build vienen de `version.properties`, el SDK minimo actual es 24 y el SDK objetivo es 36.
+
+******
+
+### Estructura De Recursos
+
+******
+
+```text
+.readme/lang_*.json
+.changelog/lang_*.json
+.python/generate_markdown.py
+app/src/main/res/values-*/strings.xml
+app/src/main/res/raw-*/plugin_instruction.md
+app/src/main/assets/doc/CHANGELOG-*.md
+```
+
+`strings.xml` contiene descripciones localizadas del plugin; `plugin_instruction.md` contiene instrucciones de uso mostradas por el host. README y CHANGELOG se generan desde fuentes JSON con `.python/generate_markdown.py`.
+
+******
+
+### Enlaces
+
+******
+
+- Documentacion de AutoJs6: https://docs.autojs6.com
+- Proyecto oficial Node.js: https://github.com/nodejs/node
+- Plan de build del runtime Node.js: tools/nodejs/runtime-build/README.md

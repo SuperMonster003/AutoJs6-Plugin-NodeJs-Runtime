@@ -1,0 +1,12 @@
+# v1.0.0
+
+###### 2026/07/04
+
+* `新增` Node.js 运行时插件服务, 插件 ID 为 `nodejs`, 引擎为 `nodejs`, 运行时槽位为 `node24_5`
+* `新增` 通过 `libnode.so` 和 `libautojs6-node.so` 提供 Node.js 24.5.0 原生运行时
+* `新增` 支持通过 `org.autojs.plugin.INFO` 发现插件信息, 并通过 `org.autojs.plugin.nodejs.RUNTIME` 调用运行时服务
+* `新增` 支持 CommonJS/ESM 源码, 模块源码, 工作目录, 沙盒根目录, 环境变量, stdout/stderr 结果回传和运行时预热
+* `新增` 支持宿主能力代理与 live bridge, 并注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等运行时模块
+* `新增` 支持按 ABI 构建 APK, 包括 `arm64-v8a`/`armeabi-v7a`/`x86_64` 以及 `universal` 通用包
+* `新增` `sample/nodejs` 示例项目, Node 解析诊断工具和运行时构建计划校验工具
+* `新增` 插件信息, 使用说明, README 与 CHANGELOG 的多语言资源: 西班牙语/法语/俄语/阿拉伯语/日语/韩语/英语/简体中文/香港繁体/台湾繁体

@@ -1,0 +1,40 @@
+{
+  "$name": "日本語",
+  "text_current_lowercase": "現在",
+  "text_plugin_synopsis": "AutoJs6 向け Node.js 24.5.0 ネイティブランタイムプラグイン",
+  "h3_languages_with_ascii": "言語 (Languages)",
+  "p_languages_all_supported_for_readme": "現在の README.md は次の言語に対応しています",
+  "h3_introduction": "概要",
+  "p_introduction": "AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 24.5.0 ネイティブランタイムを提供し, Node.js スクリプトとプラグインランタイムタスクを実行します.",
+  "h3_functions": "機能",
+  "features": [
+    "`nodejs` プラグインサービスを提供し, プラグイン ID は `nodejs`, エンジンは `nodejs` です.",
+    "`org.autojs.plugin.nodejs.RUNTIME` を通じて同期スクリプト実行とランタイムの事前ロードをホストに公開します.",
+    "CommonJS/ESM ソース, モジュールソース, 作業ディレクトリ, サンドボックスルート, 環境変数, stdout/stderr 結果ペイロードに対応します.",
+    "ホスト能力ブローカーと live bridge を提供し, `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` などのランタイムモジュールを注入できます.",
+    "`sample/nodejs` プロジェクト, Node resolver 診断ツール, ランタイムビルド計画検証ツールを含みます.",
+    "プラグイン情報, 使用説明, README, CHANGELOG はスペイン語/フランス語/ロシア語/アラビア語/日本語/韓国語/英語/簡体字中国語/香港繁体字/台湾繁体字に対応します."
+  ],
+  "h3_usage": "使用例",
+  "p_usage_note": "AutoJs6 プラグインセンターでプラグインをインストールして有効化し, `\"nodejs\";` ディレクティブで Node.js スクリプトを開始します. その他の例は `sample/nodejs` にあります.",
+  "h3_runtime_profile": "ランタイムプロファイル",
+  "runtime_capabilities": [
+    "ランタイムスロット: `node24_5`.",
+    "プラグイン ID: `nodejs`, エンジン: `nodejs`.",
+    "ランタイムサービスアクション: `org.autojs.plugin.nodejs.RUNTIME`.",
+    "ネイティブランタイムライブラリ: `libnode.so` と `libautojs6-node.so`.",
+    "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, および `universal`.",
+    "能力: 同期スクリプト実行, bundle transport, ネイティブ組み込みランタイム, ホスト能力ブローカー, host capability live bridge."
+  ],
+  "h3_release_history": "リリース履歴",
+  "h5_for_more_release_history": "その他のリリース履歴",
+  "h3_build": "ビルド",
+  "text_release_build": "Release ビルド",
+  "p_build_params": "ビルドパラメータは `version.properties` から取得されます, 現在の最小 SDK は 24, ターゲット SDK は 36 です",
+  "h3_resource_layout": "リソース構成",
+  "p_resource_layout": "`strings.xml` はローカライズされたプラグイン説明を提供します; `plugin_instruction.md` はホストに表示される使用説明を提供します. README と CHANGELOG は `.python/generate_markdown.py` により JSON ソースから生成されます",
+  "h3_links": "関連リンク",
+  "text_link_autojs6_docs": "AutoJs6 ドキュメント",
+  "text_link_nodejs_official": "Node.js 公式プロジェクト",
+  "text_link_runtime_build_plan": "Node.js ランタイムビルド計画"
+}

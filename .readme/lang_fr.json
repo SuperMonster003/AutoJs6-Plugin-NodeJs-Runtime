@@ -1,0 +1,40 @@
+{
+  "$name": "Français",
+  "text_current_lowercase": "actuel",
+  "text_plugin_synopsis": "Plugin de runtime natif Node.js 24.5.0 pour AutoJs6",
+  "h3_languages_with_ascii": "Langues",
+  "p_languages_all_supported_for_readme": "Le README.md actuel prend en charge les langues suivantes",
+  "h3_introduction": "Introduction",
+  "p_introduction": "Le plugin AutoJs6 Node.js Runtime fournit a AutoJs6 un runtime natif Node.js 24.5.0 embarque pour les scripts Node.js et les taches de runtime de plugins.",
+  "h3_functions": "Fonctionnalites",
+  "features": [
+    "Fournit le service de plugin `nodejs` avec l'ID de plugin `nodejs` et le moteur `nodejs`.",
+    "Expose l'execution synchrone de scripts et le prechauffage du runtime a l'hote via `org.autojs.plugin.nodejs.RUNTIME`.",
+    "Prend en charge le code CommonJS/ESM, les sources de modules, le repertoire de travail, la racine de bac a sable, les variables d'environnement et les resultats stdout/stderr.",
+    "Fournit un agent de capacites hote et un live bridge avec des modules de runtime comme `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config` et `autojs6:bridge-permissions`.",
+    "Inclut les projets `sample/nodejs`, un outil de diagnostic du resolveur Node et des outils de verification du plan de build du runtime.",
+    "Les metadonnees du plugin, les instructions d'utilisation, le README et le CHANGELOG sont localises en espagnol, francais, russe, arabe, japonais, coreen, anglais, chinois simplifie, chinois traditionnel de Hong Kong et chinois traditionnel de Taiwan."
+  ],
+  "h3_usage": "Utilisation",
+  "p_usage_note": "Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez les scripts Node.js avec la directive `\"nodejs\";`. D'autres exemples sont disponibles dans `sample/nodejs`.",
+  "h3_runtime_profile": "Profil Du Runtime",
+  "runtime_capabilities": [
+    "Slot de runtime: `node24_5`.",
+    "ID de plugin: `nodejs`, moteur: `nodejs`.",
+    "Action du service runtime: `org.autojs.plugin.nodejs.RUNTIME`.",
+    "Bibliotheques natives de runtime: `libnode.so` et `libautojs6-node.so`.",
+    "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64` et `universal`.",
+    "Capacites: execution synchrone de scripts, bundle transport, runtime natif embarque, agent de capacites hote, host capability live bridge."
+  ],
+  "h3_release_history": "Historique Des Versions",
+  "h5_for_more_release_history": "Pour plus d'historique des versions",
+  "h3_build": "Build",
+  "text_release_build": "Build Release",
+  "p_build_params": "Les parametres de build viennent de `version.properties`, le SDK minimal actuel est 24 et le SDK cible est 36",
+  "h3_resource_layout": "Structure Des Ressources",
+  "p_resource_layout": "`strings.xml` contient les descriptions localisees du plugin; `plugin_instruction.md` contient les instructions d'utilisation affichees par l'hote. Les fichiers README et CHANGELOG sont generes depuis des sources JSON par `.python/generate_markdown.py`",
+  "h3_links": "Liens",
+  "text_link_autojs6_docs": "Documentation AutoJs6",
+  "text_link_nodejs_official": "Projet officiel Node.js",
+  "text_link_runtime_build_plan": "Plan de build du runtime Node.js"
+}

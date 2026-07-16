@@ -1,0 +1,40 @@
+{
+  "$name": "Русский",
+  "text_current_lowercase": "текущий",
+  "text_plugin_synopsis": "Плагин нативной среды выполнения Node.js 24.5.0 для AutoJs6",
+  "h3_languages_with_ascii": "Языки",
+  "p_languages_all_supported_for_readme": "Текущий README.md поддерживает следующие языки",
+  "h3_introduction": "Введение",
+  "p_introduction": "Плагин AutoJs6 Node.js Runtime предоставляет AutoJs6 встроенную нативную среду выполнения Node.js 24.5.0 для скриптов Node.js и задач среды выполнения плагинов.",
+  "h3_functions": "Возможности",
+  "features": [
+    "Предоставляет сервис плагина `nodejs` с ID плагина `nodejs` и движком `nodejs`.",
+    "Открывает синхронное выполнение скриптов и предварительный прогрев среды выполнения для хоста через `org.autojs.plugin.nodejs.RUNTIME`.",
+    "Поддерживает исходный код CommonJS/ESM, исходники модулей, рабочий каталог, корень песочницы, переменные окружения и результаты stdout/stderr.",
+    "Предоставляет брокер возможностей хоста и live bridge с модулями среды выполнения, такими как `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config` и `autojs6:bridge-permissions`.",
+    "Включает проекты `sample/nodejs`, инструмент диагностики Node resolver и инструменты проверки плана сборки среды выполнения.",
+    "Метаданные плагина, инструкции по использованию, README и CHANGELOG локализованы на испанский, французский, русский, арабский, японский, корейский, английский, упрощенный китайский, традиционный китайский Гонконга и традиционный китайский Тайваня."
+  ],
+  "h3_usage": "Использование",
+  "p_usage_note": "Установите и включите плагин в центре плагинов AutoJs6, затем запускайте скрипты Node.js директивой `\"nodejs\";`. Дополнительные примеры находятся в `sample/nodejs`.",
+  "h3_runtime_profile": "Профиль Среды Выполнения",
+  "runtime_capabilities": [
+    "Слот среды выполнения: `node24_5`.",
+    "ID плагина: `nodejs`, движок: `nodejs`.",
+    "Действие сервиса среды выполнения: `org.autojs.plugin.nodejs.RUNTIME`.",
+    "Нативные библиотеки среды выполнения: `libnode.so` и `libautojs6-node.so`.",
+    "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64` и `universal`.",
+    "Возможности: синхронное выполнение скриптов, bundle transport, нативная встроенная среда выполнения, брокер возможностей хоста, host capability live bridge."
+  ],
+  "h3_release_history": "История Выпусков",
+  "h5_for_more_release_history": "Больше истории выпусков",
+  "h3_build": "Сборка",
+  "text_release_build": "Release сборка",
+  "p_build_params": "Параметры сборки берутся из `version.properties`, текущий минимальный SDK равен 24, целевой SDK равен 36",
+  "h3_resource_layout": "Структура Ресурсов",
+  "p_resource_layout": "`strings.xml` содержит локализованные описания плагина; `plugin_instruction.md` содержит инструкции по использованию для хоста. README и CHANGELOG генерируются из JSON источников через `.python/generate_markdown.py`",
+  "h3_links": "Ссылки",
+  "text_link_autojs6_docs": "Документация AutoJs6",
+  "text_link_nodejs_official": "Официальный проект Node.js",
+  "text_link_runtime_build_plan": "План сборки среды выполнения Node.js"
+}
