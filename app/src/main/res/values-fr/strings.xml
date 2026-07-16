@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AutoJs6 Node.js Runtime</string>
-    <string name="plugin_description">Provides the Node.js 24.5.0 native runtime for AutoJs6</string>
+    <string name="plugin_description">Fournit le runtime natif Node.js 24.5.0 pour AutoJs6</string>
 </resources>
