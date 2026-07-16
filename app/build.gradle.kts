@@ -16,7 +16,6 @@ val buildTypeRelease = "release"
 val nodeJsNetworkExperimentalEnabled = providers.gradleProperty("autojs.nodejs.network.experimental").orElse("false").get()
 
 android {
-
     namespace = globalApplicationId
     compileSdk = versions.sdkVersionCompile
 
@@ -156,6 +155,30 @@ dependencies {
 tasks {
     withType(JavaCompile::class.java) {
         options.encoding = "UTF-8"
+    }
+
+    register<Copy>("appendDigestToReleasedFiles") {
+        description = "Appends CRC32 digest to released APK files"
+
+        val src = "release"
+        val dst = "${src}s"
+        val ext = utils.FILE_EXTENSION_APK
+
+        if (!file(src).isDirectory) {
+            return@register
+        }
+
+        from(src); into(dst); include("*.$ext")
+
+        rename { name ->
+            val abi = name.replace(Regex("^app-(.+?)-$src(\\.$ext)$"), "$1")
+            val releasedFileNamePrefix = "${rootProject.name}-v${versions.appVersionName}-$abi"
+            utils.digestCRC32(file("${src}/$name")).let { digest ->
+                "$releasedFileNamePrefix-$digest.$ext"
+            }
+        }
+
+        doLast { println("Destination: ${file(dst)}") }
     }
 }
 
