@@ -39,6 +39,10 @@ using autojs6::node_bridge::internal::EmbeddedScriptExecutionRequest;
 using autojs6::node_bridge::internal::runEmbeddedScriptExecution;
 using autojs6::node_bridge::internal::jsonStringLiteral;
 
+std::string quotedJsonString(const std::string& value) {
+    return std::string("\"") + jsonStringLiteral(value) + "\"";
+}
+
 constexpr uint64_t kFeatureBits =
         AUTOJS_NODE_RUNTIME_FEATURE_SCRIPT |
         AUTOJS_NODE_RUNTIME_FEATURE_COMMONJS |
@@ -449,11 +453,11 @@ std::string buildFailureResultJson(
             "\"stdout\":\"\","
             "\"stderr\":\"\","
             "\"errorName\":\"AutoJsNodeAdapterError\","
-            "\"errorMessage\":") + jsonStringLiteral(message) + ","
+            "\"errorMessage\":") + quotedJsonString(message) + ","
             "\"errorStack\":\"\","
             "\"errorCode\":\"" + code + "\","
-            "\"sourceName\":" + jsonStringLiteral(resolvedSourceName) + ","
-            "\"workingDirectory\":" + jsonStringLiteral(workingDirectory) + "}";
+            "\"sourceName\":" + quotedJsonString(resolvedSourceName) + ","
+            "\"workingDirectory\":" + quotedJsonString(workingDirectory) + "}";
 }
 
 void setHandleState(AutoJsNodeHandle* handle, uint32_t state) {
@@ -537,9 +541,9 @@ int32_t executeRequest(
         handle->stdoutText.clear();
         handle->stderrText.clear();
         handle->lastDiagnosticsJson = std::string("{\"adapter\":\"adapter_v1\","
-                "\"entryKind\":") + jsonStringLiteral(entryKind) + ","
+                "\"entryKind\":") + quotedJsonString(entryKind) + ","
                 "\"errorCode\":\"ERR_AUTOJS6_NODE_ADAPTER_BAD_JSON\","
-                "\"message\":" + jsonStringLiteral(parseError) + "}";
+                "\"message\":" + quotedJsonString(parseError) + "}";
         handle->lastPayload = {
                 "embedded_script.status=failed",
                 "embedded_script.succeeded=false",
@@ -608,18 +612,20 @@ int32_t executeRequest(
     handle->stderrText = payloadValue(handle->lastPayload, "embedded_script.stderr");
     const std::string errorCode = payloadValue(handle->lastPayload, "embedded_script.error_code");
     const std::string status = payloadValue(handle->lastPayload, "embedded_script.status");
+    const std::string executionTeardownClean = payloadValue(handle->lastPayload, "execution.teardown_clean");
     handle->lastErrorJson = errorCode.empty()
             ? "{}"
-            : std::string("{\"code\":") + jsonStringLiteral(errorCode) + "}";
+            : std::string("{\"code\":") + quotedJsonString(errorCode) + "}";
     handle->lastDiagnosticsJson = std::string("{\"adapter\":\"adapter_v1\",")
-            + "\"entryKind\":" + jsonStringLiteral(entryKind) + ","
+            + "\"entryKind\":" + quotedJsonString(entryKind) + ","
             + "\"runtimeSlot\":\"node24_5\","
-            + "\"status\":" + jsonStringLiteral(status.empty() ? "done" : status) + ","
+            + "\"status\":" + quotedJsonString(status.empty() ? "done" : status) + ","
             + "\"payloadCount\":" + std::to_string(handle->lastPayload.size()) + ","
             + "\"moduleSourceCount\":" + std::to_string(execution.moduleSources.size()) + ","
             + "\"runtimeModuleSourceCount\":" + std::to_string(execution.runtimeModuleSources.size()) + ","
             + "\"envCount\":" + std::to_string(execution.env.size()) + ","
-            + "\"errorCode\":" + jsonStringLiteral(errorCode) + "}";
+            + "\"executionTeardownClean\":" + quotedJsonString(executionTeardownClean) + ","
+            + "\"errorCode\":" + quotedJsonString(errorCode) + "}";
     const bool succeeded = payloadValue(handle->lastPayload, "embedded_script.succeeded") == "true";
     setHandleState(handle, succeeded ? AUTOJS_NODE_RUNTIME_STATE_IDLE : AUTOJS_NODE_RUNTIME_STATE_FAILED);
     return fillExecutionResult(handle, result, AUTOJS_NODE_RESULT_OK);

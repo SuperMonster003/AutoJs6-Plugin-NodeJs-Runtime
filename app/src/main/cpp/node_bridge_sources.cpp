@@ -5289,6 +5289,8 @@ extern const char* const kV8StringUtf8ValueConstructorSymbol =
         "_ZN2v86String9Utf8ValueC1EPNS_7IsolateENS_5LocalINS_5ValueEEENS0_12WriteOptionsE";
 extern const char* const kV8StringUtf8ValueDestructorSymbol = "_ZN2v86String9Utf8ValueD1Ev";
 extern const char* const kV8IsolateDisposeSymbol = "_ZN2v87Isolate7DisposeEv";
+extern const char* const kMultiIsolatePlatformDisposeIsolateSymbol =
+        "_ZN4node20MultiIsolatePlatform14DisposeIsolateEPN2v87IsolateE";
 extern const char* const kV8InitializePlatformSymbol = "_ZN2v82V818InitializePlatformEPNS_8PlatformE";
 extern const char* const kV8InitializeSymbol = "_ZN2v82V810InitializeEi";
 extern const char* const kUvLoopInitSymbol = "uv_loop_init";

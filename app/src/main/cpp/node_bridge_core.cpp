@@ -437,8 +437,36 @@ HandleAttemptResult unavailableLibnodeDlopenAttempt(
 }
 
 void* probeLoadedLibnodeHandle(std::vector<std::string>& payload) {
+    struct CachedLibnodeHandle {
+        void* handle = nullptr;
+        std::string selected;
+        std::string flags;
+    };
+    static std::mutex cacheMutex;
+    static CachedLibnodeHandle cache;
+    std::lock_guard<std::mutex> cacheLock(cacheMutex);
     const auto probeStartedAt = Clock::now();
     __android_log_print(ANDROID_LOG_INFO, kLogTag, "handle.probe.enter library=%s", kNodeLibraryName);
+
+    if (cache.handle != nullptr) {
+        putPayload(payload, "libnode.handle.cached", true);
+        putPayload(payload, "libnode.handle.available", true);
+        putPayload(payload, "libnode.handle.selected", "cached_" + cache.selected);
+        putPayload(payload, "libnode.handle.flags", cache.flags);
+        putPayload(payload, "libnode.handle.noload.skipped", "process-cached libnode handle was reused");
+        putPayload(payload, "libnode.handle.normal.skipped", "process-cached libnode handle was reused");
+        putPayload(payload, "libnode.handle.lazy.skipped", "process-cached libnode handle was reused");
+        putPayload(payload, "timing.load.ms", static_cast<long long>(0));
+        __android_log_print(
+                ANDROID_LOG_INFO,
+                kLogTag,
+                "handle.probe.exit library=%s available=true selected=cached_%s elapsed=0ms",
+                kNodeLibraryName,
+                cache.selected.c_str()
+        );
+        return cache.handle;
+    }
+    putPayload(payload, "libnode.handle.cached", false);
 
 #ifdef RTLD_NOLOAD
     HandleAttemptResult noload = probeLibnodeDlopenAttempt(
@@ -456,12 +484,17 @@ void* probeLoadedLibnodeHandle(std::vector<std::string>& payload) {
     );
 #endif
 
-    HandleAttemptResult normal = probeLibnodeDlopenAttempt(
-            payload,
-            "normal",
-            RTLD_NOW,
-            "RTLD_NOW"
-    );
+    HandleAttemptResult normal;
+    if (noload.handle == nullptr) {
+        normal = probeLibnodeDlopenAttempt(
+                payload,
+                "normal",
+                RTLD_NOW,
+                "RTLD_NOW"
+        );
+    } else {
+        putPayload(payload, "libnode.handle.normal.skipped", "RTLD_NOLOAD handle was retained for process lifetime");
+    }
 
     HandleAttemptResult lazy;
     bool lazyAttempted = false;
@@ -507,6 +540,11 @@ void* probeLoadedLibnodeHandle(std::vector<std::string>& payload) {
     }
 
     void* handle = selected == nullptr ? nullptr : selected->handle;
+    if (selected != nullptr) {
+        cache.handle = selected->handle;
+        cache.selected = selected->name;
+        cache.flags = selected->flags;
+    }
     putPayload(payload, "libnode.handle.available", handle != nullptr);
     putPayload(payload, "libnode.handle.selected", selected == nullptr ? "" : selected->name);
     putPayload(payload, "libnode.handle.flags", selected == nullptr ? "" : selected->flags);
