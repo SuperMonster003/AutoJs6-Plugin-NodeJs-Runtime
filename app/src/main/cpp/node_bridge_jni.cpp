@@ -32,6 +32,16 @@ Java_org_autojs_autojs_engine_NativeNodeRuntimeBridge_nativeRunMain(
         return -1;
     }
 
+    std::lock_guard<std::recursive_mutex> processRuntimeLock(embeddedProcessRuntimeExecutionMutex());
+    std::vector<std::string> oneShotDiagnostics;
+    if (!beginEmbeddedProcessRuntimeOneShotLifecycle(oneShotDiagnostics, "node_start_main")) {
+        throwJava(
+                env,
+                "java/lang/IllegalStateException",
+                "node::Start one-shot lifecycle requires a fresh process"
+        );
+        return -1;
+    }
     std::lock_guard<std::mutex> lock(nodeStartMutex());
 
     ScopedWorkingDirectory scopedWorkingDirectory;
@@ -128,6 +138,49 @@ static jobjectArray runEmbeddedScriptLifecycleNative(
     request.childProcessExperimentalEnabled = childProcessExperimentalEnabled;
     request.javaInteropExperimentalEnabled = javaInteropExperimentalEnabled;
     std::vector<std::string> payload = runEmbeddedScriptExecution(request);
+    return toJavaStringArray(env, payload);
+}
+
+extern "C" JNIEXPORT jobjectArray JNICALL
+Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeEnsureProcessRuntimeReady(
+        JNIEnv* env,
+        jobject /* thiz */
+) {
+    std::vector<std::string> payload;
+    ensureEmbeddedProcessRuntime(payload);
+    return toJavaStringArray(env, payload);
+}
+
+extern "C" JNIEXPORT jobjectArray JNICALL
+Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeProcessRuntimeDiagnostics(
+        JNIEnv* env,
+        jobject /* thiz */
+) {
+    std::vector<std::string> payload;
+    appendEmbeddedProcessRuntimeDiagnostics(payload);
+    return toJavaStringArray(env, payload);
+}
+
+extern "C" JNIEXPORT jobjectArray JNICALL
+Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeShutdownProcessRuntime(
+        JNIEnv* env,
+        jobject /* thiz */,
+        jstring reason
+) {
+    std::vector<std::string> payload;
+    putPayload(payload, "process_runtime.shutdown.reason", toStdString(env, reason));
+    shutdownEmbeddedProcessRuntime(payload);
+    return toJavaStringArray(env, payload);
+}
+
+extern "C" JNIEXPORT jobjectArray JNICALL
+Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeSetProcessRuntimePersistentEnabled(
+        JNIEnv* env,
+        jobject /* thiz */,
+        jboolean enabled
+) {
+    std::vector<std::string> payload;
+    setEmbeddedProcessRuntimePersistentEnabled(enabled == JNI_TRUE, payload);
     return toJavaStringArray(env, payload);
 }
 
@@ -331,6 +384,10 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeWriteSignalS
     return toJavaStringArray(env, payload);
 }
 
+static std::string quotedJsonString(const std::string& value) {
+    return std::string("\"") + jsonStringLiteral(value) + "\"";
+}
+
 static std::string orderedStringPairsJson(const std::vector<std::pair<std::string, std::string>>& pairs) {
     std::string json = "[";
     for (size_t index = 0; index < pairs.size(); ++index) {
@@ -338,9 +395,9 @@ static std::string orderedStringPairsJson(const std::vector<std::pair<std::strin
             json += ",";
         }
         json += "[";
-        json += jsonStringLiteral(pairs[index].first);
+        json += quotedJsonString(pairs[index].first);
         json += ",";
-        json += jsonStringLiteral(pairs[index].second);
+        json += quotedJsonString(pairs[index].second);
         json += "]";
     }
     json += "]";
@@ -352,7 +409,7 @@ static std::string adapterModuleSourcesJson(
         const std::vector<std::pair<std::string, std::string>>& runtimeModuleSourcePairs,
         const std::string& sandboxRoot
 ) {
-    return std::string("{\"sandboxRoot\":") + jsonStringLiteral(sandboxRoot) +
+    return std::string("{\"sandboxRoot\":") + quotedJsonString(sandboxRoot) +
             ",\"moduleSources\":" + orderedStringPairsJson(moduleSourcePairs) +
             ",\"runtimeModuleSources\":" + orderedStringPairsJson(runtimeModuleSourcePairs) + "}";
 }
@@ -603,6 +660,13 @@ static jobjectArray runEmbeddedScriptAdapterV1ExecuteNative(
     putPayload(payload, "embedded_script.runtime_adapter.execute_result", adapterResultCodeName(executeCode));
     putPayload(payload, "embedded_script.runtime_adapter.execution_result_code", static_cast<long long>(executionResult.result_code));
     putPayload(payload, "embedded_script.runtime_adapter.diagnostics_json", executionResult.diagnostics_json);
+    if (executionResult.diagnostics_json != nullptr) {
+        putPayload(
+                payload,
+                "execution.teardown_clean",
+                jsonStringField(executionResult.diagnostics_json, "executionTeardownClean")
+        );
+    }
     putPayload(payload, "embedded_script.runtime_adapter.status", executeCode == AUTOJS_NODE_RESULT_OK ? "executed" : "execute_failed");
     if (executionResult.result_json != nullptr && std::strlen(executionResult.result_json) > 0) {
         putPayload(payload, "embedded_script.status", executeCode == AUTOJS_NODE_RESULT_OK ? "done" : "failed");

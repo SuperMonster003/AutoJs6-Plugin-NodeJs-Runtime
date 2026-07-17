@@ -4,6 +4,45 @@ namespace autojs6::node_bridge::internal {
 
 using namespace autojs6::node_bridge;
 
+class LifecyclePlatformRef {
+public:
+    explicit LifecyclePlatformRef(node::MultiIsolatePlatform* borrowed = nullptr)
+            : pointer_(borrowed) {
+    }
+
+    LifecyclePlatformRef& operator=(std::unique_ptr<node::MultiIsolatePlatform> owned) {
+        owned_ = std::move(owned);
+        pointer_ = owned_.get();
+        return *this;
+    }
+
+    node::MultiIsolatePlatform* get() const {
+        return pointer_;
+    }
+
+    node::MultiIsolatePlatform* release() {
+        if (owned_ != nullptr) {
+            pointer_ = owned_.release();
+            return pointer_;
+        }
+        node::MultiIsolatePlatform* borrowed = pointer_;
+        pointer_ = nullptr;
+        return borrowed;
+    }
+
+    bool operator==(std::nullptr_t) const {
+        return pointer_ == nullptr;
+    }
+
+    bool operator!=(std::nullptr_t) const {
+        return pointer_ != nullptr;
+    }
+
+private:
+    std::unique_ptr<node::MultiIsolatePlatform> owned_;
+    node::MultiIsolatePlatform* pointer_ = nullptr;
+};
+
 node::ProcessInitializationFlags::Flags embeddedNodeInitializationFlags(bool enableStdioInitialization) {
     uint32_t flags =
             static_cast<uint32_t>(node::ProcessInitializationFlags::kLegacyInitializeNodeWithArgsBehavior) |
@@ -42,12 +81,21 @@ bool embeddedScriptFullUvDiagnosticsRequested(const EmbeddedScriptExecutionReque
 }
 
 void appendEmbeddedLifecycleProbePayload(std::vector<std::string>& payload, void* handle) {
+    std::lock_guard<std::recursive_mutex> processRuntimeLock(embeddedProcessRuntimeExecutionMutex());
     __android_log_print(ANDROID_LOG_INFO, kLogTag, "lifecycle.start");
     const auto lifecycleStartedAt = Clock::now();
     putPayload(payload, "symbol.count", static_cast<long long>(0));
     putPayload(payload, "timing.symbols.ms", static_cast<long long>(0));
 
 #if AUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE
+    if (!beginEmbeddedProcessRuntimeOneShotLifecycle(payload, "lifecycle_probe")) {
+        putLifecycleSkippedPayload(
+                payload,
+                "one-shot lifecycle probe requires a fresh process",
+                "InitializeOncePerProcess was not called"
+        );
+        return;
+    }
     if (handle == nullptr) {
         putLifecycleSkippedPayload(
                 payload,
@@ -180,6 +228,7 @@ void appendEmbeddedLifecycleProbePayload(std::vector<std::string>& payload, void
 }
 
 void appendEmbeddedV8LifecycleProbePayload(std::vector<std::string>& payload, void* handle) {
+    std::lock_guard<std::recursive_mutex> processRuntimeLock(embeddedProcessRuntimeExecutionMutex());
     __android_log_print(ANDROID_LOG_INFO, kLogTag, "v8.lifecycle.start");
     const auto lifecycleStartedAt = Clock::now();
     putPayload(payload, "symbol.count", static_cast<long long>(0));
@@ -196,6 +245,15 @@ void appendEmbeddedV8LifecycleProbePayload(std::vector<std::string>& payload, vo
     putV8SkippedPayload(payload, "v8 lifecycle did not start");
 
 #if AUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE
+    if (!beginEmbeddedProcessRuntimeOneShotLifecycle(payload, "v8_lifecycle_probe")) {
+        putLifecycleSkippedPayload(
+                payload,
+                "one-shot V8 lifecycle probe requires a fresh process",
+                "InitializeOncePerProcess was not called"
+        );
+        putV8SkippedPayload(payload, "one-shot V8 lifecycle probe requires a fresh process");
+        return;
+    }
     if (handle == nullptr) {
         putLifecycleSkippedPayload(
                 payload,
@@ -499,6 +557,7 @@ std::vector<std::string> runEmbeddedScriptExecution(
         const char* runtimeAdapterPath,
         const char* runtimeAdapterMode
 ) {
+    std::lock_guard<std::recursive_mutex> processRuntimeLock(embeddedProcessRuntimeExecutionMutex());
     const auto startedAt = Clock::now();
     __android_log_print(ANDROID_LOG_INFO, kLogTag, "embedded_script.enter");
     const std::string sourceNameText = request.sourceName.empty()
@@ -576,43 +635,103 @@ std::vector<std::string> runEmbeddedScriptExecution(
             request.childProcessExperimentalEnabled,
             request.javaInteropExperimentalEnabled
     );
-    void* handle = probeLoadedLibnodeHandle(payload);
+    const bool processRuntimePersistent = embeddedProcessRuntimePersistentEnabled();
+    EmbeddedProcessRuntimeExecution processExecution;
+    void* handle = nullptr;
+    if (processRuntimePersistent) {
+        putPayload(payload, "process_runtime.execution.mode", "persistent_process_fresh_isolate");
+        if (!beginEmbeddedProcessRuntimeExecution(payload, processExecution)) {
+            putPayload(payload, "embedded_script.status", "failed");
+            putPayload(payload, "embedded_script.detail", "persistent Node.js process runtime is unavailable or poisoned");
+            putPayload(payload, "embedded_script.succeeded", false);
+            putPayload(payload, "embedded_script.exit_code", static_cast<long long>(1));
+            putPayload(payload, "embedded_script.error_code", "ERR_AUTOJS6_NODE_PROCESS_RUNTIME_UNAVAILABLE");
+            putCommonEmbeddedProbePayload(payload, 0, startedAt);
+            __android_log_print(
+                    ANDROID_LOG_ERROR,
+                    kLogTag,
+                    "embedded_script.exit status=failed reason=process_runtime_unavailable elapsed=%lldms",
+                    elapsedMs(startedAt)
+            );
+            return payload;
+        }
+        handle = processExecution.libnodeHandle;
+    } else {
+        handle = probeLoadedLibnodeHandle(payload);
+        if (!beginEmbeddedProcessRuntimeOneShotLifecycle(payload, "embedded_script")) {
+            putPayload(payload, "embedded_script.status", "failed");
+            putPayload(payload, "embedded_script.detail", "legacy one-shot execution requires a fresh process");
+            putPayload(payload, "embedded_script.succeeded", false);
+            putPayload(payload, "embedded_script.exit_code", static_cast<long long>(1));
+            putPayload(payload, "embedded_script.error_code", "ERR_AUTOJS6_NODE_ONE_SHOT_REQUIRES_FRESH_PROCESS");
+            putCommonEmbeddedProbePayload(payload, 0, startedAt);
+            return payload;
+        }
+    }
     const char* workingDirectoryPtr = request.workingDirectory.empty() ? nullptr : request.workingDirectory.c_str();
     const bool fullUvDiagnostics = embeddedScriptFullUvDiagnosticsRequested(request);
     putPayload(payload, "embedded_script.uv_diagnostics.mode", fullUvDiagnostics ? "full" : "lightweight");
     putPayload(payload, "embedded_script.uv_diagnostics.full_requested", fullUvDiagnostics);
-    appendEmbeddedV8UvIsolateLifecycleProbePayload(
-            payload,
-            handle,
-            true,
-            true,
-            true,
-            true,
-            true,
-            true,
-            true,
-            false,
-            false,
-            false,
-            true,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            &wrappedSource,
-            "embedded_script",
-            workingDirectoryPtr,
-            true,
-            fullUvDiagnostics
-    );
+    bool processExecutionTeardownClean = false;
+    try {
+        appendEmbeddedV8UvIsolateLifecycleProbePayload(
+                payload,
+                handle,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                &wrappedSource,
+                "embedded_script",
+                workingDirectoryPtr,
+                true,
+                fullUvDiagnostics,
+                processRuntimePersistent ? processExecution.platform : nullptr,
+                processRuntimePersistent,
+                processRuntimePersistent ? &processExecutionTeardownClean : nullptr
+        );
+    } catch (const std::exception& error) {
+        putPayload(payload, "embedded_script.status", "failed");
+        putPayload(payload, "embedded_script.detail", error.what());
+        putPayload(payload, "embedded_script.succeeded", false);
+        putPayload(payload, "embedded_script.exit_code", static_cast<long long>(1));
+        putPayload(payload, "embedded_script.error_code", "ERR_AUTOJS6_NODE_NATIVE_EXECUTION_EXCEPTION");
+        processExecutionTeardownClean = false;
+    } catch (...) {
+        putPayload(payload, "embedded_script.status", "failed");
+        putPayload(payload, "embedded_script.detail", "unknown native execution exception");
+        putPayload(payload, "embedded_script.succeeded", false);
+        putPayload(payload, "embedded_script.exit_code", static_cast<long long>(1));
+        putPayload(payload, "embedded_script.error_code", "ERR_AUTOJS6_NODE_NATIVE_EXECUTION_EXCEPTION");
+        processExecutionTeardownClean = false;
+    }
+    if (processRuntimePersistent) {
+        finishEmbeddedProcessRuntimeExecution(
+                payload,
+                processExecution,
+                processExecutionTeardownClean,
+                "per-execution Node/V8/libuv teardown did not complete cleanly"
+        );
+    }
     putCommonEmbeddedProbePayload(payload, 0, startedAt);
     __android_log_print(ANDROID_LOG_INFO, kLogTag, "embedded_script.exit elapsed=%lldms", elapsedMs(startedAt));
     return payload;
@@ -648,8 +767,15 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
         const char* sourceLabelOverride,
         const char* workingDirectoryOverride,
         bool scriptExecution,
-        bool fullUvDiagnostics
+        bool fullUvDiagnostics,
+        node::MultiIsolatePlatform* processRuntimePlatform,
+        bool processRuntimePersistent,
+        bool* processRuntimeTeardownClean
 ) {
+    std::lock_guard<std::recursive_mutex> processRuntimeLock(embeddedProcessRuntimeExecutionMutex());
+    if (processRuntimeTeardownClean != nullptr) {
+        *processRuntimeTeardownClean = false;
+    }
     const auto jsProbeKind = resolveEmbeddedLifecycleJsProbeKind(
             jsResult,
             stdoutWriteRequested,
@@ -2941,6 +3067,17 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
         __android_log_print(ANDROID_LOG_INFO, kLogTag, "%s.done status=skipped reason=build_disabled elapsed=%lldms", lifecycleLogName, elapsedMs(lifecycleStartedAt));
         return;
     }
+    if (!scriptExecution && !processRuntimePersistent &&
+        !beginEmbeddedProcessRuntimeOneShotLifecycle(payload, "v8_uv_lifecycle_probe")) {
+        putLifecycleSkippedPayload(
+                payload,
+                "one-shot V8/UV lifecycle probe requires a fresh process",
+                "InitializeOncePerProcess was not called"
+        );
+        putV8SkippedPayload(payload, "one-shot V8/UV lifecycle probe requires a fresh process");
+        putUvLoopSkippedPayload(payload, "one-shot V8/UV lifecycle probe requires a fresh process");
+        return;
+    }
     if (handle == nullptr) {
         if (scriptExecution) {
             putPayload(payload, "embedded_script.status", "failed");
@@ -3126,7 +3263,8 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
     SymbolLookup valueToStringLookup;
     SymbolLookup stringUtf8ValueConstructorLookup;
     SymbolLookup stringUtf8ValueDestructorLookup;
-    SymbolLookup isolateDisposeLookup = lookupSymbol(handle, kV8IsolateDisposeSymbol);
+    SymbolLookup platformDisposeIsolateLookup =
+            lookupSymbol(handle, kMultiIsolatePlatformDisposeIsolateSymbol);
     SymbolLookup uvWalkLookup;
     SymbolLookup uvHandleGetTypeLookup;
     SymbolLookup uvIsActiveLookup;
@@ -3444,8 +3582,10 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
         __android_log_print(ANDROID_LOG_WARN, kLogTag, "%s.done status=failed elapsed=%lldms", lifecycleLogName, elapsedMs(lifecycleStartedAt));
         return;
     }
-    if (!isolateDisposeLookup.found || isolateDisposeLookup.address == nullptr) {
-        const std::string detail = "v8::Isolate::Dispose symbol is missing: " + isolateDisposeLookup.error;
+    if (!platformDisposeIsolateLookup.found || platformDisposeIsolateLookup.address == nullptr) {
+        const std::string detail =
+                "node::MultiIsolatePlatform::DisposeIsolate symbol is missing: " +
+                platformDisposeIsolateLookup.error;
         putPayload(payload, "isolate.dispose.status", "failed");
         putPayload(payload, "isolate.dispose.detail", detail);
         __android_log_print(ANDROID_LOG_WARN, kLogTag, "isolate.dispose.failed reason=%s", detail.c_str());
@@ -3557,8 +3697,9 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
             reinterpret_cast<V8ContextEnter>(createEnvironment ? contextEnterLookup.address : nullptr);
     auto exitContext =
             reinterpret_cast<V8ContextExit>(createEnvironment ? contextExitLookup.address : nullptr);
-    auto disposeIsolate =
-            reinterpret_cast<V8IsolateDispose>(isolateDisposeLookup.address);
+    auto disposeIsolate = reinterpret_cast<NodeMultiIsolatePlatformDisposeIsolate>(
+            platformDisposeIsolateLookup.address
+    );
     auto uvWalk =
             reinterpret_cast<UvWalk>(diagnoseUvHandles ? uvWalkLookup.address : nullptr);
     auto uvHandleGetType =
@@ -3642,7 +3783,8 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
     putPayload(payload, "allocator.create.symbol", allocatorCreateLookup.symbol);
     putPayload(payload, "isolate.create.symbol", newIsolateLookup.symbol);
     putPayload(payload, "isolate.create.loop", "non_null");
-    putPayload(payload, "isolate.dispose.symbol", isolateDisposeLookup.symbol);
+    putPayload(payload, "isolate.dispose.symbol", platformDisposeIsolateLookup.symbol);
+    putPayload(payload, "isolate.dispose.strategy", "platform_deinitialize_unregister_free");
     if (createIsolateData) {
         putPayload(payload, "isolate_data.create.symbol", createIsolateDataLookup.symbol);
         putPayload(payload, "isolate_data.free.symbol", freeIsolateDataLookup.symbol);
@@ -7061,15 +7203,16 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
     __android_log_print(ANDROID_LOG_INFO, kLogTag, "v8.initialize_platform.symbol.found symbol=%s", v8InitializePlatformLookup.symbol.c_str());
     __android_log_print(ANDROID_LOG_INFO, kLogTag, "v8.initialize.symbol.found symbol=%s", v8InitializeLookup.symbol.c_str());
 
-    bool initialized = false;
+    bool initialized = processRuntimePersistent;
     bool lifecycleFailed = false;
-    bool v8PlatformInitialized = false;
-    bool v8Initialized = false;
+    bool executionTeardownClean = true;
+    bool v8PlatformInitialized = processRuntimePersistent;
+    bool v8Initialized = processRuntimePersistent;
     bool uvLoopInitialized = false;
     bool uvLoopCloseAttempted = false;
     bool uvLoopClosed = false;
     std::shared_ptr<node::InitializationResult> initializationResult;
-    std::unique_ptr<node::MultiIsolatePlatform> platform;
+    LifecyclePlatformRef platform(processRuntimePersistent ? processRuntimePlatform : nullptr);
     std::unique_ptr<uv_loop_t> eventLoop;
     std::unique_ptr<node::ArrayBufferAllocator> allocator;
     v8::Isolate* isolate = nullptr;
@@ -7121,6 +7264,21 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
         }
     }
 
+    if (processRuntimePersistent) {
+        putPayload(payload, "initialize.status", "reused");
+        putPayload(payload, "initialize.detail", "process-global InitializeOncePerProcess state was reused");
+        putPayload(payload, "initialize.result", "process_runtime_ready");
+        putPayload(payload, "timing.initialize.ms", static_cast<long long>(0));
+        putPayload(payload, "platform.create.status", "reused");
+        putPayload(payload, "platform.create.detail", "Node-owned process-global MultiIsolatePlatform was reused");
+        putPayload(payload, "timing.platform_create.ms", static_cast<long long>(0));
+        putPayload(payload, "v8.initialize_platform.status", "reused");
+        putPayload(payload, "v8.initialize_platform.detail", "Node initialized the process-global V8 platform");
+        putPayload(payload, "timing.v8_initialize_platform.ms", static_cast<long long>(0));
+        putPayload(payload, "v8.initialize.status", "reused");
+        putPayload(payload, "v8.initialize.detail", "Node initialized process-global V8 and cppgc state");
+        putPayload(payload, "timing.v8_initialize.ms", static_cast<long long>(0));
+    } else {
     __android_log_print(
             ANDROID_LOG_INFO,
             kLogTag,
@@ -7265,6 +7423,7 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
             __android_log_print(ANDROID_LOG_WARN, kLogTag, "v8.initialize.failed elapsed=%lldms error=unknown", elapsedMs(v8InitializeStartedAt));
         }
         putPayload(payload, "timing.v8_initialize.ms", elapsedMs(v8InitializeStartedAt));
+    }
     }
 
     if (v8Initialized) {
@@ -19424,11 +19583,13 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
                 __android_log_print(ANDROID_LOG_INFO, kLogTag, "environment.free.done elapsed=%lldms", elapsedMs(environmentFreeStartedAt));
             } catch (const std::exception& e) {
                 lifecycleFailed = true;
+                executionTeardownClean = false;
                 putPayload(payload, "environment.free.status", "failed");
                 putPayload(payload, "environment.free.detail", e.what());
                 __android_log_print(ANDROID_LOG_WARN, kLogTag, "environment.free.failed elapsed=%lldms error=%s", elapsedMs(environmentFreeStartedAt), e.what());
             } catch (...) {
                 lifecycleFailed = true;
+                executionTeardownClean = false;
                 putPayload(payload, "environment.free.status", "failed");
                 putPayload(payload, "environment.free.detail", "unknown native exception");
                 __android_log_print(ANDROID_LOG_WARN, kLogTag, "environment.free.failed elapsed=%lldms error=unknown", elapsedMs(environmentFreeStartedAt));
@@ -19470,11 +19631,13 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
             __android_log_print(ANDROID_LOG_INFO, kLogTag, "isolate_data.free.done elapsed=%lldms", elapsedMs(isolateDataFreeStartedAt));
         } catch (const std::exception& e) {
             lifecycleFailed = true;
+            executionTeardownClean = false;
             putPayload(payload, "isolate_data.free.status", "failed");
             putPayload(payload, "isolate_data.free.detail", e.what());
             __android_log_print(ANDROID_LOG_WARN, kLogTag, "isolate_data.free.failed elapsed=%lldms error=%s", elapsedMs(isolateDataFreeStartedAt), e.what());
         } catch (...) {
             lifecycleFailed = true;
+            executionTeardownClean = false;
             putPayload(payload, "isolate_data.free.status", "failed");
             putPayload(payload, "isolate_data.free.detail", "unknown native exception");
             __android_log_print(ANDROID_LOG_WARN, kLogTag, "isolate_data.free.failed elapsed=%lldms error=unknown", elapsedMs(isolateDataFreeStartedAt));
@@ -19487,24 +19650,41 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
                 ANDROID_LOG_INFO,
                 kLogTag,
                 "isolate.dispose.start symbol=%s",
-                isolateDisposeLookup.symbol.c_str()
+                platformDisposeIsolateLookup.symbol.c_str()
         );
         const auto disposeStartedAt = Clock::now();
         try {
-            disposeIsolate(isolate);
+            disposeIsolate(platform.get(), isolate);
             isolate = nullptr;
             putPayload(payload, "isolate.dispose.status", "done");
-            putPayload(payload, "isolate.dispose.detail", "Isolate::Dispose returned");
+            putPayload(
+                    payload,
+                    "isolate.dispose.detail",
+                    "MultiIsolatePlatform::DisposeIsolate returned"
+            );
+            putPayload(payload, "isolate.unregister.status", "done");
+            putPayload(
+                    payload,
+                    "isolate.unregister.detail",
+                    "DisposeIsolate deinitialized, unregistered, and freed the isolate"
+            );
             __android_log_print(ANDROID_LOG_INFO, kLogTag, "isolate.dispose.done elapsed=%lldms", elapsedMs(disposeStartedAt));
+            putPayload(payload, "timing.isolate_unregister.ms", static_cast<long long>(0));
         } catch (const std::exception& e) {
             lifecycleFailed = true;
+            executionTeardownClean = false;
             putPayload(payload, "isolate.dispose.status", "failed");
             putPayload(payload, "isolate.dispose.detail", e.what());
+            putPayload(payload, "isolate.unregister.status", "skipped");
+            putPayload(payload, "isolate.unregister.detail", "Isolate::Dispose did not complete");
             __android_log_print(ANDROID_LOG_WARN, kLogTag, "isolate.dispose.failed elapsed=%lldms error=%s", elapsedMs(disposeStartedAt), e.what());
         } catch (...) {
             lifecycleFailed = true;
+            executionTeardownClean = false;
             putPayload(payload, "isolate.dispose.status", "failed");
             putPayload(payload, "isolate.dispose.detail", "unknown native exception");
+            putPayload(payload, "isolate.unregister.status", "skipped");
+            putPayload(payload, "isolate.unregister.detail", "Isolate::Dispose did not complete");
             __android_log_print(ANDROID_LOG_WARN, kLogTag, "isolate.dispose.failed elapsed=%lldms error=unknown", elapsedMs(disposeStartedAt));
         }
         putPayload(payload, "timing.isolate_dispose.ms", elapsedMs(disposeStartedAt));
@@ -19564,6 +19744,7 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
         );
         if (!uvRunCleanupCompleted) {
             lifecycleFailed = true;
+            executionTeardownClean = false;
         }
     }
 
@@ -19586,6 +19767,7 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
                 __android_log_print(ANDROID_LOG_INFO, kLogTag, "uv.loop.close.done elapsed=%lldms", elapsedMs(uvLoopCloseStartedAt));
             } else {
                 lifecycleFailed = true;
+                executionTeardownClean = false;
                 const std::string detail = uvLoopResultDetail("uv_loop_close", result);
                 putPayload(payload, "uv.loop.close.status", "failed");
                 putPayload(payload, "uv.loop.close.detail", detail);
@@ -19593,11 +19775,13 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
             }
         } catch (const std::exception& e) {
             lifecycleFailed = true;
+            executionTeardownClean = false;
             putPayload(payload, "uv.loop.close.status", "failed");
             putPayload(payload, "uv.loop.close.detail", e.what());
             __android_log_print(ANDROID_LOG_WARN, kLogTag, "uv.loop.close.failed elapsed=%lldms error=%s", elapsedMs(uvLoopCloseStartedAt), e.what());
         } catch (...) {
             lifecycleFailed = true;
+            executionTeardownClean = false;
             putPayload(payload, "uv.loop.close.status", "failed");
             putPayload(payload, "uv.loop.close.detail", "unknown native exception");
             __android_log_print(ANDROID_LOG_WARN, kLogTag, "uv.loop.close.failed elapsed=%lldms error=unknown", elapsedMs(uvLoopCloseStartedAt));
@@ -19732,6 +19916,26 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
         putPayload(payload, "timing.stdout_capture.ms", static_cast<long long>(0));
     }
 
+    if (environment != nullptr || isolateData != nullptr || isolate != nullptr ||
+        (uvLoopInitialized && !uvLoopClosed)) {
+        executionTeardownClean = false;
+    }
+    putPayload(payload, "execution.teardown_clean", executionTeardownClean);
+    putPayload(
+            payload,
+            "execution.teardown_poison_reason",
+            executionTeardownClean ? "" : "per-execution Node/V8/libuv teardown did not complete cleanly"
+    );
+    if (processRuntimeTeardownClean != nullptr) {
+        *processRuntimeTeardownClean = executionTeardownClean;
+    }
+
+    if (processRuntimePersistent) {
+        putPayload(payload, "teardown.status", "deferred");
+        putPayload(payload, "teardown.detail", "process-global TearDownOncePerProcess is reserved for terminal shutdown");
+        putPayload(payload, "timing.teardown.ms", static_cast<long long>(0));
+        putPayload(payload, "v8.platform.lifetime", "process_owned_reused");
+    } else {
     __android_log_print(
             ANDROID_LOG_INFO,
             kLogTag,
@@ -19760,6 +19964,7 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
     if (v8PlatformInitialized && platform != nullptr) {
         platform.release();
         putPayload(payload, "v8.platform.lifetime", "released_to_probe_process");
+    }
     }
 
     __android_log_print(
@@ -19815,6 +20020,7 @@ void appendEmbeddedIsolateLifecycleProbePayload(
         void* handle,
         bool useUvLoop
 ) {
+    std::lock_guard<std::recursive_mutex> processRuntimeLock(embeddedProcessRuntimeExecutionMutex());
     const char* lifecycleLogName = useUvLoop ? "uv.isolate.lifecycle" : "isolate.lifecycle";
     __android_log_print(ANDROID_LOG_INFO, kLogTag, "%s.start", lifecycleLogName);
     const auto lifecycleStartedAt = Clock::now();
@@ -19832,6 +20038,21 @@ void appendEmbeddedIsolateLifecycleProbePayload(
     }
 
 #if AUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE
+    if (!beginEmbeddedProcessRuntimeOneShotLifecycle(
+            payload,
+            useUvLoop ? "uv_isolate_lifecycle_probe" : "isolate_lifecycle_probe"
+    )) {
+        putLifecycleSkippedPayload(
+                payload,
+                "one-shot isolate lifecycle probe requires a fresh process",
+                "InitializeOncePerProcess was not called"
+        );
+        putIsolateSkippedPayload(payload, "one-shot isolate lifecycle probe requires a fresh process");
+        if (useUvLoop) {
+            putUvLoopSkippedPayload(payload, "one-shot isolate lifecycle probe requires a fresh process");
+        }
+        return;
+    }
     if (handle == nullptr) {
         putLifecycleSkippedPayload(
                 payload,

@@ -120,6 +120,8 @@ using V8StringUtf8ValueConstructor =
         void (*)(v8::String::Utf8Value*, v8::Isolate*, v8::Local<v8::Value>, v8::String::WriteOptions);
 using V8StringUtf8ValueDestructor = void (*)(v8::String::Utf8Value*);
 using V8IsolateDispose = void (*)(v8::Isolate*);
+using NodeMultiIsolatePlatformDisposeIsolate =
+        void (*)(node::MultiIsolatePlatform*, v8::Isolate*);
 using V8InitializePlatform = void (*)(v8::Platform*);
 using V8Initialize = bool (*)(int);
 using UvLoopInit = int (*)(uv_loop_t*);
@@ -359,6 +361,7 @@ extern const char* const kV8ValueToStringSymbol;
 extern const char* const kV8StringUtf8ValueConstructorSymbol;
 extern const char* const kV8StringUtf8ValueDestructorSymbol;
 extern const char* const kV8IsolateDisposeSymbol;
+extern const char* const kMultiIsolatePlatformDisposeIsolateSymbol;
 extern const char* const kV8InitializePlatformSymbol;
 extern const char* const kV8InitializeSymbol;
 extern const char* const kUvLoopInitSymbol;
@@ -953,6 +956,39 @@ struct EmbeddedScriptExecutionRequest {
     bool javaInteropExperimentalEnabled = false;
 };
 
+struct EmbeddedProcessRuntimeExecution {
+    void* libnodeHandle = nullptr;
+    node::MultiIsolatePlatform* platform = nullptr;
+    uint64_t generation = 0;
+    uint64_t executionSequence = 0;
+    bool reused = false;
+};
+
+std::recursive_mutex& embeddedProcessRuntimeExecutionMutex();
+bool embeddedProcessRuntimePersistentEnabled();
+bool embeddedProcessRuntimeOwnsGlobalState();
+bool setEmbeddedProcessRuntimePersistentEnabled(
+        bool enabled,
+        std::vector<std::string>& payload
+);
+bool ensureEmbeddedProcessRuntime(std::vector<std::string>& payload);
+bool beginEmbeddedProcessRuntimeExecution(
+        std::vector<std::string>& payload,
+        EmbeddedProcessRuntimeExecution& execution
+);
+void finishEmbeddedProcessRuntimeExecution(
+        std::vector<std::string>& payload,
+        const EmbeddedProcessRuntimeExecution& execution,
+        bool teardownClean,
+        const std::string& poisonReason
+);
+bool beginEmbeddedProcessRuntimeOneShotLifecycle(
+        std::vector<std::string>& payload,
+        const char* origin
+);
+void appendEmbeddedProcessRuntimeDiagnostics(std::vector<std::string>& payload);
+bool shutdownEmbeddedProcessRuntime(std::vector<std::string>& payload);
+
 std::vector<std::string> runEmbeddedScriptExecution(
         const EmbeddedScriptExecutionRequest& request,
         const char* runtimeAdapterPath = nullptr,
@@ -1301,7 +1337,10 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
         const char* sourceLabelOverride = nullptr,
         const char* workingDirectoryOverride = nullptr,
         bool scriptExecution = false,
-        bool fullUvDiagnostics = true
+        bool fullUvDiagnostics = true,
+        node::MultiIsolatePlatform* processRuntimePlatform = nullptr,
+        bool processRuntimePersistent = false,
+        bool* processRuntimeTeardownClean = nullptr
 );
 void appendEmbeddedIsolateLifecycleProbePayload(
         std::vector<std::string>& payload,

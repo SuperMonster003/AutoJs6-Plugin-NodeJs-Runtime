@@ -41,6 +41,7 @@ add_library(
         node_bridge_sources.cpp
         node_bridge_validation.cpp
         node_bridge_core.cpp
+        node_bridge_process_runtime.cpp
         node_bridge_payload.cpp
         node_bridge_lifecycle.cpp
         node_bridge_jni.cpp
