@@ -5559,6 +5559,27 @@ std::string buildEmbeddedScriptExecutionSource(
     lastDeniedReason: "",
     loadedModules: []
   };
+  const __autojs6_module_source_provider_diagnostics = {
+    enabled: false,
+    requestCount: 0,
+    resolvedCount: 0,
+    decryptedCount: 0,
+    notEncryptedCount: 0,
+    notFoundCount: 0,
+    deniedCount: 0,
+    cancelledCount: 0,
+    timedOutCount: 0,
+    failedCount: 0,
+    sourceBytes: 0,
+    elapsedMs: 0,
+    lastStatus: "",
+    lastPath: "",
+    lastResolvedPath: "",
+    lastDenialReason: "",
+    lastErrorCode: "",
+    lastErrorMessage: "",
+    legacyDirectoryScanRan: false
+  };
   const __autojs6_package_diagnostics = {
     lastPackageName: "",
     lastPackageJson: "",
@@ -5623,6 +5644,10 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_source_map_cache = Object.create(null);
   const __autojs6_generated_stack_mappings = Object.create(null);
   let __autojs6_runtime_module_accounting = null;
+  let __autojs6_module_source_provider_config_cache;
+  let __autojs6_module_source_provider_sequence = 0;
+  let __autojs6_module_source_provider_wait_array = null;
+  const __autojs6_module_source_provider_results = Object.create(null);
   const __autojs6_native_function = Function;
   const __autojs6_native_async_function = Object.getPrototypeOf(async function() {}).constructor;
   const __autojs6_native_eval = eval;
@@ -29473,7 +29498,9 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_path_within_root(pathValue, rootValue) {
     if (!rootValue) return false;
     if (rootValue === "/") return pathValue.indexOf("/") === 0;
-    return pathValue === rootValue || pathValue.indexOf(rootValue + "/") === 0;
+    return pathValue === rootValue ||
+      pathValue.indexOf(rootValue + "/") === 0 ||
+      pathValue.indexOf(rootValue + "\\") === 0;
   }
   function __autojs6_runtime_module_source_bytes(source) {
     const text = source === undefined || source === null ? "" : String(source);
@@ -29518,6 +29545,582 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_runtime_module_source_url(resolved) {
     return String(resolved || "").replace(/[\r\n]/g, " ");
+  }
+  function __autojs6_module_source_provider_config() {
+    if (__autojs6_module_source_provider_config_cache !== undefined) {
+      if (__autojs6_module_source_provider_config_cache && __autojs6_module_source_provider_config_cache.invalid) {
+        throw __autojs6_module_source_provider_error(
+          "failed",
+          "",
+          __autojs6_module_source_provider_config_cache.message,
+          "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_INVALID_REQUEST",
+          false
+        );
+      }
+      return __autojs6_module_source_provider_config_cache;
+    }
+    __autojs6_module_source_provider_config_cache = null;
+    try {
+      const record = __autojs6_runtime_module_embedded_sources["autojs6:module-source-provider"];
+      if (!record || typeof record.source !== "string") return null;
+      __autojs6_module_source_provider_diagnostics.enabled = true;
+      const parsed = JSON.parse(record.source);
+      if (!parsed || typeof parsed !== "object" || parsed.enabled !== true || Number(parsed.version) !== 1) {
+        throw new Error("Module-source provider transport configuration version or enabled state is invalid.");
+      }
+      const path = __autojs6_path_module();
+      const requestDir = parsed.requestDir === undefined || parsed.requestDir === null
+        ? ""
+        : String(parsed.requestDir);
+      const responseDir = parsed.responseDir === undefined || parsed.responseDir === null
+        ? ""
+        : String(parsed.responseDir);
+      const executionId = parsed.executionId === undefined || parsed.executionId === null
+        ? ""
+        : String(parsed.executionId);
+      if (
+        !path || typeof path.resolve !== "function" || typeof path.isAbsolute !== "function" ||
+        !requestDir || !responseDir || !executionId ||
+        !path.isAbsolute(requestDir) || !path.isAbsolute(responseDir)
+      ) {
+        throw new Error("Module-source provider transport configuration paths or execution id are invalid.");
+      }
+      const rawTimeoutMs = Number(parsed.timeoutMs);
+      const rawPollIntervalMs = Number(parsed.pollIntervalMs);
+      const timeoutMs = Number.isFinite(rawTimeoutMs) && rawTimeoutMs > 0
+        ? Math.max(1, Math.min(Math.floor(rawTimeoutMs), 5000))
+        : 5000;
+      const pollIntervalMs = Number.isFinite(rawPollIntervalMs) && rawPollIntervalMs > 0
+        ? Math.max(1, Math.min(Math.floor(rawPollIntervalMs), 250))
+        : 5;
+      __autojs6_module_source_provider_config_cache = Object.freeze({
+        version: 1,
+        executionId,
+        requestDir: path.resolve(requestDir),
+        responseDir: path.resolve(responseDir),
+        timeoutMs,
+        pollIntervalMs
+      });
+      return __autojs6_module_source_provider_config_cache;
+    } catch (error) {
+      const message = "Module-source provider transport configuration is invalid: " +
+        (error && error.message ? error.message : String(error));
+      __autojs6_module_source_provider_config_cache = Object.freeze({ invalid: true, message });
+      throw __autojs6_module_source_provider_error(
+        "failed",
+        "",
+        message,
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_INVALID_REQUEST",
+        false
+      );
+    }
+  }
+  function __autojs6_module_source_provider_safe_id(value) {
+    const safe = String(value || "invalid").replace(/[^A-Za-z0-9_.-]/g, "_");
+    return safe.length <= 120 ? safe : safe.slice(0, 120);
+  }
+  function __autojs6_module_source_provider_file(config, directory, id, extension) {
+    const path = __autojs6_path_module();
+    return path.resolve(directory, __autojs6_module_source_provider_safe_id(id) + extension);
+  }
+  function __autojs6_module_source_provider_cleanup_file(fs, file) {
+    if (!file || !fs || typeof fs.unlinkSync !== "function") return;
+    try {
+      fs.unlinkSync(file);
+    } catch (_) {}
+  }
+  function __autojs6_module_source_provider_wait(milliseconds) {
+    const waitMs = Math.max(1, Math.min(Math.floor(Number(milliseconds) || 1), 250));
+    if (
+      typeof SharedArrayBuffer !== "function" || typeof Int32Array !== "function" ||
+      typeof Atomics !== "object" || !Atomics || typeof Atomics.wait !== "function"
+    ) {
+      throw new Error("Synchronous module-source provider polling needs SharedArrayBuffer and Atomics.wait.");
+    }
+    if (!__autojs6_module_source_provider_wait_array) {
+      __autojs6_module_source_provider_wait_array = new Int32Array(new SharedArrayBuffer(4));
+    }
+    Atomics.wait(__autojs6_module_source_provider_wait_array, 0, 0, waitMs);
+  }
+  function __autojs6_module_source_provider_mark_error(error) {
+    try {
+      Object.defineProperty(error, "__autojs6ModuleSourceProviderRecorded", {
+        value: true,
+        configurable: false,
+        enumerable: false,
+        writable: false
+      });
+    } catch (_) {}
+    return error;
+  }
+  function __autojs6_module_source_provider_error(status, pathValue, message, code, alreadyRecorded) {
+    const diagnostics = __autojs6_module_source_provider_diagnostics;
+    const normalizedStatus = String(status || "failed");
+    const normalizedMessage = String(message || "Module-source provider request failed.");
+    const normalizedCode = String(code || "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED");
+    if (!alreadyRecorded) {
+      diagnostics.lastStatus = normalizedStatus;
+      diagnostics.lastPath = String(pathValue || "");
+      diagnostics.lastErrorCode = normalizedCode;
+      diagnostics.lastErrorMessage = normalizedMessage;
+      if (normalizedStatus === "denied") {
+        diagnostics.deniedCount += 1;
+        diagnostics.lastDenialReason = normalizedCode;
+      } else if (normalizedStatus === "cancelled") {
+        diagnostics.cancelledCount += 1;
+      } else if (normalizedStatus === "timed_out") {
+        diagnostics.timedOutCount += 1;
+      } else {
+        diagnostics.failedCount += 1;
+      }
+    }
+    return __autojs6_module_source_provider_mark_error(
+      __autojs6_runtime_module_error(normalizedMessage, normalizedCode)
+    );
+  }
+  function __autojs6_module_source_provider_record_response(response, requestedPath) {
+    const diagnostics = __autojs6_module_source_provider_diagnostics;
+    const status = String(response.status || "failed");
+    const errorMessage = String(response.errorMessage || "");
+    diagnostics.lastStatus = status;
+    diagnostics.lastPath = String(requestedPath || "");
+    diagnostics.lastResolvedPath = String(response.resolvedPath || "");
+    diagnostics.lastErrorCode = String(response.errorCode || "");
+    diagnostics.lastErrorMessage = errorMessage;
+    const responseElapsedMs = Number(response.elapsedMs);
+    if (Number.isFinite(responseElapsedMs) && responseElapsedMs > 0) {
+      diagnostics.elapsedMs += Math.min(Math.floor(responseElapsedMs), 5000);
+    }
+    if (status === "decrypted") {
+      diagnostics.resolvedCount += 1;
+      diagnostics.decryptedCount += 1;
+    } else if (status === "not_encrypted") {
+      diagnostics.resolvedCount += 1;
+      diagnostics.notEncryptedCount += 1;
+    } else if (status === "not_found") {
+      diagnostics.notFoundCount += 1;
+    } else if (status === "denied") {
+      diagnostics.deniedCount += 1;
+      diagnostics.lastDenialReason = String(response.errorCode || "denied");
+    } else if (status === "cancelled") {
+      diagnostics.cancelledCount += 1;
+    } else if (status === "timed_out") {
+      diagnostics.timedOutCount += 1;
+    } else {
+      diagnostics.failedCount += 1;
+    }
+  }
+  function __autojs6_module_source_provider_file_identity(fs, file) {
+    if (!fs || typeof fs.statSync !== "function") return "";
+    let stat;
+    try {
+      stat = fs.statSync(file, { bigint: true });
+    } catch (_) {
+      stat = fs.statSync(file);
+    }
+    return __autojs6_module_source_provider_stat_identity(stat);
+  }
+  function __autojs6_module_source_provider_stat_identity(stat) {
+    if (!stat || typeof stat.isFile !== "function" || !stat.isFile()) return "";
+    const modified = stat.mtimeNs === undefined ? stat.mtimeMs : stat.mtimeNs;
+    return [stat.dev, stat.ino, stat.size, modified].map((value) => String(value)).join(":");
+  }
+  function __autojs6_module_source_provider_verified_read(
+    fs,
+    file,
+    requestedPath,
+    expectedIdentity,
+    expectedBytes
+  ) {
+    const path = __autojs6_path_module();
+    if (
+      !path || !fs || typeof fs.openSync !== "function" ||
+      typeof fs.closeSync !== "function" || typeof fs.fstatSync !== "function" ||
+      typeof fs.readFileSync !== "function"
+    ) {
+      throw __autojs6_module_source_provider_error(
+        "failed",
+        requestedPath,
+        "Module-source provider verified file transfer is unavailable.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED",
+        false
+      );
+    }
+    const platform = typeof process === "object" && process && process.platform
+      ? String(process.platform)
+      : "";
+    const needsOpenedPathCheck = platform === "android" || platform === "linux";
+    const constants = fs.constants || {};
+    if (needsOpenedPathCheck && typeof constants.O_NOFOLLOW !== "number") {
+      throw __autojs6_module_source_provider_error(
+        "failed",
+        requestedPath,
+        "Module-source provider verified file transfer needs O_NOFOLLOW support.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED",
+        false
+      );
+    }
+    let flags = typeof constants.O_RDONLY === "number" ? constants.O_RDONLY : 0;
+    if (typeof constants.O_CLOEXEC === "number") flags |= constants.O_CLOEXEC;
+    if (typeof constants.O_NOFOLLOW === "number") flags |= constants.O_NOFOLLOW;
+    let authorizedIdentity = expectedIdentity;
+    let expectedOpenedPath;
+    try {
+      expectedOpenedPath = needsOpenedPathCheck
+        ? path.resolve(fs.realpathSync(file))
+        : path.resolve(file);
+      if (!authorizedIdentity) {
+        authorizedIdentity = __autojs6_module_source_provider_file_identity(fs, file);
+      }
+    } catch (_) {
+      throw __autojs6_module_source_provider_error(
+        "denied",
+        requestedPath,
+        "Module-source provider authorized-file identity could not be verified.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+        false
+      );
+    }
+    if (!authorizedIdentity) {
+      throw __autojs6_module_source_provider_error(
+        "denied",
+        requestedPath,
+        "Module-source provider authorized-file identity is invalid.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+        false
+      );
+    }
+    let fd;
+    try {
+      fd = fs.openSync(file, flags);
+    } catch (_) {
+      throw __autojs6_module_source_provider_error(
+        "denied",
+        requestedPath,
+        "Module-source provider candidate could not be opened without following links.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+        false
+      );
+    }
+    function openedPath() {
+      if (!needsOpenedPathCheck) return "";
+      if (typeof fs.realpathSync !== "function") {
+        throw __autojs6_module_source_provider_error(
+          "failed",
+          requestedPath,
+          "Module-source provider opened-file verification is unavailable.",
+          "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED",
+          false
+        );
+      }
+      try {
+        return path.resolve(fs.realpathSync("/proc/self/fd/" + fd));
+      } catch (_) {
+        throw __autojs6_module_source_provider_error(
+          "denied",
+          requestedPath,
+          "Module-source provider opened-file identity could not be verified.",
+          "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+          false
+        );
+      }
+    }
+    try {
+      let beforeStat;
+      try {
+        beforeStat = fs.fstatSync(fd, { bigint: true });
+      } catch (_) {
+        beforeStat = fs.fstatSync(fd);
+      }
+      const beforeIdentity = __autojs6_module_source_provider_stat_identity(beforeStat);
+      if (!beforeIdentity || beforeIdentity !== authorizedIdentity) {
+        throw __autojs6_module_source_provider_error(
+          "denied",
+          requestedPath,
+          "Module-source provider opened-file identity changed before source read.",
+          "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+          false
+        );
+      }
+      if (Number.isSafeInteger(expectedBytes) && Number(beforeStat.size) !== expectedBytes) {
+        throw __autojs6_module_source_provider_error(
+          "denied",
+          requestedPath,
+          "Module-source provider opened-file byte count changed before source read.",
+          "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+          false
+        );
+      }
+      const openedBefore = openedPath();
+      if (openedBefore && openedBefore !== expectedOpenedPath) {
+        throw __autojs6_module_source_provider_error(
+          "denied",
+          requestedPath,
+          "Module-source provider opened-file path does not match the authorized path.",
+          "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+          false
+        );
+      }
+      const bytes = fs.readFileSync(fd);
+      let afterStat;
+      try {
+        afterStat = fs.fstatSync(fd, { bigint: true });
+      } catch (_) {
+        afterStat = fs.fstatSync(fd);
+      }
+      const afterIdentity = __autojs6_module_source_provider_stat_identity(afterStat);
+      if (afterIdentity !== beforeIdentity || afterIdentity !== authorizedIdentity) {
+        throw __autojs6_module_source_provider_error(
+          "denied",
+          requestedPath,
+          "Module-source provider opened-file identity changed during source read.",
+          "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+          false
+        );
+      }
+      const openedAfter = openedPath();
+      if (openedAfter && openedAfter !== expectedOpenedPath) {
+        throw __autojs6_module_source_provider_error(
+          "denied",
+          requestedPath,
+          "Module-source provider opened-file path changed during source read.",
+          "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+          false
+        );
+      }
+      return bytes;
+    } finally {
+      try {
+        fs.closeSync(fd);
+      } catch (_) {}
+    }
+  }
+  function __autojs6_module_source_provider_response(fs, config, id, requestedPath, responsePath, sourcePath, deadline) {
+    while (true) {
+      try {
+        if (typeof fs.statSync === "function") {
+          const stat = fs.statSync(responsePath);
+          if (!stat || !stat.isFile() || stat.size > 65536) {
+            throw new Error("Module-source provider response JSON is invalid or too large.");
+          }
+        }
+        const responseText = fs.readFileSync(responsePath, "utf8");
+        if (__autojs6_runtime_module_source_bytes(responseText) > 65536) {
+          throw new Error("Module-source provider response JSON is too large.");
+        }
+        const response = JSON.parse(String(responseText));
+        if (
+          !response || typeof response !== "object" || Number(response.version) !== 1 ||
+          String(response.id || "") !== id
+        ) {
+          throw new Error("Module-source provider response identity or version is invalid.");
+        }
+        const status = String(response.status || "");
+        if (
+          status !== "decrypted" && status !== "not_encrypted" && status !== "not_found" &&
+          status !== "denied" && status !== "cancelled" && status !== "timed_out" && status !== "failed"
+        ) {
+          throw new Error("Module-source provider response status is invalid: " + status);
+        }
+        return response;
+      } catch (error) {
+        if (!(error && (error.code === "ENOENT" || error.code === "ENOTDIR"))) {
+          throw error;
+        }
+        const remainingMs = deadline - Date.now();
+        if (remainingMs <= 0) {
+          __autojs6_module_source_provider_cleanup_file(fs, responsePath);
+          __autojs6_module_source_provider_cleanup_file(fs, sourcePath);
+          __autojs6_module_source_provider_diagnostics.elapsedMs += config.timeoutMs;
+          throw __autojs6_module_source_provider_error(
+            "timed_out",
+            requestedPath,
+            "Module-source provider transport timed out after " + config.timeoutMs + " ms.",
+            "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_TIMEOUT",
+            false
+          );
+        }
+        __autojs6_module_source_provider_wait(Math.min(config.pollIntervalMs, remainingMs));
+      }
+    }
+  }
+  function __autojs6_request_module_source(readable) {
+    if (__autojs6_has_own(__autojs6_module_source_provider_results, readable)) {
+      return __autojs6_module_source_provider_results[readable];
+    }
+    const config = __autojs6_module_source_provider_config();
+    if (!config) return Object.freeze({ status: "disabled" });
+    const diagnostics = __autojs6_module_source_provider_diagnostics;
+    diagnostics.requestCount += 1;
+    diagnostics.lastPath = String(readable || "");
+    if (diagnostics.requestCount > 1024) {
+      throw __autojs6_module_source_provider_error(
+        "failed",
+        readable,
+        "Module-source provider request count exceeds 1024.",
+        "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED",
+        false
+      );
+    }
+    const fs = __autojs6_fs_module();
+    if (
+      !fs || typeof fs.readFileSync !== "function" || typeof fs.writeFileSync !== "function" ||
+      typeof fs.renameSync !== "function" || typeof fs.mkdirSync !== "function"
+    ) {
+      throw __autojs6_module_source_provider_error(
+        "failed",
+        readable,
+        "Module-source provider transport needs native fs read/write/rename support.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED",
+        false
+      );
+    }
+    __autojs6_module_source_provider_sequence += 1;
+    const id = __autojs6_module_source_provider_safe_id(
+      "module-" + __autojs6_module_source_provider_sequence + "-" + config.executionId
+    );
+    const requestPath = __autojs6_module_source_provider_file(config, config.requestDir, id, ".json");
+    const requestTempPath = requestPath + ".tmp";
+    const responsePath = __autojs6_module_source_provider_file(config, config.responseDir, id, ".json");
+    const expectedSourcePath = __autojs6_module_source_provider_file(config, config.responseDir, id, ".source");
+    let candidateIdentity = "";
+    try {
+      candidateIdentity = __autojs6_module_source_provider_file_identity(fs, readable);
+      if (!candidateIdentity) {
+        throw new Error("Module-source provider candidate identity is unavailable.");
+      }
+      fs.mkdirSync(config.requestDir, { recursive: true });
+      fs.mkdirSync(config.responseDir, { recursive: true });
+      fs.writeFileSync(requestTempPath, JSON.stringify({
+        version: 1,
+        id,
+        executionId: config.executionId,
+        path: String(readable),
+        timeoutMs: config.timeoutMs
+      }), "utf8");
+      fs.renameSync(requestTempPath, requestPath);
+      const response = __autojs6_module_source_provider_response(
+        fs,
+        config,
+        id,
+        readable,
+        responsePath,
+        expectedSourcePath,
+        Date.now() + config.timeoutMs
+      );
+      __autojs6_module_source_provider_cleanup_file(fs, responsePath);
+      __autojs6_module_source_provider_cleanup_file(fs, requestPath);
+      const status = String(response.status);
+      if (status === "decrypted") {
+        const path = __autojs6_path_module();
+        const responseSourcePath = path.resolve(String(response.sourcePath || ""));
+        const declaredSourceBytes = Number(response.sourceBytes);
+        if (
+          responseSourcePath !== expectedSourcePath || !Number.isSafeInteger(declaredSourceBytes) ||
+          declaredSourceBytes < 0 || declaredSourceBytes > __autojs6_runtime_module_single_source_bytes_limit
+        ) {
+          throw new Error("Decrypted module-source response path or byte count is invalid.");
+        }
+        let sourceBuffer;
+        try {
+          sourceBuffer = __autojs6_module_source_provider_verified_read(
+            fs,
+            responseSourcePath,
+            readable,
+            "",
+            declaredSourceBytes
+          );
+        } finally {
+          __autojs6_module_source_provider_cleanup_file(fs, responseSourcePath);
+        }
+        const actualSourceBytes = sourceBuffer && typeof sourceBuffer.length === "number"
+          ? sourceBuffer.length
+          : __autojs6_runtime_module_source_bytes(sourceBuffer);
+        if (actualSourceBytes !== declaredSourceBytes) {
+          throw new Error(
+            "Decrypted module-source byte count mismatch: expected " + declaredSourceBytes +
+              ", read " + actualSourceBytes + "."
+          );
+        }
+        const source = sourceBuffer && typeof sourceBuffer.toString === "function"
+          ? sourceBuffer.toString("utf8")
+          : String(sourceBuffer || "");
+        if (
+          diagnostics.sourceBytes >
+          __autojs6_runtime_module_total_source_bytes_limit - actualSourceBytes
+        ) {
+          throw __autojs6_module_source_provider_error(
+            "failed",
+            readable,
+            "Decrypted module sources exceed the aggregate source byte budget.",
+            "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED",
+            false
+          );
+        }
+        __autojs6_module_source_provider_record_response(response, readable);
+        diagnostics.sourceBytes += actualSourceBytes;
+        const result = Object.freeze({
+          status,
+          source,
+          sourceBytes: actualSourceBytes,
+          sourceURL: __autojs6_runtime_module_source_url(response.resolvedPath || readable)
+        });
+        __autojs6_module_source_provider_results[readable] = result;
+        return result;
+      }
+      __autojs6_module_source_provider_cleanup_file(fs, expectedSourcePath);
+      __autojs6_module_source_provider_record_response(response, readable);
+      if (status === "not_encrypted" || status === "not_found") {
+        if (
+          status === "not_encrypted" &&
+          __autojs6_module_source_provider_file_identity(fs, readable) !== candidateIdentity
+        ) {
+          throw __autojs6_module_source_provider_error(
+            "denied",
+            readable,
+            "Module-source candidate identity changed before plaintext read.",
+            "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+            false
+          );
+        }
+        const result = Object.freeze({
+          status,
+          identity: status === "not_encrypted" ? candidateIdentity : "",
+          resolvedPath: String(response.resolvedPath || readable)
+        });
+        __autojs6_module_source_provider_results[readable] = result;
+        return result;
+      }
+      const defaultCodes = {
+        denied: "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+        cancelled: "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_CANCELLED",
+        timed_out: "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_TIMEOUT",
+        failed: "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED"
+      };
+      throw __autojs6_module_source_provider_error(
+        status,
+        readable,
+        String(response.errorMessage || "Module-source provider request returned " + status + "."),
+        String(response.errorCode || defaultCodes[status] || defaultCodes.failed),
+        true
+      );
+    } catch (error) {
+      __autojs6_module_source_provider_cleanup_file(fs, requestTempPath);
+      __autojs6_module_source_provider_cleanup_file(fs, requestPath);
+      __autojs6_module_source_provider_cleanup_file(fs, responsePath);
+      __autojs6_module_source_provider_cleanup_file(fs, expectedSourcePath);
+      if (error && error.__autojs6ModuleSourceProviderRecorded) {
+        throw error;
+      }
+      throw __autojs6_module_source_provider_error(
+        "failed",
+        readable,
+        "Module-source provider transport failed for '" + readable + "': " +
+          (error && error.message ? error.message : String(error)),
+        error && error.code ? String(error.code) : "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED",
+        false
+      );
+    }
   }
   function __autojs6_validate_runtime_module_path(resolved, allowEsm) {
     const path = __autojs6_path_module();
@@ -29591,12 +30194,65 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return absolute;
   }
+  function __autojs6_revalidate_plaintext_module_path(readable, allowEsm, providerResult) {
+    const current = __autojs6_validate_runtime_module_path(readable, allowEsm);
+    if (!current) return null;
+    const expectedResolvedPath = providerResult && providerResult.resolvedPath
+      ? String(providerResult.resolvedPath)
+      : "";
+    const path = __autojs6_path_module();
+    const fs = __autojs6_fs_module();
+    if (
+      providerResult && providerResult.identity &&
+      __autojs6_module_source_provider_file_identity(fs, current) !== providerResult.identity
+    ) {
+      throw __autojs6_module_source_provider_error(
+        "denied",
+        readable,
+        "Module-source candidate identity changed before plaintext read.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+        false
+      );
+    }
+    if (!expectedResolvedPath) {
+      throw __autojs6_module_source_provider_error(
+        "denied",
+        readable,
+        "Module-source provider plaintext response is missing its authorized canonical path.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+        false
+      );
+    }
+    let currentReal;
+    try {
+      currentReal = fs.realpathSync(current);
+    } catch (error) {
+      throw __autojs6_module_source_provider_error(
+        "denied",
+        readable,
+        "Module-source candidate could not be revalidated before plaintext read.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+        false
+      );
+    }
+    if (path.resolve(expectedResolvedPath) !== path.resolve(currentReal)) {
+      throw __autojs6_module_source_provider_error(
+        "denied",
+        readable,
+        "Module-source candidate canonical path changed before plaintext read.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+        false
+      );
+    }
+    return currentReal;
+  }
   function __autojs6_enforce_runtime_module_budget(resolved, source) {
     const sourceBytes = __autojs6_runtime_module_source_bytes(source);
     if (sourceBytes > __autojs6_runtime_module_single_source_bytes_limit) {
       throw __autojs6_runtime_module_error(
         "Embedded Node dynamic require fallback module source is too large for '" + resolved + "': " +
-          sourceBytes + " bytes > " + __autojs6_runtime_module_single_source_bytes_limit + " bytes"
+          sourceBytes + " bytes > " + __autojs6_runtime_module_single_source_bytes_limit + " bytes",
+        "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED"
       );
     }
     const accounting = __autojs6_runtime_module_accounting_state();
@@ -29604,14 +30260,16 @@ std::string buildEmbeddedScriptExecutionSource(
     if (nextCount > __autojs6_runtime_module_count_limit) {
       throw __autojs6_runtime_module_error(
         "Embedded Node runtime module source count is too large after dynamic require fallback: " +
-          nextCount + " > " + __autojs6_runtime_module_count_limit
+          nextCount + " > " + __autojs6_runtime_module_count_limit,
+        "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED"
       );
     }
     const nextTotal = accounting.totalSourceBytes + sourceBytes;
     if (nextTotal > __autojs6_runtime_module_total_source_bytes_limit) {
       throw __autojs6_runtime_module_error(
         "Embedded Node runtime module sources are too large after dynamic require fallback: " +
-          nextTotal + " bytes > " + __autojs6_runtime_module_total_source_bytes_limit + " bytes"
+          nextTotal + " bytes > " + __autojs6_runtime_module_total_source_bytes_limit + " bytes",
+        "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED"
       );
     }
     accounting.moduleCount = nextCount;
@@ -29655,10 +30313,32 @@ std::string buildEmbeddedScriptExecutionSource(
           : __autojs6_runtime_module_source_url(readable)
       };
     }
+    const providerResult = __autojs6_request_module_source(readable);
+    if (providerResult.status === "decrypted") {
+      return {
+        source: providerResult.source,
+        sourceURL: providerResult.sourceURL
+      };
+    }
+    if (providerResult.status === "not_found") {
+      return null;
+    }
+    const plaintextReadable = providerResult.status === "not_encrypted"
+      ? __autojs6_revalidate_plaintext_module_path(readable, allowEsm, providerResult)
+      : readable;
+    if (!plaintextReadable) return null;
     const fs = __autojs6_fs_module();
     let source;
     try {
-      source = fs.readFileSync(readable, "utf8");
+      source = providerResult.status === "not_encrypted"
+        ? __autojs6_module_source_provider_verified_read(
+            fs,
+            plaintextReadable,
+            readable,
+            providerResult.identity,
+            undefined
+          ).toString("utf8")
+        : fs.readFileSync(plaintextReadable, "utf8");
     } catch (error) {
       if (error && (error.code === "ENOENT" || error.code === "ENOTDIR")) {
         return null;
@@ -29670,7 +30350,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return {
       source: String(source),
-      sourceURL: __autojs6_runtime_module_source_url(readable)
+      sourceURL: __autojs6_runtime_module_source_url(plaintextReadable)
     };
   }
   function __autojs6_runtime_module_record(resolved, allowEsm) {
@@ -29699,10 +30379,38 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_runtime_module_diagnostics.loadedModules.push(readable);
       return record;
     }
+    const providerResult = __autojs6_request_module_source(readable);
+    if (providerResult.status === "not_found") {
+      return null;
+    }
+    if (providerResult.status === "decrypted") {
+      const providerSourceBytes = __autojs6_enforce_runtime_module_budget(readable, providerResult.source);
+      const record = {
+        source: providerResult.source,
+        sourceURL: providerResult.sourceURL
+      };
+      __autojs6_runtime_module_records[readable] = record;
+      __autojs6_runtime_module_diagnostics.loadedCount += 1;
+      __autojs6_runtime_module_diagnostics.sourceBytes += providerSourceBytes;
+      __autojs6_runtime_module_diagnostics.loadedModules.push(readable);
+      return record;
+    }
+    const plaintextReadable = providerResult.status === "not_encrypted"
+      ? __autojs6_revalidate_plaintext_module_path(readable, allowEsm, providerResult)
+      : readable;
+    if (!plaintextReadable) return null;
     const fs = __autojs6_fs_module();
     let source;
     try {
-      source = fs.readFileSync(readable, "utf8");
+      source = providerResult.status === "not_encrypted"
+        ? __autojs6_module_source_provider_verified_read(
+            fs,
+            plaintextReadable,
+            readable,
+            providerResult.identity,
+            undefined
+          ).toString("utf8")
+        : fs.readFileSync(plaintextReadable, "utf8");
     } catch (error) {
       if (error && (error.code === "ENOENT" || error.code === "ENOTDIR")) {
         return null;
@@ -29716,7 +30424,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const sourceBytes = __autojs6_enforce_runtime_module_budget(readable, source);
     const record = {
       source,
-      sourceURL: __autojs6_runtime_module_source_url(readable)
+      sourceURL: __autojs6_runtime_module_source_url(plaintextReadable)
     };
     __autojs6_runtime_module_records[readable] = record;
     __autojs6_runtime_module_diagnostics.loadedCount += 1;
@@ -46922,6 +47630,22 @@ std::string buildEmbeddedScriptExecutionSource(
     fields.dynamicRequireFallbackLastReferrer = __autojs6_runtime_module_diagnostics.lastReferrer;
     fields.dynamicRequireFallbackLastCandidate = __autojs6_runtime_module_diagnostics.lastCandidate;
     fields.dynamicRequireFallbackLastDeniedReason = __autojs6_runtime_module_diagnostics.lastDeniedReason;
+    fields.moduleProviderEnabled = __autojs6_module_source_provider_diagnostics.enabled;
+    fields.moduleProviderRequestCount = __autojs6_module_source_provider_diagnostics.requestCount;
+    fields.moduleProviderResolvedCount = __autojs6_module_source_provider_diagnostics.resolvedCount;
+    fields.moduleProviderDecryptedCount = __autojs6_module_source_provider_diagnostics.decryptedCount;
+    fields.moduleProviderNotEncryptedCount = __autojs6_module_source_provider_diagnostics.notEncryptedCount;
+    fields.moduleProviderNotFoundCount = __autojs6_module_source_provider_diagnostics.notFoundCount;
+    fields.moduleProviderDeniedCount = __autojs6_module_source_provider_diagnostics.deniedCount;
+    fields.moduleProviderCancelledCount = __autojs6_module_source_provider_diagnostics.cancelledCount;
+    fields.moduleProviderTimedOutCount = __autojs6_module_source_provider_diagnostics.timedOutCount;
+    fields.moduleProviderFailedCount = __autojs6_module_source_provider_diagnostics.failedCount;
+    fields.moduleProviderSourceBytes = __autojs6_module_source_provider_diagnostics.sourceBytes;
+    fields.moduleProviderElapsedMs = __autojs6_module_source_provider_diagnostics.elapsedMs;
+    fields.moduleProviderLastStatus = __autojs6_module_source_provider_diagnostics.lastStatus;
+    fields.moduleProviderLastDenialReason = __autojs6_module_source_provider_diagnostics.lastDenialReason;
+    fields.moduleProviderLastErrorCode = __autojs6_module_source_provider_diagnostics.lastErrorCode;
+    fields.moduleProviderLegacyDirectoryScanRan = __autojs6_module_source_provider_diagnostics.legacyDirectoryScanRan;
     fields.packageResolutionPackage = __autojs6_package_diagnostics.lastPackageName;
     fields.packageResolutionPackageJson = __autojs6_package_diagnostics.lastPackageJson;
     fields.packageResolutionField = __autojs6_package_diagnostics.lastField;
