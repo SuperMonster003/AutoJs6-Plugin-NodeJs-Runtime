@@ -66,6 +66,20 @@ const char kInvalidHandleError[] =
         "{\"code\":\"ERR_AUTOJS6_NODE_ADAPTER_INVALID_HANDLE\","
         "\"message\":\"Adapter runtime handle is invalid or destroyed.\"}";
 
+const char kInvalidArgumentDiagnostics[] =
+        "{\"code\":\"ERR_AUTOJS6_NODE_ADAPTER_INVALID_ARGUMENT\","
+        "\"phaseTimingSchema\":\"autojs6-node-native-lifecycle-timing-v1\","
+        "\"phaseTimingStatus\":\"unavailable\","
+        "\"phaseTimingCount\":0,"
+        "\"phaseTimingRequiredCount\":13,"
+        "\"phaseTimingRequiredAvailableCount\":0,"
+        "\"phaseTimingPayload\":\"\","
+        "\"phaseTimingStatusPayload\":\"\","
+        "\"phaseTimingSemantics\":\"nested_non_additive\","
+        "\"scriptExecutionSemantics\":\"entry_to_terminal_completion\","
+        "\"phaseTimingClock\":\"native_steady_clock_and_node_hrtime_bigint\","
+        "\"executionSourceBytes\":\"\"}";
+
 std::atomic<uint64_t> gNextRuntimeId{1};
 std::mutex gHandleMutex;
 std::unordered_set<AutoJsNodeHandle*> gLiveHandles;
@@ -285,6 +299,197 @@ std::string payloadValue(const std::vector<std::string>& payload, const char* ke
     return "";
 }
 
+std::string payloadLastValue(const std::vector<std::string>& payload, const char* key) {
+    const std::string prefix = std::string(key) + "=";
+    for (auto iterator = payload.rbegin(); iterator != payload.rend(); ++iterator) {
+        std::string value = fieldValueAfterPrefix(*iterator, prefix.c_str());
+        if (!value.empty() || iterator->rfind(prefix, 0) == 0) {
+            return value;
+        }
+    }
+    return "";
+}
+
+constexpr const char* kPhaseTimingSchema = "autojs6-node-native-lifecycle-timing-v1";
+constexpr const char* kPhaseTimingSemantics = "nested_non_additive";
+constexpr const char* kScriptExecutionSemantics = "entry_to_terminal_completion";
+constexpr const char* kPhaseTimingClock = "native_steady_clock_and_node_hrtime_bigint";
+
+enum class PhaseStatusPolicy {
+    kPresent,
+    kDone,
+    kDoneOrReused,
+    kScriptTerminal,
+    kPositiveIntegerMarker,
+};
+
+struct PhaseTimingSpec {
+    const char* timingKey;
+    const char* statusKey;
+    PhaseStatusPolicy statusPolicy;
+    bool required;
+};
+
+constexpr PhaseTimingSpec kPhaseTimingSpecs[] = {
+        {"timing.execution_source_build.ms", nullptr, PhaseStatusPolicy::kPresent, true},
+        {"timing.process_runtime_initialize.ms", "process_runtime.ensure.status", PhaseStatusPolicy::kDone, false},
+        {"timing.load.ms", nullptr, PhaseStatusPolicy::kPresent, false},
+        {"timing.symbols.ms", "symbol.count", PhaseStatusPolicy::kPositiveIntegerMarker, false},
+        {"timing.initialize.ms", "initialize.status", PhaseStatusPolicy::kDoneOrReused, false},
+        {"timing.platform_create.ms", "platform.create.status", PhaseStatusPolicy::kDoneOrReused, false},
+        {"timing.v8_initialize_platform.ms", "v8.initialize_platform.status", PhaseStatusPolicy::kDoneOrReused, false},
+        {"timing.v8_initialize.ms", "v8.initialize.status", PhaseStatusPolicy::kDoneOrReused, false},
+        {"timing.uv_loop_init.ms", "uv.loop.init.status", PhaseStatusPolicy::kDone, true},
+        {"timing.allocator_create.ms", "allocator.create.status", PhaseStatusPolicy::kDone, false},
+        {"timing.isolate_create.ms", "isolate.create.status", PhaseStatusPolicy::kDone, true},
+        {"timing.isolate_data_create.ms", "isolate_data.create.status", PhaseStatusPolicy::kDone, false},
+        {"timing.environment_create.ms", "environment.create.status", PhaseStatusPolicy::kDone, true},
+        {"timing.load_environment.ms", "load_environment.status", PhaseStatusPolicy::kDone, true},
+        {"timing.bootstrap_script.ms", "bootstrap_script.status", PhaseStatusPolicy::kDone, false},
+        {"timing.bootstrap.ms", "embedded_script.phase.bootstrap.status", PhaseStatusPolicy::kScriptTerminal, true},
+        {"timing.module_preload.ms", "embedded_script.phase.module_preload.status", PhaseStatusPolicy::kDone, false},
+        {"timing.script_execution.ms", "embedded_script.phase.script_execution.status", PhaseStatusPolicy::kScriptTerminal, true},
+        {"timing.spin_event_loop.ms", "spin_event_loop.status", PhaseStatusPolicy::kDone, true},
+        {"timing.completion_drain.ms", "completion_drain.status", PhaseStatusPolicy::kDone, false},
+        {"timing.embedded_script_result.ms", "embedded_script.status", PhaseStatusPolicy::kDone, true},
+        {"timing.js_result.ms", "js_result.status", PhaseStatusPolicy::kDone, false},
+        {"timing.output_envelope.ms", "output_envelope.status", PhaseStatusPolicy::kDone, false},
+        {"timing.stdout_capture.ms", "stdout_capture.status", PhaseStatusPolicy::kDone, false},
+        {"timing.environment_free.ms", "environment.free.status", PhaseStatusPolicy::kDone, true},
+        {"timing.isolate_data_free.ms", "isolate_data.free.status", PhaseStatusPolicy::kDone, false},
+        {"timing.isolate_unregister.ms", "isolate.unregister.status", PhaseStatusPolicy::kDone, false},
+        {"timing.isolate_dispose.ms", "isolate.dispose.status", PhaseStatusPolicy::kDone, true},
+        {"timing.uv_run.ms", "uv.run.status", PhaseStatusPolicy::kDone, false},
+        {"timing.uv_close.ms", "uv.close.status", PhaseStatusPolicy::kDone, false},
+        {"timing.uv_loop_close.ms", "uv.loop.close.status", PhaseStatusPolicy::kDone, true},
+        {"timing.teardown.ms", "teardown.status", PhaseStatusPolicy::kDone, false},
+        {"timing.process_runtime_shutdown.ms", "process_runtime.shutdown.status", PhaseStatusPolicy::kDone, false},
+        {"timing.total.ms", nullptr, PhaseStatusPolicy::kPresent, true},
+};
+
+constexpr size_t requiredPhaseTimingCount() {
+    size_t count = 0;
+    for (const PhaseTimingSpec& spec : kPhaseTimingSpecs) {
+        if (spec.required) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+static_assert(requiredPhaseTimingCount() == 13);
+
+struct PhaseTimingDiagnostics {
+    std::string entries;
+    std::string statusEntries;
+    std::string executionSourceBytes;
+    size_t count = 0;
+    size_t requiredCount = 0;
+    size_t requiredAvailableCount = 0;
+};
+
+bool isUnsignedPhaseTimingValue(const std::string& value) {
+    if (value.empty() || value.size() > 20) {
+        return false;
+    }
+    for (const char ch : value) {
+        if (ch < '0' || ch > '9') {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool phaseStatusMatches(
+        const std::vector<std::string>& payload,
+        const PhaseTimingSpec& spec,
+        std::string& status
+) {
+    if (spec.statusPolicy == PhaseStatusPolicy::kPresent) {
+        status = "observed";
+        return true;
+    }
+    status = payloadLastValue(payload, spec.statusKey);
+    switch (spec.statusPolicy) {
+        case PhaseStatusPolicy::kDone:
+            return status == "done";
+        case PhaseStatusPolicy::kDoneOrReused:
+            return status == "done" || status == "reused";
+        case PhaseStatusPolicy::kScriptTerminal:
+            return status == "completed" || status == "process_exit" || status == "failed";
+        case PhaseStatusPolicy::kPositiveIntegerMarker:
+            return isUnsignedPhaseTimingValue(status) && status != "0";
+        case PhaseStatusPolicy::kPresent:
+            return true;
+    }
+    return false;
+}
+
+void appendLine(std::string& text, const std::string& key, const std::string& value) {
+    if (!text.empty()) {
+        text.push_back('\n');
+    }
+    text += key;
+    text.push_back('=');
+    text += value;
+}
+
+PhaseTimingDiagnostics collectPhaseTimingDiagnostics(const std::vector<std::string>& payload) {
+    PhaseTimingDiagnostics diagnostics;
+    std::unordered_set<std::string> emittedStatusKeys;
+    for (const PhaseTimingSpec& spec : kPhaseTimingSpecs) {
+        if (spec.required) {
+            diagnostics.requiredCount += 1;
+        }
+        const std::string value = payloadLastValue(payload, spec.timingKey);
+        if (!isUnsignedPhaseTimingValue(value)) {
+            continue;
+        }
+        std::string status;
+        if (!phaseStatusMatches(payload, spec, status)) {
+            continue;
+        }
+        appendLine(diagnostics.entries, spec.timingKey, value);
+        if (spec.statusKey != nullptr && emittedStatusKeys.insert(spec.statusKey).second) {
+            appendLine(diagnostics.statusEntries, spec.statusKey, status);
+        }
+        diagnostics.count += 1;
+        if (spec.required) {
+            diagnostics.requiredAvailableCount += 1;
+        }
+    }
+    const std::string executionSourceBytes = payloadLastValue(
+            payload,
+            "embedded_script.execution_source.bytes"
+    );
+    if (isUnsignedPhaseTimingValue(executionSourceBytes)) {
+        diagnostics.executionSourceBytes = executionSourceBytes;
+    }
+    return diagnostics;
+}
+
+std::string phaseTimingDiagnosticsJsonFields(const std::vector<std::string>& payload) {
+    const PhaseTimingDiagnostics diagnostics = collectPhaseTimingDiagnostics(payload);
+    const char* status = diagnostics.count == 0
+            ? "unavailable"
+            : (diagnostics.requiredAvailableCount == diagnostics.requiredCount
+                    ? "available"
+                    : "partial");
+    return std::string("\"phaseTimingSchema\":") + quotedJsonString(kPhaseTimingSchema) + ","
+            + "\"phaseTimingStatus\":"
+            + quotedJsonString(status) + ","
+            + "\"phaseTimingCount\":" + std::to_string(diagnostics.count) + ","
+            + "\"phaseTimingRequiredCount\":" + std::to_string(diagnostics.requiredCount) + ","
+            + "\"phaseTimingRequiredAvailableCount\":"
+            + std::to_string(diagnostics.requiredAvailableCount) + ","
+            + "\"phaseTimingPayload\":" + quotedJsonString(diagnostics.entries) + ","
+            + "\"phaseTimingStatusPayload\":" + quotedJsonString(diagnostics.statusEntries) + ","
+            + "\"phaseTimingSemantics\":" + quotedJsonString(kPhaseTimingSemantics) + ","
+            + "\"scriptExecutionSemantics\":" + quotedJsonString(kScriptExecutionSemantics) + ","
+            + "\"phaseTimingClock\":" + quotedJsonString(kPhaseTimingClock) + ","
+            + "\"executionSourceBytes\":" + quotedJsonString(diagnostics.executionSourceBytes);
+}
+
 bool parseStringPairArray(JsonCursor& cursor, std::vector<std::pair<std::string, std::string>>& out) {
     if (!cursor.consume('[')) {
         return false;
@@ -475,7 +680,7 @@ int32_t fillInvalidResult(AutoJsNodeExecutionResult* result) {
         result->stdout_text = "";
         result->stderr_text = "";
         result->result_json = "{}";
-        result->diagnostics_json = "{\"code\":\"ERR_AUTOJS6_NODE_ADAPTER_INVALID_ARGUMENT\"}";
+        result->diagnostics_json = kInvalidArgumentDiagnostics;
     }
     return AUTOJS_NODE_RESULT_INVALID_ARGUMENT;
 }
@@ -540,10 +745,6 @@ int32_t executeRequest(
         );
         handle->stdoutText.clear();
         handle->stderrText.clear();
-        handle->lastDiagnosticsJson = std::string("{\"adapter\":\"adapter_v1\","
-                "\"entryKind\":") + quotedJsonString(entryKind) + ","
-                "\"errorCode\":\"ERR_AUTOJS6_NODE_ADAPTER_BAD_JSON\","
-                "\"message\":" + quotedJsonString(parseError) + "}";
         handle->lastPayload = {
                 "embedded_script.status=failed",
                 "embedded_script.succeeded=false",
@@ -551,6 +752,11 @@ int32_t executeRequest(
                 "embedded_script.error_code=ERR_AUTOJS6_NODE_ADAPTER_BAD_JSON",
                 "embedded_script.result_json=" + handle->lastResultJson,
         };
+        handle->lastDiagnosticsJson = std::string("{\"adapter\":\"adapter_v1\","
+                "\"entryKind\":") + quotedJsonString(entryKind) + ","
+                "\"errorCode\":\"ERR_AUTOJS6_NODE_ADAPTER_BAD_JSON\","
+                "\"message\":" + quotedJsonString(parseError) + ","
+                + phaseTimingDiagnosticsJsonFields(handle->lastPayload) + "}";
         setHandleState(handle, AUTOJS_NODE_RUNTIME_STATE_FAILED);
         return fillExecutionResult(handle, result, AUTOJS_NODE_RESULT_INVALID_ARGUMENT);
     }
@@ -625,7 +831,8 @@ int32_t executeRequest(
             + "\"runtimeModuleSourceCount\":" + std::to_string(execution.runtimeModuleSources.size()) + ","
             + "\"envCount\":" + std::to_string(execution.env.size()) + ","
             + "\"executionTeardownClean\":" + quotedJsonString(executionTeardownClean) + ","
-            + "\"errorCode\":" + quotedJsonString(errorCode) + "}";
+            + "\"errorCode\":" + quotedJsonString(errorCode) + ","
+            + phaseTimingDiagnosticsJsonFields(handle->lastPayload) + "}";
     const bool succeeded = payloadValue(handle->lastPayload, "embedded_script.succeeded") == "true";
     setHandleState(handle, succeeded ? AUTOJS_NODE_RUNTIME_STATE_IDLE : AUTOJS_NODE_RUNTIME_STATE_FAILED);
     return fillExecutionResult(handle, result, AUTOJS_NODE_RESULT_OK);

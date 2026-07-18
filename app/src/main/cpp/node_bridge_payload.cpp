@@ -4,6 +4,56 @@ namespace autojs6::node_bridge::internal {
 
 using namespace autojs6::node_bridge;
 
+namespace {
+
+enum class EmbeddedScriptPhaseStatusPolicy {
+    kTerminal,
+    kDone,
+};
+
+bool isUnsignedPhaseDuration(const std::string& value) {
+    if (value.empty() || value.size() > 20) {
+        return false;
+    }
+    for (const char ch : value) {
+        if (ch < '0' || ch > '9') {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool isObservedPhaseStatus(
+        const std::string& status,
+        EmbeddedScriptPhaseStatusPolicy policy
+) {
+    if (policy == EmbeddedScriptPhaseStatusPolicy::kTerminal) {
+        return status == "completed" || status == "process_exit" || status == "failed";
+    }
+    return status == "done" || status == "completed" || status == "available";
+}
+
+void putEmbeddedScriptPhaseFields(
+        std::vector<std::string>& payload,
+        const std::string& text,
+        const char* jsonDurationKey,
+        const char* jsonStatusKey,
+        const char* timingKey,
+        const char* statusKey,
+        EmbeddedScriptPhaseStatusPolicy policy
+) {
+    const std::string status = jsonStringField(text, jsonStatusKey);
+    if (!status.empty()) {
+        putPayload(payload, statusKey, status);
+    }
+    const std::string duration = jsonNumberField(text, jsonDurationKey);
+    if (isObservedPhaseStatus(status, policy) && isUnsignedPhaseDuration(duration)) {
+        putPayload(payload, timingKey, duration);
+    }
+}
+
+}  // namespace
+
 void putEmbeddedScriptExecutionFields(std::vector<std::string>& payload, const std::string& text) {
     putPayload(payload, "embedded_script.result_json", text);
     putPayload(payload, "embedded_script.succeeded", jsonBooleanField(text, "succeeded"));
@@ -30,6 +80,33 @@ void putEmbeddedScriptExecutionFields(std::vector<std::string>& payload, const s
     putPayload(payload, "embedded_script.create_require_failure_reason", jsonStringField(text, "createRequireFailureReason"));
     putPayload(payload, "embedded_script.node_version", jsonStringField(text, "nodeVersion"));
     putPayload(payload, "embedded_script.elapsed_ms", jsonNumberField(text, "elapsedMs"));
+    putEmbeddedScriptPhaseFields(
+            payload,
+            text,
+            "bootstrapMs",
+            "bootstrapStatus",
+            "timing.bootstrap.ms",
+            "embedded_script.phase.bootstrap.status",
+            EmbeddedScriptPhaseStatusPolicy::kTerminal
+    );
+    putEmbeddedScriptPhaseFields(
+            payload,
+            text,
+            "modulePreloadMs",
+            "modulePreloadStatus",
+            "timing.module_preload.ms",
+            "embedded_script.phase.module_preload.status",
+            EmbeddedScriptPhaseStatusPolicy::kDone
+    );
+    putEmbeddedScriptPhaseFields(
+            payload,
+            text,
+            "scriptExecutionMs",
+            "scriptExecutionStatus",
+            "timing.script_execution.ms",
+            "embedded_script.phase.script_execution.status",
+            EmbeddedScriptPhaseStatusPolicy::kTerminal
+    );
     putPayload(payload, "embedded_script.timed_out", jsonBooleanField(text, "timedOut"));
     putPayload(payload, "embedded_script.timeout_ms", jsonNumberField(text, "timeoutMs"));
     putPayload(payload, "embedded_script.pending_timers", jsonBooleanField(text, "pendingTimers"));

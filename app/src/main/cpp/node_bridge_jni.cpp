@@ -1,6 +1,7 @@
 #include "node_bridge_internal.h"
 #include "node_runtime_api_v1.h"
 
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
 #include <fcntl.h>
@@ -13,6 +14,333 @@ using namespace autojs6::node_bridge::internal;
 #ifndef O_CLOEXEC
 #define O_CLOEXEC 0
 #endif
+
+namespace {
+
+constexpr const char* kNativePhaseTimingSchema = "autojs6-node-native-lifecycle-timing-v1";
+constexpr const char* kNativePhaseTimingSemantics = "nested_non_additive";
+constexpr const char* kNativeScriptExecutionSemantics = "entry_to_terminal_completion";
+constexpr const char* kNativePhaseTimingClock = "native_steady_clock_and_node_hrtime_bigint";
+constexpr size_t kAdapterPhaseTimingPayloadMaxChars = 4096;
+constexpr size_t kAdapterPhaseStatusPayloadMaxChars = 4096;
+
+enum class NativePhaseStatusPolicy {
+    kPresent,
+    kDone,
+    kDoneOrReused,
+    kScriptTerminal,
+    kPositiveIntegerMarker,
+};
+
+struct NativePhaseTimingSpec {
+    const char* timingKey;
+    const char* statusKey;
+    NativePhaseStatusPolicy statusPolicy;
+    bool required;
+};
+
+constexpr NativePhaseTimingSpec kNativePhaseTimingSpecs[] = {
+        {"timing.execution_source_build.ms", nullptr, NativePhaseStatusPolicy::kPresent, true},
+        {"timing.process_runtime_initialize.ms", "process_runtime.ensure.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.load.ms", nullptr, NativePhaseStatusPolicy::kPresent, false},
+        {"timing.symbols.ms", "symbol.count", NativePhaseStatusPolicy::kPositiveIntegerMarker, false},
+        {"timing.initialize.ms", "initialize.status", NativePhaseStatusPolicy::kDoneOrReused, false},
+        {"timing.platform_create.ms", "platform.create.status", NativePhaseStatusPolicy::kDoneOrReused, false},
+        {"timing.v8_initialize_platform.ms", "v8.initialize_platform.status", NativePhaseStatusPolicy::kDoneOrReused, false},
+        {"timing.v8_initialize.ms", "v8.initialize.status", NativePhaseStatusPolicy::kDoneOrReused, false},
+        {"timing.uv_loop_init.ms", "uv.loop.init.status", NativePhaseStatusPolicy::kDone, true},
+        {"timing.allocator_create.ms", "allocator.create.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.isolate_create.ms", "isolate.create.status", NativePhaseStatusPolicy::kDone, true},
+        {"timing.isolate_data_create.ms", "isolate_data.create.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.environment_create.ms", "environment.create.status", NativePhaseStatusPolicy::kDone, true},
+        {"timing.load_environment.ms", "load_environment.status", NativePhaseStatusPolicy::kDone, true},
+        {"timing.bootstrap_script.ms", "bootstrap_script.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.bootstrap.ms", "embedded_script.phase.bootstrap.status", NativePhaseStatusPolicy::kScriptTerminal, true},
+        {"timing.module_preload.ms", "embedded_script.phase.module_preload.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.script_execution.ms", "embedded_script.phase.script_execution.status", NativePhaseStatusPolicy::kScriptTerminal, true},
+        {"timing.spin_event_loop.ms", "spin_event_loop.status", NativePhaseStatusPolicy::kDone, true},
+        {"timing.completion_drain.ms", "completion_drain.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.embedded_script_result.ms", "embedded_script.status", NativePhaseStatusPolicy::kDone, true},
+        {"timing.js_result.ms", "js_result.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.output_envelope.ms", "output_envelope.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.stdout_capture.ms", "stdout_capture.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.environment_free.ms", "environment.free.status", NativePhaseStatusPolicy::kDone, true},
+        {"timing.isolate_data_free.ms", "isolate_data.free.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.isolate_unregister.ms", "isolate.unregister.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.isolate_dispose.ms", "isolate.dispose.status", NativePhaseStatusPolicy::kDone, true},
+        {"timing.uv_run.ms", "uv.run.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.uv_close.ms", "uv.close.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.uv_loop_close.ms", "uv.loop.close.status", NativePhaseStatusPolicy::kDone, true},
+        {"timing.teardown.ms", "teardown.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.process_runtime_shutdown.ms", "process_runtime.shutdown.status", NativePhaseStatusPolicy::kDone, false},
+        {"timing.total.ms", nullptr, NativePhaseStatusPolicy::kPresent, true},
+};
+constexpr size_t kNativePhaseTimingSpecCount =
+        sizeof(kNativePhaseTimingSpecs) / sizeof(kNativePhaseTimingSpecs[0]);
+
+constexpr size_t requiredNativePhaseTimingCount() {
+    size_t count = 0;
+    for (const NativePhaseTimingSpec& spec : kNativePhaseTimingSpecs) {
+        if (spec.required) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+static_assert(requiredNativePhaseTimingCount() == 13);
+
+std::string payloadLastValue(const std::vector<std::string>& payload, const std::string& key) {
+    const std::string prefix = key + "=";
+    for (auto iterator = payload.rbegin(); iterator != payload.rend(); ++iterator) {
+        if (iterator->rfind(prefix, 0) == 0) {
+            return iterator->substr(prefix.size());
+        }
+    }
+    return "";
+}
+
+bool isNativePhaseTimingKey(const std::string& key) {
+    for (const NativePhaseTimingSpec& spec : kNativePhaseTimingSpecs) {
+        if (key == spec.timingKey) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool isUnsignedDecimal(const std::string& value) {
+    if (value.empty() || value.size() > 20) {
+        return false;
+    }
+    for (const char ch : value) {
+        if (ch < '0' || ch > '9') {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool isNativePhaseStatusKey(const std::string& key) {
+    if (key == "symbol.count") {
+        return true;
+    }
+    for (const NativePhaseTimingSpec& spec : kNativePhaseTimingSpecs) {
+        if (spec.statusKey != nullptr && key == spec.statusKey) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool isSafePhaseStatusValue(const std::string& value) {
+    if (value.empty() || value.size() > 64) {
+        return false;
+    }
+    for (const char ch : value) {
+        if (!((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool nativePhaseStatusMatches(
+        const std::vector<std::string>& payload,
+        const NativePhaseTimingSpec& spec
+) {
+    if (spec.statusPolicy == NativePhaseStatusPolicy::kPresent) {
+        return true;
+    }
+    const std::string status = payloadLastValue(payload, spec.statusKey);
+    switch (spec.statusPolicy) {
+        case NativePhaseStatusPolicy::kDone:
+            return status == "done";
+        case NativePhaseStatusPolicy::kDoneOrReused:
+            return status == "done" || status == "reused";
+        case NativePhaseStatusPolicy::kScriptTerminal:
+            return status == "completed" || status == "process_exit" || status == "failed";
+        case NativePhaseStatusPolicy::kPositiveIntegerMarker:
+            return isUnsignedDecimal(status) && status != "0";
+        case NativePhaseStatusPolicy::kPresent:
+            return true;
+    }
+    return false;
+}
+
+struct NativePhaseTimingCoverage {
+    size_t count = 0;
+    size_t requiredCount = 0;
+    size_t requiredAvailableCount = 0;
+};
+
+NativePhaseTimingCoverage normalizeNativePhaseTimingPayload(
+        std::vector<std::string>& payload
+) {
+    NativePhaseTimingCoverage coverage;
+    std::vector<std::pair<std::string, std::string>> observed;
+    observed.reserve(kNativePhaseTimingSpecCount);
+    for (const NativePhaseTimingSpec& spec : kNativePhaseTimingSpecs) {
+        if (spec.required) {
+            coverage.requiredCount += 1;
+        }
+        const std::string value = payloadLastValue(payload, spec.timingKey);
+        if (!isUnsignedDecimal(value) || !nativePhaseStatusMatches(payload, spec)) {
+            continue;
+        }
+        observed.emplace_back(spec.timingKey, value);
+        coverage.count += 1;
+        if (spec.required) {
+            coverage.requiredAvailableCount += 1;
+        }
+    }
+    payload.erase(
+            std::remove_if(
+                    payload.begin(),
+                    payload.end(),
+                    [](const std::string& entry) {
+                        const size_t separator = entry.find('=');
+                        return separator != std::string::npos &&
+                                isNativePhaseTimingKey(entry.substr(0, separator));
+                    }
+            ),
+            payload.end()
+    );
+    for (const auto& entry : observed) {
+        putPayload(payload, entry.first, entry.second);
+    }
+    return coverage;
+}
+
+size_t appendAdapterPhaseStatusDiagnostics(
+        std::vector<std::string>& payload,
+        const std::string& statusEntries
+) {
+    if (statusEntries.size() > kAdapterPhaseStatusPayloadMaxChars) {
+        return 0;
+    }
+    size_t appended = 0;
+    size_t start = 0;
+    while (start < statusEntries.size() && appended < kNativePhaseTimingSpecCount) {
+        const size_t end = statusEntries.find('\n', start);
+        const size_t lineEnd = end == std::string::npos ? statusEntries.size() : end;
+        const std::string entry = statusEntries.substr(start, lineEnd - start);
+        const size_t separator = entry.find('=');
+        if (separator != std::string::npos) {
+            const std::string key = entry.substr(0, separator);
+            const std::string value = entry.substr(separator + 1);
+            const bool validValue = key == "symbol.count"
+                    ? isUnsignedDecimal(value)
+                    : isSafePhaseStatusValue(value);
+            if (isNativePhaseStatusKey(key) &&
+                    validValue &&
+                    payloadLastValue(payload, key).empty()) {
+                putPayload(payload, key, value);
+                appended += 1;
+            }
+        }
+        if (end == std::string::npos) {
+            break;
+        }
+        start = end + 1;
+    }
+    return appended;
+}
+
+size_t appendAdapterPhaseTimingDiagnostics(
+        std::vector<std::string>& payload,
+        const char* diagnosticsJson
+) {
+    if (diagnosticsJson == nullptr) {
+        return 0;
+    }
+    const std::string diagnostics(diagnosticsJson);
+    if (jsonStringField(diagnostics, "phaseTimingSchema") != kNativePhaseTimingSchema ||
+            jsonStringField(diagnostics, "phaseTimingSemantics") != kNativePhaseTimingSemantics ||
+            jsonStringField(diagnostics, "scriptExecutionSemantics") != kNativeScriptExecutionSemantics ||
+            jsonStringField(diagnostics, "phaseTimingClock") != kNativePhaseTimingClock) {
+        return 0;
+    }
+    const std::string statusEntries = jsonStringField(diagnostics, "phaseTimingStatusPayload");
+    const std::string timingEntries = jsonStringField(diagnostics, "phaseTimingPayload");
+    if (statusEntries.size() > kAdapterPhaseStatusPayloadMaxChars ||
+            timingEntries.size() > kAdapterPhaseTimingPayloadMaxChars) {
+        return 0;
+    }
+    appendAdapterPhaseStatusDiagnostics(
+            payload,
+            statusEntries
+    );
+
+    size_t appended = 0;
+    size_t start = 0;
+    while (start < timingEntries.size() && appended < kNativePhaseTimingSpecCount) {
+        const size_t end = timingEntries.find('\n', start);
+        const size_t lineEnd = end == std::string::npos ? timingEntries.size() : end;
+        const std::string entry = timingEntries.substr(start, lineEnd - start);
+        const size_t separator = entry.find('=');
+        if (separator != std::string::npos) {
+            const std::string key = entry.substr(0, separator);
+            const std::string value = entry.substr(separator + 1);
+            if (isNativePhaseTimingKey(key) &&
+                    isUnsignedDecimal(value)) {
+                putPayload(payload, key, value);
+                appended += 1;
+            }
+        }
+        if (end == std::string::npos) {
+            break;
+        }
+        start = end + 1;
+    }
+
+    const std::string executionSourceBytes = jsonStringField(
+            diagnostics,
+            "executionSourceBytes"
+    );
+    if (isUnsignedDecimal(executionSourceBytes)) {
+        putPayload(
+                payload,
+                "embedded_script.execution_source.bytes",
+                executionSourceBytes
+        );
+    }
+    return appended;
+}
+
+void appendNativePhaseTimingMetadata(
+        std::vector<std::string>& payload,
+        const char* source
+) {
+    const NativePhaseTimingCoverage coverage = normalizeNativePhaseTimingPayload(payload);
+    const char* status = coverage.count == 0
+            ? "unavailable"
+            : (coverage.requiredAvailableCount == coverage.requiredCount ? "available" : "partial");
+    putPayload(payload, "embedded_script.phase_timing.schema", kNativePhaseTimingSchema);
+    putPayload(payload, "embedded_script.phase_timing.status", status);
+    putPayload(payload, "embedded_script.phase_timing.count", static_cast<long long>(coverage.count));
+    putPayload(
+            payload,
+            "embedded_script.phase_timing.required_count",
+            static_cast<long long>(coverage.requiredCount)
+    );
+    putPayload(
+            payload,
+            "embedded_script.phase_timing.required_available_count",
+            static_cast<long long>(coverage.requiredAvailableCount)
+    );
+    putPayload(payload, "embedded_script.phase_timing.source", source == nullptr ? "unknown" : source);
+    putPayload(payload, "embedded_script.phase_timing.semantics", kNativePhaseTimingSemantics);
+    putPayload(
+            payload,
+            "embedded_script.phase_timing.script_execution_semantics",
+            kNativeScriptExecutionSemantics
+    );
+    putPayload(payload, "embedded_script.phase_timing.clock", kNativePhaseTimingClock);
+    putPayload(payload, "embedded_script.phase_timing.non_additive", true);
+}
+
+}  // namespace
 
 extern "C" JNIEXPORT jint JNICALL
 Java_org_autojs_autojs_engine_NativeNodeRuntimeBridge_nativeRunMain(
@@ -138,6 +466,7 @@ static jobjectArray runEmbeddedScriptLifecycleNative(
     request.childProcessExperimentalEnabled = childProcessExperimentalEnabled;
     request.javaInteropExperimentalEnabled = javaInteropExperimentalEnabled;
     std::vector<std::string> payload = runEmbeddedScriptExecution(request);
+    appendNativePhaseTimingMetadata(payload, "legacy_jni_lifecycle_payload");
     return toJavaStringArray(env, payload);
 }
 
@@ -487,6 +816,7 @@ static jobjectArray runEmbeddedScriptAdapterV1DiagnosticsNative(
         putPayload(payload, "embedded_script.exit_code", static_cast<long long>(1));
         putPayload(payload, "embedded_script.error_code", "ERR_AUTOJS6_NODE_ADAPTER_API_UNAVAILABLE");
         putCommonEmbeddedProbePayload(payload, 0, startedAt);
+        appendNativePhaseTimingMetadata(payload, "adapter_v1_api_unavailable");
         return toJavaStringArray(env, payload);
     }
 
@@ -594,6 +924,7 @@ static jobjectArray runEmbeddedScriptAdapterV1ExecuteNative(
         putPayload(payload, "embedded_script.exit_code", static_cast<long long>(1));
         putPayload(payload, "embedded_script.error_code", "ERR_AUTOJS6_NODE_ADAPTER_API_UNAVAILABLE");
         putCommonEmbeddedProbePayload(payload, 0, startedAt);
+        appendNativePhaseTimingMetadata(payload, "adapter_v1_api_unavailable");
         return toJavaStringArray(env, payload);
     }
 
@@ -628,6 +959,7 @@ static jobjectArray runEmbeddedScriptAdapterV1ExecuteNative(
         putPayload(payload, "embedded_script.exit_code", static_cast<long long>(1));
         putPayload(payload, "embedded_script.error_code", "ERR_AUTOJS6_NODE_ADAPTER_CREATE_FAILED");
         putCommonEmbeddedProbePayload(payload, 0, startedAt);
+        appendNativePhaseTimingMetadata(payload, "adapter_v1_create_failed");
         return toJavaStringArray(env, payload);
     }
 
@@ -659,12 +991,15 @@ static jobjectArray runEmbeddedScriptAdapterV1ExecuteNative(
     putPayload(payload, "embedded_script.runtime_adapter.execute_result_code", static_cast<long long>(executeCode));
     putPayload(payload, "embedded_script.runtime_adapter.execute_result", adapterResultCodeName(executeCode));
     putPayload(payload, "embedded_script.runtime_adapter.execution_result_code", static_cast<long long>(executionResult.result_code));
-    putPayload(payload, "embedded_script.runtime_adapter.diagnostics_json", executionResult.diagnostics_json);
-    if (executionResult.diagnostics_json != nullptr) {
+    const std::string executionDiagnosticsJson = executionResult.diagnostics_json == nullptr
+            ? ""
+            : executionResult.diagnostics_json;
+    putPayload(payload, "embedded_script.runtime_adapter.diagnostics_json", executionDiagnosticsJson);
+    if (!executionDiagnosticsJson.empty()) {
         putPayload(
                 payload,
                 "execution.teardown_clean",
-                jsonStringField(executionResult.diagnostics_json, "executionTeardownClean")
+                jsonStringField(executionDiagnosticsJson, "executionTeardownClean")
         );
     }
     putPayload(payload, "embedded_script.runtime_adapter.status", executeCode == AUTOJS_NODE_RESULT_OK ? "executed" : "execute_failed");
@@ -687,6 +1022,16 @@ static jobjectArray runEmbeddedScriptAdapterV1ExecuteNative(
         putPayload(payload, "embedded_script.runtime_adapter.destroy_result", adapterResultCodeName(destroyCode));
     }
     putCommonEmbeddedProbePayload(payload, 0, startedAt);
+    const size_t transferredTimingCount = appendAdapterPhaseTimingDiagnostics(
+            payload,
+            executionDiagnosticsJson.c_str()
+    );
+    putPayload(
+            payload,
+            "embedded_script.phase_timing.adapter_transferred_count",
+            static_cast<long long>(transferredTimingCount)
+    );
+    appendNativePhaseTimingMetadata(payload, "adapter_v1_last_payload_allowlist");
     return toJavaStringArray(env, payload);
 }
 

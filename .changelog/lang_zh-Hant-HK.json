@@ -6,7 +6,7 @@
   "changelog_label_dependency": "依賴",
   "$data": {
     "v1.0.0": {
-      "released_date": "2026/07/04",
+      "released_date": "2026/07/18",
       "feature": [
         "Node.js 運行時插件服務, 插件 ID 為 `nodejs`, 引擎為 `nodejs`, 運行時槽位為 `node24_5`",
         "通過 `libnode.so` 和 `libautojs6-node.so` 提供 Node.js 24.5.0 原生運行時",
@@ -16,6 +16,9 @@
         "支援按 ABI 構建 APK, 包括 `arm64-v8a`/`armeabi-v7a`/`x86_64` 以及 `universal` 通用包",
         "`sample/nodejs` 示例項目, Node 解析診斷工具和運行時構建計劃校驗工具",
         "插件資訊, 使用說明, README 與 CHANGELOG 的多語言資源: 西班牙語/法語/俄語/阿拉伯語/日語/韓語/英語/簡體中文/香港繁體/台灣繁體"
+      ],
+      "improvement": [
+        "增加基於單調時鐘的分階段診斷, 覆蓋執行源碼構建/引導/腳本執行/結果生成與讀取/單次執行清理, 並區分已跳過與不適用狀態"
       ]
     }
   }
