@@ -84,6 +84,7 @@ final class PluginModuleSourceProviderFileTransportSession {
     private final File responseDir;
     private final String executionId;
     private final INodeJsModuleSourceProvider provider;
+    private final PluginWorkspaceArchiveSession workspaceSession;
     private final long timeoutMs;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicBoolean stopped = new AtomicBoolean(false);
@@ -102,6 +103,8 @@ final class PluginModuleSourceProviderFileTransportSession {
     private final AtomicInteger failedCount = new AtomicInteger(0);
     private final AtomicLong sourceBytes = new AtomicLong(0L);
     private final AtomicLong elapsedMs = new AtomicLong(0L);
+    private final AtomicInteger mappedRequestPathCount = new AtomicInteger(0);
+    private final AtomicInteger mappedResponsePathCount = new AtomicInteger(0);
     private final AtomicReference<String> lastStatus = new AtomicReference<>("");
     private final AtomicReference<String> lastErrorCode = new AtomicReference<>("");
     private final AtomicReference<ParcelFileDescriptor> activeSourceDescriptor = new AtomicReference<>(null);
@@ -111,10 +114,12 @@ final class PluginModuleSourceProviderFileTransportSession {
             File cacheDir,
             String executionId,
             INodeJsModuleSourceProvider provider,
-            long requestedTimeoutMs
+            long requestedTimeoutMs,
+            PluginWorkspaceArchiveSession workspaceSession
     ) {
         this.executionId = nonBlank(executionId, "execution-" + System.nanoTime());
         this.provider = provider;
+        this.workspaceSession = workspaceSession;
         this.timeoutMs = boundedTimeoutMs(requestedTimeoutMs);
         this.root = new File(
                 new File(cacheDir, "nodejs-module-source-provider"),
@@ -190,6 +195,8 @@ final class PluginModuleSourceProviderFileTransportSession {
         values.put("embedded_script.runtime_plugin.module_provider.elapsed_ms", Long.toString(elapsedMs.get()));
         values.put("embedded_script.runtime_plugin.module_provider.last_status", lastStatus.get());
         values.put("embedded_script.runtime_plugin.module_provider.last_error_code", lastErrorCode.get());
+        values.put("embedded_script.runtime_plugin.module_provider.mapped_request_path_count", Integer.toString(mappedRequestPathCount.get()));
+        values.put("embedded_script.runtime_plugin.module_provider.mapped_response_path_count", Integer.toString(mappedResponsePathCount.get()));
         values.put("embedded_script.module_provider.transport", "file_pfd_v1");
         values.put("embedded_script.module_provider.transport_request_count", Integer.toString(requestCount.get()));
         values.put("embedded_script.module_provider.transport_response_count", Integer.toString(responseCount.get()));
@@ -380,11 +387,17 @@ final class PluginModuleSourceProviderFileTransportSession {
     }
 
     private Bundle callProvider(String id, String path, long callTimeoutMs) throws Exception {
+        String providerPath = workspaceSession == null
+                ? path
+                : workspaceSession.mapRuntimePathToHost(path);
+        if (!providerPath.equals(path)) {
+            mappedRequestPathCount.incrementAndGet();
+        }
         Bundle providerRequest = new Bundle();
         providerRequest.putInt(KEY_VERSION, CONTRACT_VERSION);
         providerRequest.putString(KEY_REQUEST_ID, id);
         providerRequest.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, executionId);
-        providerRequest.putString(KEY_PATH, path);
+        providerRequest.putString(KEY_PATH, providerPath);
         providerRequest.putLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, callTimeoutMs);
         AtomicBoolean abandoned = new AtomicBoolean(false);
         AtomicReference<Bundle> pendingResponse = new AtomicReference<>(null);
@@ -441,6 +454,13 @@ final class PluginModuleSourceProviderFileTransportSession {
         String responseId = nonBlank(response.getString(KEY_REQUEST_ID), "");
         String status = nonBlank(response.getString(KEY_STATUS), "");
         String resolvedPath = nonBlank(response.getString(KEY_RESOLVED_PATH), requestedPath);
+        if (workspaceSession != null) {
+            String mappedResolvedPath = workspaceSession.mapHostPathToRuntime(resolvedPath);
+            if (!mappedResolvedPath.equals(resolvedPath)) {
+                mappedResponsePathCount.incrementAndGet();
+            }
+            resolvedPath = mappedResolvedPath;
+        }
         String errorCode = nonBlank(response.getString(NodeJsRuntimeContract.KEY_ERROR_CODE), "");
         String errorMessage = nonBlank(response.getString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE), "");
         long providerElapsedMs = Math.max(0L, response.getLong(KEY_ELAPSED_MS, 0L));

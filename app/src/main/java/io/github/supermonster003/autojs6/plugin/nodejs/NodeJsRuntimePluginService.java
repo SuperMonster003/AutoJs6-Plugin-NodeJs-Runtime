@@ -7,7 +7,10 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
+import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
@@ -35,6 +38,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -59,11 +63,26 @@ public class NodeJsRuntimePluginService extends Service {
     private static final String LAUNCH_SURFACE_SCRIPT = "script";
     private static final String LAUNCH_SURFACE_INTERACTIVE_SESSION = "interactive_session";
     private static final String LAUNCH_SURFACE_PACKAGED_LONG_RUNNING = "packaged_long_running";
+    private static final String RUNTIME_PROCESS_SUFFIX = ":nodejs_runtime";
+    private static final String CANCELLATION_STRATEGY_PROCESS_RESTART = "process_restart";
+    private static final long PROCESS_RESTART_AFTER_CANCEL_DELAY_MS = 150L;
     private static final String ERROR_BUSY = "ERR_AUTOJS6_NODE_PLUGIN_BUSY";
     private static final String ERROR_UNAVAILABLE = "ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE";
+    private static final String ERROR_CONTRACT_MISMATCH = "ERR_AUTOJS6_NODE_PLUGIN_CONTRACT_MISMATCH";
+    // Optional v1 runtime-info diagnostics. Keep local until the refreshed
+    // nodejs-api AAR is published and consumed by the standalone plugin.
+    private static final String KEY_ACTIVE_EXECUTION_ID = "activeExecutionId";
+    private static final String KEY_ACTIVE_EXECUTION_FOR_MS = "activeExecutionForMs";
+    private static final String KEY_ACTIVE_EXECUTION_CANCELLATION_REQUESTED =
+            "activeExecutionCancellationRequested";
     private static final String BRIDGE_PROCESS_DEAD = "ERR_AUTOJS6_BRIDGE_PROCESS_DEAD";
     private static final String BRIDGE_PROVIDER_FAILED = "ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED";
     private static final String CAPABILITY_ON_DEMAND_MODULE_SOURCE_PROVIDER = "onDemandModuleSourceProvider";
+    private static final String CAPABILITY_PERSISTENT_PROCESS_RUNTIME = "persistentProcessRuntime";
+    private static final String CAPABILITY_SINGLE_ACTIVE_BACKPRESSURE = "singleActiveBackpressure";
+    private static final String CAPABILITY_PROCESS_RESTART_CANCELLATION = "processRestartCancellation";
+    private static final String CAPABILITY_SCOPED_WORKSPACE_ARCHIVE_TRANSPORT = "scopedWorkspaceArchiveTransport";
+    private static final String[] SUPPORTED_ABIS = new String[]{"arm64-v8a", "armeabi-v7a", "x86_64"};
     private static final long BRIDGE_DISPATCH_WAIT_MS = 1000L;
     private static final String[] CAPABILITIES = new String[]{
             NodeJsRuntimeContract.CAPABILITY_SYNC_SCRIPT_EXECUTION,
@@ -72,9 +91,18 @@ public class NodeJsRuntimePluginService extends Service {
             NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_BROKER,
             NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_LIVE_BRIDGE,
             CAPABILITY_ON_DEMAND_MODULE_SOURCE_PROVIDER,
+            CAPABILITY_PERSISTENT_PROCESS_RUNTIME,
+            CAPABILITY_SINGLE_ACTIVE_BACKPRESSURE,
+            CAPABILITY_PROCESS_RESTART_CANCELLATION,
+            CAPABILITY_SCOPED_WORKSPACE_ARCHIVE_TRANSPORT,
     };
 
-    private final Object executionLock = new Object();
+    private final Object runtimeLifecycleLock = new Object();
+    private final NodeRuntimeExecutionGate executionGate =
+            new NodeRuntimeExecutionGate(SystemClock::elapsedRealtime);
+    private final AtomicBoolean processRestartScheduled = new AtomicBoolean(false);
+    private final Handler processHandler = new Handler(Looper.getMainLooper());
+    private volatile RuntimeReadiness lastRuntimeReadiness = RuntimeReadiness.notStarted();
 
     private final INodeJsRuntimePlugin.Stub binder = new INodeJsRuntimePlugin.Stub() {
         @Override
@@ -84,59 +112,117 @@ public class NodeJsRuntimePluginService extends Service {
 
         @Override
         public Bundle runScript(Bundle request, INodeJsRuntimeCallback callback) {
-            synchronized (executionLock) {
-                return runScriptLocked(request == null ? Bundle.EMPTY : request, callback);
+            long startedAt = SystemClock.elapsedRealtime();
+            Bundle normalizedRequest = request == null ? new Bundle() : new Bundle(request);
+            try {
+                Bundle contractFailure = validateRequestContract(normalizedRequest, startedAt);
+                if (contractFailure != null) {
+                    return completeImmediateFailure(callback, contractFailure);
+                }
+                String executionId = nonBlank(
+                        normalizedRequest.getString(NodeJsRuntimeContract.KEY_EXECUTION_ID),
+                        "plugin-" + UUID.randomUUID()
+                );
+                normalizedRequest.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, executionId);
+                NodeRuntimeExecutionGate.Lease lease = executionGate.tryAcquire(executionId);
+                if (lease == null) {
+                    return completeImmediateFailure(callback, busyFailureBundle(normalizedRequest, startedAt));
+                }
+                try {
+                    return runScriptActive(normalizedRequest, callback);
+                } finally {
+                    executionGate.release(lease);
+                }
+            } finally {
+                closeWorkspaceDescriptors(normalizedRequest);
             }
         }
 
         @Override
         public boolean cancelScript(String executionId) {
-            return false;
+            if (!isDedicatedRuntimeProcess()) {
+                Log.e(TAG, "Refusing process-restart cancellation outside the dedicated runtime process.");
+                return false;
+            }
+            if (!executionGate.requestCancellation(nonBlank(executionId, ""))) {
+                return false;
+            }
+            scheduleDedicatedRuntimeProcessRestart("cancel:" + executionId);
+            return true;
         }
 
         @Override
         public Bundle prewarmRuntime(Bundle request) {
             long startedAt = SystemClock.elapsedRealtime();
+            Bundle normalizedRequest = request == null ? new Bundle() : new Bundle(request);
             try {
-                loadNativeRuntime();
-                Bundle result = new Bundle();
-                result.putBoolean("started", true);
-                result.putString("status", "ready");
-                result.putString("reason", "libraries_loaded");
-                result.putLong(NodeJsRuntimeContract.KEY_ELAPSED_MS, elapsedSince(startedAt));
-                result.putString(NodeJsRuntimeContract.KEY_PROCESS_NAME, currentProcessName());
-                result.putInt(NodeJsRuntimeContract.KEY_PID, Process.myPid());
-                return result;
-            } catch (Throwable error) {
-                return failureBundle(
-                        Bundle.EMPTY,
-                        startedAt,
-                        "Node.js runtime prewarm failed: " + messageOf(error),
-                        error,
-                        ERROR_UNAVAILABLE
-                );
+                Bundle contractFailure = validateRequestContract(normalizedRequest, startedAt);
+                if (contractFailure != null) {
+                    contractFailure.putBoolean("started", false);
+                    contractFailure.putString("status", "failed");
+                    contractFailure.putString("reason", "contract_mismatch");
+                    return contractFailure;
+                }
+                NodeRuntimeExecutionGate.Lease lease = executionGate.tryAcquire("prewarm-" + UUID.randomUUID());
+                if (lease == null) {
+                    Bundle busy = busyFailureBundle(normalizedRequest, startedAt);
+                    busy.putBoolean("started", false);
+                    busy.putString("status", "busy");
+                    busy.putString("reason", "active_execution");
+                    return busy;
+                }
+                try {
+                    return prewarmRuntimeBundle(ensurePersistentRuntimeReady(), startedAt);
+                } finally {
+                    executionGate.release(lease);
+                }
+            } finally {
+                closeWorkspaceDescriptors(normalizedRequest);
             }
         }
     };
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        RuntimeReadiness readiness = ensurePersistentRuntimeReady();
+        if (!readiness.ready) {
+            Log.e(TAG, "Dedicated Node.js runtime process failed to become ready: " + readiness.detail);
+        }
+    }
 
     @Override
     public IBinder onBind(android.content.Intent intent) {
         return binder;
     }
 
-    private Bundle runScriptLocked(Bundle request, INodeJsRuntimeCallback callback) {
+    private Bundle runScriptActive(Bundle request, INodeJsRuntimeCallback callback) {
         long startedAt = SystemClock.elapsedRealtime();
         INodeJsHostCapabilityBroker hostBroker = null;
         INodeJsModuleSourceProvider moduleSourceProvider = null;
         PluginNodeBridgeFileTransportSession liveBridgeSession = null;
         PluginModuleSourceProviderFileTransportSession moduleSourceProviderSession = null;
+        PluginWorkspaceArchiveSession workspaceSession = null;
         notifyEvent(callback, NodeJsRuntimeContract.EVENT_STARTED, null, null);
         try {
             // Acquire the request-scoped provider before any operation that can
             // fail so the finally block can release it even for an empty source
             // or a native-library loading failure.
             moduleSourceProvider = moduleSourceProviderFrom(request);
-            loadNativeRuntime();
+            RuntimeReadiness readiness = ensurePersistentRuntimeReady();
+            if (!readiness.ready) {
+                Bundle failure = failureBundle(
+                        request,
+                        startedAt,
+                        "Node.js persistent process runtime is unavailable: " + readiness.detail,
+                        null,
+                        ERROR_UNAVAILABLE
+                );
+                failure.putStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD, readiness.nativePayload());
+                notifyOutput(callback, failure);
+                notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
+                return failure;
+            }
             String source = request.getString(NodeJsRuntimeContract.KEY_SOURCE, "");
             if (source.isEmpty()) {
                 Bundle failure = failureBundle(
@@ -150,21 +236,18 @@ public class NodeJsRuntimePluginService extends Service {
                 notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
                 return failure;
             }
-            String sourceName = nonBlank(
+            workspaceSession = PluginWorkspaceArchiveSession.open(getCacheDir(), request);
+            String sourceName = workspaceSession.mapHostPathToRuntime(nonBlank(
                     request.getString(NodeJsRuntimeContract.KEY_SOURCE_NAME),
                     DEFAULT_SOURCE_NAME
-            );
-            String workingDirectory = normalizeWorkingDirectory(
-                    request.getString(NodeJsRuntimeContract.KEY_WORKING_DIRECTORY)
-            );
-            String sandboxRoot = nonBlank(
-                    request.getString(NodeJsRuntimeContract.KEY_SANDBOX_ROOT),
-                    workingDirectory
-            );
+            ));
+            String workingDirectory = workspaceSession.workingDirectory();
+            String sandboxRoot = workspaceSession.sandboxRoot();
             Map<String, String> moduleSources = stringMapFromArrays(
                     request.getStringArray(NodeJsRuntimeContract.KEY_MODULE_SOURCE_NAMES),
                     request.getStringArray(NodeJsRuntimeContract.KEY_MODULE_SOURCES)
             );
+            moduleSources = workspaceSession.mapModuleSourceNames(moduleSources);
             Map<String, String> runtimeModuleSources = stringMapFromArrays(
                     request.getStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCE_NAMES),
                     request.getStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCES)
@@ -173,6 +256,7 @@ public class NodeJsRuntimePluginService extends Service {
                     request.getStringArray(NodeJsRuntimeContract.KEY_ENV_NAMES),
                     request.getStringArray(NodeJsRuntimeContract.KEY_ENV_VALUES)
             );
+            env = workspaceSession.mapEnvironment(env);
             hostBroker = hostBrokerFrom(request);
             Bundle hostBrokerInfo = hostBrokerInfo(hostBroker);
             RuntimeModuleInjection runtimeModuleInjection = withPluginRuntimeModules(
@@ -180,7 +264,8 @@ public class NodeJsRuntimePluginService extends Service {
                     request,
                     hostBrokerInfo,
                     workingDirectory,
-                    sandboxRoot
+                    sandboxRoot,
+                    workspaceSession
             );
             runtimeModuleSources = runtimeModuleInjection.sources;
             if (hostBroker != null) {
@@ -202,7 +287,8 @@ public class NodeJsRuntimePluginService extends Service {
                         getCacheDir(),
                         request.getString(NodeJsRuntimeContract.KEY_EXECUTION_ID),
                         moduleSourceProvider,
-                        request.getLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 0L)
+                        request.getLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 0L),
+                        workspaceSession
                 );
                 runtimeModuleSources = withRuntimeModuleSource(
                         runtimeModuleSources,
@@ -212,6 +298,7 @@ public class NodeJsRuntimePluginService extends Service {
                 moduleSourceProviderSession.start();
             }
 
+            long nativeCallStartedAt = SystemClock.elapsedRealtime();
             String[] nativePayload = NativeNodeEmbeddedRuntimeBridge.runEmbeddedScript(
                     source,
                     sourceName,
@@ -227,9 +314,14 @@ public class NodeJsRuntimePluginService extends Service {
                     request.getBoolean(NodeJsRuntimeContract.KEY_CHILD_PROCESS_EXPERIMENTAL_ENABLED, false),
                     request.getBoolean(NodeJsRuntimeContract.KEY_JAVA_INTEROP_EXPERIMENTAL_ENABLED, false)
             );
+            long nativeCallFinishedAt = SystemClock.elapsedRealtime();
+            commitWorkspaceIfProcessStable(workspaceSession);
+            long workspaceCommitFinishedAt = SystemClock.elapsedRealtime();
+            nativePayload = appendNativePayload(nativePayload, workspaceSession.nativePayload());
             if (liveBridgeSession != null) {
                 liveBridgeSession.stop();
             }
+            long liveBridgeStopFinishedAt = SystemClock.elapsedRealtime();
             String[] moduleSourceProviderNativePayload = moduleSourceProviderSession == null
                     ? new String[]{"embedded_script.runtime_plugin.module_provider.available=false"}
                     : moduleSourceProviderSession.providerNativePayload();
@@ -241,12 +333,42 @@ public class NodeJsRuntimePluginService extends Service {
                     ? new String[]{"embedded_script.runtime_plugin.module_provider.available=false"}
                     : moduleSourceProviderSession.nativePayload();
             String[] queuedBridgePayload = dispatchQueuedBridgeRequests(nativePayload, hostBroker);
-            String[] hostBrokerDiagnosticsPayload = hostBrokerNativeDiagnosticsPayload(hostBroker);
+            boolean hostBrokerWasUsed =
+                    (liveBridgeSession != null && liveBridgeSession.hasDispatchedCalls()) ||
+                            queuedBridgePayload.length > 0;
+            String[] hostBrokerDiagnosticsPayload = hostBrokerNativeDiagnosticsPayload(
+                    hostBroker,
+                    hostBrokerInfo,
+                    hostBrokerWasUsed
+            );
             String[] runtimeModulePayload = runtimeModuleInjection.nativePayload();
             String[] runtimePluginPayload = runtimePluginPayload(hostBroker);
+            long diagnosticsFinishedAt = SystemClock.elapsedRealtime();
+            LinkedHashMap<String, String> serviceTiming = new LinkedHashMap<>();
+            serviceTiming.put(
+                    "embedded_script.runtime_plugin.timing.pre_native.ms",
+                    Long.toString(Math.max(0L, nativeCallStartedAt - startedAt))
+            );
+            serviceTiming.put(
+                    "embedded_script.runtime_plugin.timing.native_call.ms",
+                    Long.toString(Math.max(0L, nativeCallFinishedAt - nativeCallStartedAt))
+            );
+            serviceTiming.put(
+                    "embedded_script.runtime_plugin.timing.workspace_commit.ms",
+                    Long.toString(Math.max(0L, workspaceCommitFinishedAt - nativeCallFinishedAt))
+            );
+            serviceTiming.put(
+                    "embedded_script.runtime_plugin.timing.live_bridge_stop.ms",
+                    Long.toString(Math.max(0L, liveBridgeStopFinishedAt - workspaceCommitFinishedAt))
+            );
+            serviceTiming.put(
+                    "embedded_script.runtime_plugin.timing.diagnostics.ms",
+                    Long.toString(Math.max(0L, diagnosticsFinishedAt - liveBridgeStopFinishedAt))
+            );
+            String[] serviceTimingPayload = nativePayloadFromMap(serviceTiming);
             Bundle result = resultBundleFromNativePayload(
                     request,
-                    sourceName,
+                    workspaceSession.mapRuntimePathToHost(sourceName),
                     appendNativePayload(
                             appendNativePayload(
                                     appendNativePayload(
@@ -259,16 +381,24 @@ public class NodeJsRuntimePluginService extends Service {
                                     queuedBridgePayload
                             ),
                             appendNativePayload(
-                                    appendNativePayload(hostBrokerDiagnosticsPayload, runtimePluginPayload),
-                                    appendNativePayload(moduleSourceProviderPayload, moduleSourceProviderNativePayload)
+                                    appendNativePayload(
+                                            appendNativePayload(hostBrokerDiagnosticsPayload, runtimePluginPayload),
+                                            appendNativePayload(moduleSourceProviderPayload, moduleSourceProviderNativePayload)
+                                    ),
+                                    serviceTimingPayload
                             )
                     ),
                     startedAt
+            );
+            result.putString(
+                    NodeJsRuntimeContract.KEY_WORKING_DIRECTORY,
+                    request.getString(NodeJsRuntimeContract.KEY_WORKING_DIRECTORY)
             );
             notifyOutput(callback, result);
             notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
             return result;
         } catch (Throwable error) {
+            commitWorkspaceQuietly(workspaceSession);
             Bundle failure = failureBundle(
                     request,
                     startedAt,
@@ -276,10 +406,23 @@ public class NodeJsRuntimePluginService extends Service {
                     error,
                     ERROR_UNAVAILABLE
             );
+            if (workspaceSession != null) {
+                failure.putStringArray(
+                        NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                        appendNativePayload(
+                                failure.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD),
+                                workspaceSession.nativePayload()
+                        )
+                );
+            }
             notifyOutput(callback, failure);
             notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
             return failure;
         } finally {
+            commitWorkspaceQuietly(workspaceSession);
+            if (workspaceSession != null) {
+                workspaceSession.close();
+            }
             if (liveBridgeSession != null) {
                 liveBridgeSession.stop();
             }
@@ -296,6 +439,8 @@ public class NodeJsRuntimePluginService extends Service {
     }
 
     private Bundle runtimeInfoBundle() {
+        RuntimeReadiness readiness = lastRuntimeReadiness;
+        NodeRuntimeExecutionGate.Snapshot activeExecution = executionGate.snapshot();
         Bundle info = new Bundle();
         info.putInt(NodeJsRuntimeContract.KEY_CONTRACT_VERSION, NodeJsRuntimeContract.CONTRACT_VERSION);
         info.putString(NodeJsRuntimeContract.KEY_RUNTIME_SLOT, NodeJsPluginIds.VARIANT_NODE_24_5);
@@ -303,7 +448,226 @@ public class NodeJsRuntimePluginService extends Service {
         info.putString(NodeJsRuntimeContract.KEY_NATIVE_LIBRARY_NAME, NATIVE_LIBRARY_NAME);
         info.putString(NodeJsRuntimeContract.KEY_BRIDGE_LIBRARY_NAME, BRIDGE_LIBRARY_NAME);
         info.putStringArray(NodeJsRuntimeContract.KEY_CAPABILITIES, CAPABILITIES.clone());
+        info.putString(NodeJsRuntimeContract.KEY_PROCESS_NAME, currentProcessName());
+        info.putInt(NodeJsRuntimeContract.KEY_PID, Process.myPid());
+        info.putBoolean("runtimeReady", readiness.ready);
+        info.putString("runtimeReadinessDetail", readiness.detail);
+        info.putString("processAbi", processAbi());
+        info.putStringArray("supportedAbis", SUPPORTED_ABIS.clone());
+        info.putInt("maxConcurrentExecutions", 1);
+        info.putInt("queueCapacity", 0);
+        info.putBoolean("persistentProcessRuntime", true);
+        info.putBoolean("dedicatedRuntimeProcess", isDedicatedRuntimeProcess());
+        info.putString("cancellationMode", CANCELLATION_STRATEGY_PROCESS_RESTART);
+        info.putString(
+                KEY_ACTIVE_EXECUTION_ID,
+                activeExecution == null ? "" : activeExecution.executionId
+        );
+        info.putLong(
+                KEY_ACTIVE_EXECUTION_FOR_MS,
+                activeExecution == null ? 0L : activeExecution.activeForMs
+        );
+        info.putBoolean(
+                KEY_ACTIVE_EXECUTION_CANCELLATION_REQUESTED,
+                activeExecution != null && activeExecution.cancellationRequested
+        );
+        info.putStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD, readiness.nativePayload());
         return info;
+    }
+
+    private RuntimeReadiness ensurePersistentRuntimeReady() {
+        RuntimeReadiness cached = lastRuntimeReadiness;
+        if (cached.ready) {
+            return cached;
+        }
+        synchronized (runtimeLifecycleLock) {
+            cached = lastRuntimeReadiness;
+            if (cached.ready) {
+                return cached;
+            }
+            long startedAt = SystemClock.elapsedRealtime();
+            LinkedHashMap<String, String> diagnostics = new LinkedHashMap<>();
+            diagnostics.put("process_runtime.process_name", currentProcessName());
+            diagnostics.put("process_runtime.pid", Integer.toString(Process.myPid()));
+            diagnostics.put("process_runtime.service_class", getClass().getName());
+            diagnostics.put("process_runtime.dedicated_process", Boolean.toString(isDedicatedRuntimeProcess()));
+            diagnostics.put("process_runtime.cancellation_strategy", CANCELLATION_STRATEGY_PROCESS_RESTART);
+            try {
+                loadNativeRuntime();
+                diagnostics.putAll(
+                        NativeNodeEmbeddedRuntimeBridge.setProcessRuntimePersistentEnabled(this, true)
+                );
+                diagnostics.putAll(NativeNodeEmbeddedRuntimeBridge.ensureProcessRuntimeReady(this));
+                diagnostics.putAll(NativeNodeEmbeddedRuntimeBridge.processRuntimeDiagnostics(this));
+            } catch (Throwable error) {
+                diagnostics.put("process_runtime.state", "unavailable");
+                diagnostics.put("process_runtime.healthy", "false");
+                diagnostics.put("process_runtime.poisoned", "true");
+                diagnostics.put("process_runtime.poison_reason", messageOf(error));
+            }
+            boolean ready = "ready".equals(diagnostics.get("process_runtime.state"))
+                    && booleanValue(diagnostics, "process_runtime.healthy")
+                    && booleanValue(diagnostics, "process_runtime.persistent_enabled")
+                    && "done".equals(diagnostics.get("process_runtime.mode_change.status"))
+                    && "done".equals(diagnostics.get("process_runtime.ensure.status"));
+            String detail = ready
+                    ? nonBlank(
+                    diagnostics.get("process_runtime.ensure.detail"),
+                    "process-global Node/V8 runtime is ready"
+            )
+                    : nonBlank(
+                    diagnostics.get("process_runtime.poison_reason"),
+                    nonBlank(
+                            diagnostics.get("process_runtime.ensure.detail"),
+                            "process-global Node/V8 runtime failed its readiness gate"
+                    )
+            );
+            diagnostics.put("process_runtime.prewarm.status", ready ? "ready" : "failed");
+            diagnostics.put("process_runtime.prewarm.detail", detail);
+            diagnostics.put(
+                    "timing.runtime_plugin_prewarm.ms",
+                    Long.toString(elapsedSince(startedAt))
+            );
+            RuntimeReadiness readiness = new RuntimeReadiness(ready, detail, diagnostics);
+            lastRuntimeReadiness = readiness;
+            return readiness;
+        }
+    }
+
+    private Bundle validateRequestContract(Bundle request, long startedAt) {
+        int receivedVersion;
+        try {
+            receivedVersion = request.getInt(NodeJsRuntimeContract.KEY_CONTRACT_VERSION, -1);
+        } catch (Throwable ignored) {
+            receivedVersion = -1;
+        }
+        if (receivedVersion == NodeJsRuntimeContract.CONTRACT_VERSION) {
+            return null;
+        }
+        Bundle failure = failureBundle(
+                request,
+                startedAt,
+                "Unsupported Node.js runtime plugin contract version " + receivedVersion
+                        + "; expected " + NodeJsRuntimeContract.CONTRACT_VERSION + ".",
+                null,
+                ERROR_CONTRACT_MISMATCH
+        );
+        LinkedHashMap<String, String> diagnostics = new LinkedHashMap<>();
+        diagnostics.put("embedded_script.runtime_plugin.contract.status", "rejected");
+        diagnostics.put("embedded_script.runtime_plugin.contract.received_version", Integer.toString(receivedVersion));
+        diagnostics.put(
+                "embedded_script.runtime_plugin.contract.expected_version",
+                Integer.toString(NodeJsRuntimeContract.CONTRACT_VERSION)
+        );
+        failure.putStringArray(
+                NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                appendNativePayload(lastRuntimeReadiness.nativePayload(), nativePayloadFromMap(diagnostics))
+        );
+        return failure;
+    }
+
+    private Bundle completeImmediateFailure(INodeJsRuntimeCallback callback, Bundle failure) {
+        notifyOutput(callback, failure);
+        notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
+        return failure;
+    }
+
+    private Bundle busyFailureBundle(Bundle request, long startedAt) {
+        NodeRuntimeExecutionGate.Snapshot active = executionGate.snapshot();
+        boolean draining = executionGate.isClosed() || processRestartScheduled.get();
+        String activeExecutionId = active == null ? "" : active.executionId;
+        String message = draining
+                ? "Node.js runtime plugin process is restarting after cancellation."
+                : "Node.js runtime plugin is busy with execution " + activeExecutionId + ".";
+        Bundle failure = failureBundle(request, startedAt, message, null, ERROR_BUSY);
+        LinkedHashMap<String, String> diagnostics = new LinkedHashMap<>();
+        diagnostics.put(
+                "embedded_script.runtime_plugin.admission.status",
+                draining ? "draining" : "busy"
+        );
+        diagnostics.put("embedded_script.runtime_plugin.admission.queue_capacity", "0");
+        diagnostics.put("embedded_script.runtime_plugin.admission.active_execution_id", activeExecutionId);
+        diagnostics.put(
+                "embedded_script.runtime_plugin.admission.active_for_ms",
+                Long.toString(active == null ? 0L : active.activeForMs)
+        );
+        diagnostics.put(
+                "embedded_script.runtime_plugin.admission.cancellation_requested",
+                Boolean.toString(active != null && active.cancellationRequested)
+        );
+        failure.putStringArray(
+                NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                appendNativePayload(lastRuntimeReadiness.nativePayload(), nativePayloadFromMap(diagnostics))
+        );
+        return failure;
+    }
+
+    private Bundle prewarmRuntimeBundle(RuntimeReadiness readiness, long startedAt) {
+        String status = readiness.ready ? "ready" : "failed";
+        String reason = readiness.ready ? "runtime_ready" : readiness.detail;
+        LinkedHashMap<String, String> diagnostics = new LinkedHashMap<>();
+        diagnostics.put("embedded_script.prewarm_pool.enabled", "true");
+        diagnostics.put("embedded_script.prewarm_pool.status", status);
+        diagnostics.put("embedded_script.prewarm_pool.started", Boolean.toString(readiness.ready));
+        diagnostics.put("embedded_script.prewarm_pool.process_only", "false");
+        diagnostics.put(
+                "embedded_script.prewarm_pool.runtime_loaded_before_execution",
+                Boolean.toString(readiness.ready)
+        );
+        diagnostics.put("embedded_script.prewarm_pool.reason", reason);
+        diagnostics.put("embedded_script.prewarm_pool.policy", "persistent-process-runtime");
+
+        Bundle result = new Bundle();
+        result.putInt(NodeJsRuntimeContract.KEY_CONTRACT_VERSION, NodeJsRuntimeContract.CONTRACT_VERSION);
+        result.putBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED, readiness.ready);
+        result.putInt(NodeJsRuntimeContract.KEY_EXIT_CODE, readiness.ready ? 0 : 1);
+        result.putString(
+                NodeJsRuntimeContract.KEY_ERROR_NAME,
+                readiness.ready ? null : "NodeJsRuntimePluginPrewarmError"
+        );
+        result.putString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, readiness.ready ? null : readiness.detail);
+        result.putString(NodeJsRuntimeContract.KEY_ERROR_CODE, readiness.ready ? null : ERROR_UNAVAILABLE);
+        result.putLong(NodeJsRuntimeContract.KEY_ELAPSED_MS, elapsedSince(startedAt));
+        result.putString(NodeJsRuntimeContract.KEY_PROCESS_NAME, currentProcessName());
+        result.putInt(NodeJsRuntimeContract.KEY_PID, Process.myPid());
+        result.putBoolean("started", readiness.ready);
+        result.putString("status", status);
+        result.putString("reason", reason);
+        result.putBoolean("processOnly", false);
+        result.putBoolean("runtimeLoaded", readiness.ready);
+        result.putStringArray(
+                NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                appendNativePayload(readiness.nativePayload(), nativePayloadFromMap(diagnostics))
+        );
+        return result;
+    }
+
+    private boolean isDedicatedRuntimeProcess() {
+        return currentProcessName().equals(getPackageName() + RUNTIME_PROCESS_SUFFIX);
+    }
+
+    private void scheduleDedicatedRuntimeProcessRestart(String reason) {
+        if (!processRestartScheduled.compareAndSet(false, true)) {
+            return;
+        }
+        processHandler.postDelayed(() -> {
+            Log.w(
+                    TAG,
+                    "Terminating dedicated Node.js runtime process after cancellation: " + reason
+            );
+            stopSelf();
+            Process.killProcess(Process.myPid());
+        }, PROCESS_RESTART_AFTER_CANCEL_DELAY_MS);
+    }
+
+    private static String processAbi() {
+        String[] abis = Process.is64Bit()
+                ? Build.SUPPORTED_64_BIT_ABIS
+                : Build.SUPPORTED_32_BIT_ABIS;
+        if (abis != null && abis.length > 0) {
+            return abis[0];
+        }
+        return "unknown";
     }
 
     private void loadNativeRuntime() {
@@ -324,6 +688,41 @@ public class NodeJsRuntimePluginService extends Service {
     private INodeJsModuleSourceProvider moduleSourceProviderFrom(Bundle request) {
         IBinder binder = request.getBinder(PluginModuleSourceProviderFileTransportSession.KEY_PROVIDER_BINDER);
         return binder == null ? null : INodeJsModuleSourceProvider.Stub.asInterface(binder);
+    }
+
+    private static void closeWorkspaceDescriptors(Bundle request) {
+        if (request == null) return;
+        ParcelFileDescriptor input = workspaceDescriptor(
+                request,
+                PluginWorkspaceArchiveSession.KEY_INPUT_FD
+        );
+        ParcelFileDescriptor output = workspaceDescriptor(
+                request,
+                PluginWorkspaceArchiveSession.KEY_OUTPUT_FD
+        );
+        closeWorkspaceDescriptor(input);
+        if (output != input) {
+            closeWorkspaceDescriptor(output);
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private static ParcelFileDescriptor workspaceDescriptor(Bundle request, String key) {
+        try {
+            return request.getParcelable(key);
+        } catch (Throwable error) {
+            Log.w(TAG, "Unable to read Node.js plugin workspace descriptor " + key + ".", error);
+            return null;
+        }
+    }
+
+    private static void closeWorkspaceDescriptor(ParcelFileDescriptor descriptor) {
+        if (descriptor == null) return;
+        try {
+            descriptor.close();
+        } catch (Throwable error) {
+            Log.w(TAG, "Unable to close a Node.js plugin workspace descriptor.", error);
+        }
     }
 
     private static void cancelModuleSourceProvider(INodeJsModuleSourceProvider provider, String reason) {
@@ -401,6 +800,7 @@ public class NodeJsRuntimePluginService extends Service {
     }
 
     private String[] runtimePluginPayload(INodeJsHostCapabilityBroker hostBroker) {
+        RuntimeReadiness readiness = lastRuntimeReadiness;
         LinkedHashMap<String, String> values = new LinkedHashMap<>();
         values.put("embedded_script.runtime_plugin.enabled", "true");
         values.put("embedded_script.runtime_plugin.diagnostics_source", "plugin");
@@ -423,6 +823,24 @@ public class NodeJsRuntimePluginService extends Service {
                 "embedded_script.runtime_plugin.capability_module_source_provider",
                 Boolean.toString(hasCapability(CAPABILITY_ON_DEMAND_MODULE_SOURCE_PROVIDER))
         );
+        values.put("embedded_script.runtime_plugin.process_name", currentProcessName());
+        values.put("embedded_script.runtime_plugin.pid", Integer.toString(Process.myPid()));
+        values.put(
+                "embedded_script.runtime_plugin.dedicated_process",
+                Boolean.toString(isDedicatedRuntimeProcess())
+        );
+        values.put("embedded_script.runtime_plugin.persistent_process_runtime", "true");
+        values.put("embedded_script.runtime_plugin.max_concurrent_executions", "1");
+        values.put("embedded_script.runtime_plugin.queue_capacity", "0");
+        values.put(
+                "embedded_script.runtime_plugin.cancellation_mode",
+                CANCELLATION_STRATEGY_PROCESS_RESTART
+        );
+        values.put(
+                "embedded_script.runtime_plugin.runtime_ready",
+                Boolean.toString(readiness.ready)
+        );
+        values.put("embedded_script.runtime_plugin.runtime_readiness_detail", readiness.detail);
         values.put("embedded_script.runtime_plugin.host_broker.attached", Boolean.toString(hostBroker != null));
         return nativePayloadFromMap(values);
     }
@@ -457,10 +875,22 @@ public class NodeJsRuntimePluginService extends Service {
             Bundle request,
             Bundle hostBrokerInfo,
             String workingDirectory,
-            String sandboxRoot
+            String sandboxRoot,
+            PluginWorkspaceArchiveSession workspaceSession
     ) {
-        RuntimeModuleInjection injection = RuntimeModuleInjection.from(runtimeModuleSources);
         String engineInfo = preferredEngineInfo(runtimeModuleSources, request, hostBrokerInfo);
+        if (workspaceSession != null) {
+            engineInfo = workspaceSession.mapEngineInfo(engineInfo);
+        }
+        Map<String, String> mappedRuntimeModuleSources = runtimeModuleSources;
+        if (nonBlank(engineInfo, null) != null) {
+            mappedRuntimeModuleSources = withRuntimeModuleSource(
+                    runtimeModuleSources,
+                    ENGINE_INFO_RUNTIME_MODULE_NAME,
+                    engineInfo
+            );
+        }
+        RuntimeModuleInjection injection = RuntimeModuleInjection.from(mappedRuntimeModuleSources);
         injection = injection.withRuntimeModule(
                 "engine_info",
                 ENGINE_INFO_RUNTIME_MODULE_NAME,
@@ -703,12 +1133,23 @@ public class NodeJsRuntimePluginService extends Service {
         }
     }
 
-    private String[] hostBrokerNativeDiagnosticsPayload(INodeJsHostCapabilityBroker hostBroker) {
+    private String[] hostBrokerNativeDiagnosticsPayload(
+            INodeJsHostCapabilityBroker hostBroker,
+            Bundle hostBrokerInfo,
+            boolean refresh
+    ) {
         LinkedHashMap<String, String> values = new LinkedHashMap<>();
         if (hostBroker == null) {
             values.put("embedded_script.runtime_plugin.host_broker.diagnostics_available", "false");
             values.put("embedded_script.runtime_plugin.host_broker.diagnostics_status", "missing_broker");
             return nativePayloadFromMap(values);
+        }
+        if (!refresh && hostBrokerInfo != null) {
+            String[] nativePayload = hostBrokerInfo.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD);
+            values.put("embedded_script.runtime_plugin.host_broker.diagnostics_available", "true");
+            values.put("embedded_script.runtime_plugin.host_broker.diagnostics_status", "ok");
+            values.put("embedded_script.runtime_plugin.host_broker.diagnostics_snapshot", "broker_info");
+            return appendNativePayload(nativePayloadFromMap(values), nativePayload);
         }
         try {
             Bundle diagnostics = hostBroker.getNativeDiagnostics();
@@ -717,6 +1158,7 @@ public class NodeJsRuntimePluginService extends Service {
                     : diagnostics.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD);
             values.put("embedded_script.runtime_plugin.host_broker.diagnostics_available", "true");
             values.put("embedded_script.runtime_plugin.host_broker.diagnostics_status", "ok");
+            values.put("embedded_script.runtime_plugin.host_broker.diagnostics_snapshot", "post_dispatch");
             return appendNativePayload(nativePayloadFromMap(values), nativePayload);
         } catch (RemoteException e) {
             values.put("embedded_script.runtime_plugin.host_broker.diagnostics_available", "false");
@@ -1005,7 +1447,7 @@ public class NodeJsRuntimePluginService extends Service {
         result.putInt(NodeJsRuntimeContract.KEY_PID, Process.myPid());
         result.putString(NodeJsRuntimeContract.KEY_SOURCE_NAME, request.getString(NodeJsRuntimeContract.KEY_SOURCE_NAME, DEFAULT_SOURCE_NAME));
         result.putBoolean(NodeJsRuntimeContract.KEY_TIMED_OUT, false);
-        result.putStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD, new String[0]);
+        result.putStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD, runtimePluginPayload(null));
         return result;
     }
 
@@ -1051,6 +1493,20 @@ public class NodeJsRuntimePluginService extends Service {
             }
         }
         return result;
+    }
+
+    private void commitWorkspaceIfProcessStable(PluginWorkspaceArchiveSession session) throws IOException {
+        if (session == null || processRestartScheduled.get() || executionGate.isClosed()) return;
+        session.commit();
+    }
+
+    private void commitWorkspaceQuietly(PluginWorkspaceArchiveSession session) {
+        if (session == null) return;
+        try {
+            commitWorkspaceIfProcessStable(session);
+        } catch (Throwable error) {
+            Log.w(TAG, "Unable to checkpoint the Node.js plugin workspace.", error);
+        }
     }
 
     private static Map<String, String> withRuntimeModuleSource(
@@ -1422,7 +1878,52 @@ public class NodeJsRuntimePluginService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             return Application.getProcessName();
         }
+        try (FileInputStream input = new FileInputStream("/proc/self/cmdline")) {
+            byte[] buffer = new byte[256];
+            int length = input.read(buffer);
+            if (length > 0) {
+                int end = 0;
+                while (end < length && buffer[end] != 0) {
+                    end += 1;
+                }
+                String processName = new String(buffer, 0, end, StandardCharsets.UTF_8).trim();
+                if (!processName.isEmpty()) {
+                    return processName;
+                }
+            }
+        } catch (IOException ignored) {
+            // Fall through to a stable pid label when procfs is unavailable.
+        }
         return "pid:" + Process.myPid();
+    }
+
+    private static final class RuntimeReadiness {
+        final boolean ready;
+        final String detail;
+        final Map<String, String> diagnostics;
+
+        RuntimeReadiness(boolean ready, String detail, Map<String, String> diagnostics) {
+            this.ready = ready;
+            this.detail = nonBlank(detail, ready ? "ready" : "not ready");
+            this.diagnostics = Collections.unmodifiableMap(
+                    diagnostics == null
+                            ? new LinkedHashMap<>()
+                            : new LinkedHashMap<>(diagnostics)
+            );
+        }
+
+        static RuntimeReadiness notStarted() {
+            LinkedHashMap<String, String> diagnostics = new LinkedHashMap<>();
+            diagnostics.put("process_runtime.state", "uninitialized");
+            diagnostics.put("process_runtime.healthy", "false");
+            diagnostics.put("process_runtime.persistent_enabled", "false");
+            diagnostics.put("process_runtime.prewarm.status", "not_started");
+            return new RuntimeReadiness(false, "runtime prewarm has not started", diagnostics);
+        }
+
+        String[] nativePayload() {
+            return nativePayloadFromMap(diagnostics);
+        }
     }
 
     private static final class BridgeRequestIdentity {

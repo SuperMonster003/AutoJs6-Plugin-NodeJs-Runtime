@@ -40,6 +40,7 @@ android {
 
         externalNativeBuild {
             cmake {
+                arguments += "-DANDROID_STL=c++_shared"
                 arguments += "-DAUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE=OFF"
                 arguments += "-DAUTOJS6_NODE_ENABLE_EMBEDDED_SCRIPT_EXECUTION=ON"
                 arguments += "-DAUTOJS6_NODE_RUNTIME_SLOT=node24_5"
@@ -151,6 +152,7 @@ dependencies {
     implementation("org.jetbrains:annotations:26.0.2")
     implementation(files("$rootDir/libs/common-plugin-api.aar"))
     implementation(files("$rootDir/libs/nodejs-api.aar"))
+    testImplementation("junit:junit:4.13.2")
 }
 
 tasks {

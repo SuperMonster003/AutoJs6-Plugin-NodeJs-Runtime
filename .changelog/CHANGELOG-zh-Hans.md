@@ -10,10 +10,17 @@
 
 * `新增` Node.js 运行时插件服务, 插件 ID 为 `nodejs`, 引擎为 `nodejs`, 运行时槽位为 `node24_5`
 * `新增` 通过 `libnode.so` 和 `libautojs6-node.so` 提供 Node.js 24.5.0 原生运行时
+* `新增` Node.js 运行时运行于独立常驻进程, 复用进程级 Node/V8 状态并为每次执行创建全新 isolate 及 Environment
 * `新增` 支持通过 `org.autojs.plugin.INFO` 发现插件信息, 并通过 `org.autojs.plugin.nodejs.RUNTIME` 调用运行时服务
 * `新增` 支持 CommonJS/ESM 源码, 模块源码, 工作目录, 沙盒根目录, 环境变量, stdout/stderr 结果回传和运行时预热
+* `新增` 支持请求级工作区归档传输 v2, 包含显式输入映射/插件私有工作区执行/输出回写/删除 tombstone 清单, 且不扫描宿主沙盒
+* `新增` 单活动零队列准入, 通过 `ERR_AUTOJS6_NODE_PLUGIN_BUSY` 提供背压, 并支持重启进程式取消
 * `新增` 支持宿主能力代理与 live bridge, 并注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等运行时模块
 * `新增` 支持按 ABI 构建 APK, 包括 `arm64-v8a`/`armeabi-v7a`/`x86_64` 以及 `universal` 通用包
+* `新增` 分包及通用 APK 输出均随 Node.js 运行库打包 `libc++_shared.so`
 * `新增` `sample/nodejs` 示例项目, Node 解析诊断工具和运行时构建计划校验工具
 * `新增` 插件信息, 使用说明, README 与 CHANGELOG 的多语言资源: 西班牙语/法语/俄语/阿拉伯语/日语/韩语/英语/简体中文/香港繁体/台湾繁体
+* `修复` 重启进程式取消期间, 运行时进程回收时可能提交不完整工作区快照的问题
+* `修复` 请求合约校验或工作区物化失败时, 工作区归档文件描述符可能因所有权交接未覆盖全部退出路径而泄漏的问题
+* `优化` 完善 R5 合约元数据及诊断, 覆盖 ABI/能力/常驻运行时状态/准入/取消和独立进程归因
 * `优化` 增加基于单调时钟的分阶段诊断, 覆盖执行源码构建/引导/脚本执行/结果生成与读取/单次执行清理, 并区分已跳过与不适用状态
