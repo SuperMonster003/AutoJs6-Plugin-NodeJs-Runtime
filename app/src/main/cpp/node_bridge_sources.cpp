@@ -5472,6 +5472,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const std::string moduleSourcesLiteral = buildEmbeddedModuleSourcesLiteral(moduleSources);
     const std::string runtimeModuleSourcesLiteral = buildEmbeddedModuleSourcesLiteral(runtimeModuleSources);
     const std::string envLiteral = buildEmbeddedModuleSourcesLiteral(env);
+    const bool hasEmbeddedModuleSources = !moduleSources.empty() || !runtimeModuleSources.empty();
     std::string script;
     script.reserve(
             source.size() +
@@ -5486,6 +5487,19 @@ std::string buildEmbeddedScriptExecutionSource(
     script += R"JS(
 (function () {
   "use strict";
+  const __autojs6_phase_number = Number;
+  const __autojs6_phase_max_ms = Number.MAX_SAFE_INTEGER;
+  const __autojs6_phase_max_ms_bigint = BigInt(Number.MAX_SAFE_INTEGER);
+  const __autojs6_phase_now = (
+    typeof process === "object" &&
+    process &&
+    typeof process.hrtime === "function" &&
+    typeof process.hrtime.bigint === "function"
+  ) ? process.hrtime.bigint.bind(process.hrtime) : null;
+  const __autojs6_phase_clock_available = __autojs6_phase_now !== null;
+  const __autojs6_bootstrap_started_at = __autojs6_phase_clock_available
+    ? __autojs6_phase_now()
+    : null;
   const __autojs6_source = ")JS";
     script += sourceLiteral;
     script += R"JS(";
@@ -5507,6 +5521,9 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_runtime_module_embedded_sources = Object.freeze()JS";
     script += runtimeModuleSourcesLiteral;
     script += R"JS();
+  const __autojs6_has_embedded_module_sources = )JS";
+    script += hasEmbeddedModuleSources ? "true" : "false";
+    script += R"JS(;
   const __autojs6_request_env_sources = Object.freeze()JS";
     script += envLiteral;
     script += R"JS();
@@ -5609,18 +5626,58 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_native_function = Function;
   const __autojs6_native_async_function = Object.getPrototypeOf(async function() {}).constructor;
   const __autojs6_native_eval = eval;
-  const __autojs6_started_at = Date.now();
+  const __autojs6_started_at = __autojs6_phase_clock_available
+    ? __autojs6_phase_now()
+    : null;
+  const __autojs6_phase_timing = {
+    bootstrapMs: 0,
+    bootstrapStatus: __autojs6_phase_clock_available ? "running" : "unavailable_clock",
+    modulePreloadMs: 0,
+    modulePreloadStatus: __autojs6_has_embedded_module_sources
+      ? "not_applicable_lazy_module_loading"
+      : "not_applicable_no_modules",
+    scriptExecutionStartedAt: null,
+    scriptExecutionMs: 0,
+    scriptExecutionStatus: __autojs6_phase_clock_available ? "not_started" : "unavailable_clock"
+  };
+  function __autojs6_phase_elapsed_ms(startedAt) {
+    if (!__autojs6_phase_clock_available || typeof startedAt !== "bigint") return 0;
+    try {
+      const elapsedNs = __autojs6_phase_now() - startedAt;
+      if (elapsedNs <= 0n) return 0;
+      const elapsedMs = elapsedNs / 1000000n;
+      return elapsedMs > __autojs6_phase_max_ms_bigint
+        ? __autojs6_phase_max_ms
+        : __autojs6_phase_number(elapsedMs);
+    } catch (_) {
+      return 0;
+    }
+  }
+  function __autojs6_complete_bootstrap_timing(status) {
+    if (__autojs6_phase_timing.bootstrapStatus !== "running") return;
+    __autojs6_phase_timing.bootstrapMs = __autojs6_phase_elapsed_ms(__autojs6_bootstrap_started_at);
+    __autojs6_phase_timing.bootstrapStatus = status || "completed";
+  }
+  function __autojs6_start_script_execution_timing() {
+    __autojs6_complete_bootstrap_timing("completed");
+    if (__autojs6_phase_timing.scriptExecutionStatus !== "not_started") return;
+    __autojs6_phase_timing.scriptExecutionStartedAt = __autojs6_phase_now();
+    __autojs6_phase_timing.scriptExecutionStatus = "running";
+  }
+  function __autojs6_complete_script_execution_timing(status) {
+    if (__autojs6_phase_timing.scriptExecutionStatus !== "running") return;
+    __autojs6_phase_timing.scriptExecutionMs = __autojs6_phase_elapsed_ms(
+      __autojs6_phase_timing.scriptExecutionStartedAt
+    );
+    __autojs6_phase_timing.scriptExecutionStatus = status || "completed";
+  }
   function __autojs6_node_version() {
     return typeof process === "object" && process && typeof process.version === "string"
       ? process.version
       : "";
   }
   function __autojs6_elapsed_ms() {
-    try {
-      return Math.max(0, Date.now() - __autojs6_started_at);
-    } catch (_) {
-      return 0;
-    }
+    return __autojs6_phase_elapsed_ms(__autojs6_started_at);
   }
   function __autojs6_result_text(value) {
     if (value === undefined) return "";
@@ -46827,6 +46884,12 @@ std::string buildEmbeddedScriptExecutionSource(
     fields.createRequireFailureReason = __autojs6_create_require_last_failure_reason;
     fields.nodeVersion = __autojs6_node_version();
     fields.elapsedMs = __autojs6_elapsed_ms();
+    fields.bootstrapMs = __autojs6_phase_timing.bootstrapMs;
+    fields.bootstrapStatus = __autojs6_phase_timing.bootstrapStatus;
+    fields.modulePreloadMs = __autojs6_phase_timing.modulePreloadMs;
+    fields.modulePreloadStatus = __autojs6_phase_timing.modulePreloadStatus;
+    fields.scriptExecutionMs = __autojs6_phase_timing.scriptExecutionMs;
+    fields.scriptExecutionStatus = __autojs6_phase_timing.scriptExecutionStatus;
     fields.timedOut = false;
     fields.timeoutMs = 0;
     fields.pendingTimers = summary.pendingTimers;
@@ -46941,6 +47004,8 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_finish_success(value) {
     if (__autojs6_finished) return;
+    __autojs6_complete_bootstrap_timing("completed");
+    __autojs6_complete_script_execution_timing("completed");
     __autojs6_terminate_all_worker_threads("script success");
     __autojs6_destroy_all_zlib_streams("script success");
     __autojs6_destroy_all_scoped_fs_streams("script success");
@@ -46961,6 +47026,8 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_finish_process_exit(exitCode) {
     if (__autojs6_finished) return;
+    __autojs6_complete_bootstrap_timing("process_exit");
+    __autojs6_complete_script_execution_timing("process_exit");
     const normalizedExitCode = Number.isFinite(Number(exitCode)) ? Math.trunc(Number(exitCode)) : 0;
     const succeeded = normalizedExitCode === 0;
     __autojs6_terminate_all_worker_threads("process.exit");
@@ -46987,6 +47054,8 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_finish_process_exit(error.exitCode);
       return;
     }
+    __autojs6_complete_bootstrap_timing("failed");
+    __autojs6_complete_script_execution_timing("failed");
     __autojs6_terminate_all_worker_threads("script failure");
     __autojs6_destroy_all_zlib_streams("script failure");
     __autojs6_destroy_all_scoped_fs_streams("script failure");
@@ -47041,6 +47110,7 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_install_autojs_global();
     __autojs6_install_error_handlers();
     __autojs6_install_dynamic_code_guard();
+    __autojs6_start_script_execution_timing();
     let __autojs6_user_result;
     if (__autojs6_run_entry_as_esm) {
       __autojs6_user_result = __autojs6_run_esm_entry();

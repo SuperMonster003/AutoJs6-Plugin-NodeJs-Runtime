@@ -6,7 +6,7 @@
   "changelog_label_dependency": "Dependance",
   "$data": {
     "v1.0.0": {
-      "released_date": "2026/07/04",
+      "released_date": "2026/07/18",
       "feature": [
         "Ajout du service de plugin runtime Node.js avec ID de plugin `nodejs`, moteur `nodejs` et slot de runtime `node24_5`",
         "Fourniture du runtime natif Node.js 24.5.0 via `libnode.so` et `libautojs6-node.so`",
@@ -16,6 +16,9 @@
         "Ajout de builds APK separes par ABI pour `arm64-v8a`, `armeabi-v7a`, `x86_64` et un APK `universal`",
         "Ajout des projets `sample/nodejs`, d'un outil de diagnostic du resolveur Node et d'outils de verification du plan de build du runtime",
         "Ajout des metadonnees du plugin, des instructions d'utilisation, du README et des ressources CHANGELOG localisees en espagnol, francais, russe, arabe, japonais, coreen, anglais, chinois simplifie, chinois traditionnel de Hong Kong et chinois traditionnel de Taiwan"
+      ],
+      "improvement": [
+        "Ajout de diagnostics monotones par phase pour la construction de la source d'execution, le bootstrap, l'execution du script, la creation et la recuperation du resultat et le nettoyage par execution, avec distinction des etats ignore et non applicable"
       ]
     }
   }

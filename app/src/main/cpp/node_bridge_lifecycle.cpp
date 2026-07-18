@@ -620,6 +620,7 @@ std::vector<std::string> runEmbeddedScriptExecution(
         return payload;
     }
     putPayload(payload, "embedded_script.request.working_directory_entered", !request.workingDirectory.empty());
+    const auto executionSourceBuildStartedAt = Clock::now();
     std::string wrappedSource = buildEmbeddedScriptExecutionSource(
             request.source,
             sourceNameText,
@@ -634,6 +635,16 @@ std::vector<std::string> runEmbeddedScriptExecution(
             request.workerThreadsExperimentalEnabled,
             request.childProcessExperimentalEnabled,
             request.javaInteropExperimentalEnabled
+    );
+    putPayload(
+            payload,
+            "timing.execution_source_build.ms",
+            elapsedMs(executionSourceBuildStartedAt)
+    );
+    putPayload(
+            payload,
+            "embedded_script.execution_source.bytes",
+            static_cast<long long>(wrappedSource.size())
     );
     const bool processRuntimePersistent = embeddedProcessRuntimePersistentEnabled();
     EmbeddedProcessRuntimeExecution processExecution;
