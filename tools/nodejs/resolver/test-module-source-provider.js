@@ -23,6 +23,8 @@ function runTests() {
   assert.ok(nodeMajor >= MIN_NODE_MAJOR, `Node ${MIN_NODE_MAJOR}+ is required; found ${process.version}.`);
   const chunks = embeddedScriptChunks();
   assert.equal(chunks.length, 15, "embedded script interpolation layout changed");
+  assertAndroidCredentialDataAliasContract();
+  process.stdout.write(`PASS Android credential-data canonical path alias contract${os.EOL}`);
 
   const scenarios = [
     {
@@ -256,6 +258,89 @@ function embeddedScriptChunks() {
   assert.ok(start >= 0 && end > start, "could not locate embedded script builder");
   return [...source.slice(start, end).matchAll(/script \+= R"JS\(([\s\S]*?)\)JS";/g)]
     .map((match) => match[1]);
+}
+
+function assertAndroidCredentialDataAliasContract() {
+  const source = fs.readFileSync(CPP_SOURCE, "utf8");
+  const partsSource = embeddedFunctionSource(
+    source,
+    "__autojs6_android_credential_data_path_parts",
+  );
+  const comparisonSource = embeddedFunctionSource(
+    source,
+    "__autojs6_same_authorized_canonical_path",
+  );
+  const createComparison = new Function(
+    "process",
+    `${partsSource}\n${comparisonSource}\nreturn __autojs6_same_authorized_canonical_path;`,
+  );
+  const androidComparison = createComparison({ platform: "android" });
+  const linuxComparison = createComparison({ platform: "linux" });
+  const posixPath = path.posix;
+  const packageName = "io.github.supermonster003.autojs6.plugin.nodejs";
+  const userPath = `/data/user/0/${packageName}/files/state.cjs`;
+  const legacyPath = `/data/data/${packageName}/files/state.cjs`;
+
+  assert.equal(androidComparison(posixPath, userPath, legacyPath), true, "user/0 to data alias was rejected");
+  assert.equal(androidComparison(posixPath, legacyPath, userPath), true, "data to user/0 alias was rejected");
+  assert.equal(
+    androidComparison(posixPath, `/data/user/0/${packageName}`, `/data/data/${packageName}`),
+    true,
+    "package-root alias was rejected",
+  );
+  assert.equal(androidComparison(posixPath, userPath, userPath), true, "exact canonical path was rejected");
+  assert.equal(
+    androidComparison(posixPath, userPath, "/data/data/io.github.supermonster003.autojs6/files/state.cjs"),
+    false,
+    "cross-package alias was accepted",
+  );
+  assert.equal(
+    androidComparison(posixPath, userPath, `/data/data/${packageName}/files/other.cjs`),
+    false,
+    "different credential-data tail was accepted",
+  );
+  assert.equal(
+    androidComparison(posixPath, `/data/user/10/${packageName}/files/state.cjs`, legacyPath),
+    false,
+    "non-owner Android user alias was accepted",
+  );
+  assert.equal(
+    androidComparison(posixPath, `/data/user_de/0/${packageName}/files/state.cjs`, legacyPath),
+    false,
+    "device-encrypted data alias was accepted",
+  );
+  assert.equal(
+    androidComparison(posixPath, `/data/user/0foo/${packageName}/files/state.cjs`, legacyPath),
+    false,
+    "credential-data prefix spoof was accepted",
+  );
+  assert.equal(
+    androidComparison(posixPath, userPath, `/data/data/${packageName}.attacker/files/state.cjs`),
+    false,
+    "application-id prefix collision was accepted",
+  );
+  assert.equal(
+    androidComparison(posixPath, "/data/user/0/not-a-package/files/state.cjs", "/data/data/not-a-package/files/state.cjs"),
+    false,
+    "invalid Android application id was accepted",
+  );
+  assert.equal(linuxComparison(posixPath, userPath, legacyPath), false, "non-Android alias was accepted");
+  assert.equal(linuxComparison(posixPath, userPath, userPath), true, "non-Android exact path was rejected");
+}
+
+function embeddedFunctionSource(source, name) {
+  const start = source.indexOf(`function ${name}(`);
+  assert.ok(start >= 0, `could not locate embedded function ${name}`);
+  const bodyStart = source.indexOf("{", start);
+  assert.ok(bodyStart >= 0, `could not locate embedded function body ${name}`);
+  let depth = 0;
+  for (let index = bodyStart; index < source.length; index += 1) {
+    if (source[index] === "{") depth += 1;
+    if (source[index] !== "}") continue;
+    depth -= 1;
+    if (depth === 0) return source.slice(start, index + 1);
+  }
+  assert.fail(`could not locate embedded function end ${name}`);
 }
 
 function buildEmbeddedScript(chunks, options) {

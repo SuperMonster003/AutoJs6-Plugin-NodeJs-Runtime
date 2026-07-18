@@ -7,6 +7,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -66,6 +67,10 @@ public class NodeJsRuntimePluginService extends Service {
     private static final String RUNTIME_PROCESS_SUFFIX = ":nodejs_runtime";
     private static final String CANCELLATION_STRATEGY_PROCESS_RESTART = "process_restart";
     private static final long PROCESS_RESTART_AFTER_CANCEL_DELAY_MS = 150L;
+    private static final String PROC_SELF_STATUS_PATH = "/proc/self/status";
+    private static final String PROC_SELF_FD_PATH = "/proc/self/fd";
+    private static final String PROC_SELF_TASK_PATH = "/proc/self/task";
+    private static final int PROC_STATUS_MAX_BYTES = 64 * 1024;
     private static final String ERROR_BUSY = "ERR_AUTOJS6_NODE_PLUGIN_BUSY";
     private static final String ERROR_UNAVAILABLE = "ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE";
     private static final String ERROR_CONTRACT_MISMATCH = "ERR_AUTOJS6_NODE_PLUGIN_CONTRACT_MISMATCH";
@@ -218,7 +223,13 @@ public class NodeJsRuntimePluginService extends Service {
                         null,
                         ERROR_UNAVAILABLE
                 );
-                failure.putStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD, readiness.nativePayload());
+                failure.putStringArray(
+                        NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                        appendNativePayload(
+                                failure.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD),
+                                readiness.nativePayload()
+                        )
+                );
                 notifyOutput(callback, failure);
                 notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
                 return failure;
@@ -471,7 +482,10 @@ public class NodeJsRuntimePluginService extends Service {
                 KEY_ACTIVE_EXECUTION_CANCELLATION_REQUESTED,
                 activeExecution != null && activeExecution.cancellationRequested
         );
-        info.putStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD, readiness.nativePayload());
+        info.putStringArray(
+                NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                appendNativePayload(readiness.nativePayload(), runtimeProcessDiagnosticsPayload())
+        );
         return info;
     }
 
@@ -561,7 +575,13 @@ public class NodeJsRuntimePluginService extends Service {
         );
         failure.putStringArray(
                 NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
-                appendNativePayload(lastRuntimeReadiness.nativePayload(), nativePayloadFromMap(diagnostics))
+                appendNativePayload(
+                        appendNativePayload(
+                                failure.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD),
+                                lastRuntimeReadiness.nativePayload()
+                        ),
+                        nativePayloadFromMap(diagnostics)
+                )
         );
         return failure;
     }
@@ -597,7 +617,13 @@ public class NodeJsRuntimePluginService extends Service {
         );
         failure.putStringArray(
                 NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
-                appendNativePayload(lastRuntimeReadiness.nativePayload(), nativePayloadFromMap(diagnostics))
+                appendNativePayload(
+                        appendNativePayload(
+                                failure.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD),
+                                lastRuntimeReadiness.nativePayload()
+                        ),
+                        nativePayloadFromMap(diagnostics)
+                )
         );
         return failure;
     }
@@ -637,7 +663,10 @@ public class NodeJsRuntimePluginService extends Service {
         result.putBoolean("runtimeLoaded", readiness.ready);
         result.putStringArray(
                 NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
-                appendNativePayload(readiness.nativePayload(), nativePayloadFromMap(diagnostics))
+                appendNativePayload(
+                        appendNativePayload(readiness.nativePayload(), nativePayloadFromMap(diagnostics)),
+                        runtimeProcessDiagnosticsPayload()
+                )
         );
         return result;
     }
@@ -843,6 +872,122 @@ public class NodeJsRuntimePluginService extends Service {
         values.put("embedded_script.runtime_plugin.runtime_readiness_detail", readiness.detail);
         values.put("embedded_script.runtime_plugin.host_broker.attached", Boolean.toString(hostBroker != null));
         return nativePayloadFromMap(values);
+    }
+
+    private static String[] runtimeProcessDiagnosticsPayload() {
+        LinkedHashMap<String, String> values = new LinkedHashMap<>();
+        String statusText = readProcText(PROC_SELF_STATUS_PATH, PROC_STATUS_MAX_BYTES);
+        long rssKb = procStatusLongValue(statusText, "VmRSS", -1L);
+        long threadCount = procStatusLongValue(statusText, "Threads", -1L);
+        if (threadCount < 0L) {
+            threadCount = directoryEntryCount(PROC_SELF_TASK_PATH);
+        }
+        long fdCount = directoryEntryCount(PROC_SELF_FD_PATH);
+
+        Runtime javaRuntime = Runtime.getRuntime();
+        long javaHeapCommittedBytes = Math.max(0L, javaRuntime.totalMemory());
+        long javaHeapFreeBytes = Math.max(0L, javaRuntime.freeMemory());
+        long javaHeapUsedBytes = Math.max(0L, javaHeapCommittedBytes - javaHeapFreeBytes);
+        long javaHeapMaxBytes = Math.max(0L, javaRuntime.maxMemory());
+        long nativeHeapAllocatedBytes = 0L;
+        long nativeHeapCommittedBytes = 0L;
+        try {
+            nativeHeapAllocatedBytes = Math.max(0L, Debug.getNativeHeapAllocatedSize());
+            nativeHeapCommittedBytes = Math.max(0L, Debug.getNativeHeapSize());
+        } catch (Throwable ignored) {
+            // Keep all metric fields numeric even on a platform without native heap diagnostics.
+        }
+
+        boolean procStatusReadable = statusText != null && rssKb >= 0L;
+        boolean procFdReadable = fdCount >= 0L;
+        boolean procThreadCountReadable = threadCount >= 0L;
+        values.put("runtime_process.metrics.status",
+                procStatusReadable && procFdReadable && procThreadCountReadable ? "ready" : "partial");
+        values.put("runtime_process.metrics.source", "plugin_process_procfs");
+        values.put("runtime_process.pid", Integer.toString(Process.myPid()));
+        values.put("runtime_process.rss_kb", Long.toString(Math.max(0L, rssKb)));
+        values.put("runtime_process.thread_count", Long.toString(Math.max(0L, threadCount)));
+        values.put("runtime_process.fd_count", Long.toString(Math.max(0L, fdCount)));
+        values.put("runtime_process.java_heap_used_kb", Long.toString(bytesToKb(javaHeapUsedBytes)));
+        values.put("runtime_process.java_heap_committed_kb", Long.toString(bytesToKb(javaHeapCommittedBytes)));
+        values.put("runtime_process.java_heap_max_kb", Long.toString(bytesToKb(javaHeapMaxBytes)));
+        values.put("runtime_process.native_heap_allocated_kb", Long.toString(bytesToKb(nativeHeapAllocatedBytes)));
+        values.put("runtime_process.native_heap_committed_kb", Long.toString(bytesToKb(nativeHeapCommittedBytes)));
+        values.put("runtime_process.proc_status_readable", Boolean.toString(procStatusReadable));
+        values.put("runtime_process.proc_fd_readable", Boolean.toString(procFdReadable));
+        values.put("runtime_process.proc_thread_count_readable", Boolean.toString(procThreadCountReadable));
+        values.put("runtime_process.sample_elapsed_realtime_ms", Long.toString(SystemClock.elapsedRealtime()));
+        return nativePayloadFromMap(values);
+    }
+
+    private static long bytesToKb(long bytes) {
+        return Math.max(0L, bytes) / 1024L;
+    }
+
+    private static int directoryEntryCount(String path) {
+        try {
+            String[] entries = new File(path).list();
+            return entries == null ? -1 : entries.length;
+        } catch (SecurityException ignored) {
+            return -1;
+        }
+    }
+
+    private static String readProcText(String path, int maxBytes) {
+        if (path == null || path.isEmpty() || maxBytes <= 0) {
+            return null;
+        }
+        try (FileInputStream input = new FileInputStream(path)) {
+            byte[] buffer = new byte[maxBytes];
+            int offset = 0;
+            while (offset < buffer.length) {
+                int read = input.read(buffer, offset, buffer.length - offset);
+                if (read < 0) {
+                    break;
+                }
+                if (read == 0) {
+                    break;
+                }
+                offset += read;
+            }
+            return new String(buffer, 0, offset, StandardCharsets.UTF_8);
+        } catch (IOException | SecurityException ignored) {
+            return null;
+        }
+    }
+
+    static long procStatusLongValue(String statusText, String fieldName, long fallback) {
+        if (statusText == null || fieldName == null || fieldName.isEmpty()) {
+            return fallback;
+        }
+        String prefix = fieldName + ":";
+        int lineStart = 0;
+        while (lineStart < statusText.length()) {
+            int lineEnd = statusText.indexOf('\n', lineStart);
+            if (lineEnd < 0) {
+                lineEnd = statusText.length();
+            }
+            if (statusText.regionMatches(lineStart, prefix, 0, prefix.length())) {
+                int valueStart = lineStart + prefix.length();
+                while (valueStart < lineEnd && Character.isWhitespace(statusText.charAt(valueStart))) {
+                    valueStart += 1;
+                }
+                int valueEnd = valueStart;
+                while (valueEnd < lineEnd && Character.isDigit(statusText.charAt(valueEnd))) {
+                    valueEnd += 1;
+                }
+                if (valueEnd > valueStart) {
+                    try {
+                        return Long.parseLong(statusText.substring(valueStart, valueEnd));
+                    } catch (NumberFormatException ignored) {
+                        return fallback;
+                    }
+                }
+                return fallback;
+            }
+            lineStart = lineEnd + 1;
+        }
+        return fallback;
     }
 
     @SuppressWarnings("deprecation")
@@ -1420,7 +1565,10 @@ public class NodeJsRuntimePluginService extends Service {
                 nonBlank(stringValue(nativeValues, "embedded_script.working_directory"),
                         request.getString(NodeJsRuntimeContract.KEY_WORKING_DIRECTORY))
         ));
-        result.putStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD, nativePayload == null ? new String[0] : nativePayload);
+        result.putStringArray(
+                NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                appendNativePayload(nativePayload, runtimeProcessDiagnosticsPayload())
+        );
         return result;
     }
 
@@ -1447,7 +1595,10 @@ public class NodeJsRuntimePluginService extends Service {
         result.putInt(NodeJsRuntimeContract.KEY_PID, Process.myPid());
         result.putString(NodeJsRuntimeContract.KEY_SOURCE_NAME, request.getString(NodeJsRuntimeContract.KEY_SOURCE_NAME, DEFAULT_SOURCE_NAME));
         result.putBoolean(NodeJsRuntimeContract.KEY_TIMED_OUT, false);
-        result.putStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD, runtimePluginPayload(null));
+        result.putStringArray(
+                NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                appendNativePayload(runtimePluginPayload(null), runtimeProcessDiagnosticsPayload())
+        );
         return result;
     }
 
