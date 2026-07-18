@@ -127,6 +127,13 @@ final class PluginNodeBridgeFileTransportSession {
     void stop() {
         if (stopped.compareAndSet(false, true)) {
             if (running.compareAndSet(true, false)) {
+                // No request is outstanding on the common path. Wake the
+                // polling thread immediately instead of paying up to one full
+                // poll interval on every short execution. When traffic is
+                // still pending, retain the bounded drain window below.
+                if (pending.get() <= 0) {
+                    thread.interrupt();
+                }
                 try {
                     thread.join(STOP_JOIN_MS);
                 } catch (InterruptedException e) {
@@ -135,6 +142,10 @@ final class PluginNodeBridgeFileTransportSession {
             }
             deleteRecursively(root);
         }
+    }
+
+    boolean hasDispatchedCalls() {
+        return completed.get() > 0 || failed.get() > 0 || pending.get() > 0;
     }
 
     String[] nativePayload() {
@@ -165,6 +176,10 @@ final class PluginNodeBridgeFileTransportSession {
             drainRequestFiles();
             sleep(POLL_INTERVAL_MS);
         }
+        // stop() may interrupt an idle poll solely to wake this thread. Clear
+        // that wake-up signal before the bounded drain so a request racing the
+        // final idle check still receives the original response window.
+        Thread.interrupted();
         for (int index = 0; index < DRAIN_ITERATIONS; index++) {
             drainRequestFiles();
             if (pending.get() <= 0) {
