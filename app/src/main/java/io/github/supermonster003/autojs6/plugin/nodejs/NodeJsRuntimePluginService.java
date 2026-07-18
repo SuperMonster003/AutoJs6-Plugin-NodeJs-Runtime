@@ -17,6 +17,7 @@ import android.util.Log;
 import org.autojs.autojs.engine.NativeNodeEmbeddedRuntimeBridge;
 import org.autojs.plugin.nodejs.api.INodeJsHostCapabilityBroker;
 import org.autojs.plugin.nodejs.api.INodeJsHostCapabilityCallback;
+import org.autojs.plugin.nodejs.api.INodeJsModuleSourceProvider;
 import org.autojs.plugin.nodejs.api.INodeJsRuntimeCallback;
 import org.autojs.plugin.nodejs.api.INodeJsRuntimePlugin;
 import org.autojs.plugin.nodejs.api.NodeJsPluginIds;
@@ -62,6 +63,7 @@ public class NodeJsRuntimePluginService extends Service {
     private static final String ERROR_UNAVAILABLE = "ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE";
     private static final String BRIDGE_PROCESS_DEAD = "ERR_AUTOJS6_BRIDGE_PROCESS_DEAD";
     private static final String BRIDGE_PROVIDER_FAILED = "ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED";
+    private static final String CAPABILITY_ON_DEMAND_MODULE_SOURCE_PROVIDER = "onDemandModuleSourceProvider";
     private static final long BRIDGE_DISPATCH_WAIT_MS = 1000L;
     private static final String[] CAPABILITIES = new String[]{
             NodeJsRuntimeContract.CAPABILITY_SYNC_SCRIPT_EXECUTION,
@@ -69,6 +71,7 @@ public class NodeJsRuntimePluginService extends Service {
             NodeJsRuntimeContract.CAPABILITY_NATIVE_EMBEDDED_RUNTIME,
             NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_BROKER,
             NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_LIVE_BRIDGE,
+            CAPABILITY_ON_DEMAND_MODULE_SOURCE_PROVIDER,
     };
 
     private final Object executionLock = new Object();
@@ -124,9 +127,15 @@ public class NodeJsRuntimePluginService extends Service {
     private Bundle runScriptLocked(Bundle request, INodeJsRuntimeCallback callback) {
         long startedAt = SystemClock.elapsedRealtime();
         INodeJsHostCapabilityBroker hostBroker = null;
+        INodeJsModuleSourceProvider moduleSourceProvider = null;
         PluginNodeBridgeFileTransportSession liveBridgeSession = null;
+        PluginModuleSourceProviderFileTransportSession moduleSourceProviderSession = null;
         notifyEvent(callback, NodeJsRuntimeContract.EVENT_STARTED, null, null);
         try {
+            // Acquire the request-scoped provider before any operation that can
+            // fail so the finally block can release it even for an empty source
+            // or a native-library loading failure.
+            moduleSourceProvider = moduleSourceProviderFrom(request);
             loadNativeRuntime();
             String source = request.getString(NodeJsRuntimeContract.KEY_SOURCE, "");
             if (source.isEmpty()) {
@@ -188,6 +197,20 @@ public class NodeJsRuntimePluginService extends Service {
                 );
                 liveBridgeSession.start();
             }
+            if (moduleSourceProvider != null) {
+                moduleSourceProviderSession = new PluginModuleSourceProviderFileTransportSession(
+                        getCacheDir(),
+                        request.getString(NodeJsRuntimeContract.KEY_EXECUTION_ID),
+                        moduleSourceProvider,
+                        request.getLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 0L)
+                );
+                runtimeModuleSources = withRuntimeModuleSource(
+                        runtimeModuleSources,
+                        PluginModuleSourceProviderFileTransportSession.RUNTIME_MODULE_NAME,
+                        moduleSourceProviderSession.configJson()
+                );
+                moduleSourceProviderSession.start();
+            }
 
             String[] nativePayload = NativeNodeEmbeddedRuntimeBridge.runEmbeddedScript(
                     source,
@@ -207,7 +230,16 @@ public class NodeJsRuntimePluginService extends Service {
             if (liveBridgeSession != null) {
                 liveBridgeSession.stop();
             }
+            String[] moduleSourceProviderNativePayload = moduleSourceProviderSession == null
+                    ? new String[]{"embedded_script.runtime_plugin.module_provider.available=false"}
+                    : moduleSourceProviderSession.providerNativePayload();
+            if (moduleSourceProviderSession != null) {
+                moduleSourceProviderSession.stop("Node.js runtime plugin execution finished.");
+            }
             String[] liveBridgePayload = liveBridgePayload(liveBridgeSession);
+            String[] moduleSourceProviderPayload = moduleSourceProviderSession == null
+                    ? new String[]{"embedded_script.runtime_plugin.module_provider.available=false"}
+                    : moduleSourceProviderSession.nativePayload();
             String[] queuedBridgePayload = dispatchQueuedBridgeRequests(nativePayload, hostBroker);
             String[] hostBrokerDiagnosticsPayload = hostBrokerNativeDiagnosticsPayload(hostBroker);
             String[] runtimeModulePayload = runtimeModuleInjection.nativePayload();
@@ -226,7 +258,10 @@ public class NodeJsRuntimePluginService extends Service {
                                     ),
                                     queuedBridgePayload
                             ),
-                            appendNativePayload(hostBrokerDiagnosticsPayload, runtimePluginPayload)
+                            appendNativePayload(
+                                    appendNativePayload(hostBrokerDiagnosticsPayload, runtimePluginPayload),
+                                    appendNativePayload(moduleSourceProviderPayload, moduleSourceProviderNativePayload)
+                            )
                     ),
                     startedAt
             );
@@ -247,6 +282,14 @@ public class NodeJsRuntimePluginService extends Service {
         } finally {
             if (liveBridgeSession != null) {
                 liveBridgeSession.stop();
+            }
+            if (moduleSourceProviderSession != null) {
+                moduleSourceProviderSession.stop("Node.js runtime plugin execution finished after failure.");
+            } else {
+                cancelModuleSourceProvider(
+                        moduleSourceProvider,
+                        "Node.js runtime plugin execution finished before module-source transport startup."
+                );
             }
             destroyHostBroker(hostBroker, "Node.js runtime plugin execution finished.");
         }
@@ -276,6 +319,27 @@ public class NodeJsRuntimePluginService extends Service {
     private INodeJsHostCapabilityBroker hostBrokerFrom(Bundle request) {
         IBinder binder = request.getBinder(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_BROKER);
         return binder == null ? null : INodeJsHostCapabilityBroker.Stub.asInterface(binder);
+    }
+
+    private INodeJsModuleSourceProvider moduleSourceProviderFrom(Bundle request) {
+        IBinder binder = request.getBinder(PluginModuleSourceProviderFileTransportSession.KEY_PROVIDER_BINDER);
+        return binder == null ? null : INodeJsModuleSourceProvider.Stub.asInterface(binder);
+    }
+
+    private static void cancelModuleSourceProvider(INodeJsModuleSourceProvider provider, String reason) {
+        if (provider == null) {
+            return;
+        }
+        Thread cancelThread = new Thread(() -> {
+            try {
+                provider.cancel(reason);
+            } catch (Throwable error) {
+                Log.w(TAG, "module_source_provider.cancel.failed", error);
+            }
+        });
+        cancelThread.setName("AutoJs6PluginModuleSourceCancel");
+        cancelThread.setDaemon(true);
+        cancelThread.start();
     }
 
     private Bundle hostBrokerInfo(INodeJsHostCapabilityBroker hostBroker) {
@@ -354,6 +418,10 @@ public class NodeJsRuntimePluginService extends Service {
         values.put(
                 "embedded_script.runtime_plugin.capability_live_bridge",
                 Boolean.toString(hasCapability(NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_LIVE_BRIDGE))
+        );
+        values.put(
+                "embedded_script.runtime_plugin.capability_module_source_provider",
+                Boolean.toString(hasCapability(CAPABILITY_ON_DEMAND_MODULE_SOURCE_PROVIDER))
         );
         values.put("embedded_script.runtime_plugin.host_broker.attached", Boolean.toString(hostBroker != null));
         return nativePayloadFromMap(values);
