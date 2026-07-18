@@ -24,6 +24,129 @@ constexpr const char* kNativePhaseTimingClock = "native_steady_clock_and_node_hr
 constexpr size_t kAdapterPhaseTimingPayloadMaxChars = 4096;
 constexpr size_t kAdapterPhaseStatusPayloadMaxChars = 4096;
 
+bool startsWith(std::string_view value, std::string_view prefix) {
+    return value.size() >= prefix.size() && value.substr(0, prefix.size()) == prefix;
+}
+
+bool keepEmbeddedScriptLifecyclePayloadKey(std::string_view key) {
+    constexpr std::string_view prefixes[] = {
+            "embedded_script.",
+            "execution.",
+            "process_runtime.",
+            "stderr_capture.",
+            "stdout_capture.",
+            "uv.",
+    };
+    for (const std::string_view prefix : prefixes) {
+        if (startsWith(key, prefix)) {
+            return true;
+        }
+    }
+    constexpr std::string_view exactKeys[] = {
+            "allocator.create.status",
+            "bootstrap_script.status",
+            "completion_drain.status",
+            "current.abi",
+            "environment.create.status",
+            "environment.free.status",
+            "initialize.status",
+            "isolate.create.status",
+            "isolate.dispose.status",
+            "isolate.unregister.status",
+            "isolate_data.create.status",
+            "isolate_data.free.status",
+            "js_result.status",
+            "lifecycle.build.enabled",
+            "load.duration.ms",
+            "load_environment.status",
+            "output_envelope.status",
+            "platform.create.status",
+            "spin_event_loop.status",
+            "symbol.count",
+            "teardown.status",
+            "timing.allocator_create.ms",
+            "timing.bootstrap.ms",
+            "timing.bootstrap_script.ms",
+            "timing.completion_drain.ms",
+            "timing.embedded_script_result.ms",
+            "timing.environment_create.ms",
+            "timing.environment_free.ms",
+            "timing.execution_source_build.ms",
+            "timing.initialize.ms",
+            "timing.isolate_create.ms",
+            "timing.isolate_data_create.ms",
+            "timing.isolate_data_free.ms",
+            "timing.isolate_dispose.ms",
+            "timing.isolate_unregister.ms",
+            "timing.js_result.ms",
+            "timing.load.ms",
+            "timing.load_environment.ms",
+            "timing.module_preload.ms",
+            "timing.output_envelope.ms",
+            "timing.platform_create.ms",
+            "timing.process_runtime_initialize.ms",
+            "timing.process_runtime_shutdown.ms",
+            "timing.script_execution.ms",
+            "timing.spin_event_loop.ms",
+            "timing.stdout_capture.ms",
+            "timing.symbols.ms",
+            "timing.teardown.ms",
+            "timing.total.ms",
+            "timing.uv_close.ms",
+            "timing.uv_loop_close.ms",
+            "timing.uv_loop_init.ms",
+            "timing.uv_run.ms",
+            "timing.v8_initialize.ms",
+            "timing.v8_initialize_platform.ms",
+            "v8.initialize.status",
+            "v8.initialize_platform.status",
+    };
+    for (const std::string_view exactKey : exactKeys) {
+        if (key == exactKey) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void compactEmbeddedScriptLifecyclePayload(std::vector<std::string>& payload) {
+    const size_t originalEntryCount = payload.size();
+    std::vector<std::string> compacted;
+    compacted.reserve(originalEntryCount);
+    for (std::string& entry : payload) {
+        const size_t separator = entry.find('=');
+        if (separator == std::string::npos ||
+            keepEmbeddedScriptLifecyclePayloadKey(
+                    std::string_view(entry.data(), separator)
+            )) {
+            compacted.emplace_back(std::move(entry));
+        }
+    }
+    const size_t compactedEntryCount = compacted.size();
+    payload = std::move(compacted);
+    putPayload(payload, "embedded_script.native_payload_compaction.applied", true);
+    putPayload(
+            payload,
+            "embedded_script.native_payload_compaction.policy",
+            "script_contract_runtime_status_phase_timings_and_captures"
+    );
+    putPayload(
+            payload,
+            "embedded_script.native_payload_compaction.original_entry_count",
+            static_cast<long long>(originalEntryCount)
+    );
+    putPayload(
+            payload,
+            "embedded_script.native_payload_compaction.omitted_entry_count",
+            static_cast<long long>(originalEntryCount - compactedEntryCount)
+    );
+    putPayload(
+            payload,
+            "embedded_script.native_payload_compaction.sent_entry_count",
+            static_cast<long long>(compactedEntryCount + 5)
+    );
+}
+
 enum class NativePhaseStatusPolicy {
     kPresent,
     kDone,
@@ -467,6 +590,7 @@ static jobjectArray runEmbeddedScriptLifecycleNative(
     request.javaInteropExperimentalEnabled = javaInteropExperimentalEnabled;
     std::vector<std::string> payload = runEmbeddedScriptExecution(request);
     appendNativePhaseTimingMetadata(payload, "legacy_jni_lifecycle_payload");
+    compactEmbeddedScriptLifecyclePayload(payload);
     return toJavaStringArray(env, payload);
 }
 
