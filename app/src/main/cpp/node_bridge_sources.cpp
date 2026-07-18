@@ -30194,6 +30194,47 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return absolute;
   }
+  function __autojs6_android_credential_data_path_parts(value) {
+    const resolved = String(value || "");
+    const userZeroPrefix = "/data/user/0/";
+    const legacyDataPrefix = "/data/data/";
+    let namespace;
+    let relativePath;
+    if (resolved.indexOf(userZeroPrefix) === 0) {
+      namespace = "user_0";
+      relativePath = resolved.slice(userZeroPrefix.length);
+    } else if (resolved.indexOf(legacyDataPrefix) === 0) {
+      namespace = "data";
+      relativePath = resolved.slice(legacyDataPrefix.length);
+    } else {
+      return null;
+    }
+    const packageEnd = relativePath.indexOf("/");
+    const packageName = packageEnd < 0 ? relativePath : relativePath.slice(0, packageEnd);
+    if (!/^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/.test(packageName)) {
+      return null;
+    }
+    return Object.freeze({
+      namespace,
+      packageName,
+      tail: packageEnd < 0 ? "" : relativePath.slice(packageEnd)
+    });
+  }
+  function __autojs6_same_authorized_canonical_path(path, expected, actual) {
+    const expectedPath = path.resolve(String(expected || ""));
+    const actualPath = path.resolve(String(actual || ""));
+    if (expectedPath === actualPath) return true;
+    const platform = typeof process === "object" && process && process.platform
+      ? String(process.platform)
+      : "";
+    if (platform !== "android") return false;
+    const expectedParts = __autojs6_android_credential_data_path_parts(expectedPath);
+    const actualParts = __autojs6_android_credential_data_path_parts(actualPath);
+    return expectedParts !== null && actualParts !== null &&
+      expectedParts.namespace !== actualParts.namespace &&
+      expectedParts.packageName === actualParts.packageName &&
+      expectedParts.tail === actualParts.tail;
+  }
   function __autojs6_revalidate_plaintext_module_path(readable, allowEsm, providerResult) {
     const current = __autojs6_validate_runtime_module_path(readable, allowEsm);
     if (!current) return null;
@@ -30235,7 +30276,7 @@ std::string buildEmbeddedScriptExecutionSource(
         false
       );
     }
-    if (path.resolve(expectedResolvedPath) !== path.resolve(currentReal)) {
+    if (!__autojs6_same_authorized_canonical_path(path, expectedResolvedPath, currentReal)) {
       throw __autojs6_module_source_provider_error(
         "denied",
         readable,
