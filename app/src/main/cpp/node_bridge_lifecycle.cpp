@@ -1016,6 +1016,16 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
                     : "v8 uv isolate lifecycle did not start";
     __android_log_print(ANDROID_LOG_INFO, kLogTag, "%s.start", lifecycleLogName);
     const auto lifecycleStartedAt = Clock::now();
+    if (scriptExecution) {
+        putPayload(payload, "symbol.count", static_cast<long long>(0));
+        putPayload(payload, "timing.symbols.ms", static_cast<long long>(0));
+        putPayload(payload, "bootstrap_script.status", "skipped");
+        putPayload(payload, "completion_drain.status", "skipped");
+        putPayload(payload, "js_result.status", "skipped");
+        putPayload(payload, "output_envelope.status", "skipped");
+        putPayload(payload, "embedded_script.probe_payload_generation.mode", "script_execution_fast_path");
+        putPayload(payload, "embedded_script.probe_payload_generation.omitted_optional_placeholders", true);
+    } else {
     putPayload(payload, "symbol.count", static_cast<long long>(0));
     putPayload(payload, "timing.symbols.ms", static_cast<long long>(0));
     putPayload(payload, "v8.build.enabled", AUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE != 0);
@@ -3037,6 +3047,7 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
     );
     putUvLoopSkippedPayload(payload, lifecycleDetail);
     putV8SkippedPayload(payload, lifecycleDetail);
+    }
     const bool collectUvDiagnostics = diagnoseUvHandles && (!scriptExecution || fullUvDiagnostics);
     putPayload(
             payload,
