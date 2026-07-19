@@ -40752,10 +40752,12 @@ std::string buildEmbeddedScriptExecutionSource(
       for (let i = 1; i < arguments.length; i += 1) {
         output.push(arguments[i]);
       }
-      if (output.length === 0) output.push("");
-      consoleWrite(consoleState(this), "stderr", output, __autojs6_console_level_assert);
-      throw __autojs6_console_assert_error(
-        output.map(__autojs6_console_text).join(" ")
+      const message = output.map(__autojs6_console_text).join(" ");
+      return consoleWrite(
+        consoleState(this),
+        "stderr",
+        ["Assertion failed" + (message ? ": " + message : "")],
+        __autojs6_console_level_assert
       );
     }
     function consoleTable(tabularData, properties) {
