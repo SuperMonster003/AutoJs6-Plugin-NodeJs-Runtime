@@ -5562,8 +5562,11 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_module_source_provider_diagnostics = {
     enabled: false,
     requestCount: 0,
+    missingCandidateRequestCount: 0,
     resolvedCount: 0,
     decryptedCount: 0,
+    materializedCount: 0,
+    materializedSourceBytes: 0,
     notEncryptedCount: 0,
     notFoundCount: 0,
     deniedCount: 0,
@@ -5648,6 +5651,7 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_module_source_provider_sequence = 0;
   let __autojs6_module_source_provider_wait_array = null;
   const __autojs6_module_source_provider_results = Object.create(null);
+  const __autojs6_plaintext_module_source_records = Object.create(null);
   const __autojs6_native_function = Function;
   const __autojs6_native_async_function = Object.getPrototypeOf(async function() {}).constructor;
   const __autojs6_native_eval = eval;
@@ -29470,23 +29474,24 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_runtime_module_diagnostics.lastCandidate = __autojs6_diagnostic_path(candidate);
   }
   function __autojs6_require_failure_context(request, referrer) {
+    // Fallback request/referrer always equal the primary request/referrer, so
+    // they are omitted to keep user-facing errors on one readable line.
     const diagnostics = __autojs6_runtime_module_diagnostics;
     return "Embedded Node require diagnostics: request='" + __autojs6_diagnostic_path(request) +
       "'; referrer='" + __autojs6_diagnostic_path(referrer) +
       "'; cwd='" + __autojs6_diagnostic_cwd() +
       "'; sandboxRoot='" + __autojs6_diagnostic_sandbox_root() +
-      "'; dynamic require fallback request='" + diagnostics.lastRequest +
-      "'; dynamic require fallback referrer='" + diagnostics.lastReferrer +
       "'; dynamic require fallback candidate='" + diagnostics.lastCandidate +
       "'; dynamic require fallback denied='" + diagnostics.lastDeniedReason + "'";
   }
   function __autojs6_enrich_require_error(error, request, referrer) {
     __autojs6_record_require_failure_request(request, referrer);
     if (!__autojs6_runtime_module_diagnostics.lastDeniedReason) {
-      const message = error && error.message ? String(error.message) : String(error);
+      // Do not embed the full error message here: it is appended to the same
+      // error right below, and nesting it produced unreadable message walls.
       __autojs6_record_runtime_module_denial(
         "dynamic require fallback denied for request '" + __autojs6_diagnostic_path(request) +
-          "' from '" + __autojs6_diagnostic_path(referrer) + "': " + message
+          "' from '" + __autojs6_diagnostic_path(referrer) + "'"
       );
     }
     return __autojs6_append_error_context(
@@ -29565,7 +29570,11 @@ std::string buildEmbeddedScriptExecutionSource(
       if (!record || typeof record.source !== "string") return null;
       __autojs6_module_source_provider_diagnostics.enabled = true;
       const parsed = JSON.parse(record.source);
-      if (!parsed || typeof parsed !== "object" || parsed.enabled !== true || Number(parsed.version) !== 1) {
+      const parsedVersion = parsed && typeof parsed === "object" ? Number(parsed.version) : NaN;
+      if (
+        !parsed || typeof parsed !== "object" || parsed.enabled !== true ||
+        (parsedVersion !== 1 && parsedVersion !== 2)
+      ) {
         throw new Error("Module-source provider transport configuration version or enabled state is invalid.");
       }
       const path = __autojs6_path_module();
@@ -29594,7 +29603,7 @@ std::string buildEmbeddedScriptExecutionSource(
         ? Math.max(1, Math.min(Math.floor(rawPollIntervalMs), 250))
         : 5;
       __autojs6_module_source_provider_config_cache = Object.freeze({
-        version: 1,
+        version: parsedVersion,
         executionId,
         requestDir: path.resolve(requestDir),
         responseDir: path.resolve(responseDir),
@@ -29694,6 +29703,13 @@ std::string buildEmbeddedScriptExecutionSource(
     if (status === "decrypted") {
       diagnostics.resolvedCount += 1;
       diagnostics.decryptedCount += 1;
+    } else if (status === "materialized_plaintext") {
+      diagnostics.resolvedCount += 1;
+      diagnostics.materializedCount += 1;
+      const materializedBytes = Number(response.sourceBytes);
+      if (Number.isSafeInteger(materializedBytes) && materializedBytes >= 0) {
+        diagnostics.materializedSourceBytes += materializedBytes;
+      }
     } else if (status === "not_encrypted") {
       diagnostics.resolvedCount += 1;
       diagnostics.notEncryptedCount += 1;
@@ -29715,8 +29731,14 @@ std::string buildEmbeddedScriptExecutionSource(
     let stat;
     try {
       stat = fs.statSync(file, { bigint: true });
-    } catch (_) {
-      stat = fs.statSync(file);
+    } catch (error) {
+      if (error && (error.code === "ENOENT" || error.code === "ENOTDIR")) return "";
+      try {
+        stat = fs.statSync(file);
+      } catch (fallbackError) {
+        if (fallbackError && (fallbackError.code === "ENOENT" || fallbackError.code === "ENOTDIR")) return "";
+        throw fallbackError;
+      }
     }
     return __autojs6_module_source_provider_stat_identity(stat);
   }
@@ -29842,6 +29864,19 @@ std::string buildEmbeddedScriptExecutionSource(
           false
         );
       }
+      const openedSourceBytes = Number(beforeStat.size);
+      if (
+        !Number.isSafeInteger(openedSourceBytes) || openedSourceBytes < 0 ||
+        openedSourceBytes > __autojs6_runtime_module_single_source_bytes_limit
+      ) {
+        throw __autojs6_module_source_provider_error(
+          "failed",
+          requestedPath,
+          "Module-source provider source exceeds the single-source byte budget.",
+          "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED",
+          false
+        );
+      }
       if (Number.isSafeInteger(expectedBytes) && Number(beforeStat.size) !== expectedBytes) {
         throw __autojs6_module_source_provider_error(
           "denied",
@@ -29895,7 +29930,16 @@ std::string buildEmbeddedScriptExecutionSource(
       } catch (_) {}
     }
   }
-  function __autojs6_module_source_provider_response(fs, config, id, requestedPath, responsePath, sourcePath, deadline) {
+  function __autojs6_module_source_provider_response(
+    fs,
+    config,
+    id,
+    requestedPath,
+    responsePath,
+    sourcePath,
+    deadline,
+    responseKind
+  ) {
     while (true) {
       try {
         if (typeof fs.statSync === "function") {
@@ -29910,16 +29954,25 @@ std::string buildEmbeddedScriptExecutionSource(
         }
         const response = JSON.parse(String(responseText));
         if (
-          !response || typeof response !== "object" || Number(response.version) !== 1 ||
+          !response || typeof response !== "object" ||
+          Number(response.version) !== Number(config.version) ||
           String(response.id || "") !== id
         ) {
           throw new Error("Module-source provider response identity or version is invalid.");
         }
         const status = String(response.status || "");
-        if (
-          status !== "decrypted" && status !== "not_encrypted" && status !== "not_found" &&
-          status !== "denied" && status !== "cancelled" && status !== "timed_out" && status !== "failed"
-        ) {
+        const preparationResponse = responseKind === "typescript_preparation";
+        const validStatus = preparationResponse
+          ? (
+              status === "prepared" || status === "cancelled" ||
+              status === "timed_out" || status === "failed"
+            )
+          : (
+               status === "decrypted" || status === "materialized_plaintext" ||
+               status === "not_encrypted" || status === "not_found" ||
+              status === "denied" || status === "cancelled" || status === "timed_out" || status === "failed"
+            );
+        if (!validStatus) {
           throw new Error("Module-source provider response status is invalid: " + status);
         }
         return response;
@@ -29944,14 +29997,223 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     }
   }
-  function __autojs6_request_module_source(readable) {
-    if (__autojs6_has_own(__autojs6_module_source_provider_results, readable)) {
-      return __autojs6_module_source_provider_results[readable];
+  function __autojs6_is_plaintext_typescript_source(sourceName) {
+    const normalizedSourceName = String(sourceName || "").toLowerCase();
+    if (/\.d\.(?:ts|mts|cts)$/.test(normalizedSourceName)) return false;
+    const extension = __autojs6_source_extension(sourceName);
+    return extension === ".ts" || extension === ".mts" || extension === ".cts";
+  }
+  function __autojs6_module_source_provider_atomic_write(fs, temporaryPath, destinationPath, value, encoding) {
+    let fd;
+    try {
+      fd = fs.openSync(temporaryPath, "wx", 0o600);
+      if (encoding) {
+        fs.writeFileSync(fd, value, encoding);
+      } else {
+        fs.writeFileSync(fd, value);
+      }
+      fs.fsyncSync(fd);
+    } finally {
+      if (fd !== undefined) {
+        try {
+          fs.closeSync(fd);
+        } catch (_) {}
+      }
+    }
+    fs.renameSync(temporaryPath, destinationPath);
+  }
+  function __autojs6_prepare_plaintext_typescript_source(
+    sourceName,
+    rawSource,
+    parentRequestId,
+    parentDeadline
+  ) {
+    if (!__autojs6_is_plaintext_typescript_source(sourceName)) {
+      return rawSource && typeof rawSource.toString === "function"
+        ? rawSource.toString("utf8")
+        : String(rawSource || "");
+    }
+    const config = __autojs6_module_source_provider_config();
+    const fs = __autojs6_fs_module();
+    const path = __autojs6_path_module();
+    if (
+      !config || !fs || !path || typeof path.resolve !== "function" ||
+      typeof fs.openSync !== "function" || typeof fs.writeFileSync !== "function" ||
+      typeof fs.fsyncSync !== "function" || typeof fs.closeSync !== "function" ||
+      typeof fs.renameSync !== "function"
+    ) {
+      throw __autojs6_module_source_provider_error(
+        "failed",
+        sourceName,
+        "Plaintext TypeScript preparation transport is unavailable.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED",
+        false
+      );
+    }
+    const authorizedParentRequestId = String(parentRequestId || "");
+    if (!authorizedParentRequestId) {
+      throw __autojs6_module_source_provider_error(
+        "failed",
+        sourceName,
+        "Plaintext TypeScript preparation is missing its authorized provider request identity.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_INVALID_REQUEST",
+        false
+      );
+    }
+    const authorizedParentDeadline = Number(parentDeadline);
+    if (!Number.isSafeInteger(authorizedParentDeadline) || authorizedParentDeadline <= Date.now()) {
+      throw __autojs6_module_source_provider_error(
+        "timed_out",
+        sourceName,
+        "Plaintext TypeScript preparation exceeded its authorized provider deadline.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_TIMEOUT",
+        false
+      );
+    }
+    const rawSourceBytes = rawSource && typeof rawSource.length === "number"
+      ? rawSource.length
+      : __autojs6_runtime_module_source_bytes(rawSource);
+    if (
+      !Number.isSafeInteger(rawSourceBytes) || rawSourceBytes < 0 ||
+      rawSourceBytes > __autojs6_runtime_module_single_source_bytes_limit
+    ) {
+      throw __autojs6_module_source_provider_error(
+        "failed",
+        sourceName,
+        "Plaintext TypeScript source exceeds the single-source byte budget.",
+        "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED",
+        false
+      );
+    }
+    __autojs6_module_source_provider_sequence += 1;
+    const id = __autojs6_module_source_provider_safe_id(
+      "typescript-" + __autojs6_module_source_provider_sequence + "-" + config.executionId
+    );
+    const requestPath = __autojs6_module_source_provider_file(config, config.requestDir, id, ".json");
+    const requestTempPath = requestPath + ".tmp";
+    const rawSourcePath = __autojs6_module_source_provider_file(config, config.requestDir, id, ".source");
+    const rawSourceTempPath = rawSourcePath + ".tmp";
+    const responsePath = __autojs6_module_source_provider_file(config, config.responseDir, id, ".json");
+    const preparedSourcePath = __autojs6_module_source_provider_file(config, config.responseDir, id, ".source");
+    try {
+      __autojs6_module_source_provider_atomic_write(
+        fs,
+        rawSourceTempPath,
+        rawSourcePath,
+        rawSource,
+        ""
+      );
+      const remainingTimeoutMs = Math.floor(authorizedParentDeadline - Date.now());
+      if (remainingTimeoutMs <= 0) {
+        throw __autojs6_module_source_provider_error(
+          "timed_out",
+          sourceName,
+          "Plaintext TypeScript preparation exceeded its authorized provider deadline.",
+          "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_TIMEOUT",
+          false
+        );
+      }
+      __autojs6_module_source_provider_atomic_write(fs, requestTempPath, requestPath, JSON.stringify({
+        version: config.version,
+        id,
+        executionId: config.executionId,
+        operation: "prepare_plaintext_typescript",
+        parentRequestId: authorizedParentRequestId,
+        sourceName: String(sourceName || ""),
+        sourcePath: rawSourcePath,
+        sourceBytes: rawSourceBytes,
+        timeoutMs: remainingTimeoutMs
+      }), "utf8");
+      const response = __autojs6_module_source_provider_response(
+        fs,
+        config,
+        id,
+        sourceName,
+        responsePath,
+        preparedSourcePath,
+        authorizedParentDeadline,
+        "typescript_preparation"
+      );
+      __autojs6_module_source_provider_cleanup_file(fs, responsePath);
+      __autojs6_module_source_provider_cleanup_file(fs, requestPath);
+      __autojs6_module_source_provider_cleanup_file(fs, rawSourcePath);
+      const status = String(response.status || "failed");
+      if (status !== "prepared") {
+        const defaultCodes = {
+          cancelled: "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_CANCELLED",
+          timed_out: "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_TIMEOUT",
+          failed: "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED"
+        };
+        throw __autojs6_module_source_provider_error(
+          status,
+          sourceName,
+          String(response.errorMessage || "Plaintext TypeScript preparation returned " + status + "."),
+          String(response.errorCode || defaultCodes[status] || defaultCodes.failed),
+          false
+        );
+      }
+      const responseSourcePath = path.resolve(String(response.sourcePath || ""));
+      const declaredSourceBytes = Number(response.sourceBytes);
+      const declaredRawSourceBytes = Number(response.rawSourceBytes);
+      const responseResolvedPath = String(response.resolvedPath || "");
+      if (
+        responseSourcePath !== preparedSourcePath || !Number.isSafeInteger(declaredSourceBytes) ||
+        declaredSourceBytes < 0 || declaredSourceBytes > __autojs6_runtime_module_single_source_bytes_limit ||
+        !Number.isSafeInteger(declaredRawSourceBytes) || declaredRawSourceBytes !== rawSourceBytes ||
+        responseResolvedPath !== String(sourceName || "")
+      ) {
+        throw new Error("Prepared plaintext TypeScript response identity, path, or byte count is invalid.");
+      }
+      let preparedSource;
+      try {
+        preparedSource = __autojs6_module_source_provider_verified_read(
+          fs,
+          responseSourcePath,
+          sourceName,
+          "",
+          declaredSourceBytes
+        );
+      } finally {
+        __autojs6_module_source_provider_cleanup_file(fs, responseSourcePath);
+      }
+      return __autojs6_text_decoder_decode_utf8(preparedSource, true, true);
+    } catch (error) {
+      __autojs6_module_source_provider_cleanup_file(fs, requestTempPath);
+      __autojs6_module_source_provider_cleanup_file(fs, requestPath);
+      __autojs6_module_source_provider_cleanup_file(fs, rawSourceTempPath);
+      __autojs6_module_source_provider_cleanup_file(fs, rawSourcePath);
+      __autojs6_module_source_provider_cleanup_file(fs, responsePath);
+      __autojs6_module_source_provider_cleanup_file(fs, preparedSourcePath);
+      if (error && error.__autojs6ModuleSourceProviderRecorded) {
+        throw error;
+      }
+      throw __autojs6_module_source_provider_error(
+        "failed",
+        sourceName,
+        "Plaintext TypeScript preparation failed for '" + sourceName + "': " +
+          (error && error.message ? error.message : String(error)),
+        error && error.code ? String(error.code) : "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED",
+        false
+      );
+    }
+  }
+  function __autojs6_request_module_source(readable, operation) {
+    const requestOperation = operation === "materialize_missing_plaintext"
+      ? "materialize_missing_plaintext"
+      : operation === "resolve_missing_candidate"
+        ? "resolve_missing_candidate"
+        : "resolve";
+    const cacheKey = requestOperation + "\n" + String(readable || "");
+    if (__autojs6_has_own(__autojs6_module_source_provider_results, cacheKey)) {
+      return __autojs6_module_source_provider_results[cacheKey];
     }
     const config = __autojs6_module_source_provider_config();
     if (!config) return Object.freeze({ status: "disabled" });
     const diagnostics = __autojs6_module_source_provider_diagnostics;
+    const materializeMissingPlaintext = requestOperation === "materialize_missing_plaintext";
+    const resolveMissingCandidate = requestOperation === "resolve_missing_candidate";
     diagnostics.requestCount += 1;
+    if (materializeMissingPlaintext) diagnostics.missingCandidateRequestCount += 1;
     diagnostics.lastPath = String(readable || "");
     if (diagnostics.requestCount > 1024) {
       throw __autojs6_module_source_provider_error(
@@ -29983,18 +30245,31 @@ std::string buildEmbeddedScriptExecutionSource(
     const requestTempPath = requestPath + ".tmp";
     const responsePath = __autojs6_module_source_provider_file(config, config.responseDir, id, ".json");
     const expectedSourcePath = __autojs6_module_source_provider_file(config, config.responseDir, id, ".source");
+    const requestDeadline = Date.now() + config.timeoutMs;
     let candidateIdentity = "";
     try {
-      candidateIdentity = __autojs6_module_source_provider_file_identity(fs, readable);
-      if (!candidateIdentity) {
-        throw new Error("Module-source provider candidate identity is unavailable.");
+      if (!materializeMissingPlaintext) {
+        candidateIdentity = __autojs6_module_source_provider_file_identity(fs, readable);
+        if (candidateIdentity && resolveMissingCandidate) {
+          throw __autojs6_module_source_provider_error(
+            "denied",
+            readable,
+            "Missing module-source candidate appeared before provider dispatch.",
+            "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+            false
+          );
+        }
+        if (!candidateIdentity && !resolveMissingCandidate) {
+          throw new Error("Module-source provider candidate identity is unavailable.");
+        }
       }
       fs.mkdirSync(config.requestDir, { recursive: true });
       fs.mkdirSync(config.responseDir, { recursive: true });
       fs.writeFileSync(requestTempPath, JSON.stringify({
-        version: 1,
+        version: config.version,
         id,
         executionId: config.executionId,
+        operation: materializeMissingPlaintext ? "materialize_missing_plaintext" : "resolve",
         path: String(readable),
         timeoutMs: config.timeoutMs
       }), "utf8");
@@ -30006,7 +30281,7 @@ std::string buildEmbeddedScriptExecutionSource(
         readable,
         responsePath,
         expectedSourcePath,
-        Date.now() + config.timeoutMs
+        requestDeadline
       );
       __autojs6_module_source_provider_cleanup_file(fs, responsePath);
       __autojs6_module_source_provider_cleanup_file(fs, requestPath);
@@ -30065,14 +30340,72 @@ std::string buildEmbeddedScriptExecutionSource(
           sourceBytes: actualSourceBytes,
           sourceURL: __autojs6_runtime_module_source_url(response.resolvedPath || readable)
         });
-        __autojs6_module_source_provider_results[readable] = result;
+        if (
+          resolveMissingCandidate &&
+          !__autojs6_same_authorized_canonical_path(
+            path,
+            readable,
+            String(response.resolvedPath || readable)
+          )
+        ) {
+          throw __autojs6_module_source_provider_error(
+            "denied",
+            readable,
+            "Missing module-source candidate resolved to a different path.",
+            "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+            false
+          );
+        }
+        __autojs6_module_source_provider_results[cacheKey] = result;
+        return result;
+      }
+      if (status === "materialized_plaintext") {
+        __autojs6_module_source_provider_cleanup_file(fs, expectedSourcePath);
+        __autojs6_module_source_provider_record_response(response, readable);
+        const path = __autojs6_path_module();
+        const materializedReadable = __autojs6_validate_runtime_module_path(readable, true);
+        const materializedIdentity = materializedReadable
+          ? __autojs6_module_source_provider_file_identity(fs, materializedReadable)
+          : "";
+        const declaredSourceBytes = Number(response.sourceBytes);
+        let materializedStat;
+        try {
+          materializedStat = materializedReadable ? fs.statSync(materializedReadable) : null;
+        } catch (_) {
+          materializedStat = null;
+        }
+        if (
+          !materializeMissingPlaintext || !materializedReadable || !materializedIdentity ||
+          path.resolve(materializedReadable) !== path.resolve(readable) ||
+          String(response.resolvedPath || "") !== String(readable) ||
+          !Number.isSafeInteger(declaredSourceBytes) || declaredSourceBytes < 0 ||
+          !materializedStat || !materializedStat.isFile() ||
+          Number(materializedStat.size) !== declaredSourceBytes
+        ) {
+          throw __autojs6_module_source_provider_error(
+            "denied",
+            readable,
+            "Materialized plaintext module-source receipt is invalid.",
+            "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+            false
+          );
+        }
+        const result = Object.freeze({
+          status,
+          identity: materializedIdentity,
+          resolvedPath: String(response.resolvedPath),
+          requestId: id,
+          deadline: requestDeadline,
+          sourceBytes: declaredSourceBytes
+        });
+        __autojs6_module_source_provider_results[cacheKey] = result;
         return result;
       }
       __autojs6_module_source_provider_cleanup_file(fs, expectedSourcePath);
       __autojs6_module_source_provider_record_response(response, readable);
       if (status === "not_encrypted" || status === "not_found") {
         if (
-          status === "not_encrypted" &&
+          status === "not_encrypted" && candidateIdentity &&
           __autojs6_module_source_provider_file_identity(fs, readable) !== candidateIdentity
         ) {
           throw __autojs6_module_source_provider_error(
@@ -30086,9 +30419,28 @@ std::string buildEmbeddedScriptExecutionSource(
         const result = Object.freeze({
           status,
           identity: status === "not_encrypted" ? candidateIdentity : "",
-          resolvedPath: String(response.resolvedPath || readable)
+          resolvedPath: String(response.resolvedPath || readable),
+          requestId: status === "not_encrypted" ? id : "",
+          deadline: status === "not_encrypted" ? requestDeadline : 0
         });
-        __autojs6_module_source_provider_results[readable] = result;
+        const path = __autojs6_path_module();
+        if (
+          resolveMissingCandidate && status === "not_encrypted" &&
+          !__autojs6_same_authorized_canonical_path(
+            path,
+            readable,
+            result.resolvedPath
+          )
+        ) {
+          throw __autojs6_module_source_provider_error(
+            "denied",
+            readable,
+            "Missing plaintext module-source candidate resolved to a different path.",
+            "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+            false
+          );
+        }
+        __autojs6_module_source_provider_results[cacheKey] = result;
         return result;
       }
       const defaultCodes = {
@@ -30147,6 +30499,11 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_runtime_module_error("Embedded Node dynamic require fallback path escapes working directory: " + absolute);
     }
     const extension = path.extname(absolute);
+    __autojs6_throw_if_unsupported_typescript_extension(
+      extension,
+      absolute,
+      "Embedded Node dynamic require fallback"
+    );
     if (!allowEsm) {
       __autojs6_throw_if_esm_extension(extension, absolute, "Embedded Node dynamic require fallback");
     }
@@ -30237,7 +30594,15 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_revalidate_plaintext_module_path(readable, allowEsm, providerResult) {
     const current = __autojs6_validate_runtime_module_path(readable, allowEsm);
-    if (!current) return null;
+    if (!current) {
+      throw __autojs6_module_source_provider_error(
+        "denied",
+        readable,
+        "Module-source candidate disappeared or changed type before plaintext read.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+        false
+      );
+    }
     const expectedResolvedPath = providerResult && providerResult.resolvedPath
       ? String(providerResult.resolvedPath)
       : "";
@@ -30333,14 +30698,116 @@ std::string buildEmbeddedScriptExecutionSource(
     } catch (_) {}
     return null;
   }
+  function __autojs6_plaintext_module_source_record(readable, allowEsm, providerResult) {
+    if (__autojs6_has_own(__autojs6_plaintext_module_source_records, readable)) {
+      return __autojs6_plaintext_module_source_records[readable];
+    }
+    const plaintextReadable = __autojs6_revalidate_plaintext_module_path(
+      readable,
+      allowEsm,
+      providerResult
+    );
+    const fs = __autojs6_fs_module();
+    const rawSource = __autojs6_module_source_provider_verified_read(
+      fs,
+      plaintextReadable,
+      readable,
+      providerResult.identity,
+      undefined
+    );
+    const preparationSourceName = String(providerResult.resolvedPath || "");
+    const source = __autojs6_prepare_plaintext_typescript_source(
+      preparationSourceName,
+      rawSource,
+      providerResult.requestId,
+      providerResult.deadline
+    );
+    const record = Object.freeze({
+      source: String(source),
+      sourceURL: __autojs6_runtime_module_source_url(plaintextReadable)
+    });
+    __autojs6_plaintext_module_source_records[readable] = record;
+    return record;
+  }
+  function __autojs6_probe_missing_module_candidate(resolved, allowEsm) {
+    const path = __autojs6_path_module();
+    const exactCandidate = path.resolve(resolved);
+    const extension = __autojs6_normalized_extension(path.extname(exactCandidate));
+    if (
+      !extension ||
+      (!__autojs6_supported_local_module_extension(extension) &&
+        !(allowEsm && __autojs6_is_esm_extension(extension)))
+    ) {
+      return null;
+    }
+    const resolveResult = __autojs6_request_module_source(
+      exactCandidate,
+      "resolve_missing_candidate"
+    );
+    if (resolveResult.status === "disabled" || resolveResult.status === "not_found") {
+      return null;
+    }
+    if (resolveResult.status === "decrypted") {
+      return Object.freeze({
+        readable: exactCandidate,
+        providerResult: resolveResult
+      });
+    }
+    if (resolveResult.status !== "not_encrypted") {
+      throw __autojs6_module_source_provider_error(
+        "failed",
+        exactCandidate,
+        "Missing module-source provider returned an invalid resolve status.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED",
+        false
+      );
+    }
+    const materializedResult = __autojs6_request_module_source(
+      exactCandidate,
+      "materialize_missing_plaintext"
+    );
+    if (
+      materializedResult.status === "disabled" ||
+      materializedResult.status === "not_found"
+    ) {
+      return null;
+    }
+    if (materializedResult.status !== "materialized_plaintext") {
+      throw __autojs6_module_source_provider_error(
+        "failed",
+        exactCandidate,
+        "Missing module-source provider returned an invalid materialization status.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED",
+        false
+      );
+    }
+    const readable = __autojs6_validate_runtime_module_path(exactCandidate, allowEsm);
+    if (!readable) {
+      throw __autojs6_module_source_provider_error(
+        "denied",
+        exactCandidate,
+        "Materialized module-source candidate is unavailable after publication.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+        false
+      );
+    }
+    return Object.freeze({
+      readable,
+      providerResult: materializedResult
+    });
+  }
   function __autojs6_module_metadata_record(resolved, allowEsm) {
     __autojs6_throw_if_disallowed_module_source_extension(resolved, allowEsm, "Embedded Node module metadata source");
     if (__autojs6_has_own(__autojs6_module_sources, resolved)) {
       return __autojs6_module_sources[resolved];
     }
-    const readable = __autojs6_validate_runtime_module_path(resolved, allowEsm);
+    let readable = __autojs6_validate_runtime_module_path(resolved, allowEsm);
+    let providerResult;
     if (!readable) {
-      return null;
+      const missingCandidate = __autojs6_probe_missing_module_candidate(resolved, allowEsm);
+      if (!missingCandidate) return null;
+      readable = missingCandidate.readable;
+      providerResult = missingCandidate.providerResult;
     }
     const embeddedRecord = __autojs6_runtime_module_embedded_record(readable);
     if (embeddedRecord) {
@@ -30354,7 +30821,7 @@ std::string buildEmbeddedScriptExecutionSource(
           : __autojs6_runtime_module_source_url(readable)
       };
     }
-    const providerResult = __autojs6_request_module_source(readable);
+    providerResult = providerResult || __autojs6_request_module_source(readable);
     if (providerResult.status === "decrypted") {
       return {
         source: providerResult.source,
@@ -30364,22 +30831,29 @@ std::string buildEmbeddedScriptExecutionSource(
     if (providerResult.status === "not_found") {
       return null;
     }
-    const plaintextReadable = providerResult.status === "not_encrypted"
-      ? __autojs6_revalidate_plaintext_module_path(readable, allowEsm, providerResult)
-      : readable;
-    if (!plaintextReadable) return null;
+    if (
+      providerResult.status === "not_encrypted" ||
+      providerResult.status === "materialized_plaintext"
+    ) {
+      try {
+        return __autojs6_plaintext_module_source_record(readable, allowEsm, providerResult);
+      } catch (error) {
+        if (error && error.__autojs6ModuleSourceProviderRecorded) {
+          throw error;
+        }
+        if (error && (error.code === "ENOENT" || error.code === "ENOTDIR")) {
+          return null;
+        }
+        throw __autojs6_runtime_module_error(
+          "Embedded Node dynamic require fallback cannot read module metadata '" + readable + "': " +
+            (error && error.message ? error.message : String(error))
+        );
+      }
+    }
     const fs = __autojs6_fs_module();
     let source;
     try {
-      source = providerResult.status === "not_encrypted"
-        ? __autojs6_module_source_provider_verified_read(
-            fs,
-            plaintextReadable,
-            readable,
-            providerResult.identity,
-            undefined
-          ).toString("utf8")
-        : fs.readFileSync(plaintextReadable, "utf8");
+      source = fs.readFileSync(readable, "utf8");
     } catch (error) {
       if (error && (error.code === "ENOENT" || error.code === "ENOTDIR")) {
         return null;
@@ -30391,16 +30865,21 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return {
       source: String(source),
-      sourceURL: __autojs6_runtime_module_source_url(plaintextReadable)
+      sourceURL: __autojs6_runtime_module_source_url(readable)
     };
   }
-  function __autojs6_runtime_module_record(resolved, allowEsm) {
+  function __autojs6_runtime_module_record(resolved, allowEsm, materializeMissingPlaintext) {
     if (__autojs6_has_own(__autojs6_runtime_module_records, resolved)) {
       return __autojs6_runtime_module_records[resolved];
     }
-    const readable = __autojs6_validate_runtime_module_path(resolved, allowEsm);
+    let readable = __autojs6_validate_runtime_module_path(resolved, allowEsm);
+    let providerResult;
     if (!readable) {
-      return null;
+      if (!materializeMissingPlaintext) return null;
+      const missingCandidate = __autojs6_probe_missing_module_candidate(resolved, allowEsm);
+      if (!missingCandidate) return null;
+      readable = missingCandidate.readable;
+      providerResult = missingCandidate.providerResult;
     }
     const embeddedRecord = __autojs6_runtime_module_embedded_record(readable);
     if (embeddedRecord) {
@@ -30420,7 +30899,7 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_runtime_module_diagnostics.loadedModules.push(readable);
       return record;
     }
-    const providerResult = __autojs6_request_module_source(readable);
+    providerResult = providerResult || __autojs6_request_module_source(readable);
     if (providerResult.status === "not_found") {
       return null;
     }
@@ -30436,23 +30915,23 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_runtime_module_diagnostics.loadedModules.push(readable);
       return record;
     }
-    const plaintextReadable = providerResult.status === "not_encrypted"
-      ? __autojs6_revalidate_plaintext_module_path(readable, allowEsm, providerResult)
-      : readable;
-    if (!plaintextReadable) return null;
+    let sourceRecord;
     const fs = __autojs6_fs_module();
     let source;
     try {
-      source = providerResult.status === "not_encrypted"
-        ? __autojs6_module_source_provider_verified_read(
-            fs,
-            plaintextReadable,
-            readable,
-            providerResult.identity,
-            undefined
-          ).toString("utf8")
-        : fs.readFileSync(plaintextReadable, "utf8");
+      sourceRecord = providerResult.status === "not_encrypted" ||
+          providerResult.status === "materialized_plaintext"
+        ? __autojs6_plaintext_module_source_record(readable, allowEsm, providerResult)
+        : {
+            source: fs.readFileSync(readable, "utf8"),
+            sourceURL: __autojs6_runtime_module_source_url(readable)
+          };
+      if (!sourceRecord) return null;
+      source = sourceRecord.source;
     } catch (error) {
+      if (error && error.__autojs6ModuleSourceProviderRecorded) {
+        throw error;
+      }
       if (error && (error.code === "ENOENT" || error.code === "ENOTDIR")) {
         return null;
       }
@@ -30465,7 +30944,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const sourceBytes = __autojs6_enforce_runtime_module_budget(readable, source);
     const record = {
       source,
-      sourceURL: __autojs6_runtime_module_source_url(plaintextReadable)
+      sourceURL: sourceRecord.sourceURL
     };
     __autojs6_runtime_module_records[readable] = record;
     __autojs6_runtime_module_diagnostics.loadedCount += 1;
@@ -30473,12 +30952,12 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_runtime_module_diagnostics.loadedModules.push(readable);
     return record;
   }
-  function __autojs6_module_record(resolved, allowEsm) {
+  function __autojs6_module_record(resolved, allowEsm, materializeMissingPlaintext) {
     __autojs6_throw_if_disallowed_module_source_extension(resolved, allowEsm, "Embedded Node module source");
     if (__autojs6_has_own(__autojs6_module_sources, resolved)) {
       return __autojs6_module_sources[resolved];
     }
-    return __autojs6_runtime_module_record(resolved, allowEsm);
+    return __autojs6_runtime_module_record(resolved, allowEsm, materializeMissingPlaintext === true);
   }
   function __autojs6_normalized_extension(extension) {
     return String(extension || "").toLowerCase();
@@ -30496,10 +30975,20 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_is_native_addon_extension(extension) {
     return __autojs6_normalized_extension(extension) === ".node";
   }
+  function __autojs6_throw_if_unsupported_typescript_extension(extension, sourceName, context) {
+    if (__autojs6_normalized_extension(extension) === ".tsx") {
+      throw __autojs6_runtime_module_error(
+        context + " rejects unsupported TypeScript TSX source: " + sourceName +
+          ". AutoJs6 lightweight TypeScript stripping does not support TSX.",
+        "ERR_AUTOJS6_TYPESCRIPT_UNSUPPORTED_EXTENSION"
+      );
+    }
+  }
   function __autojs6_throw_if_disallowed_module_source_extension(resolved, allowEsm, context) {
     const path = __autojs6_path_module();
     const absolute = path && typeof path.resolve === "function" ? path.resolve(resolved) : String(resolved || "");
     const extension = path && typeof path.extname === "function" ? path.extname(absolute) : "";
+    __autojs6_throw_if_unsupported_typescript_extension(extension, absolute, context);
     if (!allowEsm) {
       __autojs6_throw_if_esm_extension(extension, absolute, context);
     }
@@ -30604,14 +31093,20 @@ std::string buildEmbeddedScriptExecutionSource(
       subpath: parts.slice(1).join("/")
     };
   }
-  function __autojs6_first_local_module_candidate(candidates, root, moduleName, allowEsm) {
+  function __autojs6_first_local_module_candidate(
+    candidates,
+    root,
+    moduleName,
+    allowEsm,
+    materializeMissingPlaintext
+  ) {
     const path = __autojs6_path_module();
     for (const candidate of candidates) {
       const resolved = path.resolve(candidate);
       if (!__autojs6_path_within_root(resolved, root)) {
         throw new Error("Relative require escapes Embedded Node working directory: " + moduleName);
       }
-      if (__autojs6_module_record(resolved, allowEsm)) {
+      if (__autojs6_module_record(resolved, allowEsm, materializeMissingPlaintext === true)) {
         return resolved;
       }
     }
@@ -30847,6 +31342,11 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const extension = path.extname(base);
     const allowEsm = __autojs6_package_target_allows_esm(mode);
+    __autojs6_throw_if_unsupported_typescript_extension(
+      extension,
+      target,
+      "Embedded Node package " + fieldName + " target"
+    );
     if (!allowEsm) {
       __autojs6_throw_if_esm_extension(extension, moduleName, "Embedded Node package " + fieldName + " target");
     }
@@ -30864,7 +31364,7 @@ std::string buildEmbeddedScriptExecutionSource(
       : __autojs6_package_condition_mode(mode) === "esm"
         ? [base, base + ".mts", base + ".ts", base + ".mjs", base + ".js", base + ".cts", base + ".cjs", base + ".json"]
         : [base, base + ".js", base + ".cjs", base + ".cts", base + ".ts", base + ".json"];
-    const resolved = __autojs6_first_local_module_candidate(candidates, root, moduleName, allowEsm);
+    const resolved = __autojs6_first_local_module_candidate(candidates, root, moduleName, allowEsm, true);
     if (resolved && __autojs6_path_within_root(resolved, packageDir)) {
       return resolved;
     }
@@ -30915,6 +31415,61 @@ std::string buildEmbeddedScriptExecutionSource(
       moduleName,
       fieldName
     );
+  }
+  function __autojs6_validate_package_exports_keys(exportsValue, moduleName) {
+    const keys = Object.keys(exportsValue);
+    let subpathShape = null;
+    for (const key of keys) {
+      const currentSubpathShape = key.length > 0 && key[0] === ".";
+      if (subpathShape === null) {
+        subpathShape = currentSubpathShape;
+      } else if (subpathShape !== currentSubpathShape) {
+        throw __autojs6_invalid_package_target(
+          "Embedded Node package exports cannot mix subpath keys and condition keys for '" + moduleName + "'."
+        );
+      }
+      if (currentSubpathShape && key !== "." && key.indexOf("./") !== 0) {
+        throw __autojs6_invalid_package_target(
+          "Embedded Node package exports contains an invalid subpath key for '" + moduleName + "': " + key
+        );
+      }
+    }
+    return subpathShape === false;
+  }
+  function __autojs6_validate_package_imports_keys(importsValue, moduleName) {
+    for (const key of Object.keys(importsValue)) {
+      if (key === "#" || key.indexOf("#/") === 0 || key.indexOf("#") !== 0 || key.indexOf("\u0000") >= 0) {
+        throw __autojs6_invalid_package_target(
+          "Embedded Node package imports contains an invalid internal specifier key for '" + moduleName + "': " + key
+        );
+      }
+    }
+  }
+  function __autojs6_package_pattern_key_compare(left, right) {
+    const leftStar = left.indexOf("*");
+    const rightStar = right.indexOf("*");
+    const leftBaseLength = leftStar < 0 ? left.length : leftStar + 1;
+    const rightBaseLength = rightStar < 0 ? right.length : rightStar + 1;
+    if (leftBaseLength > rightBaseLength) return -1;
+    if (rightBaseLength > leftBaseLength) return 1;
+    if (leftStar < 0) return 1;
+    if (rightStar < 0) return -1;
+    if (left.length > right.length) return -1;
+    if (right.length > left.length) return 1;
+    return 0;
+  }
+  function __autojs6_best_package_pattern_match(entries, key, moduleName, fieldName) {
+    let bestKey = null;
+    let bestReplacement = null;
+    for (const patternKey of Object.keys(entries)) {
+      const replacement = __autojs6_package_pattern_replacement(patternKey, key, moduleName, fieldName);
+      if (replacement === null) continue;
+      if (bestKey === null || __autojs6_package_pattern_key_compare(patternKey, bestKey) < 0) {
+        bestKey = patternKey;
+        bestReplacement = replacement;
+      }
+    }
+    return bestKey === null ? null : { key: bestKey, replacement: bestReplacement };
   }
   function __autojs6_apply_package_pattern_target(target, replacement, moduleName, fieldName) {
     if (replacement === null) return target;
@@ -30982,24 +31537,22 @@ std::string buildEmbeddedScriptExecutionSource(
       return { present: true, target: exportsValue, conditionKeys: "", selectedCondition: "", ignoredConditions: "" };
     }
     if (exportsValue && typeof exportsValue === "object" && !Array.isArray(exportsValue)) {
+      const conditionalMainShape = __autojs6_validate_package_exports_keys(exportsValue, moduleName);
       let entry = null;
       let replacement = null;
       let matched = false;
       if (__autojs6_has_own(exportsValue, key)) {
         entry = exportsValue[key];
         matched = true;
-      } else if (!subpath && !__autojs6_has_own(exportsValue, ".") && __autojs6_package_condition_map(exportsValue)) {
+      } else if (!subpath && conditionalMainShape && __autojs6_package_condition_map(exportsValue)) {
         entry = exportsValue;
         matched = true;
       } else {
-        for (const patternKey of Object.keys(exportsValue)) {
-          const matchedReplacement = __autojs6_package_pattern_replacement(patternKey, key, moduleName, "exports");
-          if (matchedReplacement !== null) {
-            entry = exportsValue[patternKey];
-            replacement = matchedReplacement;
-            matched = true;
-            break;
-          }
+        const patternMatch = __autojs6_best_package_pattern_match(exportsValue, key, moduleName, "exports");
+        if (patternMatch !== null) {
+          entry = exportsValue[patternMatch.key];
+          replacement = patternMatch.replacement;
+          matched = true;
         }
       }
       if (!matched) {
@@ -31064,6 +31617,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const importsValue = packageData.imports;
     if (importsValue && typeof importsValue === "object" && !Array.isArray(importsValue)) {
+      __autojs6_validate_package_imports_keys(importsValue, moduleName);
       let entry = null;
       let replacement = null;
       let matched = false;
@@ -31071,14 +31625,11 @@ std::string buildEmbeddedScriptExecutionSource(
         entry = importsValue[specifier];
         matched = true;
       } else {
-        for (const patternKey of Object.keys(importsValue)) {
-          const matchedReplacement = __autojs6_package_pattern_replacement(patternKey, specifier, moduleName, "imports");
-          if (matchedReplacement !== null) {
-            entry = importsValue[patternKey];
-            replacement = matchedReplacement;
-            matched = true;
-            break;
-          }
+        const patternMatch = __autojs6_best_package_pattern_match(importsValue, specifier, moduleName, "imports");
+        if (patternMatch !== null) {
+          entry = importsValue[patternMatch.key];
+          replacement = patternMatch.replacement;
+          matched = true;
         }
       }
       if (!matched) {
@@ -31257,6 +31808,9 @@ std::string buildEmbeddedScriptExecutionSource(
           });
           return resolved;
         } catch (error) {
+          if (error && error.__autojs6ModuleSourceProviderRecorded) {
+            throw error;
+          }
           if (!error || error.code !== "MODULE_NOT_FOUND") {
             throw error;
           }
@@ -31284,7 +31838,8 @@ std::string buildEmbeddedScriptExecutionSource(
       indexCandidates,
       root,
       moduleName,
-      __autojs6_package_condition_mode(mode) === "esm"
+      __autojs6_package_condition_mode(mode) === "esm",
+      true
     );
     if (indexResolved && packageData) {
       __autojs6_resolve_trace("index matched", {
@@ -31333,6 +31888,11 @@ std::string buildEmbeddedScriptExecutionSource(
     const resolutionMode = mode || "cjs";
     const allowEsm = __autojs6_package_target_allows_esm(resolutionMode);
     const extension = path.extname(base);
+    __autojs6_throw_if_unsupported_typescript_extension(
+      extension,
+      moduleName,
+      "Embedded Node local module"
+    );
     if (!allowEsm) {
       __autojs6_throw_if_esm_extension(extension, moduleName, "Embedded Node local module");
     }
@@ -31349,7 +31909,8 @@ std::string buildEmbeddedScriptExecutionSource(
       extension ? [base] : [base, base + ".js", base + ".cjs", base + ".cts", base + ".ts", base + ".json"],
       root,
       moduleName,
-      allowEsm
+      allowEsm,
+      true
     );
     if (fileResolved) {
       __autojs6_resolve_trace("final", {
@@ -31372,7 +31933,7 @@ std::string buildEmbeddedScriptExecutionSource(
         return directoryResolved;
       }
     }
-    throw __autojs6_module_not_found("Cannot find module '" + moduleName + "' from '" + parentFilename + "'. Cannot find Embedded Node local module '" + moduleName + "' from '" + parentFilename + "'.");
+    throw __autojs6_module_not_found("Cannot find module '" + moduleName + "' from '" + parentFilename + "'.");
   }
   function __autojs6_is_package_dir_in_node_modules(directory, root) {
     const path = __autojs6_path_module();
@@ -31534,6 +32095,11 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const allowEsm = __autojs6_package_target_allows_esm(mode);
     const extension = path.extname(base);
+    __autojs6_throw_if_unsupported_typescript_extension(
+      extension,
+      moduleName,
+      "Embedded Node node_modules module"
+    );
     if (!allowEsm) {
       __autojs6_throw_if_esm_extension(extension, moduleName, "Embedded Node node_modules module");
     }
@@ -31550,7 +32116,8 @@ std::string buildEmbeddedScriptExecutionSource(
       extension ? [base] : [base, base + ".js", base + ".cjs", base + ".cts", base + ".ts", base + ".json"],
       root,
       moduleName,
-      allowEsm
+      allowEsm,
+      true
     );
     if (fileResolved && __autojs6_path_within_root(fileResolved, packageDir)) {
       return fileResolved;
@@ -31616,9 +32183,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     throw __autojs6_module_not_found(
       "Cannot find module '" + moduleName + "' from '" + parentFilename +
-        "'. Cannot find Embedded Node node_modules module '" + moduleName +
-        "' from '" + parentFilename + "'. node_modules search paths='" +
-        searchDirs.join("|") + "'; sandboxRoot='" + root + "'."
+        "'. node_modules search paths='" + searchDirs.join("|") + "'."
     );
   }
   function __autojs6_record_type_module_commonjs_policy(filename) {
@@ -31638,7 +32203,9 @@ std::string buildEmbeddedScriptExecutionSource(
         __autojs6_diagnostic_path(scope.packageJsonResolved);
       __autojs6_package_diagnostics.lastTypeModuleFilename =
         __autojs6_diagnostic_path(filename);
-    } catch (_) {}
+    } catch (error) {
+      if (error && error.__autojs6ModuleSourceProviderRecorded) throw error;
+    }
   }
   function __autojs6_sensitive_path(pathValue) {
     return pathValue === "/proc" || pathValue.indexOf("/proc/") === 0 ||
@@ -45161,7 +45728,8 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_package_diagnostics.lastTypeModuleFilename =
         __autojs6_diagnostic_path(filename);
       return true;
-    } catch (_) {
+    } catch (error) {
+      if (error && error.__autojs6ModuleSourceProviderRecorded) throw error;
       return false;
     }
   }
@@ -45531,7 +46099,14 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_esm_data_url_records[id] = resolved;
     return resolved;
   }
-  function __autojs6_resolve_esm_file_candidate(candidates, root, specifier, parentFilename, packageDir) {
+  function __autojs6_resolve_esm_file_candidate(
+    candidates,
+    root,
+    specifier,
+    parentFilename,
+    packageDir,
+    materializeMissingPlaintext
+  ) {
     const path = __autojs6_path_module();
     for (const candidate of candidates) {
       const resolved = path.resolve(candidate);
@@ -45541,7 +46116,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (packageDir && !__autojs6_path_within_root(resolved, packageDir)) {
         throw __autojs6_esm_error("Embedded Node partial ESM package import escapes package directory: " + specifier, "ERR_AUTOJS6_FS_PATH_ESCAPE");
       }
-      const record = __autojs6_module_record(resolved, true);
+      const record = __autojs6_module_record(resolved, true, materializeMissingPlaintext === true);
       if (!record) continue;
       const kind = __autojs6_esm_module_kind(resolved);
       if (!kind) {
@@ -45624,6 +46199,11 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_esm_error("Embedded Node partial ESM import escapes working directory: " + name, "ERR_AUTOJS6_FS_PATH_ESCAPE");
     }
     const extension = __autojs6_normalized_extension(path.extname(base));
+    __autojs6_throw_if_unsupported_typescript_extension(
+      extension,
+      name,
+      "Embedded Node partial ESM import"
+    );
     __autojs6_throw_if_native_addon_extension(
       extension,
       name,
@@ -45634,7 +46214,14 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_esm_error("Unsupported Embedded Node partial ESM import extension: " + name);
     }
     const candidates = extension ? [base] : [base + ".mts", base + ".ts", base + ".mjs", base + ".js", base + ".cts", base + ".cjs", base + ".json"];
-    const resolved = __autojs6_resolve_esm_file_candidate(candidates, root, name, parentFilename);
+    const resolved = __autojs6_resolve_esm_file_candidate(
+      candidates,
+      root,
+      name,
+      parentFilename,
+      undefined,
+      true
+    );
     if (resolved) {
       return resolved;
     }
@@ -46767,7 +47354,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const isEsmModule = kind === "esm";
     const record = __autojs6_module_record(resolved, isEsmModule);
     if (!record) {
-      throw __autojs6_module_not_found("Cannot find module '" + resolved + "'. Cannot find Embedded Node local module '" + resolved + "'.");
+      throw __autojs6_module_not_found("Cannot find module '" + resolved + "'.");
     }
     if (isEsmModule) {
       return __autojs6_execute_esm_module_sync(resolved, record);
@@ -47675,8 +48262,11 @@ std::string buildEmbeddedScriptExecutionSource(
     fields.dynamicRequireFallbackLastDeniedReason = __autojs6_runtime_module_diagnostics.lastDeniedReason;
     fields.moduleProviderEnabled = __autojs6_module_source_provider_diagnostics.enabled;
     fields.moduleProviderRequestCount = __autojs6_module_source_provider_diagnostics.requestCount;
+    fields.moduleProviderMissingCandidateRequestCount = __autojs6_module_source_provider_diagnostics.missingCandidateRequestCount;
     fields.moduleProviderResolvedCount = __autojs6_module_source_provider_diagnostics.resolvedCount;
     fields.moduleProviderDecryptedCount = __autojs6_module_source_provider_diagnostics.decryptedCount;
+    fields.moduleProviderMaterializedCount = __autojs6_module_source_provider_diagnostics.materializedCount;
+    fields.moduleProviderMaterializedSourceBytes = __autojs6_module_source_provider_diagnostics.materializedSourceBytes;
     fields.moduleProviderNotEncryptedCount = __autojs6_module_source_provider_diagnostics.notEncryptedCount;
     fields.moduleProviderNotFoundCount = __autojs6_module_source_provider_diagnostics.notFoundCount;
     fields.moduleProviderDeniedCount = __autojs6_module_source_provider_diagnostics.deniedCount;

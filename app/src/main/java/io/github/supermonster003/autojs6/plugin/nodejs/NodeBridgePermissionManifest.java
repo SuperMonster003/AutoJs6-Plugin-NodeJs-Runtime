@@ -3,11 +3,6 @@ package io.github.supermonster003.autojs6.plugin.nodejs;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -154,26 +149,32 @@ public final class NodeBridgePermissionManifest {
     private NodeBridgePermissionManifest() {
     }
 
-    public String runtimeModuleSourceForWorkingDirectory(
-            String workingDirectory,
-            String sandboxRoot,
+    public String runtimeModuleSourceForMetadata(
+            String workingProjectJson,
+            String workingPackageJson,
+            String sandboxProjectJson,
+            String sandboxPackageJson,
             boolean includeBuildNetworkPolicy
     ) {
-        return fromRuntimeWorkingDirectory(
-                workingDirectory,
-                sandboxRoot,
+        return fromRuntimeMetadata(
+                workingProjectJson,
+                workingPackageJson,
+                sandboxProjectJson,
+                sandboxPackageJson,
                 includeBuildNetworkPolicy
         ).toJson();
     }
 
-    private static Manifest fromRuntimeWorkingDirectory(
-            String workingDirectory,
-            String sandboxRoot,
+    private static Manifest fromRuntimeMetadata(
+            String workingProjectJson,
+            String workingPackageJson,
+            String sandboxProjectJson,
+            String sandboxPackageJson,
             boolean includeBuildNetworkPolicy
     ) {
-        Manifest primary = fromWorkingDirectory(workingDirectory);
-        Manifest fallback = isNonBlank(sandboxRoot) && !sandboxRoot.equals(workingDirectory)
-                ? fromWorkingDirectory(sandboxRoot)
+        Manifest primary = fromJsonSources(workingProjectJson, workingPackageJson);
+        Manifest fallback = sandboxProjectJson != null || sandboxPackageJson != null
+                ? fromJsonSources(sandboxProjectJson, sandboxPackageJson)
                 : Manifest.empty();
         if (!includeBuildNetworkPolicy && !fallback.enforced) {
             return primary;
@@ -202,22 +203,6 @@ public final class NodeBridgePermissionManifest {
                 distinctPreserveOrder(sources),
                 distinctPreserveOrder(warnings),
                 new PackagedMetadataBuilder()
-        );
-    }
-
-    private static Manifest fromWorkingDirectory(String workingDirectory) {
-        if (!isNonBlank(workingDirectory)) {
-            return Manifest.empty();
-        }
-        File root;
-        try {
-            root = new File(workingDirectory).getCanonicalFile();
-        } catch (IOException ignored) {
-            return Manifest.empty();
-        }
-        return fromJsonSources(
-                readTextIfFile(new File(root, PROJECT_JSON)),
-                readTextIfFile(new File(root, PACKAGE_JSON))
         );
     }
 
@@ -526,23 +511,6 @@ public final class NodeBridgePermissionManifest {
             return new JSONObject(text);
         } catch (Throwable error) {
             warnings.add(sourceName + " could not be parsed for Node bridge permissions: " + error.getMessage());
-            return null;
-        }
-    }
-
-    private static String readTextIfFile(File file) {
-        if (!file.isFile()) {
-            return null;
-        }
-        try (FileInputStream input = new FileInputStream(file);
-             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[8192];
-            int count;
-            while ((count = input.read(buffer)) >= 0) {
-                output.write(buffer, 0, count);
-            }
-            return output.toString(StandardCharsets.UTF_8.name());
-        } catch (IOException ignored) {
             return null;
         }
     }

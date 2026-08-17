@@ -3,6 +3,8 @@ package io.github.supermonster003.autojs6.plugin.nodejs;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class NodeJsRuntimePluginServiceTest {
 
@@ -34,5 +36,29 @@ public class NodeJsRuntimePluginServiceTest {
                 9L,
                 NodeJsRuntimePluginService.procStatusLongValue(status, "Threads", 9L)
         );
+    }
+
+    @Test
+    public void moduleSourceProviderContractAcceptsExactV2WhenBinderIsPresent() {
+        assertEquals(
+                2,
+                NodeJsRuntimePluginService.strictModuleSourceProviderContractVersion(Integer.valueOf(2))
+        );
+        assertTrue(NodeJsRuntimePluginService.supportsRequestedModuleSourceProviderContract(true, 2));
+    }
+
+    @Test
+    public void moduleSourceProviderContractAcceptsPublishedV1HostsAndRejectsFutureVersions() {
+        assertTrue(NodeJsRuntimePluginService.supportsRequestedModuleSourceProviderContract(true, 1));
+        assertFalse(NodeJsRuntimePluginService.supportsRequestedModuleSourceProviderContract(true, 3));
+    }
+
+    @Test
+    public void moduleSourceProviderContractUsesRawStrictIntegerSemantics() {
+        assertFalse(NodeJsRuntimePluginService.supportsRequestedModuleSourceProviderContract(true, 2L));
+        assertFalse(NodeJsRuntimePluginService.supportsRequestedModuleSourceProviderContract(true, "2"));
+        // Published v1 hosts never send the version field; absence means v1.
+        assertTrue(NodeJsRuntimePluginService.supportsRequestedModuleSourceProviderContract(true, null));
+        assertTrue(NodeJsRuntimePluginService.supportsRequestedModuleSourceProviderContract(false, "wrong-type"));
     }
 }

@@ -74,19 +74,36 @@ public class NodeJsRuntimePluginService extends Service {
     private static final String ERROR_BUSY = "ERR_AUTOJS6_NODE_PLUGIN_BUSY";
     private static final String ERROR_UNAVAILABLE = "ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE";
     private static final String ERROR_CONTRACT_MISMATCH = "ERR_AUTOJS6_NODE_PLUGIN_CONTRACT_MISMATCH";
-    // Optional v1 runtime-info diagnostics. Keep local until the refreshed
-    // nodejs-api AAR is published and consumed by the standalone plugin.
-    private static final String KEY_ACTIVE_EXECUTION_ID = "activeExecutionId";
-    private static final String KEY_ACTIVE_EXECUTION_FOR_MS = "activeExecutionForMs";
-    private static final String KEY_ACTIVE_EXECUTION_CANCELLATION_REQUESTED =
-            "activeExecutionCancellationRequested";
     private static final String BRIDGE_PROCESS_DEAD = "ERR_AUTOJS6_BRIDGE_PROCESS_DEAD";
     private static final String BRIDGE_PROVIDER_FAILED = "ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED";
-    private static final String CAPABILITY_ON_DEMAND_MODULE_SOURCE_PROVIDER = "onDemandModuleSourceProvider";
+    private static final String NODE_CAPABILITY_CATALOG_SCHEMA = "autojs6-node-capability-catalog-v1";
+    private static final String NODE_CAPABILITY_CATALOG_VERSION = "1.1.1";
+    private static final String NODE_CAPABILITY_CATALOG_SHA256 =
+            "1a33e3f3df88412ea3cc1dbf125886e0daa01862663157eaf2c5c284857a89e7";
+    private static final String KEY_NODE_CAPABILITY_CATALOG_SCHEMA = "nodeCapabilityCatalogSchema";
+    private static final String KEY_NODE_CAPABILITY_CATALOG_VERSION = "nodeCapabilityCatalogVersion";
+    private static final String KEY_NODE_CAPABILITY_CATALOG_SHA256 = "nodeCapabilityCatalogSha256";
+    private static final String KEY_NODE_RUNTIME_KIT_SCHEMA = "nodeRuntimeKitSchema";
+    private static final String KEY_NODE_RUNTIME_KIT_VERSION = "nodeRuntimeKitVersion";
+    private static final String KEY_NODE_RUNTIME_KIT_SHA256 = "nodeRuntimeKitSha256";
+    private static final String KEY_NODE_RUNTIME_KIT_ID = "nodeRuntimeKitId";
+    private static final String DIAGNOSTIC_NODE_CAPABILITY_CATALOG_SCHEMA =
+            "embedded_script.runtime_plugin.capability_catalog_schema";
+    private static final String DIAGNOSTIC_NODE_CAPABILITY_CATALOG_VERSION =
+            "embedded_script.runtime_plugin.capability_catalog_version";
+    private static final String DIAGNOSTIC_NODE_CAPABILITY_CATALOG_SHA256 =
+            "embedded_script.runtime_plugin.capability_catalog_sha256";
+    private static final String DIAGNOSTIC_NODE_RUNTIME_KIT_SCHEMA =
+            "embedded_script.runtime_plugin.runtime_kit_schema";
+    private static final String DIAGNOSTIC_NODE_RUNTIME_KIT_VERSION =
+            "embedded_script.runtime_plugin.runtime_kit_version";
+    private static final String DIAGNOSTIC_NODE_RUNTIME_KIT_SHA256 =
+            "embedded_script.runtime_plugin.runtime_kit_sha256";
+    private static final String DIAGNOSTIC_NODE_RUNTIME_KIT_ID =
+            "embedded_script.runtime_plugin.runtime_kit_id";
     private static final String CAPABILITY_PERSISTENT_PROCESS_RUNTIME = "persistentProcessRuntime";
     private static final String CAPABILITY_SINGLE_ACTIVE_BACKPRESSURE = "singleActiveBackpressure";
     private static final String CAPABILITY_PROCESS_RESTART_CANCELLATION = "processRestartCancellation";
-    private static final String CAPABILITY_SCOPED_WORKSPACE_ARCHIVE_TRANSPORT = "scopedWorkspaceArchiveTransport";
     private static final String[] SUPPORTED_ABIS = new String[]{"arm64-v8a", "armeabi-v7a", "x86_64"};
     private static final long BRIDGE_DISPATCH_WAIT_MS = 1000L;
     private static final String[] CAPABILITIES = new String[]{
@@ -95,11 +112,12 @@ public class NodeJsRuntimePluginService extends Service {
             NodeJsRuntimeContract.CAPABILITY_NATIVE_EMBEDDED_RUNTIME,
             NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_BROKER,
             NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_LIVE_BRIDGE,
-            CAPABILITY_ON_DEMAND_MODULE_SOURCE_PROVIDER,
+            NodeJsRuntimeContract.CAPABILITY_HOST_PLAINTEXT_MODULE_SOURCE_MATERIALIZATION,
+            NodeJsRuntimeContract.CAPABILITY_ON_DEMAND_MODULE_SOURCE_PROVIDER,
             CAPABILITY_PERSISTENT_PROCESS_RUNTIME,
             CAPABILITY_SINGLE_ACTIVE_BACKPRESSURE,
             CAPABILITY_PROCESS_RESTART_CANCELLATION,
-            CAPABILITY_SCOPED_WORKSPACE_ARCHIVE_TRANSPORT,
+            NodeJsRuntimeContract.CAPABILITY_SCOPED_WORKSPACE_ARCHIVE_TRANSPORT,
     };
 
     private final Object runtimeLifecycleLock = new Object();
@@ -201,6 +219,37 @@ public class NodeJsRuntimePluginService extends Service {
         return binder;
     }
 
+    static NodeTypeScriptStripper.Result prepareTypeScriptEntryForNative(
+            String sourceName,
+            String source
+    ) {
+        return NodeTypeScriptStripper.stripIfTypeScript(sourceName, source);
+    }
+
+    static NodeTypeScriptStripper.SourceMapResult prepareTypeScriptModuleSourcesForNative(
+            Map<String, String> sources
+    ) {
+        return NodeTypeScriptStripper.stripSourceMap(
+                NodeTypeScriptStripper.DIAGNOSTIC_SCOPE_MODULE_SOURCES,
+                sources
+        );
+    }
+
+    static NodeTypeScriptStripper.SourceMapResult prepareTypeScriptRuntimeModuleSourcesForNative(
+            Map<String, String> sources
+    ) {
+        return NodeTypeScriptStripper.stripSourceMap(
+                NodeTypeScriptStripper.DIAGNOSTIC_SCOPE_RUNTIME_MODULE_SOURCES,
+                sources
+        );
+    }
+
+    static NodeStartupEnvironmentPolicy.Result prepareNodeStartupEnvironmentForNative(
+            Map<String, String> environment
+    ) {
+        return NodeStartupEnvironmentPolicy.sanitize(environment);
+    }
+
     private Bundle runScriptActive(Bundle request, INodeJsRuntimeCallback callback) {
         long startedAt = SystemClock.elapsedRealtime();
         INodeJsHostCapabilityBroker hostBroker = null;
@@ -208,6 +257,7 @@ public class NodeJsRuntimePluginService extends Service {
         PluginNodeBridgeFileTransportSession liveBridgeSession = null;
         PluginModuleSourceProviderFileTransportSession moduleSourceProviderSession = null;
         PluginWorkspaceArchiveSession workspaceSession = null;
+        boolean nativeDispatchStarted = false;
         notifyEvent(callback, NodeJsRuntimeContract.EVENT_STARTED, null, null);
         try {
             // Acquire the request-scoped provider before any operation that can
@@ -223,6 +273,7 @@ public class NodeJsRuntimePluginService extends Service {
                         null,
                         ERROR_UNAVAILABLE
                 );
+                appendPredispatchNoCommitReceipt(failure);
                 failure.putStringArray(
                         NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
                         appendNativePayload(
@@ -243,21 +294,31 @@ public class NodeJsRuntimePluginService extends Service {
                         null,
                         "ERR_AUTOJS6_NODE_PLUGIN_EMPTY_SOURCE"
                 );
+                appendPredispatchNoCommitReceipt(failure);
                 notifyOutput(callback, failure);
                 notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
                 return failure;
             }
-            workspaceSession = PluginWorkspaceArchiveSession.open(getCacheDir(), request);
-            String sourceName = workspaceSession.mapHostPathToRuntime(nonBlank(
+            String requestedSourceName = nonBlank(
                     request.getString(NodeJsRuntimeContract.KEY_SOURCE_NAME),
                     DEFAULT_SOURCE_NAME
-            ));
+            );
+            NodeTypeScriptStripper.Result typeScriptEntry =
+                    prepareTypeScriptEntryForNative(requestedSourceName, source);
+            source = typeScriptEntry.source();
+            workspaceSession = PluginWorkspaceArchiveSession.hasWorkspaceDescriptors(request)
+                    ? PluginWorkspaceArchiveSession.open(getCacheDir(), request)
+                    : PluginWorkspaceArchiveSession.openDirect(getCacheDir(), request);
+            String sourceName = workspaceSession.mapHostPathToRuntime(requestedSourceName);
             String workingDirectory = workspaceSession.workingDirectory();
             String sandboxRoot = workspaceSession.sandboxRoot();
             Map<String, String> moduleSources = stringMapFromArrays(
                     request.getStringArray(NodeJsRuntimeContract.KEY_MODULE_SOURCE_NAMES),
                     request.getStringArray(NodeJsRuntimeContract.KEY_MODULE_SOURCES)
             );
+            NodeTypeScriptStripper.SourceMapResult typeScriptModuleSources =
+                    prepareTypeScriptModuleSourcesForNative(moduleSources);
+            moduleSources = typeScriptModuleSources.sources();
             moduleSources = workspaceSession.mapModuleSourceNames(moduleSources);
             Map<String, String> runtimeModuleSources = stringMapFromArrays(
                     request.getStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCE_NAMES),
@@ -268,6 +329,44 @@ public class NodeJsRuntimePluginService extends Service {
                     request.getStringArray(NodeJsRuntimeContract.KEY_ENV_VALUES)
             );
             env = workspaceSession.mapEnvironment(env);
+            boolean permissionMetadataRequired = nonBlank(
+                    runtimeModuleSources.get(NodeBridgePermissionManifest.RUNTIME_MODULE_NAME),
+                    null
+            ) == null;
+            boolean bridgeLimitMetadataRequired = nonBlank(
+                    runtimeModuleSources.get(PluginNodeBridgeFileTransportSession.BRIDGE_LIMITS_RUNTIME_MODULE_NAME),
+                    null
+            ) == null;
+            if (moduleSourceProvider != null) {
+                moduleSourceProviderSession = new PluginModuleSourceProviderFileTransportSession(
+                        getCacheDir(),
+                        request.getString(NodeJsRuntimeContract.KEY_EXECUTION_ID),
+                        moduleSourceProvider,
+                        request.getLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 0L),
+                        workspaceSession,
+                        initialModuleSourceProviderWireVersion(
+                                request.get(NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_VERSION)
+                        )
+                );
+            }
+            PluginModuleSourceProviderFileTransportSession.RuntimeMetadataSnapshot runtimeMetadata =
+                    moduleSourceProviderSession == null
+                            ? PluginModuleSourceProviderFileTransportSession.readPolicyMetadataWithoutProvider(
+                                    workspaceSession,
+                                    workingDirectory,
+                                    sandboxRoot,
+                                    permissionMetadataRequired,
+                                    bridgeLimitMetadataRequired,
+                                    request.getLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 0L),
+                                    startedAt
+                            )
+                            : moduleSourceProviderSession.readPolicyMetadataSnapshot(
+                                    workingDirectory,
+                                    sandboxRoot,
+                                    permissionMetadataRequired,
+                                    bridgeLimitMetadataRequired,
+                                    startedAt
+                            );
             hostBroker = hostBrokerFrom(request);
             Bundle hostBrokerInfo = hostBrokerInfo(hostBroker);
             RuntimeModuleInjection runtimeModuleInjection = withPluginRuntimeModules(
@@ -275,8 +374,8 @@ public class NodeJsRuntimePluginService extends Service {
                     request,
                     hostBrokerInfo,
                     workingDirectory,
-                    sandboxRoot,
-                    workspaceSession
+                    workspaceSession,
+                    runtimeMetadata
             );
             runtimeModuleSources = runtimeModuleInjection.sources;
             if (hostBroker != null) {
@@ -294,13 +393,6 @@ public class NodeJsRuntimePluginService extends Service {
                 liveBridgeSession.start();
             }
             if (moduleSourceProvider != null) {
-                moduleSourceProviderSession = new PluginModuleSourceProviderFileTransportSession(
-                        getCacheDir(),
-                        request.getString(NodeJsRuntimeContract.KEY_EXECUTION_ID),
-                        moduleSourceProvider,
-                        request.getLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 0L),
-                        workspaceSession
-                );
                 runtimeModuleSources = withRuntimeModuleSource(
                         runtimeModuleSources,
                         PluginModuleSourceProviderFileTransportSession.RUNTIME_MODULE_NAME,
@@ -309,7 +401,15 @@ public class NodeJsRuntimePluginService extends Service {
                 moduleSourceProviderSession.start();
             }
 
+            NodeTypeScriptStripper.SourceMapResult typeScriptRuntimeModuleSources =
+                    prepareTypeScriptRuntimeModuleSourcesForNative(runtimeModuleSources);
+            runtimeModuleSources = typeScriptRuntimeModuleSources.sources();
+            NodeStartupEnvironmentPolicy.Result startupEnvironment =
+                    prepareNodeStartupEnvironmentForNative(env);
+            env = startupEnvironment.environment();
+
             long nativeCallStartedAt = SystemClock.elapsedRealtime();
+            nativeDispatchStarted = true;
             String[] nativePayload = NativeNodeEmbeddedRuntimeBridge.runEmbeddedScript(
                     source,
                     sourceName,
@@ -319,11 +419,27 @@ public class NodeJsRuntimePluginService extends Service {
                     runtimeModuleSources,
                     env,
                     request.getBoolean(NodeJsRuntimeContract.KEY_ESM_EXPERIMENTAL_ENABLED, true),
-                    request.getBoolean(NodeJsRuntimeContract.KEY_DYNAMIC_IMPORT_EXPERIMENTAL_ENABLED, false),
+                    request.getBoolean(NodeJsRuntimeContract.KEY_DYNAMIC_IMPORT_EXPERIMENTAL_ENABLED, true),
                     request.getBoolean(NodeJsRuntimeContract.KEY_RAW_NODE_NETWORK_MODULES_EXPERIMENTAL_ENABLED, false),
                     request.getBoolean(NodeJsRuntimeContract.KEY_WORKER_THREADS_EXPERIMENTAL_ENABLED, false),
                     request.getBoolean(NodeJsRuntimeContract.KEY_CHILD_PROCESS_EXPERIMENTAL_ENABLED, false),
                     request.getBoolean(NodeJsRuntimeContract.KEY_JAVA_INTEROP_EXPERIMENTAL_ENABLED, false)
+            );
+            nativePayload = appendNativePayload(
+                    nativePayload,
+                    nativePayloadFromMap(typeScriptEntry.diagnostics())
+            );
+            nativePayload = appendNativePayload(
+                    nativePayload,
+                    nativePayloadFromMap(typeScriptModuleSources.diagnostics())
+            );
+            nativePayload = appendNativePayload(
+                    nativePayload,
+                    nativePayloadFromMap(typeScriptRuntimeModuleSources.diagnostics())
+            );
+            nativePayload = appendNativePayload(
+                    nativePayload,
+                    nativePayloadFromMap(startupEnvironment.diagnostics())
             );
             long nativeCallFinishedAt = SystemClock.elapsedRealtime();
             commitWorkspaceIfProcessStable(workspaceSession);
@@ -409,13 +525,36 @@ public class NodeJsRuntimePluginService extends Service {
             notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
             return result;
         } catch (Throwable error) {
-            commitWorkspaceQuietly(workspaceSession);
+            // Policy-metadata/provider failures occur before native dispatch. Do not
+            // serialize a private workspace in that state: materialized plaintext
+            // remains private and the caller receives no partial output archive.
+            if (shouldCommitWorkspaceAfterFailure(nativeDispatchStarted)) {
+                commitWorkspaceQuietly(workspaceSession);
+            }
+            String failureErrorCode = ERROR_UNAVAILABLE;
+            String[] typeScriptFailurePayload = new String[0];
+            if (error instanceof NodeTypeScriptStripper.UnsupportedTypeScriptException) {
+                NodeTypeScriptStripper.UnsupportedTypeScriptException typeScriptError =
+                        (NodeTypeScriptStripper.UnsupportedTypeScriptException) error;
+                failureErrorCode = typeScriptError.errorCode();
+                typeScriptFailurePayload = nativePayloadFromMap(typeScriptError.diagnostics());
+            } else if (error instanceof PluginModuleSourceProviderFileTransportSession.PolicyMetadataException) {
+                failureErrorCode = ((PluginModuleSourceProviderFileTransportSession.PolicyMetadataException) error)
+                        .errorCode();
+            }
             Bundle failure = failureBundle(
                     request,
                     startedAt,
                     "Node.js runtime plugin execution failed: " + messageOf(error),
                     error,
-                    ERROR_UNAVAILABLE
+                    failureErrorCode
+            );
+            failure.putStringArray(
+                    NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                    appendNativePayload(
+                            failure.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD),
+                            typeScriptFailurePayload
+                    )
             );
             if (workspaceSession != null) {
                 failure.putStringArray(
@@ -426,16 +565,34 @@ public class NodeJsRuntimePluginService extends Service {
                         )
                 );
             }
+            failure.putStringArray(
+                    NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                    appendNativePayload(
+                            failure.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD),
+                            new String[]{
+                                    "embedded_script.runtime_plugin.native_dispatch_started=" +
+                                            nativeDispatchStarted,
+                                    "embedded_script.runtime_plugin.workspace.commit_allowed=" +
+                                            nativeDispatchStarted,
+                                    "embedded_script.runtime_plugin.workspace.predispatch_private_source_exported=false"
+                            }
+                    )
+            );
+            if (moduleSourceProviderSession != null) {
+                failure.putStringArray(
+                        NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                        appendNativePayload(
+                                failure.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD),
+                                moduleSourceProviderSession.nativePayload()
+                        )
+                );
+            }
             notifyOutput(callback, failure);
             notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
             return failure;
         } finally {
-            commitWorkspaceQuietly(workspaceSession);
-            if (workspaceSession != null) {
-                workspaceSession.close();
-            }
-            if (liveBridgeSession != null) {
-                liveBridgeSession.stop();
+            if (shouldCommitWorkspaceAfterFailure(nativeDispatchStarted)) {
+                commitWorkspaceQuietly(workspaceSession);
             }
             if (moduleSourceProviderSession != null) {
                 moduleSourceProviderSession.stop("Node.js runtime plugin execution finished after failure.");
@@ -444,6 +601,12 @@ public class NodeJsRuntimePluginService extends Service {
                         moduleSourceProvider,
                         "Node.js runtime plugin execution finished before module-source transport startup."
                 );
+            }
+            if (workspaceSession != null) {
+                workspaceSession.close();
+            }
+            if (liveBridgeSession != null) {
+                liveBridgeSession.stop();
             }
             destroyHostBroker(hostBroker, "Node.js runtime plugin execution finished.");
         }
@@ -458,28 +621,42 @@ public class NodeJsRuntimePluginService extends Service {
         info.putString(NodeJsRuntimeContract.KEY_NODE_VERSION, NODE_VERSION);
         info.putString(NodeJsRuntimeContract.KEY_NATIVE_LIBRARY_NAME, NATIVE_LIBRARY_NAME);
         info.putString(NodeJsRuntimeContract.KEY_BRIDGE_LIBRARY_NAME, BRIDGE_LIBRARY_NAME);
+        info.putInt(NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_VERSION, NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_CONTRACT_VERSION);
         info.putStringArray(NodeJsRuntimeContract.KEY_CAPABILITIES, CAPABILITIES.clone());
+        info.putString(KEY_NODE_CAPABILITY_CATALOG_SCHEMA, NODE_CAPABILITY_CATALOG_SCHEMA);
+        info.putString(KEY_NODE_CAPABILITY_CATALOG_VERSION, NODE_CAPABILITY_CATALOG_VERSION);
+        info.putString(KEY_NODE_CAPABILITY_CATALOG_SHA256, NODE_CAPABILITY_CATALOG_SHA256);
+        info.putString(KEY_NODE_RUNTIME_KIT_SCHEMA, BuildConfig.NODE_PLUGIN_RUNTIME_KIT_SCHEMA);
+        info.putString(KEY_NODE_RUNTIME_KIT_VERSION, BuildConfig.NODE_PLUGIN_RUNTIME_KIT_VERSION);
+        info.putString(KEY_NODE_RUNTIME_KIT_SHA256, BuildConfig.NODE_PLUGIN_RUNTIME_KIT_SHA256);
+        info.putString(KEY_NODE_RUNTIME_KIT_ID, BuildConfig.NODE_PLUGIN_RUNTIME_KIT_ID);
         info.putString(NodeJsRuntimeContract.KEY_PROCESS_NAME, currentProcessName());
         info.putInt(NodeJsRuntimeContract.KEY_PID, Process.myPid());
         info.putBoolean("runtimeReady", readiness.ready);
         info.putString("runtimeReadinessDetail", readiness.detail);
         info.putString("processAbi", processAbi());
         info.putStringArray("supportedAbis", SUPPORTED_ABIS.clone());
+        info.putString("processModel", "persistent");
         info.putInt("maxConcurrentExecutions", 1);
         info.putInt("queueCapacity", 0);
         info.putBoolean("persistentProcessRuntime", true);
         info.putBoolean("dedicatedRuntimeProcess", isDedicatedRuntimeProcess());
+        info.putBoolean("isolatePerExecution", true);
+        info.putString("defaultExecutionMode", "one_shot");
         info.putString("cancellationMode", CANCELLATION_STRATEGY_PROCESS_RESTART);
+        info.putString("outputMode", "buffered");
+        info.putBoolean("streamingOutput", false);
+        info.putInt("terminalEventCount", 1);
         info.putString(
-                KEY_ACTIVE_EXECUTION_ID,
+                NodeJsRuntimeContract.KEY_ACTIVE_EXECUTION_ID,
                 activeExecution == null ? "" : activeExecution.executionId
         );
         info.putLong(
-                KEY_ACTIVE_EXECUTION_FOR_MS,
+                NodeJsRuntimeContract.KEY_ACTIVE_EXECUTION_FOR_MS,
                 activeExecution == null ? 0L : activeExecution.activeForMs
         );
         info.putBoolean(
-                KEY_ACTIVE_EXECUTION_CANCELLATION_REQUESTED,
+                NodeJsRuntimeContract.KEY_ACTIVE_EXECUTION_CANCELLATION_REQUESTED,
                 activeExecution != null && activeExecution.cancellationRequested
         );
         info.putStringArray(
@@ -551,28 +728,109 @@ public class NodeJsRuntimePluginService extends Service {
     private Bundle validateRequestContract(Bundle request, long startedAt) {
         int receivedVersion;
         try {
-            receivedVersion = request.getInt(NodeJsRuntimeContract.KEY_CONTRACT_VERSION, -1);
+            // A request without an explicit version is treated as the current
+            // contract so bare adb/debug/legacy callers are not locked out;
+            // only an explicit unsupported value is rejected.
+            receivedVersion = request.getInt(
+                    NodeJsRuntimeContract.KEY_CONTRACT_VERSION,
+                    NodeJsRuntimeContract.CONTRACT_VERSION
+            );
         } catch (Throwable ignored) {
-            receivedVersion = -1;
+            receivedVersion = NodeJsRuntimeContract.CONTRACT_VERSION;
         }
-        if (receivedVersion == NodeJsRuntimeContract.CONTRACT_VERSION) {
+        if (!NodeJsRuntimeContract.supportsContractVersion(receivedVersion)) {
+            return requestContractFailureBundle(
+                    request,
+                    startedAt,
+                    "contract",
+                    "Unsupported Node.js runtime plugin contract version " + receivedVersion
+                            + "; supported range " + NodeJsRuntimeContract.MIN_CONTRACT_VERSION
+                            + ".." + NodeJsRuntimeContract.MAX_CONTRACT_VERSION + ".",
+                    receivedVersion,
+                    NodeJsRuntimeContract.CONTRACT_VERSION
+            );
+        }
+
+        IBinder requestedModuleSourceProvider = request.getBinder(
+                PluginModuleSourceProviderFileTransportSession.KEY_PROVIDER_BINDER
+        );
+        if (requestedModuleSourceProvider == null) {
             return null;
         }
+        Object rawModuleSourceProviderVersion = request.get(
+                NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_VERSION
+        );
+        int receivedModuleSourceProviderVersion = strictModuleSourceProviderContractVersion(
+                rawModuleSourceProviderVersion
+        );
+        if (NodeJsRuntimeContract.supportsModuleSourceProviderContractVersion(
+                receivedModuleSourceProviderVersion
+        )) {
+            return null;
+        }
+        return requestContractFailureBundle(
+                request,
+                startedAt,
+                "module_source_provider_contract",
+                "Unsupported Node.js module-source provider contract version "
+                        + receivedModuleSourceProviderVersion + "; supported range "
+                        + NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_MIN_CONTRACT_VERSION + ".."
+                        + NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_MAX_CONTRACT_VERSION + ".",
+                receivedModuleSourceProviderVersion,
+                NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_CONTRACT_VERSION
+        );
+    }
+
+    static int strictModuleSourceProviderContractVersion(Object rawValue) {
+        // Published v1 hosts never send this field at all; treat absence as v1
+        // instead of refusing the whole request. Explicit garbage still fails.
+        if (rawValue == null) {
+            return NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_MIN_CONTRACT_VERSION;
+        }
+        return rawValue instanceof Integer ? (Integer) rawValue : -1;
+    }
+
+    static int initialModuleSourceProviderWireVersion(Object rawValue) {
+        // Callers that declare a version get exactly that version on the wire.
+        // Callers without the field start at the current version — a modern
+        // provider works immediately, and a published v1 provider triggers the
+        // session's one-time downgrade retry.
+        if (rawValue instanceof Integer) {
+            return (Integer) rawValue;
+        }
+        return NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_CONTRACT_VERSION;
+    }
+
+    static boolean supportsRequestedModuleSourceProviderContract(
+            boolean hasModuleSourceProviderBinder,
+            Object rawVersion
+    ) {
+        return !hasModuleSourceProviderBinder ||
+                NodeJsRuntimeContract.supportsModuleSourceProviderContractVersion(
+                        strictModuleSourceProviderContractVersion(rawVersion)
+                );
+    }
+
+    private Bundle requestContractFailureBundle(
+            Bundle request,
+            long startedAt,
+            String diagnosticScope,
+            String message,
+            int receivedVersion,
+            int expectedVersion
+    ) {
         Bundle failure = failureBundle(
                 request,
                 startedAt,
-                "Unsupported Node.js runtime plugin contract version " + receivedVersion
-                        + "; expected " + NodeJsRuntimeContract.CONTRACT_VERSION + ".",
+                message,
                 null,
                 ERROR_CONTRACT_MISMATCH
         );
         LinkedHashMap<String, String> diagnostics = new LinkedHashMap<>();
-        diagnostics.put("embedded_script.runtime_plugin.contract.status", "rejected");
-        diagnostics.put("embedded_script.runtime_plugin.contract.received_version", Integer.toString(receivedVersion));
-        diagnostics.put(
-                "embedded_script.runtime_plugin.contract.expected_version",
-                Integer.toString(NodeJsRuntimeContract.CONTRACT_VERSION)
-        );
+        String diagnosticPrefix = "embedded_script.runtime_plugin." + diagnosticScope;
+        diagnostics.put(diagnosticPrefix + ".status", "rejected");
+        diagnostics.put(diagnosticPrefix + ".received_version", Integer.toString(receivedVersion));
+        diagnostics.put(diagnosticPrefix + ".expected_version", Integer.toString(expectedVersion));
         failure.putStringArray(
                 NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
                 appendNativePayload(
@@ -839,6 +1097,13 @@ public class NodeJsRuntimePluginService extends Service {
         values.put("embedded_script.runtime_plugin.package_version_code", Long.toString(packageVersionCode()));
         values.put("embedded_script.runtime_plugin.runtime_slot", NodeJsPluginIds.VARIANT_NODE_24_5);
         values.put("embedded_script.runtime_plugin.node_version", NODE_VERSION);
+        values.put(DIAGNOSTIC_NODE_CAPABILITY_CATALOG_SCHEMA, NODE_CAPABILITY_CATALOG_SCHEMA);
+        values.put(DIAGNOSTIC_NODE_CAPABILITY_CATALOG_VERSION, NODE_CAPABILITY_CATALOG_VERSION);
+        values.put(DIAGNOSTIC_NODE_CAPABILITY_CATALOG_SHA256, NODE_CAPABILITY_CATALOG_SHA256);
+        values.put(DIAGNOSTIC_NODE_RUNTIME_KIT_SCHEMA, BuildConfig.NODE_PLUGIN_RUNTIME_KIT_SCHEMA);
+        values.put(DIAGNOSTIC_NODE_RUNTIME_KIT_VERSION, BuildConfig.NODE_PLUGIN_RUNTIME_KIT_VERSION);
+        values.put(DIAGNOSTIC_NODE_RUNTIME_KIT_SHA256, BuildConfig.NODE_PLUGIN_RUNTIME_KIT_SHA256);
+        values.put(DIAGNOSTIC_NODE_RUNTIME_KIT_ID, BuildConfig.NODE_PLUGIN_RUNTIME_KIT_ID);
         values.put("embedded_script.runtime_plugin.capability_count", Integer.toString(CAPABILITIES.length));
         values.put(
                 "embedded_script.runtime_plugin.capability_host_broker",
@@ -850,7 +1115,7 @@ public class NodeJsRuntimePluginService extends Service {
         );
         values.put(
                 "embedded_script.runtime_plugin.capability_module_source_provider",
-                Boolean.toString(hasCapability(CAPABILITY_ON_DEMAND_MODULE_SOURCE_PROVIDER))
+                Boolean.toString(hasCapability(NodeJsRuntimeContract.CAPABILITY_ON_DEMAND_MODULE_SOURCE_PROVIDER))
         );
         values.put("embedded_script.runtime_plugin.process_name", currentProcessName());
         values.put("embedded_script.runtime_plugin.pid", Integer.toString(Process.myPid()));
@@ -1020,8 +1285,8 @@ public class NodeJsRuntimePluginService extends Service {
             Bundle request,
             Bundle hostBrokerInfo,
             String workingDirectory,
-            String sandboxRoot,
-            PluginWorkspaceArchiveSession workspaceSession
+            PluginWorkspaceArchiveSession workspaceSession,
+            PluginModuleSourceProviderFileTransportSession.RuntimeMetadataSnapshot runtimeMetadata
     ) {
         String engineInfo = preferredEngineInfo(runtimeModuleSources, request, hostBrokerInfo);
         if (workspaceSession != null) {
@@ -1058,18 +1323,20 @@ public class NodeJsRuntimePluginService extends Service {
         injection = injection.withRuntimeModule(
                 "bridge_permissions",
                 NodeBridgePermissionManifest.RUNTIME_MODULE_NAME,
-                NodeBridgePermissionManifest.INSTANCE.runtimeModuleSourceForWorkingDirectory(
-                        workingDirectory,
-                        sandboxRoot,
+                NodeBridgePermissionManifest.INSTANCE.runtimeModuleSourceForMetadata(
+                        runtimeMetadata == null ? null : runtimeMetadata.workingProjectJson,
+                        runtimeMetadata == null ? null : runtimeMetadata.workingPackageJson,
+                        runtimeMetadata == null ? null : runtimeMetadata.sandboxProjectJson,
+                        runtimeMetadata == null ? null : runtimeMetadata.sandboxPackageJson,
                         BuildConfig.NODEJS_NETWORK_EXPERIMENTAL_ENABLED
                 ),
-                "working_directory"
+                "exact_metadata_snapshot"
         );
         injection = injection.withRuntimeModule(
                 "bridge_limits",
                 PluginNodeBridgeFileTransportSession.BRIDGE_LIMITS_RUNTIME_MODULE_NAME,
-                bridgeLimitsRuntimeModuleSource(workingDirectory),
-                "working_directory"
+                bridgeLimitsRuntimeModuleSource(runtimeMetadata),
+                "exact_metadata_snapshot"
         );
         injection = injection.withRuntimeModule(
                 "lifecycle_config",
@@ -1152,12 +1419,13 @@ public class NodeJsRuntimePluginService extends Service {
         }
     }
 
-    private static String bridgeLimitsRuntimeModuleSource(String workingDirectory) {
-        try {
-            return BridgeLimitPolicy.fromWorkingDirectory(workingDirectory).toJson();
-        } catch (Throwable ignored) {
-            return null;
-        }
+    private static String bridgeLimitsRuntimeModuleSource(
+            PluginModuleSourceProviderFileTransportSession.RuntimeMetadataSnapshot metadata
+    ) {
+        return BridgeLimitPolicy.fromMetadata(
+                metadata == null ? null : metadata.workingProjectJson,
+                metadata == null ? null : metadata.workingPackageJson
+        ).toJson();
     }
 
     private String lifecycleConfigRuntimeModuleSource(String engineInfoJson, String workingDirectory) {
@@ -1512,6 +1780,21 @@ public class NodeJsRuntimePluginService extends Service {
         return result;
     }
 
+    private static void appendPredispatchNoCommitReceipt(Bundle failure) {
+        String[] receipt = new String[]{
+                "embedded_script.runtime_plugin.native_dispatch_started=false",
+                "embedded_script.runtime_plugin.workspace.commit_allowed=false",
+                "embedded_script.runtime_plugin.workspace.predispatch_private_source_exported=false"
+        };
+        failure.putStringArray(
+                NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                appendNativePayload(
+                        failure.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD),
+                        receipt
+                )
+        );
+    }
+
     private static String[] nativePayloadFromMap(Map<String, String> values) {
         String[] payload = new String[values.size()];
         int index = 0;
@@ -1651,6 +1934,10 @@ public class NodeJsRuntimePluginService extends Service {
         session.commit();
     }
 
+    static boolean shouldCommitWorkspaceAfterFailure(boolean nativeDispatchStarted) {
+        return nativeDispatchStarted;
+    }
+
     private void commitWorkspaceQuietly(PluginWorkspaceArchiveSession session) {
         if (session == null) return;
         try {
@@ -1758,15 +2045,11 @@ public class NodeJsRuntimePluginService extends Service {
             this.warnings = warnings == null ? Collections.emptyList() : warnings;
         }
 
-        static BridgeLimitPolicy fromWorkingDirectory(String workingDirectory) {
+        static BridgeLimitPolicy fromMetadata(String projectJson, String packageJson) {
             Builder builder = new Builder();
             List<String> warnings = new ArrayList<>();
-            File root = canonicalDirectory(workingDirectory);
-            if (root == null) {
-                return builder.build(warnings);
-            }
-            collectProjectJson(readTextIfFile(new File(root, PROJECT_JSON)), builder, warnings);
-            collectPackageJson(readTextIfFile(new File(root, PACKAGE_JSON)), builder, warnings);
+            collectProjectJson(projectJson, builder, warnings);
+            collectPackageJson(packageJson, builder, warnings);
             return builder.build(warnings);
         }
 
@@ -1787,19 +2070,6 @@ public class NodeJsRuntimePluginService extends Service {
                 json.put("hardMax", hardMax);
                 return json.toString();
             } catch (Throwable ignored) {
-                return null;
-            }
-        }
-
-        private static File canonicalDirectory(String workingDirectory) {
-            String path = nonBlank(workingDirectory, null);
-            if (path == null) {
-                return null;
-            }
-            try {
-                File file = new File(path).getCanonicalFile();
-                return file.isDirectory() ? file : null;
-            } catch (IOException ignored) {
                 return null;
             }
         }
