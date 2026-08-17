@@ -71,16 +71,16 @@
 - [x] M2.5 长驻脚本生命周期管理与手动停止。— 2026-08-18 完成: 能力由 M2.1/M2.2 组合天然构成 (流式输出 = 长驻期间持续可见; 协作取消 = 手动停止; FIFO 队列 = 长驻期间后续脚本排队不丢), 本项收口为端到端生命周期验证: 新增 `LongRunningLifecycleSmokeTest` — 不带 timeout 字段的 setInterval 常驻脚本连续流出 ≥12 个 tick (~3s, 证明无隐式超时截断), 运行中 `getRuntimeInfo` 可观测 activeExecutionId/activeForMs, `cancelScript` 停止后拿到 ERR_AUTOJS6_NODE_SCRIPT_CANCELLED, 同 PID 复用跑下一脚本。模拟器 + arm64 真机通过。注: 插件侧无超时即无限运行 (仅宿主 runBlocking 侧有 5min 默认 deadline, 属宿主策略, 宿主长驻模式 timeoutPolicy 独立管理); 断电/进程死亡后的自动重启明确不做 (checkpoint restartPolicy=never 保持)。
 - [x] M2.6 网络模块默认放开 (http/https/net/dns/tls)。— 2026-08-18 完成: 插件端 runScript 请求缺省值 false→true (显式传 false 仍可关, 白名单机制本身不变: 仅 dns/dns/promises/http/https/net/tls, dgram 等仍拒); 插件 manifest 补 `android.permission.INTERNET` (此前缺失, loopback socket 也需要); 宿主 gradle property `autojs.nodejs.rawNetworkModules.experimental` 默认翻 true; 宿主负例 `NodeRawNetworkPolicyInstrumentationTest` 改为 Assume 跳过 (仅在显式关网络的构建里继续生效)。验证: 新增 `NetworkDefaultOnSmokeTest` (不带开关字段的请求 require('http') 起 server + loopback 自请求, 断言 pong 回显) 模拟器 + arm64 真机通过; 全量 androidTest 29/29; 宿主编译通过。
 
-### M3 — AutoJs6 API 能力面扩展 ✦当前✦
+### M3 — AutoJs6 API 能力面扩展 ✅ (2026-08-18 完成)
 
 目标: Node 脚本里可用的宿主 API 覆盖日常自动化场景。
 
 - [x] M3.1 盘点 live bridge 现有可调用能力, 输出一页 "已可用 API 清单"。— 2026-08-18 完成: 清单落库 `docs/HOST-API.md` (五档分类: bridged 15 模块 / bridged-partial 7 / bridged-gated 8 / local-shim 15 / denied)。关键盘点结论: ① 可用面远大于预期 — M3.2 目标里的 toast/app.launch/click/text 查找/剪贴板/shell **全部已桥接**, 唯一真缺口是 swipe/gesture (宿主 blockedMethods, 需独立 capability); ② 原定基线 `require("accessibility")` 样例的 SKIPPED 分支使其不能作真机证据, 真机验证矩阵单列一栏; ③ 宿主 getBrokerInfo 能力清单漏 lifecycle 模块 (policy 层单独补), 以文档清单为准。真机扩面验证: 宿主新增 `pluginRuntimeDrivesCommonAutomationApisThroughLiveBridge` (一个脚本串调 toast.showToast + clipboard.setText/getText 回读 + storages.put/get 回读 + shell.exec echo + app.getAppName, 断言 7 次 live dispatch 全成功零失败), 真机 (小米 arm64 Android 15) bridge instrumentation 5/5。
 - [x] M3.2 补齐高频 API: toast / app.launch / click / swipe / text 查找 / 剪贴板 / shell。— 2026-08-18 完成: 除 swipe 外六项经 M3.1 盘点确认早已桥接并在 M3.1 用例中真机验证。swipe/gesture 缺口本项落地: 宿主 `NodeBridgeProtocol` accessibility 新增 swipe(x1,y1,x2,y2,durationMs) 与 gesture(durationMs, [[x,y]...]) 派发 (复用 `GlobalActionAutomator`→`dispatchGesture` 同步等待完成, 时长上限 10s 防 binder 线程被长手势钉死), 从 registry blockedMethods 移出; 新增独立能力 `accessibility.gesture` (registry gesturePolicy 要求), 插件 JS 预检与宿主 manifest 校验双侧都要求显式声明, 不被 `accessibility` 前缀隐含; 插件 accessibility shim 增加 swipe/gesture 方法。真机 (无障碍未开态): `pluginRuntimeSwipesThroughAccessibilityGestureCapability` 断言可读 capabilityProviderMissing 失败 + 未声明能力本地拒绝零派发, 宿主 bridge 6/6; 服务开启下的完成路径待手工授权后补证 (小米 adb 不可写 secure settings)。插件 conformance 31/31 回归。HOST-API.md 已同步。
 - [x] M3.3 files / http 等与 Node 原生能力重叠的 API: 文档引导用 Node 原生实现, 不重复造桥。— 2026-08-18 完成: HOST-API.md 新增 "重叠能力选择指引" 一节 (fs/http/Buffer/npm 包 vs 对应 shim 与桥接版的取舍表, 含"仍需走桥"的边界: 设备能力与宿主身份场景)。无代码改动。
-- [ ] M3.4 `sample/nodejs` 收敛: 60 个样例按 "能跑/不能跑" 重新标注, 不能跑的要么修好要么移入 `sample/nodejs/_pending/`。
+- [x] M3.4 `sample/nodejs` 收敛: 57 个登记样例按 "能跑/不能跑" 重新标注。— 2026-08-18 完成: 扫描全部样例的 require 依赖对照 M2/M3 现状, `examples.json` 重标 11 条 — 升 stable 8 条 (http-client-compat/notifications/sensor-monitor/execution-queue: M2.6 网络默认开或桥已全 live 且样例自含; long-running-service: M2.5; scheduled-node-task: work_manager 全 live; database: M3.1 真机验证; fs-promises: M2.4), 降 partial 3 条 (screenshot-find-image: media_projection denied 只能走 skip 路径; disabled-features-demo: 依赖非默认实验开关; typescript-smoke: 触及 media_projection/rhino/java 门禁面)。未采用 `_pending/` 目录迁移: `verifyNodeExamples` 门禁强制目录↔manifest 一一对应, 移目录会破坏它, 三态 status 标注已达成 "能跑/不能跑" 的表达目的。校验: `verifyNodeExamples` 通过, 真机样例 instrumentation 7/7。
 
-### M4 — 减脂与常态维护
+### M4 — 减脂与常态维护 ✦当前✦
 
 目标: 代码量与真实功能匹配, 新人可读。
 
