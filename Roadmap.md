@@ -37,7 +37,7 @@
 
 ## 四. 里程碑
 
-### M0 — 最简脚本先跑起来 (首个可交付任务组) ✦当前✦
+### M0 — 最简脚本先跑起来 (首个可交付任务组) ✅
 
 目标: **一个只带 `source` 的最小请求就能执行 Node 脚本并拿到 stdout**; 宿主旧契约不再被硬拒; 开发循环恢复轻快。
 
@@ -50,17 +50,17 @@
 
 交付物: 可安装 APK + 通过的烟雾验证 + 本文档。
 
-### M1 — 与 AutoJs6 宿主真实打通
+### M1 — 与 AutoJs6 宿主真实打通 ✅ (2026-08-17 完成)
 
 目标: 在真实 AutoJs6 App 里, 编辑器输入 `"nodejs";` 脚本 → 点击运行 → 看到输出。
 
 - [x] M1.1 宿主侧联调: 用 master 分支 AutoJs6 (nodeFull flavor) + 本插件, 真机/模拟器跑通 `sample/nodejs/hello-node`。记录并修复联调中出现的每一个具体异常 (逐异常修复, 不做预防性改造)。— 2026-08-17 真机 (小米 Android 15 arm64) 插件 v1.1.3 + 宿主 v6.8.0: 宿主 `NodeExampleProjectInstrumentationTest` 7/7 (含 hello-node), 插件 conformance 24/24。修复 3 个异常: ① bootstrap 硬锁 config v2 → 宽容 v1..v2 并回显协商版本; ② conformance mock provider 不认 metadata preflight → not_found 回应 + 计数断言更新; ③ TS 剥离器字符串掩码用空格导致 `('cjs' as string)` 被剥成 `()` → 掩码改用非空白占位符 U+0001, 附回归单测。附加事实: 小米真机跑宿主 instrumentation 需先亮屏解锁并把宿主拉到前台一次, 否则 FGS 被拒、settle 超时。
 - [x] M1.2 契约对齐决策: 与宿主仓库同步 `nodejs-api` (以哪边为准做一次性对齐, 建议宿主升级到插件的 v2 AIDL 包, 或插件回落 v1); 移除 `releases/` 下 AAR 哈希锁对迭代的阻塞。— 2026-08-17 决策: **以插件 v2 为准, 宿主择期升级; 过渡期由插件 v1..v2 宽容层承接** (已真机验证)。依据: 两边 AIDL 内容一致; 宿主 v1 provider 对 v2 请求的拒绝响应 (version=1 + INVALID_REQUEST) 恰好触发插件的一次性降级重试, 桥是闭合的; 宿主升 v2 需要实现 v2 操作语义 (materialize_missing_plaintext 等), 不是换常量, 按"逐异常修复"原则留到宿主仓库联调时做。哈希锁阻塞已随 `:nodejs-api` 源码模块化移除: app 改用 project 依赖, `assemble`/`check` 零锁引用 (dry-run 验证), 锁只留在手动发布任务 (`verifyNodeJsApiPublication` 等)。
 - [x] M1.3 加密模块脚本联调 (宿主 provider v1 路径) 跑通。— 2026-08-17 真机: 宿主新增 `pluginRuntimeDecryptsEncryptedModuleThroughHostV1Provider` (AES 加密 `secret.cjs` + 宿主 v1 `NodeJsEncryptedModuleSourceProvider` → 插件 runtime 解密执行, 断言 decrypted_count=1, 一次性 v2→v1 降级协商生效), 与 live bridge 用例同类 2/2 通过。逐异常修复 2 个: ① 插件 engine-info 注入诊断把 workspace 映射预填误报为 "existing" → 新增 `withReplacedRuntimeModule` 保留真实来源 (host_broker); ② 宿主 bridge 测试仍断言旧 "working_directory" 标签 → 更新为 M0.2 后的 "exact_metadata_snapshot"。插件 conformance 24/24、宿主样例 7/7 回归通过。
-- [ ] M1.4 项目级脚本 (project.json + 多文件 + node_modules) 通过工作区传输跑通。
-- [ ] M1.5 失败路径可读: 联调中出现的错误信息能让用户看懂 (错误码 + 一句人话), 不再输出诊断键值对墙。
+- [x] M1.4 项目级脚本 (project.json + 多文件 + node_modules) 通过工作区传输跑通。— 2026-08-17 真机: 宿主新增 `pluginRuntimeRunsProjectWithNodeModulesThroughWorkspaceTransport` (project.json + lib/helper.cjs + node_modules/demo-pkg → 插件 runtime `require` 相对路径与裸包名均成功)。逐异常修复 1 个: 宿主 `NodeJsPluginWorkspaceArchiveTransport` 只打包请求显式命名的文件 (R4 免扫描原则), 项目里未列名的 lib/node_modules 到不了插件工作区且 v1 provider 无法按需物化明文 → 对带 project.json 标记的声明式项目目录做受限树遍历 (拒符号链接/特殊文件, 沿用 4096 文件 / 64MB 预算), 裸脚本路径保持零扫描。回归: bridge 3/3, 宿主样例 7/7。
+- [x] M1.5 失败路径可读: 联调中出现的错误信息能让用户看懂 (错误码 + 一句人话), 不再输出诊断键值对墙。— 2026-08-17 真机: 宿主新增 `pluginRuntimeFailuresCarryReadableCodeAndMessage` (throw / MODULE_NOT_FOUND / TSX 三类失败断言"码+一句话", 禁止键值墙与冗余前缀)。逐异常修复 3 个: ① 宿主引擎把整面 failure envelope 打进用户控制台 → envelope 只留 logcat, 控制台留 JS 栈 + 一行错误; ② 插件失败消息叠加 "plugin execution failed:" 样板前缀 → 直接用原始异常消息 (错误码走 KEY_ERROR_CODE); ③ TSX 等预派发失败被宿主 bridge 误判为 EXECUTION_LOST (零扫描 commit 校验缺席) → 宿主按 `commit_allowed=false` + `native_dispatch_started=false` 识别声明式预派发失败, 插件保持 TSX 拒绝先于工作区物化 (x3e 负例语义不变)。回归: 插件 conformance 24/24, bridge 4/4, 宿主样例 7/7, 冒烟通过。
 
-### M2 — 桌面级 Node 开发体验
+### M2 — 桌面级 Node 开发体验 ✦当前✦
 
 目标: 常驻交互与长脚本可用, 接近本地 `node foo.js` 的手感。
 

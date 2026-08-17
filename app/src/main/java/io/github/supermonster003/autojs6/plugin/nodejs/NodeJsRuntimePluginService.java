@@ -303,6 +303,10 @@ public class NodeJsRuntimePluginService extends Service {
                     request.getString(NodeJsRuntimeContract.KEY_SOURCE_NAME),
                     DEFAULT_SOURCE_NAME
             );
+            // Entry preparation stays ahead of workspace creation: canonical
+            // TypeScript rejections must prove no workspace was materialized
+            // (x3e negatives). Hosts recognize such pre-dispatch failures by
+            // the unconditional commit_allowed=false marker below.
             NodeTypeScriptStripper.Result typeScriptEntry =
                     prepareTypeScriptEntryForNative(requestedSourceName, source);
             source = typeScriptEntry.source();
@@ -542,10 +546,14 @@ public class NodeJsRuntimePluginService extends Service {
                 failureErrorCode = ((PluginModuleSourceProviderFileTransportSession.PolicyMetadataException) error)
                         .errorCode();
             }
+            // The message is the user-facing "one readable sentence"; the
+            // machine identity travels in KEY_ERROR_CODE. A boilerplate
+            // "plugin execution failed:" prefix only pushed real messages
+            // past readable length (M1.5).
             Bundle failure = failureBundle(
                     request,
                     startedAt,
-                    "Node.js runtime plugin execution failed: " + messageOf(error),
+                    messageOf(error),
                     error,
                     failureErrorCode
             );
