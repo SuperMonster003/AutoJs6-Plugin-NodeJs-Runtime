@@ -61,6 +61,16 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+### {{ h3_quick_start }}
+
+******
+
+- **{{ quick_start_install_title }}** — {{ quick_start_install }}
+- **{{ quick_start_run_title }}** — {{ quick_start_run }}
+- **{{ quick_start_debug_title }}** — {{ quick_start_debug }}
+
+******
+
 ### {{ h3_runtime_profile }}
 
 ******
