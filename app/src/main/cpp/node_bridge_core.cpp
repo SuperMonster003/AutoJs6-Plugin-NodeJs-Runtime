@@ -4,6 +4,30 @@ namespace autojs6::node_bridge::internal {
 
 using namespace autojs6::node_bridge;
 
+namespace {
+
+std::mutex& outputStreamSinkMutex() {
+    static std::mutex mutex;
+    return mutex;
+}
+
+std::shared_ptr<JavaOutputSink>& outputStreamSinkSlot() {
+    static std::shared_ptr<JavaOutputSink> slot;
+    return slot;
+}
+
+}  // namespace
+
+std::shared_ptr<JavaOutputSink> currentOutputStreamSink() {
+    std::lock_guard<std::mutex> lock(outputStreamSinkMutex());
+    return outputStreamSinkSlot();
+}
+
+void setCurrentOutputStreamSink(std::shared_ptr<JavaOutputSink> sink) {
+    std::lock_guard<std::mutex> lock(outputStreamSinkMutex());
+    outputStreamSinkSlot() = std::move(sink);
+}
+
 std::mutex& nodeStartMutex() {
     static std::mutex mutex;
     return mutex;

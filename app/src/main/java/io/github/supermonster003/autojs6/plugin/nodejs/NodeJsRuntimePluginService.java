@@ -32,6 +32,10 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -258,6 +262,7 @@ public class NodeJsRuntimePluginService extends Service {
         PluginModuleSourceProviderFileTransportSession moduleSourceProviderSession = null;
         PluginWorkspaceArchiveSession workspaceSession = null;
         boolean nativeDispatchStarted = false;
+        StreamingOutputSink streamSink = null;
         notifyEvent(callback, NodeJsRuntimeContract.EVENT_STARTED, null, null);
         try {
             // Acquire the request-scoped provider before any operation that can
@@ -414,21 +419,29 @@ public class NodeJsRuntimePluginService extends Service {
 
             long nativeCallStartedAt = SystemClock.elapsedRealtime();
             nativeDispatchStarted = true;
-            String[] nativePayload = NativeNodeEmbeddedRuntimeBridge.runEmbeddedScript(
-                    source,
-                    sourceName,
-                    workingDirectory,
-                    sandboxRoot,
-                    moduleSources,
-                    runtimeModuleSources,
-                    env,
-                    request.getBoolean(NodeJsRuntimeContract.KEY_ESM_EXPERIMENTAL_ENABLED, true),
-                    request.getBoolean(NodeJsRuntimeContract.KEY_DYNAMIC_IMPORT_EXPERIMENTAL_ENABLED, true),
-                    request.getBoolean(NodeJsRuntimeContract.KEY_RAW_NODE_NETWORK_MODULES_EXPERIMENTAL_ENABLED, false),
-                    request.getBoolean(NodeJsRuntimeContract.KEY_WORKER_THREADS_EXPERIMENTAL_ENABLED, false),
-                    request.getBoolean(NodeJsRuntimeContract.KEY_CHILD_PROCESS_EXPERIMENTAL_ENABLED, false),
-                    request.getBoolean(NodeJsRuntimeContract.KEY_JAVA_INTEROP_EXPERIMENTAL_ENABLED, false)
-            );
+            streamSink = installOutputStreamSink(callback);
+            String[] nativePayload;
+            try {
+                nativePayload = NativeNodeEmbeddedRuntimeBridge.runEmbeddedScript(
+                        source,
+                        sourceName,
+                        workingDirectory,
+                        sandboxRoot,
+                        moduleSources,
+                        runtimeModuleSources,
+                        env,
+                        request.getBoolean(NodeJsRuntimeContract.KEY_ESM_EXPERIMENTAL_ENABLED, true),
+                        request.getBoolean(NodeJsRuntimeContract.KEY_DYNAMIC_IMPORT_EXPERIMENTAL_ENABLED, true),
+                        request.getBoolean(NodeJsRuntimeContract.KEY_RAW_NODE_NETWORK_MODULES_EXPERIMENTAL_ENABLED, false),
+                        request.getBoolean(NodeJsRuntimeContract.KEY_WORKER_THREADS_EXPERIMENTAL_ENABLED, false),
+                        request.getBoolean(NodeJsRuntimeContract.KEY_CHILD_PROCESS_EXPERIMENTAL_ENABLED, false),
+                        request.getBoolean(NodeJsRuntimeContract.KEY_JAVA_INTEROP_EXPERIMENTAL_ENABLED, false)
+                );
+            } finally {
+                if (streamSink != null) {
+                    clearOutputStreamSink();
+                }
+            }
             nativePayload = appendNativePayload(
                     nativePayload,
                     nativePayloadFromMap(typeScriptEntry.diagnostics())
@@ -525,7 +538,13 @@ public class NodeJsRuntimePluginService extends Service {
                     NodeJsRuntimeContract.KEY_WORKING_DIRECTORY,
                     request.getString(NodeJsRuntimeContract.KEY_WORKING_DIRECTORY)
             );
-            notifyOutput(callback, result);
+            // Streamed executions already delivered stdout/stderr chunk by
+            // chunk; replaying the aggregate here would double the output. If
+            // the sink never fired (fd capture unavailable), fall back to the
+            // pre-M2.1 terminal replay so callback callers still see output.
+            if (streamSink == null || !streamSink.deliveredAnything()) {
+                notifyOutput(callback, result);
+            }
             notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
             return result;
         } catch (Throwable error) {
@@ -595,7 +614,9 @@ public class NodeJsRuntimePluginService extends Service {
                         )
                 );
             }
-            notifyOutput(callback, failure);
+            if (streamSink == null || !streamSink.deliveredAnything()) {
+                notifyOutput(callback, failure);
+            }
             notifyEvent(callback, NodeJsRuntimeContract.EVENT_FINISHED, null, null);
             return failure;
         } finally {
@@ -652,8 +673,8 @@ public class NodeJsRuntimePluginService extends Service {
         info.putBoolean("isolatePerExecution", true);
         info.putString("defaultExecutionMode", "one_shot");
         info.putString("cancellationMode", CANCELLATION_STRATEGY_PROCESS_RESTART);
-        info.putString("outputMode", "buffered");
-        info.putBoolean("streamingOutput", false);
+        info.putString("outputMode", "streaming");
+        info.putBoolean("streamingOutput", true);
         info.putInt("terminalEventCount", 1);
         info.putString(
                 NodeJsRuntimeContract.KEY_ACTIVE_EXECUTION_ID,
@@ -1887,6 +1908,93 @@ public class NodeJsRuntimePluginService extends Service {
                 appendNativePayload(runtimePluginPayload(null), runtimeProcessDiagnosticsPayload())
         );
         return result;
+    }
+
+    private StreamingOutputSink installOutputStreamSink(INodeJsRuntimeCallback callback) {
+        if (callback == null) {
+            return null;
+        }
+        StreamingOutputSink sink = new StreamingOutputSink(callback);
+        NativeNodeEmbeddedRuntimeBridge.setOutputStreamSink(this, sink);
+        return sink;
+    }
+
+    private void clearOutputStreamSink() {
+        NativeNodeEmbeddedRuntimeBridge.setOutputStreamSink(this, null);
+    }
+
+    /**
+     * Forwards native fd/pipe chunks to the host callback while the script is
+     * still running. Called on native pipe-reader threads; stdout and stderr
+     * each keep their own decoder because they arrive on separate threads.
+     */
+    private final class StreamingOutputSink implements NativeNodeEmbeddedRuntimeBridge.OutputSink {
+
+        private final INodeJsRuntimeCallback callback;
+        private final Utf8StreamDecoder stdoutDecoder = new Utf8StreamDecoder();
+        private final Utf8StreamDecoder stderrDecoder = new Utf8StreamDecoder();
+        private final AtomicBoolean delivered = new AtomicBoolean(false);
+
+        StreamingOutputSink(INodeJsRuntimeCallback callback) {
+            this.callback = callback;
+        }
+
+        boolean deliveredAnything() {
+            return delivered.get();
+        }
+
+        @Override
+        public void onStdout(byte[] chunk) {
+            String text = stdoutDecoder.decode(chunk);
+            if (!text.isEmpty()) {
+                delivered.set(true);
+                notifyEvent(callback, NodeJsRuntimeContract.EVENT_STDOUT, "INFO", text);
+            }
+        }
+
+        @Override
+        public void onStderr(byte[] chunk) {
+            String text = stderrDecoder.decode(chunk);
+            if (!text.isEmpty()) {
+                delivered.set(true);
+                notifyEvent(callback, NodeJsRuntimeContract.EVENT_STDERR, "ERROR", text);
+            }
+        }
+    }
+
+    /**
+     * Incremental UTF-8 decoder: a multi-byte character split across two pipe
+     * chunks is held back until its remaining bytes arrive instead of being
+     * replaced with U+FFFD.
+     */
+    static final class Utf8StreamDecoder {
+
+        private final CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPLACE)
+                .onUnmappableCharacter(CodingErrorAction.REPLACE);
+        private byte[] pending = new byte[0];
+
+        String decode(byte[] chunk) {
+            if (chunk == null || chunk.length == 0) {
+                return "";
+            }
+            byte[] input;
+            if (pending.length == 0) {
+                input = chunk;
+            } else {
+                input = new byte[pending.length + chunk.length];
+                System.arraycopy(pending, 0, input, 0, pending.length);
+                System.arraycopy(chunk, 0, input, pending.length, chunk.length);
+            }
+            ByteBuffer in = ByteBuffer.wrap(input);
+            CharBuffer out = CharBuffer.allocate(input.length + 1);
+            decoder.reset();
+            decoder.decode(in, out, false);
+            pending = new byte[in.remaining()];
+            in.get(pending);
+            out.flip();
+            return out.toString();
+        }
     }
 
     private void notifyOutput(INodeJsRuntimeCallback callback, Bundle result) {
