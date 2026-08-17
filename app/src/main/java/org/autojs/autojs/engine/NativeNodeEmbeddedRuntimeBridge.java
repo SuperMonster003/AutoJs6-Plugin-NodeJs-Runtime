@@ -90,6 +90,28 @@ public final class NativeNodeEmbeddedRuntimeBridge {
         String[] invoke();
     }
 
+    /**
+     * Receives raw output chunks from the native fd/pipe capture while a
+     * script is still running. Method names and signatures are looked up from
+     * native code as {@code onStdout([B)V} / {@code onStderr([B)V}; both are
+     * invoked on a native pipe-reader thread, not the binder thread.
+     */
+    public interface OutputSink {
+        void onStdout(byte[] chunk);
+
+        void onStderr(byte[] chunk);
+    }
+
+    /**
+     * Installs (or clears, when {@code sink} is null) the process-wide
+     * streaming output sink consulted by the next embedded script execution.
+     * Single-active execution keeps install → run → clear race-free.
+     */
+    public static void setOutputStreamSink(Context context, OutputSink sink) {
+        loadLibraries(context);
+        INSTANCE.nativeSetOutputStreamSink(sink);
+    }
+
     public static String[] runEmbeddedScript(
             String source,
             String sourceName,
@@ -143,6 +165,8 @@ public final class NativeNodeEmbeddedRuntimeBridge {
             boolean childProcessExperimentalEnabled,
             boolean javaInteropExperimentalEnabled
     );
+
+    private native void nativeSetOutputStreamSink(OutputSink sink);
 
     private native String[] nativeEnsureProcessRuntimeReady();
 

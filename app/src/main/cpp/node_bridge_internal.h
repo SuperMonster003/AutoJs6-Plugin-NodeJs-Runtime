@@ -473,6 +473,13 @@ private:
     }
 };
 
+// Process-wide streaming sink consulted by CapturingPipeReader so an
+// in-flight execution can forward output chunks to Java while the script is
+// still running. Single-active execution (NodeRuntimeExecutionGate) keeps the
+// set → run → clear window free of cross-execution races.
+std::shared_ptr<JavaOutputSink> currentOutputStreamSink();
+void setCurrentOutputStreamSink(std::shared_ptr<JavaOutputSink> sink);
+
 class PipeReader {
 public:
     using EmitFunction = void (JavaOutputSink::*)(const char*, size_t) const;
@@ -691,7 +698,8 @@ private:
 
 class CapturingPipeReader {
 public:
-    explicit CapturingPipeReader(int readFd) : readFd_(readFd) {
+    CapturingPipeReader(int readFd, bool stderrStream)
+            : readFd_(readFd), stderrStream_(stderrStream) {
     }
 
     void start() {
@@ -718,16 +726,28 @@ public:
 
 private:
     int readFd_ = -1;
+    bool stderrStream_ = false;
     std::thread thread_;
     std::string text_;
     size_t totalBytes_ = 0;
     bool truncated_ = false;
 
     void readLoop() {
+        // Resolve the sink once per read loop: the gate guarantees the sink
+        // installed before the native call stays the right one for the whole
+        // execution, and re-reading per chunk would race clearing on failure.
+        std::shared_ptr<JavaOutputSink> sink = currentOutputStreamSink();
         char buffer[4096];
         while (true) {
             ssize_t count = read(readFd_, buffer, sizeof(buffer));
             if (count > 0) {
+                if (sink != nullptr) {
+                    if (stderrStream_) {
+                        sink->emitStderr(buffer, static_cast<size_t>(count));
+                    } else {
+                        sink->emitStdout(buffer, static_cast<size_t>(count));
+                    }
+                }
                 append(buffer, static_cast<size_t>(count));
                 continue;
             }
@@ -764,8 +784,8 @@ public:
             return false;
         }
 
-        stdoutReader_ = std::make_unique<CapturingPipeReader>(stdoutPipe_[0]);
-        stderrReader_ = std::make_unique<CapturingPipeReader>(stderrPipe_[0]);
+        stdoutReader_ = std::make_unique<CapturingPipeReader>(stdoutPipe_[0], false);
+        stderrReader_ = std::make_unique<CapturingPipeReader>(stderrPipe_[0], true);
         stdoutPipe_[0] = -1;
         stderrPipe_[0] = -1;
         stdoutReader_->start();

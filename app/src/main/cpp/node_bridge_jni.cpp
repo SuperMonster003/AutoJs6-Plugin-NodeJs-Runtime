@@ -637,6 +637,31 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeSetProcessRu
     return toJavaStringArray(env, payload);
 }
 
+extern "C" JNIEXPORT void JNICALL
+Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeSetOutputStreamSink(
+        JNIEnv* env,
+        jobject /* thiz */,
+        jobject sink
+) {
+    std::shared_ptr<JavaOutputSink> previous = currentOutputStreamSink();
+    if (sink == nullptr) {
+        setCurrentOutputStreamSink(nullptr);
+        if (previous != nullptr) {
+            previous->release(env);
+        }
+        return;
+    }
+    std::shared_ptr<JavaOutputSink> next = std::make_shared<JavaOutputSink>(env, sink);
+    if (env->ExceptionCheck() || !next->available()) {
+        next->release(env);
+        return;
+    }
+    setCurrentOutputStreamSink(next);
+    if (previous != nullptr) {
+        previous->release(env);
+    }
+}
+
 static const char* adapterResultCodeName(int32_t code) {
     switch (code) {
         case AUTOJS_NODE_RESULT_OK:
