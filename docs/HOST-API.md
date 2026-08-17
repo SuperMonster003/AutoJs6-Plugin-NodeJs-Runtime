@@ -87,7 +87,25 @@
 | `accessibility.*` 动作在服务开启下的完成路径 | 无障碍开启依赖手工授权 (小米 adb 不可直写 secure settings), 待手工开启后跑同一用例补证 | ⚠️ 部分验证 |
 | 其余 bridged 模块 | 无真机断言 | ⚠️ 未验证 |
 
-## 七. 与 M3.2 目标的对照
+## 七. 与 Node 原生重叠的能力: 选择指引 (M3.3)
+
+原则: **能用 Node 原生就用 Node 原生**。桥接调用要跨进程 (文件轮询传输, 单次 ~10ms 级), Node 原生在 V8 里直接执行; 且原生 API 与桌面 Node 教程/npm 生态零差异。不为重叠能力重复造桥。
+
+| 需求 | 用这个 (Node 原生) | 不要用 | 备注 |
+|---|---|---|---|
+| 读写文件 | `fs` / `fs/promises` (作用域限定在工作目录) | `files` shim | shim 本身就是 fs 封装, 直接用 fs 少一层 |
+| HTTP/HTTPS 客户端 | `http` / `https` (M2.6 后默认可用), 或工作区安装的 npm 包 | 桥接 `fetch`/`axios`/`undici` | 桥接版走宿主 OkHttp, 仅在需要宿主网络栈 (代理/证书策略跟随宿主) 时使用 |
+| HTTP 服务器 | `http.createServer` | — | 桥接版无服务器能力 |
+| Base64 | `Buffer.from(x, "base64")` / `buf.toString("base64")` | `base64` shim | |
+| MIME 判型 | npm `mime` 包 (M2.4 已实测) | `mime` shim | 装了 npm 包时它自动优先于 shim |
+| 时间/格式化/工具函数 | npm (dayjs/lodash/ms 等, M2.4 已实测) | `formatter`/`converter` shim | |
+| 定时任务 (进程内) | `setInterval`/`setTimeout` + 长驻脚本 (M2.5) | — | 跨进程/重启存活的调度才用 `work_manager` 桥 |
+| 键值存储 | 小数据: 工作目录 JSON 文件 | — | 需跨脚本/跨工作区共享时用 `storages` 桥 (宿主级存储) |
+| DNS | `dns` / `dns/promises` | — | |
+
+仍然只能走桥的: 屏幕/无障碍/toast/剪贴板/传感器/通知/对话框/宿主 shell 等设备能力 (第一节), 以及需要"宿主身份"的场景 (宿主级 storage、WorkManager 调度、宿主网络栈)。
+
+## 八. 与 M3.2 目标的对照
 
 M3.2 原定 "补齐 toast / app.launch / click / swipe / text 查找 / 剪贴板 / shell" — **已全部达成**:
 
