@@ -1,0 +1,171 @@
+{
+  "schema": "autojs6-node-plugin-x3g-directed-device-run-v1",
+  "milestone": "X3g",
+  "result": "pass",
+  "evidenceLevel": "directed-device",
+  "generatedAtUtc": "2026-08-13T05:10:42.2506649Z",
+  "deviceSelection": {
+    "requestedAvdName": "DEX_R1_API34_X64",
+    "observedSerial": "emulator-5554",
+    "uniqueNewEmulatorSerial": true,
+    "serialAmbiguous": false,
+    "manufacturer": "unknown",
+    "model": "Android SDK built for x86_64",
+    "apiLevel": 34,
+    "abis": [
+      "x86_64"
+    ],
+    "emulator": true,
+    "bootCompletedBeforeRun": true
+  },
+  "executionPolicy": {
+    "allDirectedDeviceCommandsUsedExplicitSerial": true,
+    "adbEnumerationCommandsWereReadOnly": true,
+    "physicalDeviceDirectedCommandCount": 0,
+    "connectedTaskUsed": false,
+    "genericConnectedTaskUsed": false,
+    "gradleTaskUsed": false,
+    "soakRun": false,
+    "fullNineteenSelectorHarnessRun": false,
+    "selectorCount": 2,
+    "attemptCount": 1,
+    "retryCount": 0,
+    "sourceChangedAfterFailure": false
+  },
+  "preflight": {
+    "deviceState": "device",
+    "bootCompleted": true,
+    "avdNameVerified": true,
+    "apiAndAbiVerified": true,
+    "soakDetected": false,
+    "activeInstrumentationDetected": false,
+    "nodeOrAutoJsProcessDetected": false,
+    "nodeRuntimeServiceDetected": false,
+    "nodeRuntimeServiceDump": "(nothing)"
+  },
+  "artifacts": {
+    "appDebugUniversal": {
+      "path": "app/build/outputs/apk/debug/autojs6-plugin-nodejs-runtime-v1.1.0-universal.apk",
+      "bytes": 93150957,
+      "sha256": "3eb5c8d45ad955f0827bd08aec6210d40e11a5c8d5a2300d4093e5e2859185bb",
+      "packageName": "io.github.supermonster003.autojs6.plugin.nodejs",
+      "versionName": "1.1.0",
+      "versionCode": 37,
+      "minSdk": 24,
+      "targetSdk": 36,
+      "nativeAbiMatchedDevice": true,
+      "deviceInstalledSha256Verified": true
+    },
+    "androidTest": {
+      "path": "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+      "bytes": 951656,
+      "sha256": "0813f1a0b0d9838be732d72c54130e90bc61906a7d7d4c75f6b65e0b33747496",
+      "packageName": "io.github.supermonster003.autojs6.plugin.nodejs.test",
+      "targetPackageName": "io.github.supermonster003.autojs6.plugin.nodejs",
+      "runner": "androidx.test.runner.AndroidJUnitRunner",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "deviceInstalledSha256Verified": true
+    },
+    "aaptIdentityVerifiedBeforeInstall": true
+  },
+  "baseline": {
+    "pluginPackageExisted": false,
+    "pluginPackageName": "io.github.supermonster003.autojs6.plugin.nodejs",
+    "pluginVersionName": null,
+    "pluginVersionCode": null,
+    "pluginBaseApkBytes": null,
+    "pluginBaseApkSha256": null,
+    "baselineApkPullRequired": false,
+    "pluginTestPackageExisted": false,
+    "hostPackageExisted": false,
+    "hostTestPackageExisted": false,
+    "allRelevantPackagesAbsent": true
+  },
+  "instrumentation": {
+    "command": "adb -s emulator-5554 shell am instrument -w -r -e class io.github.supermonster003.autojs6.plugin.nodejs.NodeRuntimePluginAndroidConformanceTest#x3g_18_nodeCompatCorpusV1PassesThroughPublishedBinder,io.github.supermonster003.autojs6.plugin.nodejs.NodeRuntimePluginAndroidConformanceTest#x3g_19_preloadShapedModuleSourcesOverridesWorkspaceDisk io.github.supermonster003.autojs6.plugin.nodejs.test/androidx.test.runner.AndroidJUnitRunner",
+    "className": "io.github.supermonster003.autojs6.plugin.nodejs.NodeRuntimePluginAndroidConformanceTest",
+    "selectors": [
+      {
+        "name": "x3g_18_nodeCompatCorpusV1PassesThroughPublishedBinder",
+        "result": "pass",
+        "terminalStatusCode": 0
+      },
+      {
+        "name": "x3g_19_preloadShapedModuleSourcesOverridesWorkspaceDisk",
+        "result": "pass",
+        "terminalStatusCode": 0
+      }
+    ],
+    "testsRun": 2,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "testsIgnored": 0,
+    "runnerSummary": "OK (2 tests)",
+    "runnerReportedSeconds": 1.12,
+    "instrumentationCode": -1,
+    "instrumentationCodeMeaning": "Android instrumentation success",
+    "adbExitCode": 0,
+    "firstAndOnlyRunPassed": true,
+    "failureEvidence": null
+  },
+  "restoration": {
+    "baselineRestored": true,
+    "testPackageUninstalledBecauseAbsentAtBaseline": true,
+    "testPackageUninstallResult": "Success",
+    "pluginPackageUninstalledBecauseAbsentAtBaseline": true,
+    "pluginPackageUninstallResult": "Success",
+    "pluginPackageAbsentAfterRestore": true,
+    "pluginTestPackageAbsentAfterRestore": true,
+    "hostAndHostTestPackagesAbsentAfterRestore": true,
+    "nodeOrAutoJsProcessAbsentAfterRestore": true,
+    "activeInstrumentationAbsentAfterRestore": true,
+    "nodeRuntimeServiceAbsentAfterRestore": true,
+    "temporaryBaselineCopyStatus": "not_created_baseline_packages_absent"
+  },
+  "temporaryAvd": {
+    "startedByThisRun": true,
+    "avdName": "DEX_R1_API34_X64",
+    "emulatorProcessId": 38368,
+    "launchArguments": [
+      "-read-only",
+      "-no-snapshot-load",
+      "-no-snapshot-save",
+      "-no-boot-anim",
+      "-no-window",
+      "-no-audio"
+    ],
+    "wipeDataUsed": false,
+    "avdDefinitionDeletedOrModified": false,
+    "preexistingOnlineEmulatorCount": 0,
+    "adbSerialsBeforeLaunch": [
+      "968e9f18",
+      "QV710AF65F"
+    ],
+    "newSerial": "emulator-5554",
+    "newSerialWasUnique": true,
+    "shutdownCommand": "adb -s emulator-5554 emu kill",
+    "shutdownExitCode": 0,
+    "shutdownAcknowledged": true,
+    "serialAbsentAfterShutdown": true,
+    "adbSerialsAfterShutdown": [
+      "968e9f18",
+      "QV710AF65F"
+    ],
+    "serialSetRestored": true,
+    "temporaryAvdStartedAndStopped": true
+  },
+  "evidence": {
+    "rawInstrumentationOutput": {
+      "path": "build/reports/nodejs/android-conformance/device-run-x3g-api34-x86_64.raw.txt",
+      "bytes": 1696,
+      "sha256": "d51d0991962982a516527e42a42378495a90b8f5b7dd51da86e1c8ea8f101d21"
+    },
+    "managedImmutableCopy": {
+      "jsonPath": "tools/nodejs/ownership/evidence/x3g-device-run-api34-x86_64.json",
+      "rawPath": "tools/nodejs/ownership/evidence/x3g-device-run-api34-x86_64.raw.txt",
+      "rawBytes": 1696,
+      "rawSha256": "d51d0991962982a516527e42a42378495a90b8f5b7dd51da86e1c8ea8f101d21"
+    }
+  }
+}

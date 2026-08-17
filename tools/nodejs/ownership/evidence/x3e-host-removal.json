@@ -1,0 +1,66 @@
+{
+  "schema": "autojs6-node-host-removal-receipt-v1",
+  "repository": "AutoJs6",
+  "repositoryRole": "host",
+  "scope": "x3e-node-android-test-migration",
+  "sourceState": {
+    "decisionInput": "current_filesystem_including_untracked",
+    "baseCommit": "25ec9f8488d942dd13791bfad600fadbc5429893",
+    "wholeRepositoryHeadUsedForDecision": false
+  },
+  "ownershipGate": {
+    "task": ":app:verifyNodeRuntimeOwnershipGate",
+    "reportPath": "build/reports/nodejs/runtime-ownership.json",
+    "reportSha256": "3cac92586d89c5c5251791e6a4ca3c40e15183256e5a957a2bdb57e2d10a3f3b",
+    "ready": true,
+    "violationCount": 0,
+    "allowlistSha256": "f3b0d131f33471a264d8092a7edadcadc7fcd4684a7022320351d81451b45aaa"
+  },
+  "androidTestCompile": {
+    "task": ":app:compileAppDebugAndroidTestKotlin",
+    "result": "passed",
+    "sameInvocationAsOwnershipGate": true
+  },
+  "removals": {
+    "nodeTypeScriptInstrumentationTest": {
+      "path": "app/src/androidTest/java/org/autojs/autojs/engine/NodeTypeScriptInstrumentationTest.kt",
+      "exists": false,
+      "removedTestAnnotations": 7
+    },
+    "nodeCompatCorpusV2Selector": {
+      "path": "app/src/androidTest/java/org/autojs/autojs/engine/NodeCompatCorpusInstrumentationTest.kt",
+      "symbol": "moduleConformanceV2CorpusPasses",
+      "remainingMatches": 0,
+      "removedTestAnnotations": 1
+    },
+    "nodeCompatCorpusV2Assets": {
+      "root": "app/src/androidTest/assets/node_compat_corpus_v2",
+      "remainingFileCount": 0,
+      "removedFileCount": 15,
+      "removedPaths": [
+        "async-esm.mjs",
+        "cjs-cycle.cjs",
+        "data.json",
+        "dynamic.json",
+        "esm-cycle.mjs",
+        "esm-harness.mjs",
+        "json-require.cjs",
+        "meta-target.mjs",
+        "node_modules/custom-condition-pkg/auto.mjs",
+        "node_modules/custom-condition-pkg/default.mjs",
+        "node_modules/custom-condition-pkg/import.mjs",
+        "node_modules/custom-condition-pkg/package.json",
+        "sync-esm.mjs",
+        "ts-cjs.cts",
+        "ts-esm.mts"
+      ]
+    }
+  },
+  "remainingHostBacklog": {
+    "nodeRelatedSourceFiles": 134,
+    "testAnnotations": 752,
+    "corpusFiles": 520,
+    "instrumentationPathSetSha256": "e73f249cdbe7db836b7f3397c5fdc0604f7c47ac4ddee8b21e44f90597728c70",
+    "corpusPathSetSha256": "fa333cfb18b81b73c10f58669f623f0ae422c13a4dd9d27efa3673586c4c2b6a"
+  }
+}

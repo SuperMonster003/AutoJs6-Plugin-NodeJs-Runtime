@@ -1,0 +1,145 @@
+{
+  "schema": "autojs6-node-host-removal-receipt-v1",
+  "repository": "AutoJs6",
+  "repositoryRole": "host",
+  "scope": "x3i-zlib-focused-instrumentation-migration",
+  "evidenceLevel": "S/A with prerequisite directed-device D",
+  "sourceState": {
+    "decisionInput": "current_filesystem_including_untracked",
+    "baseCommit": "25ec9f8488d942dd13791bfad600fadbc5429893",
+    "wholeRepositoryHeadUsedForDecision": false
+  },
+  "pluginPrerequisite": {
+    "selector": "x3i_23_zlibCallbacksStreamsAndShadowingPassThroughPublishedBinder",
+    "selectorCount": 1,
+    "directedDeviceReport": {
+      "path": "tools/nodejs/ownership/evidence/x3i-device-run-api34-x86_64.json",
+      "bytes": 9404,
+      "sha256": "7096aaa64c452668a0d9702b21bfd02fcbae216eafaee58046dc3ccb28b7caf2",
+      "device": "DEX_R1_API34_X64",
+      "serial": "emulator-5562",
+      "apiLevel": 34,
+      "abi": "x86_64",
+      "emulator": true,
+      "attemptCount": 1,
+      "testsRun": 1,
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsIgnored": 0,
+      "runnerSummary": "OK (1 test)",
+      "baselineRestored": true,
+      "temporaryAvdStartedAndStopped": true,
+      "serialAbsentAfterShutdown": true,
+      "physicalDeviceDirectedCommandCount": 0,
+      "connectedTaskUsed": false,
+      "soakRun": false
+    },
+    "rawDirectedDeviceOutput": {
+      "path": "tools/nodejs/ownership/evidence/x3i-device-run-api34-x86_64.raw.txt",
+      "bytes": 957,
+      "sha256": "2b984dc7d588d467e21fe109eb11690103bde01289df52c8c5e64c623108eb4f",
+      "verbatimAdbStdoutCaptured": true
+    },
+    "artifacts": {
+      "appDebugX86_64": {
+        "path": "app/build/outputs/apk/debug/autojs6-plugin-nodejs-runtime-v1.1.3-x86_64.apk",
+        "bytes": 33650087,
+        "sha256": "845d98057290cd36ff41fabf5f1d23b364ec80012aaec9ed6aa52167f2a6b54c",
+        "packageName": "io.github.supermonster003.autojs6.plugin.nodejs",
+        "versionName": "1.1.3",
+        "versionCode": 40,
+        "signerSha256": "31a681fcfffb3e428420cae280ded89292b12a3b0f59e19b7a73e32a8ae4c213"
+      },
+      "androidTest": {
+        "path": "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+        "bytes": 988486,
+        "sha256": "f5cf53c7f4b63ebc6cc0b5c54a41cab4f4d859c7d065b9427f7f21e09de61bd4",
+        "packageName": "io.github.supermonster003.autojs6.plugin.nodejs.test",
+        "targetPackageName": "io.github.supermonster003.autojs6.plugin.nodejs",
+        "runner": "androidx.test.runner.AndroidJUnitRunner",
+        "signerSha256": "31a681fcfffb3e428420cae280ded89292b12a3b0f59e19b7a73e32a8ae4c213"
+      },
+      "testSource": {
+        "path": "app/src/androidTest/java/io/github/supermonster003/autojs6/plugin/nodejs/NodeRuntimePluginAndroidConformanceTest.java",
+        "bytes": 127311,
+        "sha256": "c0732b8e70290859ef1582390c0ad3c5c234c61e5761f642c59edcf9aa658566"
+      }
+    },
+    "packageOnlyHarnessPrerequisite": {
+      "path": "build/reports/nodejs/android-conformance/harness-package.json",
+      "bytes": 14227,
+      "sha256": "60e00c1c906eef4853a94303b4832da84742aebd348054b0340854506915119f",
+      "decision": "harness_packaged_not_executed",
+      "verificationLevel": "A",
+      "selectorCount": 23,
+      "passedChecks": 36,
+      "totalChecks": 36
+    }
+  },
+  "ownershipGate": {
+    "task": ":app:verifyNodeRuntimeOwnershipGate",
+    "reportPath": "build/reports/nodejs/runtime-ownership.json",
+    "reportBytes": 10267,
+    "reportSha256": "9270e91ab51f63ac5b3a7d620b3d0aab8b09b9d284439e7643156fc71add957d",
+    "allowlistPath": "docs/nodejs/runtime-ownership-allowlist.json",
+    "allowlistBytes": 19520,
+    "allowlistSha256": "8694bdb1ca5448bdca494056176822ca9bcebffef9ceb00f705d21ebae0089c8",
+    "ready": true,
+    "decision": "boundary_enforced_migration_backlog_open",
+    "candidateCount": 2206,
+    "classifiedCandidateCount": 2206,
+    "violationCount": 0,
+    "migrationBacklogFileCount": 1708
+  },
+  "androidTestCompile": {
+    "task": ":app:compileAppDebugAndroidTestKotlin",
+    "result": "passed",
+    "sameInvocationAsOwnershipGate": true
+  },
+  "invocation": {
+    "singleGradleInvocation": true,
+    "rerunPerformed": false,
+    "outerToolTimedOut": true,
+    "gradleDaemonResult": "BUILD SUCCESSFUL",
+    "gradleDaemonDuration": "3m 14s",
+    "actionableTaskCount": 328,
+    "executedTaskCount": 14,
+    "upToDateTaskCount": 314
+  },
+  "removals": {
+    "hostTestFile": {
+      "path": "app/src/androidTest/java/org/autojs/autojs/engine/NodeZlibBufferInstrumentationTest.kt",
+      "exists": false,
+      "preRemovalIdentitySource": "current_filesystem_including_untracked",
+      "preRemovalBytes": 6522,
+      "preRemovalSha256": "815d19a58d0f44fd1db88cc8114ede7ebd89a7fd6c6fd5a14bc9a4a66cf36031",
+      "headBlobBytes": 6374,
+      "headBlobSha256": "a1a975eb12083893117f05437f40e84ed2f102b532386138b2ec73aa7adcc68b",
+      "symbol": "zlibBufferCallbacksStreamsAndShadowingWork",
+      "remainingMatches": 0,
+      "removedTestAnnotations": 1
+    },
+    "hostGateReferences": {
+      "path": "app/node-instrumentation-gates.gradle.kts",
+      "className": "org.autojs.autojs.engine.NodeZlibBufferInstrumentationTest",
+      "removedReferences": 2,
+      "remainingMatches": 0
+    }
+  },
+  "referenceAudit": {
+    "activeOldClassReferences": 0,
+    "activeOldSymbolReferences": 0,
+    "historicalClassReferencesRetained": 4,
+    "historicalEvidencePaths": [
+      "docs/nodejs/reports/BASELINE_AFTER_TASK_18.md",
+      "docs/nodejs/reports/BASELINE_AFTER_TASK_49.md"
+    ]
+  },
+  "remainingHostBacklog": {
+    "nodeRelatedSourceFiles": 133,
+    "testAnnotations": 750,
+    "corpusFiles": 493,
+    "instrumentationPathSetSha256": "860f6e684f5251dcef6f33f63d8d5415137461cecd1bcb4810bd758cd50d9ae1",
+    "corpusPathSetSha256": "7d00b2347f7ac53c56e24f9a2ea2d50aa0466b17b920e27b5ef31c0b443348c5"
+  }
+}

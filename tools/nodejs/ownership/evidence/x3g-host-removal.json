@@ -1,0 +1,143 @@
+{
+  "schema": "autojs6-node-host-removal-receipt-v1",
+  "repository": "AutoJs6",
+  "repositoryRole": "host",
+  "scope": "x3g-node-compat-corpus-v1-migration",
+  "evidenceLevel": "S/A with prerequisite directed-device D",
+  "sourceState": {
+    "decisionInput": "current_filesystem_including_untracked",
+    "baseCommit": "25ec9f8488d942dd13791bfad600fadbc5429893",
+    "wholeRepositoryHeadUsedForDecision": false
+  },
+  "pluginPrerequisite": {
+    "corpusRoot": "app/src/androidTest/assets/node_compat_corpus",
+    "corpusFileCount": 27,
+    "corpusPathInventorySha256": "0ecb3c94cec23fec250b4a95593d415b94bc85f83b6068cbecf03847016e3af6",
+    "corpusNormalizedContentSha256": "f3d06e371255d9997aa478e57d75ca62c3905fdf83e04b39909c342a1bc3aa3d",
+    "selectors": [
+      "x3g_18_nodeCompatCorpusV1PassesThroughPublishedBinder",
+      "x3g_19_preloadShapedModuleSourcesOverridesWorkspaceDisk"
+    ],
+    "directedDeviceReport": {
+      "path": "tools/nodejs/ownership/evidence/x3g-device-run-api34-x86_64.json",
+      "originalPath": "build/reports/nodejs/android-conformance/device-run-x3g-api34-x86_64.json",
+      "bytes": 6200,
+      "sha256": "7c3977c0bd0c3a7e750455ebc6611fd35263192e3cab2eb64b5b3095e0d85c42",
+      "device": "DEX_R1_API34_X64",
+      "serial": "emulator-5554",
+      "apiLevel": 34,
+      "abi": "x86_64",
+      "emulator": true,
+      "attemptCount": 1,
+      "testsRun": 2,
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "testsIgnored": 0,
+      "runnerSummary": "OK (2 tests)",
+      "baselineRestored": true,
+      "emptyBaseline": true,
+      "temporaryAvdStartedAndStopped": true,
+      "serialAbsentAfterShutdown": true
+    },
+    "rawDirectedDeviceOutput": {
+      "path": "tools/nodejs/ownership/evidence/x3g-device-run-api34-x86_64.raw.txt",
+      "originalPath": "build/reports/nodejs/android-conformance/device-run-x3g-api34-x86_64.raw.txt",
+      "bytes": 1696,
+      "sha256": "d51d0991962982a516527e42a42378495a90b8f5b7dd51da86e1c8ea8f101d21"
+    }
+  },
+  "ownershipGate": {
+    "task": ":app:verifyNodeRuntimeOwnershipGate",
+    "reportPath": "build/reports/nodejs/runtime-ownership.json",
+    "reportSha256": "978fa611cc061d9c017f2d3910b4dc3390982ce3c54480bc57d011bac894a714",
+    "allowlistPath": "docs/nodejs/runtime-ownership-allowlist.json",
+    "allowlistSha256": "58cfc8d9f111a3b8c1946e789fc863ad384d87d5293405cc5cde7ad9055698dd",
+    "ready": true,
+    "decision": "boundary_enforced_migration_backlog_open",
+    "candidateCount": 2179,
+    "classifiedCandidateCount": 2179,
+    "violationCount": 0,
+    "migrationBacklogFileCount": 1711
+  },
+  "androidTestCompile": {
+    "task": ":app:compileAppDebugAndroidTestKotlin",
+    "result": "passed",
+    "sameInvocationAsOwnershipGate": true
+  },
+  "removals": {
+    "hostTestFile": {
+      "path": "app/src/androidTest/java/org/autojs/autojs/engine/NodeCompatCorpusInstrumentationTest.kt",
+      "exists": true
+    },
+    "nodeCompatCorpusV1Selector": {
+      "symbol": "pureJavaScriptCommonJsCorpusPasses",
+      "remainingMatches": 0,
+      "removedTestAnnotations": 1
+    },
+    "preloadShapedModuleSourcesSelector": {
+      "symbol": "corpusSubsetRunsFromModuleSourcesPreloadShape",
+      "remainingMatches": 0,
+      "removedTestAnnotations": 1
+    },
+    "nodeCompatCorpusV1Assets": {
+      "root": "app/src/androidTest/assets/node_compat_corpus",
+      "remainingFileCount": 0,
+      "removedFileCount": 27,
+      "removedNormalizedContentSha256": "f3d06e371255d9997aa478e57d75ca62c3905fdf83e04b39909c342a1bc3aa3d",
+      "removedPaths": [
+        "cjs-basic/index.js",
+        "cjs-basic/package.json",
+        "cjs-buffer-path-util/index.js",
+        "cjs-buffer-path-util/package.json",
+        "cjs-deep-deps/index.js",
+        "cjs-deep-deps/node_modules/first-dep/index.js",
+        "cjs-deep-deps/node_modules/first-dep/node_modules/second-dep/index.js",
+        "cjs-deep-deps/node_modules/first-dep/node_modules/second-dep/package.json",
+        "cjs-deep-deps/node_modules/first-dep/package.json",
+        "cjs-deep-deps/package.json",
+        "cjs-disabled-feature-detection/index.js",
+        "cjs-disabled-feature-detection/package.json",
+        "cjs-fs-promisify/index.js",
+        "cjs-fs-promisify/package.json",
+        "cjs-json-cache/data.json",
+        "cjs-json-cache/index.js",
+        "cjs-json-cache/package.json",
+        "cjs-package-exports/feature.js",
+        "cjs-package-exports/index.js",
+        "cjs-package-exports/package.json",
+        "cjs-package-exports/private.js",
+        "cjs-package-imports/index.js",
+        "cjs-package-imports/lib/alias.js",
+        "cjs-package-imports/package.json",
+        "cjs-self-reference/feature.js",
+        "cjs-self-reference/index.js",
+        "cjs-self-reference/package.json"
+      ]
+    }
+  },
+  "retainedHostAuthority": {
+    "path": "app/src/androidTest/java/org/autojs/autojs/engine/NodeCompatCorpusInstrumentationTest.kt",
+    "symbol": "moduleConformanceV2PackagedModuleSourcesGraphPasses",
+    "retained": true,
+    "remainingMatches": 1,
+    "testAnnotationsInFile": 1,
+    "reason": "The independent inline packaged moduleSources mixed graph remains a compact APK-builder and Host handoff authority."
+  },
+  "annotationAccounting": {
+    "headNodeTestAnnotations": 760,
+    "x3eRemovedNodeTypeScriptAnnotations": 7,
+    "x3eRemovedNodeCompatV2Annotations": 1,
+    "x3fAddedDirectProviderAnnotation": 1,
+    "x3fAddedSymbol": "directProviderMaterializesMissingPlaintextAndProtectsItsWorkspacePath",
+    "x3gRemovedAnnotations": 2,
+    "currentHostNodeTestAnnotations": 751,
+    "note": "The older 752 narrative omitted the X3f annotation added to an existing frozen instrumentation file; current-filesystem arithmetic is 760 - 7 - 1 + 1 - 2 = 751."
+  },
+  "remainingHostBacklog": {
+    "nodeRelatedSourceFiles": 134,
+    "testAnnotations": 751,
+    "corpusFiles": 493,
+    "instrumentationPathSetSha256": "e73f249cdbe7db836b7f3397c5fdc0604f7c47ac4ddee8b21e44f90597728c70",
+    "corpusPathSetSha256": "7d00b2347f7ac53c56e24f9a2ea2d50aa0466b17b920e27b5ef31c0b443348c5"
+  }
+}

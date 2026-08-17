@@ -166,6 +166,10 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
 }
 
+apply(from = "node-capability-truth.gradle.kts")
+apply(from = "node-runtime-kit.gradle.kts")
+apply(from = "node-runtime-ownership.gradle.kts")
+
 tasks {
     withType(JavaCompile::class.java) {
         options.encoding = "UTF-8"

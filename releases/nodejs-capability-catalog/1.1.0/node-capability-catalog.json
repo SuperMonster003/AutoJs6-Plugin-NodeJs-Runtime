@@ -1,0 +1,2630 @@
+{
+  "schema": "autojs6-node-capability-catalog-v1",
+  "catalogVersion": "1.1.0",
+  "runtime": {
+    "pluginId": "nodejs",
+    "engine": "nodejs",
+    "runtimeSlot": "node24_5",
+    "nodeVersion": "24.5.0",
+    "profileName": "AutoJs6 Safe Node Profile",
+    "profileVersion": "autojs6-node-profile-v1.1",
+    "nativeLibraryName": "node",
+    "bridgeLibraryName": "autojs6-node",
+    "supportedAbis": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "contract": {
+      "min": 1,
+      "max": 1
+    }
+  },
+  "budgets": {
+    "checkpointMaxBytes": 65536,
+    "moduleSourceMaxBytes": 16777216,
+    "moduleSourceMaxCount": 8192,
+    "moduleSourcesMaxBytes": 67108864,
+    "scriptSourceMaxBytes": 524288,
+    "stopGraceMs": 1500,
+    "stopPollIntervalMs": 50
+  },
+  "routing": {
+    "backendSwitches": [
+      "auto",
+      "embedded",
+      "native",
+      "plugin",
+      "pluginOptional",
+      "rhino"
+    ],
+    "commonJsModuleExtensions": [
+      "cjs",
+      "cts",
+      "js",
+      "json",
+      "ts"
+    ],
+    "commonJsRecursiveSourceExtensions": [
+      "cjs",
+      "cts",
+      "js",
+      "ts"
+    ],
+    "nodeRouteFileSuffixes": [
+      ".cjs",
+      ".cts",
+      ".mjs",
+      ".mts",
+      ".node.js",
+      ".ts",
+      ".tsx"
+    ],
+    "packageJsonExportConditionsPriority": [
+      "require",
+      "node",
+      "default"
+    ],
+    "typeScriptModuleExtensions": [
+      "cts",
+      "mts",
+      "ts"
+    ],
+    "unsupportedTypeScriptModuleExtensions": [
+      "tsx"
+    ]
+  },
+  "features": [
+    {
+      "id": "child_process",
+      "diagnosticName": "childProcess",
+      "property": "autojs.nodejs.child_process.experimental",
+      "defaultEnabled": false,
+      "securityLevel": "high",
+      "status": "experimental",
+      "overrides": {
+        "buildTime": true,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": false
+      },
+      "requestKey": "childProcessExperimentalEnabled",
+      "requestFallbackEnabled": false
+    },
+    {
+      "id": "dynamic_import",
+      "diagnosticName": "dynamicImport",
+      "property": "autojs.nodejs.dynamicImport.local",
+      "defaultEnabled": true,
+      "securityLevel": "medium",
+      "status": "partial",
+      "overrides": {
+        "buildTime": true,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": true
+      },
+      "requestKey": "dynamicImportExperimentalEnabled",
+      "requestFallbackEnabled": true,
+      "legacyExperimentalProperty": "autojs.nodejs.dynamicImport.experimental",
+      "legacyExperimentalDefaultEnabled": false,
+      "effectiveScope": "local_scoped"
+    },
+    {
+      "id": "esm",
+      "diagnosticName": "esm",
+      "property": "autojs.nodejs.esm.experimental",
+      "defaultEnabled": true,
+      "securityLevel": "medium",
+      "status": "partial",
+      "overrides": {
+        "buildTime": true,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": true
+      },
+      "requestKey": "esmExperimentalEnabled",
+      "requestFallbackEnabled": true,
+      "effectiveScope": "local_scoped"
+    },
+    {
+      "id": "fs_streams",
+      "diagnosticName": "fsStreams",
+      "property": null,
+      "defaultEnabled": true,
+      "securityLevel": "medium",
+      "status": "partial",
+      "overrides": {
+        "buildTime": false,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": true
+      }
+    },
+    {
+      "id": "inspector",
+      "diagnosticName": "inspector",
+      "property": null,
+      "defaultEnabled": false,
+      "securityLevel": "high",
+      "status": "disabled",
+      "overrides": {
+        "buildTime": false,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": false
+      }
+    },
+    {
+      "id": "java_interop",
+      "diagnosticName": "javaInterop",
+      "property": "autojs.nodejs.javaInterop.experimental",
+      "defaultEnabled": false,
+      "securityLevel": "critical",
+      "status": "experimental",
+      "overrides": {
+        "buildTime": true,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": false
+      },
+      "requestKey": "javaInteropExperimentalEnabled",
+      "requestFallbackEnabled": false
+    },
+    {
+      "id": "native_addon",
+      "diagnosticName": "nativeAddon",
+      "property": null,
+      "defaultEnabled": false,
+      "securityLevel": "critical",
+      "status": "unsupported",
+      "overrides": {
+        "buildTime": false,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": false
+      }
+    },
+    {
+      "id": "network",
+      "diagnosticName": "network",
+      "property": "autojs.nodejs.network.experimental",
+      "defaultEnabled": false,
+      "securityLevel": "high",
+      "status": "experimental",
+      "overrides": {
+        "buildTime": true,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": false
+      }
+    },
+    {
+      "id": "raw_node_network_modules",
+      "diagnosticName": "rawNodeNetworkModules",
+      "property": "autojs.nodejs.rawNetworkModules.experimental",
+      "defaultEnabled": false,
+      "securityLevel": "high",
+      "status": "experimental",
+      "overrides": {
+        "buildTime": true,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": false
+      },
+      "requestKey": "rawNodeNetworkModulesExperimentalEnabled",
+      "requestFallbackEnabled": false
+    },
+    {
+      "id": "vm",
+      "diagnosticName": "vm",
+      "property": null,
+      "defaultEnabled": true,
+      "securityLevel": "high",
+      "status": "partial",
+      "overrides": {
+        "buildTime": false,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": false
+      }
+    },
+    {
+      "id": "websocket",
+      "diagnosticName": "webSocket",
+      "property": null,
+      "defaultEnabled": false,
+      "securityLevel": "high",
+      "status": "experimental",
+      "overrides": {
+        "buildTime": false,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": false
+      }
+    },
+    {
+      "id": "worker_threads",
+      "diagnosticName": "workerThreads",
+      "property": "autojs.nodejs.worker_threads.experimental",
+      "defaultEnabled": false,
+      "securityLevel": "high",
+      "status": "experimental",
+      "overrides": {
+        "buildTime": true,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": false
+      },
+      "requestKey": "workerThreadsExperimentalEnabled",
+      "requestFallbackEnabled": false
+    },
+    {
+      "id": "zlib_streams",
+      "diagnosticName": "zlibStreams",
+      "property": null,
+      "defaultEnabled": true,
+      "securityLevel": "medium",
+      "status": "partial",
+      "overrides": {
+        "buildTime": false,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": true
+      }
+    }
+  ],
+  "builtins": {
+    "commonJsRecognized": [
+      "assert",
+      "async_hooks",
+      "buffer",
+      "child_process",
+      "cluster",
+      "console",
+      "constants",
+      "crypto",
+      "diagnostics_channel",
+      "dns",
+      "domain",
+      "events",
+      "fs",
+      "fs/promises",
+      "http",
+      "https",
+      "inspector",
+      "module",
+      "net",
+      "os",
+      "path",
+      "perf_hooks",
+      "process",
+      "punycode",
+      "querystring",
+      "readline",
+      "repl",
+      "stream",
+      "string_decoder",
+      "timers",
+      "tls",
+      "tty",
+      "url",
+      "util",
+      "v8",
+      "vm",
+      "wasi",
+      "worker_threads",
+      "zlib"
+    ],
+    "directAliases": [
+      {
+        "alias": "async_hooks",
+        "target": "async_hooks"
+      },
+      {
+        "alias": "diagnostics_channel",
+        "target": "diagnostics_channel"
+      },
+      {
+        "alias": "events",
+        "target": "events"
+      },
+      {
+        "alias": "node:async_hooks",
+        "target": "async_hooks"
+      },
+      {
+        "alias": "node:diagnostics_channel",
+        "target": "diagnostics_channel"
+      },
+      {
+        "alias": "node:events",
+        "target": "events"
+      },
+      {
+        "alias": "node:path",
+        "target": "path"
+      },
+      {
+        "alias": "node:path/posix",
+        "target": "path/posix"
+      },
+      {
+        "alias": "node:path/win32",
+        "target": "path/win32"
+      },
+      {
+        "alias": "node:perf_hooks",
+        "target": "perf_hooks"
+      },
+      {
+        "alias": "node:util",
+        "target": "util"
+      },
+      {
+        "alias": "node:util/types",
+        "target": "util/types"
+      },
+      {
+        "alias": "path",
+        "target": "path"
+      },
+      {
+        "alias": "path/posix",
+        "target": "path/posix"
+      },
+      {
+        "alias": "path/win32",
+        "target": "path/win32"
+      },
+      {
+        "alias": "perf_hooks",
+        "target": "perf_hooks"
+      },
+      {
+        "alias": "util",
+        "target": "util"
+      },
+      {
+        "alias": "util/types",
+        "target": "util/types"
+      }
+    ],
+    "disabled": [
+      "child_process",
+      "cluster",
+      "dgram",
+      "domain",
+      "inspector",
+      "repl",
+      "wasi",
+      "worker_threads",
+      "zlib/promises"
+    ],
+    "disabledProcessApis": [
+      "_debugProcess",
+      "_linkedBinding",
+      "abort",
+      "binding",
+      "dlopen",
+      "exit",
+      "initgroups",
+      "kill",
+      "reallyExit",
+      "setegid",
+      "seteuid",
+      "setgid",
+      "setgroups",
+      "setuid"
+    ],
+    "limited": [
+      "assert",
+      "assert/strict",
+      "async_hooks",
+      "buffer",
+      "console",
+      "constants",
+      "crypto",
+      "diagnostics_channel",
+      "dns",
+      "dns/promises",
+      "events",
+      "fs",
+      "fs/promises",
+      "http",
+      "https",
+      "module",
+      "net",
+      "os",
+      "path",
+      "path/posix",
+      "path/win32",
+      "perf_hooks",
+      "process",
+      "punycode",
+      "querystring",
+      "readline",
+      "readline/promises",
+      "stream",
+      "stream/consumers",
+      "stream/promises",
+      "stream/web",
+      "string_decoder",
+      "timers",
+      "timers/promises",
+      "tls",
+      "tty",
+      "url",
+      "util",
+      "util/types",
+      "v8",
+      "vm",
+      "zlib"
+    ],
+    "network": [
+      "dns",
+      "dns/promises",
+      "http",
+      "https",
+      "net",
+      "tls"
+    ]
+  },
+  "transport": {
+    "runtimeServiceCapabilities": [
+      "bundleTransport",
+      "hostCapabilityBroker",
+      "hostCapabilityLiveBridge",
+      "hostPlaintextModuleSourceMaterialization",
+      "nativeEmbeddedRuntime",
+      "onDemandModuleSourceProvider",
+      "persistentProcessRuntime",
+      "processRestartCancellation",
+      "scopedWorkspaceArchiveTransport",
+      "singleActiveBackpressure",
+      "syncScriptExecution"
+    ],
+    "request": "bundle",
+    "workspace": "scoped_archive_pfd",
+    "moduleSource": "on_demand_pfd",
+    "output": {
+      "mode": "buffered",
+      "streaming": false,
+      "terminalEventCount": 1
+    }
+  },
+  "lifecycle": {
+    "processModel": "persistent",
+    "dedicatedProcess": true,
+    "isolatePerExecution": true,
+    "defaultExecutionMode": "one_shot",
+    "admission": {
+      "maxConcurrentExecutions": 1,
+      "queueCapacity": 0,
+      "busyError": "ERR_AUTOJS6_NODE_PLUGIN_BUSY"
+    },
+    "cancellation": {
+      "mode": "process_restart",
+      "automaticRetryAfterDispatch": false
+    },
+    "executionModes": [
+      {
+        "id": "interactive_long_running",
+        "status": "partial",
+        "longRunning": true,
+        "launchSurfaces": [
+          "interactive_session",
+          "packaged_long_running"
+        ],
+        "restartPolicy": "never"
+      },
+      {
+        "id": "node_sandboxed",
+        "status": "design_gated",
+        "longRunning": false,
+        "launchSurfaces": [],
+        "restartPolicy": "never"
+      },
+      {
+        "id": "one_shot",
+        "status": "available",
+        "longRunning": false,
+        "launchSurfaces": [
+          "script"
+        ],
+        "restartPolicy": "never"
+      },
+      {
+        "id": "scheduled",
+        "status": "partial",
+        "longRunning": false,
+        "launchSurfaces": [
+          "scheduled_runner"
+        ],
+        "restartPolicy": "never_no_implicit_retry"
+      },
+      {
+        "id": "worker_computation",
+        "status": "reserved",
+        "longRunning": false,
+        "launchSurfaces": [],
+        "restartPolicy": "never"
+      }
+    ],
+    "metadataAliases": [
+      {
+        "alias": "long_running",
+        "target": "interactive_long_running"
+      },
+      {
+        "alias": "service",
+        "target": "interactive_long_running"
+      }
+    ]
+  },
+  "bridge": {
+    "androidPermissionOrder": [
+      "android.permission.POST_NOTIFICATIONS",
+      "android.permission.RECORD_AUDIO",
+      "android.permission.INTERNET",
+      "android.permission.FOREGROUND_SERVICE",
+      "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",
+      "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
+      "android.permission.FOREGROUND_SERVICE_MICROPHONE"
+    ],
+    "modules": [
+      {
+        "id": "accessibility",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "app",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "barcode",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "clipboard",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "database",
+        "aliases": [
+          "sqlite"
+        ],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "device",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "dialogs",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "engines",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "fetch",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "image",
+        "aliases": [
+          "images"
+        ],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "input_observer",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "java",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "lifecycle",
+        "aliases": [],
+        "providerOwner": "host_control_plane"
+      },
+      {
+        "id": "media",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "media_projection",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "mediainfo",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "notifications",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "ocr",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "package_manager",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "recorder",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "rhino",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "sensors",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "shell",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "storage",
+        "aliases": [
+          "storages"
+        ],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "toast",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "ui",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "ui.overlay",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "websocket",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "work_manager",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      }
+    ],
+    "operations": [
+      {
+        "module": "accessibility",
+        "method": "back",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "click",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "clickText",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "ensureEnabled",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "findAll",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "findByText",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "findOne",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "home",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "isEnabled",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "longClick",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "recentApps",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "scrollBackward",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "scrollForward",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "setText",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "app",
+        "method": "editFile",
+        "requiredCapabilities": [
+          "app.activity"
+        ]
+      },
+      {
+        "module": "app",
+        "method": "getAppName",
+        "requiredCapabilities": [
+          "app.query"
+        ]
+      },
+      {
+        "module": "app",
+        "method": "getPackageName",
+        "requiredCapabilities": [
+          "app.query"
+        ]
+      },
+      {
+        "module": "app",
+        "method": "isInstalled",
+        "requiredCapabilities": [
+          "app.query"
+        ]
+      },
+      {
+        "module": "app",
+        "method": "launchApp",
+        "requiredCapabilities": [
+          "app.launch"
+        ]
+      },
+      {
+        "module": "app",
+        "method": "launchPackage",
+        "requiredCapabilities": [
+          "app.launch"
+        ]
+      },
+      {
+        "module": "app",
+        "method": "openAppSetting",
+        "requiredCapabilities": [
+          "app.settings"
+        ]
+      },
+      {
+        "module": "app",
+        "method": "startActivity",
+        "requiredCapabilities": [
+          "app.activity"
+        ]
+      },
+      {
+        "module": "app",
+        "method": "viewFile",
+        "requiredCapabilities": [
+          "app.activity"
+        ]
+      },
+      {
+        "module": "barcode",
+        "method": "detect",
+        "requiredCapabilities": [
+          "barcode",
+          "image"
+        ]
+      },
+      {
+        "module": "barcode",
+        "method": "detectAll",
+        "requiredCapabilities": [
+          "barcode",
+          "image"
+        ]
+      },
+      {
+        "module": "barcode",
+        "method": "recognizeText",
+        "requiredCapabilities": [
+          "barcode",
+          "image"
+        ]
+      },
+      {
+        "module": "barcode",
+        "method": "recognizeTexts",
+        "requiredCapabilities": [
+          "barcode",
+          "image"
+        ]
+      },
+      {
+        "module": "clipboard",
+        "method": "getText",
+        "requiredCapabilities": [
+          "clipboard"
+        ]
+      },
+      {
+        "module": "clipboard",
+        "method": "hasText",
+        "requiredCapabilities": [
+          "clipboard"
+        ]
+      },
+      {
+        "module": "clipboard",
+        "method": "setText",
+        "requiredCapabilities": [
+          "clipboard"
+        ]
+      },
+      {
+        "module": "database",
+        "method": "all",
+        "requiredCapabilities": [
+          "database"
+        ]
+      },
+      {
+        "module": "database",
+        "method": "close",
+        "requiredCapabilities": [
+          "database"
+        ]
+      },
+      {
+        "module": "database",
+        "method": "exec",
+        "requiredCapabilities": [
+          "database"
+        ]
+      },
+      {
+        "module": "database",
+        "method": "get",
+        "requiredCapabilities": [
+          "database"
+        ]
+      },
+      {
+        "module": "database",
+        "method": "open",
+        "requiredCapabilities": [
+          "database"
+        ]
+      },
+      {
+        "module": "database",
+        "method": "run",
+        "requiredCapabilities": [
+          "database"
+        ]
+      },
+      {
+        "module": "database",
+        "method": "transaction",
+        "requiredCapabilities": [
+          "database"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isIgnoringBatteryOptimizations",
+        "requiredCapabilities": [
+          "device",
+          "device.power"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isScreenOn",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "openBatteryOptimizationSettings",
+        "requiredCapabilities": [
+          "device",
+          "device.power"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "vibrate",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "wakeUp",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "dialogs",
+        "method": "alert",
+        "requiredCapabilities": [
+          "dialogs"
+        ]
+      },
+      {
+        "module": "dialogs",
+        "method": "confirm",
+        "requiredCapabilities": [
+          "dialogs"
+        ]
+      },
+      {
+        "module": "dialogs",
+        "method": "input",
+        "requiredCapabilities": [
+          "dialogs"
+        ]
+      },
+      {
+        "module": "dialogs",
+        "method": "select",
+        "requiredCapabilities": [
+          "dialogs"
+        ]
+      },
+      {
+        "module": "engines",
+        "method": "all",
+        "requiredCapabilities": [
+          "engines"
+        ]
+      },
+      {
+        "module": "engines",
+        "method": "execScript",
+        "requiredCapabilities": [
+          "engines",
+          "engines.exec"
+        ]
+      },
+      {
+        "module": "engines",
+        "method": "execScriptFile",
+        "requiredCapabilities": [
+          "engines",
+          "engines.exec"
+        ]
+      },
+      {
+        "module": "engines",
+        "method": "myEngine",
+        "requiredCapabilities": [
+          "engines"
+        ]
+      },
+      {
+        "module": "engines",
+        "method": "stopAll",
+        "requiredCapabilities": [
+          "engines"
+        ]
+      },
+      {
+        "module": "engines",
+        "method": "stopSelf",
+        "requiredCapabilities": [
+          "engines"
+        ]
+      },
+      {
+        "module": "fetch",
+        "method": "request",
+        "requiredCapabilities": [
+          "network"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "captureScreen",
+        "requiredCapabilities": [
+          "image",
+          "screen_capture"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "clip",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "findColor",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "findImage",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "findMultiColors",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "grayscale",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "matchTemplate",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "readImage",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "recycle",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "resize",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "saveImage",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "threshold",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "input_observer",
+        "method": "close",
+        "requiredCapabilities": [
+          "input_observer",
+          "input_observer.keys"
+        ]
+      },
+      {
+        "module": "input_observer",
+        "method": "drainEvents",
+        "requiredCapabilities": [
+          "input_observer",
+          "input_observer.keys"
+        ]
+      },
+      {
+        "module": "input_observer",
+        "method": "getAvailableSources",
+        "requiredCapabilities": [
+          "input_observer"
+        ]
+      },
+      {
+        "module": "input_observer",
+        "method": "observeKeys",
+        "requiredCapabilities": [
+          "input_observer",
+          "input_observer.keys"
+        ]
+      },
+      {
+        "module": "java",
+        "method": "call",
+        "requiredCapabilities": [
+          "java_interop"
+        ]
+      },
+      {
+        "module": "java",
+        "method": "callInstance",
+        "requiredCapabilities": [
+          "java_interop"
+        ]
+      },
+      {
+        "module": "java",
+        "method": "callStatic",
+        "requiredCapabilities": [
+          "java_interop"
+        ]
+      },
+      {
+        "module": "java",
+        "method": "dispose",
+        "requiredCapabilities": [
+          "java_interop"
+        ]
+      },
+      {
+        "module": "java",
+        "method": "getField",
+        "requiredCapabilities": [
+          "java_interop"
+        ]
+      },
+      {
+        "module": "java",
+        "method": "new",
+        "requiredCapabilities": [
+          "java_interop"
+        ]
+      },
+      {
+        "module": "java",
+        "method": "release",
+        "requiredCapabilities": [
+          "java_interop"
+        ]
+      },
+      {
+        "module": "java",
+        "method": "type",
+        "requiredCapabilities": [
+          "java_interop"
+        ]
+      },
+      {
+        "module": "lifecycle",
+        "method": "checkpoint",
+        "requiredCapabilities": [],
+        "executionModes": [
+          "interactive_long_running"
+        ]
+      },
+      {
+        "module": "lifecycle",
+        "method": "clearCheckpoint",
+        "requiredCapabilities": [],
+        "executionModes": [
+          "interactive_long_running"
+        ]
+      },
+      {
+        "module": "lifecycle",
+        "method": "readCheckpoint",
+        "requiredCapabilities": [],
+        "executionModes": [
+          "interactive_long_running"
+        ]
+      },
+      {
+        "module": "media",
+        "method": "getAudioStreamInfo",
+        "requiredCapabilities": [
+          "media",
+          "media.audio"
+        ]
+      },
+      {
+        "module": "media",
+        "method": "getAudioStreamMaxVolume",
+        "requiredCapabilities": [
+          "media",
+          "media.audio"
+        ]
+      },
+      {
+        "module": "media",
+        "method": "getAudioStreamVolume",
+        "requiredCapabilities": [
+          "media",
+          "media.audio"
+        ]
+      },
+      {
+        "module": "media_projection",
+        "method": "nextImage",
+        "requiredCapabilities": [
+          "screen_capture"
+        ]
+      },
+      {
+        "module": "media_projection",
+        "method": "requestScreenCapture",
+        "requiredCapabilities": [
+          "screen_capture"
+        ]
+      },
+      {
+        "module": "media_projection",
+        "method": "stop",
+        "requiredCapabilities": [
+          "screen_capture"
+        ]
+      },
+      {
+        "module": "mediainfo",
+        "method": "get",
+        "requiredCapabilities": [
+          "media",
+          "media.metadata"
+        ]
+      },
+      {
+        "module": "mediainfo",
+        "method": "read",
+        "requiredCapabilities": [
+          "media",
+          "media.metadata"
+        ]
+      },
+      {
+        "module": "notifications",
+        "method": "cancel",
+        "requiredCapabilities": [
+          "notifications"
+        ]
+      },
+      {
+        "module": "notifications",
+        "method": "cancelAll",
+        "requiredCapabilities": [
+          "notifications"
+        ]
+      },
+      {
+        "module": "notifications",
+        "method": "getPermissionStatus",
+        "requiredCapabilities": [
+          "notifications"
+        ]
+      },
+      {
+        "module": "notifications",
+        "method": "notify",
+        "requiredCapabilities": [
+          "notifications"
+        ]
+      },
+      {
+        "module": "notifications",
+        "method": "openSettings",
+        "requiredCapabilities": [
+          "notifications",
+          "notifications.settings"
+        ]
+      },
+      {
+        "module": "ocr",
+        "method": "detectTextBounds",
+        "requiredCapabilities": [
+          "image",
+          "ocr"
+        ]
+      },
+      {
+        "module": "ocr",
+        "method": "recognize",
+        "requiredCapabilities": [
+          "image",
+          "ocr"
+        ]
+      },
+      {
+        "module": "ocr",
+        "method": "recognizeText",
+        "requiredCapabilities": [
+          "image",
+          "ocr"
+        ]
+      },
+      {
+        "module": "package_manager",
+        "method": "install",
+        "requiredCapabilities": [
+          "package_manager",
+          "package_manager.mutate"
+        ]
+      },
+      {
+        "module": "package_manager",
+        "method": "list",
+        "requiredCapabilities": [
+          "package_manager"
+        ]
+      },
+      {
+        "module": "package_manager",
+        "method": "planInstall",
+        "requiredCapabilities": [
+          "package_manager"
+        ]
+      },
+      {
+        "module": "package_manager",
+        "method": "planRemove",
+        "requiredCapabilities": [
+          "package_manager"
+        ]
+      },
+      {
+        "module": "package_manager",
+        "method": "planUpdate",
+        "requiredCapabilities": [
+          "package_manager"
+        ]
+      },
+      {
+        "module": "package_manager",
+        "method": "prune",
+        "requiredCapabilities": [
+          "package_manager"
+        ]
+      },
+      {
+        "module": "package_manager",
+        "method": "remove",
+        "requiredCapabilities": [
+          "package_manager",
+          "package_manager.mutate"
+        ]
+      },
+      {
+        "module": "package_manager",
+        "method": "update",
+        "requiredCapabilities": [
+          "package_manager",
+          "package_manager.mutate"
+        ]
+      },
+      {
+        "module": "package_manager",
+        "method": "verify",
+        "requiredCapabilities": [
+          "package_manager"
+        ]
+      },
+      {
+        "module": "recorder",
+        "method": "getStatus",
+        "requiredCapabilities": [
+          "media",
+          "media.recording"
+        ]
+      },
+      {
+        "module": "recorder",
+        "method": "start",
+        "requiredCapabilities": [
+          "media",
+          "media.recording"
+        ]
+      },
+      {
+        "module": "recorder",
+        "method": "stop",
+        "requiredCapabilities": [
+          "media",
+          "media.recording"
+        ]
+      },
+      {
+        "module": "rhino",
+        "method": "run",
+        "requiredCapabilities": [
+          "rhino"
+        ]
+      },
+      {
+        "module": "sensors",
+        "method": "drainEvents",
+        "requiredCapabilities": [
+          "sensors"
+        ]
+      },
+      {
+        "module": "sensors",
+        "method": "getAvailableSensors",
+        "requiredCapabilities": [
+          "sensors"
+        ]
+      },
+      {
+        "module": "sensors",
+        "method": "once",
+        "requiredCapabilities": [
+          "sensors"
+        ]
+      },
+      {
+        "module": "sensors",
+        "method": "subscribe",
+        "requiredCapabilities": [
+          "sensors"
+        ]
+      },
+      {
+        "module": "sensors",
+        "method": "unsubscribe",
+        "requiredCapabilities": [
+          "sensors"
+        ]
+      },
+      {
+        "module": "shell",
+        "method": "exec",
+        "requiredCapabilities": [
+          "shell"
+        ],
+        "conditionalCapabilities": [
+          {
+            "when": "options.root=true",
+            "requiredCapability": "shell.root"
+          }
+        ]
+      },
+      {
+        "module": "storage",
+        "method": "clear",
+        "requiredCapabilities": [
+          "storage"
+        ]
+      },
+      {
+        "module": "storage",
+        "method": "contains",
+        "requiredCapabilities": [
+          "storage"
+        ]
+      },
+      {
+        "module": "storage",
+        "method": "get",
+        "requiredCapabilities": [
+          "storage"
+        ]
+      },
+      {
+        "module": "storage",
+        "method": "keys",
+        "requiredCapabilities": [
+          "storage"
+        ]
+      },
+      {
+        "module": "storage",
+        "method": "put",
+        "requiredCapabilities": [
+          "storage"
+        ]
+      },
+      {
+        "module": "storage",
+        "method": "remove",
+        "requiredCapabilities": [
+          "storage"
+        ]
+      },
+      {
+        "module": "toast",
+        "method": "showToast",
+        "requiredCapabilities": [
+          "toast"
+        ]
+      },
+      {
+        "module": "toast",
+        "method": "toast",
+        "requiredCapabilities": [
+          "toast"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "batchUpdate",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "close",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "drainEvents",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "showLayout",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "update",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui.overlay",
+        "method": "close",
+        "requiredCapabilities": [
+          "ui.overlay"
+        ]
+      },
+      {
+        "module": "ui.overlay",
+        "method": "closeAll",
+        "requiredCapabilities": [
+          "ui.overlay"
+        ]
+      },
+      {
+        "module": "ui.overlay",
+        "method": "drainEvents",
+        "requiredCapabilities": [
+          "ui.overlay"
+        ]
+      },
+      {
+        "module": "ui.overlay",
+        "method": "hasPermission",
+        "requiredCapabilities": [
+          "ui.overlay.permission"
+        ]
+      },
+      {
+        "module": "ui.overlay",
+        "method": "openPermissionSettings",
+        "requiredCapabilities": [
+          "ui.overlay.permission"
+        ]
+      },
+      {
+        "module": "ui.overlay",
+        "method": "show",
+        "requiredCapabilities": [
+          "ui.overlay"
+        ]
+      },
+      {
+        "module": "ui.overlay",
+        "method": "update",
+        "requiredCapabilities": [
+          "ui.overlay"
+        ]
+      },
+      {
+        "module": "websocket",
+        "method": "close",
+        "requiredCapabilities": [
+          "network"
+        ]
+      },
+      {
+        "module": "websocket",
+        "method": "connect",
+        "requiredCapabilities": [
+          "network"
+        ]
+      },
+      {
+        "module": "websocket",
+        "method": "drainEvents",
+        "requiredCapabilities": [
+          "network"
+        ]
+      },
+      {
+        "module": "websocket",
+        "method": "send",
+        "requiredCapabilities": [
+          "network"
+        ]
+      },
+      {
+        "module": "work_manager",
+        "method": "cancel",
+        "requiredCapabilities": [
+          "work_manager"
+        ]
+      },
+      {
+        "module": "work_manager",
+        "method": "list",
+        "requiredCapabilities": [
+          "work_manager"
+        ]
+      },
+      {
+        "module": "work_manager",
+        "method": "scheduleOnce",
+        "requiredCapabilities": [
+          "work_manager"
+        ]
+      },
+      {
+        "module": "work_manager",
+        "method": "schedulePeriodic",
+        "requiredCapabilities": [
+          "work_manager"
+        ]
+      }
+    ],
+    "permissionCapabilities": [
+      {
+        "id": "accessibility",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "app",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "app.activity",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "app.launch",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "app.query",
+        "aliases": [
+          "app-query",
+          "app:query",
+          "package-query",
+          "package.query"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "app.settings",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "barcode",
+        "aliases": [
+          "barcode.detect",
+          "barcode.detectall",
+          "barcode.recognizetext",
+          "barcode.recognizetexts",
+          "qr-code",
+          "qr_code",
+          "qrcode",
+          "qrcode.detect",
+          "qrcode.detectall",
+          "qrcode.recognizetext",
+          "qrcode.recognizetexts"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "clipboard",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "database",
+        "aliases": [
+          "sqlite"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "device",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "device.power",
+        "aliases": [
+          "device-power",
+          "device:power",
+          "power-manager",
+          "power_manager"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "dialogs",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "engines",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "engines.exec",
+        "aliases": [
+          "engine.exec",
+          "engines:exec"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "floaty.raw",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "floaty.touch",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "image",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "input_observer",
+        "aliases": [
+          "input-observer",
+          "input.observer",
+          "inputobserver"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "input_observer.intercept",
+        "aliases": [
+          "input-observer.intercept",
+          "input.observer.intercept"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "input_observer.keys",
+        "aliases": [
+          "input-observer.keys",
+          "input.observer.keys"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "input_observer.touch",
+        "aliases": [
+          "input-observer.touch",
+          "input.observer.touch"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "java_interop",
+        "aliases": [
+          "java"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "media",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "media.audio",
+        "aliases": [
+          "audio",
+          "media-audio",
+          "media:audio"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "media.metadata",
+        "aliases": [
+          "media-info",
+          "media.metadata",
+          "media:metadata",
+          "media_info",
+          "mediainfo"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "media.recording",
+        "aliases": [
+          "audio.recording",
+          "media-recording",
+          "media.record",
+          "media:recording",
+          "recorder"
+        ],
+        "androidPermissions": [
+          "android.permission.FOREGROUND_SERVICE",
+          "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+          "android.permission.RECORD_AUDIO"
+        ]
+      },
+      {
+        "id": "network",
+        "aliases": [],
+        "androidPermissions": [
+          "android.permission.INTERNET"
+        ]
+      },
+      {
+        "id": "notifications",
+        "aliases": [
+          "notification"
+        ],
+        "androidPermissions": [
+          "android.permission.POST_NOTIFICATIONS"
+        ]
+      },
+      {
+        "id": "notifications.settings",
+        "aliases": [
+          "notification.settings",
+          "notifications-settings",
+          "notifications:settings"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "ocr",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "package_manager",
+        "aliases": [
+          "android-package-manager",
+          "android_package_manager",
+          "package-manager",
+          "package.manager"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "package_manager.mutate",
+        "aliases": [
+          "android-package-manager.mutate",
+          "android_package_manager.mutate",
+          "package-manager.mutate",
+          "package.manager.mutate"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "raw_network",
+        "aliases": [
+          "raw-network",
+          "raw-node-network",
+          "raw.network",
+          "raw.node.network",
+          "raw_node_network_modules"
+        ],
+        "androidPermissions": [
+          "android.permission.INTERNET"
+        ]
+      },
+      {
+        "id": "rhino",
+        "aliases": [
+          "rhino.run"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "screen_capture",
+        "aliases": [
+          "media.projection",
+          "media_projection",
+          "screen.capture",
+          "screencapture"
+        ],
+        "androidPermissions": [
+          "android.permission.FOREGROUND_SERVICE",
+          "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",
+          "android.permission.FOREGROUND_SERVICE_SPECIAL_USE"
+        ]
+      },
+      {
+        "id": "sensors",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "shell",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "shell.root",
+        "aliases": [
+          "shell-root",
+          "shell:root"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "shell.shizuku",
+        "aliases": [
+          "shell-shizuku",
+          "shell:shizuku"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "storage",
+        "aliases": [
+          "storages"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "toast",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "ui",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "ui.overlay",
+        "aliases": [
+          "overlay",
+          "ui-overlay",
+          "ui:overlay"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "ui.overlay.foreground",
+        "aliases": [
+          "overlay.foreground",
+          "ui-overlay.foreground"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "ui.overlay.packaged",
+        "aliases": [
+          "overlay.packaged",
+          "ui-overlay.packaged"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "ui.overlay.permission",
+        "aliases": [
+          "overlay.permission",
+          "ui-overlay.permission",
+          "ui:overlay.permission"
+        ],
+        "androidPermissions": []
+      },
+      {
+        "id": "work_manager",
+        "aliases": [],
+        "androidPermissions": []
+      }
+    ]
+  },
+  "errors": {
+    "constants": [
+      {
+        "name": "ANDROID_PACKAGE_ALREADY_INSTALLED",
+        "code": "ERR_AUTOJS6_ANDROID_PACKAGE_ALREADY_INSTALLED"
+      },
+      {
+        "name": "ANDROID_PACKAGE_BIN_DISABLED",
+        "code": "ERR_AUTOJS6_ANDROID_PACKAGE_BIN_DISABLED"
+      },
+      {
+        "name": "ANDROID_PACKAGE_CANCELLED",
+        "code": "ERR_AUTOJS6_ANDROID_PACKAGE_CANCELLED"
+      },
+      {
+        "name": "ANDROID_PACKAGE_INTEGRITY",
+        "code": "ERR_AUTOJS6_ANDROID_PACKAGE_INTEGRITY"
+      },
+      {
+        "name": "ANDROID_PACKAGE_INVALID",
+        "code": "ERR_AUTOJS6_ANDROID_PACKAGE_INVALID"
+      },
+      {
+        "name": "ANDROID_PACKAGE_LIFECYCLE_DISABLED",
+        "code": "ERR_AUTOJS6_ANDROID_PACKAGE_LIFECYCLE_DISABLED"
+      },
+      {
+        "name": "ANDROID_PACKAGE_NATIVE_DISABLED",
+        "code": "ERR_AUTOJS6_ANDROID_PACKAGE_NATIVE_DISABLED"
+      },
+      {
+        "name": "ANDROID_PACKAGE_NOT_INSTALLED",
+        "code": "ERR_AUTOJS6_ANDROID_PACKAGE_NOT_INSTALLED"
+      },
+      {
+        "name": "ANDROID_PACKAGE_PATH_ESCAPE",
+        "code": "ERR_AUTOJS6_ANDROID_PACKAGE_PATH_ESCAPE"
+      },
+      {
+        "name": "BRIDGE_CANCELLED",
+        "code": "ERR_AUTOJS6_BRIDGE_CANCELLED"
+      },
+      {
+        "name": "BRIDGE_CAPABILITY_NOT_DECLARED",
+        "code": "ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED"
+      },
+      {
+        "name": "BRIDGE_INVALID_REQUEST",
+        "code": "ERR_AUTOJS6_BRIDGE_INVALID_REQUEST"
+      },
+      {
+        "name": "BRIDGE_PERMISSION_DENIED",
+        "code": "ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED"
+      },
+      {
+        "name": "BRIDGE_PROCESS_DEAD",
+        "code": "ERR_AUTOJS6_BRIDGE_PROCESS_DEAD"
+      },
+      {
+        "name": "BRIDGE_PROVIDER_FAILED",
+        "code": "ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED"
+      },
+      {
+        "name": "BRIDGE_RATE_LIMITED",
+        "code": "ERR_AUTOJS6_BRIDGE_RATE_LIMITED"
+      },
+      {
+        "name": "BRIDGE_RESOURCE_LIMIT",
+        "code": "ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT"
+      },
+      {
+        "name": "BRIDGE_TIMEOUT",
+        "code": "ERR_AUTOJS6_BRIDGE_TIMEOUT"
+      },
+      {
+        "name": "BUILTIN_DISABLED",
+        "code": "ERR_AUTOJS6_BUILTIN_DISABLED"
+      },
+      {
+        "name": "DYNAMIC_IMPORT_UNSUPPORTED",
+        "code": "ERR_AUTOJS6_DYNAMIC_IMPORT_UNSUPPORTED"
+      },
+      {
+        "name": "EMBEDDED_NODE_ESM_UNSUPPORTED",
+        "code": "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED"
+      },
+      {
+        "name": "EMBEDDED_NODE_INVALID_STATE",
+        "code": "ERR_AUTOJS6_EMBEDDED_NODE_INVALID_STATE"
+      },
+      {
+        "name": "EMBEDDED_NODE_UNSUPPORTED_OPTION",
+        "code": "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
+      },
+      {
+        "name": "FOREGROUND_SERVICE_START_NOT_ALLOWED",
+        "code": "ERR_AUTOJS6_FOREGROUND_SERVICE_START_NOT_ALLOWED"
+      },
+      {
+        "name": "FOREGROUND_SERVICE_TYPE_INVALID",
+        "code": "ERR_AUTOJS6_FOREGROUND_SERVICE_TYPE_INVALID"
+      },
+      {
+        "name": "FS_ABSOLUTE_PATH_DENIED",
+        "code": "ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED"
+      },
+      {
+        "name": "FS_NUL_BYTE",
+        "code": "ERR_AUTOJS6_FS_NUL_BYTE"
+      },
+      {
+        "name": "FS_PATH_ESCAPE",
+        "code": "ERR_AUTOJS6_FS_PATH_ESCAPE"
+      },
+      {
+        "name": "FS_REALPATH_ESCAPE",
+        "code": "ERR_AUTOJS6_FS_REALPATH_ESCAPE"
+      },
+      {
+        "name": "FS_SCOPED_PATH",
+        "code": "ERR_AUTOJS6_FS_SCOPED_PATH"
+      },
+      {
+        "name": "FS_SYMLINK_ESCAPE",
+        "code": "ERR_AUTOJS6_FS_SYMLINK_ESCAPE"
+      },
+      {
+        "name": "FS_WATCH_LIMIT",
+        "code": "ERR_AUTOJS6_FS_WATCH_LIMIT"
+      },
+      {
+        "name": "FS_WATCH_RATE_LIMITED",
+        "code": "ERR_AUTOJS6_FS_WATCH_RATE_LIMITED"
+      },
+      {
+        "name": "JAVA_CLASS_DENIED",
+        "code": "ERR_AUTOJS6_JAVA_CLASS_DENIED"
+      },
+      {
+        "name": "JAVA_INTEROP_DISABLED",
+        "code": "ERR_AUTOJS6_JAVA_INTEROP_DISABLED"
+      },
+      {
+        "name": "JAVA_METHOD_DENIED",
+        "code": "ERR_AUTOJS6_JAVA_METHOD_DENIED"
+      },
+      {
+        "name": "JAVA_REFLECTION_DENIED",
+        "code": "ERR_AUTOJS6_JAVA_REFLECTION_DENIED"
+      },
+      {
+        "name": "LEGACY_BUILTIN_DISABLED",
+        "code": "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED"
+      },
+      {
+        "name": "LEGACY_DYNAMIC_IMPORT_UNSUPPORTED",
+        "code": "ERR_AUTOJS6_EMBEDDED_NODE_DYNAMIC_IMPORT_UNSUPPORTED"
+      },
+      {
+        "name": "LEGACY_FETCH_DISABLED",
+        "code": "ERR_AUTOJS6_EMBEDDED_NODE_FETCH_DISABLED"
+      },
+      {
+        "name": "LEGACY_NETWORK_DISABLED",
+        "code": "ERR_AUTOJS6_EMBEDDED_NODE_NETWORK_DISABLED"
+      },
+      {
+        "name": "LEGACY_SCRIPT_TIMEOUT",
+        "code": "ERR_AUTOJS6_EMBEDDED_NODE_SCRIPT_TIMEOUT"
+      },
+      {
+        "name": "MODULE_NOT_FOUND",
+        "code": "ERR_AUTOJS6_MODULE_NOT_FOUND"
+      },
+      {
+        "name": "MODULE_SOURCE_BUDGET_EXCEEDED",
+        "code": "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED"
+      },
+      {
+        "name": "MODULE_SOURCE_PROVIDER_CANCELLED",
+        "code": "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_CANCELLED"
+      },
+      {
+        "name": "MODULE_SOURCE_PROVIDER_DENIED",
+        "code": "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED"
+      },
+      {
+        "name": "MODULE_SOURCE_PROVIDER_FAILED",
+        "code": "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED"
+      },
+      {
+        "name": "MODULE_SOURCE_PROVIDER_INVALID_REQUEST",
+        "code": "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_INVALID_REQUEST"
+      },
+      {
+        "name": "MODULE_SOURCE_PROVIDER_TIMEOUT",
+        "code": "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_TIMEOUT"
+      },
+      {
+        "name": "NATIVE_ADDON_DISABLED",
+        "code": "ERR_AUTOJS6_NATIVE_ADDON_DISABLED"
+      },
+      {
+        "name": "NETWORK_ABORTED",
+        "code": "ERR_AUTOJS6_NETWORK_ABORTED"
+      },
+      {
+        "name": "NETWORK_DISABLED",
+        "code": "ERR_AUTOJS6_NETWORK_DISABLED"
+      },
+      {
+        "name": "NETWORK_ERROR",
+        "code": "ERR_AUTOJS6_NETWORK_ERROR"
+      },
+      {
+        "name": "NETWORK_INVALID_URL",
+        "code": "ERR_AUTOJS6_NETWORK_INVALID_URL"
+      },
+      {
+        "name": "NETWORK_PERMISSION_DENIED",
+        "code": "ERR_AUTOJS6_NETWORK_PERMISSION_DENIED"
+      },
+      {
+        "name": "NETWORK_POLICY_DENIED",
+        "code": "ERR_AUTOJS6_NETWORK_POLICY_DENIED"
+      },
+      {
+        "name": "NETWORK_RESPONSE_TOO_LARGE",
+        "code": "ERR_AUTOJS6_NETWORK_RESPONSE_TOO_LARGE"
+      },
+      {
+        "name": "NETWORK_TIMEOUT",
+        "code": "ERR_AUTOJS6_NETWORK_TIMEOUT"
+      },
+      {
+        "name": "NODE_ADAPTER_API_UNAVAILABLE",
+        "code": "ERR_AUTOJS6_NODE_ADAPTER_API_UNAVAILABLE"
+      },
+      {
+        "name": "NODE_ADAPTER_BAD_JSON",
+        "code": "ERR_AUTOJS6_NODE_ADAPTER_BAD_JSON"
+      },
+      {
+        "name": "NODE_ADAPTER_CREATE_FAILED",
+        "code": "ERR_AUTOJS6_NODE_ADAPTER_CREATE_FAILED"
+      },
+      {
+        "name": "NODE_ADAPTER_INVALID_ARGUMENT",
+        "code": "ERR_AUTOJS6_NODE_ADAPTER_INVALID_ARGUMENT"
+      },
+      {
+        "name": "NODE_ADAPTER_INVALID_HANDLE",
+        "code": "ERR_AUTOJS6_NODE_ADAPTER_INVALID_HANDLE"
+      },
+      {
+        "name": "NODE_ADAPTER_NATIVE_EXCEPTION",
+        "code": "ERR_AUTOJS6_NODE_ADAPTER_NATIVE_EXCEPTION"
+      },
+      {
+        "name": "NODE_ADAPTER_RESULT_MISSING",
+        "code": "ERR_AUTOJS6_NODE_ADAPTER_RESULT_MISSING"
+      },
+      {
+        "name": "NODE_DISABLED",
+        "code": "ERR_AUTOJS6_NODE_DISABLED"
+      },
+      {
+        "name": "NODE_ENGINE_BUSY",
+        "code": "ERR_AUTOJS6_NODE_ENGINE_BUSY"
+      },
+      {
+        "name": "NODE_NATIVE_EXECUTION_EXCEPTION",
+        "code": "ERR_AUTOJS6_NODE_NATIVE_EXECUTION_EXCEPTION"
+      },
+      {
+        "name": "NODE_ONE_SHOT_REQUIRES_FRESH_PROCESS",
+        "code": "ERR_AUTOJS6_NODE_ONE_SHOT_REQUIRES_FRESH_PROCESS"
+      },
+      {
+        "name": "NODE_PLUGIN_BUSY",
+        "code": "ERR_AUTOJS6_NODE_PLUGIN_BUSY"
+      },
+      {
+        "name": "NODE_PLUGIN_CONTRACT_MISMATCH",
+        "code": "ERR_AUTOJS6_NODE_PLUGIN_CONTRACT_MISMATCH"
+      },
+      {
+        "name": "NODE_PLUGIN_EMPTY_SOURCE",
+        "code": "ERR_AUTOJS6_NODE_PLUGIN_EMPTY_SOURCE"
+      },
+      {
+        "name": "NODE_PLUGIN_EXECUTION_LOST",
+        "code": "ERR_AUTOJS6_NODE_PLUGIN_EXECUTION_LOST"
+      },
+      {
+        "name": "NODE_PLUGIN_UNAVAILABLE",
+        "code": "ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE"
+      },
+      {
+        "name": "NODE_PROCESS_RUNTIME_UNAVAILABLE",
+        "code": "ERR_AUTOJS6_NODE_PROCESS_RUNTIME_UNAVAILABLE"
+      },
+      {
+        "name": "NODE_QUEUE_CANCELLED",
+        "code": "ERR_AUTOJS6_NODE_QUEUE_CANCELLED"
+      },
+      {
+        "name": "NODE_QUEUE_FULL",
+        "code": "ERR_AUTOJS6_NODE_QUEUE_FULL"
+      },
+      {
+        "name": "NODE_QUEUE_TIMEOUT",
+        "code": "ERR_AUTOJS6_NODE_QUEUE_TIMEOUT"
+      },
+      {
+        "name": "NODE_RUNTIME_UNAVAILABLE",
+        "code": "ERR_AUTOJS6_NODE_RUNTIME_UNAVAILABLE"
+      },
+      {
+        "name": "NODE_TEST_ASYNC_ACTIVITY",
+        "code": "ERR_AUTOJS6_NODE_TEST_ASYNC_ACTIVITY"
+      },
+      {
+        "name": "NODE_TEST_FAILURE",
+        "code": "ERR_AUTOJS6_NODE_TEST_FAILURE"
+      },
+      {
+        "name": "NODE_TEST_TIMEOUT",
+        "code": "ERR_AUTOJS6_NODE_TEST_TIMEOUT"
+      },
+      {
+        "name": "NODE_WORKING_DIRECTORY",
+        "code": "ERR_AUTOJS6_NODE_WORKING_DIRECTORY"
+      },
+      {
+        "name": "NPM_CLI_DENIED",
+        "code": "ERR_AUTOJS6_NPM_CLI_DENIED"
+      },
+      {
+        "name": "NPM_REGISTRY_DENIED",
+        "code": "ERR_AUTOJS6_NPM_REGISTRY_DENIED"
+      },
+      {
+        "name": "PACKAGED_RUNTIME_VERSION_MISMATCH",
+        "code": "ERR_AUTOJS6_PACKAGED_RUNTIME_VERSION_MISMATCH"
+      },
+      {
+        "name": "PACKAGE_MANAGER_MUTATION_NOT_CONFIRMED",
+        "code": "ERR_AUTOJS6_PACKAGE_MANAGER_MUTATION_NOT_CONFIRMED"
+      },
+      {
+        "name": "PROCESS_API_DISABLED",
+        "code": "ERR_AUTOJS6_PROCESS_API_DISABLED"
+      },
+      {
+        "name": "PROCESS_EXIT",
+        "code": "ERR_AUTOJS6_PROCESS_EXIT"
+      },
+      {
+        "name": "REQUIRE_ESM_UNSUPPORTED",
+        "code": "ERR_AUTOJS6_REQUIRE_ESM_UNSUPPORTED"
+      },
+      {
+        "name": "RHINO_COMPAT_BLOCKED_BY_DESIGN",
+        "code": "ERR_AUTOJS6_RHINO_COMPAT_BLOCKED_BY_DESIGN"
+      },
+      {
+        "name": "RHINO_COMPAT_INVALID_OPTION",
+        "code": "ERR_AUTOJS6_RHINO_COMPAT_INVALID_OPTION"
+      },
+      {
+        "name": "RHINO_COMPAT_UNSUPPORTED",
+        "code": "ERR_AUTOJS6_RHINO_COMPAT_UNSUPPORTED"
+      },
+      {
+        "name": "RHINO_EXECUTION_ERROR",
+        "code": "ERR_AUTOJS6_RHINO_EXECUTION_ERROR"
+      },
+      {
+        "name": "RHINO_EXECUTION_TIMEOUT",
+        "code": "ERR_AUTOJS6_RHINO_EXECUTION_TIMEOUT"
+      },
+      {
+        "name": "RHINO_IMPORT_UNSUPPORTED",
+        "code": "ERR_AUTOJS6_RHINO_IMPORT_UNSUPPORTED"
+      },
+      {
+        "name": "RHINO_INSTALL_UNSUPPORTED",
+        "code": "ERR_AUTOJS6_RHINO_INSTALL_UNSUPPORTED"
+      },
+      {
+        "name": "RHINO_INVALID_REQUEST",
+        "code": "ERR_AUTOJS6_RHINO_INVALID_REQUEST"
+      },
+      {
+        "name": "RHINO_JAVA_ADAPTER_UNSUPPORTED",
+        "code": "ERR_AUTOJS6_RHINO_JAVA_ADAPTER_UNSUPPORTED"
+      },
+      {
+        "name": "RHINO_JSON_UNSAFE_RESULT",
+        "code": "ERR_AUTOJS6_RHINO_JSON_UNSAFE_RESULT"
+      },
+      {
+        "name": "RHINO_SHIM_DISABLED",
+        "code": "ERR_AUTOJS6_RHINO_SHIM_DISABLED"
+      },
+      {
+        "name": "SCRIPT_TIMEOUT",
+        "code": "ERR_AUTOJS6_SCRIPT_TIMEOUT"
+      },
+      {
+        "name": "SHELL_SHIZUKU_UNSUPPORTED",
+        "code": "ERR_AUTOJS6_SHELL_SHIZUKU_UNSUPPORTED"
+      },
+      {
+        "name": "TYPESCRIPT_UNSUPPORTED_EXTENSION",
+        "code": "ERR_AUTOJS6_TYPESCRIPT_UNSUPPORTED_EXTENSION"
+      },
+      {
+        "name": "UNSUPPORTED_TYPESCRIPT_SYNTAX",
+        "code": "ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX"
+      },
+      {
+        "name": "WORKER_BRIDGE_DENIED",
+        "code": "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
+      },
+      {
+        "name": "WORKER_DISABLED",
+        "code": "ERR_AUTOJS6_WORKER_DISABLED"
+      },
+      {
+        "name": "WORKER_LIMIT_EXCEEDED",
+        "code": "ERR_AUTOJS6_WORKER_LIMIT_EXCEEDED"
+      },
+      {
+        "name": "WORKER_POOL_CLOSED",
+        "code": "ERR_AUTOJS6_WORKER_POOL_CLOSED"
+      },
+      {
+        "name": "WORKER_POOL_QUEUE_FULL",
+        "code": "ERR_AUTOJS6_WORKER_POOL_QUEUE_FULL"
+      },
+      {
+        "name": "WORKER_POOL_TASK_CANCELLED",
+        "code": "ERR_AUTOJS6_WORKER_POOL_TASK_CANCELLED"
+      },
+      {
+        "name": "WORKER_POOL_TASK_FAILED",
+        "code": "ERR_AUTOJS6_WORKER_POOL_TASK_FAILED"
+      },
+      {
+        "name": "WORKER_POOL_TASK_TIMEOUT",
+        "code": "ERR_AUTOJS6_WORKER_POOL_TASK_TIMEOUT"
+      },
+      {
+        "name": "WORKER_TERMINATED",
+        "code": "ERR_AUTOJS6_WORKER_TERMINATED"
+      },
+      {
+        "name": "WORKER_TIMEOUT",
+        "code": "ERR_AUTOJS6_WORKER_TIMEOUT"
+      },
+      {
+        "name": "WORK_MANAGER_QUOTA_EXHAUSTED",
+        "code": "ERR_AUTOJS6_WORK_MANAGER_QUOTA_EXHAUSTED"
+      }
+    ],
+    "legacyAliases": [
+      {
+        "code": "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED",
+        "canonicalCode": "ERR_AUTOJS6_BUILTIN_DISABLED"
+      },
+      {
+        "code": "ERR_AUTOJS6_EMBEDDED_NODE_DYNAMIC_IMPORT_UNSUPPORTED",
+        "canonicalCode": "ERR_AUTOJS6_DYNAMIC_IMPORT_UNSUPPORTED"
+      },
+      {
+        "code": "ERR_AUTOJS6_EMBEDDED_NODE_FETCH_DISABLED",
+        "canonicalCode": "ERR_AUTOJS6_NETWORK_DISABLED"
+      },
+      {
+        "code": "ERR_AUTOJS6_EMBEDDED_NODE_NETWORK_DISABLED",
+        "canonicalCode": "ERR_AUTOJS6_NETWORK_DISABLED"
+      },
+      {
+        "code": "ERR_AUTOJS6_EMBEDDED_NODE_SCRIPT_TIMEOUT",
+        "canonicalCode": "ERR_AUTOJS6_SCRIPT_TIMEOUT"
+      }
+    ]
+  },
+  "diagnostics": {
+    "bundleKeys": {
+      "schema": "nodeCapabilityCatalogSchema",
+      "version": "nodeCapabilityCatalogVersion",
+      "sha256": "nodeCapabilityCatalogSha256"
+    },
+    "nativePayloadKeys": {
+      "schema": "embedded_script.runtime_plugin.capability_catalog_schema",
+      "version": "embedded_script.runtime_plugin.capability_catalog_version",
+      "sha256": "embedded_script.runtime_plugin.capability_catalog_sha256"
+    }
+  }
+}
