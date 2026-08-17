@@ -140,8 +140,11 @@ void putEmbeddedScriptExecutionFields(std::vector<std::string>& payload, const s
     putPayload(payload, "embedded_script.dynamic_require_fallback_last_denied_reason", jsonStringField(text, "dynamicRequireFallbackLastDeniedReason"));
     putPayload(payload, "embedded_script.module_provider.enabled", jsonBooleanField(text, "moduleProviderEnabled"));
     putPayload(payload, "embedded_script.module_provider.request_count", jsonNumberField(text, "moduleProviderRequestCount"));
+    putPayload(payload, "embedded_script.module_provider.missing_candidate_request_count", jsonNumberField(text, "moduleProviderMissingCandidateRequestCount"));
     putPayload(payload, "embedded_script.module_provider.resolved_count", jsonNumberField(text, "moduleProviderResolvedCount"));
     putPayload(payload, "embedded_script.module_provider.decrypted_count", jsonNumberField(text, "moduleProviderDecryptedCount"));
+    putPayload(payload, "embedded_script.module_provider.materialized_count", jsonNumberField(text, "moduleProviderMaterializedCount"));
+    putPayload(payload, "embedded_script.module_provider.materialized_source_bytes", jsonNumberField(text, "moduleProviderMaterializedSourceBytes"));
     putPayload(payload, "embedded_script.module_provider.not_encrypted_count", jsonNumberField(text, "moduleProviderNotEncryptedCount"));
     putPayload(payload, "embedded_script.module_provider.not_found_count", jsonNumberField(text, "moduleProviderNotFoundCount"));
     putPayload(payload, "embedded_script.module_provider.denied_count", jsonNumberField(text, "moduleProviderDeniedCount"));
