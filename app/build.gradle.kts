@@ -1,5 +1,6 @@
 import com.android.build.api.variant.FilterConfiguration
 import org.gradle.api.provider.Property
+import java.security.MessageDigest
 
 plugins {
     id("org.autojs.build.utils")
@@ -14,6 +15,16 @@ val globalApplicationId = "io.github.supermonster003.autojs6.plugin.nodejs"
 val buildTypeDebug = "debug"
 val buildTypeRelease = "release"
 val nodeJsNetworkExperimentalEnabled = providers.gradleProperty("autojs.nodejs.network.experimental").orElse("false").get()
+val commonPluginApiSha256 = "104004ce6f498d9928759709c373370a79f612b401998ccac1cb3fcaa35f5710"
+val commonPluginApiAar = rootProject.file("libs/common-plugin-api.aar").also { artifact ->
+    require(artifact.isFile) { "Missing common plugin API AAR: ${artifact.absolutePath}" }
+    val digest = MessageDigest.getInstance("SHA-256")
+    val actual = digest.digest(artifact.readBytes())
+        .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+    require(actual == commonPluginApiSha256) {
+        "Common plugin API AAR SHA-256 mismatch: expected $commonPluginApiSha256, actual $actual"
+    }
+}
 
 android {
     namespace = globalApplicationId
@@ -150,8 +161,8 @@ androidComponents {
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.21")
     implementation("org.jetbrains:annotations:26.0.2")
-    implementation(files("$rootDir/libs/common-plugin-api.aar"))
-    implementation(files("$rootDir/libs/nodejs-api.aar"))
+    implementation(files(commonPluginApiAar))
+    implementation(project(":nodejs-api"))
     testImplementation("junit:junit:4.13.2")
 }
 
