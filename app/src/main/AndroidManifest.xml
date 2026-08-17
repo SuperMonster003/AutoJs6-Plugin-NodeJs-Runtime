@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="org.autojs.permission.PLUGIN" />
+    <!-- M2.6: raw Node network builtins (http/https/net/dns/tls) are enabled
+         by default; sockets need this even for loopback. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:label="@string/app_name"
