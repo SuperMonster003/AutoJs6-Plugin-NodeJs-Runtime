@@ -1,0 +1,236 @@
+{
+  "schema": "autojs6-node-plugin-x3i-directed-device-run-v1",
+  "milestone": "X3i",
+  "result": "pass",
+  "evidenceLevel": "directed-device",
+  "generatedAtUtc": "2026-08-13T14:24:21.3536444Z",
+  "evidenceBoundary": "This is one focused directed-device execution of only the X3i selector against the exact frozen x86_64 Plugin and AndroidTest APKs. It authorizes the subsequent exact Host removal gate for that selector; it is not the full 23-selector Android harness, a connected-device task, a device matrix, a soak, or production evidence.",
+  "deviceSelection": {
+    "requestedAvdName": "DEX_R1_API34_X64",
+    "requestedPort": 5562,
+    "observedSerial": "emulator-5562",
+    "uniqueNewEmulatorSerial": true,
+    "serialAmbiguous": false,
+    "manufacturer": "unknown",
+    "model": "Android SDK built for x86_64",
+    "apiLevel": 34,
+    "abis": [
+      "x86_64"
+    ],
+    "emulator": true,
+    "roKernelQemu": "1",
+    "bootCompletedBeforeRun": true,
+    "bootAnimationState": "stopped"
+  },
+  "executionPolicy": {
+    "allDirectedDeviceCommandsUsedExplicitSerial": true,
+    "adbEnumerationCommandsWereReadOnly": true,
+    "physicalDeviceDirectedCommandCount": 0,
+    "physicalSerialsNeverTargeted": [
+      "968e9f18",
+      "QV710AF65F"
+    ],
+    "connectedTaskUsed": false,
+    "genericConnectedTaskUsed": false,
+    "gradleTaskUsed": false,
+    "soakRun": false,
+    "fullTwentyThreeSelectorHarnessRun": false,
+    "selectorCount": 1,
+    "attemptCount": 1,
+    "retryCount": 0,
+    "sourceChangedDuringRun": false,
+    "verbatimAdbStdoutCaptured": true
+  },
+  "timeline": {
+    "temporaryAvdStartedAtUtc": "2026-08-13T14:19:37.6326667Z",
+    "bootVerifiedAtUtc": "2026-08-13T14:20:19.4444101Z",
+    "appInstallStartedAtUtc": "2026-08-13T14:21:07.0228783Z",
+    "testInstallStartedAtUtc": "2026-08-13T14:21:08.2914778Z",
+    "installsCompletedAtUtc": "2026-08-13T14:21:08.5203680Z",
+    "installedArtifactsVerifiedAtUtc": "2026-08-13T14:21:41.3688488Z",
+    "instrumentationCaptureWindowOpenedAtUtc": "2026-08-13T14:22:08.7410425Z",
+    "instrumentationCaptureWindowClosedAtUtc": "2026-08-13T14:22:34.0298341Z",
+    "cleanupStartedAtUtc": "2026-08-13T14:22:50.2869216Z",
+    "devicePackagesRestoredAtUtc": "2026-08-13T14:22:51.5898551Z",
+    "temporaryPullsDeletedAtUtc": "2026-08-13T14:23:30.9592387Z",
+    "temporaryAvdShutdownVerifiedAtUtc": "2026-08-13T14:23:54.7498209Z"
+  },
+  "preflight": {
+    "artifactHashesAndSizesVerifiedBeforeLaunch": true,
+    "aaptIdentityVerifiedBeforeInstall": true,
+    "localApkSignersVerifiedBeforeInstall": true,
+    "requestedPortPairFreeBeforeLaunch": true,
+    "preexistingAdbSerials": [
+      "968e9f18",
+      "QV710AF65F"
+    ],
+    "preexistingEmulatorOrQemuProcessIds": [],
+    "deviceState": "device",
+    "bootCompleted": true,
+    "avdNameVerified": true,
+    "apiAndAbiVerified": true,
+    "pluginPackageExisted": false,
+    "pluginTestPackageExisted": false,
+    "hostPackageExisted": false,
+    "hostTestPackageExisted": false,
+    "allRelevantPackagesAbsent": true,
+    "activeInstrumentationDetected": false,
+    "nodeOrAutoJsProcessDetected": false,
+    "nodeRuntimeServiceDetected": false,
+    "nodeRuntimeServiceDump": "(nothing)"
+  },
+  "artifacts": {
+    "appDebugX86_64": {
+      "path": "app/build/outputs/apk/debug/autojs6-plugin-nodejs-runtime-v1.1.3-x86_64.apk",
+      "bytes": 33650087,
+      "sha256": "845d98057290cd36ff41fabf5f1d23b364ec80012aaec9ed6aa52167f2a6b54c",
+      "packageName": "io.github.supermonster003.autojs6.plugin.nodejs",
+      "versionName": "1.1.3",
+      "versionCode": 40,
+      "minSdk": 24,
+      "targetSdk": 36,
+      "primaryCpuAbiOnDevice": "x86_64",
+      "signerSha256": "31a681fcfffb3e428420cae280ded89292b12a3b0f59e19b7a73e32a8ae4c213",
+      "deviceBaseApkBytes": 33650087,
+      "deviceBaseApkSha256": "845d98057290cd36ff41fabf5f1d23b364ec80012aaec9ed6aa52167f2a6b54c",
+      "deviceSignerSha256": "31a681fcfffb3e428420cae280ded89292b12a3b0f59e19b7a73e32a8ae4c213",
+      "deviceInstalledIdentityVerified": true
+    },
+    "androidTest": {
+      "path": "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+      "bytes": 988486,
+      "sha256": "f5cf53c7f4b63ebc6cc0b5c54a41cab4f4d859c7d065b9427f7f21e09de61bd4",
+      "packageName": "io.github.supermonster003.autojs6.plugin.nodejs.test",
+      "targetPackageName": "io.github.supermonster003.autojs6.plugin.nodejs",
+      "runner": "androidx.test.runner.AndroidJUnitRunner",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "signerSha256": "31a681fcfffb3e428420cae280ded89292b12a3b0f59e19b7a73e32a8ae4c213",
+      "deviceBaseApkBytes": 988486,
+      "deviceBaseApkSha256": "f5cf53c7f4b63ebc6cc0b5c54a41cab4f4d859c7d065b9427f7f21e09de61bd4",
+      "deviceSignerSha256": "31a681fcfffb3e428420cae280ded89292b12a3b0f59e19b7a73e32a8ae4c213",
+      "deviceInstalledIdentityVerified": true
+    },
+    "testSource": {
+      "path": "app/src/androidTest/java/io/github/supermonster003/autojs6/plugin/nodejs/NodeRuntimePluginAndroidConformanceTest.java",
+      "bytes": 127311,
+      "sha256": "c0732b8e70290859ef1582390c0ad3c5c234c61e5761f642c59edcf9aa658566"
+    },
+    "packageOnlyHarnessReport": {
+      "path": "build/reports/nodejs/android-conformance/harness-package.json",
+      "bytes": 14227,
+      "sha256": "60e00c1c906eef4853a94303b4832da84742aebd348054b0340854506915119f",
+      "decision": "harness_packaged_not_executed",
+      "verificationLevel": "A",
+      "selectorCount": 23,
+      "x3iSelectorCount": 1
+    }
+  },
+  "installation": {
+    "onlyAppAndAndroidTestInstalled": true,
+    "appInstallExitCode": 0,
+    "appInstallResult": "Success",
+    "testInstallExitCode": 0,
+    "testInstallResult": "Success",
+    "deviceBaseApksPulledOnlyForIdentityVerification": true,
+    "pulledCopiesMatchedFrozenArtifacts": true,
+    "pulledCopiesSignerMatchedFrozenArtifacts": true
+  },
+  "instrumentation": {
+    "command": "adb -s emulator-5562 shell am instrument -w -r -e class io.github.supermonster003.autojs6.plugin.nodejs.NodeRuntimePluginAndroidConformanceTest#x3i_23_zlibCallbacksStreamsAndShadowingPassThroughPublishedBinder io.github.supermonster003.autojs6.plugin.nodejs.test/androidx.test.runner.AndroidJUnitRunner",
+    "commandUtf8BytesWithoutTrailingNewline": 302,
+    "commandSha256": "a1bd3d0a4855e19357e26a62775fcccd5c151e334221db57afd36d826e94eca8",
+    "className": "io.github.supermonster003.autojs6.plugin.nodejs.NodeRuntimePluginAndroidConformanceTest",
+    "selectors": [
+      {
+        "name": "x3i_23_zlibCallbacksStreamsAndShadowingPassThroughPublishedBinder",
+        "result": "pass",
+        "terminalStatusCode": 0
+      }
+    ],
+    "testsRun": 1,
+    "testsPassed": 1,
+    "testsFailed": 0,
+    "testsIgnored": 0,
+    "runnerSummary": "OK (1 test)",
+    "runnerReportedSeconds": 1.341,
+    "instrumentationCode": -1,
+    "instrumentationCodeMeaning": "Android instrumentation success",
+    "adbExitCode": 0,
+    "firstAndOnlyRunPassed": true,
+    "failureEvidence": null,
+    "hostRemovalPrerequisitePassed": true
+  },
+  "restoration": {
+    "baselineRestored": true,
+    "testPackageUninstalledBecauseAbsentAtBaseline": true,
+    "testPackageUninstallResult": "Success",
+    "pluginPackageUninstalledBecauseAbsentAtBaseline": true,
+    "pluginPackageUninstallResult": "Success",
+    "pluginPackageAbsentAfterRestore": true,
+    "pluginTestPackageAbsentAfterRestore": true,
+    "hostAndHostTestPackagesAbsentAfterRestore": true,
+    "nodeOrAutoJsProcessAbsentAfterRestore": true,
+    "activeInstrumentationAbsentAfterRestore": true,
+    "nodeRuntimeServiceAbsentAfterRestore": true,
+    "temporaryPulledAppApkDeleted": true,
+    "temporaryPulledTestApkDeleted": true,
+    "temporaryPullDirectoryDeletedNonRecursively": true
+  },
+  "temporaryAvd": {
+    "startedByThisRun": true,
+    "avdName": "DEX_R1_API34_X64",
+    "port": 5562,
+    "emulatorProcessId": 40900,
+    "qemuProcessId": 40560,
+    "launchArguments": [
+      "-avd",
+      "DEX_R1_API34_X64",
+      "-port",
+      "5562",
+      "-wipe-data",
+      "-no-snapshot",
+      "-no-snapshot-load",
+      "-no-snapshot-save",
+      "-no-window",
+      "-no-audio",
+      "-no-boot-anim",
+      "-gpu",
+      "swiftshader_indirect"
+    ],
+    "wipeDataUsed": true,
+    "snapshotsDisabled": true,
+    "windowDisabled": true,
+    "avdDefinitionDeletedOrModified": false,
+    "preexistingOnlineEmulatorCount": 0,
+    "adbSerialsBeforeLaunch": [
+      "968e9f18",
+      "QV710AF65F"
+    ],
+    "newSerial": "emulator-5562",
+    "newSerialWasUnique": true,
+    "shutdownCommand": "adb -s emulator-5562 emu kill",
+    "shutdownExitCode": 0,
+    "shutdownAcknowledged": true,
+    "serialAbsentAfterShutdown": true,
+    "newEmulatorAndQemuProcessIdsAbsentAfterShutdown": true,
+    "adbSerialsAfterShutdown": [
+      "968e9f18",
+      "QV710AF65F"
+    ],
+    "serialSetRestored": true,
+    "temporaryAvdStartedAndStopped": true
+  },
+  "evidence": {
+    "rawInstrumentationOutput": {
+      "path": "tools/nodejs/ownership/evidence/x3i-device-run-api34-x86_64.raw.txt",
+      "bytes": 957,
+      "sha256": "2b984dc7d588d467e21fe109eb11690103bde01289df52c8c5e64c623108eb4f",
+      "verbatimAdbStdoutCaptured": true
+    },
+    "managedImmutableCopy": {
+      "jsonPath": "tools/nodejs/ownership/evidence/x3i-device-run-api34-x86_64.json",
+      "rawPath": "tools/nodejs/ownership/evidence/x3i-device-run-api34-x86_64.raw.txt"
+    }
+  }
+}

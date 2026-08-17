@@ -1,0 +1,229 @@
+{
+  "schema": "autojs6-node-host-removal-receipt-v1",
+  "repository": "AutoJs6",
+  "repositoryRole": "host",
+  "scope": "x3j-crypto-focused-instrumentation-migration",
+  "evidenceLevel": "S/A with prerequisite directed-device D",
+  "sourceState": {
+    "decisionInput": "current_filesystem_including_untracked",
+    "baseCommit": "25ec9f8488d942dd13791bfad600fadbc5429893",
+    "wholeRepositoryHeadUsedForDecision": false
+  },
+  "pluginPrerequisite": {
+    "selector": "x3j_24_cryptoSafeExpansionAndShadowingPassThroughPublishedBinder",
+    "selectorCount": 1,
+    "directedDeviceReport": {
+      "path": "tools/nodejs/ownership/evidence/x3j-device-run-api34-x86_64.json",
+      "bytes": 12632,
+      "sha256": "dc34afd236864d5a79a9bbb7bac746c451f6502e53a3952f2ff42c3875e30c29",
+      "schema": "autojs6-node-plugin-x3j-directed-device-run-v1",
+      "result": "pass",
+      "device": "DEX_R1_API34_X64",
+      "serial": "emulator-5562",
+      "apiLevel": 34,
+      "abi": "x86_64",
+      "emulator": true,
+      "attemptCount": 1,
+      "retryCount": 0,
+      "testsRun": 1,
+      "testsPassed": 1,
+      "testsFailed": 0,
+      "testsIgnored": 0,
+      "runnerSummary": "OK (1 test)",
+      "instrumentationCode": -1,
+      "firstAndOnlyRunPassed": true,
+      "baselineRestored": true,
+      "temporaryAvdStartedAndStopped": true,
+      "serialAbsentAfterShutdown": true,
+      "physicalDeviceDirectedCommandCount": 0,
+      "connectedTaskUsed": false,
+      "soakRun": false
+    },
+    "rawDirectedDeviceOutput": {
+      "path": "tools/nodejs/ownership/evidence/x3j-device-run-api34-x86_64.raw.txt",
+      "bytes": 954,
+      "sha256": "861eec05bcc73202f3dae515f93ffc9903581c8bc7a79df6e4417b34d34b8222",
+      "verbatimAdbStdoutCaptured": true
+    },
+    "verifiedAssertions": {
+      "realPublishedBinderExecute": true,
+      "workspaceArchiveV2Committed": true,
+      "oneStartedOneTerminalEvent": true,
+      "pendingCryptoCallbacks": 0,
+      "timedOut": false,
+      "moduleSourceProviderUsed": false,
+      "exactGraphProviderUsed": false
+    },
+    "artifacts": {
+      "appDebugX86_64": {
+        "path": "app/build/outputs/apk/debug/autojs6-plugin-nodejs-runtime-v1.1.3-x86_64.apk",
+        "bytes": 33764503,
+        "sha256": "93f4dd32076a4f4f2d24b9c614962dddf83c3c6fad420c986d5f7c8d4a419de9",
+        "packageName": "io.github.supermonster003.autojs6.plugin.nodejs",
+        "versionName": "1.1.3",
+        "versionCode": 40,
+        "minSdk": 24,
+        "targetSdk": 36,
+        "signerSha256": "31a681fcfffb3e428420cae280ded89292b12a3b0f59e19b7a73e32a8ae4c213"
+      },
+      "androidTest": {
+        "path": "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+        "bytes": 988518,
+        "sha256": "bf56d938648de2f89185b7f4fc3595bfcb8776b2988fef11eac026b6dbd943ca",
+        "packageName": "io.github.supermonster003.autojs6.plugin.nodejs.test",
+        "targetPackageName": "io.github.supermonster003.autojs6.plugin.nodejs",
+        "runner": "androidx.test.runner.AndroidJUnitRunner",
+        "minSdk": 24,
+        "targetSdk": 36,
+        "signerSha256": "31a681fcfffb3e428420cae280ded89292b12a3b0f59e19b7a73e32a8ae4c213"
+      },
+      "testSource": {
+        "path": "app/src/androidTest/java/io/github/supermonster003/autojs6/plugin/nodejs/NodeRuntimePluginAndroidConformanceTest.java",
+        "bytes": 132491,
+        "sha256": "53b493aeaf6d26c99c48560dc6ee5c24bbf9d8a4635def58da8c3002cb662e56"
+      }
+    },
+    "packageOnlyHarnessPrerequisite": {
+      "path": "build/reports/nodejs/android-conformance/harness-package.json",
+      "bytes": 25584,
+      "sha256": "b4d98a45aa631c239ac6649b7fce9779cd179144568077df2e1e6faf1e1ff361",
+      "decision": "harness_packaged_not_executed",
+      "verificationLevel": "A",
+      "selectorCount": 24,
+      "x3jSelectorCount": 1,
+      "passedChecks": 41,
+      "totalChecks": 41,
+      "deviceOrSoakExecuted": false
+    },
+    "stagingInputs": {
+      "androidConformanceGate": {
+        "path": "app/node-android-conformance.gradle.kts",
+        "bytes": 143871,
+        "sha256": "1518e8131e73d9d0ca2f78080500e5b8aba2a674dd965681c819ad3349de48f8"
+      },
+      "ownershipPolicy": {
+        "path": "tools/nodejs/ownership/runtime-ownership-policy.json",
+        "bytes": 20053,
+        "sha256": "a2c8a458c7d2aecf48abdf116403ef339c9d36ea75f70390f3d173245ecedc5b"
+      },
+      "ownershipVerifier": {
+        "path": "tools/nodejs/ownership/verify-runtime-ownership.js",
+        "bytes": 38000,
+        "sha256": "9469d2316e4750f6f425079c4575bcee583abd476f8e95a9a5f3d24756fd854e"
+      },
+      "versionProperties": {
+        "path": "version.properties",
+        "bytes": 700,
+        "sha256": "4572f9799fb7cadae5f28cb51ca0cb8b38d7ddf67347970c555d77c399c839d3",
+        "versionName": "1.1.3",
+        "versionCode": 40,
+        "buildTime": 1786621005354
+      }
+    }
+  },
+  "ownershipGate": {
+    "task": ":app:verifyNodeRuntimeOwnershipGate",
+    "reportPath": "build/reports/nodejs/runtime-ownership.json",
+    "reportBytes": 10267,
+    "reportSha256": "447fe69b935beaaeb3af285ce0b386c7d967feef20add861891e0a0d942eb20c",
+    "allowlistPath": "docs/nodejs/runtime-ownership-allowlist.json",
+    "allowlistBytes": 19520,
+    "allowlistSha256": "0b44512fd0e37c1dfc7b2e23b6ba44a441d5d8d248699a5be1265b881592215b",
+    "ready": true,
+    "decision": "boundary_enforced_migration_backlog_open",
+    "candidateCount": 2205,
+    "classifiedCandidateCount": 2205,
+    "violationCount": 0,
+    "migrationBacklogFileCount": 1707
+  },
+  "androidTestCompile": {
+    "task": ":app:compileAppDebugAndroidTestKotlin",
+    "result": "passed",
+    "sameInvocationAsOwnershipGate": true,
+    "freshTargetClassCount": 0,
+    "freshTargetClassGlob": "app/build/intermediates/built_in_kotlinc/appDebugAndroidTest/compileAppDebugAndroidTestKotlin/classes/**/NodeCryptoExpansionInstrumentationTest*"
+  },
+  "invocation": {
+    "singleGradleInvocation": true,
+    "rerunPerformed": false,
+    "outerToolTimedOut": false,
+    "gradleDaemonResult": "BUILD SUCCESSFUL",
+    "gradleDaemonDuration": "2m 31s",
+    "totalTasks": 328,
+    "executedTasks": 9,
+    "upToDateTasks": 319
+  },
+  "removals": {
+    "hostTestFile": {
+      "path": "app/src/androidTest/java/org/autojs/autojs/engine/NodeCryptoExpansionInstrumentationTest.kt",
+      "exists": false,
+      "preRemovalIdentitySource": "current_filesystem_including_untracked",
+      "preRemovalBytes": 4485,
+      "preRemovalSha256": "63c28215f332c9a68bc9709638cef3842edd242dd9ad7a2d58c0b5f2d6874033",
+      "headGitBlobObjectIdSha1": "22130a83a0d21645de5c1805d4e68e474afe6571",
+      "headBlobBytes": 4384,
+      "headBlobSha256": "fd124349f3149a996ca27d77e55924f4220d559722534749736175bcb5bdb58b",
+      "headBlobContentEncoding": "UTF-8 with LF and trailing LF",
+      "symbol": "safeCryptoExpansionAndShadowingWork",
+      "remainingMatches": 0,
+      "removedTestAnnotations": 1
+    },
+    "hostGateReferences": {
+      "path": "app/node-instrumentation-gates.gradle.kts",
+      "className": "org.autojs.autojs.engine.NodeCryptoExpansionInstrumentationTest",
+      "removedReferences": 1,
+      "remainingMatches": 0
+    },
+    "activeDocumentationReferences": {
+      "paths": [
+        "docs/nodejs/TESTING.md",
+        "docs/nodejs/RELEASE_CHECKLIST.md"
+      ],
+      "className": "org.autojs.autojs.engine.NodeCryptoExpansionInstrumentationTest",
+      "removedReferences": 2,
+      "remainingOldClassReferences": 0
+    }
+  },
+  "referenceAudit": {
+    "activeScanRoots": [
+      "app",
+      "docs/nodejs/TESTING.md",
+      "docs/nodejs/RELEASE_CHECKLIST.md"
+    ],
+    "activeScanExcludedPrefix": "docs/nodejs/reports/",
+    "activeOldClassReferences": 0,
+    "activeOldSymbolReferences": 0,
+    "activeOldGateOrDocumentationReferences": 0,
+    "activeReferencePaths": [],
+    "historicalClassReferencesRetained": 4,
+    "historicalReferenceLocations": [
+      "docs/nodejs/reports/BASELINE_AFTER_TASK_49.md:264",
+      "docs/nodejs/reports/BASELINE_AFTER_TASK_18.md:265",
+      "docs/nodejs/reports/BASELINE_AFTER_TASK_18.md:379",
+      "docs/nodejs/reports/BASELINE_AFTER_TASK_18.md:628"
+    ]
+  },
+  "staleBuildOutputAudit": {
+    "freshTargetClassCount": 0,
+    "stalePreExistingDexCount": 1,
+    "stalePreExistingDex": {
+      "path": "app/build/intermediates/project_dex_archive/appDebugAndroidTest/dexBuilderAppDebugAndroidTest/out/org/autojs/autojs/engine/NodeCryptoExpansionInstrumentationTest.dex",
+      "bytes": 6940,
+      "sha256": "770c6c393e36f58e8d23215ce9c2b9e28ab7e299fe940556c49adcb333036760",
+      "lastWriteTimeUtc": "2026-08-09T01:51:13.8577903Z",
+      "classification": "pre-existing dexBuilder archive; not fresh Kotlin compile output",
+      "deleted": false,
+      "claimedFresh": false
+    }
+  },
+  "remainingHostBacklog": {
+    "nodeRelatedSourceFiles": 132,
+    "testAnnotations": 749,
+    "corpusFiles": 493,
+    "migrationBacklogFileCount": 1707,
+    "migrationBacklogPathSetSha256": "2aa453ef274dd3c260c071b1194cf62d6e138c89dc58c0ac865856689853e521",
+    "instrumentationFileCount": 132,
+    "instrumentationPathSetSha256": "b13fe21f53bfb699acb14688736775e01e375871bdebda0b8473d990fb9eb306",
+    "corpusPathSetSha256": "7d00b2347f7ac53c56e24f9a2ea2d50aa0466b17b920e27b5ef31c0b443348c5"
+  }
+}
