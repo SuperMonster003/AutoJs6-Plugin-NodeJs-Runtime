@@ -39,6 +39,8 @@ android {
         versionCode = versions.appVersionCode
         versionName = versions.appVersionName
 
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
         multiDexEnabled = true
         multiDexKeepProguard = file("multidex-keep.pro")
 
@@ -164,11 +166,14 @@ dependencies {
     implementation(files(commonPluginApiAar))
     implementation(project(":nodejs-api"))
     testImplementation("junit:junit:4.13.2")
+    androidTestImplementation(libs.test.ext.junit)
+    androidTestImplementation(libs.test.runner)
 }
 
 apply(from = "node-capability-truth.gradle.kts")
 apply(from = "node-runtime-kit.gradle.kts")
 apply(from = "node-runtime-ownership.gradle.kts")
+apply(from = "node-android-conformance.gradle.kts")
 
 tasks {
     withType(JavaCompile::class.java) {
