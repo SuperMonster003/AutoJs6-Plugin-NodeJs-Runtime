@@ -84,8 +84,8 @@
 
 目标: 代码量与真实功能匹配, 新人可读。
 
-- [ ] M4.1 删除 C++ probe 体系 (embedded_probe_* 全家, 191 值枚举, ~200 个 probe JNI 导出), 预期 C++ 从 ~83k 行降到 <15k 行。
-- [ ] M4.2 删除/归档 capability-truth、runtime-ownership、runtime-kit、conformance gradle (共 ~7k 行 gradle+js), 保留 runtime-build (libnode 构建脚本是真资产)。
+- [x] M4.1 删除 C++ probe 体系 (embedded_probe_* 全家, 191 值枚举, ~200 个 probe JNI 导出), 预期 C++ 从 ~83k 行降到 <15k 行。— 2026-08-18 完成: 先做双侧可达性勘察 (宿主仓 219 个 external fun 中生产路径仅 9 个, probe 分发器 runProbe 零调用方; 插件 Java 侧对 probe 零引用), 确认 probe JNI 全部是死代码后删除 ~217 个导出 (nativeEmbeddedProbe* 全家 + 5 个 legacy lifecycle 变体 + AdapterV1Diagnostics + 信号安全 crash marker)。lifecycle.cpp 20941→2075 行 (巨函数 30 参签名瘦身为 9 参 runEmbeddedScriptNodeLifecycle, 22 个 probe 选择器参数全是编译期常量); payload.cpp 5409→733; jni.cpp 4020→1366; validation.cpp (1568 行) 与 embedded_probe_* 四对文件整体删除; probe JS 源码 (sources.cpp 前 5.2k 行) 删除, 内嵌运行时 JS 构建器 (~43k 行, 真资产) 未动。C++ 总量 (不含 Node 头) ~97.7k→~51k 行, 扣除 JS 构建器后桥接核心 ~7.6k 行。验证: 全 ABI assembleDebug + JVM 单测 + 模拟器冒烟 (SimpleRun 3/3, StreamingOutput 1/1, CooperativeCancel 1/1)。
+- [x] M4.2 删除/归档 capability-truth、runtime-ownership、runtime-kit、conformance gradle (共 ~7k 行 gradle+js), 保留 runtime-build (libnode 构建脚本是真资产)。— 2026-08-18 完成: 删除 4 个 app 级验证 gradle (conformance 3271 行 / capability-truth 141 / runtime-ownership 52) 与配套 js 验证器 (capabilities/ownership/runtime-kit/resolver/project 五目录 ~5.6k 行)、根级 node-plugin-tools.gradle.kts; runtime-kit gradle 瘦身为仅生成 4 个 BuildConfig 字段 (getBrokerInfo/runtimeInfo 回显在用, 187→33 行), 其发布/验证任务链整体删除。共 -13.3k 行。保留: runtime-build (libnode 构建真资产)、ownership/evidence (历史证据存档, Roadmap 头部声明)、node-plugin-examples.gradle.kts (verifyNodePluginExamples 是 M3.4 样例门禁)、nodejs-api publication 手动任务 (M1.2 决策)。验证: assembleDebug + verifyNodePluginExamples + 单测全绿; :app:check 的 lintAnalyzeDebug 崩溃经基线比对确认是 AGP 9.0.1 既有 bug, 与本项无关。
 - [ ] M4.3 conformance androidTest 收敛为 <10 个冒烟用例; 删除已无对应功能的用例。
 - [ ] M4.4 `NodeJsRuntimePluginService` 拆分瘦身 (2.3k 行 → 目标 <800 行)。
 - [ ] M4.5 文档一页化: README 里写清 "怎么装 / 怎么跑 / 出错了看哪里"。
