@@ -170,10 +170,7 @@ dependencies {
     androidTestImplementation(libs.test.runner)
 }
 
-apply(from = "node-capability-truth.gradle.kts")
 apply(from = "node-runtime-kit.gradle.kts")
-apply(from = "node-runtime-ownership.gradle.kts")
-apply(from = "node-android-conformance.gradle.kts")
 
 tasks {
     withType(JavaCompile::class.java) {
