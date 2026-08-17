@@ -76,7 +76,7 @@
 目标: Node 脚本里可用的宿主 API 覆盖日常自动化场景。
 
 - [x] M3.1 盘点 live bridge 现有可调用能力, 输出一页 "已可用 API 清单"。— 2026-08-18 完成: 清单落库 `docs/HOST-API.md` (五档分类: bridged 15 模块 / bridged-partial 7 / bridged-gated 8 / local-shim 15 / denied)。关键盘点结论: ① 可用面远大于预期 — M3.2 目标里的 toast/app.launch/click/text 查找/剪贴板/shell **全部已桥接**, 唯一真缺口是 swipe/gesture (宿主 blockedMethods, 需独立 capability); ② 原定基线 `require("accessibility")` 样例的 SKIPPED 分支使其不能作真机证据, 真机验证矩阵单列一栏; ③ 宿主 getBrokerInfo 能力清单漏 lifecycle 模块 (policy 层单独补), 以文档清单为准。真机扩面验证: 宿主新增 `pluginRuntimeDrivesCommonAutomationApisThroughLiveBridge` (一个脚本串调 toast.showToast + clipboard.setText/getText 回读 + storages.put/get 回读 + shell.exec echo + app.getAppName, 断言 7 次 live dispatch 全成功零失败), 真机 (小米 arm64 Android 15) bridge instrumentation 5/5。
-- [ ] M3.2 补齐高频 API: toast / app.launch / click / swipe / text 查找 / 剪贴板 / shell。
+- [x] M3.2 补齐高频 API: toast / app.launch / click / swipe / text 查找 / 剪贴板 / shell。— 2026-08-18 完成: 除 swipe 外六项经 M3.1 盘点确认早已桥接并在 M3.1 用例中真机验证。swipe/gesture 缺口本项落地: 宿主 `NodeBridgeProtocol` accessibility 新增 swipe(x1,y1,x2,y2,durationMs) 与 gesture(durationMs, [[x,y]...]) 派发 (复用 `GlobalActionAutomator`→`dispatchGesture` 同步等待完成, 时长上限 10s 防 binder 线程被长手势钉死), 从 registry blockedMethods 移出; 新增独立能力 `accessibility.gesture` (registry gesturePolicy 要求), 插件 JS 预检与宿主 manifest 校验双侧都要求显式声明, 不被 `accessibility` 前缀隐含; 插件 accessibility shim 增加 swipe/gesture 方法。真机 (无障碍未开态): `pluginRuntimeSwipesThroughAccessibilityGestureCapability` 断言可读 capabilityProviderMissing 失败 + 未声明能力本地拒绝零派发, 宿主 bridge 6/6; 服务开启下的完成路径待手工授权后补证 (小米 adb 不可写 secure settings)。插件 conformance 31/31 回归。HOST-API.md 已同步。
 - [ ] M3.3 files / http 等与 Node 原生能力重叠的 API: 直接文档引导用 Node 原生实现, 不重复造桥。
 - [ ] M3.4 `sample/nodejs` 收敛: 60 个样例按 "能跑/不能跑" 重新标注, 不能跑的要么修好要么移入 `sample/nodejs/_pending/`。
 
