@@ -36,7 +36,27 @@
       "size": 90705528,
       "sha256": "02e541cc42e7b61bc4d514e4ef2354abb1d46bcf024dd58ce4fbf6b4cdc3a128",
       "abiCount": 3,
-      "status": "current-node24.5-artifact"
+      "status": "pinned-upstream-binary",
+      "entries": {
+        "arm64-v8a": {
+          "path": "bin/arm64-v8a/libnode.so",
+          "size": 109577224,
+          "sha256": "b1f9b6f95be74336e8b70801967c1dbbb5dac6b86053b9de7dd8c7b74dc81b85",
+          "buildId": null
+        },
+        "armeabi-v7a": {
+          "path": "bin/armeabi-v7a/libnode.so",
+          "size": 104299492,
+          "sha256": "ee50698e264ce78a12d450de6781bdd4b7df4e7a7546e93d1b96bac2b62cab63",
+          "buildId": null
+        },
+        "x86_64": {
+          "path": "bin/x86_64/libnode.so",
+          "size": 112324176,
+          "sha256": "a62031b38a467027dd5f98db8e91cdc8c31521380ee2dd8c70cd8afbaedc8e2b",
+          "buildId": null
+        }
+      }
     },
     "targetPortStatus": "pending-node24.17-android-artifacts"
   },
@@ -52,6 +72,22 @@
       "run adapter export and Phase 9 native modernization gates",
       "run Sony device validation before changing the default runtime"
     ]
+  },
+  "reproducibility": {
+    "artifactMaterialization": {
+      "status": "ready",
+      "classification": "pinned_upstream_binary",
+      "description": "The current Node 24.5 Android runtime can be reconstructed from the pinned release archive without using the checked-in libnode.so files."
+    },
+    "sourceBuild": {
+      "status": "bootstrap_only",
+      "classification": "not_source_reproducible",
+      "blockedReasons": [
+        "the Android fork toolchain container image is not pinned by digest",
+        "the Node 24.17 Android port patch series has not been published",
+        "the Node 24.17 per-ABI artifacts, hashes, and Build IDs do not exist"
+      ]
+    }
   },
   "toolchain": {
     "host": "linux-x86_64",
@@ -98,8 +134,8 @@
         "-Wl,--build-id=sha1",
         "-Wl,-z,max-page-size=16384"
       ],
-      "expectedLibnodeSha256": "EXTERNAL",
-      "expectedBuildId": "EXTERNAL"
+      "expectedLibnodeSha256": null,
+      "expectedBuildId": null
     },
     "armeabi-v7a": {
       "targetCpu": "arm",
@@ -113,8 +149,8 @@
         "-Wl,--gc-sections",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": "EXTERNAL",
-      "expectedBuildId": "EXTERNAL"
+      "expectedLibnodeSha256": null,
+      "expectedBuildId": null
     },
     "x86_64": {
       "targetCpu": "x64",
@@ -129,8 +165,8 @@
         "-Wl,--build-id=sha1",
         "-Wl,-z,max-page-size=16384"
       ],
-      "expectedLibnodeSha256": "EXTERNAL",
-      "expectedBuildId": "EXTERNAL"
+      "expectedLibnodeSha256": null,
+      "expectedBuildId": null
     }
   },
   "linker": {

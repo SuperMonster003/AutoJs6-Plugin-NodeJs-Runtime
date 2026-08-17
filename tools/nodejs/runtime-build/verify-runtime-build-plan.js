@@ -4,6 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 const childProcess = require("child_process");
+const crypto = require("crypto");
 
 const SCHEMA = "autojs6-node-runtime-build-lock-v1";
 const REQUIRED_ABIS = ["arm64-v8a", "armeabi-v7a", "x86_64"];
@@ -14,6 +15,7 @@ function main() {
   const runtimeBuildDir = path.resolve(options.runtimeBuildDir || path.join(repoRoot, "tools/nodejs/runtime-build"));
   const lockFile = path.resolve(options.lockFile || path.join(runtimeBuildDir, "runtime-build.lock.json"));
   const reportDir = path.resolve(options.reportDir || path.join(repoRoot, "build/reports/nodejs"));
+  const materializedRoot = options.materializedRoot ? path.resolve(options.materializedRoot) : null;
   const issues = [];
   const warnings = [];
   if (!fs.existsSync(lockFile)) {
@@ -77,6 +79,33 @@ function main() {
     if (lock.androidFork.androidArtifact.abiCount !== 3) {
       issues.push("androidFork.androidArtifact.abiCount must be 3 for the current Android artifact");
     }
+    if (!Number.isSafeInteger(lock.androidFork.androidArtifact.size) || lock.androidFork.androidArtifact.size <= 0) {
+      issues.push("androidFork.androidArtifact.size must be a positive integer");
+    }
+    const entries = lock.androidFork.androidArtifact.entries;
+    for (const abi of REQUIRED_ABIS) {
+      const entry = entries && entries[abi];
+      if (!entry || entry.path !== `bin/${abi}/libnode.so`) {
+        issues.push(`android artifact entry path must be bin/${abi}/libnode.so`);
+        continue;
+      }
+      if (!Number.isSafeInteger(entry.size) || entry.size <= 0) {
+        issues.push(`android artifact entry size must be a positive integer: ${abi}`);
+      }
+      if (!/^[0-9a-f]{64}$/.test(entry.sha256 || "")) {
+        issues.push(`android artifact entry SHA-256 must be pinned: ${abi}`);
+      }
+    }
+  }
+  if (!lock.reproducibility || lock.reproducibility.artifactMaterialization.status !== "ready" ||
+      lock.reproducibility.artifactMaterialization.classification !== "pinned_upstream_binary") {
+    issues.push("artifact materialization must be classified as ready pinned_upstream_binary");
+  }
+  if (!lock.reproducibility || lock.reproducibility.sourceBuild.status !== "bootstrap_only" ||
+      lock.reproducibility.sourceBuild.classification !== "not_source_reproducible" ||
+      !Array.isArray(lock.reproducibility.sourceBuild.blockedReasons) ||
+      lock.reproducibility.sourceBuild.blockedReasons.length === 0) {
+    issues.push("source build must remain explicit bootstrap_only with blocked reasons");
   }
   if (!lock.toolchain || !lock.toolchain.ndkVersion) {
     issues.push("missing toolchain.ndkVersion");
@@ -102,8 +131,28 @@ function main() {
       if (entry && (!Array.isArray(entry.cflags) || !Array.isArray(entry.ldflags))) {
         issues.push("ABI build lock entry must include cflags and ldflags arrays: " + abi);
       }
+      if (entry && entry.expectedLibnodeSha256 !== null) {
+        issues.push("deferred Node 24.17 expectedLibnodeSha256 must remain null until produced: " + abi);
+      }
+      if (entry && entry.expectedBuildId !== null) {
+        issues.push("deferred Node 24.17 expectedBuildId must remain null until produced: " + abi);
+      }
     }
   }
+  const checkedInArtifacts = inspectRuntimeLibraries(
+    path.join(repoRoot, "app/src/main/jniLibs"),
+    lock.androidFork && lock.androidFork.androidArtifact && lock.androidFork.androidArtifact.entries,
+    issues,
+    "checked-in"
+  );
+  const materializedArtifacts = materializedRoot
+    ? inspectRuntimeLibraries(
+        materializedRoot,
+        lock.androidFork && lock.androidFork.androidArtifact && lock.androidFork.androidArtifact.entries,
+        issues,
+        "materialized"
+      )
+    : null;
   const placeholders = collectPlaceholders(lock);
   if (placeholders.length > 0) {
     warnings.push("external artifact fields still require maintainer values: " + placeholders.join(", "));
@@ -134,7 +183,9 @@ function main() {
     }
   }
   const decision = {
-    status: issues.length === 0 && placeholders.length === 0 ? "ready" : issues.length === 0 ? "bootstrap_only" : "blocked",
+    status: issues.length === 0 ? "prebuilt_ready_source_build_bootstrap_only" : "blocked",
+    artifactMaterializationStatus: issues.length === 0 ? "ready" : "blocked",
+    sourceBuildStatus: "bootstrap_only",
     blockers: issues,
     warnings,
   };
@@ -161,7 +212,11 @@ function main() {
       clangVersion: lock.toolchain && lock.toolchain.clangVersion,
       pythonVersion: lock.toolchain && lock.toolchain.pythonVersion,
       pageSizes: lock.toolchain && lock.toolchain.pageSizeBytes,
+      artifactMaterialization: lock.reproducibility && lock.reproducibility.artifactMaterialization,
+      sourceBuild: lock.reproducibility && lock.reproducibility.sourceBuild,
     },
+    checkedInArtifacts,
+    materializedArtifacts,
     localFork,
     decision,
   };
@@ -173,7 +228,7 @@ function main() {
   console.log("Runtime build plan JSON: " + jsonPath);
   console.log("Runtime build plan Markdown: " + markdownPath);
   console.log("Runtime build plan decision: " + decision.status);
-  if (issues.length > 0 || (options.failOnBootstrapOnly && decision.status !== "ready")) {
+  if (issues.length > 0 || (options.failOnBootstrapOnly && decision.sourceBuildStatus !== "ready")) {
     process.exitCode = 1;
   }
 }
@@ -221,6 +276,35 @@ function collectPlaceholders(value, pathParts = []) {
   return result;
 }
 
+function inspectRuntimeLibraries(root, expectedEntries, issues, label) {
+  const artifacts = [];
+  for (const abi of REQUIRED_ABIS) {
+    const expected = expectedEntries && expectedEntries[abi];
+    const file = path.join(root, abi, "libnode.so");
+    const artifact = {
+      abi,
+      file: relativePath(root, file),
+      exists: fs.existsSync(file),
+      size: null,
+      sha256: null,
+      matchesLock: false,
+    };
+    if (!artifact.exists) {
+      issues.push(`${label} libnode.so is missing: ${file}`);
+    } else {
+      const bytes = fs.readFileSync(file);
+      artifact.size = bytes.length;
+      artifact.sha256 = crypto.createHash("sha256").update(bytes).digest("hex");
+      artifact.matchesLock = !!expected && artifact.size === expected.size && artifact.sha256 === expected.sha256;
+      if (!artifact.matchesLock) {
+        issues.push(`${label} libnode.so does not match the pinned archive entry: ${abi}`);
+      }
+    }
+    artifacts.push(artifact);
+  }
+  return artifacts;
+}
+
 function inspectLocalFork(androidFork) {
   const localPath = androidFork && androidFork.localPath;
   const result = {
@@ -259,6 +343,8 @@ function renderMarkdown(report) {
   lines.push(`Generated: ${report.generatedAt}`);
   lines.push("");
   lines.push(`Decision: \`${report.decision.status}\``);
+  lines.push(`Artifact materialization: \`${report.decision.artifactMaterializationStatus}\``);
+  lines.push(`Source build: \`${report.decision.sourceBuildStatus}\``);
   lines.push("");
   lines.push("## Summary");
   lines.push("");
