@@ -363,41 +363,6 @@ SymbolLookup lookupAnySymbol(void* handle, const SymbolRequirement& requirement)
     return lastLookup;
 }
 
-SymbolLookup lookupAnySymbolLogged(void* handle, const SymbolRequirement& requirement, int requirementIndex) {
-    SymbolLookup lastLookup;
-    for (const char* symbol : requirement.symbols) {
-        if (symbol == nullptr) {
-            break;
-        }
-        __android_log_print(
-                ANDROID_LOG_INFO,
-                kLogTag,
-                "symbol.candidate.start index=%d description=%s candidate=%s",
-                requirementIndex,
-                requirement.description,
-                symbol
-        );
-        SymbolLookup lookup = lookupSymbol(handle, symbol);
-        __android_log_print(
-                lookup.found ? ANDROID_LOG_INFO : ANDROID_LOG_WARN,
-                kLogTag,
-                "symbol.candidate.done index=%d description=%s candidate=%s found=%s selected=%s%s%s",
-                requirementIndex,
-                requirement.description,
-                symbol,
-                lookup.found ? "true" : "false",
-                lookup.found ? lookup.symbol.c_str() : "",
-                lookup.error.empty() ? "" : " error=",
-                lookup.error.empty() ? "" : lookup.error.c_str()
-        );
-        if (lookup.found) {
-            return lookup;
-        }
-        lastLookup = lookup;
-    }
-    return lastLookup;
-}
-
 bool hasAnySymbol(void* handle, const SymbolRequirement& requirement) {
     return lookupAnySymbol(handle, requirement).found;
 }
@@ -406,18 +371,30 @@ long long elapsedMs(Clock::time_point start, Clock::time_point end) {
     return std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 }
 
-std::string joinSymbolCandidates(const SymbolRequirement& requirement) {
-    std::string result;
-    for (const char* symbol : requirement.symbols) {
-        if (symbol == nullptr) {
-            break;
-        }
-        if (!result.empty()) {
-            result += "|";
-        }
-        result += symbol;
-    }
-    return result;
+
+void putCommonEmbeddedProbePayload(
+        std::vector<std::string>& payload,
+        int probeLevel,
+        Clock::time_point startedAt
+) {
+    putPayload(payload, "probe.level", static_cast<long long>(probeLevel));
+    putPayload(payload, "current.abi", AUTOJS6_NODE_ANDROID_ABI);
+    putPayload(
+            payload,
+            "lifecycle.build.enabled",
+            AUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE != 0
+    );
+    putPayload(
+            payload,
+            "isolate.build.enabled",
+            AUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE != 0
+    );
+    putPayload(
+            payload,
+            "uvloop.build.enabled",
+            AUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE != 0
+    );
+    putPayload(payload, "timing.total.ms", elapsedMs(startedAt));
 }
 
 std::string joinStrings(const std::vector<std::string>& values, const char* separator) {
@@ -454,32 +431,6 @@ jobjectArray toJavaStringArray(JNIEnv* env, const std::vector<std::string>& valu
         env->DeleteLocalRef(value);
     }
     return result;
-}
-
-
-void putCommonEmbeddedProbePayload(
-        std::vector<std::string>& payload,
-        int probeLevel,
-        Clock::time_point startedAt
-) {
-    putPayload(payload, "probe.level", static_cast<long long>(probeLevel));
-    putPayload(payload, "current.abi", AUTOJS6_NODE_ANDROID_ABI);
-    putPayload(
-            payload,
-            "lifecycle.build.enabled",
-            AUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE != 0
-    );
-    putPayload(
-            payload,
-            "isolate.build.enabled",
-            AUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE != 0
-    );
-    putPayload(
-            payload,
-            "uvloop.build.enabled",
-            AUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE != 0
-    );
-    putPayload(payload, "timing.total.ms", elapsedMs(startedAt));
 }
 
 HandleAttemptResult probeLibnodeDlopenAttempt(
@@ -691,82 +642,6 @@ void* probeLoadedLibnodeHandle(std::vector<std::string>& payload) {
             elapsedMs(probeStartedAt)
     );
     return handle;
-}
-
-void appendEmbeddedSymbolProbePayload(std::vector<std::string>& payload, void* handle) {
-    long long symbolsDurationMs = 0;
-    const auto nodeStartSymbolStartedAt = Clock::now();
-    __android_log_print(
-            ANDROID_LOG_INFO,
-            kLogTag,
-            "symbol.start description=node::Start(int,char**)"
-    );
-    __android_log_print(
-            ANDROID_LOG_INFO,
-            kLogTag,
-            "symbol.candidate.start index=-1 description=node::Start(int,char**) candidate=%s",
-            kNodeStartSymbol
-    );
-    SymbolLookup startLookup = lookupSymbol(handle, kNodeStartSymbol);
-    __android_log_print(
-            startLookup.found ? ANDROID_LOG_INFO : ANDROID_LOG_WARN,
-            kLogTag,
-            "symbol.candidate.done index=-1 description=node::Start(int,char**) candidate=%s found=%s selected=%s%s%s",
-            kNodeStartSymbol,
-            startLookup.found ? "true" : "false",
-            startLookup.found ? startLookup.symbol.c_str() : "",
-            startLookup.error.empty() ? "" : " error=",
-            startLookup.error.empty() ? "" : startLookup.error.c_str()
-    );
-    __android_log_print(
-            startLookup.found ? ANDROID_LOG_INFO : ANDROID_LOG_WARN,
-            kLogTag,
-            "symbol.done description=node::Start(int,char**) found=%s selected=%s",
-            startLookup.found ? "true" : "false",
-            startLookup.found ? startLookup.symbol.c_str() : ""
-    );
-    symbolsDurationMs += elapsedMs(nodeStartSymbolStartedAt);
-    putPayload(payload, "node.start.found", startLookup.found);
-    putPayload(payload, "node.start.symbol", startLookup.found ? startLookup.symbol : "");
-    if (!startLookup.error.empty()) {
-        putPayload(payload, "node.start.error", startLookup.error);
-    }
-
-    const auto symbolsStartedAt = Clock::now();
-    const int symbolCount = static_cast<int>(kEmbedderSymbolCount);
-    putPayload(payload, "symbol.count", static_cast<long long>(symbolCount));
-    __android_log_print(ANDROID_LOG_INFO, kLogTag, "symbols.start count=%d", symbolCount);
-    for (int i = 0; i < symbolCount; ++i) {
-        const SymbolRequirement& requirement = kEmbedderSymbols[i];
-        __android_log_print(
-                ANDROID_LOG_INFO,
-                kLogTag,
-                "symbol.start index=%d description=%s",
-                i,
-                requirement.description
-        );
-        SymbolLookup lookup = lookupAnySymbolLogged(handle, requirement, i);
-        const std::string prefix = "symbol." + std::to_string(i);
-        putPayload(payload, prefix + ".description", requirement.description);
-        putPayload(payload, prefix + ".found", lookup.found);
-        putPayload(payload, prefix + ".resolved", lookup.found ? lookup.symbol : "");
-        putPayload(payload, prefix + ".candidates", joinSymbolCandidates(requirement));
-        if (!lookup.error.empty()) {
-            putPayload(payload, prefix + ".error", lookup.error);
-        }
-        __android_log_print(
-                lookup.found ? ANDROID_LOG_INFO : ANDROID_LOG_WARN,
-                kLogTag,
-                "symbol.done index=%d description=%s found=%s selected=%s",
-                i,
-                requirement.description,
-                lookup.found ? "true" : "false",
-                lookup.found ? lookup.symbol.c_str() : ""
-        );
-    }
-    symbolsDurationMs += elapsedMs(symbolsStartedAt);
-    putPayload(payload, "timing.symbols.ms", symbolsDurationMs);
-    __android_log_print(ANDROID_LOG_INFO, kLogTag, "symbols.done elapsed=%lldms", symbolsDurationMs);
 }
 
 }  // namespace autojs6::node_bridge::internal

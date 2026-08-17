@@ -39,17 +39,13 @@ add_library(
         SHARED
         node_bridge.cpp
         node_bridge_sources.cpp
-        node_bridge_validation.cpp
         node_bridge_core.cpp
         node_bridge_process_runtime.cpp
         node_bridge_payload.cpp
         node_bridge_lifecycle.cpp
         node_bridge_jni.cpp
         node_runtime_adapter_24_5.cpp
-        node_bridge/embedded_inline_probe_payload.cpp
-        node_bridge/embedded_probe_metadata.cpp
-        node_bridge/embedded_probe_payload_utils.cpp
-        node_bridge/embedded_probe_sources.cpp
+        node_bridge/payload_utils.cpp
 )
 
 target_include_directories(
