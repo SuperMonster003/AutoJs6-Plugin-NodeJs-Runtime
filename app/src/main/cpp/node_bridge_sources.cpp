@@ -11270,7 +11270,10 @@ std::string buildEmbeddedScriptExecutionSource(
       required === "media.metadata" ||
       required === "media.recording" ||
       required === "app.query" ||
-      required === "package_manager.mutate"
+      required === "package_manager.mutate" ||
+      // M3.2: coordinate gestures must be declared explicitly; plain
+      // "accessibility" does not imply them (host gesturePolicy).
+      required === "accessibility.gesture"
     ) {
       return declared.indexOf(required) >= 0;
     }
@@ -24378,6 +24381,64 @@ std::string buildEmbeddedScriptExecutionSource(
         return result === true;
       });
     }
+    function gestureBridgeOptions(options, fallbackMs) {
+      // M3.2: coordinate gestures need the dedicated capability on top of
+      // plain accessibility; the host rejects the call without it.
+      return {
+        timeoutMs: __autojs6_accessibility_timeout_from_options(options, fallbackMs),
+        permissions: ["accessibility", "accessibility.gesture"],
+        signal: __autojs6_bridge_signal_from_options(options)
+      };
+    }
+    function swipe(x1, y1, x2, y2, durationMs, options) {
+      const coordinates = [x1, y1, x2, y2].map(__autojs6_accessibility_finite_number);
+      if (!coordinates.every(function(value) { return Number.isFinite(value) && value >= 0; })) {
+        return Promise.reject(__autojs6_accessibility_invalid_argument_error(
+          "swipe",
+          "accessibility.swipe requires finite non-negative x1, y1, x2 and y2 coordinates."
+        ));
+      }
+      const duration = durationMs === undefined || durationMs === null ? 300 : Number(durationMs);
+      if (!Number.isFinite(duration) || duration <= 0) {
+        return Promise.reject(__autojs6_accessibility_invalid_argument_error(
+          "swipe",
+          "accessibility.swipe requires a positive durationMs."
+        ));
+      }
+      const bridgeOptions = __autojs6_accessibility_options(options);
+      return __autojs6_call_autojs(
+        "accessibility",
+        "swipe",
+        [coordinates[0], coordinates[1], coordinates[2], coordinates[3], duration],
+        gestureBridgeOptions(bridgeOptions, duration + 10000)
+      ).then(function(result) {
+        return result === true;
+      });
+    }
+    function gesture(durationMs, points, options) {
+      const duration = Number(durationMs);
+      const path = Array.isArray(points) ? points.map(function(point) {
+        if (!Array.isArray(point) || point.length < 2) return null;
+        const x = __autojs6_accessibility_finite_number(point[0]);
+        const y = __autojs6_accessibility_finite_number(point[1]);
+        return Number.isFinite(x) && Number.isFinite(y) && x >= 0 && y >= 0 ? [x, y] : null;
+      }) : [];
+      if (!Number.isFinite(duration) || duration <= 0 || path.length < 2 || path.some(function(point) { return point === null; })) {
+        return Promise.reject(__autojs6_accessibility_invalid_argument_error(
+          "gesture",
+          "accessibility.gesture requires a positive durationMs and at least two [x, y] points with finite non-negative coordinates."
+        ));
+      }
+      const bridgeOptions = __autojs6_accessibility_options(options);
+      return __autojs6_call_autojs(
+        "accessibility",
+        "gesture",
+        [duration, path],
+        gestureBridgeOptions(bridgeOptions, duration + 10000)
+      ).then(function(result) {
+        return result === true;
+      });
+    }
     __autojs6_limited_accessibility_cache = Object.freeze({
       text: function(value) {
         return __autojs6_accessibility_selector("text", value, "text");
@@ -24452,7 +24513,9 @@ std::string buildEmbeddedScriptExecutionSource(
       },
       scrollBackward: function(selector, options) {
         return selectorAction("scrollBackward", selector, options);
-      }
+      },
+      swipe,
+      gesture
     });
     return __autojs6_limited_accessibility_cache;
   }

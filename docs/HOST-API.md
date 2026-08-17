@@ -20,7 +20,7 @@
 |---|---|---|
 | `toast` | showToast, toast | 真 toast |
 | `app` | launchPackage, launchApp, openAppSetting, startActivity, getPackageName, getAppName, isInstalled, viewFile, editFile | 真启动 |
-| `accessibility` | isEnabled, ensureEnabled, click, back, home, recentApps, findByText, clickText, findOne, findAll, longClick, setText, scrollForward, scrollBackward | 真无障碍; 有每秒限速; 服务未启用时返回 capabilityProviderMissing。**swipe/gesture 不在此列** (见"缺口") |
+| `accessibility` | isEnabled, ensureEnabled, click, back, home, recentApps, findByText, clickText, findOne, findAll, longClick, setText, scrollForward, scrollBackward, **swipe, gesture** (M3.2) | 真无障碍; 有每秒限速; 服务未启用时返回 capabilityProviderMissing。swipe/gesture 需显式声明 `accessibility.gesture` 权限 (不被 `accessibility` 隐含), 时长上限 10s |
 | `clipboard` | getText, setText, hasText | 真剪贴板 |
 | `device` | isScreenOn, wakeUp, vibrate, isIgnoringBatteryOptimizations, openBatteryOptimizationSettings | 硬件标识符 (imei/androidId/serial/mac) 明确 blocked |
 | `shell` | exec | 真 ProcessBuilder; execRoot 需 `shell.root` 权限; execShizuku 拒绝 |
@@ -69,7 +69,7 @@
 | 项 | 原因 |
 |---|---|
 | `media_projection` (requestScreenCapture/nextImage/stop) | 宿主侧 UNAVAILABLE |
-| accessibility 的 swipe / gesture / powerDialog / waitFor / rawNode | 宿主 blockedMethods; gesture 需独立 capability, 尚未提供 |
+| accessibility 的 powerDialog / waitFor / rawNode | 宿主 blockedMethods (swipe/gesture 已于 M3.2 放开, 见第一节) |
 | `image.captureScreen` 及全部图像分析方法 | 同 media_projection 链路 |
 | 硬件标识符 (imei 等) | 隐私 fail-closed |
 | 非白名单 Node builtin | `ERR_AUTOJS6_BUILTIN_DISABLED` |
@@ -83,12 +83,13 @@
 | `device.isScreenOn` | 宿主 `pluginRuntimeUsesLiveHostBridgeForDeviceCall` | ✅ M1.1 |
 | `toast` + `clipboard` + `storage` + `shell.exec` + `app.getAppName` | 宿主 `pluginRuntimeDrivesCommonAutomationApisThroughLiveBridge` | ✅ M3.1 |
 | 加密模块 provider (v1) | 宿主 `pluginRuntimeDecryptsEncryptedModuleThroughHostV1Provider` | ✅ M1.3 |
-| `accessibility.*` | 样例 `accessibility-click-text` 的 SKIPPED 分支使其不能作证据; 无障碍开启依赖手工授权, 待 M3.2 补真机证据 | ⚠️ 未验证 |
+| `accessibility.swipe` 派发链 + `accessibility.gesture` 能力门禁 | 宿主 `pluginRuntimeSwipesThroughAccessibilityGestureCapability` (服务未开时断言可读 capabilityProviderMissing; 未声明能力被插件本地拒绝且零派发) | ✅ M3.2 |
+| `accessibility.*` 动作在服务开启下的完成路径 | 无障碍开启依赖手工授权 (小米 adb 不可直写 secure settings), 待手工开启后跑同一用例补证 | ⚠️ 部分验证 |
 | 其余 bridged 模块 | 无真机断言 | ⚠️ 未验证 |
 
 ## 七. 与 M3.2 目标的对照
 
-M3.2 原定 "补齐 toast / app.launch / click / swipe / text 查找 / 剪贴板 / shell":
+M3.2 原定 "补齐 toast / app.launch / click / swipe / text 查找 / 剪贴板 / shell" — **已全部达成**:
 
-- toast, app.launch, click (accessibility.click/clickText), text 查找 (findByText/findOne/findAll), 剪贴板, shell — **均已桥接**, 缺的是真机验证 (本清单第六节)。
-- **swipe 是唯一真缺口**: 在宿主 blockedMethods 里, 且 gesture 被声明为需要独立 capability。M3.2 的实际工作 = 宿主端补 swipe/gesture 派发 + 插件端无需改动。
+- toast, app.launch, click, text 查找, 剪贴板, shell 在盘点时即已桥接, M3.1 补了真机证据。
+- swipe/gesture (原唯一缺口) 于 M3.2 落地: 宿主 `dispatchGesture` 派发 (swipe 四坐标+时长; gesture 自由路径) + 独立 `accessibility.gesture` 能力 (插件/宿主双侧均要求显式声明) + 插件 JS `accessibility.swipe/gesture` 方法。
