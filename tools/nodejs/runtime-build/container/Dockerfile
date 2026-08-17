@@ -13,6 +13,7 @@ RUN apt-get update \
         ninja-build \
         openjdk-21-jdk-headless \
         python${PYTHON_VERSION} \
+        unzip \
         xz-utils \
         zstd \
     && rm -rf /var/lib/apt/lists/*

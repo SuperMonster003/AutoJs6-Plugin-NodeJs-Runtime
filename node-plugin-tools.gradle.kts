@@ -164,8 +164,14 @@ tasks.register("verifyNodePluginRuntimeBuildTool") {
         }
         val decision = report["decision"] as? Map<*, *>
             ?: throw GradleException("Node runtime build plan report did not include decision.")
-        if (decision["status"] !in setOf("bootstrap_only", "ready")) {
+        if (decision["status"] != "prebuilt_ready_source_build_bootstrap_only") {
             throw GradleException("Unexpected Node runtime build plan decision: ${decision["status"]}")
+        }
+        if (decision["artifactMaterializationStatus"] != "ready") {
+            throw GradleException("Pinned Node runtime artifact materialization is not ready: ${decision["artifactMaterializationStatus"]}")
+        }
+        if (decision["sourceBuildStatus"] != "bootstrap_only") {
+            throw GradleException("Node runtime source-build status must remain explicit bootstrap_only: ${decision["sourceBuildStatus"]}")
         }
         logger.lifecycle("Verified plugin Node runtime build plan tool with decision ${decision["status"]}.")
     }

@@ -3,15 +3,19 @@
 This directory contains the Phase 9 bootstrap plan for reproducible Android
 Node runtime artifacts.
 
-Current status: `bootstrap_only`.
+Current status: pinned Node 24.5 binary materialization is `ready`; a clean
+source build remains `bootstrap_only`.
 
-The checked-in lock file records the target Node version, required Android
-ABIs, Node 24.17 upstream provenance, Android fork provenance, toolchain
-versions, page-size targets, configure arguments, runtime library settings,
-linker visibility policy, and expected artifact metadata fields. Maintainers
-still need to produce the Node 24.17 Android port artifacts, per-ABI library
-hashes, Build IDs, and signing inputs before this can produce promoted
-artifacts.
+The checked-in lock records the exact upstream Node 24.5 Android archive and
+each ABI entry's path, size, and SHA-256. The executable materializer downloads
+or accepts that archive, verifies it before extraction, and verifies every
+output. This provides a second reconstruction route for the checked-in
+`libnode.so` files. It is a pinned upstream binary pipeline, not a source build.
+
+The same lock retains the Node 24.17 source-build plan, toolchain requirements,
+and deferred promotion decision. Maintainers still need a digest-pinned build
+container, a published Android patch series, and per-ABI Node 24.17 outputs and
+Build IDs before the source-build status can move beyond `bootstrap_only`.
 
 Run the host-side check:
 
@@ -26,5 +30,12 @@ powershell -ExecutionPolicy Bypass -File tools\nodejs\runtime-build\build-node-r
 sh tools/nodejs/runtime-build/build-node-runtime.sh
 ```
 
-These scripts intentionally do not emit runtime artifacts yet. They keep S9-04
-reviewable without changing the default embedded runtime.
+Materialize and verify Node 24.5 without trusting the checked-in libraries:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\nodejs\runtime-build\build-node-runtime.ps1 -Execute
+sh tools/nodejs/runtime-build/build-node-runtime.sh tools/nodejs/runtime-build/runtime-build.lock.json --execute
+```
+
+Both paths write only under `build/` by default. They do not promote Node 24.17
+or change the default runtime slot.
