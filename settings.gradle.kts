@@ -8,8 +8,11 @@ private val libs = emptyList<String>()
 
 include(
     ":app",
+    ":nodejs-api",
     *libs.map { ":libs:$it" }.toTypedArray(),
 )
+
+project(":nodejs-api").projectDir = File("plugin-api", "nodejs-api")
 
 pluginManagement {
 

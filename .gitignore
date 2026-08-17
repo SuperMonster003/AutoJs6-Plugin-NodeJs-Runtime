@@ -35,6 +35,7 @@ sync.ffs_db
 /build-logic/*/build/
 /build-logic/**/.kotlin/
 /libs/**/build/
+/plugin-api/**/build/
 /app/release/
 /app/releases/
 
