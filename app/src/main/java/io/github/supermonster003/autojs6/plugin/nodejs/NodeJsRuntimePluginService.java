@@ -69,8 +69,12 @@ public class NodeJsRuntimePluginService extends Service {
     private static final String LAUNCH_SURFACE_INTERACTIVE_SESSION = "interactive_session";
     private static final String LAUNCH_SURFACE_PACKAGED_LONG_RUNNING = "packaged_long_running";
     private static final String RUNTIME_PROCESS_SUFFIX = ":nodejs_runtime";
-    private static final String CANCELLATION_STRATEGY_PROCESS_RESTART = "process_restart";
+    private static final String CANCELLATION_STRATEGY_COOPERATIVE_STOP =
+            "cooperative_stop_with_process_restart_fallback";
     private static final long PROCESS_RESTART_AFTER_CANCEL_DELAY_MS = 150L;
+    /** Grace window for node::Stop to drain the loop before the restart fallback fires. */
+    private static final long COOPERATIVE_STOP_FALLBACK_GRACE_MS = 3_000L;
+    private static final String ERROR_SCRIPT_CANCELLED = "ERR_AUTOJS6_NODE_SCRIPT_CANCELLED";
     private static final String PROC_SELF_STATUS_PATH = "/proc/self/status";
     private static final String PROC_SELF_FD_PATH = "/proc/self/fd";
     private static final String PROC_SELF_TASK_PATH = "/proc/self/task";
@@ -156,8 +160,17 @@ public class NodeJsRuntimePluginService extends Service {
                     return completeImmediateFailure(callback, busyFailureBundle(normalizedRequest, startedAt));
                 }
                 try {
-                    return runScriptActive(normalizedRequest, callback);
+                    NativeNodeEmbeddedRuntimeBridge.beginScriptStopScope(
+                            NodeJsRuntimePluginService.this,
+                            executionId
+                    );
+                    Bundle result = runScriptActive(normalizedRequest, callback);
+                    if (lease.cancellationRequested()) {
+                        markResultCancelled(result);
+                    }
+                    return result;
                 } finally {
+                    NativeNodeEmbeddedRuntimeBridge.endScriptStopScope(NodeJsRuntimePluginService.this);
                     executionGate.release(lease);
                 }
             } finally {
@@ -168,13 +181,33 @@ public class NodeJsRuntimePluginService extends Service {
         @Override
         public boolean cancelScript(String executionId) {
             if (!isDedicatedRuntimeProcess()) {
-                Log.e(TAG, "Refusing process-restart cancellation outside the dedicated runtime process.");
+                Log.e(TAG, "Refusing cancellation outside the dedicated runtime process.");
                 return false;
             }
-            if (!executionGate.requestCancellation(nonBlank(executionId, ""))) {
+            String normalizedId = nonBlank(executionId, "");
+            if (!executionGate.requestCooperativeCancellation(normalizedId)) {
                 return false;
             }
-            scheduleDedicatedRuntimeProcessRestart("cancel:" + executionId);
+            boolean stopDispatched;
+            try {
+                stopDispatched = NativeNodeEmbeddedRuntimeBridge.requestScriptStop(
+                        NodeJsRuntimePluginService.this,
+                        normalizedId
+                );
+            } catch (Throwable error) {
+                Log.w(TAG, "Cooperative stop dispatch failed; falling back to process restart.", error);
+                stopDispatched = false;
+            }
+            if (!stopDispatched) {
+                // No matching native scope (script finished, or stop symbol
+                // unavailable): restore the pre-M2.2 restart behavior.
+                if (executionGate.requestCancellation(normalizedId)) {
+                    scheduleDedicatedRuntimeProcessRestart("cancel:" + normalizedId);
+                }
+                return true;
+            }
+            Log.i(TAG, "Cooperative stop dispatched for execution " + normalizedId);
+            scheduleCooperativeStopFallback(normalizedId);
             return true;
         }
 
@@ -672,7 +705,7 @@ public class NodeJsRuntimePluginService extends Service {
         info.putBoolean("dedicatedRuntimeProcess", isDedicatedRuntimeProcess());
         info.putBoolean("isolatePerExecution", true);
         info.putString("defaultExecutionMode", "one_shot");
-        info.putString("cancellationMode", CANCELLATION_STRATEGY_PROCESS_RESTART);
+        info.putString("cancellationMode", CANCELLATION_STRATEGY_COOPERATIVE_STOP);
         info.putString("outputMode", "streaming");
         info.putBoolean("streamingOutput", true);
         info.putInt("terminalEventCount", 1);
@@ -711,7 +744,7 @@ public class NodeJsRuntimePluginService extends Service {
             diagnostics.put("process_runtime.pid", Integer.toString(Process.myPid()));
             diagnostics.put("process_runtime.service_class", getClass().getName());
             diagnostics.put("process_runtime.dedicated_process", Boolean.toString(isDedicatedRuntimeProcess()));
-            diagnostics.put("process_runtime.cancellation_strategy", CANCELLATION_STRATEGY_PROCESS_RESTART);
+            diagnostics.put("process_runtime.cancellation_strategy", CANCELLATION_STRATEGY_COOPERATIVE_STOP);
             try {
                 loadNativeRuntime();
                 diagnostics.putAll(
@@ -962,6 +995,54 @@ public class NodeJsRuntimePluginService extends Service {
         return currentProcessName().equals(getPackageName() + RUNTIME_PROCESS_SUFFIX);
     }
 
+    /**
+     * Escalates a cooperative stop to the pre-M2.2 process restart when the
+     * cancelled execution is still holding the gate after the grace window —
+     * e.g. a script stuck in synchronous native code that node::Stop cannot
+     * interrupt.
+     */
+    private void scheduleCooperativeStopFallback(String executionId) {
+        processHandler.postDelayed(() -> {
+            NodeRuntimeExecutionGate.Snapshot active = executionGate.snapshot();
+            if (active == null || !active.executionId.equals(executionId)) {
+                return;
+            }
+            Log.w(
+                    TAG,
+                    "Cooperative stop did not release execution " + executionId +
+                            " within " + COOPERATIVE_STOP_FALLBACK_GRACE_MS + "ms; restarting process."
+            );
+            if (executionGate.requestCancellation(executionId)) {
+                scheduleDedicatedRuntimeProcessRestart("cooperative-stop-timeout:" + executionId);
+            }
+        }, COOPERATIVE_STOP_FALLBACK_GRACE_MS);
+    }
+
+    /**
+     * Rewrites a finished execution's result as a cancellation outcome: the
+     * caller asked for the stop, so a drained loop (often exit code 0) must
+     * not read as normal success, and a stop-induced failure needs the
+     * readable cancel code instead of a generic native error.
+     */
+    private void markResultCancelled(Bundle result) {
+        if (result == null) {
+            return;
+        }
+        result.putBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED, false);
+        result.putString(NodeJsRuntimeContract.KEY_ERROR_CODE, ERROR_SCRIPT_CANCELLED);
+        result.putString(
+                NodeJsRuntimeContract.KEY_ERROR_MESSAGE,
+                "Script was cancelled while running."
+        );
+        result.putStringArray(
+                NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                appendNativePayload(
+                        result.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD),
+                        new String[]{"embedded_script.runtime_plugin.cancelled=true"}
+                )
+        );
+    }
+
     private void scheduleDedicatedRuntimeProcessRestart(String reason) {
         if (!processRestartScheduled.compareAndSet(false, true)) {
             return;
@@ -1157,7 +1238,7 @@ public class NodeJsRuntimePluginService extends Service {
         values.put("embedded_script.runtime_plugin.queue_capacity", "0");
         values.put(
                 "embedded_script.runtime_plugin.cancellation_mode",
-                CANCELLATION_STRATEGY_PROCESS_RESTART
+                CANCELLATION_STRATEGY_COOPERATIVE_STOP
         );
         values.put(
                 "embedded_script.runtime_plugin.runtime_ready",

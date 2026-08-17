@@ -7705,6 +7705,15 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
                     putPayload(payload, "environment.free.detail", "environment was not created");
                     __android_log_print(ANDROID_LOG_WARN, kLogTag, "environment.create.failed elapsed=%lldms result=null", elapsedMs(environmentCreateStartedAt));
                 } else {
+                    if (scriptExecution) {
+                        // Publish for cooperative cancellation; a stop that
+                        // arrived before the environment existed fires now.
+                        const bool notPreCancelled = registerActiveScriptEnvironment(handle, environment);
+                        putPayload(payload, "embedded_script.cooperative_stop.armed", true);
+                        if (!notPreCancelled) {
+                            putPayload(payload, "embedded_script.cooperative_stop.pre_dispatch", true);
+                        }
+                    }
                     __android_log_print(
                             ANDROID_LOG_INFO,
                             kLogTag,
@@ -13915,6 +13924,11 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
                 );
             }
             putPayload(payload, "timing.spin_event_loop.ms", elapsedMs(spinEventLoopStartedAt));
+            if (scriptExecution) {
+                // The loop has drained; a cancel arriving from here on has
+                // nothing to stop and must not touch the freeing environment.
+                clearActiveScriptEnvironment();
+            }
         } else if (spinEventLoop) {
             putPayload(payload, "spin_event_loop.status", "skipped");
             putPayload(
@@ -19589,6 +19603,11 @@ void appendEmbeddedV8UvIsolateLifecycleProbePayload(
         }
 
         if (environment != nullptr) {
+            if (scriptExecution) {
+                // Failure paths can reach teardown without ever spinning the
+                // loop; make sure no cancel can race the free below.
+                clearActiveScriptEnvironment();
+            }
             __android_log_print(
                     ANDROID_LOG_INFO,
                     kLogTag,
