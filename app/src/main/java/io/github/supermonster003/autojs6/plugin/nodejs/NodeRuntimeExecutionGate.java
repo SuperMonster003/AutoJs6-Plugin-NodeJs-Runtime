@@ -107,6 +107,22 @@ final class NodeRuntimeExecutionGate {
         }
     }
 
+
+    /**
+     * Marks the active lease as cancelled without closing the gate: the
+     * execution ends via {@code node::Stop} and the runtime process stays up,
+     * so the next admission proceeds normally after release. Returns false
+     * when the id does not match the active execution.
+     */
+    boolean requestCooperativeCancellation(String executionId) {
+        Lease lease = state.get().lease;
+        if (lease == null || executionId == null || !lease.executionId.equals(executionId)) {
+            return false;
+        }
+        lease.requestCancellation();
+        return true;
+    }
+
     Snapshot snapshot() {
         Lease lease = state.get().lease;
         if (lease == null) {

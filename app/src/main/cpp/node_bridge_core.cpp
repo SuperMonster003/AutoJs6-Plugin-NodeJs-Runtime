@@ -28,6 +28,110 @@ void setCurrentOutputStreamSink(std::shared_ptr<JavaOutputSink> sink) {
     outputStreamSinkSlot() = std::move(sink);
 }
 
+namespace {
+
+using NodeStopFn = int (*)(node::Environment*, uint32_t);
+constexpr const char* kNodeStopSymbol = "_ZN4node4StopEPNS_11EnvironmentENS_9StopFlags5FlagsE";
+
+struct ActiveScriptStopState {
+    std::mutex mutex;
+    std::string scopeTag;  // empty = no execution scope open
+    node::Environment* environment = nullptr;
+    NodeStopFn stopFn = nullptr;
+    bool stopPending = false;
+    bool stopDispatched = false;
+};
+
+ActiveScriptStopState& activeScriptStopState() {
+    static ActiveScriptStopState state;
+    return state;
+}
+
+bool dispatchNodeStopLocked(ActiveScriptStopState& state) {
+    if (state.environment == nullptr || state.stopFn == nullptr) {
+        return false;
+    }
+    const int result = state.stopFn(state.environment, 0 /* StopFlags::kNoFlags */);
+    __android_log_print(
+            ANDROID_LOG_INFO,
+            "AutoJs6NodeBridge",
+            "cooperative_stop.dispatched node_stop_result=%d",
+            result
+    );
+    // node::Stop is one-shot per environment; drop the pointer so a second
+    // cancel call cannot touch an environment that is now draining/freeing.
+    state.environment = nullptr;
+    state.stopDispatched = true;
+    return true;
+}
+
+}  // namespace
+
+void beginActiveScriptStopScope(const char* executionTag) {
+    ActiveScriptStopState& state = activeScriptStopState();
+    std::lock_guard<std::mutex> lock(state.mutex);
+    state.scopeTag = executionTag == nullptr ? "" : executionTag;
+    state.environment = nullptr;
+    state.stopPending = false;
+    state.stopDispatched = false;
+}
+
+void endActiveScriptStopScope() {
+    ActiveScriptStopState& state = activeScriptStopState();
+    std::lock_guard<std::mutex> lock(state.mutex);
+    state.scopeTag.clear();
+    state.environment = nullptr;
+    state.stopPending = false;
+}
+
+bool registerActiveScriptEnvironment(void* libnodeHandle, node::Environment* environment) {
+    ActiveScriptStopState& state = activeScriptStopState();
+    std::lock_guard<std::mutex> lock(state.mutex);
+    if (state.scopeTag.empty()) {
+        // No admission scope: probe/diagnostic executions never take part in
+        // cooperative cancellation.
+        return true;
+    }
+    if (environment != nullptr && libnodeHandle != nullptr && state.stopFn == nullptr) {
+        SymbolLookup lookup = lookupSymbol(libnodeHandle, kNodeStopSymbol);
+        state.stopFn = lookup.found ? reinterpret_cast<NodeStopFn>(lookup.address) : nullptr;
+    }
+    state.environment = environment;
+    if (state.stopPending) {
+        state.stopPending = false;
+        if (dispatchNodeStopLocked(state)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void clearActiveScriptEnvironment() {
+    ActiveScriptStopState& state = activeScriptStopState();
+    std::lock_guard<std::mutex> lock(state.mutex);
+    state.environment = nullptr;
+}
+
+bool requestActiveScriptStop(const char* executionTag) {
+    ActiveScriptStopState& state = activeScriptStopState();
+    std::lock_guard<std::mutex> lock(state.mutex);
+    if (state.scopeTag.empty() || executionTag == nullptr || state.scopeTag != executionTag) {
+        // Stale or mistargeted cancel: the tagged execution already finished
+        // (or never dispatched natively). Never touch another script's state.
+        return false;
+    }
+    if (state.environment != nullptr) {
+        return dispatchNodeStopLocked(state);
+    }
+    if (state.stopDispatched) {
+        return true;
+    }
+    // The environment is not up yet (script still in pre-dispatch phases):
+    // record the request so registration dispatches it immediately.
+    state.stopPending = true;
+    return true;
+}
+
 std::mutex& nodeStartMutex() {
     static std::mutex mutex;
     return mutex;

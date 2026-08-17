@@ -480,6 +480,22 @@ private:
 std::shared_ptr<JavaOutputSink> currentOutputStreamSink();
 void setCurrentOutputStreamSink(std::shared_ptr<JavaOutputSink> sink);
 
+// Cooperative cancellation (M2.2): the service opens a stop scope tagged with
+// the execution id before dispatching natively; the lifecycle publishes the
+// active node::Environment while LoadEnvironment/SpinEventLoop run; a cancel
+// Binder call invokes node::Stop(env) (documented thread-safe) from the
+// binder thread so the event loop drains without killing the process. A stop
+// arriving inside the scope but before the environment exists is recorded as
+// pending and dispatched at registration time; cancels whose tag does not
+// match the open scope are rejected so a stale request can never stop the
+// next script. registerActiveScriptEnvironment returns false when the
+// registration immediately dispatched a pending stop.
+void beginActiveScriptStopScope(const char* executionTag);
+void endActiveScriptStopScope();
+bool registerActiveScriptEnvironment(void* libnodeHandle, node::Environment* environment);
+void clearActiveScriptEnvironment();
+bool requestActiveScriptStop(const char* executionTag);
+
 class PipeReader {
 public:
     using EmitFunction = void (JavaOutputSink::*)(const char*, size_t) const;

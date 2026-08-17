@@ -112,6 +112,33 @@ public final class NativeNodeEmbeddedRuntimeBridge {
         INSTANCE.nativeSetOutputStreamSink(sink);
     }
 
+    /**
+     * Opens the cooperative-stop scope for the given execution id. Must be
+     * called before {@link #runEmbeddedScript}; a cancel with the same tag
+     * then stops the script's event loop via {@code node::Stop} instead of a
+     * process restart.
+     */
+    public static void beginScriptStopScope(Context context, String executionTag) {
+        loadLibraries(context);
+        INSTANCE.nativeBeginScriptStopScope(executionTag == null ? "" : executionTag);
+    }
+
+    /** Closes the cooperative-stop scope opened by {@link #beginScriptStopScope}. */
+    public static void endScriptStopScope(Context context) {
+        loadLibraries(context);
+        INSTANCE.nativeEndScriptStopScope();
+    }
+
+    /**
+     * Requests a cooperative stop of the tagged in-flight execution. Returns
+     * true when the stop was dispatched (or recorded for imminent dispatch);
+     * false when the tag does not match the open scope.
+     */
+    public static boolean requestScriptStop(Context context, String executionTag) {
+        loadLibraries(context);
+        return INSTANCE.nativeRequestScriptStop(executionTag == null ? "" : executionTag);
+    }
+
     public static String[] runEmbeddedScript(
             String source,
             String sourceName,
@@ -167,6 +194,12 @@ public final class NativeNodeEmbeddedRuntimeBridge {
     );
 
     private native void nativeSetOutputStreamSink(OutputSink sink);
+
+    private native void nativeBeginScriptStopScope(String executionTag);
+
+    private native void nativeEndScriptStopScope();
+
+    private native boolean nativeRequestScriptStop(String executionTag);
 
     private native String[] nativeEnsureProcessRuntimeReady();
 

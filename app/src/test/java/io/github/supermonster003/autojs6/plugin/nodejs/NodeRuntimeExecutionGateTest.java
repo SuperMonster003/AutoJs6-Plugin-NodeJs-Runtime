@@ -63,4 +63,20 @@ public class NodeRuntimeExecutionGateTest {
     public void blankExecutionIdIsRejected() {
         new NodeRuntimeExecutionGate(() -> 0L).tryAcquire("  ");
     }
+    @Test
+    public void cooperativeCancellationLeavesGateOpenForNextExecution() {
+        NodeRuntimeExecutionGate gate = new NodeRuntimeExecutionGate(() -> 10L);
+        NodeRuntimeExecutionGate.Lease lease = gate.tryAcquire("active");
+
+        assertFalse(gate.requestCooperativeCancellation("different"));
+        assertTrue(gate.requestCooperativeCancellation("active"));
+        assertTrue(lease.cancellationRequested());
+        assertFalse(gate.isClosed());
+        assertTrue(gate.snapshot().cancellationRequested);
+
+        assertTrue(gate.release(lease));
+        // Unlike the restart path, the runtime process survives and the gate
+        // admits the next script.
+        assertNotNull(gate.tryAcquire("after-cooperative-cancel"));
+    }
 }

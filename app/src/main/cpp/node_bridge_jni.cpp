@@ -638,6 +638,32 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeSetProcessRu
 }
 
 extern "C" JNIEXPORT void JNICALL
+Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeBeginScriptStopScope(
+        JNIEnv* env,
+        jobject /* thiz */,
+        jstring executionTag
+) {
+    beginActiveScriptStopScope(toStdString(env, executionTag).c_str());
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeEndScriptStopScope(
+        JNIEnv* /* env */,
+        jobject /* thiz */
+) {
+    endActiveScriptStopScope();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeRequestScriptStop(
+        JNIEnv* env,
+        jobject /* thiz */,
+        jstring executionTag
+) {
+    return requestActiveScriptStop(toStdString(env, executionTag).c_str()) ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT void JNICALL
 Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeSetOutputStreamSink(
         JNIEnv* env,
         jobject /* thiz */,
