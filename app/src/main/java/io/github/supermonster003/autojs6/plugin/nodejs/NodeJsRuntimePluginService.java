@@ -75,6 +75,8 @@ public class NodeJsRuntimePluginService extends Service {
     /** Grace window for node::Stop to drain the loop before the restart fallback fires. */
     private static final long COOPERATIVE_STOP_FALLBACK_GRACE_MS = 3_000L;
     private static final String ERROR_SCRIPT_CANCELLED = "ERR_AUTOJS6_NODE_SCRIPT_CANCELLED";
+    /** Queue wait ceiling for requests that carry no explicit timeout. */
+    private static final long DEFAULT_ADMISSION_WAIT_MS = 10 * 60_000L;
     private static final String PROC_SELF_STATUS_PATH = "/proc/self/status";
     private static final String PROC_SELF_FD_PATH = "/proc/self/fd";
     private static final String PROC_SELF_TASK_PATH = "/proc/self/task";
@@ -155,10 +157,17 @@ public class NodeJsRuntimePluginService extends Service {
                         "plugin-" + UUID.randomUUID()
                 );
                 normalizedRequest.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, executionId);
-                NodeRuntimeExecutionGate.Lease lease = executionGate.tryAcquire(executionId);
-                if (lease == null) {
-                    return completeImmediateFailure(callback, busyFailureBundle(normalizedRequest, startedAt));
+                NodeRuntimeExecutionGate.Admission admission = executionGate.acquire(
+                        executionId,
+                        admissionWaitBudgetMs(normalizedRequest)
+                );
+                if (admission.outcome != NodeRuntimeExecutionGate.AdmissionOutcome.ADMITTED) {
+                    return completeImmediateFailure(
+                            callback,
+                            admissionFailureBundle(normalizedRequest, startedAt, admission)
+                    );
                 }
+                NodeRuntimeExecutionGate.Lease lease = admission.lease;
                 try {
                     NativeNodeEmbeddedRuntimeBridge.beginScriptStopScope(
                             NodeJsRuntimePluginService.this,
@@ -185,6 +194,10 @@ public class NodeJsRuntimePluginService extends Service {
                 return false;
             }
             String normalizedId = nonBlank(executionId, "");
+            if (executionGate.cancelQueued(normalizedId)) {
+                // Still waiting in the queue: nothing native to stop.
+                return true;
+            }
             if (!executionGate.requestCooperativeCancellation(normalizedId)) {
                 return false;
             }
@@ -700,7 +713,8 @@ public class NodeJsRuntimePluginService extends Service {
         info.putStringArray("supportedAbis", SUPPORTED_ABIS.clone());
         info.putString("processModel", "persistent");
         info.putInt("maxConcurrentExecutions", 1);
-        info.putInt("queueCapacity", 0);
+        info.putInt("queueCapacity", NodeRuntimeExecutionGate.QUEUE_CAPACITY);
+        info.putInt("queuedExecutions", executionGate.queuedCount());
         info.putBoolean("persistentProcessRuntime", true);
         info.putBoolean("dedicatedRuntimeProcess", isDedicatedRuntimeProcess());
         info.putBoolean("isolatePerExecution", true);
@@ -912,6 +926,73 @@ public class NodeJsRuntimePluginService extends Service {
         return failure;
     }
 
+    /**
+     * Wait budget for queued admission: honor an explicit request timeout,
+     * otherwise wait generously — desktop `node foo.js` semantics are "run
+     * when it's my turn", not "fail because someone else is running".
+     */
+    private static long admissionWaitBudgetMs(Bundle request) {
+        long timeoutMs = request.getLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 0L);
+        return timeoutMs > 0L ? timeoutMs : DEFAULT_ADMISSION_WAIT_MS;
+    }
+
+    private Bundle admissionFailureBundle(
+            Bundle request,
+            long startedAt,
+            NodeRuntimeExecutionGate.Admission admission
+    ) {
+        String message;
+        String admissionStatus;
+        switch (admission.outcome) {
+            case QUEUE_FULL:
+                message = "Node.js runtime plugin queue is full (" +
+                        NodeRuntimeExecutionGate.QUEUE_CAPACITY + " scripts already waiting).";
+                admissionStatus = "queue_full";
+                break;
+            case WAIT_TIMEOUT:
+                message = "Node.js runtime plugin queue wait exceeded " + admission.waitedMs + " ms.";
+                admissionStatus = "wait_timeout";
+                break;
+            case CANCELLED_WHILE_QUEUED:
+                message = "Script was cancelled while waiting in the queue.";
+                admissionStatus = "cancelled_while_queued";
+                break;
+            case CLOSED:
+            default:
+                message = "Node.js runtime plugin process is restarting after cancellation.";
+                admissionStatus = "draining";
+                break;
+        }
+        String errorCode = admission.outcome == NodeRuntimeExecutionGate.AdmissionOutcome.CANCELLED_WHILE_QUEUED
+                ? ERROR_SCRIPT_CANCELLED
+                : ERROR_BUSY;
+        Bundle failure = failureBundle(request, startedAt, message, null, errorCode);
+        NodeRuntimeExecutionGate.Snapshot active = executionGate.snapshot();
+        LinkedHashMap<String, String> diagnostics = new LinkedHashMap<>();
+        diagnostics.put("embedded_script.runtime_plugin.admission.status", admissionStatus);
+        diagnostics.put(
+                "embedded_script.runtime_plugin.admission.queue_capacity",
+                Integer.toString(NodeRuntimeExecutionGate.QUEUE_CAPACITY)
+        );
+        diagnostics.put(
+                "embedded_script.runtime_plugin.admission.queued_count",
+                Integer.toString(executionGate.queuedCount())
+        );
+        diagnostics.put("embedded_script.runtime_plugin.admission.waited_ms", Long.toString(admission.waitedMs));
+        diagnostics.put(
+                "embedded_script.runtime_plugin.admission.active_execution_id",
+                active == null ? "" : active.executionId
+        );
+        failure.putStringArray(
+                NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                appendNativePayload(
+                        failure.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD),
+                        nativePayloadFromMap(diagnostics)
+                )
+        );
+        return failure;
+    }
+
     private Bundle busyFailureBundle(Bundle request, long startedAt) {
         NodeRuntimeExecutionGate.Snapshot active = executionGate.snapshot();
         boolean draining = executionGate.isClosed() || processRestartScheduled.get();
@@ -925,7 +1006,10 @@ public class NodeJsRuntimePluginService extends Service {
                 "embedded_script.runtime_plugin.admission.status",
                 draining ? "draining" : "busy"
         );
-        diagnostics.put("embedded_script.runtime_plugin.admission.queue_capacity", "0");
+        diagnostics.put(
+                "embedded_script.runtime_plugin.admission.queue_capacity",
+                Integer.toString(NodeRuntimeExecutionGate.QUEUE_CAPACITY)
+        );
         diagnostics.put("embedded_script.runtime_plugin.admission.active_execution_id", activeExecutionId);
         diagnostics.put(
                 "embedded_script.runtime_plugin.admission.active_for_ms",
@@ -1235,7 +1319,10 @@ public class NodeJsRuntimePluginService extends Service {
         );
         values.put("embedded_script.runtime_plugin.persistent_process_runtime", "true");
         values.put("embedded_script.runtime_plugin.max_concurrent_executions", "1");
-        values.put("embedded_script.runtime_plugin.queue_capacity", "0");
+        values.put(
+                "embedded_script.runtime_plugin.queue_capacity",
+                Integer.toString(NodeRuntimeExecutionGate.QUEUE_CAPACITY)
+        );
         values.put(
                 "embedded_script.runtime_plugin.cancellation_mode",
                 CANCELLATION_STRATEGY_COOPERATIVE_STOP
