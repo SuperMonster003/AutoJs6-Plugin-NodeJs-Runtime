@@ -1292,16 +1292,12 @@ public class NodeJsRuntimePluginService extends Service {
         if (workspaceSession != null) {
             engineInfo = workspaceSession.mapEngineInfo(engineInfo);
         }
-        Map<String, String> mappedRuntimeModuleSources = runtimeModuleSources;
-        if (nonBlank(engineInfo, null) != null) {
-            mappedRuntimeModuleSources = withRuntimeModuleSource(
-                    runtimeModuleSources,
-                    ENGINE_INFO_RUNTIME_MODULE_NAME,
-                    engineInfo
-            );
-        }
-        RuntimeModuleInjection injection = RuntimeModuleInjection.from(mappedRuntimeModuleSources);
-        injection = injection.withRuntimeModule(
+        // Workspace path mapping may rewrite a caller-supplied engine-info
+        // module, so it is re-injected here. The diagnostics must keep the
+        // original discovery source (existing/host_broker/request), not report
+        // the pre-populated map as "existing".
+        RuntimeModuleInjection injection = RuntimeModuleInjection.from(runtimeModuleSources);
+        injection = injection.withReplacedRuntimeModule(
                 "engine_info",
                 ENGINE_INFO_RUNTIME_MODULE_NAME,
                 engineInfo,
@@ -1985,6 +1981,30 @@ public class NodeJsRuntimePluginService extends Service {
                 putDiagnostics(nextDiagnostics, diagnosticName, true, "existing");
                 return new RuntimeModuleInjection(sources, nextDiagnostics);
             }
+            String normalizedSource = nonBlank(source, null);
+            if (normalizedSource == null) {
+                putDiagnostics(nextDiagnostics, diagnosticName, false, "missing");
+                return new RuntimeModuleInjection(sources, nextDiagnostics);
+            }
+            putDiagnostics(nextDiagnostics, diagnosticName, true, nonBlank(sourceLabel, "plugin"));
+            return new RuntimeModuleInjection(
+                    withRuntimeModuleSource(sources, moduleName, normalizedSource),
+                    nextDiagnostics
+            );
+        }
+
+        /**
+         * Injects {@code source} even when the module is already present
+         * (workspace mapping may have rewritten it) and reports the caller's
+         * {@code sourceLabel} instead of collapsing to "existing".
+         */
+        RuntimeModuleInjection withReplacedRuntimeModule(
+                String diagnosticName,
+                String moduleName,
+                String source,
+                String sourceLabel
+        ) {
+            LinkedHashMap<String, String> nextDiagnostics = new LinkedHashMap<>(diagnostics);
             String normalizedSource = nonBlank(source, null);
             if (normalizedSource == null) {
                 putDiagnostics(nextDiagnostics, diagnosticName, false, "missing");
