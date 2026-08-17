@@ -31106,6 +31106,20 @@ std::string buildEmbeddedScriptExecutionSource(
       if (!__autojs6_path_within_root(resolved, root)) {
         throw new Error("Relative require escapes Embedded Node working directory: " + moduleName);
       }
+      // Node's LOAD_AS_FILE probes the literal path first even when its
+      // "extension" is bogus (require('./util.inspect') → file
+      // util.inspect.js). A candidate with an unloadable extension is simply
+      // not a match — fall through to the suffixed candidates instead of
+      // failing the whole resolution.
+      const candidateExtension = path.extname(resolved);
+      if (
+        candidateExtension &&
+        !__autojs6_supported_local_module_extension(candidateExtension) &&
+        !(allowEsm && __autojs6_is_esm_extension(candidateExtension)) &&
+        candidates.length > 1
+      ) {
+        continue;
+      }
       if (__autojs6_module_record(resolved, allowEsm, materializeMissingPlaintext === true)) {
         return resolved;
       }
@@ -31902,11 +31916,17 @@ std::string buildEmbeddedScriptExecutionSource(
       "Embedded Node local module",
       "Unsupported Embedded Node local module extension in MVP: " + moduleName
     );
-    if (extension && !__autojs6_supported_local_module_extension(extension) && !(allowEsm && __autojs6_is_esm_extension(extension))) {
-      throw new Error("Unsupported Embedded Node local module extension in MVP: " + moduleName);
-    }
+    // Unknown extensions (e.g. require('./util.inspect') → util.inspect.js)
+    // follow Node's LOAD_AS_FILE: try the exact path, then append the
+    // standard suffixes. Only TS/native/ESM rejections above stay hard.
+    const treatAsExtensionless =
+      !extension ||
+      (!__autojs6_supported_local_module_extension(extension) &&
+        !(allowEsm && __autojs6_is_esm_extension(extension)));
     const fileResolved = __autojs6_first_local_module_candidate(
-      extension ? [base] : [base, base + ".js", base + ".cjs", base + ".cts", base + ".ts", base + ".json"],
+      treatAsExtensionless
+        ? [base, base + ".js", base + ".cjs", base + ".cts", base + ".ts", base + ".json"]
+        : [base],
       root,
       moduleName,
       allowEsm,
@@ -31921,7 +31941,7 @@ std::string buildEmbeddedScriptExecutionSource(
       });
       return fileResolved;
     }
-    if (!extension) {
+    if (treatAsExtensionless) {
       const directoryResolved = __autojs6_resolve_package_directory(base, root, moduleName, resolutionMode);
       if (directoryResolved) {
         __autojs6_resolve_trace("final", {
@@ -32109,11 +32129,17 @@ std::string buildEmbeddedScriptExecutionSource(
       "Embedded Node node_modules module",
       "Unsupported Embedded Node node_modules module extension in MVP: " + moduleName
     );
-    if (extension && !__autojs6_supported_local_module_extension(extension) && !(allowEsm && __autojs6_is_esm_extension(extension))) {
-      throw new Error("Unsupported Embedded Node node_modules module extension in MVP: " + moduleName);
-    }
+    // Subpaths with unloadable "extensions" (get-proto/Object.getPrototypeOf
+    // → Object.getPrototypeOf.js) follow LOAD_AS_FILE: exact path first,
+    // standard suffixes next. Only TS/native/ESM rejections above stay hard.
+    const subpathExtensionless =
+      !extension ||
+      (!__autojs6_supported_local_module_extension(extension) &&
+        !(allowEsm && __autojs6_is_esm_extension(extension)));
     const fileResolved = __autojs6_first_local_module_candidate(
-      extension ? [base] : [base, base + ".js", base + ".cjs", base + ".cts", base + ".ts", base + ".json"],
+      subpathExtensionless
+        ? [base, base + ".js", base + ".cjs", base + ".cts", base + ".ts", base + ".json"]
+        : [base],
       root,
       moduleName,
       allowEsm,
@@ -32122,13 +32148,38 @@ std::string buildEmbeddedScriptExecutionSource(
     if (fileResolved && __autojs6_path_within_root(fileResolved, packageDir)) {
       return fileResolved;
     }
-    if (!extension) {
+    if (subpathExtensionless) {
       const directoryResolved = __autojs6_resolve_package_directory(base, root, moduleName, mode);
       if (directoryResolved && __autojs6_path_within_root(directoryResolved, packageDir)) {
         return directoryResolved;
       }
     }
     return null;
+  }
+  function __autojs6_compat_shim_shadowable(name) {
+    // Bare names the compat chain would otherwise answer. Node builtin ids
+    // and "node:"/"autojs6:" prefixed ids are excluded on purpose: those must
+    // keep their builtin/limited semantics regardless of installed packages.
+    if (!name || name.indexOf(":") >= 0 || name.charAt(0) === "." || name.charAt(0) === "/") {
+      return false;
+    }
+    if (__autojs6_denied_builtin_module_name(name)) {
+      return false;
+    }
+    if (__autojs6_limited_module_is_builtin(name)) {
+      return false;
+    }
+    return true;
+  }
+  function __autojs6_try_resolve_node_modules_module(moduleName, parentFilename, mode) {
+    try {
+      return __autojs6_resolve_node_modules_module(moduleName, parentFilename, mode);
+    } catch (error) {
+      if (error && error.code === "MODULE_NOT_FOUND") {
+        return null;
+      }
+      throw error;
+    }
   }
   function __autojs6_resolve_node_modules_module(moduleName, parentFilename, mode) {
     const path = __autojs6_path_module();
@@ -47771,6 +47822,21 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     if (name === "autojs6:compat") {
       return __autojs6_limited_rhino_compat();
+    }
+    // M2.4 npm precedence: an installed node_modules package wins over the
+    // AutoJs6 compat shim of the same bare name (mime, colors, util, ...) —
+    // matching desktop Node, where npm packages shadow nothing and shims do
+    // not exist. Node builtin ids (fs, path, "node:*"…) never take this path,
+    // and when no package is installed the shim still answers.
+    if (__autojs6_compat_shim_shadowable(name)) {
+      const packageResolved = __autojs6_try_resolve_node_modules_module(
+        name,
+        parentFilename,
+        __autojs6_commonjs_require_resolution_mode()
+      );
+      if (packageResolved) {
+        return __autojs6_load_local_module(packageResolved, parentModule);
+      }
     }
     if (name === "rhino") {
       return __autojs6_limited_rhino();
