@@ -48,8 +48,11 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
             NodeJsRuntimeContract.KEY_WORKSPACE_RELATIVE_WORKING_DIRECTORY;
     static final String KEY_MAX_FILES = NodeJsRuntimeContract.KEY_WORKSPACE_ARCHIVE_MAX_FILES;
     static final String KEY_MAX_BYTES = NodeJsRuntimeContract.KEY_WORKSPACE_ARCHIVE_MAX_BYTES;
-    static final int HARD_MAX_FILES = 4_096;
-    static final long HARD_MAX_BYTES = 64L * 1024L * 1024L;
+    // Sized for real npm node_modules trees. Keep these aligned with the host
+    // workspace archive transport limits, which are sent with each request and
+    // clamped to these hard ceilings on the receiving side.
+    static final int HARD_MAX_FILES = 65_536;
+    static final long HARD_MAX_BYTES = 256L * 1024L * 1024L;
 
     private static final int COPY_BUFFER_BYTES = 32 * 1024;
     private static final int PROVIDER_TARGET_PRIVATE_MODE = 0600;
@@ -62,7 +65,8 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
     private static final String OUTPUT_TOMBSTONE_PATH =
             TRANSPORT_PROTOCOL_DIRECTORY + "/deletions-v1.json";
     private static final int MANIFEST_VERSION = 1;
-    private static final int MANIFEST_MAX_BYTES = 1024 * 1024;
+    // Grows with HARD_MAX_FILES: a manifest can name every transported path.
+    private static final int MANIFEST_MAX_BYTES = 16 * 1024 * 1024;
 
     private final File sessionRoot;
     private final File runtimeSandboxRoot;

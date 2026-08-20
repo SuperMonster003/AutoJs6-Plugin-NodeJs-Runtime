@@ -304,6 +304,7 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_runtime_module_count_limit = 8192;
   const __autojs6_runtime_module_single_source_bytes_limit = 16777216;
   const __autojs6_runtime_module_total_source_bytes_limit = 67108864;
+  const __autojs6_module_source_provider_request_count_limit = 8192 + 131072;
   const __autojs6_runtime_module_diagnostics = {
     loadedCount: 0,
     sourceBytes: 0,
@@ -17966,6 +17967,14 @@ std::string buildEmbeddedScriptExecutionSource(
       methodName
     );
   }
+  function __autojs6_ui_closed_error(methodName) {
+    return __autojs6_bridge_error(
+      "AutoJs6 ui." + methodName + " requires an active UI handle.",
+      "ERR_AUTOJS6_BRIDGE_INVALID_REQUEST",
+      "ui",
+      methodName
+    );
+  }
   function __autojs6_ui_validate_json(value, methodName, path, depth, seen) {
     if (depth > 16) {
       throw __autojs6_ui_invalid_argument_error(methodName, "ui." + methodName + " descriptor is too deep at " + path + ".");
@@ -18197,8 +18206,10 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const listeners = Object.create(null);
     let closed = false;
+    let terminalEventDispatching = false;
     let drainTimer = null;
     let draining = false;
+    let drainGeneration = 0;
     let pendingBindingPatches = [];
     let bindingFlushScheduled = false;
     const bindingUnsubscribers = [];
@@ -18214,11 +18225,41 @@ std::string buildEmbeddedScriptExecutionSource(
         drainTimer = null;
       }
     }
+    function terminate() {
+      if (closed) {
+        return false;
+      }
+      closed = true;
+      terminalEventDispatching = false;
+      drainGeneration += 1;
+      draining = false;
+      if (drainTimer !== null) {
+        clearInterval(drainTimer);
+        drainTimer = null;
+      }
+      bindingUnsubscribers.splice(0).forEach(function(unsubscribe) {
+        try {
+          unsubscribe();
+        } catch (error) {
+          setTimeout(function() { throw error; }, 0);
+        }
+      });
+      bindingFlushScheduled = false;
+      pendingBindingPatches = [];
+      Object.keys(listeners).forEach(function(eventName) {
+        delete listeners[eventName];
+      });
+      return true;
+    }
     function dispatchEvent(event) {
-      if (!event || typeof event !== "object") {
-        return;
+      if (closed || !event || typeof event !== "object") {
+        return false;
       }
       const type = event.type === undefined || event.type === null ? "" : String(event.type);
+      const terminal = type === "close";
+      if (terminal) {
+        terminalEventDispatching = true;
+      }
       const targets = []
         .concat(listeners[type] || [])
         .concat(listeners["*"] || []);
@@ -18229,12 +18270,17 @@ std::string buildEmbeddedScriptExecutionSource(
           setTimeout(function() { throw error; }, 0);
         }
       });
+      if (terminal) {
+        terminate();
+      }
+      return terminal;
     }
     function drain(options) {
-      if (closed || draining || listenerCount() === 0) {
+      if (closed || terminalEventDispatching || draining || listenerCount() === 0) {
         return;
       }
       draining = true;
+      const generation = drainGeneration;
       const bridgeOptions = __autojs6_ui_options(options || moduleOptions);
       __autojs6_call_autojs(
         "ui",
@@ -18242,16 +18288,36 @@ std::string buildEmbeddedScriptExecutionSource(
         [id, { maxEvents: 16 }],
         __autojs6_ui_bridge_options(bridgeOptions, 5000)
       ).then(function(events) {
+        if (closed || generation !== drainGeneration) {
+          return;
+        }
         if (Array.isArray(events)) {
-          events.forEach(dispatchEvent);
+          for (const event of events) {
+            if (dispatchEvent(event)) {
+              break;
+            }
+          }
         }
       }, function() {
         return undefined;
       }).finally(function() {
-        draining = false;
+        if (generation === drainGeneration) {
+          draining = false;
+        }
       });
     }
+    function ensureDrain(options) {
+      if (closed || terminalEventDispatching || drainTimer !== null || listenerCount() === 0) {
+        return;
+      }
+      const intervalMs = Math.max(10, Math.min(1000, Number((options && options.drainIntervalMs) || moduleOptions.drainIntervalMs) || defaultDrainIntervalMs));
+      drainTimer = setInterval(function() { drain(options); }, intervalMs);
+      drain(options);
+    }
     function on(eventName, callback, options) {
+      if (closed || terminalEventDispatching) {
+        throw __autojs6_ui_closed_error("on");
+      }
       const event = eventName === undefined || eventName === null ? "" : String(eventName).trim();
       if (!event || typeof callback !== "function") {
         throw __autojs6_ui_invalid_argument_error("on", "ui.handle.on requires an event name and callback.");
@@ -18260,11 +18326,7 @@ std::string buildEmbeddedScriptExecutionSource(
         listeners[event] = [];
       }
       listeners[event].push(callback);
-      if (drainTimer === null) {
-        const intervalMs = Math.max(10, Math.min(1000, Number((options && options.drainIntervalMs) || moduleOptions.drainIntervalMs) || defaultDrainIntervalMs));
-        drainTimer = setInterval(function() { drain(options); }, intervalMs);
-        drain(options);
-      }
+      ensureDrain(options);
       return function unsubscribe() {
         const bucket = listeners[event] || [];
         const index = bucket.indexOf(callback);
@@ -18275,8 +18337,8 @@ std::string buildEmbeddedScriptExecutionSource(
       };
     }
     function update(patch, options) {
-      if (closed) {
-        return Promise.resolve(undefined);
+      if (closed || terminalEventDispatching) {
+        return Promise.reject(__autojs6_ui_closed_error("update"));
       }
       let descriptor;
       try {
@@ -18295,8 +18357,8 @@ std::string buildEmbeddedScriptExecutionSource(
       });
     }
     function batchUpdate(patches, options) {
-      if (closed) {
-        return Promise.resolve(undefined);
+      if (closed || terminalEventDispatching) {
+        return Promise.reject(__autojs6_ui_closed_error("batchUpdate"));
       }
       if (!Array.isArray(patches)) {
         return Promise.reject(__autojs6_ui_invalid_argument_error("batchUpdate", "ui.handle.batchUpdate requires an array of patches."));
@@ -18327,7 +18389,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     function flushBindingPatches() {
       bindingFlushScheduled = false;
-      if (closed || pendingBindingPatches.length === 0) {
+      if (closed || terminalEventDispatching || pendingBindingPatches.length === 0) {
         pendingBindingPatches = [];
         return;
       }
@@ -18338,7 +18400,7 @@ std::string buildEmbeddedScriptExecutionSource(
       });
     }
     function enqueueBindingPatch(patch) {
-      if (closed) {
+      if (closed || terminalEventDispatching) {
         return;
       }
       pendingBindingPatches.push(patch);
@@ -18360,19 +18422,11 @@ std::string buildEmbeddedScriptExecutionSource(
       bindingUnsubscribers.push(off);
     });
     function close(options) {
-      if (closed) {
+      if (closed || terminalEventDispatching) {
         return Promise.resolve(undefined);
       }
-      closed = true;
-      if (drainTimer !== null) {
-        clearInterval(drainTimer);
-        drainTimer = null;
-      }
-      bindingUnsubscribers.splice(0).forEach(function(unsubscribe) {
-        unsubscribe();
-      });
-      pendingBindingPatches = [];
       const bridgeOptions = __autojs6_ui_options(options || moduleOptions);
+      terminate();
       return __autojs6_call_autojs(
         "ui",
         "close",
@@ -25034,11 +25088,11 @@ std::string buildEmbeddedScriptExecutionSource(
     diagnostics.requestCount += 1;
     if (materializeMissingPlaintext) diagnostics.missingCandidateRequestCount += 1;
     diagnostics.lastPath = String(readable || "");
-    if (diagnostics.requestCount > 1024) {
+    if (diagnostics.requestCount > __autojs6_module_source_provider_request_count_limit) {
       throw __autojs6_module_source_provider_error(
         "failed",
         readable,
-        "Module-source provider request count exceeds 1024.",
+        "Module-source provider request count exceeds " + __autojs6_module_source_provider_request_count_limit + ".",
         "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED",
         false
       );

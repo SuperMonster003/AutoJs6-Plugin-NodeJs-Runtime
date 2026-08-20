@@ -33,6 +33,12 @@ tasks {
         delete(rootProject.layout.buildDirectory)
     }
 
+    register<Exec>("verifyNodePluginUiHandleLifecycle").configure {
+        group = "verification"
+        description = "Verifies terminal lifecycle semantics of embedded Node.js UI handles."
+        workingDir(rootDir)
+        commandLine("node", "tools/nodejs/ui/test-ui-handle-lifecycle.js")
+    }
 }
 
 apply(from = "node-plugin-examples.gradle.kts")
