@@ -658,12 +658,12 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         );
         request.putStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCE_NAMES, new String[0]);
         request.putStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCES, new String[0]);
-        request.putBoolean(NodeJsRuntimeContract.KEY_ESM_EXPERIMENTAL_ENABLED, true);
-        request.putBoolean(NodeJsRuntimeContract.KEY_DYNAMIC_IMPORT_EXPERIMENTAL_ENABLED, true);
-        request.putBoolean(NodeJsRuntimeContract.KEY_RAW_NODE_NETWORK_MODULES_EXPERIMENTAL_ENABLED, false);
-        request.putBoolean(NodeJsRuntimeContract.KEY_WORKER_THREADS_EXPERIMENTAL_ENABLED, false);
-        request.putBoolean(NodeJsRuntimeContract.KEY_CHILD_PROCESS_EXPERIMENTAL_ENABLED, false);
-        request.putBoolean(NodeJsRuntimeContract.KEY_JAVA_INTEROP_EXPERIMENTAL_ENABLED, false);
+        request.putBoolean(NodeJsRuntimeContract.KEY_ESM_ENABLED, true);
+        request.putBoolean(NodeJsRuntimeContract.KEY_DYNAMIC_IMPORT_ENABLED, true);
+        request.putBoolean(NodeJsRuntimeContract.KEY_RAW_NODE_NETWORK_MODULES_ENABLED, false);
+        request.putBoolean(NodeJsRuntimeContract.KEY_WORKER_THREADS_ENABLED, false);
+        request.putBoolean(NodeJsRuntimeContract.KEY_CHILD_PROCESS_ENABLED, false);
+        request.putBoolean(NodeJsRuntimeContract.KEY_JAVA_INTEROP_ENABLED, false);
         request.putInt(
                 NodeJsRuntimeContract.KEY_WORKSPACE_ARCHIVE_TRANSPORT_VERSION,
                 NodeJsRuntimeContract.WORKSPACE_ARCHIVE_TRANSPORT_CONTRACT_VERSION

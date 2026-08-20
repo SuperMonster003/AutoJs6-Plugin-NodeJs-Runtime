@@ -762,13 +762,13 @@ int32_t executeRequest(
     }
     execution.sandboxRoot = sandboxRoot.empty() ? execution.workingDirectory : sandboxRoot;
     const uint32_t flags = requestFlags(request);
-    execution.esmExperimentalEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_ESM_EXPERIMENTAL) != 0;
-    execution.dynamicImportExperimentalEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_DYNAMIC_IMPORT_EXPERIMENTAL) != 0;
-    execution.rawNodeNetworkModulesExperimentalEnabled =
-            (flags & AUTOJS_NODE_EXECUTION_FLAG_RAW_NODE_NETWORK_MODULES_EXPERIMENTAL) != 0;
-    execution.workerThreadsExperimentalEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_WORKER_THREADS_EXPERIMENTAL) != 0;
-    execution.childProcessExperimentalEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_CHILD_PROCESS_EXPERIMENTAL) != 0;
-    execution.javaInteropExperimentalEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_JAVA_INTEROP_EXPERIMENTAL) != 0;
+    execution.esmEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_ESM) != 0;
+    execution.dynamicImportEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_DYNAMIC_IMPORT) != 0;
+    execution.rawNodeNetworkModulesEnabled =
+            (flags & AUTOJS_NODE_EXECUTION_FLAG_RAW_NODE_NETWORK_MODULES) != 0;
+    execution.workerThreadsEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_WORKER_THREADS) != 0;
+    execution.childProcessEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_CHILD_PROCESS) != 0;
+    execution.javaInteropEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_JAVA_INTEROP) != 0;
 
     try {
         handle->lastPayload = runEmbeddedScriptExecution(execution, "adapter_v1", "execution_path");

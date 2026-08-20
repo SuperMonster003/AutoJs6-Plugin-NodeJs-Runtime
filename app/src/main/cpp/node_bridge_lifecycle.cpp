@@ -110,16 +110,16 @@ std::vector<std::string> runEmbeddedScriptExecution(
     putPayload(
             payload,
             "embedded_script.request.require_mode",
-            request.esmExperimentalEnabled ? "restricted_commonjs_mvp_with_experimental_esm" : "restricted_commonjs_mvp"
+            request.esmEnabled ? "restricted_commonjs_mvp_with_esm" : "restricted_commonjs_mvp"
     );
     putPayload(payload, "embedded_script.request.fs_allowed", "scoped_working_directory_sync_mvp");
-    putPayload(payload, "embedded_script.request.import_allowed", request.esmExperimentalEnabled);
-    putPayload(payload, "embedded_script.request.esm_experimental_enabled", request.esmExperimentalEnabled);
-    putPayload(payload, "embedded_script.request.dynamic_import_experimental_enabled", request.dynamicImportExperimentalEnabled);
-    putPayload(payload, "embedded_script.request.raw_node_network_modules_experimental_enabled", request.rawNodeNetworkModulesExperimentalEnabled);
-    putPayload(payload, "embedded_script.request.worker_threads_experimental_enabled", request.workerThreadsExperimentalEnabled);
-    putPayload(payload, "embedded_script.request.child_process_experimental_enabled", request.childProcessExperimentalEnabled);
-    putPayload(payload, "embedded_script.request.java_interop_experimental_enabled", request.javaInteropExperimentalEnabled);
+    putPayload(payload, "embedded_script.request.import_allowed", request.esmEnabled);
+    putPayload(payload, "embedded_script.request.esm_enabled", request.esmEnabled);
+    putPayload(payload, "embedded_script.request.dynamic_import_enabled", request.dynamicImportEnabled);
+    putPayload(payload, "embedded_script.request.raw_node_network_modules_enabled", request.rawNodeNetworkModulesEnabled);
+    putPayload(payload, "embedded_script.request.worker_threads_enabled", request.workerThreadsEnabled);
+    putPayload(payload, "embedded_script.request.child_process_enabled", request.childProcessEnabled);
+    putPayload(payload, "embedded_script.request.java_interop_enabled", request.javaInteropEnabled);
     putPayload(payload, "embedded_script.request.node_modules_allowed", "working_directory_commonjs_mvp");
     putPayload(payload, "embedded_script.request.autojs_api_allowed", false);
     putPayload(payload, "embedded_script.request.android_bridge_allowed", false);
@@ -158,12 +158,12 @@ std::vector<std::string> runEmbeddedScriptExecution(
             request.moduleSources,
             request.runtimeModuleSources,
             request.env,
-            request.esmExperimentalEnabled,
-            request.dynamicImportExperimentalEnabled,
-            request.rawNodeNetworkModulesExperimentalEnabled,
-            request.workerThreadsExperimentalEnabled,
-            request.childProcessExperimentalEnabled,
-            request.javaInteropExperimentalEnabled
+            request.esmEnabled,
+            request.dynamicImportEnabled,
+            request.rawNodeNetworkModulesEnabled,
+            request.workerThreadsEnabled,
+            request.childProcessEnabled,
+            request.javaInteropEnabled
     );
     putPayload(
             payload,

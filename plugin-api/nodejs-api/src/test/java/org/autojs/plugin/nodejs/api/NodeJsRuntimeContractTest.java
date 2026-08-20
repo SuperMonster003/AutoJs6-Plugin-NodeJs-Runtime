@@ -30,8 +30,8 @@ public class NodeJsRuntimeContractTest {
     }
 
     @Test
-    public void moduleSourceProviderV2IsIndependentFromRuntimeContractV1() {
-        assertEquals(1, NodeJsRuntimeContract.CONTRACT_VERSION);
+    public void moduleSourceProviderV2IsIndependentFromRuntimeContractV2() {
+        assertEquals(2, NodeJsRuntimeContract.CONTRACT_VERSION);
         assertEquals(2, NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_CONTRACT_VERSION);
         assertEquals(1, NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_MIN_CONTRACT_VERSION);
         assertEquals(2, NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_MAX_CONTRACT_VERSION);

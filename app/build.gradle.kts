@@ -14,7 +14,6 @@ val globalApplicationId = "io.github.supermonster003.autojs6.plugin.nodejs"
 
 val buildTypeDebug = "debug"
 val buildTypeRelease = "release"
-val nodeJsNetworkExperimentalEnabled = providers.gradleProperty("autojs.nodejs.network.experimental").orElse("false").get()
 val commonPluginApiSha256 = "104004ce6f498d9928759709c373370a79f612b401998ccac1cb3fcaa35f5710"
 val commonPluginApiAar = rootProject.file("libs/common-plugin-api.aar").also { artifact ->
     require(artifact.isFile) { "Missing common plugin API AAR: ${artifact.absolutePath}" }
@@ -45,7 +44,7 @@ android {
         multiDexKeepProguard = file("multidex-keep.pro")
 
         buildConfigField("String", "VERSION_DATE", "\"${utils.getDateString("MMM d, yyyy", "GMT+08:00")}\"")
-        buildConfigField("boolean", "NODEJS_NETWORK_EXPERIMENTAL_ENABLED", nodeJsNetworkExperimentalEnabled)
+        buildConfigField("boolean", "NODEJS_NETWORK_ENABLED", "true")
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")

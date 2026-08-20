@@ -10,7 +10,7 @@
 |---|---|
 | **bridged** | 经 live bridge 到宿主真实实现, 默认可用 |
 | **bridged-partial** | 模块可用但部分方法被宿主 fail-closed |
-| **bridged-gated** | 需实验开关或外部插件才可用 |
+| **bridged-policy** | 能力已稳定启用, 但仍受宿主权限、声明或外部插件可用性约束 |
 | **local-shim** | 插件内纯 JS 实现, 不出进程 |
 | **denied** | 结构性拒绝 |
 
@@ -46,17 +46,18 @@
 | `package_manager` (`npm` 为其别名) | list, verify, prune, planInstall/Update/Remove, install, update, remove (app 私有本地库) | npm CLI / registry 下载 / 生命周期脚本 |
 | `input_observer` | observeKeys, drainEvents, close, getAvailableSources (fake 源) | accessibility 实源在 scheduled/background 启动面拒绝 |
 
-## 三. 需开关或插件 (bridged-gated)
+## 三. 稳定能力与外部依赖 (bridged-policy)
 
 | 模块 | 门禁 |
 |---|---|
-| `fetch` / `axios` / `undici` | 网络实验开关 (M2.6 后 raw Node http/https 默认可用, 优先用 Node 原生; 此桥接走宿主 OkHttp) |
+| `fetch` / `axios` / `undici` | 默认启用; 仍要求项目声明 `network` 能力并满足宿主网络策略。raw Node http/https 同样默认可用; 此桥接走宿主 OkHttp |
 | `websocket` | 同上 |
 | `ocr` | 需 ML Kit OCR 外部插件 |
 | `barcode` | 需 Barcode 外部插件 |
-| `java` | 需 javaInterop 实验开关, 未开启 require 即抛错 |
-| `rhino` | 需请求带 `experimental: true` |
-| `worker_threads` / `child_process` | 需各自实验开关 |
+| `java` | 默认启用; 仅允许宿主白名单中的类、构造器、方法和字段, 反射/ClassLoader/进程与原生库加载继续拒绝 |
+| `rhino` | 默认提供显式迁移入口; 执行请求使用 `explicit: true`, 不会自动安装旧 Rhino 全局对象 |
+| `worker_threads` | 默认启用; Worker 不能访问 AutoJs 桥、Android 对象或越权文件/网络资源, 并受数量、内存、超时和清理预算约束 |
+| `child_process` | 默认启用并遵循 Node 原生语义; 受 Android UID/SELinux/清单与调用方校验约束，但不继承独立 `shell` 桥的私有可执行文件白名单或资源预算，脚本必须自行校验命令、限制 stdio/超时并回收子进程 |
 
 ## 四. 插件内本地实现 (local-shim, 不出进程)
 

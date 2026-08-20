@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Roadmap M2.6: network builtins work without any opt-in flag. The request
- * deliberately omits KEY_RAW_NODE_NETWORK_MODULES_EXPERIMENTAL_ENABLED; the
+ * deliberately omits KEY_RAW_NODE_NETWORK_MODULES_ENABLED; the
  * script must require('http'), serve one loopback request, and print the
  * response — the desktop-Node default.
  */

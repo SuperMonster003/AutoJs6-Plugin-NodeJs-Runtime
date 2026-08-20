@@ -204,14 +204,15 @@ final class NodePluginScriptExecution {
                         moduleSources,
                         runtimeModuleSources,
                         env,
-                        request.getBoolean(NodeJsRuntimeContract.KEY_ESM_EXPERIMENTAL_ENABLED, true),
-                        request.getBoolean(NodeJsRuntimeContract.KEY_DYNAMIC_IMPORT_EXPERIMENTAL_ENABLED, true),
-                        // M2.6: network builtins (http/https/net/dns/tls) are on by
-                        // default like desktop Node; hosts can still pass false.
-                        request.getBoolean(NodeJsRuntimeContract.KEY_RAW_NODE_NETWORK_MODULES_EXPERIMENTAL_ENABLED, true),
-                        request.getBoolean(NodeJsRuntimeContract.KEY_WORKER_THREADS_EXPERIMENTAL_ENABLED, false),
-                        request.getBoolean(NodeJsRuntimeContract.KEY_CHILD_PROCESS_EXPERIMENTAL_ENABLED, false),
-                        request.getBoolean(NodeJsRuntimeContract.KEY_JAVA_INTEROP_EXPERIMENTAL_ENABLED, false)
+                        request.getBoolean(NodeJsRuntimeContract.KEY_ESM_ENABLED, true),
+                        request.getBoolean(NodeJsRuntimeContract.KEY_DYNAMIC_IMPORT_ENABLED, true),
+                        // Stable capabilities default on. The host still sends
+                        // explicit values so diagnostics and test fixtures can
+                        // exercise policy-denied paths without build flags.
+                        request.getBoolean(NodeJsRuntimeContract.KEY_RAW_NODE_NETWORK_MODULES_ENABLED, true),
+                        request.getBoolean(NodeJsRuntimeContract.KEY_WORKER_THREADS_ENABLED, true),
+                        request.getBoolean(NodeJsRuntimeContract.KEY_CHILD_PROCESS_ENABLED, true),
+                        request.getBoolean(NodeJsRuntimeContract.KEY_JAVA_INTEROP_ENABLED, true)
                 );
             } finally {
                 if (streamSink != null) {

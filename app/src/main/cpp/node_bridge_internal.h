@@ -864,12 +864,12 @@ struct EmbeddedScriptExecutionRequest {
     std::vector<std::pair<std::string, std::string>> moduleSources;
     std::vector<std::pair<std::string, std::string>> runtimeModuleSources;
     std::vector<std::pair<std::string, std::string>> env;
-    bool esmExperimentalEnabled = false;
-    bool dynamicImportExperimentalEnabled = false;
-    bool rawNodeNetworkModulesExperimentalEnabled = false;
-    bool workerThreadsExperimentalEnabled = false;
-    bool childProcessExperimentalEnabled = false;
-    bool javaInteropExperimentalEnabled = false;
+    bool esmEnabled = false;
+    bool dynamicImportEnabled = false;
+    bool rawNodeNetworkModulesEnabled = false;
+    bool workerThreadsEnabled = false;
+    bool childProcessEnabled = false;
+    bool javaInteropEnabled = false;
 };
 
 struct EmbeddedProcessRuntimeExecution {
@@ -942,12 +942,12 @@ std::string buildEmbeddedScriptExecutionSource(
         const std::vector<std::pair<std::string, std::string>>& moduleSources,
         const std::vector<std::pair<std::string, std::string>>& runtimeModuleSources,
         const std::vector<std::pair<std::string, std::string>>& env,
-        bool esmExperimentalEnabled,
-        bool dynamicImportExperimentalEnabled,
-        bool rawNodeNetworkModulesExperimentalEnabled,
-        bool workerThreadsExperimentalEnabled,
-        bool childProcessExperimentalEnabled,
-        bool javaInteropExperimentalEnabled);
+        bool esmEnabled,
+        bool dynamicImportEnabled,
+        bool rawNodeNetworkModulesEnabled,
+        bool workerThreadsEnabled,
+        bool childProcessEnabled,
+        bool javaInteropEnabled);
 void putEmbeddedScriptExecutionFields(std::vector<std::string>& payload, const std::string& text);
 std::vector<std::string> toStringVector(JNIEnv* env, jobjectArray values, const char* label = "array");
 std::vector<std::string> toStringVectorOrEmpty(JNIEnv* env, jobjectArray values, const char* label = "array");
