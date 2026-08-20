@@ -55,6 +55,12 @@ gradlePlugin {
             displayName = "AutoJs6 Local AAR Register Convention Plugin"
             description = "Provides local AAR register helpers."
         }
+        register("nodeRuntimeKit") {
+            id = "org.autojs.build.node-runtime-kit"
+            implementationClass = "org.autojs.build.NodeRuntimeKitPlugin"
+            displayName = "AutoJs6 Node Runtime Kit Plugin"
+            description = "Exposes the Runtime Kit manifest identity as BuildConfig fields."
+        }
     }
 }
 

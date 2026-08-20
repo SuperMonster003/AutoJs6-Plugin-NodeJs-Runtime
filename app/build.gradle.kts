@@ -8,6 +8,7 @@ plugins {
     id("org.autojs.build.signs")
     id("org.autojs.build.jvm-convention")
     id("com.android.application")
+    id("org.autojs.build.node-runtime-kit")
 }
 
 val globalApplicationId = "io.github.supermonster003.autojs6.plugin.nodejs"
@@ -168,8 +169,6 @@ dependencies {
     androidTestImplementation(libs.test.ext.junit)
     androidTestImplementation(libs.test.runner)
 }
-
-apply(from = "node-runtime-kit.gradle.kts")
 
 tasks {
     withType(JavaCompile::class.java) {
