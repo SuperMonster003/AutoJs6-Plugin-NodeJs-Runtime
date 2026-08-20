@@ -63,7 +63,11 @@ final class PluginModuleSourceProviderFileTransportSession {
     static final int CONTRACT_VERSION = NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_CONTRACT_VERSION;
     static final long SINGLE_SOURCE_BYTES_LIMIT = 16L * 1024L * 1024L;
     static final long TOTAL_SOURCE_BYTES_LIMIT = 64L * 1024L * 1024L;
-    static final int REQUEST_COUNT_LIMIT = 1024;
+    // Productive source requests are bounded independently by source count and
+    // byte budgets. Plaintext resolution probes legitimately outnumber loaded
+    // sources in large dependency graphs, so keep a separate generous probe
+    // allowance and use their sum only as an absolute termination backstop.
+    static final int REQUEST_COUNT_LIMIT = 8_192 + 131_072;
     static final int TRANSPORT_REQUEST_COUNT_LIMIT = REQUEST_COUNT_LIMIT * 2;
 
     private static final long DEFAULT_TIMEOUT_MS = 5000L;
