@@ -109,7 +109,7 @@ final class NodeRuntimeModuleInjector {
                         runtimeMetadata == null ? null : runtimeMetadata.workingPackageJson,
                         runtimeMetadata == null ? null : runtimeMetadata.sandboxProjectJson,
                         runtimeMetadata == null ? null : runtimeMetadata.sandboxPackageJson,
-                        BuildConfig.NODEJS_NETWORK_EXPERIMENTAL_ENABLED
+                        BuildConfig.NODEJS_NETWORK_ENABLED
                 ),
                 "exact_metadata_snapshot"
         );

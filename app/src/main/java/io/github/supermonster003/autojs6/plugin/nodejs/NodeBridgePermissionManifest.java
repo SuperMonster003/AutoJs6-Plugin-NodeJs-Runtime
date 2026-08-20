@@ -191,7 +191,7 @@ public final class NodeBridgePermissionManifest {
         addNonNone(sources, primary.sources);
         addNonNone(sources, fallback.sources);
         if (includeBuildNetworkPolicy) {
-            sources.add("gradle:autojs.nodejs.network.experimental");
+            sources.add("runtime:stable-network");
         }
 
         List<String> warnings = new ArrayList<>();

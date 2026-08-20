@@ -147,12 +147,12 @@ public final class NativeNodeEmbeddedRuntimeBridge {
             Map<String, String> moduleSources,
             Map<String, String> runtimeModuleSources,
             Map<String, String> env,
-            boolean esmExperimentalEnabled,
-            boolean dynamicImportExperimentalEnabled,
-            boolean rawNodeNetworkModulesExperimentalEnabled,
-            boolean workerThreadsExperimentalEnabled,
-            boolean childProcessExperimentalEnabled,
-            boolean javaInteropExperimentalEnabled
+            boolean esmEnabled,
+            boolean dynamicImportEnabled,
+            boolean rawNodeNetworkModulesEnabled,
+            boolean workerThreadsEnabled,
+            boolean childProcessEnabled,
+            boolean javaInteropEnabled
     ) {
         return INSTANCE.nativeRunEmbeddedScriptLifecycleWithRuntimeModulesV2(
                 source,
@@ -165,12 +165,12 @@ public final class NativeNodeEmbeddedRuntimeBridge {
                 runtimeModuleSources.values().toArray(new String[0]),
                 env.keySet().toArray(new String[0]),
                 env.values().toArray(new String[0]),
-                esmExperimentalEnabled,
-                dynamicImportExperimentalEnabled,
-                rawNodeNetworkModulesExperimentalEnabled,
-                workerThreadsExperimentalEnabled,
-                childProcessExperimentalEnabled,
-                javaInteropExperimentalEnabled
+                esmEnabled,
+                dynamicImportEnabled,
+                rawNodeNetworkModulesEnabled,
+                workerThreadsEnabled,
+                childProcessEnabled,
+                javaInteropEnabled
         );
     }
 
@@ -185,12 +185,12 @@ public final class NativeNodeEmbeddedRuntimeBridge {
             String[] runtimeModuleSources,
             String[] envNames,
             String[] envValues,
-            boolean esmExperimentalEnabled,
-            boolean dynamicImportExperimentalEnabled,
-            boolean rawNodeNetworkModulesExperimentalEnabled,
-            boolean workerThreadsExperimentalEnabled,
-            boolean childProcessExperimentalEnabled,
-            boolean javaInteropExperimentalEnabled
+            boolean esmEnabled,
+            boolean dynamicImportEnabled,
+            boolean rawNodeNetworkModulesEnabled,
+            boolean workerThreadsEnabled,
+            boolean childProcessEnabled,
+            boolean javaInteropEnabled
     );
 
     private native void nativeSetOutputStreamSink(OutputSink sink);

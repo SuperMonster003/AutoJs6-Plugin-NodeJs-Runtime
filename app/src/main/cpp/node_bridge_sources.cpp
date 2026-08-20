@@ -214,12 +214,12 @@ std::string buildEmbeddedScriptExecutionSource(
         const std::vector<std::pair<std::string, std::string>>& moduleSources,
         const std::vector<std::pair<std::string, std::string>>& runtimeModuleSources,
         const std::vector<std::pair<std::string, std::string>>& env,
-        bool esmExperimentalEnabled,
-        bool dynamicImportExperimentalEnabled,
-        bool rawNodeNetworkModulesExperimentalEnabled,
-        bool workerThreadsExperimentalEnabled,
-        bool childProcessExperimentalEnabled,
-        bool javaInteropExperimentalEnabled) {
+        bool esmEnabled,
+        bool dynamicImportEnabled,
+        bool rawNodeNetworkModulesEnabled,
+        bool workerThreadsEnabled,
+        bool childProcessEnabled,
+        bool javaInteropEnabled) {
     const std::string sourceLiteral = jsonStringLiteral(source);
     const std::string sourceNameLiteral = jsonStringLiteral(sanitizeSourceUrl(sourceName));
     const std::string workingDirectoryLiteral = jsonStringLiteral(workingDirectory);
@@ -283,23 +283,23 @@ std::string buildEmbeddedScriptExecutionSource(
     script += envLiteral;
     script += R"JS();
   const __autojs6_runtime_module_records = Object.create(null);
-  const __autojs6_esm_experimental_enabled = )JS";
-    script += esmExperimentalEnabled ? "true" : "false";
+  const __autojs6_esm_enabled = )JS";
+    script += esmEnabled ? "true" : "false";
     script += R"JS(;
-  const __autojs6_dynamic_import_experimental_enabled = )JS";
-    script += dynamicImportExperimentalEnabled ? "true" : "false";
+  const __autojs6_dynamic_import_enabled = )JS";
+    script += dynamicImportEnabled ? "true" : "false";
     script += R"JS(;
-  const __autojs6_raw_node_network_modules_experimental_enabled = )JS";
-    script += rawNodeNetworkModulesExperimentalEnabled ? "true" : "false";
+  const __autojs6_raw_node_network_modules_enabled = )JS";
+    script += rawNodeNetworkModulesEnabled ? "true" : "false";
     script += R"JS(;
-  const __autojs6_worker_threads_experimental_enabled = )JS";
-    script += workerThreadsExperimentalEnabled ? "true" : "false";
+  const __autojs6_worker_threads_enabled = )JS";
+    script += workerThreadsEnabled ? "true" : "false";
     script += R"JS(;
-  const __autojs6_child_process_experimental_enabled = )JS";
-    script += childProcessExperimentalEnabled ? "true" : "false";
+  const __autojs6_child_process_enabled = )JS";
+    script += childProcessEnabled ? "true" : "false";
     script += R"JS(;
-  const __autojs6_java_interop_experimental_enabled = )JS";
-    script += javaInteropExperimentalEnabled ? "true" : "false";
+  const __autojs6_java_interop_enabled = )JS";
+    script += javaInteropEnabled ? "true" : "false";
     script += R"JS(;
   const __autojs6_runtime_module_count_limit = 8192;
   const __autojs6_runtime_module_single_source_bytes_limit = 16777216;
@@ -355,7 +355,7 @@ std::string buildEmbeddedScriptExecutionSource(
     lastTypeModuleFilename: ""
   };
   const __autojs6_esm_diagnostics = {
-    enabled: __autojs6_esm_experimental_enabled,
+    enabled: __autojs6_esm_enabled,
     entry: false,
     graphRoot: "",
     graphSize: 0,
@@ -3032,7 +3032,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return null;
   }
   function __autojs6_raw_node_network_builtin(name) {
-    if (!__autojs6_raw_node_network_modules_experimental_enabled) {
+    if (!__autojs6_raw_node_network_modules_enabled) {
       return null;
     }
     const request = name === undefined ? "" : String(name);
@@ -3066,7 +3066,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return moduleValue;
   }
   function __autojs6_child_process_builtin(name) {
-    if (!__autojs6_child_process_experimental_enabled) {
+    if (!__autojs6_child_process_enabled) {
       return null;
     }
     const request = name === undefined ? "" : String(name);
@@ -3728,7 +3728,7 @@ std::string buildEmbeddedScriptExecutionSource(
     allowedConstraints: Object.freeze(["charging", "network", "idle"])
   });
   const __autojs6_java_interop_policy = Object.freeze({
-    enabled: __autojs6_java_interop_experimental_enabled,
+    enabled: __autojs6_java_interop_enabled,
     allowedClasses: Object.freeze(["android.graphics.Rect", "java.lang.Math", "java.util.UUID"]),
     deniedClassPrefixes: Object.freeze([
       "android.accessibilityservice.",
@@ -4021,10 +4021,10 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const disabledBuiltins = [];
     for (const name of Object.keys(__autojs6_require_builtin_denylist)) {
-      if (name === "worker_threads" && __autojs6_worker_threads_experimental_enabled) {
+      if (name === "worker_threads" && __autojs6_worker_threads_enabled) {
         continue;
       }
-      if (name === "child_process" && __autojs6_child_process_experimental_enabled) {
+      if (name === "child_process" && __autojs6_child_process_enabled) {
         continue;
       }
       if (
@@ -4039,102 +4039,35 @@ std::string buildEmbeddedScriptExecutionSource(
       directBuiltinAliases[name] = __autojs6_require_builtin_allowlist[name];
     }
     const highRiskCapabilities = Object.freeze({
-      childProcess: __autojs6_child_process_experimental_enabled,
-      dynamicImport: __autojs6_dynamic_import_experimental_enabled,
-      esm: __autojs6_esm_experimental_enabled,
+      childProcess: __autojs6_child_process_enabled,
+      dynamicImport: __autojs6_dynamic_import_enabled,
+      esm: __autojs6_esm_enabled,
       nativeAddon: false,
-      network: false,
-      rawNodeNetworkModules: __autojs6_raw_node_network_modules_experimental_enabled,
+      network: true,
+      rawNodeNetworkModules: __autojs6_raw_node_network_modules_enabled,
       npmInstall: false,
-      webSocket: false,
-      workerThreads: __autojs6_worker_threads_experimental_enabled,
+      webSocket: true,
+      workerThreads: __autojs6_worker_threads_enabled,
       vm: true,
-      javaInterop: __autojs6_java_interop_experimental_enabled
+      javaInterop: __autojs6_java_interop_enabled
     });
-    const experimentalFlags = Object.freeze({
-      esm: __autojs6_esm_experimental_enabled,
-      dynamicImport: __autojs6_dynamic_import_experimental_enabled,
-      network: false,
-      rawNodeNetworkModules: __autojs6_raw_node_network_modules_experimental_enabled,
-      childProcess: __autojs6_child_process_experimental_enabled,
-      workerThreads: __autojs6_worker_threads_experimental_enabled,
-      javaInterop: __autojs6_java_interop_experimental_enabled
+    const featureStates = Object.freeze({
+      esm: __autojs6_esm_enabled,
+      dynamicImport: __autojs6_dynamic_import_enabled,
+      network: true,
+      rawNodeNetworkModules: __autojs6_raw_node_network_modules_enabled,
+      webSocket: true,
+      childProcess: __autojs6_child_process_enabled,
+      workerThreads: __autojs6_worker_threads_enabled,
+      javaInterop: __autojs6_java_interop_enabled
     });
     const featureFlags = Object.freeze({
       esm: Object.freeze({
         id: "esm",
         diagnosticName: "esm",
-        gradleProperty: "autojs.nodejs.esm.experimental",
-        defaultEnabled: true,
-        enabled: __autojs6_esm_experimental_enabled,
-        buildTimeOverrideAllowed: true,
-        projectJsonOverrideAllowed: false,
-        packagedApkOverrideAllowed: false,
-        buildOnly: true,
-        debugOnly: false,
-        projectAllowed: false,
-        packagedAllowed: false,
-        releaseForbidden: false,
-        securityLevel: "medium",
-        status: "partial"
-      }),
-      dynamic_import: Object.freeze({
-        id: "dynamic_import",
-        diagnosticName: "dynamicImport",
-        gradleProperty: "autojs.nodejs.dynamicImport.local",
-        defaultEnabled: true,
-        enabled: __autojs6_dynamic_import_experimental_enabled,
-        buildTimeOverrideAllowed: true,
-        projectJsonOverrideAllowed: false,
-        packagedApkOverrideAllowed: false,
-        buildOnly: true,
-        debugOnly: false,
-        projectAllowed: false,
-        packagedAllowed: false,
-        releaseForbidden: false,
-        securityLevel: "medium",
-        status: "partial"
-      }),
-      network: Object.freeze({
-        id: "network",
-        diagnosticName: "network",
-        gradleProperty: "autojs.nodejs.network.experimental",
-        defaultEnabled: false,
-        enabled: false,
-        buildTimeOverrideAllowed: true,
-        projectJsonOverrideAllowed: false,
-        packagedApkOverrideAllowed: false,
-        buildOnly: true,
-        debugOnly: true,
-        projectAllowed: false,
-        packagedAllowed: false,
-        releaseForbidden: true,
-        securityLevel: "high",
-        status: "experimental"
-      }),
-      raw_node_network_modules: Object.freeze({
-        id: "raw_node_network_modules",
-        diagnosticName: "rawNodeNetworkModules",
-        gradleProperty: "autojs.nodejs.rawNetworkModules.experimental",
-        defaultEnabled: false,
-        enabled: __autojs6_raw_node_network_modules_experimental_enabled,
-        buildTimeOverrideAllowed: true,
-        projectJsonOverrideAllowed: false,
-        packagedApkOverrideAllowed: false,
-        buildOnly: true,
-        debugOnly: true,
-        projectAllowed: false,
-        packagedAllowed: false,
-        releaseForbidden: true,
-        securityLevel: "high",
-        status: "experimental"
-      }),
-      websocket: Object.freeze({
-        id: "websocket",
-        diagnosticName: "webSocket",
         gradleProperty: null,
-        defaultEnabled: false,
-        enabled: false,
+        defaultEnabled: true,
+        enabled: __autojs6_esm_enabled,
         buildTimeOverrideAllowed: false,
         projectJsonOverrideAllowed: false,
         packagedApkOverrideAllowed: false,
@@ -4142,26 +4075,94 @@ std::string buildEmbeddedScriptExecutionSource(
         debugOnly: false,
         projectAllowed: false,
         packagedAllowed: false,
-        releaseForbidden: true,
+        releaseForbidden: false,
+        securityLevel: "medium",
+        status: "stable"
+      }),
+      dynamic_import: Object.freeze({
+        id: "dynamic_import",
+        diagnosticName: "dynamicImport",
+        gradleProperty: null,
+        defaultEnabled: true,
+        enabled: __autojs6_dynamic_import_enabled,
+        buildTimeOverrideAllowed: false,
+        projectJsonOverrideAllowed: false,
+        packagedApkOverrideAllowed: false,
+        buildOnly: false,
+        debugOnly: false,
+        projectAllowed: false,
+        packagedAllowed: false,
+        releaseForbidden: false,
+        securityLevel: "medium",
+        status: "stable"
+      }),
+      network: Object.freeze({
+        id: "network",
+        diagnosticName: "network",
+        gradleProperty: null,
+        defaultEnabled: true,
+        enabled: true,
+        buildTimeOverrideAllowed: false,
+        projectJsonOverrideAllowed: false,
+        packagedApkOverrideAllowed: false,
+        buildOnly: false,
+        debugOnly: false,
+        projectAllowed: false,
+        packagedAllowed: false,
+        releaseForbidden: false,
         securityLevel: "high",
-        status: "experimental"
+        status: "stable"
+      }),
+      raw_node_network_modules: Object.freeze({
+        id: "raw_node_network_modules",
+        diagnosticName: "rawNodeNetworkModules",
+        gradleProperty: null,
+        defaultEnabled: true,
+        enabled: __autojs6_raw_node_network_modules_enabled,
+        buildTimeOverrideAllowed: false,
+        projectJsonOverrideAllowed: false,
+        packagedApkOverrideAllowed: false,
+        buildOnly: false,
+        debugOnly: false,
+        projectAllowed: false,
+        packagedAllowed: false,
+        releaseForbidden: false,
+        securityLevel: "high",
+        status: "stable"
+      }),
+      websocket: Object.freeze({
+        id: "websocket",
+        diagnosticName: "webSocket",
+        gradleProperty: null,
+        defaultEnabled: true,
+        enabled: true,
+        buildTimeOverrideAllowed: false,
+        projectJsonOverrideAllowed: false,
+        packagedApkOverrideAllowed: false,
+        buildOnly: false,
+        debugOnly: false,
+        projectAllowed: false,
+        packagedAllowed: false,
+        releaseForbidden: false,
+        securityLevel: "high",
+        status: "stable"
       }),
       worker_threads: Object.freeze({
         id: "worker_threads",
         diagnosticName: "workerThreads",
-        gradleProperty: "autojs.nodejs.worker_threads.experimental",
-        defaultEnabled: false,
-        enabled: __autojs6_worker_threads_experimental_enabled,
-        buildTimeOverrideAllowed: true,
+        gradleProperty: null,
+        defaultEnabled: true,
+        enabled: __autojs6_worker_threads_enabled,
+        buildTimeOverrideAllowed: false,
         projectJsonOverrideAllowed: false,
         packagedApkOverrideAllowed: false,
-        buildOnly: true,
-        debugOnly: true,
+        buildOnly: false,
+        debugOnly: false,
         projectAllowed: false,
         packagedAllowed: false,
-        releaseForbidden: true,
+        releaseForbidden: false,
         securityLevel: "high",
-        status: "experimental"
+        status: "stable"
       }),
       fs_streams: Object.freeze({
         id: "fs_streams",
@@ -4210,7 +4211,7 @@ std::string buildEmbeddedScriptExecutionSource(
         debugOnly: false,
         projectAllowed: false,
         packagedAllowed: false,
-        releaseForbidden: true,
+        releaseForbidden: false,
         securityLevel: "high",
         status: "partial"
       }),
@@ -4234,19 +4235,19 @@ std::string buildEmbeddedScriptExecutionSource(
       java_interop: Object.freeze({
         id: "java_interop",
         diagnosticName: "javaInterop",
-        gradleProperty: "autojs.nodejs.javaInterop.experimental",
-        defaultEnabled: false,
-        enabled: __autojs6_java_interop_experimental_enabled,
-        buildTimeOverrideAllowed: true,
+        gradleProperty: null,
+        defaultEnabled: true,
+        enabled: __autojs6_java_interop_enabled,
+        buildTimeOverrideAllowed: false,
         projectJsonOverrideAllowed: false,
         packagedApkOverrideAllowed: false,
-        buildOnly: true,
-        debugOnly: true,
+        buildOnly: false,
+        debugOnly: false,
         projectAllowed: false,
         packagedAllowed: false,
-        releaseForbidden: true,
+        releaseForbidden: false,
         securityLevel: "critical",
-        status: "experimental"
+        status: "stable"
       }),
       native_addon: Object.freeze({
         id: "native_addon",
@@ -4268,24 +4269,24 @@ std::string buildEmbeddedScriptExecutionSource(
       child_process: Object.freeze({
         id: "child_process",
         diagnosticName: "childProcess",
-        gradleProperty: "autojs.nodejs.child_process.experimental",
-        defaultEnabled: false,
-        enabled: __autojs6_child_process_experimental_enabled,
-        buildTimeOverrideAllowed: true,
+        gradleProperty: null,
+        defaultEnabled: true,
+        enabled: __autojs6_child_process_enabled,
+        buildTimeOverrideAllowed: false,
         projectJsonOverrideAllowed: false,
         packagedApkOverrideAllowed: false,
-        buildOnly: true,
-        debugOnly: true,
+        buildOnly: false,
+        debugOnly: false,
         projectAllowed: false,
         packagedAllowed: false,
-        releaseForbidden: true,
+        releaseForbidden: false,
         securityLevel: "high",
-        status: "experimental"
+        status: "stable"
       })
     });
-    const enabledExperimentalFlags = Object.freeze(Object.keys(featureFlags).filter(function(name) {
+    const enabledFeatures = Object.freeze(Object.keys(featureFlags).filter(function(name) {
       const flag = featureFlags[name];
-      return !!(flag && flag.enabled === true && flag.status === "experimental");
+      return !!(flag && flag.enabled === true);
     }));
     const deniedFeatureFlags = Object.freeze(Object.keys(featureFlags).filter(function(name) {
       const flag = featureFlags[name];
@@ -4301,22 +4302,22 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     __autojs6_profile_cache = Object.freeze({
       name: "AutoJs6 Safe Node Profile",
-      engineVersion: "autojs6-node-profile-v1.1",
+      engineVersion: "autojs6-node-profile-v1.2",
       node: typeof process === "object" && process ? process.version : "",
       cjs: true,
-      esm: __autojs6_esm_experimental_enabled,
-      dynamicImport: __autojs6_dynamic_import_experimental_enabled,
-      network: false,
-      workerThreads: __autojs6_worker_threads_experimental_enabled,
-      javaInterop: __autojs6_java_interop_experimental_enabled,
+      esm: __autojs6_esm_enabled,
+      dynamicImport: __autojs6_dynamic_import_enabled,
+      network: true,
+      workerThreads: __autojs6_worker_threads_enabled,
+      javaInterop: __autojs6_java_interop_enabled,
       nativeAddon: false,
       scopedFs: true,
       esmLoaderProfile: Object.freeze({
-        status: __autojs6_esm_experimental_enabled ? "partial_default" : "disabled_by_request",
+        status: __autojs6_esm_enabled ? "partial_default" : "disabled_by_request",
         defaultEnabled: true,
-        requestEnabled: __autojs6_esm_experimental_enabled,
+        requestEnabled: __autojs6_esm_enabled,
         dynamicImportDefaultEnabled: true,
-        dynamicImportEnabled: __autojs6_dynamic_import_experimental_enabled,
+        dynamicImportEnabled: __autojs6_dynamic_import_enabled,
         implementation: "autojs6_managed_transform",
         mjsEntry: "partial",
         packageTypeModuleEntry: "partial",
@@ -4631,10 +4632,10 @@ std::string buildEmbeddedScriptExecutionSource(
         })
       }),
       workerThreadsProfile: Object.freeze({
-        status: __autojs6_worker_threads_experimental_enabled ? "experimental_opt_in_preflight" : "disabled_by_default",
-        defaultEnabled: false,
-        requestLocalOptIn: __autojs6_worker_threads_experimental_enabled,
-        nativeAvailability: "preflight_required",
+        status: __autojs6_worker_threads_enabled ? "stable" : "disabled_by_request",
+        defaultEnabled: true,
+        requestEnabled: __autojs6_worker_threads_enabled,
+        nativeAvailability: "available",
         messageChannel: "partial",
         transferList: "partial",
         workerPool: "partial",
@@ -4649,8 +4650,8 @@ std::string buildEmbeddedScriptExecutionSource(
         api: "not_introduced",
         facade: "not_introduced",
         preferredPrimitive: "worker_threads.WorkerPool",
-        workerThreads: "request_local_experimental_preflight",
-        childProcess: "denied",
+        workerThreads: "stable_enabled",
+        childProcess: "stable_enabled",
         shellBridge: "separate_scoped_command_bridge",
         executionMode: "worker_computation_reserved",
         secondExecutionSlot: "closed_by_p13_06",
@@ -4658,7 +4659,7 @@ std::string buildEmbeddedScriptExecutionSource(
         messageSizeBytes: __autojs6_worker_threads_policy.maxMessageBytes,
         maxQueuedMessages: __autojs6_worker_threads_policy.maxQueuedMessages,
         cleanup: "worker_pool_close_or_execution_destroy",
-        packagedBehavior: "not_promoted",
+        packagedBehavior: "stable",
         bridgeModules: "denied",
         nestedWorkers: false,
         rawProcessHandles: false
@@ -4752,47 +4753,46 @@ std::string buildEmbeddedScriptExecutionSource(
         downloadExec: false
       }),
       childProcessProfile: Object.freeze({
-        status: __autojs6_child_process_experimental_enabled ? "experimental_opt_in_native" : "disabled_by_default",
-        defaultEnabled: false,
-        targetProfiles: Object.freeze(["desktop_compat_opt_in"]),
-        module: __autojs6_child_process_experimental_enabled ? "native_available" : "denied",
-        nodePrefix: __autojs6_child_process_experimental_enabled ? "native_available" : "denied",
-        scopedRunner: __autojs6_child_process_experimental_enabled ? "native_node_builtin" : "deferred",
+        status: __autojs6_child_process_enabled ? "stable" : "disabled_by_request",
+        defaultEnabled: true,
+        targetProfiles: Object.freeze(["safe_default"]),
+        module: __autojs6_child_process_enabled ? "native_available" : "denied",
+        nodePrefix: __autojs6_child_process_enabled ? "native_available" : "denied",
+        implementation: __autojs6_child_process_enabled ? "native_node_builtin" : "denied",
         shellBridge: "separate_scoped_command_bridge",
         androidShellProvider: "available_with_shell_capability",
-        appPrivateBinaries: __autojs6_child_process_experimental_enabled ? "native_node_policy" : "required_before_enablement",
-        allowlistedBinaries: __autojs6_child_process_experimental_enabled ? "native_node_policy" : "required_before_enablement",
-        arbitraryPaths: __autojs6_child_process_experimental_enabled ? "native_node_policy" : "denied",
-        cwd: "scoped_working_directory",
-        env: "string_map_scoped",
-        stdin: __autojs6_child_process_experimental_enabled ? "native_node_streams" : "deferred",
-        stdout: __autojs6_child_process_experimental_enabled ? "native_node_streams" : "bounded_required",
-        stderr: __autojs6_child_process_experimental_enabled ? "native_node_streams" : "bounded_required",
-        timeout: __autojs6_child_process_experimental_enabled ? "caller_managed" : "required",
-        cancellation: __autojs6_child_process_experimental_enabled ? "native_node_kill" : "required_before_enablement",
-        kill: __autojs6_child_process_experimental_enabled ? "native_available" : "required_before_enablement",
-        cleanup: __autojs6_child_process_experimental_enabled ? "native_node_lifecycle" : "required_before_enablement",
-        processHandles: __autojs6_child_process_experimental_enabled ? "native_available" : "denied",
-        fdStreams: __autojs6_child_process_experimental_enabled ? "native_available" : "denied",
-        detached: "denied",
-        shellOperators: __autojs6_child_process_experimental_enabled ? "native_shell_option" : "denied",
-        packagedBehavior: __autojs6_child_process_experimental_enabled ? "experimental_build_only" : "not_promoted",
-        rawProcessHandles: __autojs6_child_process_experimental_enabled,
-        rawSignals: __autojs6_child_process_experimental_enabled
+        appPrivateBinaryAllowlist: "not_enforced_by_native_builtin",
+        executablePolicy: __autojs6_child_process_enabled ? "android_app_sandbox_and_caller_validation" : "denied",
+        cwd: __autojs6_child_process_enabled ? "native_node_options" : "denied",
+        env: __autojs6_child_process_enabled ? "native_node_options" : "denied",
+        stdin: __autojs6_child_process_enabled ? "native_node_streams" : "deferred",
+        stdout: __autojs6_child_process_enabled ? "native_node_streams_caller_bounded" : "denied",
+        stderr: __autojs6_child_process_enabled ? "native_node_streams_caller_bounded" : "denied",
+        timeout: __autojs6_child_process_enabled ? "caller_managed" : "required",
+        cancellation: __autojs6_child_process_enabled ? "native_node_kill" : "required_before_enablement",
+        kill: __autojs6_child_process_enabled ? "native_available" : "required_before_enablement",
+        cleanup: __autojs6_child_process_enabled ? "native_node_lifecycle" : "required_before_enablement",
+        processHandles: __autojs6_child_process_enabled ? "native_available" : "denied",
+        fdStreams: __autojs6_child_process_enabled ? "native_available" : "denied",
+        detached: __autojs6_child_process_enabled ? "native_node_options" : "denied",
+        shellOperators: __autojs6_child_process_enabled ? "native_shell_option" : "denied",
+        packagedBehavior: __autojs6_child_process_enabled ? "stable" : "disabled_by_request",
+        rawProcessHandles: __autojs6_child_process_enabled,
+        rawSignals: __autojs6_child_process_enabled
       }),
       processPermission: __autojs6_process_permission_query(),
       directBuiltinAliases: Object.freeze(directBuiltinAliases),
       limitedBuiltins: __autojs6_freeze_sorted_copy(
-        __autojs6_worker_threads_experimental_enabled
+        __autojs6_worker_threads_enabled
           ? __autojs6_limited_builtin_module_names.concat(["worker_threads"])
           : __autojs6_limited_builtin_module_names
       ),
       disabledBuiltins: __autojs6_freeze_sorted_copy(disabledBuiltins),
       networkBuiltins: Object.freeze(["dns", "dns/promises", "http", "https", "net", "tls"]),
       highRiskCapabilities,
-      experimentalFlags,
+      featureStates,
       featureFlags,
-      enabledExperimentalFlags,
+      enabledFeatures,
       deniedFeatureFlags,
       errorCodes: Object.freeze({
         builtinDisabled: "ERR_AUTOJS6_BUILTIN_DISABLED",
@@ -4857,14 +4857,14 @@ std::string buildEmbeddedScriptExecutionSource(
       debug_unsafe_lab: "autojs.nodejs.profile.debugUnsafeLab.enabled"
     });
     const capabilityKillSwitches = Object.freeze({
-      network: "autojs.nodejs.network.experimental",
-      raw_network: "autojs.nodejs.rawNetworkModules.experimental",
-      worker_threads: "autojs.nodejs.worker_threads.experimental",
-      java_interop: "autojs.nodejs.javaInterop.experimental",
+      network: "built_in_stable_no_build_switch",
+      raw_network: "built_in_stable_no_build_switch",
+      worker_threads: "built_in_stable_no_build_switch",
+      java_interop: "built_in_stable_no_build_switch",
       all_relaxed_capabilities: "autojs.nodejs.relaxedCapabilities.enabled",
-      raw_node_network_modules: "autojs.nodejs.rawNetworkModules.experimental",
+      raw_node_network_modules: "built_in_stable_no_build_switch",
       filesystem_relaxation: "safe_profile_scoped_fs",
-      child_process: "autojs.nodejs.child_process.experimental",
+      child_process: "built_in_stable_no_build_switch",
       native_addon: "stable_denial_no_runtime_switch",
       inspector: "debug_profile_only_no_runtime_switch",
       wasi: "stable_denial_no_runtime_switch"
@@ -4875,7 +4875,7 @@ std::string buildEmbeddedScriptExecutionSource(
     };
     return Object.freeze({
       schema: "autojs6-node-profile-rollback-policy-v1",
-      status: "playbook_partial",
+      status: "stable_features",
       defaultProfile: "safe_default",
       effectiveProfile: "safe_default",
       rollbackTargetProfile: "safe_default",
@@ -4929,7 +4929,7 @@ std::string buildEmbeddedScriptExecutionSource(
           profile: "desktop_compat_opt_in",
           property: capabilityKillSwitches.network,
           enabled: flagEnabled("network"),
-          rollbackAction: "set_autojs_nodejs_network_experimental_false",
+          rollbackAction: "enforce_network_permission_policy",
           fallbackProfile: "safe_default"
         }),
         Object.freeze({
@@ -4937,7 +4937,7 @@ std::string buildEmbeddedScriptExecutionSource(
           profile: "desktop_compat_opt_in",
           property: capabilityKillSwitches.raw_network,
           enabled: flagEnabled("raw_node_network_modules"),
-          rollbackAction: "set_autojs_nodejs_rawNetworkModules_experimental_false",
+          rollbackAction: "enforce_network_and_sandbox_policy",
           fallbackProfile: "safe_default"
         }),
         Object.freeze({
@@ -4945,7 +4945,7 @@ std::string buildEmbeddedScriptExecutionSource(
           profile: "desktop_compat_opt_in",
           property: capabilityKillSwitches.raw_node_network_modules,
           enabled: flagEnabled("raw_node_network_modules"),
-          rollbackAction: "set_autojs_nodejs_rawNetworkModules_experimental_false",
+          rollbackAction: "enforce_network_and_sandbox_policy",
           fallbackProfile: "safe_default"
         }),
         Object.freeze({
@@ -4953,7 +4953,7 @@ std::string buildEmbeddedScriptExecutionSource(
           profile: "desktop_compat_opt_in",
           property: capabilityKillSwitches.worker_threads,
           enabled: flagEnabled("worker_threads"),
-          rollbackAction: "set_autojs_nodejs_worker_threads_experimental_false",
+          rollbackAction: "enforce_worker_resource_policy",
           fallbackProfile: "safe_default"
         }),
         Object.freeze({
@@ -4961,7 +4961,7 @@ std::string buildEmbeddedScriptExecutionSource(
           profile: "pro_compat_opt_in",
           property: capabilityKillSwitches.java_interop,
           enabled: flagEnabled("java_interop"),
-          rollbackAction: "set_autojs_nodejs_javaInterop_experimental_false",
+          rollbackAction: "enforce_java_allowlist_policy",
           fallbackProfile: "safe_default"
         }),
         Object.freeze({
@@ -4985,7 +4985,7 @@ std::string buildEmbeddedScriptExecutionSource(
           profile: "desktop_compat_opt_in",
           property: capabilityKillSwitches.child_process,
           enabled: flagEnabled("child_process"),
-          rollbackAction: "set_autojs_nodejs_child_process_experimental_false",
+          rollbackAction: "enforce_process_permission_policy",
           fallbackProfile: "safe_default"
         }),
         Object.freeze({
@@ -5062,9 +5062,10 @@ std::string buildEmbeddedScriptExecutionSource(
       }),
       releasePolicy: Object.freeze({
         releaseBuildForbidsDebugUnsafeLab: true,
-        releaseBuildForbidsExperimentalProfiles: true,
+        releaseBuildHasFeatureGates: false,
+        stableFeaturesIncluded: true,
         safeProfileReleaseFallback: true,
-        rollbackPropertiesDefaultFalse: true
+        runtimePoliciesRemainEnforced: true
       }),
       pending: Object.freeze([
         "runtime profile promotion",
@@ -6134,7 +6135,7 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
     if (normalizedScope === "worker") {
-      return __autojs6_worker_threads_experimental_enabled === true;
+      return __autojs6_worker_threads_enabled === true;
     }
     if (normalizedScope === "network") {
       return false;
@@ -8339,7 +8340,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_worker_threads_disabled_error() {
     return __autojs6_worker_threads_error(
-      "AutoJs6 experimental worker_threads is disabled; enable autojs.nodejs.worker_threads.experimental for an experimental run.",
+      "AutoJs6 worker_threads is unavailable for this request.",
       "ERR_AUTOJS6_WORKER_DISABLED"
     );
   }
@@ -8595,7 +8596,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (valueType === "boolean") return 4;
       if (valueType === "function" || valueType === "symbol") {
         throw __autojs6_worker_threads_data_clone_error(
-          "AutoJs6 experimental worker_threads message cannot clone " + valueType + " values.",
+          "AutoJs6 worker_threads message cannot clone " + valueType + " values.",
           "uncloneable_" + valueType
         );
       }
@@ -8641,7 +8642,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const size = __autojs6_worker_threads_estimate_message_bytes(message);
     if (size > __autojs6_worker_threads_policy.maxMessageBytes) {
       throw __autojs6_worker_threads_data_clone_error(
-        "AutoJs6 experimental worker_threads " + label + " exceeds " +
+        "AutoJs6 worker_threads " + label + " exceeds " +
           __autojs6_worker_threads_policy.maxMessageBytes + " bytes.",
         "message_too_large"
       );
@@ -8653,7 +8654,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const queued = Math.max(0, Number(state.__autojs6QueuedMessages) || 0);
     if (queued >= __autojs6_worker_threads_policy.maxQueuedMessages) {
       throw __autojs6_worker_threads_data_clone_error(
-        "AutoJs6 experimental worker_threads " + label + " exceeded " +
+        "AutoJs6 worker_threads " + label + " exceeded " +
           __autojs6_worker_threads_policy.maxQueuedMessages + " queued messages.",
         "message_queue_limit"
       );
@@ -8773,7 +8774,7 @@ std::string buildEmbeddedScriptExecutionSource(
       worker.emit(
         "error",
         __autojs6_worker_threads_error(
-          "AutoJs6 experimental worker_threads terminated worker during " + reason + ".",
+          "AutoJs6 worker_threads terminated worker during " + reason + ".",
           "ERR_AUTOJS6_WORKER_TERMINATED"
         )
       );
@@ -8911,7 +8912,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const masked = __autojs6_mask_non_code(sourceText);
     if (__autojs6_contains_dynamic_import(sourceText)) {
       throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 experimental worker_threads disables dynamic import in workers: " + sourceName,
+        "AutoJs6 worker_threads disables dynamic import in workers: " + sourceName,
         "dynamic_import",
         "ERR_AUTOJS6_DYNAMIC_IMPORT_UNSUPPORTED"
       );
@@ -8922,7 +8923,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (/(^|[\r\n;{}])\s*import\b\s*(["'{*]|[A-Za-z_$])/.test(masked) ||
         /(^|[\r\n;{}])\s*export\b\s*([{*]|default\b|class\b|function\b|const\b|let\b|var\b|[A-Za-z_$])/.test(masked)) {
       throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 experimental worker_threads disables ESM syntax in workers: " + sourceName,
+        "AutoJs6 worker_threads disables ESM syntax in workers: " + sourceName,
         "esm_syntax",
         "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED"
       );
@@ -8937,7 +8938,7 @@ std::string buildEmbeddedScriptExecutionSource(
       typeof path.isAbsolute !== "function"
     ) {
       throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 experimental worker_threads needs the allowlisted path module.",
+        "AutoJs6 worker_threads needs the allowlisted path module.",
         "path_module",
         "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
       );
@@ -8945,21 +8946,21 @@ std::string buildEmbeddedScriptExecutionSource(
     const name = filename === undefined || filename === null ? "" : String(filename);
     if (!name || !__autojs6_is_relative_module_name(name)) {
       throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 experimental worker_threads accepts only local relative worker scripts.",
+        "AutoJs6 worker_threads accepts only local relative worker scripts.",
         "non_relative_script",
         "ERR_AUTOJS6_FS_SCOPED_PATH"
       );
     }
     if (name.indexOf("\u0000") >= 0) {
       throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 experimental worker_threads rejects NUL worker script paths.",
+        "AutoJs6 worker_threads rejects NUL worker script paths.",
         "nul_script",
         "ERR_AUTOJS6_FS_NUL_BYTE"
       );
     }
     if (path.isAbsolute(name)) {
       throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 experimental worker_threads rejects absolute worker scripts: " + name,
+        "AutoJs6 worker_threads rejects absolute worker scripts: " + name,
         "absolute_script",
         "ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED"
       );
@@ -8969,7 +8970,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const base = path.resolve(parentDir || root, name);
     if (!__autojs6_path_within_root(base, root) || __autojs6_sensitive_path(base)) {
       throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 experimental worker_threads script path is outside the working directory: " + name,
+        "AutoJs6 worker_threads script path is outside the working directory: " + name,
         "script_path",
         "ERR_AUTOJS6_FS_PATH_ESCAPE"
       );
@@ -8978,12 +8979,12 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_throw_if_native_addon_extension(
       extension,
       name,
-      "AutoJs6 experimental worker_threads script",
-      "Unsupported AutoJs6 experimental worker script extension: " + name
+      "AutoJs6 worker_threads script",
+      "Unsupported AutoJs6 worker script extension: " + name
     );
     if (extension && extension !== ".js" && extension !== ".cjs" && extension !== ".mjs") {
       throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 experimental worker_threads accepts only .js, .cjs, and .mjs worker scripts: " + name,
+        "AutoJs6 worker_threads accepts only .js, .cjs, and .mjs worker scripts: " + name,
         "unsupported_extension",
         "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
       );
@@ -8995,7 +8996,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const candidateResolved = path.resolve(candidate);
       if (!__autojs6_path_within_root(candidateResolved, root) || __autojs6_sensitive_path(candidateResolved)) {
         throw __autojs6_worker_threads_policy_error(
-          "AutoJs6 experimental worker_threads script path is outside the working directory: " + name,
+          "AutoJs6 worker_threads script path is outside the working directory: " + name,
           "script_path",
           "ERR_AUTOJS6_FS_PATH_ESCAPE"
         );
@@ -9008,7 +9009,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     if (!record || typeof record.source !== "string") {
       throw __autojs6_worker_threads_policy_error(
-        "Cannot find AutoJs6 experimental worker script: " + name,
+        "Cannot find AutoJs6 worker script: " + name,
         "missing_script",
         "ERR_AUTOJS6_MODULE_NOT_FOUND"
       );
@@ -9016,7 +9017,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const entryKind = __autojs6_worker_threads_entry_kind(resolved);
     if (!entryKind) {
       throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 experimental worker_threads accepts only CommonJS or partial ESM worker scripts: " + name,
+        "AutoJs6 worker_threads accepts only CommonJS or partial ESM worker scripts: " + name,
         "unsupported_entry_kind",
         "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
       );
@@ -9082,11 +9083,11 @@ std::string buildEmbeddedScriptExecutionSource(
     return error;
   }
   function __deny(moduleName) {
-    throw __error("AutoJs6 experimental worker_threads denies module '" + moduleName + "' in workers.", "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
+    throw __error("AutoJs6 worker_threads denies module '" + moduleName + "' in workers.", "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
   }
   function __nativeAddonDisabled(moduleName) {
     throw __error(
-      "Native addon loading is disabled in AutoJs6 experimental worker_threads: " + moduleName,
+      "Native addon loading is disabled in AutoJs6 worker_threads: " + moduleName,
       "ERR_AUTOJS6_NATIVE_ADDON_DISABLED"
     );
   }
@@ -9098,7 +9099,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __dynamicImportUnsupported(filename) {
     throw __error(
-      "AutoJs6 experimental worker_threads disables dynamic import in workers: " + filename,
+      "AutoJs6 worker_threads disables dynamic import in workers: " + filename,
       "ERR_AUTOJS6_DYNAMIC_IMPORT_UNSUPPORTED"
     );
   }
@@ -9107,7 +9108,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __disabledProcess(name) {
     return function() {
-      throw __error("AutoJs6 experimental worker_threads disables process." + name + " in workers.", "ERR_AUTOJS6_PROCESS_API_DISABLED");
+      throw __error("AutoJs6 worker_threads disables process." + name + " in workers.", "ERR_AUTOJS6_PROCESS_API_DISABLED");
     };
   }
   if (typeof process === "object" && process) {
@@ -9170,7 +9171,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (valueType === "number" || valueType === "bigint") return 8;
     if (valueType === "boolean") return 4;
     if (valueType === "function" || valueType === "symbol") {
-      throw __dataCloneError("AutoJs6 experimental worker_threads cannot clone " + valueType + " values.");
+      throw __dataCloneError("AutoJs6 worker_threads cannot clone " + valueType + " values.");
     }
     const visited = seen || new Set();
     const currentDepth = depth || 0;
@@ -9199,7 +9200,7 @@ std::string buildEmbeddedScriptExecutionSource(
   function __validateMessage(message, label) {
     const size = __estimateMessageBytes(message);
     if (size > __messagePolicy.maxMessageBytes) {
-      throw __dataCloneError("AutoJs6 experimental worker_threads " + label + " exceeds " + __messagePolicy.maxMessageBytes + " bytes.");
+      throw __dataCloneError("AutoJs6 worker_threads " + label + " exceeds " + __messagePolicy.maxMessageBytes + " bytes.");
     }
   }
   function __prepareTransferList(transferList, label) {
@@ -9208,13 +9209,13 @@ std::string buildEmbeddedScriptExecutionSource(
     try {
       list = Array.isArray(transferList) ? transferList : Array.from(transferList);
     } catch (_) {
-      throw __dataCloneError("AutoJs6 experimental worker_threads " + label + " must be an iterable transfer list.");
+      throw __dataCloneError("AutoJs6 worker_threads " + label + " must be an iterable transfer list.");
     }
     const output = [];
     const seen = new Set();
     for (const value of list) {
       if (seen.has(value)) {
-        throw __dataCloneError("AutoJs6 experimental worker_threads " + label + " contains duplicate transfer entries.");
+        throw __dataCloneError("AutoJs6 worker_threads " + label + " contains duplicate transfer entries.");
       }
       seen.add(value);
       if (typeof ArrayBuffer === "function" && value instanceof ArrayBuffer) {
@@ -9225,14 +9226,14 @@ std::string buildEmbeddedScriptExecutionSource(
         output.push(value);
         continue;
       }
-      throw __dataCloneError("AutoJs6 experimental worker_threads " + label + " accepts only ArrayBuffer and MessagePort transfer entries.");
+      throw __dataCloneError("AutoJs6 worker_threads " + label + " accepts only ArrayBuffer and MessagePort transfer entries.");
     }
     return output;
   }
   function __tryQueueMessage(queueState, label) {
     const queued = Math.max(0, Number(queueState.queued) || 0);
     if (queued >= __messagePolicy.maxQueuedMessages) {
-      throw __dataCloneError("AutoJs6 experimental worker_threads " + label + " exceeded " + __messagePolicy.maxQueuedMessages + " queued messages.");
+      throw __dataCloneError("AutoJs6 worker_threads " + label + " exceeded " + __messagePolicy.maxQueuedMessages + " queued messages.");
     }
     queueState.queued = queued + 1;
     const decrement = function() {
@@ -9315,7 +9316,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const absolute = __path.resolve(resolved);
     if (!__withinRoot(absolute, __root) || __sensitivePath(absolute)) {
       throw __error(
-        "AutoJs6 experimental worker_threads " + label + " escapes working directory: " + resolved,
+        "AutoJs6 worker_threads " + label + " escapes working directory: " + resolved,
         "ERR_AUTOJS6_FS_PATH_ESCAPE"
       );
     }
@@ -9324,13 +9325,13 @@ std::string buildEmbeddedScriptExecutionSource(
   function __workerFsPath(pathValue, label) {
     if (typeof pathValue !== "string") {
       throw __error(
-        "AutoJs6 experimental worker_threads " + label + " requires a string path.",
+        "AutoJs6 worker_threads " + label + " requires a string path.",
         "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
       );
     }
     if (pathValue.indexOf("\u0000") >= 0) {
       throw __error(
-        "AutoJs6 experimental worker_threads rejects NUL byte in " + label + ": " + pathValue,
+        "AutoJs6 worker_threads rejects NUL byte in " + label + ": " + pathValue,
         "ERR_AUTOJS6_FS_NUL_BYTE"
       );
     }
@@ -9357,7 +9358,7 @@ std::string buildEmbeddedScriptExecutionSource(
           return current;
         }
         throw __error(
-          "AutoJs6 experimental worker_threads " + label + " parent is not a directory: " + current,
+          "AutoJs6 worker_threads " + label + " parent is not a directory: " + current,
           "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
         );
       } catch (error) {
@@ -9369,7 +9370,7 @@ std::string buildEmbeddedScriptExecutionSource(
       current = parent;
     }
     throw __error(
-      "AutoJs6 experimental worker_threads " + label + " escapes working directory: " + absolute,
+      "AutoJs6 worker_threads " + label + " escapes working directory: " + absolute,
       "ERR_AUTOJS6_FS_PATH_ESCAPE"
     );
   }
@@ -9506,7 +9507,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (extension === ".node") __nativeAddonDisabled(absolute);
     if (!__supportedSourceExtension(extension, allowEsm)) {
       throw __error(
-        "Unsupported AutoJs6 experimental worker module extension: " + absolute,
+        "Unsupported AutoJs6 worker module extension: " + absolute,
         "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
       );
     }
@@ -9519,7 +9520,7 @@ std::string buildEmbeddedScriptExecutionSource(
       };
     } catch (error) {
       throw __error(
-        "Cannot find AutoJs6 experimental worker module: " + absolute,
+        "Cannot find AutoJs6 worker module: " + absolute,
         "ERR_AUTOJS6_MODULE_NOT_FOUND",
         error && error.code ? error.code : undefined
       );
@@ -9550,7 +9551,7 @@ std::string buildEmbeddedScriptExecutionSource(
           data = JSON.parse(record.source);
         } catch (error) {
           throw __error(
-            "Invalid AutoJs6 experimental worker package.json: " + record.sourceURL,
+            "Invalid AutoJs6 worker package.json: " + record.sourceURL,
             "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
           );
         }
@@ -9573,23 +9574,23 @@ std::string buildEmbeddedScriptExecutionSource(
   function __resolveLocal(request, parentFilename, mode) {
     const raw = String(request || "");
     if (!raw || raw.indexOf("\u0000") >= 0) {
-      throw __error("AutoJs6 experimental worker_threads rejects invalid local module path: " + raw, "ERR_AUTOJS6_FS_NUL_BYTE");
+      throw __error("AutoJs6 worker_threads rejects invalid local module path: " + raw, "ERR_AUTOJS6_FS_NUL_BYTE");
     }
     if (!__isRelativeModuleName(raw)) {
       return __deny(raw);
     }
     if (__path.isAbsolute(raw)) {
-      throw __error("AutoJs6 experimental worker_threads rejects absolute local module path: " + raw, "ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED");
+      throw __error("AutoJs6 worker_threads rejects absolute local module path: " + raw, "ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED");
     }
     if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(raw)) {
-      throw __error("AutoJs6 experimental worker_threads rejects protocol module path: " + raw, "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
+      throw __error("AutoJs6 worker_threads rejects protocol module path: " + raw, "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
     }
     const parentDir = __path.dirname(parentFilename || __entryFilename);
     const base = __validatePath(__path.resolve(parentDir, raw), "local module path");
     const extension = __normalizedExtension(base);
     if (extension === ".node") __nativeAddonDisabled(raw);
     if (extension && !__supportedSourceExtension(extension, true)) {
-      throw __error("Unsupported AutoJs6 experimental worker module extension: " + raw, "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
+      throw __error("Unsupported AutoJs6 worker module extension: " + raw, "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
     }
     const candidates = extension ? [base] : [base, base + ".js", base + ".cjs", base + ".mjs", base + ".json"];
     for (const candidate of candidates) {
@@ -9601,7 +9602,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return { resolved, kind };
     }
     throw __error(
-      "Cannot find AutoJs6 experimental worker module '" + raw + "' from '" + parentFilename + "'.",
+      "Cannot find AutoJs6 worker module '" + raw + "' from '" + parentFilename + "'.",
       "ERR_AUTOJS6_MODULE_NOT_FOUND"
     );
   }
@@ -9693,7 +9694,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const masked = __maskNonCode(sourceText);
     if (/(^|[\r\n;{}])\s*import\b\s*(["'{*]|[A-Za-z_$])/.test(masked) ||
         /(^|[\r\n;{}])\s*export\b\s*([{*]|default\b|class\b|function\b|const\b|let\b|var\b|[A-Za-z_$])/.test(masked)) {
-      __esmUnsupported("AutoJs6 experimental worker_threads disables ESM syntax in CommonJS workers: " + filename);
+      __esmUnsupported("AutoJs6 worker_threads disables ESM syntax in CommonJS workers: " + filename);
     }
   }
   function __createRequire(parentModule) {
@@ -9738,7 +9739,7 @@ std::string buildEmbeddedScriptExecutionSource(
       try {
         module.exports = JSON.parse(record.source);
       } catch (error) {
-        throw new SyntaxError("Invalid AutoJs6 experimental worker JSON module '" + filename + "': " + (error && error.message ? error.message : String(error)));
+        throw new SyntaxError("Invalid AutoJs6 worker JSON module '" + filename + "': " + (error && error.message ? error.message : String(error)));
       }
       module.loaded = true;
       return module.exports;
@@ -9896,7 +9897,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const raw = String(specifier || "");
     if (__builtinAllowed(raw)) return Promise.resolve(__namespaceFromCommonJs(__loadBuiltin(raw)));
     if (!__isRelativeModuleName(raw)) return Promise.reject(__error(
-      "AutoJs6 experimental worker_threads ESM imports only local worker dependencies and allowed builtins: " + raw,
+      "AutoJs6 worker_threads ESM imports only local worker dependencies and allowed builtins: " + raw,
       "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
     ));
     const resolved = __resolveLocal(raw, parentFilename, "esm");
@@ -9958,7 +9959,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (__autojs6_limited_worker_threads_cache) {
       return __autojs6_limited_worker_threads_cache;
     }
-    if (!__autojs6_worker_threads_experimental_enabled) {
+    if (!__autojs6_worker_threads_enabled) {
       throw __autojs6_worker_threads_disabled_error();
     }
     const nativeModule = __autojs6_builtin_module("worker_threads");
@@ -9978,7 +9979,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const nativeToWrappedPort = new WeakMap();
     function AutoJs6MessagePort() {
       throw __autojs6_worker_threads_error(
-        "AutoJs6 experimental worker_threads MessagePort cannot be constructed directly.",
+        "AutoJs6 worker_threads MessagePort cannot be constructed directly.",
         "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
       );
     }
@@ -9999,7 +10000,7 @@ std::string buildEmbeddedScriptExecutionSource(
     function __autojs6_worker_threads_wrap_message_port(nativePort) {
       if (!__autojs6_worker_threads_is_native_message_port(nativePort)) {
         throw __autojs6_worker_threads_data_clone_error(
-          "AutoJs6 experimental worker_threads expected a native MessagePort.",
+          "AutoJs6 worker_threads expected a native MessagePort.",
           "invalid_message_port"
         );
       }
@@ -10030,7 +10031,7 @@ std::string buildEmbeddedScriptExecutionSource(
         const state = workerPortStates.get(value);
         if (state.record.__autojs6Closed) {
           throw __autojs6_worker_threads_data_clone_error(
-            "AutoJs6 experimental worker_threads cannot transfer a closed MessagePort.",
+            "AutoJs6 worker_threads cannot transfer a closed MessagePort.",
             "closed_message_port"
           );
         }
@@ -10059,7 +10060,7 @@ std::string buildEmbeddedScriptExecutionSource(
         rawList = Array.isArray(transferList) ? transferList : Array.from(transferList);
       } catch (_) {
         throw __autojs6_worker_threads_data_clone_error(
-          "AutoJs6 experimental worker_threads " + label + " must be an iterable transfer list.",
+          "AutoJs6 worker_threads " + label + " must be an iterable transfer list.",
           "invalid_transfer_list"
         );
       }
@@ -10069,7 +10070,7 @@ std::string buildEmbeddedScriptExecutionSource(
       for (const value of rawList) {
         if (seen.has(value)) {
           throw __autojs6_worker_threads_data_clone_error(
-            "AutoJs6 experimental worker_threads " + label + " contains duplicate transfer entries.",
+            "AutoJs6 worker_threads " + label + " contains duplicate transfer entries.",
             "duplicate_transfer"
           );
         }
@@ -10087,7 +10088,7 @@ std::string buildEmbeddedScriptExecutionSource(
           continue;
         }
         throw __autojs6_worker_threads_data_clone_error(
-          "AutoJs6 experimental worker_threads " + label + " accepts only ArrayBuffer and MessagePort transfer entries.",
+          "AutoJs6 worker_threads " + label + " accepts only ArrayBuffer and MessagePort transfer entries.",
           "unsupported_transfer"
         );
       }
@@ -10101,7 +10102,7 @@ std::string buildEmbeddedScriptExecutionSource(
         const state = workerPortStates.get(value);
         if (state.record.__autojs6Closed) {
           throw __autojs6_worker_threads_data_clone_error(
-            "AutoJs6 experimental worker_threads cannot clone a closed MessagePort.",
+            "AutoJs6 worker_threads cannot clone a closed MessagePort.",
             "closed_message_port"
           );
         }
@@ -10176,7 +10177,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (resourceLimits === undefined || resourceLimits === null) return undefined;
       if (typeof resourceLimits !== "object" || Array.isArray(resourceLimits)) {
         throw __autojs6_worker_threads_policy_error(
-          "AutoJs6 experimental worker_threads " + label + " resourceLimits must be an object.",
+          "AutoJs6 worker_threads " + label + " resourceLimits must be an object.",
           "invalid_resource_limits"
         );
       }
@@ -10191,20 +10192,20 @@ std::string buildEmbeddedScriptExecutionSource(
       for (const key of Object.keys(resourceLimits)) {
         if (!__autojs6_has_own(allowed, key)) {
           throw __autojs6_worker_threads_policy_error(
-            "AutoJs6 experimental worker_threads " + label + " rejects resourceLimits." + key + ".",
+            "AutoJs6 worker_threads " + label + " rejects resourceLimits." + key + ".",
             "unknown_resource_limit"
           );
         }
         const value = Number(resourceLimits[key]);
         if (!Number.isFinite(value) || value <= 0) {
           throw __autojs6_worker_threads_policy_error(
-            "AutoJs6 experimental worker_threads " + label + " resourceLimits." + key + " must be positive.",
+            "AutoJs6 worker_threads " + label + " resourceLimits." + key + " must be positive.",
             "invalid_resource_limit"
           );
         }
         if (value > allowed[key]) {
           throw __autojs6_worker_threads_policy_error(
-            "AutoJs6 experimental worker_threads " + label + " resourceLimits." + key + " exceeds " + allowed[key] + ".",
+            "AutoJs6 worker_threads " + label + " resourceLimits." + key + " exceeds " + allowed[key] + ".",
             "resource_limit_too_large"
           );
         }
@@ -10365,14 +10366,14 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       if (__autojs6_worker_threads_shutdown_reason) {
         throw __autojs6_worker_threads_error(
-          "AutoJs6 experimental worker_threads worker creation is disabled during " +
+          "AutoJs6 worker_threads worker creation is disabled during " +
             __autojs6_worker_threads_shutdown_reason + ".",
           "ERR_AUTOJS6_WORKER_TERMINATED"
         );
       }
       if (!__autojs6_worker_threads_try_start()) {
         throw __autojs6_worker_threads_error(
-          "AutoJs6 experimental worker_threads exceeded " + __autojs6_worker_threads_policy.maxWorkers + " active worker.",
+          "AutoJs6 worker_threads exceeded " + __autojs6_worker_threads_policy.maxWorkers + " active worker.",
           "ERR_AUTOJS6_WORKER_LIMIT_EXCEEDED"
         );
       }
@@ -10429,7 +10430,7 @@ std::string buildEmbeddedScriptExecutionSource(
           if (self.__autojs6Finished) return;
           __autojs6_worker_threads_diagnostics.startupTimeoutCount += 1;
           const error = __autojs6_worker_threads_error(
-            "AutoJs6 experimental worker_threads startup timed out.",
+            "AutoJs6 worker_threads startup timed out.",
             "ERR_AUTOJS6_WORKER_TIMEOUT"
           );
           try {
@@ -10473,7 +10474,7 @@ std::string buildEmbeddedScriptExecutionSource(
     AutoJs6Worker.prototype.postMessage = function(message, transferList) {
       if (!this.__autojs6NativeWorker || this.__autojs6Finished) {
         throw __autojs6_worker_threads_error(
-          "AutoJs6 experimental worker_threads worker is already terminated.",
+          "AutoJs6 worker_threads worker is already terminated.",
           "ERR_AUTOJS6_WORKER_TERMINATED"
         );
       }
@@ -10504,7 +10505,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const number = Number(value);
       if (!Number.isFinite(number) || Math.floor(number) !== number || number < min || number > max) {
         throw __autojs6_worker_threads_policy_error(
-          "AutoJs6 experimental worker_threads WorkerPool " + label + " must be an integer between " + min + " and " + max + ".",
+          "AutoJs6 worker_threads WorkerPool " + label + " must be an integer between " + min + " and " + max + ".",
           "invalid_worker_pool_option"
         );
       }
@@ -10601,7 +10602,7 @@ std::string buildEmbeddedScriptExecutionSource(
           pool,
           task,
           __autojs6_worker_pool_error(
-            "AutoJs6 experimental worker_threads WorkerPool task ended during " + reason + ".",
+            "AutoJs6 worker_threads WorkerPool task ended during " + reason + ".",
             "ERR_AUTOJS6_WORKER_POOL_TASK_CANCELLED"
           ),
           reason === "timeout" ? "timeout" : "cancelled"
@@ -10696,7 +10697,7 @@ std::string buildEmbeddedScriptExecutionSource(
           __autojs6_worker_pool_reject_task(
             pool,
             record.task,
-            error || __autojs6_worker_pool_error("AutoJs6 experimental worker_threads WorkerPool worker failed.", "ERR_AUTOJS6_WORKER_POOL_TASK_FAILED"),
+            error || __autojs6_worker_pool_error("AutoJs6 worker_threads WorkerPool worker failed.", "ERR_AUTOJS6_WORKER_POOL_TASK_FAILED"),
             "failed"
           );
           record.task = null;
@@ -10709,7 +10710,7 @@ std::string buildEmbeddedScriptExecutionSource(
           __autojs6_worker_pool_reject_task(
             pool,
             record.task,
-            __autojs6_worker_pool_error("AutoJs6 experimental worker_threads WorkerPool worker exited before task completion.", "ERR_AUTOJS6_WORKER_POOL_TASK_FAILED"),
+            __autojs6_worker_pool_error("AutoJs6 worker_threads WorkerPool worker exited before task completion.", "ERR_AUTOJS6_WORKER_POOL_TASK_FAILED"),
             "failed"
           );
           record.task = null;
@@ -10734,7 +10735,7 @@ std::string buildEmbeddedScriptExecutionSource(
             pool,
             task,
             __autojs6_worker_pool_error(
-              "AutoJs6 experimental worker_threads WorkerPool task timed out.",
+              "AutoJs6 worker_threads WorkerPool task timed out.",
               "ERR_AUTOJS6_WORKER_POOL_TASK_TIMEOUT"
             ),
             "timeout"
@@ -10782,7 +10783,7 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       if (__autojs6_worker_threads_shutdown_reason) {
         throw __autojs6_worker_threads_error(
-          "AutoJs6 experimental worker_threads WorkerPool creation is disabled during " +
+          "AutoJs6 worker_threads WorkerPool creation is disabled during " +
             __autojs6_worker_threads_shutdown_reason + ".",
           "ERR_AUTOJS6_WORKER_TERMINATED"
         );
@@ -10826,14 +10827,14 @@ std::string buildEmbeddedScriptExecutionSource(
     AutoJs6WorkerPool.prototype.run = function(value, options) {
       if (this.__autojs6PoolClosed) {
         throw __autojs6_worker_pool_error(
-          "AutoJs6 experimental worker_threads WorkerPool is closed.",
+          "AutoJs6 worker_threads WorkerPool is closed.",
           "ERR_AUTOJS6_WORKER_POOL_CLOSED"
         );
       }
       if (this.__autojs6PoolQueue.length >= this.__autojs6PoolQueueLimit) {
         __autojs6_worker_threads_diagnostics.workerPoolQueueRejectedCount += 1;
         throw __autojs6_worker_pool_error(
-          "AutoJs6 experimental worker_threads WorkerPool queue is full.",
+          "AutoJs6 worker_threads WorkerPool queue is full.",
           "ERR_AUTOJS6_WORKER_POOL_QUEUE_FULL"
         );
       }
@@ -10864,7 +10865,7 @@ std::string buildEmbeddedScriptExecutionSource(
               pool,
               task,
               __autojs6_worker_pool_error(
-                "AutoJs6 experimental worker_threads WorkerPool task was cancelled.",
+                "AutoJs6 worker_threads WorkerPool task was cancelled.",
                 "ERR_AUTOJS6_WORKER_POOL_TASK_CANCELLED"
               ),
               "cancelled"
@@ -10876,7 +10877,7 @@ std::string buildEmbeddedScriptExecutionSource(
               pool,
               task,
               __autojs6_worker_pool_error(
-                "AutoJs6 experimental worker_threads WorkerPool running task was cancelled.",
+                "AutoJs6 worker_threads WorkerPool running task was cancelled.",
                 "ERR_AUTOJS6_WORKER_POOL_TASK_CANCELLED"
               ),
               "cancelled"
@@ -10928,7 +10929,7 @@ std::string buildEmbeddedScriptExecutionSource(
           this,
           task,
           __autojs6_worker_pool_error(
-            "AutoJs6 experimental worker_threads WorkerPool task rejected during " + reason + ".",
+            "AutoJs6 worker_threads WorkerPool task rejected during " + reason + ".",
             "ERR_AUTOJS6_WORKER_POOL_CLOSED"
           ),
           "cancelled"
@@ -14228,7 +14229,7 @@ std::string buildEmbeddedScriptExecutionSource(
       : String(apiName);
     return __autojs6_rhino_shim_error(
       "AutoJs6 Rhino JSON-only shim is disabled in the current Safe Node Profile; " +
-        api + " cannot execute Rhino without an explicit experimental adapter gate.",
+        api + " cannot execute Rhino without an explicit compatibility adapter gate.",
       __autojs6_rhino_shim_error_codes.shimDisabled,
       api,
       "disabled"
@@ -14236,7 +14237,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_rhino_install_unsupported_error() {
     return __autojs6_rhino_shim_error(
-      "AutoJs6 Rhino JSON-only shim does not support rhino.install() by default; explicit experimental Java proxy install requires the Java interop gate.",
+      "AutoJs6 Rhino JSON-only shim does not support rhino.install() by default; explicit Java proxy installation requires the Java interop gate.",
       __autojs6_rhino_shim_error_codes.installUnsupported,
       "install",
       "unsupported"
@@ -14245,7 +14246,7 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_rhino_import_unsupported_error(apiName) {
     const api = apiName === "importPackage" ? "importPackage" : "importClass";
     return __autojs6_rhino_shim_error(
-      "AutoJs6 Node does not support Rhino " + api + "; use explicit assignment from rhino.install({ experimental: true, target }) Java proxies instead.",
+      "AutoJs6 Node does not support Rhino " + api + "; use explicit assignment from rhino.install({ explicit: true, target }) Java proxies instead.",
       __autojs6_rhino_shim_error_codes.importUnsupported,
       api,
       "unsupported"
@@ -14327,7 +14328,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (!input) {
       throw __autojs6_rhino_invalid_request_error("rhino.run requires a request object.");
     }
-    if (input.experimental !== true) {
+    if (input.explicit !== true) {
       throw __autojs6_rhino_shim_disabled_error("run");
     }
     const hasSource = Object.prototype.hasOwnProperty.call(input, "source") && input.source !== undefined && input.source !== null;
@@ -14337,7 +14338,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const timeoutMs = __autojs6_rhino_run_timeout_ms(input.timeoutMs);
     const payload = {
-      experimental: true,
+      explicit: true,
       timeoutMs,
       args: __autojs6_rhino_run_args(input.args),
       cwd: __autojs6_rhino_relative_text(input.cwd, "cwd", true),
@@ -14505,7 +14506,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_rhino_install_options(options) {
     const input = options && typeof options === "object" && !Array.isArray(options) ? options : null;
-    if (!input || input.experimental !== true) {
+    if (!input || input.explicit !== true) {
       throw __autojs6_rhino_install_unsupported_error();
     }
     const target = input.target && typeof input.target === "object"
@@ -14543,7 +14544,7 @@ std::string buildEmbeddedScriptExecutionSource(
       schema: "autojs6-rhino-install-java-proxy-v1",
       module: "rhino",
       mode: "java-allowlist-proxy",
-      experimental: true,
+      explicit: true,
       globalsInstalled: parsed.globals,
       installed: Object.freeze(installed.slice()),
       javaInterop: __autojs6_java_policy_snapshot(),
@@ -16257,7 +16258,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_java_interop_disabled_error() {
     return __autojs6_java_interop_error(
-      "AutoJs6 Java interop is disabled; enable autojs.nodejs.javaInterop.experimental for an allowlist-only experiment.",
+      "AutoJs6 Java interop is unavailable for this request; the stable allowlist policy remains enforced.",
       "ERR_AUTOJS6_JAVA_INTEROP_DISABLED"
     );
   }
@@ -16269,7 +16270,7 @@ std::string buildEmbeddedScriptExecutionSource(
     });
   }
   function __autojs6_java_check_enabled() {
-    if (!__autojs6_java_interop_experimental_enabled) {
+    if (!__autojs6_java_interop_enabled) {
       throw __autojs6_java_interop_disabled_error();
     }
   }
@@ -16611,7 +16612,7 @@ std::string buildEmbeddedScriptExecutionSource(
     );
   }
   function __autojs6_limited_java() {
-    if (!__autojs6_java_interop_experimental_enabled) {
+    if (!__autojs6_java_interop_enabled) {
       throw __autojs6_java_interop_disabled_error();
     }
     if (__autojs6_limited_java_cache) {
@@ -16671,7 +16672,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return __autojs6_limited_java().release(target, options);
   }
   function __autojs6_autojs_java_create(classOrName, args, threadModeOrOptions, maybeOptions) {
-    if (!__autojs6_java_interop_experimental_enabled) {
+    if (!__autojs6_java_interop_enabled) {
       throw __autojs6_java_interop_disabled_error();
     }
     if (
@@ -16693,7 +16694,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_autojs_java_stable_rejection(methodName, reason) {
     return function() {
-      if (!__autojs6_java_interop_experimental_enabled) {
+      if (!__autojs6_java_interop_enabled) {
         throw __autojs6_java_interop_disabled_error();
       }
       throw __autojs6_java_interop_error(
@@ -16705,15 +16706,15 @@ std::string buildEmbeddedScriptExecutionSource(
     };
   }
   function __autojs6_autojs_java_facade() {
-    const enabled = __autojs6_java_interop_experimental_enabled;
+    const enabled = __autojs6_java_interop_enabled;
     return Object.freeze({
       schema: "autojs6-node-autojs-java-v1",
       enabled,
-      experimental: enabled,
+      stable: enabled,
       mode: enabled ? "allowlist" : "disabled",
       reason: enabled
-        ? "Experimental allowlist-only Java interop is enabled for this build."
-        : "AutoJs6 Java interop is disabled; enable autojs.nodejs.javaInterop.experimental for an allowlist-only experiment.",
+        ? "Allowlist-only Java interop is enabled."
+        : "AutoJs6 Java interop is unavailable for this request; the stable allowlist policy remains enforced.",
       policy: __autojs6_java_policy_snapshot(),
       findClass: __autojs6_autojs_java_find_class,
       type: __autojs6_autojs_java_find_class,
@@ -25823,7 +25824,7 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_throw_if_esm_extension(extension, moduleName, context) {
     if (__autojs6_is_esm_extension(extension)) {
       const detail = context + " resolves to an ESM module for '" + moduleName + "'.";
-      if (__autojs6_esm_experimental_enabled) {
+      if (__autojs6_esm_enabled) {
         throw __autojs6_require_esm_unsupported(
           "CommonJS require() cannot load AutoJs6 partial ESM modules in AutoJs6 Safe Node Profile: " + detail
         );
@@ -25858,7 +25859,7 @@ std::string buildEmbeddedScriptExecutionSource(
       normalized === ".json";
   }
   function __autojs6_denied_builtin_module_name(name) {
-    if ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_experimental_enabled) {
+    if ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_enabled) {
       return false;
     }
     return name.indexOf("node:") === 0 || __autojs6_has_own(__autojs6_require_builtin_denylist, name);
@@ -26007,7 +26008,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return mode === "esm" || mode === "cjs_require_esm";
   }
   function __autojs6_commonjs_require_resolution_mode() {
-    return __autojs6_esm_experimental_enabled ? "cjs_require_esm" : "cjs";
+    return __autojs6_esm_enabled ? "cjs_require_esm" : "cjs";
   }
   function __autojs6_package_active_conditions(mode) {
     return __autojs6_package_condition_mode(mode) === "esm"
@@ -39125,10 +39126,10 @@ std::string buildEmbeddedScriptExecutionSource(
     if (key === "node:worker_threads") {
       return true;
     }
-    if (__autojs6_worker_threads_experimental_enabled && key === "worker_threads") {
+    if (__autojs6_worker_threads_enabled && key === "worker_threads") {
       return true;
     }
-    if ((key === "child_process" || key === "node:child_process") && __autojs6_child_process_experimental_enabled) {
+    if ((key === "child_process" || key === "node:child_process") && __autojs6_child_process_enabled) {
       return true;
     }
     return __autojs6_has_own(__autojs6_limited_builtin_module_map, key);
@@ -39154,10 +39155,10 @@ std::string buildEmbeddedScriptExecutionSource(
         value: Object.freeze((function() {
           const names = __autojs6_limited_builtin_module_names.slice();
           names.push("node:test");
-          if (__autojs6_worker_threads_experimental_enabled) {
+          if (__autojs6_worker_threads_enabled) {
             names.push("worker_threads");
           }
-          if (__autojs6_child_process_experimental_enabled) {
+          if (__autojs6_child_process_enabled) {
             names.push("child_process");
           }
           return names;
@@ -40617,7 +40618,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return /(^|[\r\n;{}])\s*export\b\s*([{*]|default\b|class\b|function\b|const\b|let\b|var\b|[A-Za-z_$])/.test(code);
   }
   function __autojs6_should_run_entry_as_esm() {
-    if (!__autojs6_esm_experimental_enabled) return false;
+    if (!__autojs6_esm_enabled) return false;
     const entry = __autojs6_esm_entry_filename();
     const extension = __autojs6_source_extension(entry);
     return __autojs6_is_esm_extension(extension) ||
@@ -40853,7 +40854,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_esm_builtin_specifier(name) {
     return name === "node:test" ||
-      ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_experimental_enabled) ||
+      ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_enabled) ||
       name === "rhino" ||
       __autojs6_has_own(__autojs6_require_builtin_allowlist, name) ||
       __autojs6_has_own(__autojs6_limited_builtin_module_map, name) ||
@@ -41270,7 +41271,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (!__autojs6_is_identifier_token_at(masked, index, "import")) continue;
       const nextIndex = __autojs6_skip_whitespace(masked, index + "import".length);
       if (masked.charAt(nextIndex) !== "(") continue;
-      if (!__autojs6_dynamic_import_experimental_enabled) {
+      if (!__autojs6_dynamic_import_enabled) {
         throw __autojs6_dynamic_import_unsupported(
           __autojs6_esm_unsupported_message("dynamic import is disabled for '" + sourceName + "'.")
         );
@@ -41391,7 +41392,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "node:worker_threads") {
       return "node:worker_threads";
     }
-    if ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_experimental_enabled) {
+    if ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_enabled) {
       return "node:child_process";
     }
     if (name === "rhino") {
@@ -41495,7 +41496,7 @@ std::string buildEmbeddedScriptExecutionSource(
               filename + "' because it contains dynamic import()."
           );
         }
-        if (!__autojs6_dynamic_import_experimental_enabled) {
+        if (!__autojs6_dynamic_import_enabled) {
           throw __autojs6_dynamic_import_unsupported(
             __autojs6_esm_unsupported_message("dynamic import is disabled for partial ESM module '" + filename + "'.")
           );
@@ -41627,12 +41628,12 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_dynamic_import(parentFilename, specifier, options) {
     return Promise.resolve().then(function() {
-      if (!__autojs6_dynamic_import_experimental_enabled) {
+      if (!__autojs6_dynamic_import_enabled) {
         throw __autojs6_dynamic_import_unsupported(
           __autojs6_esm_unsupported_message("dynamic import is disabled for '" + parentFilename + "'.")
         );
       }
-      if (!__autojs6_esm_experimental_enabled) {
+      if (!__autojs6_esm_enabled) {
         throw __autojs6_esm_unsupported(
           __autojs6_esm_unsupported_message("dynamic import requires partial ESM to be enabled.")
         );
@@ -42119,7 +42120,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const nextIndex = __autojs6_skip_whitespace(code, index + "import".length);
       const next = code.charAt(nextIndex);
       if (next === "(") {
-        if (!__autojs6_dynamic_import_experimental_enabled) {
+        if (!__autojs6_dynamic_import_enabled) {
           throw __autojs6_dynamic_import_unsupported(
             __autojs6_esm_unsupported_message("dynamic import is disabled for '" + sourceName + "'.")
           );
@@ -42148,9 +42149,9 @@ std::string buildEmbeddedScriptExecutionSource(
       if (arguments.length === 0) return undefined;
       if (typeof source !== "string") return source;
       __autojs6_assert_common_js_source_supported(source, "<embedded-eval-source.js>");
-      if (__autojs6_dynamic_import_experimental_enabled && __autojs6_contains_dynamic_import(source)) {
+      if (__autojs6_dynamic_import_enabled && __autojs6_contains_dynamic_import(source)) {
         throw __autojs6_dynamic_import_unsupported(
-          "Embedded Node experimental dynamic import is disabled for eval sources."
+          "Embedded Node dynamic import is disabled for eval sources."
         );
       }
       return __autojs6_native_eval(source);
@@ -42160,9 +42161,9 @@ std::string buildEmbeddedScriptExecutionSource(
         const args = Array.prototype.slice.call(arguments);
         const body = args.length > 0 ? String(args[args.length - 1]) : "";
         __autojs6_assert_common_js_source_supported(body, sourceName);
-        if (__autojs6_dynamic_import_experimental_enabled && __autojs6_contains_dynamic_import(body)) {
+        if (__autojs6_dynamic_import_enabled && __autojs6_contains_dynamic_import(body)) {
           throw __autojs6_dynamic_import_unsupported(
-            "Embedded Node experimental dynamic import is disabled for Function constructor sources."
+            "Embedded Node dynamic import is disabled for Function constructor sources."
           );
         }
         return nativeConstructor.apply(this, args);
@@ -42219,7 +42220,7 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_attach_child_module(parentModule, cachedModule);
       return cachedModule.exports;
     }
-    const kind = __autojs6_esm_experimental_enabled ? __autojs6_esm_module_kind(resolved) : "";
+    const kind = __autojs6_esm_enabled ? __autojs6_esm_module_kind(resolved) : "";
     const isEsmModule = kind === "esm";
     const record = __autojs6_module_record(resolved, isEsmModule);
     if (!record) {
@@ -42447,7 +42448,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return "plugins";
     }
     if (name === "java") {
-      if (!__autojs6_java_interop_experimental_enabled) {
+      if (!__autojs6_java_interop_enabled) {
         throw __autojs6_java_interop_disabled_error();
       }
       return "java";
@@ -42455,10 +42456,10 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "node:worker_threads") {
       return "worker_threads";
     }
-    if (name === "worker_threads" && __autojs6_worker_threads_experimental_enabled) {
+    if (name === "worker_threads" && __autojs6_worker_threads_enabled) {
       return "worker_threads";
     }
-    if ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_experimental_enabled) {
+    if ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_enabled) {
       return "child_process";
     }
     if (name === "node:test") {
@@ -42809,13 +42810,13 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "java") {
       return __autojs6_limited_java();
     }
-    if (name === "node:worker_threads" && !__autojs6_worker_threads_experimental_enabled) {
+    if (name === "node:worker_threads" && !__autojs6_worker_threads_enabled) {
       return __autojs6_worker_threads_shape_facade();
     }
-    if ((name === "worker_threads" || name === "node:worker_threads") && __autojs6_worker_threads_experimental_enabled) {
+    if ((name === "worker_threads" || name === "node:worker_threads") && __autojs6_worker_threads_enabled) {
       return __autojs6_limited_worker_threads();
     }
-    if ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_experimental_enabled) {
+    if ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_enabled) {
       return __autojs6_child_process_builtin(name);
     }
     if (name === "node:test") {
@@ -43184,8 +43185,8 @@ std::string buildEmbeddedScriptExecutionSource(
     fields.esmModuleGraphModules = __autojs6_esm_diagnostics.graphModules.join("|");
     fields.esmDeniedCount = __autojs6_esm_diagnostics.deniedCount;
     fields.esmLastDeniedReason = __autojs6_esm_diagnostics.lastDeniedReason;
-    fields.dynamicImportEnabled = __autojs6_dynamic_import_experimental_enabled;
-    fields.workerThreadsEnabled = __autojs6_worker_threads_experimental_enabled;
+    fields.dynamicImportEnabled = __autojs6_dynamic_import_enabled;
+    fields.workerThreadsEnabled = __autojs6_worker_threads_enabled;
     fields.workerActiveCount = __autojs6_worker_threads_diagnostics.activeWorkerCount;
     fields.workerMaxActiveCount = __autojs6_worker_threads_diagnostics.maxActiveWorkerCount;
     fields.workerCreatedCount = __autojs6_worker_threads_diagnostics.createdCount;

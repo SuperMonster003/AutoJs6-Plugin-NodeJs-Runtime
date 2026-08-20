@@ -1,13 +1,13 @@
 {
   "schema": "autojs6-node-capability-catalog-v1",
-  "catalogVersion": "1.1.1",
+  "catalogVersion": "1.2.0",
   "runtime": {
     "pluginId": "nodejs",
     "engine": "nodejs",
     "runtimeSlot": "node24_5",
     "nodeVersion": "24.5.0",
     "profileName": "AutoJs6 Safe Node Profile",
-    "profileVersion": "autojs6-node-profile-v1.1",
+    "profileVersion": "autojs6-node-profile-v1.2",
     "nativeLibraryName": "node",
     "bridgeLibraryName": "autojs6-node",
     "supportedAbis": [
@@ -16,8 +16,8 @@
       "x86_64"
     ],
     "contract": {
-      "min": 1,
-      "max": 1
+      "min": 2,
+      "max": 2
     }
   },
   "budgets": {
@@ -77,52 +77,50 @@
     {
       "id": "child_process",
       "diagnosticName": "childProcess",
-      "property": "autojs.nodejs.child_process.experimental",
-      "defaultEnabled": false,
-      "securityLevel": "high",
-      "status": "experimental",
-      "overrides": {
-        "buildTime": true,
-        "projectJson": false,
-        "packagedApk": false,
-        "releaseEnableAllowed": false
-      },
-      "requestKey": "childProcessExperimentalEnabled",
-      "requestFallbackEnabled": false
-    },
-    {
-      "id": "dynamic_import",
-      "diagnosticName": "dynamicImport",
-      "property": "autojs.nodejs.dynamicImport.local",
+      "property": null,
       "defaultEnabled": true,
-      "securityLevel": "medium",
-      "status": "partial",
+      "securityLevel": "high",
+      "status": "stable",
       "overrides": {
-        "buildTime": true,
+        "buildTime": false,
         "projectJson": false,
         "packagedApk": false,
         "releaseEnableAllowed": true
       },
-      "requestKey": "dynamicImportExperimentalEnabled",
+      "requestKey": "childProcessEnabled",
+      "requestFallbackEnabled": true
+    },
+    {
+      "id": "dynamic_import",
+      "diagnosticName": "dynamicImport",
+      "property": null,
+      "defaultEnabled": true,
+      "securityLevel": "medium",
+      "status": "stable",
+      "overrides": {
+        "buildTime": false,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": true
+      },
+      "requestKey": "dynamicImportEnabled",
       "requestFallbackEnabled": true,
-      "legacyExperimentalProperty": "autojs.nodejs.dynamicImport.experimental",
-      "legacyExperimentalDefaultEnabled": false,
       "effectiveScope": "local_scoped"
     },
     {
       "id": "esm",
       "diagnosticName": "esm",
-      "property": "autojs.nodejs.esm.experimental",
+      "property": null,
       "defaultEnabled": true,
       "securityLevel": "medium",
-      "status": "partial",
+      "status": "stable",
       "overrides": {
-        "buildTime": true,
+        "buildTime": false,
         "projectJson": false,
         "packagedApk": false,
         "releaseEnableAllowed": true
       },
-      "requestKey": "esmExperimentalEnabled",
+      "requestKey": "esmEnabled",
       "requestFallbackEnabled": true,
       "effectiveScope": "local_scoped"
     },
@@ -157,18 +155,18 @@
     {
       "id": "java_interop",
       "diagnosticName": "javaInterop",
-      "property": "autojs.nodejs.javaInterop.experimental",
-      "defaultEnabled": false,
+      "property": null,
+      "defaultEnabled": true,
       "securityLevel": "critical",
-      "status": "experimental",
+      "status": "stable",
       "overrides": {
-        "buildTime": true,
+        "buildTime": false,
         "projectJson": false,
         "packagedApk": false,
-        "releaseEnableAllowed": false
+        "releaseEnableAllowed": true
       },
-      "requestKey": "javaInteropExperimentalEnabled",
-      "requestFallbackEnabled": false
+      "requestKey": "javaInteropEnabled",
+      "requestFallbackEnabled": true
     },
     {
       "id": "native_addon",
@@ -187,32 +185,32 @@
     {
       "id": "network",
       "diagnosticName": "network",
-      "property": "autojs.nodejs.network.experimental",
-      "defaultEnabled": false,
+      "property": null,
+      "defaultEnabled": true,
       "securityLevel": "high",
-      "status": "experimental",
+      "status": "stable",
       "overrides": {
-        "buildTime": true,
+        "buildTime": false,
         "projectJson": false,
         "packagedApk": false,
-        "releaseEnableAllowed": false
+        "releaseEnableAllowed": true
       }
     },
     {
       "id": "raw_node_network_modules",
       "diagnosticName": "rawNodeNetworkModules",
-      "property": "autojs.nodejs.rawNetworkModules.experimental",
-      "defaultEnabled": false,
+      "property": null,
+      "defaultEnabled": true,
       "securityLevel": "high",
-      "status": "experimental",
+      "status": "stable",
       "overrides": {
-        "buildTime": true,
+        "buildTime": false,
         "projectJson": false,
         "packagedApk": false,
-        "releaseEnableAllowed": false
+        "releaseEnableAllowed": true
       },
-      "requestKey": "rawNodeNetworkModulesExperimentalEnabled",
-      "requestFallbackEnabled": false
+      "requestKey": "rawNodeNetworkModulesEnabled",
+      "requestFallbackEnabled": true
     },
     {
       "id": "vm",
@@ -225,38 +223,38 @@
         "buildTime": false,
         "projectJson": false,
         "packagedApk": false,
-        "releaseEnableAllowed": false
+        "releaseEnableAllowed": true
       }
     },
     {
       "id": "websocket",
       "diagnosticName": "webSocket",
       "property": null,
-      "defaultEnabled": false,
+      "defaultEnabled": true,
       "securityLevel": "high",
-      "status": "experimental",
+      "status": "stable",
       "overrides": {
         "buildTime": false,
         "projectJson": false,
         "packagedApk": false,
-        "releaseEnableAllowed": false
+        "releaseEnableAllowed": true
       }
     },
     {
       "id": "worker_threads",
       "diagnosticName": "workerThreads",
-      "property": "autojs.nodejs.worker_threads.experimental",
-      "defaultEnabled": false,
+      "property": null,
+      "defaultEnabled": true,
       "securityLevel": "high",
-      "status": "experimental",
+      "status": "stable",
       "overrides": {
-        "buildTime": true,
+        "buildTime": false,
         "projectJson": false,
         "packagedApk": false,
-        "releaseEnableAllowed": false
+        "releaseEnableAllowed": true
       },
-      "requestKey": "workerThreadsExperimentalEnabled",
-      "requestFallbackEnabled": false
+      "requestKey": "workerThreadsEnabled",
+      "requestFallbackEnabled": true
     },
     {
       "id": "zlib_streams",

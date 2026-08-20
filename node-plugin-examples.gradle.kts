@@ -2,7 +2,7 @@ import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import java.io.File
 
-private val nodePluginExampleKnownStatuses = setOf("stable", "partial", "experimental")
+private val nodePluginExampleKnownStatuses = setOf("stable", "partial", "disabled", "unsupported")
 private val nodePluginExampleIgnoredDirectories = setOf("npm-ci-pure-js", "autojs6-pm-fixture")
 private val nodePluginExampleKnownTags = setOf(
     "main-app",

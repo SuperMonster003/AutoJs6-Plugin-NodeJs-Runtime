@@ -1,8 +1,8 @@
 {
   "schema": "autojs6-node-plugin-runtime-kit-v1",
   "schemaVersion": 1,
-  "kitId": "autojs6-node-plugin-runtime-kit-v1.1.3-node24_5",
-  "kitVersion": "1.1.3",
+  "kitId": "autojs6-node-plugin-runtime-kit-v1.2.0-node24_5",
+  "kitVersion": "1.2.0",
   "owner": {
     "pluginId": "nodejs",
     "applicationId": "io.github.supermonster003.autojs6.plugin.nodejs",
@@ -26,20 +26,20 @@
     ]
   },
   "contract": {
-    "min": 1,
-    "max": 1,
+    "min": 2,
+    "max": 2,
     "moduleSourceProvider": 2
   },
   "nodeJsApi": {
-    "coordinate": "org.autojs.plugin.nodejs:nodejs-api:1.1.0",
-    "version": "1.1.0",
-    "sha256": "4b5eb13622137078641d7259b83189ae8ea618824c5974a5f13d77fa02e4a0dc",
+    "coordinate": "org.autojs.plugin.nodejs:nodejs-api:1.2.0",
+    "version": "1.2.0",
+    "sha256": "66232504243f20cc8610e0b8f8f84047352bb0b97e5eb79df121a2956122c543",
     "aidlTransactionsSha256": "74c886570e635704bb10f9735ebba7838dd6e0a8df79641f4478320deb723084"
   },
   "capabilityCatalog": {
     "schema": "autojs6-node-capability-catalog-v1",
-    "version": "1.1.1",
-    "sha256": "1a33e3f3df88412ea3cc1dbf125886e0daa01862663157eaf2c5c284857a89e7"
+    "version": "1.2.0",
+    "sha256": "648d8504ce935abe2c5ca80f50fc41e32a99aeaaf897fc753e70d6fec66fc889"
   },
   "reproducibility": {
     "artifactMaterialization": "pinned_upstream_binary",
@@ -56,7 +56,7 @@
   },
   "buildProvenance": {
     "sourceRepository": "AutoJs6-Plugin-NodeJs-Runtime",
-    "sourceGitBase": "a904ee2011e93031db1178a0b2ff624b970e460f",
+    "sourceGitBase": "15eb115e607673583120f89e64436f31a412098a",
     "runtimeBuildPlan": {
       "lockFile": "tools/nodejs/runtime-build/runtime-build.lock.json",
       "lockSha256": "5be1d7fb266b6edf82c1a63fbd12a412ad59594734a251ca40e6ac4bde60159d",
@@ -79,7 +79,7 @@
       "variant": "release_universal",
       "gradleTask": ":app:assembleRelease",
       "cmakeFile": "app/src/main/cpp/CMakeLists.txt",
-      "cmakeSha256": "2d9b0704ac1566af4b95596606ecc7d7322a1855b60bca78a9dbc4217bc86cb1",
+      "cmakeSha256": "6806127b60497fe29081a900de8668f94cf290b5d4d07a12b037d874dd61d13d",
       "runtimeSlotArgument": "node24_5"
     }
   },
@@ -94,8 +94,8 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "source_tree",
       "required": true,
-      "size": 60990,
-      "sha256": "1a33e3f3df88412ea3cc1dbf125886e0daa01862663157eaf2c5c284857a89e7",
+      "size": 63048,
+      "sha256": "648d8504ce935abe2c5ca80f50fc41e32a99aeaaf897fc753e70d6fec66fc889",
       "buildId": null
     },
     {
@@ -108,9 +108,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 6024832,
-      "sha256": "e31b2a10d2338b3dd945f40862c0b9bf0e3eae17261d594aad1ac7ba41bbd464",
-      "buildId": "d709b1b8e35e9f82ea8455b67ef65f2ee7b3320f"
+      "size": 2332880,
+      "sha256": "fd3218535f01c54c1fbc59599763523f6439c4c4ba0cf934d910cd23d769c44f",
+      "buildId": "08856a8570da01717c93cc2c3b8126dc8f4481fe"
     },
     {
       "id": "libautojs6-node-armeabi-v7a",
@@ -122,9 +122,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 5078660,
-      "sha256": "851055be50965d7d355f11b06ba9940bc52d4b15932884279911c9525daf59de",
-      "buildId": "77bec403cde876b5b2b586ac157149a485026280"
+      "size": 2121956,
+      "sha256": "c1d7f07c0e83c5d8ef6546e33b3d2e514cf5b514b27a1847129032956bad91e1",
+      "buildId": "ea172db666e6264d6ef70f19014816264c484938"
     },
     {
       "id": "libautojs6-node-x86_64",
@@ -136,9 +136,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 6013536,
-      "sha256": "a2b4341fd856b556af73aeee0599418e363c4036650379b327d1db21df447943",
-      "buildId": "f61486cf27898dafdd707f25d6f6e58a1c171fb0"
+      "size": 2355672,
+      "sha256": "c69463d40acd642ea1d492295840b9a4bde8cbabce26420411cd748e7dd8f579",
+      "buildId": "fffd571e821a7b47eff74937e2e928f5a8c39b91"
     },
     {
       "id": "libc++_shared-arm64-v8a",

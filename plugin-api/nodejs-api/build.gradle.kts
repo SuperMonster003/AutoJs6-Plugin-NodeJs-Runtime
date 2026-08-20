@@ -16,7 +16,7 @@ plugins {
 }
 
 group = "org.autojs.plugin.nodejs"
-version = "1.1.0"
+version = "1.2.0"
 
 android {
     namespace = "org.autojs.plugin.nodejs.api"
@@ -51,7 +51,7 @@ val nodeJsApiPublicationDirectory = rootProject.layout.projectDirectory
 val nodeJsApiPublishedAar = nodeJsApiPublicationDirectory.file(nodeJsApiArtifactName)
 val nodeJsApiPublicationLock = nodeJsApiPublicationDirectory.file("nodejs-api.lock")
 val nodeJsApiPreviousPublicationLock = rootProject.layout.projectDirectory
-    .file("releases/nodejs-api/1.0.0/nodejs-api.lock")
+    .file("releases/nodejs-api/1.1.0/nodejs-api.lock")
 val nodeJsApiAidlSnapshot = layout.projectDirectory.file("compat/v1/aidl-transactions.txt")
 val nodeJsApiReportDirectory = rootProject.layout.buildDirectory.dir("reports/nodejs")
 
@@ -264,9 +264,9 @@ val verifyNodeJsApiPublication = tasks.register("verifyNodeJsApiPublication") {
         check(lock.getProperty("file") == nodeJsApiArtifactName) {
             "Node.js API artifact name drift: ${lock.getProperty("file")}"
         }
-        check(lock.getProperty("contract.version") == "1") { "Node.js API contract version drift" }
-        check(lock.getProperty("contract.min") == "1") { "Node.js API minimum contract drift" }
-        check(lock.getProperty("contract.max") == "1") { "Node.js API maximum contract drift" }
+        check(lock.getProperty("contract.version") == "2") { "Node.js API contract version drift" }
+        check(lock.getProperty("contract.min") == "2") { "Node.js API minimum contract drift" }
+        check(lock.getProperty("contract.max") == "2") { "Node.js API maximum contract drift" }
         check(lock.getProperty("module.source.provider.contract.version") == "2") {
             "Node.js API module-source provider contract version drift"
         }
@@ -339,7 +339,7 @@ val verifyNodeJsApiPublication = tasks.register("verifyNodeJsApiPublication") {
             .nodeJsApiSha256()
         val previousLock = nodeJsApiLoadLock(nodeJsApiPreviousPublicationLock.asFile)
         check(previousLock.getProperty("aidl.transactions.sha256") == aidlTransactionsSha256) {
-            "Node.js API 1.1.0 must preserve the immutable 1.0.0 AIDL transaction identity"
+            "Node.js API 1.2.0 must preserve the immutable 1.1.0 AIDL transaction identity"
         }
         val classesJarSha256 = currentClassesJar.nodeJsApiSha256()
 
@@ -380,9 +380,9 @@ val verifyNodeJsApiPublication = tasks.register("verifyNodeJsApiPublication") {
               |  "publicAbiSha256": ${publicAbiSha256.nodeJsApiJson()},
               |  "aidlTransactionsSha256": ${aidlTransactionsSha256.nodeJsApiJson()},
               |  "apiClassCount": ${nodeEntries.size},
-              |  "contractVersion": 1,
-              |  "minContractVersion": 1,
-              |  "maxContractVersion": 1,
+              |  "contractVersion": 2,
+              |  "minContractVersion": 2,
+              |  "maxContractVersion": 2,
               |  "moduleSourceProviderContractVersion": 2,
               |  "aidlCompatibleWith": "1.0.0",
               |  "sourceOwner": "AutoJs6-Plugin-NodeJs-Runtime",
@@ -426,7 +426,7 @@ tasks.register("stageNodeJsApiPublication") {
             .nodeJsApiSha256()
         val previousLock = nodeJsApiLoadLock(nodeJsApiPreviousPublicationLock.asFile)
         check(previousLock.getProperty("aidl.transactions.sha256") == aidlTransactionsSha256) {
-            "Refusing to stage Node.js API 1.1.0 with AIDL transaction drift from 1.0.0"
+            "Refusing to stage Node.js API 1.2.0 with AIDL transaction drift from 1.1.0"
         }
 
         publishedAar.parentFile.mkdirs()
@@ -444,9 +444,9 @@ tasks.register("stageNodeJsApiPublication") {
               |abi.sha256=${publicDump.toByteArray(StandardCharsets.UTF_8).nodeJsApiSha256()}
               |public.abi.sha256=${publicDump.toByteArray(StandardCharsets.UTF_8).nodeJsApiSha256()}
               |aidl.transactions.sha256=${aidlTransactions.toByteArray(StandardCharsets.UTF_8).nodeJsApiSha256()}
-              |contract.version=1
-              |contract.min=1
-              |contract.max=1
+              |contract.version=2
+              |contract.min=2
+              |contract.max=2
               |module.source.provider.contract.version=2
               |source.owner=AutoJs6-Plugin-NodeJs-Runtime
               |source.repository=AutoJs6-Plugin-NodeJs-Runtime
