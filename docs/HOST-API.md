@@ -112,3 +112,16 @@ M3.2 原定 "补齐 toast / app.launch / click / swipe / text 查找 / 剪贴板
 
 - toast, app.launch, click, text 查找, 剪贴板, shell 在盘点时即已桥接, M3.1 补了真机证据。
 - swipe/gesture (原唯一缺口) 于 M3.2 落地: 宿主 `dispatchGesture` 派发 (swipe 四坐标+时长; gesture 自由路径) + 独立 `accessibility.gesture` 能力 (插件/宿主双侧均要求显式声明) + 插件 JS `accessibility.swipe/gesture` 方法。
+
+### 新能力登记顺序
+
+桥能力采用双侧预检: 插件在脚本进入 Binder 前做快速拒绝, 宿主在真实派发前按自身权限和 provider 状态再次校验。两份预检服务于不同的进程边界, 不应合并为单份实现。
+
+新增或修改能力时按以下顺序登记, 并在提交前运行宿主手动任务 `:app:verifyNodeCapabilityManifestAlignment`:
+
+1. 插件 `node_bridge_sources.cpp`: 声明脚本侧所需能力并完成本地预检。
+2. 插件 `NodeBridgePermissionManifest.java`: 加入插件已知能力清单。
+3. 宿主 `NodeBridgePermissionManifest.kt`: 加入宿主能力常量、清单和方法映射。
+4. 插件 capability catalog: 在新 catalog 版本的 `bridge.permissionCapabilities` 与相关 `bridge.operations` 中登记。
+
+当前发布快照 `nodejs-capability-catalog/1.2.0` 早于 M3.2, 因此缺少 `accessibility.gesture`; 守卫报告对此保留一条带原因的历史例外。下一次发布 catalog 时必须补齐并删除该例外, 否则守卫会把残留白名单判为失败。
