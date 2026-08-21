@@ -206,6 +206,13 @@ std::string buildEmbeddedModuleSourcesLiteral(const std::vector<std::pair<std::s
     return literal;
 }
 
+// AutoJs6 hands scripts the same reach a desktop Node process gets and lets
+// Android's permission model do the confining. Flipping this to 0 restores the
+// legacy workspace-confined fs behaviour for a debugging build.
+#ifndef AUTOJS6_NODE_UNRESTRICTED_FS_ACCESS
+#define AUTOJS6_NODE_UNRESTRICTED_FS_ACCESS 1
+#endif
+
 std::string buildEmbeddedScriptExecutionSource(
         const std::string& source,
         const std::string& sourceName,
@@ -220,6 +227,7 @@ std::string buildEmbeddedScriptExecutionSource(
         bool workerThreadsEnabled,
         bool childProcessEnabled,
         bool javaInteropEnabled) {
+    const bool unrestrictedFsAccessEnabled = AUTOJS6_NODE_UNRESTRICTED_FS_ACCESS != 0;
     const std::string sourceLiteral = jsonStringLiteral(source);
     const std::string sourceNameLiteral = jsonStringLiteral(sanitizeSourceUrl(sourceName));
     const std::string workingDirectoryLiteral = jsonStringLiteral(workingDirectory);
@@ -267,6 +275,9 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_sandbox_root = ")JS";
     script += sandboxRootLiteral;
     script += R"JS(";
+  const __autojs6_unrestricted_fs_access_enabled = )JS";
+    script += unrestrictedFsAccessEnabled ? "true" : "false";
+    script += R"JS(;
   let __autojs6_current_working_directory = __autojs6_module_root || __autojs6_sandbox_root;
   let __autojs6_chdir_last_failure_reason = "";
   let __autojs6_create_require_last_failure_reason = "";
@@ -21745,15 +21756,19 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
     const scope = __autojs6_fs_root(path, fs);
-    const pluginsDir = path.resolve(scope.root, "plugins");
-    if (!__autojs6_path_within_root(pluginsDir, scope.root) || __autojs6_sensitive_path(pluginsDir)) {
+    // The ./plugins convention is workspace-relative: resolve it against the
+    // workspace root, not the (possibly device-wide) fs reach, so a widened
+    // fs root cannot turn this into a scan of "/plugins".
+    const pluginsRoot = scope.workspaceRoot;
+    const pluginsDir = path.resolve(pluginsRoot, "plugins");
+    if (!__autojs6_path_within_root(pluginsDir, pluginsRoot) || __autojs6_sensitive_path(pluginsDir)) {
       throw __autojs6_plugins_path_escape(methodName, "AutoJs6 JS plugin root escapes working directory.", pluginsDir);
     }
     return {
       path,
       fs,
-      root: scope.root,
-      realRoot: scope.realRoot,
+      root: pluginsRoot,
+      realRoot: fs.realpathSync(pluginsRoot),
       pluginsDir
     };
   }
@@ -25355,7 +25370,9 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const absolute = path.resolve(resolved);
     __autojs6_record_runtime_module_candidate(absolute);
-    const root = __autojs6_resolved_sandbox_root(path);
+    // Loading a module off an explicit path is an fs reach question, so it
+    // follows the fs access root rather than the module-resolution root.
+    const root = __autojs6_resolved_fs_access_root(path);
     let realRoot;
     try {
       realRoot = fs.realpathSync(root);
@@ -27141,13 +27158,26 @@ std::string buildEmbeddedScriptExecutionSource(
       ? path.resolve(__autojs6_sandbox_root || ".")
       : (__autojs6_sandbox_root || ".");
   }
+  // AutoJs6 scripts are meant to reach the whole device the way desktop Node
+  // does; confinement is the Android permission model's job, not ours. The fs
+  // reach is therefore a separate concept from the module-resolution root:
+  // __autojs6_resolved_sandbox_root still anchors require()/node_modules and
+  // the ./plugins scan to the workspace, while everything that only guards fs
+  // access goes through this root instead. "/" hits the dedicated branch in
+  // __autojs6_path_within_root, so every absolute path passes.
+  function __autojs6_resolved_fs_access_root(path) {
+    return __autojs6_unrestricted_fs_access_enabled
+      ? "/"
+      : __autojs6_resolved_sandbox_root(path);
+  }
   function __autojs6_resolved_current_working_directory(path) {
     const root = __autojs6_resolved_sandbox_root(path);
+    const reach = __autojs6_resolved_fs_access_root(path);
     const current = __autojs6_current_working_directory || root;
     const resolved = path && typeof path.resolve === "function"
       ? path.resolve(current || root || ".")
       : (current || root || ".");
-    return __autojs6_path_within_root(resolved, root) && !__autojs6_sensitive_path(resolved)
+    return __autojs6_path_within_root(resolved, reach) && !__autojs6_sensitive_path(resolved)
       ? resolved
       : root;
   }
@@ -27181,10 +27211,10 @@ std::string buildEmbeddedScriptExecutionSource(
     if (pathValue.indexOf("\u0000") >= 0) {
       throw __autojs6_process_chdir_error(pathValue, "NUL paths are not allowed.", "ERR_INVALID_ARG_TYPE");
     }
-    if (path.isAbsolute(pathValue)) {
+    const scope = __autojs6_fs_root(path, fs);
+    if (!__autojs6_unrestricted_fs_access_enabled && path.isAbsolute(pathValue)) {
       throw __autojs6_process_chdir_error(pathValue, "absolute paths are not allowed.", "EPERM");
     }
-    const scope = __autojs6_fs_root(path, fs);
     const target = path.resolve(scope.cwd, pathValue || ".");
     if (!__autojs6_path_within_root(target, scope.root) || __autojs6_sensitive_path(target)) {
       throw __autojs6_process_chdir_error(pathValue, "target escapes sandboxRoot.", "EPERM");
@@ -27224,7 +27254,12 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_chdir_last_failure_reason = "";
   }
   function __autojs6_fs_root(path, fs) {
-    const root = __autojs6_resolved_sandbox_root(path);
+    // `root`/`realRoot` bound fs reach (widened to "/" by default, see
+    // __autojs6_resolved_fs_access_root); `workspaceRoot` stays the workspace
+    // so callers that need the project layout - the ./plugins scan - keep
+    // resolving against it rather than against the filesystem root.
+    const workspaceRoot = __autojs6_resolved_sandbox_root(path);
+    const root = __autojs6_resolved_fs_access_root(path);
     const realRoot = fs.realpathSync(root);
     if (__autojs6_sensitive_path(root) || __autojs6_sensitive_path(realRoot)) {
       throw new Error("Embedded Node scoped fs denies sensitive working directory: " + root);
@@ -27233,7 +27268,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (!__autojs6_path_within_root(cwd, root) || __autojs6_sensitive_path(cwd)) {
       throw new Error("Embedded Node scoped fs current working directory escapes sandboxRoot: " + cwd);
     }
-    return { root, realRoot, cwd };
+    return { root, realRoot, cwd, workspaceRoot };
   }
   function __autojs6_path_value_display(pathValue) {
     let display;
