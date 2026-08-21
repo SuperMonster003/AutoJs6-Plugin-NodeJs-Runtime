@@ -30,6 +30,7 @@ public final class NodeBridgePermissionManifest {
     private static final String ENGINES = "engines";
     private static final String ENGINES_EXEC = "engines.exec";
     private static final String ACCESSIBILITY = "accessibility";
+    private static final String ACCESSIBILITY_GESTURE = "accessibility.gesture";
     private static final String SCREEN_CAPTURE = "screen_capture";
     private static final String IMAGE = "image";
     private static final String OCR = "ocr";
@@ -94,6 +95,7 @@ public final class NodeBridgePermissionManifest {
             ENGINES,
             ENGINES_EXEC,
             ACCESSIBILITY,
+            ACCESSIBILITY_GESTURE,
             SCREEN_CAPTURE,
             IMAGE,
             OCR,
