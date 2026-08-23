@@ -27,7 +27,7 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
 
         PluginModuleSourceProviderFileTransportSession.PreparedTypeScriptSource prepared =
                 PluginModuleSourceProviderFileTransportSession
-                        .prepareDecryptedTypeScriptBytes(sourceName, rawSource);
+                        .prepareDecryptedTypeScriptBytes(sourceName, rawSource, true);
 
         String output = new String(prepared.source(), StandardCharsets.UTF_8);
         assertTrue(prepared.typeScript());
@@ -56,7 +56,7 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
 
         PluginModuleSourceProviderFileTransportSession.PreparedTypeScriptSource prepared =
                 PluginModuleSourceProviderFileTransportSession
-                        .prepareDecryptedTypeScriptBytes("computed-module.cts", rawSource);
+                        .prepareDecryptedTypeScriptBytes("computed-module.cts", rawSource, true);
 
         String output = new String(prepared.source(), StandardCharsets.UTF_8);
         assertEquals(rawSource.length, prepared.rawSourceBytes());
@@ -79,10 +79,10 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
 
         PluginModuleSourceProviderFileTransportSession.PreparedTypeScriptSource privateName =
                 PluginModuleSourceProviderFileTransportSession
-                        .prepareDecryptedTypeScriptBytes("request-42.source", rawSource);
+                        .prepareDecryptedTypeScriptBytes("request-42.source", rawSource, false);
         PluginModuleSourceProviderFileTransportSession.PreparedTypeScriptSource resolvedName =
                 PluginModuleSourceProviderFileTransportSession
-                        .prepareDecryptedTypeScriptBytes("src/answer.mts", rawSource);
+                        .prepareDecryptedTypeScriptBytes("src/answer.mts", rawSource, true);
 
         assertFalse(privateName.typeScript());
         assertFalse(privateName.stripped());
@@ -97,7 +97,7 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
 
         PluginModuleSourceProviderFileTransportSession.PreparedTypeScriptSource prepared =
                 PluginModuleSourceProviderFileTransportSession
-                        .prepareDecryptedTypeScriptBytes("vendor/addon.js", opaqueJavaScript);
+                        .prepareDecryptedTypeScriptBytes("vendor/addon.js", opaqueJavaScript, false);
 
         assertFalse(prepared.typeScript());
         assertFalse(prepared.stripped());
@@ -112,7 +112,7 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
 
         try {
             PluginModuleSourceProviderFileTransportSession
-                    .prepareDecryptedTypeScriptBytes("src/broken.ts", malformedUtf8);
+                    .prepareDecryptedTypeScriptBytes("src/broken.ts", malformedUtf8, false);
             fail("Expected strict UTF-8 rejection");
         } catch (CharacterCodingException expected) {
             assertTrue(expected.getMessage() == null || !expected.getMessage().isEmpty());
@@ -124,7 +124,8 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
         try {
             PluginModuleSourceProviderFileTransportSession.prepareDecryptedTypeScriptBytes(
                     "src/view.tsx",
-                    "export const view = <View />;\n".getBytes(StandardCharsets.UTF_8)
+                    "export const view = <View />;\n".getBytes(StandardCharsets.UTF_8),
+                    true
             );
             fail("Expected TSX rejection");
         } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException expected) {
@@ -142,7 +143,8 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
         try {
             PluginModuleSourceProviderFileTransportSession.prepareDecryptedTypeScriptBytes(
                     "src/mode.ts",
-                    "export enum Mode { Ready }\n".getBytes(StandardCharsets.UTF_8)
+                    "export enum Mode { Ready }\n".getBytes(StandardCharsets.UTF_8),
+                    true
             );
             fail("Expected enum rejection");
         } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException expected) {
@@ -153,6 +155,23 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
             assertTrue(expected.column() >= 1);
             assertTrue(expected.getMessage().contains(expected.errorCode()));
             assertTrue(expected.getMessage().contains(expected.sourceName()));
+        }
+    }
+
+    @Test
+    public void providerTypeScriptRequiresCompilerUnlessLegacyPreparationIsExplicitlyEnabled()
+            throws Exception {
+        try {
+            PluginModuleSourceProviderFileTransportSession.prepareDecryptedTypeScriptBytes(
+                    "src/dynamic.cts",
+                    "const answer: number = 42;\n".getBytes(StandardCharsets.UTF_8),
+                    false
+            );
+            fail("Expected provider TypeScript compiler-required rejection");
+        } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException expected) {
+            assertEquals(NodeTypeScriptStripper.ERROR_COMPILER_REQUIRED, expected.errorCode());
+            assertEquals("compiler_required", expected.syntaxKind());
+            assertEquals("src/dynamic.cts", expected.sourceName());
         }
     }
 

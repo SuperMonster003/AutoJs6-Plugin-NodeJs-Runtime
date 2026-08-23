@@ -16,7 +16,8 @@ import static io.github.supermonster003.autojs6.plugin.nodejs.NodePluginPayloads
 
 /**
  * Method object for a single runScript invocation: the full pre-native
- * preparation (TypeScript erasure, workspace, provider/broker transports,
+ * preparation (precompiled-only TypeScript admission with an explicit legacy
+ * erasure opt-in, workspace, provider/broker transports,
  * runtime-module injection), the native dispatch, and the result/failure
  * envelope assembly. State that outlives one call stays on the service.
  */
@@ -37,6 +38,12 @@ final class NodePluginScriptExecution {
         PluginWorkspaceArchiveSession workspaceSession = null;
         boolean nativeDispatchStarted = false;
         NodeJsRuntimePluginService.StreamingOutputSink streamSink = null;
+        boolean legacyTypeScriptStrippingEnabled = request.getBoolean(
+                NodeJsRuntimeContract.KEY_LEGACY_TYPESCRIPT_STRIPPING_ENABLED,
+                false
+        );
+        Map<String, String> typeScriptPolicyDiagnostics =
+                NodeTypeScriptStripper.policyDiagnostics(legacyTypeScriptStrippingEnabled);
         notifyEvent(callback, NodeJsRuntimeContract.EVENT_STARTED, null, null);
         try {
             // Acquire the request-scoped provider before any operation that can
@@ -87,7 +94,11 @@ final class NodePluginScriptExecution {
             // (x3e negatives). Hosts recognize such pre-dispatch failures by
             // the unconditional commit_allowed=false marker below.
             NodeTypeScriptStripper.Result typeScriptEntry =
-                    NodeJsRuntimePluginService.prepareTypeScriptEntryForNative(requestedSourceName, source);
+                    NodeJsRuntimePluginService.prepareTypeScriptEntryForNative(
+                            requestedSourceName,
+                            source,
+                            legacyTypeScriptStrippingEnabled
+                    );
             source = typeScriptEntry.source();
             workspaceSession = PluginWorkspaceArchiveSession.hasWorkspaceDescriptors(request)
                     ? PluginWorkspaceArchiveSession.open(service.getCacheDir(), request)
@@ -100,7 +111,10 @@ final class NodePluginScriptExecution {
                     request.getStringArray(NodeJsRuntimeContract.KEY_MODULE_SOURCES)
             );
             NodeTypeScriptStripper.SourceMapResult typeScriptModuleSources =
-                    NodeJsRuntimePluginService.prepareTypeScriptModuleSourcesForNative(moduleSources);
+                    NodeJsRuntimePluginService.prepareTypeScriptModuleSourcesForNative(
+                            moduleSources,
+                            legacyTypeScriptStrippingEnabled
+                    );
             moduleSources = typeScriptModuleSources.sources();
             moduleSources = workspaceSession.mapModuleSourceNames(moduleSources);
             Map<String, String> runtimeModuleSources = stringMapFromArrays(
@@ -127,6 +141,7 @@ final class NodePluginScriptExecution {
                         moduleSourceProvider,
                         request.getLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 0L),
                         workspaceSession,
+                        legacyTypeScriptStrippingEnabled,
                         NodeJsRuntimePluginService.initialModuleSourceProviderWireVersion(
                                 request.get(NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_VERSION)
                         )
@@ -185,7 +200,10 @@ final class NodePluginScriptExecution {
             }
 
             NodeTypeScriptStripper.SourceMapResult typeScriptRuntimeModuleSources =
-                    NodeJsRuntimePluginService.prepareTypeScriptRuntimeModuleSourcesForNative(runtimeModuleSources);
+                    NodeJsRuntimePluginService.prepareTypeScriptRuntimeModuleSourcesForNative(
+                            runtimeModuleSources,
+                            legacyTypeScriptStrippingEnabled
+                    );
             runtimeModuleSources = typeScriptRuntimeModuleSources.sources();
             NodeStartupEnvironmentPolicy.Result startupEnvironment =
                     NodeJsRuntimePluginService.prepareNodeStartupEnvironmentForNative(env);
@@ -230,6 +248,10 @@ final class NodePluginScriptExecution {
             nativePayload = appendNativePayload(
                     nativePayload,
                     nativePayloadFromMap(typeScriptRuntimeModuleSources.diagnostics())
+            );
+            nativePayload = appendNativePayload(
+                    nativePayload,
+                    nativePayloadFromMap(typeScriptPolicyDiagnostics)
             );
             nativePayload = appendNativePayload(
                     nativePayload,
@@ -332,12 +354,15 @@ final class NodePluginScriptExecution {
                 service.commitWorkspaceQuietly(workspaceSession);
             }
             String failureErrorCode = NodeJsRuntimePluginService.ERROR_UNAVAILABLE;
-            String[] typeScriptFailurePayload = new String[0];
+            String[] typeScriptFailurePayload = nativePayloadFromMap(typeScriptPolicyDiagnostics);
             if (error instanceof NodeTypeScriptStripper.UnsupportedTypeScriptException) {
                 NodeTypeScriptStripper.UnsupportedTypeScriptException typeScriptError =
                         (NodeTypeScriptStripper.UnsupportedTypeScriptException) error;
                 failureErrorCode = typeScriptError.errorCode();
-                typeScriptFailurePayload = nativePayloadFromMap(typeScriptError.diagnostics());
+                typeScriptFailurePayload = appendNativePayload(
+                        typeScriptFailurePayload,
+                        nativePayloadFromMap(typeScriptError.diagnostics())
+                );
             } else if (error instanceof PluginModuleSourceProviderFileTransportSession.PolicyMetadataException) {
                 failureErrorCode = ((PluginModuleSourceProviderFileTransportSession.PolicyMetadataException) error)
                         .errorCode();

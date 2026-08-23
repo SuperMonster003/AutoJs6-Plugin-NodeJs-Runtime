@@ -1,5 +1,7 @@
 package io.github.supermonster003.autojs6.plugin.nodejs;
 
+import org.autojs.plugin.nodejs.api.NodeJsRuntimeContract;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -10,11 +12,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Lightweight TypeScript erasure for plugin-owned pre-native dispatch.
+ * Legacy lightweight TypeScript erasure for plugin-owned pre-native dispatch.
  *
  * <p>This intentionally handles only erasable type syntax. TypeScript syntax
  * that requires JavaScript generation fails closed with the canonical runtime
- * error codes instead of being sent to Node as partially transformed source.</p>
+ * error codes instead of being sent to Node as partially transformed source.
+ * Every caller must explicitly opt in; raw TypeScript otherwise requires the
+ * AutoJs6 compiler integration.</p>
  */
 final class NodeTypeScriptStripper {
 
@@ -28,6 +32,13 @@ final class NodeTypeScriptStripper {
             "ERR_AUTOJS6_TYPESCRIPT_UNSUPPORTED_EXTENSION";
     static final String ERROR_UNSUPPORTED_SYNTAX =
             "ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX";
+    static final String ERROR_COMPILER_REQUIRED =
+            NodeJsRuntimeContract.ERROR_TYPESCRIPT_COMPILER_REQUIRED;
+
+    static final String DIAGNOSTIC_LEGACY_STRIPPING_ENABLED =
+            "embedded_script.typescript.legacy_stripping_enabled";
+    static final String DIAGNOSTIC_PREPARATION_MODE =
+            "embedded_script.typescript.preparation_mode";
 
     private static final List<String> TYPESCRIPT_EXTENSIONS =
             Arrays.asList("ts", "mts", "cts");
@@ -97,13 +108,21 @@ final class NodeTypeScriptStripper {
     private NodeTypeScriptStripper() {
     }
 
-    static Result stripIfTypeScript(String sourceName, String source) {
-        if (isTypeScriptDeclarationSourceName(sourceName)) {
-            return new Result(source, false, Collections.emptyMap());
-        }
+    static Result stripIfTypeScript(
+            String sourceName,
+            String source,
+            boolean legacyTypeScriptStrippingEnabled
+    ) {
         String extension = extension(sourceName).toLowerCase(Locale.ROOT);
         if ("tsx".equals(extension)) {
             throw unsupportedExtension(sourceName);
+        }
+        if ((isTypeScriptSourceName(sourceName) || isTypeScriptDeclarationSourceName(sourceName))
+                && !legacyTypeScriptStrippingEnabled) {
+            throw compilerRequired(sourceName);
+        }
+        if (isTypeScriptDeclarationSourceName(sourceName)) {
+            return new Result(source, false, Collections.emptyMap());
         }
         if (!TYPESCRIPT_EXTENSIONS.contains(extension)) {
             return new Result(source, false, Collections.emptyMap());
@@ -139,7 +158,8 @@ final class NodeTypeScriptStripper {
      */
     static SourceMapResult stripSourceMap(
             String diagnosticScope,
-            Map<String, String> sources
+            Map<String, String> sources,
+            boolean legacyTypeScriptStrippingEnabled
     ) {
         LinkedHashMap<String, String> preparedSources = new LinkedHashMap<>();
         LinkedHashMap<String, String> sourceDiagnostics = new LinkedHashMap<>();
@@ -151,7 +171,11 @@ final class NodeTypeScriptStripper {
             for (Map.Entry<String, String> entry : sources.entrySet()) {
                 String sourceName = entry.getKey();
                 String source = entry.getValue() == null ? "" : entry.getValue();
-                Result result = stripIfTypeScript(sourceName, source);
+                Result result = stripIfTypeScript(
+                        sourceName,
+                        source,
+                        legacyTypeScriptStrippingEnabled
+                );
                 preparedSources.put(sourceName, result.source());
                 inputCount++;
                 if (!result.diagnostics().isEmpty()) {
@@ -215,6 +239,25 @@ final class NodeTypeScriptStripper {
                 || lowerCaseName.endsWith(".d.cts");
     }
 
+    static boolean isAnyTypeScriptSourceName(String sourceName) {
+        return isTypeScriptSourceName(sourceName)
+                || isUnsupportedTypeScriptSourceName(sourceName)
+                || isTypeScriptDeclarationSourceName(sourceName);
+    }
+
+    static Map<String, String> policyDiagnostics(boolean legacyTypeScriptStrippingEnabled) {
+        LinkedHashMap<String, String> diagnostics = new LinkedHashMap<>();
+        diagnostics.put(
+                DIAGNOSTIC_LEGACY_STRIPPING_ENABLED,
+                Boolean.toString(legacyTypeScriptStrippingEnabled)
+        );
+        diagnostics.put(
+                DIAGNOSTIC_PREPARATION_MODE,
+                legacyTypeScriptStrippingEnabled ? "legacy_stripping" : "precompiled_only"
+        );
+        return Collections.unmodifiableMap(diagnostics);
+    }
+
     private static void detectUnsupportedSyntax(String sourceName, String source) {
         String masked = maskNonCode(source);
         for (UnsupportedPattern unsupportedPattern : UNSUPPORTED_PATTERNS) {
@@ -242,6 +285,23 @@ final class NodeTypeScriptStripper {
                 "ERR_AUTOJS6_TYPESCRIPT_UNSUPPORTED_EXTENSION: TypeScript TSX source is not supported by AutoJs6 lightweight type stripping: "
                         + diagnosticSourceName.value()
                         + ". Compile TSX to JavaScript before packaging or running it."
+        );
+    }
+
+    private static UnsupportedTypeScriptException compilerRequired(String sourceName) {
+        DiagnosticSourceName diagnosticSourceName = diagnosticSourceName(sourceName);
+        return new UnsupportedTypeScriptException(
+                ERROR_COMPILER_REQUIRED,
+                sourceName,
+                "compiler_required",
+                1,
+                1,
+                ERROR_COMPILER_REQUIRED
+                        + ": Raw TypeScript is disabled in the Node.js Runtime plugin: "
+                        + diagnosticSourceName.value()
+                        + ". Compile it through the AutoJs6 TypeScript Compiler plugin before Node execution. "
+                        + "The temporary legacyTypeScriptStrippingEnabled=true opt-in only restores "
+                        + "erasable .ts/.mts/.cts migration behavior and does not enable TSX."
         );
     }
 
