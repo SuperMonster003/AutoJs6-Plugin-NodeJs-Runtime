@@ -41648,6 +41648,10 @@ std::string buildEmbeddedScriptExecutionSource(
     for (let i = 0; i < tailLineCount; i += 1) {
       transformedLineMap.push(0);
     }
+    // The emitted module text always inserts one leading newline before the transformed body.
+    // Keep the stack line map aligned with that physical line instead of shifting every body
+    // location forward by one source line.
+    transformedLineMap.unshift(0);
     return {
       source: bindingLines.join("\n") + "\n" + transformedBody + "\n" + exportTransform.tail,
       lineMap: transformedLineMap
@@ -43453,6 +43457,20 @@ std::string buildEmbeddedScriptExecutionSource(
           __autojs6_source_name,
           "__filename"
         )
+      );
+      const __autojs6_commonjs_line_map = [];
+      const __autojs6_commonjs_line_count = __autojs6_count_lines(__autojs6_transformed_source);
+      for (let line = 1; line <= __autojs6_commonjs_line_count; line += 1) {
+        __autojs6_commonjs_line_map.push(line);
+      }
+      // Function() contributes two wrapper lines and this body contributes one strict-mode line.
+      // Normalize V8 locations back to the supplied CommonJS source before the host applies the
+      // compiler-owned TypeScript source map.
+      __autojs6_register_generated_stack_mapping(
+        __autojs6_source_name,
+        __autojs6_source_name,
+        __autojs6_commonjs_line_map,
+        3
       );
       const __autojs6_user_function = __autojs6_native_function(
         "exports",
