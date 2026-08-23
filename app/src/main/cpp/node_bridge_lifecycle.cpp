@@ -104,6 +104,16 @@ std::vector<std::string> runEmbeddedScriptExecution(
             "embedded_script.request.runtime_module_sources.count",
             static_cast<long long>(request.runtimeModuleSources.size())
     );
+    putPayload(
+            payload,
+            "embedded_script.request.typescript_precompiled_snapshot",
+            request.typeScriptPrecompiledSnapshot
+    );
+    putPayload(
+            payload,
+            "embedded_script.request.typescript_precompiled_source_names.count",
+            static_cast<long long>(request.typeScriptPrecompiledSourceNames.size())
+    );
     putPayload(payload, "embedded_script.request.source_kind", "kotlin_provided_source");
     putPayload(payload, "embedded_script.request.user_file_read_by_native", false);
     putPayload(payload, "embedded_script.request.require_allowed", true);
@@ -158,6 +168,8 @@ std::vector<std::string> runEmbeddedScriptExecution(
             request.moduleSources,
             request.runtimeModuleSources,
             request.env,
+            request.typeScriptPrecompiledSnapshot,
+            request.typeScriptPrecompiledSourceNames,
             request.esmEnabled,
             request.dynamicImportEnabled,
             request.rawNodeNetworkModulesEnabled,

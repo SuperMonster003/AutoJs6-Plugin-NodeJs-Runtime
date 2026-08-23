@@ -864,6 +864,8 @@ struct EmbeddedScriptExecutionRequest {
     std::vector<std::pair<std::string, std::string>> moduleSources;
     std::vector<std::pair<std::string, std::string>> runtimeModuleSources;
     std::vector<std::pair<std::string, std::string>> env;
+    std::vector<std::string> typeScriptPrecompiledSourceNames;
+    bool typeScriptPrecompiledSnapshot = false;
     bool esmEnabled = false;
     bool dynamicImportEnabled = false;
     bool rawNodeNetworkModulesEnabled = false;
@@ -934,6 +936,7 @@ std::string hexEncodeBytes(const std::string& value);
 std::string jsonStringLiteral(const std::string& value);
 std::string sanitizeSourceUrl(const std::string& value);
 std::string buildEmbeddedModuleSourcesLiteral(const std::vector<std::pair<std::string, std::string>>& moduleSources);
+std::string buildEmbeddedStringSetLiteral(const std::vector<std::string>& values);
 std::string buildEmbeddedScriptExecutionSource(
         const std::string& source,
         const std::string& sourceName,
@@ -942,6 +945,8 @@ std::string buildEmbeddedScriptExecutionSource(
         const std::vector<std::pair<std::string, std::string>>& moduleSources,
         const std::vector<std::pair<std::string, std::string>>& runtimeModuleSources,
         const std::vector<std::pair<std::string, std::string>>& env,
+        bool typeScriptPrecompiledSnapshot,
+        const std::vector<std::string>& typeScriptPrecompiledSourceNames,
         bool esmEnabled,
         bool dynamicImportEnabled,
         bool rawNodeNetworkModulesEnabled,

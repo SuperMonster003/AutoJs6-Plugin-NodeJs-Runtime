@@ -206,6 +206,22 @@ std::string buildEmbeddedModuleSourcesLiteral(const std::vector<std::pair<std::s
     return literal;
 }
 
+std::string buildEmbeddedStringSetLiteral(const std::vector<std::string>& values) {
+    std::string literal = "{";
+    bool first = true;
+    for (const std::string& value : values) {
+        if (!first) {
+            literal += ",";
+        }
+        first = false;
+        literal += "\"";
+        literal += jsonStringLiteral(value);
+        literal += "\":true";
+    }
+    literal += "}";
+    return literal;
+}
+
 // AutoJs6 hands scripts the same reach a desktop Node process gets and lets
 // Android's permission model do the confining. Flipping this to 0 restores the
 // legacy workspace-confined fs behaviour for a debugging build.
@@ -221,6 +237,8 @@ std::string buildEmbeddedScriptExecutionSource(
         const std::vector<std::pair<std::string, std::string>>& moduleSources,
         const std::vector<std::pair<std::string, std::string>>& runtimeModuleSources,
         const std::vector<std::pair<std::string, std::string>>& env,
+        bool typeScriptPrecompiledSnapshot,
+        const std::vector<std::string>& typeScriptPrecompiledSourceNames,
         bool esmEnabled,
         bool dynamicImportEnabled,
         bool rawNodeNetworkModulesEnabled,
@@ -235,6 +253,8 @@ std::string buildEmbeddedScriptExecutionSource(
     const std::string moduleSourcesLiteral = buildEmbeddedModuleSourcesLiteral(moduleSources);
     const std::string runtimeModuleSourcesLiteral = buildEmbeddedModuleSourcesLiteral(runtimeModuleSources);
     const std::string envLiteral = buildEmbeddedModuleSourcesLiteral(env);
+    const std::string typeScriptPrecompiledSourceNamesLiteral =
+            buildEmbeddedStringSetLiteral(typeScriptPrecompiledSourceNames);
     const bool hasEmbeddedModuleSources = !moduleSources.empty() || !runtimeModuleSources.empty();
     std::string script;
     script.reserve(
@@ -294,6 +314,12 @@ std::string buildEmbeddedScriptExecutionSource(
     script += envLiteral;
     script += R"JS();
   const __autojs6_runtime_module_records = Object.create(null);
+  const __autojs6_typescript_precompiled_snapshot = )JS";
+    script += typeScriptPrecompiledSnapshot ? "true" : "false";
+    script += R"JS(;
+  const __autojs6_typescript_precompiled_source_names = Object.freeze()JS";
+    script += typeScriptPrecompiledSourceNamesLiteral;
+    script += R"JS();
   const __autojs6_esm_enabled = )JS";
     script += esmEnabled ? "true" : "false";
     script += R"JS(;
@@ -374,6 +400,17 @@ std::string buildEmbeddedScriptExecutionSource(
     graphModules: [],
     deniedCount: 0,
     lastDeniedReason: ""
+  };
+  const __autojs6_typescript_snapshot_diagnostics = {
+    enabled: __autojs6_typescript_precompiled_snapshot,
+    sourceCount: Object.keys(__autojs6_typescript_precompiled_source_names).length,
+    mappedCount: 0,
+    rejectedCount: 0,
+    ambiguousCount: 0,
+    lastSpecifier: "",
+    lastSource: "",
+    lastGenerated: "",
+    lastErrorCode: ""
   };
   const __autojs6_source_map_diagnostics = {
     enabled: true,
@@ -3905,6 +3942,9 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_dynamic_import_unsupported(message) {
     return __autojs6_error(message, "ERR_AUTOJS6_EMBEDDED_NODE_DYNAMIC_IMPORT_UNSUPPORTED");
+  }
+  function __autojs6_typescript_snapshot_error(message, code) {
+    return __autojs6_error(message, code);
   }
   function __autojs6_native_addon_disabled(message) {
     return __autojs6_error(message, "ERR_AUTOJS6_NATIVE_ADDON_DISABLED");
@@ -40969,6 +41009,106 @@ std::string buildEmbeddedScriptExecutionSource(
     if (__autojs6_supported_local_module_extension(extension)) return "cjs";
     return "";
   }
+  function __autojs6_typescript_generated_extension(extension) {
+    const normalized = __autojs6_normalized_extension(extension);
+    if (normalized === ".ts") return ".js";
+    if (normalized === ".mts") return ".mjs";
+    if (normalized === ".cts") return ".cjs";
+    return "";
+  }
+  function __autojs6_reject_typescript_snapshot_module(code, specifier, source, generated, parentFilename, detail) {
+    __autojs6_typescript_snapshot_diagnostics.rejectedCount += 1;
+    if (code === "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_AMBIGUOUS") {
+      __autojs6_typescript_snapshot_diagnostics.ambiguousCount += 1;
+    }
+    __autojs6_typescript_snapshot_diagnostics.lastSpecifier = String(specifier || "");
+    __autojs6_typescript_snapshot_diagnostics.lastSource = String(source || "");
+    __autojs6_typescript_snapshot_diagnostics.lastGenerated = String(generated || "");
+    __autojs6_typescript_snapshot_diagnostics.lastErrorCode = code;
+    throw __autojs6_typescript_snapshot_error(
+      detail + " Only TypeScript modules emitted from the execution's closed precompiled snapshot can be imported.",
+      code
+    );
+  }
+  function __autojs6_resolve_precompiled_typescript_source(source, extension, specifier, parentFilename) {
+    if (!__autojs6_typescript_precompiled_snapshot) return null;
+    const generatedExtension = __autojs6_typescript_generated_extension(extension);
+    if (!generatedExtension) return null;
+    if (!__autojs6_has_own(__autojs6_typescript_precompiled_source_names, source)) {
+      __autojs6_reject_typescript_snapshot_module(
+        "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND",
+        specifier,
+        source,
+        "",
+        parentFilename,
+        "TypeScript dynamic import target '" + specifier + "' from '" + parentFilename + "' was not emitted in the precompiled snapshot."
+      );
+    }
+    const generated = source.slice(0, source.length - String(extension || "").length) + generatedExtension;
+    if (!__autojs6_has_own(__autojs6_module_sources, generated)) {
+      __autojs6_reject_typescript_snapshot_module(
+        "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND",
+        specifier,
+        source,
+        generated,
+        parentFilename,
+        "TypeScript dynamic import target '" + specifier + "' has no matching generated module in the precompiled snapshot."
+      );
+    }
+    const kind = __autojs6_esm_module_kind(generated);
+    if (!kind) {
+      __autojs6_reject_typescript_snapshot_module(
+        "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND",
+        specifier,
+        source,
+        generated,
+        parentFilename,
+        "TypeScript dynamic import target '" + specifier + "' mapped to an unsupported generated module."
+      );
+    }
+    __autojs6_typescript_snapshot_diagnostics.mappedCount += 1;
+    __autojs6_typescript_snapshot_diagnostics.lastSpecifier = String(specifier || "");
+    __autojs6_typescript_snapshot_diagnostics.lastSource = source;
+    __autojs6_typescript_snapshot_diagnostics.lastGenerated = generated;
+    __autojs6_typescript_snapshot_diagnostics.lastErrorCode = "";
+    __autojs6_resolve_trace("typescript snapshot mapping matched", {
+      request: specifier,
+      from: parentFilename,
+      source,
+      final: generated,
+      kind
+    });
+    return { kind, resolved: generated };
+  }
+  function __autojs6_resolve_precompiled_typescript_extensionless(base, specifier, parentFilename) {
+    if (!__autojs6_typescript_precompiled_snapshot) return null;
+    const candidates = [
+      { source: base + ".mts", extension: ".mts" },
+      { source: base + ".ts", extension: ".ts" },
+      { source: base + ".cts", extension: ".cts" }
+    ].filter(function(candidate) {
+      return __autojs6_has_own(__autojs6_typescript_precompiled_source_names, candidate.source);
+    });
+    if (candidates.length > 1) {
+      __autojs6_reject_typescript_snapshot_module(
+        "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_AMBIGUOUS",
+        specifier,
+        candidates.map(function(candidate) { return candidate.source; }).join("|"),
+        "",
+        parentFilename,
+        "Extensionless TypeScript dynamic import target '" + specifier + "' from '" + parentFilename + "' is ambiguous."
+      );
+    }
+    if (candidates.length === 1) {
+      return __autojs6_resolve_precompiled_typescript_source(
+        candidates[0].source,
+        candidates[0].extension,
+        specifier,
+        parentFilename
+      );
+    }
+    return null;
+  }
   function __autojs6_is_data_url_module_id(value) {
     return /^data:/i.test(String(value || ""));
   }
@@ -41158,6 +41298,12 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_esm_error("Embedded Node partial ESM import escapes working directory: " + name, "ERR_AUTOJS6_FS_PATH_ESCAPE");
     }
     const extension = __autojs6_normalized_extension(path.extname(base));
+    if (__autojs6_typescript_precompiled_snapshot) {
+      const mappedTypeScript = extension
+        ? __autojs6_resolve_precompiled_typescript_source(base, extension, name, parentFilename)
+        : __autojs6_resolve_precompiled_typescript_extensionless(base, name, parentFilename);
+      if (mappedTypeScript) return mappedTypeScript;
+    }
     __autojs6_throw_if_unsupported_typescript_extension(
       extension,
       name,
@@ -41172,7 +41318,11 @@ std::string buildEmbeddedScriptExecutionSource(
     if (extension && !__autojs6_is_esm_extension(extension) && !__autojs6_supported_local_module_extension(extension)) {
       throw __autojs6_esm_error("Unsupported Embedded Node partial ESM import extension: " + name);
     }
-    const candidates = extension ? [base] : [base + ".mts", base + ".ts", base + ".mjs", base + ".js", base + ".cts", base + ".cjs", base + ".json"];
+    const candidates = extension
+      ? [base]
+      : (__autojs6_typescript_precompiled_snapshot
+          ? [base + ".mjs", base + ".js", base + ".cjs", base + ".json"]
+          : [base + ".mts", base + ".ts", base + ".mjs", base + ".js", base + ".cts", base + ".cjs", base + ".json"]);
     const resolved = __autojs6_resolve_esm_file_candidate(
       candidates,
       root,
@@ -43293,6 +43443,15 @@ std::string buildEmbeddedScriptExecutionSource(
     fields.esmDeniedCount = __autojs6_esm_diagnostics.deniedCount;
     fields.esmLastDeniedReason = __autojs6_esm_diagnostics.lastDeniedReason;
     fields.dynamicImportEnabled = __autojs6_dynamic_import_enabled;
+    fields.typeScriptPrecompiledSnapshotEnabled = __autojs6_typescript_snapshot_diagnostics.enabled;
+    fields.typeScriptPrecompiledSnapshotSourceCount = __autojs6_typescript_snapshot_diagnostics.sourceCount;
+    fields.typeScriptDynamicSpecifierMappedCount = __autojs6_typescript_snapshot_diagnostics.mappedCount;
+    fields.typeScriptDynamicSpecifierRejectedCount = __autojs6_typescript_snapshot_diagnostics.rejectedCount;
+    fields.typeScriptDynamicSpecifierAmbiguousCount = __autojs6_typescript_snapshot_diagnostics.ambiguousCount;
+    fields.typeScriptDynamicSpecifierLastSpecifier = __autojs6_typescript_snapshot_diagnostics.lastSpecifier;
+    fields.typeScriptDynamicSpecifierLastSource = __autojs6_typescript_snapshot_diagnostics.lastSource;
+    fields.typeScriptDynamicSpecifierLastGenerated = __autojs6_typescript_snapshot_diagnostics.lastGenerated;
+    fields.typeScriptDynamicSpecifierLastErrorCode = __autojs6_typescript_snapshot_diagnostics.lastErrorCode;
     fields.workerThreadsEnabled = __autojs6_worker_threads_enabled;
     fields.workerActiveCount = __autojs6_worker_threads_diagnostics.activeWorkerCount;
     fields.workerMaxActiveCount = __autojs6_worker_threads_diagnostics.maxActiveWorkerCount;

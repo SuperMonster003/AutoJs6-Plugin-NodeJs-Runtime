@@ -179,6 +179,15 @@ void putEmbeddedScriptExecutionFields(std::vector<std::string>& payload, const s
     putPayload(payload, "embedded_script.esm_denied_count", jsonNumberField(text, "esmDeniedCount"));
     putPayload(payload, "embedded_script.esm_last_denied_reason", jsonStringField(text, "esmLastDeniedReason"));
     putPayload(payload, "embedded_script.dynamic_import_enabled", jsonBooleanField(text, "dynamicImportEnabled"));
+    putPayload(payload, "embedded_script.typescript.dynamic_specifier.snapshot_enabled", jsonBooleanField(text, "typeScriptPrecompiledSnapshotEnabled"));
+    putPayload(payload, "embedded_script.typescript.dynamic_specifier.source_count", jsonNumberField(text, "typeScriptPrecompiledSnapshotSourceCount"));
+    putPayload(payload, "embedded_script.typescript.dynamic_specifier.mapped_count", jsonNumberField(text, "typeScriptDynamicSpecifierMappedCount"));
+    putPayload(payload, "embedded_script.typescript.dynamic_specifier.rejected_count", jsonNumberField(text, "typeScriptDynamicSpecifierRejectedCount"));
+    putPayload(payload, "embedded_script.typescript.dynamic_specifier.ambiguous_count", jsonNumberField(text, "typeScriptDynamicSpecifierAmbiguousCount"));
+    putPayload(payload, "embedded_script.typescript.dynamic_specifier.last_specifier", jsonStringField(text, "typeScriptDynamicSpecifierLastSpecifier"));
+    putPayload(payload, "embedded_script.typescript.dynamic_specifier.last_source", jsonStringField(text, "typeScriptDynamicSpecifierLastSource"));
+    putPayload(payload, "embedded_script.typescript.dynamic_specifier.last_generated", jsonStringField(text, "typeScriptDynamicSpecifierLastGenerated"));
+    putPayload(payload, "embedded_script.typescript.dynamic_specifier.last_error_code", jsonStringField(text, "typeScriptDynamicSpecifierLastErrorCode"));
     putPayload(payload, "embedded_script.worker_threads_enabled", jsonBooleanField(text, "workerThreadsEnabled"));
     putPayload(payload, "embedded_script.worker_active_count", jsonNumberField(text, "workerActiveCount"));
     putPayload(payload, "embedded_script.worker_max_active_count", jsonNumberField(text, "workerMaxActiveCount"));

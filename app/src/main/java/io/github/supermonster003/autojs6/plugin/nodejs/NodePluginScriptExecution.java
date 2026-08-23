@@ -10,7 +10,9 @@ import org.autojs.plugin.nodejs.api.INodeJsRuntimeCallback;
 import org.autojs.plugin.nodejs.api.NodeJsRuntimeContract;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static io.github.supermonster003.autojs6.plugin.nodejs.NodePluginPayloads.*;
 
@@ -41,6 +43,13 @@ final class NodePluginScriptExecution {
         boolean legacyTypeScriptStrippingEnabled = request.getBoolean(
                 NodeJsRuntimeContract.KEY_LEGACY_TYPESCRIPT_STRIPPING_ENABLED,
                 false
+        );
+        boolean typeScriptPrecompiledSnapshot = request.getBoolean(
+                NodeJsRuntimeContract.KEY_TYPESCRIPT_PRECOMPILED_SNAPSHOT,
+                false
+        );
+        Set<String> typeScriptPrecompiledSourceNames = stringSetFromArray(
+                request.getStringArray(NodeJsRuntimeContract.KEY_TYPESCRIPT_PRECOMPILED_SOURCE_NAMES)
         );
         Map<String, String> typeScriptPolicyDiagnostics =
                 NodeTypeScriptStripper.policyDiagnostics(legacyTypeScriptStrippingEnabled);
@@ -106,6 +115,9 @@ final class NodePluginScriptExecution {
             String sourceName = workspaceSession.mapHostPathToRuntime(requestedSourceName);
             String workingDirectory = workspaceSession.workingDirectory();
             String sandboxRoot = workspaceSession.sandboxRoot();
+            typeScriptPrecompiledSourceNames = workspaceSession.mapHostPathsToRuntime(
+                    typeScriptPrecompiledSourceNames
+            );
             Map<String, String> moduleSources = stringMapFromArrays(
                     request.getStringArray(NodeJsRuntimeContract.KEY_MODULE_SOURCE_NAMES),
                     request.getStringArray(NodeJsRuntimeContract.KEY_MODULE_SOURCES)
@@ -222,6 +234,8 @@ final class NodePluginScriptExecution {
                         moduleSources,
                         runtimeModuleSources,
                         env,
+                        typeScriptPrecompiledSnapshot,
+                        typeScriptPrecompiledSourceNames,
                         request.getBoolean(NodeJsRuntimeContract.KEY_ESM_ENABLED, true),
                         request.getBoolean(NodeJsRuntimeContract.KEY_DYNAMIC_IMPORT_ENABLED, true),
                         // Stable capabilities default on. The host still sends
@@ -441,5 +455,18 @@ final class NodePluginScriptExecution {
             }
             destroyHostBroker(hostBroker, "Node.js runtime plugin execution finished.");
         }
+    }
+
+    private static Set<String> stringSetFromArray(String[] values) {
+        LinkedHashSet<String> result = new LinkedHashSet<>();
+        if (values == null) {
+            return result;
+        }
+        for (String value : values) {
+            if (value != null && !value.isEmpty()) {
+                result.add(value);
+            }
+        }
+        return result;
     }
 }

@@ -314,6 +314,14 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
         return mapped;
     }
 
+    Set<String> mapHostPathsToRuntime(Set<String> source) {
+        LinkedHashSet<String> mapped = new LinkedHashSet<>();
+        for (String value : source) {
+            mapped.add(mapHostPathToRuntime(value));
+        }
+        return mapped;
+    }
+
     /**
      * Reads one exact policy-metadata file from the private runtime mirror.
      * The caller supplies the request-scoped absolute deadline and byte bound;
