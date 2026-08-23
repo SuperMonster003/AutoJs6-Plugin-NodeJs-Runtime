@@ -81,8 +81,6 @@ public final class NodeRuntimePluginAndroidConformanceTest {
     private static final int WORKSPACE_MAX_FILES = 128;
     private static final long WORKSPACE_MAX_BYTES = 1024L * 1024L;
     private static final String RUNTIME_PROCESS_SUFFIX = ":nodejs_runtime";
-    private static final String ERROR_TYPESCRIPT_UNSUPPORTED_EXTENSION =
-            "ERR_AUTOJS6_TYPESCRIPT_UNSUPPORTED_EXTENSION";
     private static final String TRANSPORT_PROTOCOL_DIRECTORY = ".autojs6-workspace-transport";
     private static final String INPUT_MANIFEST_PATH =
             TRANSPORT_PROTOCOL_DIRECTORY + "/input-manifest-v1.json";
@@ -236,30 +234,74 @@ public final class NodeRuntimePluginAndroidConformanceTest {
     }
 
     @Test
-    public void x3d_04_tsxFailsCanonicalAndStillEmitsOneTerminalEvent() throws Exception {
+    public void x3d_04_rawTypeScriptEntryRequiresCompilerBeforeWorkspaceCreation() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.ts", "const answer: number = 42;\nconsole.log(answer);\n");
+
+        try (WorkspaceInvocation invocation = execute(
+                "raw-typescript-entry-negative",
+                "main.ts",
+                files,
+                false
+        )) {
+            assertFalse("Raw TypeScript entry unexpectedly succeeded",
+                    invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            assertEquals(
+                    NodeJsRuntimeContract.ERROR_TYPESCRIPT_COMPILER_REQUIRED,
+                    invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_CODE)
+            );
+            assertNativeValue(invocation.result,
+                    "embedded_script.typescript.legacy_stripping_enabled", "false");
+            assertNativeValue(invocation.result,
+                    "embedded_script.typescript.preparation_mode", "precompiled_only");
+            assertNativeValue(invocation.result,
+                    "embedded_script.runtime_plugin.native_dispatch_started", "false");
+            assertNativeValue(invocation.result,
+                    "embedded_script.runtime_plugin.workspace.commit_allowed", "false");
+            invocation.callback.assertOneStartedAndOneTerminalEvent();
+        }
+    }
+
+    @Test
+    public void x3d_05_dynamicCtsRequiresCompilerWithoutLegacyOptIn() throws Exception {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();
         files.put(
                 "main.cjs",
-                "require('./unsupported.tsx');\n"
+                "require('./dynamic.cts');\n"
         );
         files.put(
-                "unsupported.tsx",
+                "dynamic.cts",
                 "const value: number = 42;\nmodule.exports = value;\n"
         );
         try (WorkspaceInvocation invocation = execute(
-                "tsx-negative",
+                "dynamic-cts-compiler-required",
                 "main.cjs",
                 files,
                 true
         )) {
-            assertFalse("TSX execution unexpectedly succeeded",
+            assertFalse("Dynamic raw TypeScript unexpectedly succeeded",
                     invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
             assertEquals(
-                    ERROR_TYPESCRIPT_UNSUPPORTED_EXTENSION,
+                    NodeJsRuntimeContract.ERROR_TYPESCRIPT_COMPILER_REQUIRED,
                     invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_CODE)
             );
+            assertNativeValue(invocation.result,
+                    "embedded_script.typescript.legacy_stripping_enabled", "false");
+            assertNativeValue(invocation.result,
+                    "embedded_script.typescript.preparation_mode", "precompiled_only");
+            assertNativeValue(invocation.result,
+                    "embedded_script.runtime_plugin.module_provider.typescript.legacy_stripping_enabled",
+                    "false");
+            assertNativeValue(invocation.result,
+                    "embedded_script.runtime_plugin.module_provider.typescript.stripped_count", "0");
+            assertNativeValue(invocation.result,
+                    "embedded_script.runtime_plugin.module_provider.typescript.last_error_code",
+                    NodeJsRuntimeContract.ERROR_TYPESCRIPT_COMPILER_REQUIRED);
+            assertNativeValue(invocation.result,
+                    "embedded_script.runtime_plugin.module_provider.typescript.last_syntax_kind",
+                    "compiler_required");
             invocation.callback.assertOneStartedAndOneTerminalEvent();
-            invocation.provider.assertHealthyAndNotCalled();
+            invocation.provider.assertHealthyAndResolved("dynamic.cts");
         }
     }
 
@@ -271,7 +313,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         assertEquals("node_compat_corpus_v2 asset count", 15, files.size());
         files.put("main.cjs", nodeCompatCorpusV2RunnerSource());
 
-        try (WorkspaceInvocation invocation = execute(
+        try (WorkspaceInvocation invocation = executeWithLegacyTypeScript(
                 "node-compat-corpus-v2",
                 "main.cjs",
                 files,
@@ -307,7 +349,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 "const base: number = 41;\n" +
                         "module.exports = { answer: base + 1 };\n"
         ).getBytes(StandardCharsets.UTF_8);
-        try (WorkspaceInvocation invocation = execute(
+        try (WorkspaceInvocation invocation = executeWithLegacyTypeScript(
                 "missing-computed-cts",
                 "main.cjs",
                 files,
@@ -459,7 +501,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 withPlaintextProvider,
                 null,
                 null,
-                SCRIPT_TIMEOUT_MS
+                SCRIPT_TIMEOUT_MS,
+                false
         );
     }
 
@@ -478,7 +521,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 withPlaintextProvider,
                 null,
                 null,
-                timeoutMs
+                timeoutMs,
+                false
         );
     }
 
@@ -497,7 +541,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 withPlaintextProvider,
                 null,
                 null,
-                SCRIPT_TIMEOUT_MS
+                SCRIPT_TIMEOUT_MS,
+                false
         );
     }
 
@@ -517,7 +562,48 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 withPlaintextProvider,
                 missingPlaintextSource,
                 null,
-                SCRIPT_TIMEOUT_MS
+                SCRIPT_TIMEOUT_MS,
+                false
+        );
+    }
+
+    private WorkspaceInvocation executeWithLegacyTypeScript(
+            String label,
+            String entryName,
+            LinkedHashMap<String, String> sourceFiles,
+            boolean withPlaintextProvider
+    ) throws Exception {
+        return execute(
+                label,
+                entryName,
+                sourceFiles,
+                new LinkedHashMap<>(),
+                withPlaintextProvider,
+                null,
+                null,
+                SCRIPT_TIMEOUT_MS,
+                true
+        );
+    }
+
+    private WorkspaceInvocation executeWithLegacyTypeScript(
+            String label,
+            String entryName,
+            LinkedHashMap<String, String> sourceFiles,
+            LinkedHashMap<String, String> moduleSourceFiles,
+            boolean withPlaintextProvider,
+            byte[] missingPlaintextSource
+    ) throws Exception {
+        return execute(
+                label,
+                entryName,
+                sourceFiles,
+                moduleSourceFiles,
+                withPlaintextProvider,
+                missingPlaintextSource,
+                null,
+                SCRIPT_TIMEOUT_MS,
+                true
         );
     }
 
@@ -529,7 +615,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
             boolean withPlaintextProvider,
             byte[] missingPlaintextSource,
             LinkedHashMap<String, ProviderAction> exactProviderActions,
-            long timeoutMs
+            long timeoutMs,
+            boolean legacyTypeScriptStrippingEnabled
     ) throws Exception {
         String executionId = "x3d-" + label + "-" + UUID.randomUUID();
         File invocationRoot = new File(
@@ -588,6 +675,10 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                     moduleSources,
                     provider == null ? exactGraphProvider : provider,
                     timeoutMs
+            );
+            request.putBoolean(
+                    NodeJsRuntimeContract.KEY_LEGACY_TYPESCRIPT_STRIPPING_ENABLED,
+                    legacyTypeScriptStrippingEnabled
             );
             if (exactGraphProvider != null) {
                 assertEquals("X3h initial moduleSources must be zero", 0,
@@ -1516,12 +1607,6 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                     NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_MATERIALIZE_MISSING_PLAINTEXT,
                     lastOperation.get()
             );
-        }
-
-        void assertHealthyAndNotCalled() {
-            assertEquals("plaintext provider failure", null, failure.get());
-            assertEquals("TSX admission should fail before provider dispatch", 0, resolveCount.get());
-            assertEquals("", lastResolvedPath.get());
         }
 
         private void recordCallerPid() {

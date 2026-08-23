@@ -28,7 +28,7 @@ public class NodeTypeScriptStripperTest {
                 + "}\n";
 
         NodeTypeScriptStripper.Result result =
-                NodeJsRuntimePluginService.prepareTypeScriptEntryForNative("src/main.cts", source);
+                NodeJsRuntimePluginService.prepareTypeScriptEntryForNative("src/main.cts", source, true);
 
         assertTrue(result.stripped());
         assertFalse(result.source().contains("import type"));
@@ -59,7 +59,7 @@ public class NodeTypeScriptStripperTest {
                 + "console.log('ts.cjs=' + value);\n";
 
         NodeTypeScriptStripper.Result result =
-                NodeJsRuntimePluginService.prepareTypeScriptEntryForNative("main.ts", source);
+                NodeJsRuntimePluginService.prepareTypeScriptEntryForNative("main.ts", source, true);
 
         assertTrue(result.stripped());
         assertEquals(
@@ -74,9 +74,9 @@ public class NodeTypeScriptStripperTest {
         String source = "const answer = 42;\nconsole.log(answer);\n";
 
         NodeTypeScriptStripper.Result first =
-                NodeJsRuntimePluginService.prepareTypeScriptEntryForNative("main.ts", source);
+                NodeJsRuntimePluginService.prepareTypeScriptEntryForNative("main.ts", source, true);
         NodeTypeScriptStripper.Result second =
-                NodeJsRuntimePluginService.prepareTypeScriptEntryForNative("main.ts", first.source());
+                NodeJsRuntimePluginService.prepareTypeScriptEntryForNative("main.ts", first.source(), true);
 
         assertEquals(source, first.source());
         assertFalse(first.stripped());
@@ -90,11 +90,13 @@ public class NodeTypeScriptStripperTest {
     public void nonTypeScriptAndDeclarationInputsRemainUntouched() {
         NodeTypeScriptStripper.Result javaScript = NodeTypeScriptStripper.stripIfTypeScript(
                 "main.js",
-                "const value = 1;\n"
+                "const value = 1;\n",
+                true
         );
         NodeTypeScriptStripper.Result declaration = NodeTypeScriptStripper.stripIfTypeScript(
                 "globals.d.ts",
-                "declare enum RuntimeState { Ready }\n"
+                "declare enum RuntimeState { Ready }\n",
+                true
         );
 
         assertFalse(javaScript.stripped());
@@ -105,6 +107,60 @@ public class NodeTypeScriptStripperTest {
         assertTrue(NodeTypeScriptStripper.isTypeScriptDeclarationSourceName("globals.d.ts"));
         assertFalse(NodeTypeScriptStripper.isTypeScriptSourceName("globals.d.ts"));
         assertTrue(NodeTypeScriptStripper.isTypeScriptSourceName("main.mts"));
+    }
+
+    @Test
+    public void rawTypeScriptDefaultsToCompilerRequiredForSourcesAndDeclarations() {
+        for (String sourceName : Arrays.asList("main.ts", "entry.mts", "entry.cts", "globals.d.ts")) {
+            try {
+                NodeJsRuntimePluginService.prepareTypeScriptEntryForNative(
+                        sourceName,
+                        "const value: number = 1;\n",
+                        false
+                );
+                fail("Expected precompiled-only rejection for " + sourceName);
+            } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException error) {
+                assertEquals(NodeTypeScriptStripper.ERROR_COMPILER_REQUIRED, error.errorCode());
+                assertEquals("compiler_required", error.syntaxKind());
+                assertTrue(error.getMessage().contains("AutoJs6 TypeScript Compiler plugin"));
+                assertTrue(error.getMessage().contains("legacyTypeScriptStrippingEnabled=true"));
+            }
+        }
+
+        assertEquals(
+                "precompiled_only",
+                NodeTypeScriptStripper.policyDiagnostics(false).get(
+                        NodeTypeScriptStripper.DIAGNOSTIC_PREPARATION_MODE
+                )
+        );
+        assertEquals(
+                "legacy_stripping",
+                NodeTypeScriptStripper.policyDiagnostics(true).get(
+                        NodeTypeScriptStripper.DIAGNOSTIC_PREPARATION_MODE
+                )
+        );
+    }
+
+    @Test
+    public void preloadedAndRuntimeModuleSourcesAlsoDefaultToPrecompiledOnly() {
+        LinkedHashMap<String, String> sources = new LinkedHashMap<>();
+        sources.put("src/dynamic.ts", "const value: number = 1;\n");
+
+        try {
+            NodeJsRuntimePluginService.prepareTypeScriptModuleSourcesForNative(sources, false);
+            fail("Expected preloaded module TypeScript rejection");
+        } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException error) {
+            assertEquals(NodeTypeScriptStripper.ERROR_COMPILER_REQUIRED, error.errorCode());
+            assertEquals("src/dynamic.ts", error.sourceName());
+        }
+
+        try {
+            NodeJsRuntimePluginService.prepareTypeScriptRuntimeModuleSourcesForNative(sources, false);
+            fail("Expected runtime module TypeScript rejection");
+        } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException error) {
+            assertEquals(NodeTypeScriptStripper.ERROR_COMPILER_REQUIRED, error.errorCode());
+            assertEquals("src/dynamic.ts", error.sourceName());
+        }
     }
 
     @Test
@@ -148,7 +204,7 @@ public class NodeTypeScriptStripperTest {
                 + "/* constructor(public id: string) */\n"
                 + "const value: number = 7;\n";
 
-        NodeTypeScriptStripper.Result result = NodeTypeScriptStripper.stripIfTypeScript("main.ts", source);
+        NodeTypeScriptStripper.Result result = NodeTypeScriptStripper.stripIfTypeScript("main.ts", source, true);
 
         assertTrue(result.stripped());
         assertTrue(result.source().contains("const value= 7;"));
@@ -164,7 +220,7 @@ public class NodeTypeScriptStripperTest {
                 + blockComment
                 + "const answer: number = 42;\n";
 
-        NodeTypeScriptStripper.Result result = NodeTypeScriptStripper.stripIfTypeScript("main.cts", source);
+        NodeTypeScriptStripper.Result result = NodeTypeScriptStripper.stripIfTypeScript("main.cts", source, true);
 
         assertTrue(result.stripped());
         assertTrue(result.source().contains(stringLiteral));
@@ -187,7 +243,8 @@ public class NodeTypeScriptStripperTest {
 
         NodeTypeScriptStripper.Result result = NodeTypeScriptStripper.stripIfTypeScript(
                 "computed-module.cts",
-                source
+                source,
+                true
         );
 
         assertTrue(result.stripped());
@@ -204,10 +261,14 @@ public class NodeTypeScriptStripperTest {
 
     @Test
     public void tsxExtensionFailsWithCanonicalExtensionCode() {
+        NodeTypeScriptStripper.UnsupportedTypeScriptException defaultPolicyError =
+                expectUnsupported("src/App.TSX", "const view = <View />;\n", false);
         NodeTypeScriptStripper.UnsupportedTypeScriptException error =
                 expectUnsupported("src/App.TSX", "const view = <View />;\n");
 
         assertTrue(NodeTypeScriptStripper.isUnsupportedTypeScriptSourceName("src/App.TSX"));
+        assertEquals(NodeTypeScriptStripper.ERROR_UNSUPPORTED_EXTENSION,
+                defaultPolicyError.errorCode());
         assertEquals(NodeTypeScriptStripper.ERROR_UNSUPPORTED_EXTENSION, error.errorCode());
         assertEquals("tsx", error.syntaxKind());
         assertEquals(1, error.line());
@@ -224,7 +285,7 @@ public class NodeTypeScriptStripperTest {
         sources.put("src/second.mts", "export const second: string = 'two';\n");
 
         NodeTypeScriptStripper.SourceMapResult result =
-                NodeJsRuntimePluginService.prepareTypeScriptModuleSourcesForNative(sources);
+                NodeJsRuntimePluginService.prepareTypeScriptModuleSourcesForNative(sources, true);
 
         assertEquals(new ArrayList<>(sources.keySet()), new ArrayList<>(result.sources().keySet()));
         assertEquals("const plain = 1;\n", result.sources().get("src/plain.js"));
@@ -286,7 +347,7 @@ public class NodeTypeScriptStripperTest {
         sources.put("autojs6:generated-config.json", "{\"typed\":\"value: number\"}");
 
         NodeTypeScriptStripper.SourceMapResult result =
-                NodeJsRuntimePluginService.prepareTypeScriptRuntimeModuleSourcesForNative(sources);
+                NodeJsRuntimePluginService.prepareTypeScriptRuntimeModuleSourcesForNative(sources, true);
 
         assertEquals(new ArrayList<>(sources.keySet()), new ArrayList<>(result.sources().keySet()));
         assertEquals(generatedWithoutExtension, result.sources().get("autojs6:generated-runtime"));
@@ -314,7 +375,7 @@ public class NodeTypeScriptStripperTest {
         sources.put("src/later-invalid.tsx", "const view = <View />;\n");
 
         try {
-            NodeJsRuntimePluginService.prepareTypeScriptModuleSourcesForNative(sources);
+            NodeJsRuntimePluginService.prepareTypeScriptModuleSourcesForNative(sources, true);
             fail("Expected preloaded TypeScript module failure");
         } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException error) {
             assertEquals(NodeTypeScriptStripper.ERROR_UNSUPPORTED_SYNTAX, error.errorCode());
@@ -331,7 +392,7 @@ public class NodeTypeScriptStripperTest {
     @Test
     public void emptyPreloadedSourceMapsProduceStableZeroDiagnostics() {
         NodeTypeScriptStripper.SourceMapResult result =
-                NodeJsRuntimePluginService.prepareTypeScriptRuntimeModuleSourcesForNative(null);
+                NodeJsRuntimePluginService.prepareTypeScriptRuntimeModuleSourcesForNative(null, true);
 
         assertTrue(result.sources().isEmpty());
         assertEquals(Arrays.asList(
@@ -361,7 +422,7 @@ public class NodeTypeScriptStripperTest {
         }
 
         NodeTypeScriptStripper.SourceMapResult result =
-                NodeJsRuntimePluginService.prepareTypeScriptModuleSourcesForNative(sources);
+                NodeJsRuntimePluginService.prepareTypeScriptModuleSourcesForNative(sources, true);
 
         assertEquals(sourceCount, result.sources().size());
         assertEquals(Integer.toString(sourceCount), result.diagnostics().get(
@@ -402,7 +463,7 @@ public class NodeTypeScriptStripperTest {
         sources.put(longName, "const value: number = 7;\n");
 
         NodeTypeScriptStripper.SourceMapResult result =
-                NodeJsRuntimePluginService.prepareTypeScriptModuleSourcesForNative(sources);
+                NodeJsRuntimePluginService.prepareTypeScriptModuleSourcesForNative(sources, true);
 
         assertTrue(result.sources().containsKey(longName));
         assertEquals("const value= 7;\n", result.sources().get(longName));
@@ -419,7 +480,11 @@ public class NodeTypeScriptStripperTest {
         assertWellFormedUtf16(diagnosticName);
 
         NodeTypeScriptStripper.Result entry =
-                NodeJsRuntimePluginService.prepareTypeScriptEntryForNative(longName, "const value: number = 8;\n");
+                NodeJsRuntimePluginService.prepareTypeScriptEntryForNative(
+                        longName,
+                        "const value: number = 8;\n",
+                        true
+                );
         assertEquals(diagnosticName, entry.diagnostics().get("embedded_script.typescript.source"));
         assertEquals("true", entry.diagnostics().get(
                 "embedded_script.typescript.source_truncated"
@@ -471,8 +536,20 @@ public class NodeTypeScriptStripperTest {
             String sourceName,
             String source
     ) {
+        return expectUnsupported(sourceName, source, true);
+    }
+
+    private static NodeTypeScriptStripper.UnsupportedTypeScriptException expectUnsupported(
+            String sourceName,
+            String source,
+            boolean legacyTypeScriptStrippingEnabled
+    ) {
         try {
-            NodeJsRuntimePluginService.prepareTypeScriptEntryForNative(sourceName, source);
+            NodeJsRuntimePluginService.prepareTypeScriptEntryForNative(
+                    sourceName,
+                    source,
+                    legacyTypeScriptStrippingEnabled
+            );
             fail("Expected unsupported TypeScript input to fail closed: " + sourceName);
             throw new AssertionError("unreachable");
         } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException expected) {

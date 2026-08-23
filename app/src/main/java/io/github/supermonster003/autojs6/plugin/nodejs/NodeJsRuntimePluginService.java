@@ -261,26 +261,35 @@ public class NodeJsRuntimePluginService extends Service {
 
     static NodeTypeScriptStripper.Result prepareTypeScriptEntryForNative(
             String sourceName,
-            String source
+            String source,
+            boolean legacyTypeScriptStrippingEnabled
     ) {
-        return NodeTypeScriptStripper.stripIfTypeScript(sourceName, source);
+        return NodeTypeScriptStripper.stripIfTypeScript(
+                sourceName,
+                source,
+                legacyTypeScriptStrippingEnabled
+        );
     }
 
     static NodeTypeScriptStripper.SourceMapResult prepareTypeScriptModuleSourcesForNative(
-            Map<String, String> sources
+            Map<String, String> sources,
+            boolean legacyTypeScriptStrippingEnabled
     ) {
         return NodeTypeScriptStripper.stripSourceMap(
                 NodeTypeScriptStripper.DIAGNOSTIC_SCOPE_MODULE_SOURCES,
-                sources
+                sources,
+                legacyTypeScriptStrippingEnabled
         );
     }
 
     static NodeTypeScriptStripper.SourceMapResult prepareTypeScriptRuntimeModuleSourcesForNative(
-            Map<String, String> sources
+            Map<String, String> sources,
+            boolean legacyTypeScriptStrippingEnabled
     ) {
         return NodeTypeScriptStripper.stripSourceMap(
                 NodeTypeScriptStripper.DIAGNOSTIC_SCOPE_RUNTIME_MODULE_SOURCES,
-                sources
+                sources,
+                legacyTypeScriptStrippingEnabled
         );
     }
 

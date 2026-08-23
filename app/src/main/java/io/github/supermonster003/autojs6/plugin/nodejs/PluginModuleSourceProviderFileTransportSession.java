@@ -106,6 +106,7 @@ final class PluginModuleSourceProviderFileTransportSession {
     private final INodeJsModuleSourceProvider provider;
     private final PluginWorkspaceArchiveSession workspaceSession;
     private final long timeoutMs;
+    private final boolean legacyTypeScriptStrippingEnabled;
     // Starts at the requested (or maximum supported) version and downgrades
     // once, permanently, when the provider answers with a v1 envelope.
     private volatile int providerContractVersion;
@@ -176,7 +177,15 @@ final class PluginModuleSourceProviderFileTransportSession {
             long requestedTimeoutMs,
             PluginWorkspaceArchiveSession workspaceSession
     ) {
-        this(cacheDir, executionId, provider, requestedTimeoutMs, workspaceSession, CONTRACT_VERSION);
+        this(
+                cacheDir,
+                executionId,
+                provider,
+                requestedTimeoutMs,
+                workspaceSession,
+                false,
+                CONTRACT_VERSION
+        );
     }
 
     PluginModuleSourceProviderFileTransportSession(
@@ -185,12 +194,14 @@ final class PluginModuleSourceProviderFileTransportSession {
             INodeJsModuleSourceProvider provider,
             long requestedTimeoutMs,
             PluginWorkspaceArchiveSession workspaceSession,
+            boolean legacyTypeScriptStrippingEnabled,
             int providerContractVersion
     ) {
         this.executionId = nonBlank(executionId, "execution-" + System.nanoTime());
         this.provider = provider;
         this.workspaceSession = workspaceSession;
         this.timeoutMs = boundedTimeoutMs(requestedTimeoutMs);
+        this.legacyTypeScriptStrippingEnabled = legacyTypeScriptStrippingEnabled;
         this.providerContractVersion = providerContractVersion;
         this.root = new File(
                 new File(cacheDir, "nodejs-module-source-provider"),
@@ -797,6 +808,10 @@ final class PluginModuleSourceProviderFileTransportSession {
         values.put("embedded_script.runtime_plugin.module_provider.typescript.source_count", Integer.toString(typeScriptSourceCount.get()));
         values.put("embedded_script.runtime_plugin.module_provider.typescript.stripped_count", Integer.toString(typeScriptStrippedCount.get()));
         values.put("embedded_script.runtime_plugin.module_provider.typescript.failure_count", Integer.toString(typeScriptFailureCount.get()));
+        values.put(
+                "embedded_script.runtime_plugin.module_provider.typescript.legacy_stripping_enabled",
+                Boolean.toString(legacyTypeScriptStrippingEnabled)
+        );
         values.put("embedded_script.runtime_plugin.module_provider.typescript.input_bytes", Long.toString(typeScriptInputBytes.get()));
         values.put("embedded_script.runtime_plugin.module_provider.typescript.output_bytes", Long.toString(typeScriptOutputBytes.get()));
         values.put(
@@ -1375,8 +1390,11 @@ final class PluginModuleSourceProviderFileTransportSession {
 
         File responseSource = new File(responseDir, safeFileName(id) + ".source");
         try {
-            PreparedTypeScriptSource preparation =
-                    prepareDecryptedTypeScriptBytes(sourceName, rawSource);
+            PreparedTypeScriptSource preparation = prepareDecryptedTypeScriptBytes(
+                    sourceName,
+                    rawSource,
+                    legacyTypeScriptStrippingEnabled
+            );
             byte[] prepared = preparation.source();
             if (!preparation.typeScript()) {
                 throw new IOException("Plaintext TypeScript preparation did not classify its source as TypeScript.");
@@ -1684,8 +1702,7 @@ final class PluginModuleSourceProviderFileTransportSession {
         PendingPlaintextTypeScriptPreparation pending = null;
         if ((STATUS_NOT_ENCRYPTED.equals(nativeStatus) ||
                 STATUS_MATERIALIZED_PLAINTEXT.equals(nativeStatus)) &&
-                (NodeTypeScriptStripper.isTypeScriptSourceName(resolvedPath) ||
-                        NodeTypeScriptStripper.isUnsupportedTypeScriptSourceName(resolvedPath))) {
+                NodeTypeScriptStripper.isAnyTypeScriptSourceName(resolvedPath)) {
             pending = new PendingPlaintextTypeScriptPreparation(
                     resolvedPath,
                     requestDeadline,
@@ -1737,8 +1754,7 @@ final class PluginModuleSourceProviderFileTransportSession {
             long rawBytes
     ) throws IOException {
         String sourceName = nonBlank(resolvedPath, sourceFile.getName());
-        boolean typeScript = NodeTypeScriptStripper.isTypeScriptSourceName(sourceName) ||
-                NodeTypeScriptStripper.isUnsupportedTypeScriptSourceName(sourceName);
+        boolean typeScript = NodeTypeScriptStripper.isAnyTypeScriptSourceName(sourceName);
         if (!typeScript) {
             recordPreparedSource(rawBytes);
             return;
@@ -1748,8 +1764,11 @@ final class PluginModuleSourceProviderFileTransportSession {
         typeScriptInputBytes.addAndGet(rawBytes);
         try {
             byte[] rawSource = readSourceBytesBounded(sourceFile, rawBytes);
-            PreparedTypeScriptSource preparation =
-                    prepareDecryptedTypeScriptBytes(sourceName, rawSource);
+            PreparedTypeScriptSource preparation = prepareDecryptedTypeScriptBytes(
+                    sourceName,
+                    rawSource,
+                    legacyTypeScriptStrippingEnabled
+            );
             byte[] prepared = preparation.source();
             if (prepared.length > SINGLE_SOURCE_BYTES_LIMIT) {
                 throw new BudgetExceededException(
@@ -1995,11 +2014,11 @@ final class PluginModuleSourceProviderFileTransportSession {
      */
     static PreparedTypeScriptSource prepareDecryptedTypeScriptBytes(
             String resolvedPath,
-            byte[] rawSource
+            byte[] rawSource,
+            boolean legacyTypeScriptStrippingEnabled
     ) throws CharacterCodingException {
         byte[] boundedRawSource = rawSource == null ? new byte[0] : rawSource;
-        boolean typeScript = NodeTypeScriptStripper.isTypeScriptSourceName(resolvedPath) ||
-                NodeTypeScriptStripper.isUnsupportedTypeScriptSourceName(resolvedPath);
+        boolean typeScript = NodeTypeScriptStripper.isAnyTypeScriptSourceName(resolvedPath);
         if (!typeScript) {
             return new PreparedTypeScriptSource(
                     boundedRawSource.clone(),
@@ -2010,8 +2029,11 @@ final class PluginModuleSourceProviderFileTransportSession {
             );
         }
         String source = decodeStrictUtf8(boundedRawSource);
-        NodeTypeScriptStripper.Result result =
-                NodeTypeScriptStripper.stripIfTypeScript(resolvedPath, source);
+        NodeTypeScriptStripper.Result result = NodeTypeScriptStripper.stripIfTypeScript(
+                resolvedPath,
+                source,
+                legacyTypeScriptStrippingEnabled
+        );
         return new PreparedTypeScriptSource(
                 result.source().getBytes(StandardCharsets.UTF_8),
                 boundedRawSource.length,
