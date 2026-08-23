@@ -567,6 +567,8 @@ static jobjectArray runEmbeddedScriptLifecycleNative(
         const std::vector<std::pair<std::string, std::string>>& moduleSourcePairs,
         const std::vector<std::pair<std::string, std::string>>& runtimeModuleSourcePairs,
         const std::vector<std::pair<std::string, std::string>>& envPairs,
+        bool typeScriptPrecompiledSnapshot,
+        const std::vector<std::string>& typeScriptPrecompiledSourceNames,
         bool esmEnabled,
         bool dynamicImportEnabled,
         bool rawNodeNetworkModulesEnabled,
@@ -582,6 +584,8 @@ static jobjectArray runEmbeddedScriptLifecycleNative(
     request.moduleSources = moduleSourcePairs;
     request.runtimeModuleSources = runtimeModuleSourcePairs;
     request.env = envPairs;
+    request.typeScriptPrecompiledSnapshot = typeScriptPrecompiledSnapshot;
+    request.typeScriptPrecompiledSourceNames = typeScriptPrecompiledSourceNames;
     request.esmEnabled = esmEnabled;
     request.dynamicImportEnabled = dynamicImportEnabled;
     request.rawNodeNetworkModulesEnabled = rawNodeNetworkModulesEnabled;
@@ -1264,6 +1268,8 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeRunEmbeddedS
             moduleSourcePairs,
             {},
             envPairs,
+            false,
+            {},
             esmEnabled == JNI_TRUE,
             dynamicImportEnabled == JNI_TRUE,
             rawNodeNetworkModulesEnabled == JNI_TRUE,
@@ -1289,6 +1295,8 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeRunEmbeddedS
         jobjectArray runtimeModuleSources,
         jobjectArray envNames,
         jobjectArray envValues,
+        jboolean typeScriptPrecompiledSnapshot,
+        jobjectArray typeScriptPrecompiledSourceNames,
         jboolean esmEnabled,
         jboolean dynamicImportEnabled,
         jboolean rawNodeNetworkModulesEnabled,
@@ -1317,6 +1325,14 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeRunEmbeddedS
         return nullptr;
     }
     const std::vector<std::string> envValueValues = toStringVectorOrEmpty(env, envValues, "envValues");
+    if (env->ExceptionCheck()) {
+        return nullptr;
+    }
+    const std::vector<std::string> typeScriptPrecompiledSourceNameValues = toStringVectorOrEmpty(
+            env,
+            typeScriptPrecompiledSourceNames,
+            "typeScriptPrecompiledSourceNames"
+    );
     if (env->ExceptionCheck()) {
         return nullptr;
     }
@@ -1356,6 +1372,8 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeRunEmbeddedS
             moduleSourcePairs,
             runtimeModuleSourcePairs,
             envPairs,
+            typeScriptPrecompiledSnapshot == JNI_TRUE,
+            typeScriptPrecompiledSourceNameValues,
             esmEnabled == JNI_TRUE,
             dynamicImportEnabled == JNI_TRUE,
             rawNodeNetworkModulesEnabled == JNI_TRUE,

@@ -306,6 +306,129 @@ public final class NodeRuntimePluginAndroidConformanceTest {
     }
 
     @Test
+    public void x3d_06_precompiledSnapshotMapsTsMtsAndCtsDynamicSpecifiers() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put(
+                "main.mjs",
+                "const extensions = ['ts', 'mts', 'cts'];\n" +
+                        "const loaded = await Promise.all(extensions.map((extension) => " +
+                        "import('./value.' + extension)));\n" +
+                        "console.log('x3d.typescript.snapshot=' + " +
+                        "loaded.reduce((sum, item) => sum + Number(item.value), 0));\n"
+        );
+        files.put("value.ts", "export const value: number = 10;\n");
+        files.put("value.mts", "export const value: number = 20;\n");
+        files.put("value.cts", "export const value: number = 12;\n");
+        LinkedHashMap<String, String> generatedModules = new LinkedHashMap<>();
+        generatedModules.put("value.js", "module.exports = { value: 10 };\n");
+        generatedModules.put("value.mjs", "export const value = 20;\n");
+        generatedModules.put("value.cjs", "module.exports = { value: 12 };\n");
+
+        try (WorkspaceInvocation invocation = executeWithTypeScriptSnapshot(
+                "typescript-snapshot-positive",
+                "main.mjs",
+                files,
+                generatedModules,
+                Arrays.asList("value.ts", "value.mts", "value.cts"),
+                true
+        )) {
+            assertSucceeded(invocation.result, "x3d.typescript.snapshot=42");
+            assertNativeValue(invocation.result,
+                    "embedded_script.typescript.dynamic_specifier.snapshot_enabled", "true");
+            assertNativeValue(invocation.result,
+                    "embedded_script.typescript.dynamic_specifier.source_count", "3");
+            assertNativeValue(invocation.result,
+                    "embedded_script.typescript.dynamic_specifier.mapped_count", "3");
+            assertNativeValue(invocation.result,
+                    "embedded_script.typescript.dynamic_specifier.rejected_count", "0");
+            assertNativeValue(invocation.result,
+                    "embedded_script.module_provider.missing_candidate_request_count", "0");
+            invocation.provider.assertHealthyAndNotCalled();
+            invocation.callback.assertOneStartedAndOneTerminalEvent();
+        }
+    }
+
+    @Test
+    public void x3d_07_precompiledSnapshotRejectsMissingAmbiguousAndEscapingSpecifiers()
+            throws Exception {
+        LinkedHashMap<String, String> missingFiles = new LinkedHashMap<>();
+        missingFiles.put(
+                "main.mjs",
+                "const extension = '.mts';\nawait import('./late' + extension);\n"
+        );
+        missingFiles.put("late.mts", "export const value: number = 42;\n");
+        try (WorkspaceInvocation invocation = executeWithTypeScriptSnapshot(
+                "typescript-snapshot-missing",
+                "main.mjs",
+                missingFiles,
+                new LinkedHashMap<>(),
+                Collections.emptyList(),
+                true
+        )) {
+            assertFalse(invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            assertEquals(
+                    NodeJsRuntimeContract.ERROR_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND,
+                    invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_CODE)
+            );
+            assertNativeValue(invocation.result,
+                    "embedded_script.typescript.dynamic_specifier.rejected_count", "1");
+            assertNativeValue(invocation.result,
+                    "embedded_script.typescript.dynamic_specifier.last_error_code",
+                    NodeJsRuntimeContract.ERROR_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND);
+            assertNativeValue(invocation.result,
+                    "embedded_script.module_provider.missing_candidate_request_count", "0");
+            invocation.provider.assertHealthyAndNotCalled();
+        }
+
+        LinkedHashMap<String, String> ambiguousFiles = new LinkedHashMap<>();
+        ambiguousFiles.put("main.mjs", "await import('./value');\n");
+        ambiguousFiles.put("value.mts", "export const value: number = 20;\n");
+        ambiguousFiles.put("value.cts", "export const value: number = 22;\n");
+        LinkedHashMap<String, String> ambiguousGenerated = new LinkedHashMap<>();
+        ambiguousGenerated.put("value.mjs", "export const value = 20;\n");
+        ambiguousGenerated.put("value.cjs", "module.exports = { value: 22 };\n");
+        try (WorkspaceInvocation invocation = executeWithTypeScriptSnapshot(
+                "typescript-snapshot-ambiguous",
+                "main.mjs",
+                ambiguousFiles,
+                ambiguousGenerated,
+                Arrays.asList("value.mts", "value.cts"),
+                true
+        )) {
+            assertFalse(invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            assertEquals(
+                    NodeJsRuntimeContract.ERROR_TYPESCRIPT_SNAPSHOT_MODULE_AMBIGUOUS,
+                    invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_CODE)
+            );
+            assertNativeValue(invocation.result,
+                    "embedded_script.typescript.dynamic_specifier.ambiguous_count", "1");
+            assertNativeValue(invocation.result,
+                    "embedded_script.module_provider.missing_candidate_request_count", "0");
+            invocation.provider.assertHealthyAndNotCalled();
+        }
+
+        LinkedHashMap<String, String> escapingFiles = new LinkedHashMap<>();
+        escapingFiles.put("main.mjs", "await import('../escape.mts');\n");
+        try (WorkspaceInvocation invocation = executeWithTypeScriptSnapshot(
+                "typescript-snapshot-escape",
+                "main.mjs",
+                escapingFiles,
+                new LinkedHashMap<>(),
+                Collections.emptyList(),
+                true
+        )) {
+            assertFalse(invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            assertEquals(
+                    "ERR_AUTOJS6_FS_PATH_ESCAPE",
+                    invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_CODE)
+            );
+            assertNativeValue(invocation.result,
+                    "embedded_script.module_provider.missing_candidate_request_count", "0");
+            invocation.provider.assertHealthyAndNotCalled();
+        }
+    }
+
+    @Test
     public void x3e_05_nodeCompatCorpusV2PassesThroughPublishedBinder() throws Exception {
         // This is the plugin-owned, normalized-text migration of the former Host v2 corpus.
         // The companion Host ownership gate verifies that its copy and selector are absent.
@@ -607,6 +730,29 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         );
     }
 
+    private WorkspaceInvocation executeWithTypeScriptSnapshot(
+            String label,
+            String entryName,
+            LinkedHashMap<String, String> sourceFiles,
+            LinkedHashMap<String, String> moduleSourceFiles,
+            List<String> precompiledSourceNames,
+            boolean withPlaintextProvider
+    ) throws Exception {
+        return execute(
+                label,
+                entryName,
+                sourceFiles,
+                moduleSourceFiles,
+                withPlaintextProvider,
+                null,
+                null,
+                SCRIPT_TIMEOUT_MS,
+                false,
+                true,
+                precompiledSourceNames
+        );
+    }
+
     private WorkspaceInvocation execute(
             String label,
             String entryName,
@@ -617,6 +763,34 @@ public final class NodeRuntimePluginAndroidConformanceTest {
             LinkedHashMap<String, ProviderAction> exactProviderActions,
             long timeoutMs,
             boolean legacyTypeScriptStrippingEnabled
+    ) throws Exception {
+        return execute(
+                label,
+                entryName,
+                sourceFiles,
+                moduleSourceFiles,
+                withPlaintextProvider,
+                missingPlaintextSource,
+                exactProviderActions,
+                timeoutMs,
+                legacyTypeScriptStrippingEnabled,
+                false,
+                Collections.emptyList()
+        );
+    }
+
+    private WorkspaceInvocation execute(
+            String label,
+            String entryName,
+            LinkedHashMap<String, String> sourceFiles,
+            LinkedHashMap<String, String> moduleSourceFiles,
+            boolean withPlaintextProvider,
+            byte[] missingPlaintextSource,
+            LinkedHashMap<String, ProviderAction> exactProviderActions,
+            long timeoutMs,
+            boolean legacyTypeScriptStrippingEnabled,
+            boolean typeScriptPrecompiledSnapshot,
+            List<String> precompiledSourceNames
     ) throws Exception {
         String executionId = "x3d-" + label + "-" + UUID.randomUUID();
         File invocationRoot = new File(
@@ -679,6 +853,21 @@ public final class NodeRuntimePluginAndroidConformanceTest {
             request.putBoolean(
                     NodeJsRuntimeContract.KEY_LEGACY_TYPESCRIPT_STRIPPING_ENABLED,
                     legacyTypeScriptStrippingEnabled
+            );
+            request.putBoolean(
+                    NodeJsRuntimeContract.KEY_TYPESCRIPT_PRECOMPILED_SNAPSHOT,
+                    typeScriptPrecompiledSnapshot
+            );
+            String[] absolutePrecompiledSourceNames = new String[precompiledSourceNames.size()];
+            for (int index = 0; index < precompiledSourceNames.size(); index++) {
+                absolutePrecompiledSourceNames[index] = containedFile(
+                        sandboxRoot,
+                        precompiledSourceNames.get(index)
+                ).getAbsolutePath();
+            }
+            request.putStringArray(
+                    NodeJsRuntimeContract.KEY_TYPESCRIPT_PRECOMPILED_SOURCE_NAMES,
+                    absolutePrecompiledSourceNames
             );
             if (exactGraphProvider != null) {
                 assertEquals("X3h initial moduleSources must be zero", 0,
@@ -1587,6 +1776,13 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                     NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_RESOLVE_EXISTING,
                     lastOperation.get()
             );
+        }
+
+        void assertHealthyAndNotCalled() {
+            assertEquals("plaintext provider failure", null, failure.get());
+            assertEquals("plaintext provider resolve count", 0, resolveCount.get());
+            assertEquals("plaintext provider last resolved path", "", lastResolvedPath.get());
+            assertEquals("plaintext provider last operation", "", lastOperation.get());
         }
 
         void assertHealthyAndMaterialized(String expectedName) {

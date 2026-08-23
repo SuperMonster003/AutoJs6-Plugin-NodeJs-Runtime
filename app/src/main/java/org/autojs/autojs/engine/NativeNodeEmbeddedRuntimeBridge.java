@@ -4,6 +4,7 @@ import android.content.Context;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 public final class NativeNodeEmbeddedRuntimeBridge {
 
@@ -147,6 +148,8 @@ public final class NativeNodeEmbeddedRuntimeBridge {
             Map<String, String> moduleSources,
             Map<String, String> runtimeModuleSources,
             Map<String, String> env,
+            boolean typeScriptPrecompiledSnapshot,
+            Set<String> typeScriptPrecompiledSourceNames,
             boolean esmEnabled,
             boolean dynamicImportEnabled,
             boolean rawNodeNetworkModulesEnabled,
@@ -165,6 +168,8 @@ public final class NativeNodeEmbeddedRuntimeBridge {
                 runtimeModuleSources.values().toArray(new String[0]),
                 env.keySet().toArray(new String[0]),
                 env.values().toArray(new String[0]),
+                typeScriptPrecompiledSnapshot,
+                typeScriptPrecompiledSourceNames.toArray(new String[0]),
                 esmEnabled,
                 dynamicImportEnabled,
                 rawNodeNetworkModulesEnabled,
@@ -185,6 +190,8 @@ public final class NativeNodeEmbeddedRuntimeBridge {
             String[] runtimeModuleSources,
             String[] envNames,
             String[] envValues,
+            boolean typeScriptPrecompiledSnapshot,
+            String[] typeScriptPrecompiledSourceNames,
             boolean esmEnabled,
             boolean dynamicImportEnabled,
             boolean rawNodeNetworkModulesEnabled,
