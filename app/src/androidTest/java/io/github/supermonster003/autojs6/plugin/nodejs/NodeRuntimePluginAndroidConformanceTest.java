@@ -202,6 +202,40 @@ public final class NodeRuntimePluginAndroidConformanceTest {
     }
 
     @Test
+    public void x3d_03_importedCommonJsStackRemovesFunctionWrapperOffset() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.cjs", "require('./fail.cjs').fail();\n");
+        files.put(
+                "fail.cjs",
+                "module.exports.fail = function fail() {\n" +
+                        "  const marker = 'x3d.imported-stack';\n" +
+                        "  throw new Error(marker);\n" +
+                        "};\n"
+        );
+
+        try (WorkspaceInvocation invocation = execute(
+                "imported-commonjs-stack",
+                "main.cjs",
+                files,
+                false
+        )) {
+            assertFalse("Imported CommonJS failure unexpectedly succeeded",
+                    invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            String stack = invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_STACK, "");
+            assertTrue("Imported CommonJS frame was not normalized:\n" + stack,
+                    stack.contains("/fail.cjs:3:"));
+            assertFalse("Function wrapper offset leaked into imported CommonJS frame:\n" + stack,
+                    stack.contains("/fail.cjs:6:"));
+            int mappedFrames = Integer.parseInt(nativeValues(invocation.result).getOrDefault(
+                    "embedded_script.generated_stack_mapped_frame_count",
+                    "0"
+            ));
+            assertTrue("No generated CommonJS stack frame was normalized", mappedFrames > 0);
+            invocation.callback.assertOneStartedAndOneTerminalEvent();
+        }
+    }
+
+    @Test
     public void x3d_04_tsxFailsCanonicalAndStillEmitsOneTerminalEvent() throws Exception {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();
         files.put(

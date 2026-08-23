@@ -42355,6 +42355,20 @@ std::string buildEmbeddedScriptExecutionSource(
     const transformedSource = __autojs6_transform_unsupported_unicode_identifier_regex_literals(
       __autojs6_transform_dynamic_import_calls(record.source, resolved, "__filename")
     );
+    const localCommonJsLineMap = [];
+    const localCommonJsLineCount = __autojs6_count_lines(transformedSource);
+    for (let line = 1; line <= localCommonJsLineCount; line += 1) {
+      localCommonJsLineMap.push(line);
+    }
+    // Function() contributes two wrapper lines and this body contributes one strict-mode line.
+    // Normalize every imported CommonJS module, not just the entry, before the host composes its
+    // compiler-owned TypeScript source maps across the project graph.
+    __autojs6_register_generated_stack_mapping(
+      record.sourceURL || resolved,
+      resolved,
+      localCommonJsLineMap,
+      3
+    );
     const moduleFunction = __autojs6_native_function(
       "exports",
       "require",
