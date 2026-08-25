@@ -5,6 +5,30 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.2.0": {
+      "released_date": "2026/08/25",
+      "feature": [
+        "Enabled desktop-like filesystem access within Android app permissions while keeping `/proc`, `/sys`, and `/dev` denied",
+        "Added `accessibility.swipe` and `accessibility.gesture` behind the dedicated `accessibility.gesture` capability"
+      ],
+      "fix": [
+        "Made raw TypeScript fail closed unless the host supplies compiler output, mapped snapshot dynamic imports, and normalized generated/imported stack frames"
+      ],
+      "improvement": [
+        "Aligned the v2 host/plugin contract, capability manifests, example mirror, and plugin-only runtime responsibility boundary"
+      ]
+    },
+    "v1.1.0": {
+      "released_date": "2026/08/18",
+      "feature": [
+        "Added live stdout/stderr streaming and cooperative cancellation through `node::Stop`",
+        "Replaced BUSY rejection with a bounded serial queue of three waiters and added resident long-running script lifecycle support",
+        "Enabled raw Node network builtins, `worker_threads`, and `child_process` by default, and verified ten popular pure-JavaScript npm packages"
+      ],
+      "improvement": [
+        "Added direct-run workspaces and tolerant v1..v2 module-source-provider negotiation with concise error codes and JavaScript stacks"
+      ]
+    },
     "v1.0.0": {
       "released_date": "2026/07/18",
       "feature": [

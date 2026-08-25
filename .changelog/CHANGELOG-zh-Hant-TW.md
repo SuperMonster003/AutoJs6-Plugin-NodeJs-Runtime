@@ -4,6 +4,24 @@
 
 ******
 
+# v1.2.0
+
+###### 2026/08/25
+
+* `新增` 在 Android 應用程式權限範圍內啟用桌面式檔案系統存取, 同時繼續拒絕 `/proc`、`/sys`、`/dev`
+* `新增` 支援 `accessibility.swipe` 與 `accessibility.gesture`, 並由獨立能力 `accessibility.gesture` 控管
+* `修復` raw TypeScript 在宿主未提供編譯產物時改為 fail-closed, 補齊快照動態 import 對應並統一產生/匯入堆疊框架
+* `優化` 對齊宿主/外掛 v2 合約、能力清單、範例鏡像與 plugin-only 執行階段職責邊界
+
+# v1.1.0
+
+###### 2026/08/18
+
+* `新增` 支援 stdout/stderr 即時串流輸出與基於 `node::Stop` 的協作式取消
+* `新增` 以最多 3 個等待者的有界序列佇列取代 BUSY 直接拒絕, 並支援常駐長時間執行指令碼生命週期
+* `新增` 預設啟用 Node 原生網路內建模組、`worker_threads` 與 `child_process`, 並實測 10 個常用純 JavaScript npm 套件
+* `優化` 支援不需工作區封存的 direct-run 與 v1..v2 模組原始碼 provider 寬容協商, 錯誤輸出收斂為簡明錯誤碼與 JavaScript 堆疊
+
 # v1.0.0
 
 ###### 2026/07/18

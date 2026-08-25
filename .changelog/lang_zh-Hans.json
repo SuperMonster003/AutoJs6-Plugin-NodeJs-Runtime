@@ -5,6 +5,30 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.2.0": {
+      "released_date": "2026/08/25",
+      "feature": [
+        "在 Android 应用权限范围内启用桌面式文件系统访问, 同时继续拒绝 `/proc`、`/sys`、`/dev`",
+        "支持 `accessibility.swipe` 与 `accessibility.gesture`, 并由独立能力 `accessibility.gesture` 门禁"
+      ],
+      "fix": [
+        "raw TypeScript 在宿主未提供编译产物时改为 fail-closed, 补齐快照动态 import 映射并归一化生成/导入栈帧"
+      ],
+      "improvement": [
+        "对齐宿主/插件 v2 合约、能力清单、样例镜像与 plugin-only 运行时职责边界"
+      ]
+    },
+    "v1.1.0": {
+      "released_date": "2026/08/18",
+      "feature": [
+        "支持 stdout/stderr 实时流式输出与基于 `node::Stop` 的协作式取消",
+        "以最多 3 个等待者的有界串行队列取代 BUSY 直接拒绝, 并支持常驻长运行脚本生命周期",
+        "默认启用 Node 原生网络内建模块、`worker_threads` 与 `child_process`, 并实测 10 个常用纯 JavaScript npm 包"
+      ],
+      "improvement": [
+        "支持无需工作区归档的 direct-run 与 v1..v2 模块源码 provider 宽容协商, 错误输出收敛为简明错误码与 JavaScript 栈"
+      ]
+    },
     "v1.0.0": {
       "released_date": "2026/07/18",
       "feature": [

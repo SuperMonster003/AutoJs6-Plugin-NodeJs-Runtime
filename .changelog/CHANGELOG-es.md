@@ -4,6 +4,24 @@
 
 ******
 
+# v1.2.0
+
+###### 2026/08/25
+
+* `Nuevo` Se habilitó el acceso al sistema de archivos similar al escritorio dentro de los permisos Android, manteniendo bloqueados `/proc`, `/sys` y `/dev`
+* `Nuevo` Se añadieron `accessibility.swipe` y `accessibility.gesture` tras la capacidad dedicada `accessibility.gesture`
+* `Correccion` TypeScript sin compilar ahora falla de forma cerrada si el host no aporta la salida del compilador; también se mapearon imports dinámicos de snapshot y se normalizaron las pilas generadas/importadas
+* `Mejora` Se alinearon el contrato v2 host/plugin, los manifiestos de capacidades, el espejo de ejemplos y el límite de responsabilidad del runtime solo en el plugin
+
+# v1.1.0
+
+###### 2026/08/18
+
+* `Nuevo` Se añadió streaming en vivo de stdout/stderr y cancelación cooperativa mediante `node::Stop`
+* `Nuevo` Se sustituyó el rechazo BUSY por una cola serial limitada a tres esperas y se añadió el ciclo de vida de scripts residentes de larga duración
+* `Nuevo` Se habilitaron por defecto los módulos de red nativos de Node, `worker_threads` y `child_process`, y se verificaron diez paquetes npm populares de JavaScript puro
+* `Mejora` Se añadieron espacios direct-run y negociación tolerante v1..v2 del provider de fuentes, con códigos de error concisos y pilas JavaScript
+
 # v1.0.0
 
 ###### 2026/07/18

@@ -54,6 +54,8 @@ AutoJs6 Node.js Runtime 插件為 AutoJs6 提供內嵌 Node.js 24.5.0 原生運�
 - 提供 `nodejs` 插件服務, 插件 ID 為 `nodejs`, 引擎為 `nodejs`.
 - 通過 `org.autojs.plugin.nodejs.RUNTIME` 為宿主提供同步腳本執行和運行時預熱.
 - 支援 CommonJS/ESM 源碼, 模組源碼, 工作目錄, 沙盒根目錄, 環境變數, stdout/stderr 結果回傳.
+- 提供由插件本身 Android 權限約束的桌面式檔案系統存取; `/proc`、`/sys`、`/dev` 一律由運行時拒絕.
+- 執行宿主提供的 TypeScript 編譯產物; raw `.ts`/`.mts`/`.cts` 預設 fail-closed, legacy 類型剝離只供遷移期明確啟用.
 - 提供宿主能力代理與 live bridge, 可注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等運行時模組.
 - 附帶 `sample/nodejs` 示例項目與 `docs/HOST-API.md` 宿主 API 能力清單.
 - 插件資訊, 使用說明, README 與 CHANGELOG 均支援西班牙語/法語/俄語/阿拉伯語/日語/韓語/英語/簡體中文/香港繁體/台灣繁體.
@@ -79,8 +81,8 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
-- **怎麼裝** — 從 [Releases](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/releases) 下載對應 ABI 的 APK (不確定就選 `universal`) 並安裝; 或本地構建 `.\gradlew.bat :app:assembleDebug` 後安裝 `app/build/outputs/apk/debug/` 下的產物. 然後在 AutoJs6 的插件中心啟用本插件.
-- **怎麼跑** — 在 AutoJs6 編輯器中新建腳本, 首行寫 `"nodejs";`, 其餘按桌面 Node.js 寫法編寫 (支持 CommonJS/ESM/npm 純 JS 包/網絡內建模塊), 點擊運行即可. 運行中即時輸出, 可隨時手動停止.
+- **怎麼裝** — 從 [Releases](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/releases) 下載對應 ABI 的 APK (不確定就選 `universal`) 並安裝; 或本地構建 `.\gradlew.bat :app:assembleDebug` 後安裝 `app/build/outputs/apk/debug/` 下的產物. 然後在 AutoJs6 的插件中心啟用本插件. Android 11+ 如需存取共享儲存空間, 還要在系統設定為本插件授予「所有檔案存取」; 未授予時出現 `EACCES` 屬預期行為.
+- **怎麼跑** — 在 AutoJs6 編輯器中新建腳本, 首行寫 `"nodejs";`, 其餘按桌面 Node.js 寫法編寫 (支持 CommonJS/ESM/npm 純 JS 包/網絡內建模塊), 點擊運行即可. 運行中即時輸出, 可隨時手動停止. raw `.ts`/`.mts`/`.cts` 目前必須先由宿主編譯為 JavaScript; 插件不內置 `tsc`.
 - **出錯了看哪裏** — 腳本報錯時控制枱顯示 JS 棧與一行錯誤碼 (如 `ERR_AUTOJS6_NODE_SCRIPT_CANCELLED`); 更多細節用 `adb logcat -s AutoJs6NodeBridge NodeJsRuntimePlugin` 查看插件進程日誌. 宿主 API 可用性以 `docs/HOST-API.md` 為準.
 
 ******
@@ -94,6 +96,8 @@ console.log("AutoJs6 Node.js runtime");
 - 運行時服務動作: `org.autojs.plugin.nodejs.RUNTIME`.
 - 原生運行庫: `libnode.so` 和 `libautojs6-node.so`.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.
+- 檔案系統: 可存取 Android 權限容許的裝置路徑; `/proc`、`/sys`、`/dev` 為硬邊界.
+- TypeScript: 預設只接受編譯產物; raw TypeScript 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
 - 能力: 同步腳本執行, bundle transport, 原生內嵌運行時, 宿主能力代理, host capability live bridge.
 
 ******
@@ -101,6 +105,24 @@ console.log("AutoJs6 Node.js runtime");
 ### 發行歷史
 
 ******
+
+# v1.2.0
+
+###### 2026/08/25
+
+* `新增` 在 Android 應用權限範圍內啟用桌面式檔案系統存取, 同時繼續拒絕 `/proc`、`/sys`、`/dev`
+* `新增` 支援 `accessibility.swipe` 與 `accessibility.gesture`, 並由獨立能力 `accessibility.gesture` 門禁
+* `修復` raw TypeScript 在宿主未提供編譯產物時改為 fail-closed, 補齊快照動態 import 映射並統一生成/匯入堆疊幀
+* `優化` 對齊宿主/插件 v2 合約、能力清單、示例鏡像與 plugin-only 運行時職責邊界
+
+# v1.1.0
+
+###### 2026/08/18
+
+* `新增` 支援 stdout/stderr 即時串流輸出與基於 `node::Stop` 的協作式取消
+* `新增` 以最多 3 個等待者的有界串行隊列取代 BUSY 直接拒絕, 並支援常駐長運行腳本生命週期
+* `新增` 預設啟用 Node 原生網絡內建模組、`worker_threads` 與 `child_process`, 並實測 10 個常用純 JavaScript npm 套件
+* `優化` 支援無需工作區歸檔的 direct-run 與 v1..v2 模組源碼 provider 寬容協商, 錯誤輸出收斂為簡明錯誤碼與 JavaScript 堆疊
 
 # v1.0.0
 

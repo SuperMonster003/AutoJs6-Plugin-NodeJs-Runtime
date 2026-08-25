@@ -5,6 +5,30 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v1.2.0": {
+      "released_date": "2026/08/25",
+      "feature": [
+        "Android アプリ権限の範囲でデスクトップ相当のファイルシステムアクセスを有効化し, `/proc`, `/sys`, `/dev` は引き続き拒否",
+        "専用能力 `accessibility.gesture` の下で `accessibility.swipe` と `accessibility.gesture` を追加"
+      ],
+      "fix": [
+        "ホストがコンパイラ出力を提供しない未コンパイル TypeScript を fail-closed に変更し, snapshot 動的 import のマッピングと生成/インポートスタックフレームの正規化を追加"
+      ],
+      "improvement": [
+        "ホスト/プラグイン v2 コントラクト, 能力マニフェスト, サンプルミラー, plugin-only ランタイムの責務境界を整合"
+      ]
+    },
+    "v1.1.0": {
+      "released_date": "2026/08/18",
+      "feature": [
+        "stdout/stderr のライブストリーミングと `node::Stop` による協調キャンセルを追加",
+        "BUSY 即時拒否を最大 3 待機の有界直列キューへ置き換え, 常駐長時間スクリプトのライフサイクルを追加",
+        "Node ネイティブネットワーク組み込み, `worker_threads`, `child_process` を既定で有効化し, 人気の純 JavaScript npm パッケージ 10 個を検証"
+      ],
+      "improvement": [
+        "direct-run ワークスペースと v1..v2 モジュールソース provider の寛容な交渉を追加し, 簡潔なエラーコードと JavaScript スタックへ整理"
+      ]
+    },
     "v1.0.0": {
       "released_date": "2026/07/18",
       "feature": [

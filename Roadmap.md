@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Runtime 插件 — 开发路线图 (Roadmap)
 
-> 修订日期: 2026-08-21
+> 修订日期: 2026-08-25
 >
 > 本路线图取代此前所有里程碑编号 (X3d/X3e/X3f/X3g/X3i/X3j 等)。旧编号只保留在 `tools/nodejs/ownership/evidence/` 的历史证据文件中, 不再继续演进。
 
@@ -92,7 +92,7 @@ M4 收尾盘点: C++ (不含 Node 头) ~97.7k→~51k 行 (扣除 43k 行内嵌�
 - [x] M4.4 `NodeJsRuntimePluginService` 拆分瘦身 (2.3k 行 → 目标 <800 行)。— 2026-08-18 完成: 2667→693 行, 纯搬家零行为变化。四个同包协作类: NodePluginPayloads (820, 无状态 payload/bundle/binder helpers + procfs 诊断 + bridge 派发, 静态导入使调用点零改动)、NodeRuntimeModuleInjector (516, 运行时模块注入 + RuntimeModuleInjection/BridgeLimitPolicy, 持 Context)、NodePluginScriptExecution (419, runScriptActive 方法对象化)、NodePluginBundles (392, runtimeInfo/prewarm/result/failure 组装)。测试引用的静态成员 (prepareTypeScript* 系 / 契约版本 helpers / shouldCommitWorkspaceAfterFailure / Utf8StreamDecoder / procStatusLongValue 代理) 留在服务上; 死方法 normalizeWorkingDirectory 删除。验证: 单测 + 模拟器全量 androidTest 12/12 + arm64 真机冒烟 (裸跑+流式) 全绿。
 - [x] M4.5 文档一页化: README 里写清 "怎么装 / 怎么跑 / 出错了看哪里"。— 2026-08-18 完成: 走既有生成体系 (template_readme.md + 10 语言 lang_*.json + generate_markdown.py) 新增 "快速上手" 一节, 三条各答一问: 装 (Releases 按 ABI 下载或本地 assembleDebug + 插件中心启用)、跑 (`"nodejs";` 首行 + 桌面 Node 写法 + 流式输出/可停止)、错 (控制台 JS 栈 + 一行错误码, 深挖用 `adb logcat -s AutoJs6NodeBridge NodeJsRuntimePlugin`, API 面查 docs/HOST-API.md)。features 里 M4.2 已删的 "Node 解析诊断工具和运行时构建计划校验工具" 描述同步改为 HOST-API.md 指引。全部 10 语言 README 重新生成。
 
-### M5 — 宿主↔插件职责归位 (2026-08-21 增补, 未开始)
+### M5 — 宿主↔插件职责归位 ✅ (2026-08-21 增补, 同日完成)
 
 目标: 宿主与插件对 Node.js 的职责边界清晰可述, 双份/错位代码归位删除, 新人按仓库就能读懂"谁管什么"。
 
@@ -156,6 +156,82 @@ M4 收尾盘点: C++ (不含 Node 头) ~97.7k→~51k 行 (扣除 43k 行内嵌�
 - 有意保留的兼容名仅限插件已发布的 `work_manager` wire token `backend="embedded"` 与 `embedded_script.*` 诊断键; 它们不表示宿主持有运行时。
 
 **终态 (已达成)**: 宿主 node 面 = 桥客户端 + 派发能力层 + 传输 provider + 文档样例, 25,959 行; 内嵌运行时 0 行; 契约/能力/样例三类跨仓一致性各有手动守卫可查。验证链恒为: 宿主 JVM 单测 + `:app:assembleAppDebug` + 真插件桥冒烟; 插件侧未改动时无需重跑插件链。
+
+### 2026-08-25 二次勘察 (M6~M10 制定依据)
+
+M0~M5 完成后对全仓四面 (C++ 桥 / Java 服务层 / 样例与发布链 / 提交前沿) 的勘察结论:
+
+**核心能力已站稳**: 真实 Node 24.5.0 内嵌、CJS/ESM/npm 纯 JS 包、流式输出、协作取消、串行队列、长驻脚本、网络默认开、live bridge 21+ 模块、fs 桌面级放开 (`d5703d1`)。日常自动化脚本场景基本闭环。
+
+**二次勘察时的三条战线** (历史基线; M6/M7 执行后已修正):
+
+1. **TypeScript 的“生产端缺位”判断已被跨仓核对纠正**: 单看 Node Runtime 仓时, `8e08b3b` 的 fail-closed 与错误文案确实像一条断链; 但宿主仓已在 `0938deed2`→`ebbf1b8d2` 系列提交中实现完整消费链, 相邻仓 `AutoJs6-Plugin-TypeScript-Engine` 也已形成 v0.6.0 / TypeScript 6.0.3 正式候选。M7.1~M7.3 与 M7.5 已据此验收, 仅 legacy stripping 的发布观察期仍开放。
+2. **fs 放开收尾已由 M6.2/M6.4 完成**: API 37 真服务进程覆盖 workspace 外写读删与 `/proc` `/sys` `/dev` 负例, README/HOST-API/catalog 已同步; `filesystemRoots` 明确裁定为兼容诊断元数据。
+3. **M5 收官欠账已由 M6.1/M6.5 完成**: catalog/runtime-kit 1.3.0、48=48=48 零例外、十语言 1.1.0/1.2.0 CHANGELOG、构建噪音与悬空文档均已收账。
+
+**服务层三个实缺口** (2026-08-25 勘察时, 已由 M8.1~M8.3 全部收账):
+
+1. `KEY_TIMEOUT_MS` 名不副实 — 只作队列等待预算, 脚本执行本身无 wall-clock 超时; 死循环脚本永久占据唯一执行槽 → 3 个排队者依次 `WAIT_TIMEOUT` → 后续请求全部 `QUEUE_FULL`, 只能人工 `cancelScript`。宿主 5min deadline 到期也不会停掉插件侧脚本。
+2. 取消兜底升级路径 (3s 宽限 → gate 永久关门 → `Process.killProcess`) 是最危险的代码路径却零自动化证据。
+3. `KEY_EXECUTION_MODE` / `KEY_RUNTIME_ADAPTER` 是契约死键 (main 源码零读取), checkpoint 门禁被 engine-info 旁路架空, 裸请求路径恒 false。
+
+**能力面缺口 (按用户价值排序)**: `dgram`/UDP 完全缺失 (无 facade, 设备发现/组播类脚本不可行); npm 生态第二批未收账 (axios/express 自 M2.4 延后至今; ESM 自实现层 `realEsmCorpus: partial_required`); `package_manager` registry 设备端下载 `deferred`; inspector 调试面三重封锁 (`kNoCreateInspector`, devtools `deferred`); V8 启动快照禁用 (`disabled-until-snapshot-batch`); `trace_events` 隐式缺失 (不在任何名单, 报错体验不一致); WASI `deferred` (2 个样例 design-gated)。
+
+**发布链**: Node 24.17.0 (lts-security, 2026-06 发布) 晋级被上游 Android 产物阻塞 (`node2417Promotion: deferred`, 5 项前置全未动); runtime-kit 1.2.0 自报 `releaseReady: false` (blockedReasons 全指向 24.17 与容器 digest 未钉); `runtime-build.lock.json` 含本机绝对路径且其 sha256 已入 kit 信任链。
+
+**已知但不立项 (逐异常修复原则, 未造成用户可见问题)**: `processHandler` 挂主线程 Looper; `commitWorkspaceQuietly` 异常路径双调 (靠 AtomicBoolean 兜住); broker/provider 关闭阶段 RemoteException 静默; prewarm 失败无退避; 未知能力名只告警不阻断; `node_bridge_sources.cpp` 单文件 43.7k 行 (JS 以 raw string 维护); desktop-parity-suite 二级清单不受门禁保护; `unsupported` 样例状态零使用; resource 指标只采不控。异常真实发生时再逐项修复。
+
+### M6~M10 通用约定 (2026-08-25 增补, 每项执行前重读)
+
+1. **验证一律本地/离线优先** (网络环境易触发 Cloudflare 502/524/529, 尤其 524): gradle 一律带 `--offline` (依赖已在本地缓存); C++ 改动先用 NDK clang `-fsyntax-only` 离线语法校验 (手法见 fs 放开时的实践: `clang++.exe -fsyntax-only -std=c++20 --target=aarch64-linux-android24 -I. -Inode-v24.5.0/include/node ...`, 宏列表按现状调整) 再进构建; androidTest 走本地模拟器 (x86_64) / USB 真机, 不依赖外网。全部 M6~M10 中**仅两处**允许联网且单独标注: M9.2 corpus 制备 (开发机一次性, 可走镜像源)、M10.1 上游版本复查 (手动)。
+2. `sample/nodejs` (含 `examples.json`) 任何改动必须**双仓同步** — 宿主镜像 358 文件字节级一致, 由宿主 `verifyNodePluginExampleMirror` 守护, 调用需显式 `-Pautojs.nodejs.plugin.root=D:\idea-projects\AutoJs6-Plugin-NodeJs-Runtime`。
+3. README/CHANGELOG 只改 `.readme/` 与 `.changelog/` 的 lang JSON 及模板, 经 `.python/generate_markdown.py` 生成, 不直接编辑产物 .md; 生成时被顺带重写但无实质变化的文件用 git checkout 还原。
+4. 契约 (nodejs-api) 改动延续 M0.2 宽容原则: 新键缺失有默认、旧键不破坏、AIDL 事务号零改动优先; 宿主镜像经 `:plugin-api:nodejs-api:verifyNodeJsApiMirror` 守护。
+5. 延续既有红线: 不新增 probe/哈希锁类基础设施; 新守卫一律手动任务不挂默认构建链; 宿主仓用户未提交改动不碰。
+
+**计划执行顺序**: M6 (全离线, 最快清欠账) → M7 与 M8 可并行 (互无依赖) → M9 → M10 按条件成熟推进。每项独立提交, 完成标准 = 该项 Check 全绿。
+
+### M6 — 状态对齐与欠账清零 (全离线)
+
+目标: 仓库自述与代码现实一致 — fs 放开 / TS fail-closed / M5 收官三条战线的文档、样例、发布物欠账全部清零。
+
+- [x] **M6.1 仓库卫生小项打包**: ① `version.properties` 构建噪音 (BUILD 56→57) 随本项提交收编; ② `PADDLE_OCR_*` 三键确认零引用后删除 (宿主仓继承残留); ③ build-logic 插件 ID `org.autojs.build.local-arr-register-convention` 拼写修正为 `local-aar-...` (当前零 apply 引用, 零风险); ④ `tools/nodejs/runtime-build/README.md:23` 悬空任务引用改指 `build-node-runtime.sh` / `.ps1` 的 plan 档 (`verify-runtime-build-plan.js` 本体仍在)。Check: 全仓 grep 悬空任务名与 PADDLE_OCR 零命中; `:app:assembleDebug --offline` 通过。— 2026-08-25 完成: BUILD 57 收编、三项 Paddle 残留删除、插件 ID 与 runtime-build 文档修正; PowerShell plan 输出 Node 24.17 目标/24.5 当前版本与 3 ABI, 离线 assembleDebug 67 tasks 通过。后续 M8 验证构建按项目既有自动递增规则将当前工作树推进至 BUILD 58, 无需回退。
+- [x] **M6.2 fs 放开收尾**: ① 新增 `UnrestrictedFsSmokeTest` — workspace 外路径 (如 `/sdcard/Download`) 写→读回断言, 模拟器经 `adb shell appops set ... MANAGE_EXTERNAL_STORAGE allow` 自动授权; ② `/proc` `/sys` `/dev` 拦截保持的负例断言 (放开模式下唯一硬边界); ③ `filesystemRoots` 元数据裁定 (采集了但零消费): 删除解析或注明"仅诊断元数据", 二选一记录于此。Check: 新冒烟用例模拟器绿; `:app:testDebugUnitTest --offline` 全绿。— 2026-08-25 完成: 保留 `filesystemRoots` 作为兼容的纯诊断元数据, 明确其不授予/扩大/收窄 fs 权限; API 37 x86_64 模拟器真实服务进程完成 `/sdcard/Download` 写读删及三敏感根负例 1/1, JVM 单测与 androidTest 编译全绿。
+- [x] **M6.3 样例状态复核 (双仓同步)**: ① `disabled-features-demo` 期望输出与现状脱节 (child_process/worker_threads 已默认启用, 样例仍断言被禁) — 改造为显式传 false 的开关演示或更新期望, 裁定记录; ② `sandboxed-script` stable + design-gated 标注矛盾裁定 (其余 12 条 design-gated 全是 partial/disabled); ③ 5 条 TS 标签样例按 fail-closed 现状重标 (其中 4 条为 raw TS, 编译器缺位期间实际不可跑, M7 闭环后再升回); ④ 3 条 fs 面 partial 样例 (filehandle-advanced/fs-watch/compile-cache) 按放开后现状复核; ⑤ `examples.json` 为全部非 stable 条目补一行 `reason` 字段 (机器可读的"为什么不能跑", 现散落三处), `verifyNodePluginExamples` 加存在性校验 (轻量, 仅查非 stable 有 reason)。Check: `verifyNodePluginExamples --offline` 通过; 宿主 `verifyNodePluginExampleMirror` 通过 (--offline + plugin.root)。— 2026-08-25 完成: disabled-features-demo 改为验证当前默认开放面, sandboxed-script 转 disabled, 4 个 raw TS 转 disabled、typescript-smoke 保持 partial, filehandle-advanced/fs-watch 升 stable、compile-cache 保持 partial; M6 阶段分布 stable 23 / partial 23 / disabled 11, 34 个非 stable reason 全覆盖; M7.5 收账后当前分布为 stable 28 / partial 22 / disabled 7。插件门禁与宿主 358 文件字节镜像门禁均通过。
+- [x] **M6.4 用户文档同步 (10 语言生成体系)**: ① README features 与快速上手补 fs 权限模式 (插件独立 uid、装后需手动授予"所有文件访问"、不授予时报 EACCES 属预期) 与 TS 现状 (需编译器, 迁移期 legacy 开关); ② CHANGELOG 补 1.1.0 与 1.2.0 条目 (M1~M5 用户可见变更: 流式输出/协作取消/串行队列/npm 实测/网络默认开/swipe/契约收口/fs 放开/TS fail-closed); ③ HOST-API.md 增补 "fs 访问模式" 与 "TypeScript 编译要求" 两节。Check: `generate_markdown.py` 全 10 语言生成无报错; 抽查 zh-Hans 与 en 两份内容正确; 无关文件 git checkout 还原后工作区仅含预期改动。— 2026-08-25 完成: 10 份语言源补齐 fs/TS 能力与快速上手, 10 语言 CHANGELOG 补发 v1.1.0/v1.2.0, HOST-API 明确 Android 权限边界、敏感根、诊断元数据与宿主编译责任; 生成器全量成功并抽查中英文产物。
+- [x] **M6.5 catalog 1.3.0 发布 (本地发布物, 无联网)**: ① `accessibility.gesture` 补入 `bridge.permissionCapabilities`, 删除守卫历史例外; ② features 增补 fs 访问模式条目、修订 TypeScript 策略条目; ③ runtime-kit 同步引用新 catalog, 顺带清理 `runtime-build.lock.json` 的 `androidFork.localPath` 本机绝对路径 — **注意 lock 的 sha256 被 kit 的 buildProvenance 引用, 两文件必须同一提交联动更新**; ④ 终态三方对齐: 插件 manifest 48 = 宿主 manifest 48 = catalog 48。Check: 宿主 `:app:verifyNodeCapabilityManifestAlignment --offline` 三方一致且零白名单例外; 插件 `:app:assembleDebug --offline` (runtime-kit BuildConfig 回显) 通过。— 2026-08-25 完成: 发布 catalog/runtime-kit 1.3.0, 补 gesture/swipe operation 与 48th capability、fs/TS 策略和 TS 新错误码; 清除本机路径并联动更新三段 SHA-256, hashed JSON 统一 LF 以跨平台复现; 宿主守卫为 48=48=48、documentedDifferences=0, 插件 APK 内两份资产哈希与 release lock 完全一致, assembleDebug 通过并回显 kit 1.3.0。
+
+### M7 — TypeScript 战线闭环 (4/5; M7.4 等待公开版本观察期)
+
+目标: TS 从"默认不可用"回到一条端到端用户能力 — 编辑器 .ts 脚本一键运行, 报错栈指向 .ts 原始行号。涉宿主仓, 红线照旧。
+
+- [x] **M7.1 编译器落点决策** (一次性, 同 M1.2 模式): 候选 ① 独立 TypeScript Compiler 插件 APK (错误文案的既有方向, 架构最干净, 工程量最大); ② 宿主借插件 Node 自举编译 — typescript npm 预置为资产, 编译请求本身作为一次插件 runtime 执行 (跑 tsc API), 产物 js + source map 回宿主后再派发真正执行, 零新仓库 (建议先做一次可行性 spike: 插件跑 tsc 编译 hello.ts 的耗时与内存); ③ 插件内嵌编译 (与 8e08b3b "插件退出 TS 转译业务"方向冲突, 仅作对照)。决策与依据记录写入本文件。— 2026-08-25 完成并纠正勘察误判: 采用候选①, 但无需新建工程 — 相邻仓 `AutoJs6-Plugin-TypeScript-Engine` 已存在, 当前正式候选为 v0.6.0 / TypeScript 6.0.3, 使用官方完整 `Program` 编译而非 transpile-only; 宿主 `0938deed2` 起已有公开 Binder client。候选②会重复已完成的独立编译服务且把编译与执行生命周期重新耦合, 不再 spike; 候选③继续否决。
+- [x] **M7.2 编译链路端到端**: .ts 入口 → 编译产物 → `typeScriptPrecompiledSnapshot` + `typeScriptPrecompiledSourceNames` 请求键 (3f1b3b1 已备好消费端) → 插件执行; 覆盖单文件、多文件项目、动态 import (.ts 说明符经快照映射, 含 missing/ambiguous 负例)。Check: 宿主模拟器/真机用例 — TS hello + 多文件项目 + 动态 import 三例全绿; 插件 conformance x3d_06/07 回归。— 2026-08-25 完成: 宿主 `0ae1ec30e`/`622bfddcc`/`ebbf1b8d2` 已分别交付 Node 预编译、多文件项目与封闭动态映射; TypeScript Engine Roadmap 保存 API 31/35/37 的聚焦通过证据。当前插件源码的 x3d_06/07 在 API 37 回归 2/2; 仓库原样的 CJS、ESM、project、packaged-dynamic 四例经宿主→Compiler 0.6.0→Node Runtime 在同一目录各连续执行两次, 8/8 PASS。实跑发现并修复宿主 workspace v2 把虚拟 compiler `moduleSources` 回写成 `main.cjs/main.mjs`、导致复跑冲突的问题: 仅运行前不存在的 module-source 覆盖被标为 ephemeral, 输出快照不再物化它们; 原有真实支持文件和脚本其他输出仍同步。新增策略单测 1/1, 主应用离线构建安装通过, 四个目录复跑后文件清单与原始输入完全一致。
+- [x] **M7.3 栈帧回映**: 宿主组合编译器 source map 与插件已归一化的栈位置基线 (61f3a36/92f3be6), TS 脚本 throw 时控制台栈指向 .ts 文件与原始行号 (M1.5 "码+一句话"风格保持)。Check: 用例断言栈文本含 `.ts:` 与正确行号。— 2026-08-25 完成: 宿主 `TypeScriptSourceMapTest` 7/7 离线通过, 覆盖 entry/imported 模块与相对路径唯一映射; TypeScript Engine S4-1 的三设备证据精确回映 `lib/fail.ts:3:11` 与 `main.ts:2:5`, 生成的 `fail.js` 不泄漏。Node Runtime 的 `61f3a36`/`92f3be6` 继续作为生成行偏移与 imported CJS 帧归一化基线。
+- [ ] **M7.4 legacy 剥离器退役**: 新链路稳定后删除 `NodeTypeScriptStripper` (~800 行) 及其单测; `KEY_LEGACY_TYPESCRIPT_STRIPPING_ENABLED` 按宽容原则处理 (保留常量 + 显式传入时拒绝并提示新链路, 或直接移除, 决策时定); conformance x3d_04/05 断言同步。Check: `:app:testDebugUnitTest --offline` 全绿; grep 零 stripper 生产引用。— 2026-08-25 状态裁定: 不提前删除。生产宿主已无任何 `true` 调用点, `.ts/.mts/.cts` 默认且唯一走 compiler, 但 TypeScript Engine S4-2/S6-2 明确冻结 v0.6.0 为迁移观察版本; 观察期必须从实际公开分发起覆盖一个完整发布周期, 本地开发时间不冒充发布观察。后继版本开发前若无兼容报告, 再删除兼容键、正则实现与专属测试并勾选本项。
+- [x] **M7.5 样例收账 (双仓同步)**: 5 个 TypeScript-tag 样例 (其中 4 个为可执行 raw TS 项目) 接新链路升 stable, expected-output/项目元数据更新; packaged-typescript 走打包与动态 import 路径验证。Check: `verifyNodePluginExamples` + 宿主镜像守卫通过; 设备至少抽 2 例实跑绿。— 2026-08-25 完成: typescript-cjs/typescript-esm/typescript-project/packaged-typescript 与声明元数据 smoke 全部升 stable, README/project.json 明确需 Compiler 0.6.0+ 且 raw 直派仍 fail-closed; 57 例当前分布 stable 28 / partial 22 / disabled 7, 29 个非 stable reason 全覆盖。插件样例门禁与宿主 358 文件字节镜像门禁通过; API 37 对 4 个可执行样例做同目录双跑 8/8 PASS, packaged 例真实输出 `packaged:dynamic`, 且零编译产物泄漏。
+
+### M8 — 执行可靠性补课 ✅ (2026-08-25 完成)
+
+目标: 失控脚本不再需要人工干预; 契约键名实相符。
+
+- [x] **M8.1 脚本执行 wall-clock 超时**: `KEY_TIMEOUT_MS` 从"仅队列等待预算"扩展为"等待+执行总预算" (或拆双键, 设计时定, 注意宿主现有传值语义不破坏): 超时触发既有 `requestCooperativeCancellation` → `node::Stop` 路径 (基础设施已完备, 只差 watchdog 触发器), 结果置 `KEY_TIMED_OUT=true` + 专用错误码一句话; **未指定 timeout 保持无限运行** (M2.5 长驻语义不变)。宿主侧配套: runBlocking deadline 放弃前先发 `cancelScript` (涉宿主仓)。Check: watchdog 单测; androidTest — 死循环脚本 + timeout 3s 得到超时错误且同 PID 复用下一脚本; `LongRunningLifecycleSmokeTest` 回归确认无 timeout 行为不变。— 2026-08-25 完成: 采用既有单键作为 Binder 入口起算的 queue + preparation + native execution 总预算, `<=0` 仍不限制脚本执行、无显式预算的队列仅保留原 10 分钟安全上限; 不改 contract version/AIDL/已发布 nodejs-api 1.2.0。执行租约由布尔位升级为 `ACTIVE/CANCELLED/TIMED_OUT/COMPLETED` 原子仲裁, 消除完成/人工取消/watchdog 的末端竞态, 队列 deadline 同时改为饱和加法。预算耗尽统一返回 `timedOut=true`、`ERR_AUTOJS6_SCRIPT_TIMEOUT` 与阶段诊断, active watchdog 先发 `node::Stop`, 3 秒未释放再沿既有进程重启兜底。宿主 `NodeJsRuntimePluginHost` 已先于本项具备 `timeout+5s` Binder 响应兜底及超时后有界 `cancelScript`, 无需重复实现; 当前宿主 main Kotlin 编译与 nodejs-api 镜像门禁通过。JVM gate/deadline 14/14; `while(true)` 3 秒超时 + 同 PID 后继复用在 API 28/36/37 模拟器与 3 台真机 6/6, 队列预算同矩阵 6/6; `LongRunningLifecycleSmokeTest` 与 `CooperativeCancelSmokeTest` 各 6/6, 证明无 timeout 长驻与人工取消语义未回归。
+- [x] **M8.2 取消兜底升级路径最小回归**: 构造协作停止停不掉的夹具 (候选: `Atomics.wait` 阻塞主线程; 若实测 `while(true)` 已足够停不掉则用之并记录), 断言 3s 宽限后 `process_restart` 兜底生效、错误码可读、进程重启后可服务下一请求。Check: 新 androidTest 模拟器绿 (可标记慢用例, 不入高频冒烟组)。— 2026-08-25 完成: `Atomics.wait`、`execFileSync` 与无握手 FIFO 的首轮试验都会在真正进入不可中断调用前被 `node::Stop` 正常终止, 不能冒充兜底证据; 终态 `CancellationRestartFallbackSmokeTest` 使用私有 cache FIFO + ready 文件握手 + 500ms 稳定窗, 取消前断言 Binder 调用仍未完成, 从而可靠阻塞在同步 `readFileSync` 系统调用。六设备矩阵 (API 28/36/37 模拟器 + Android 9/12/15 三台真机) 6/6 观察到 3s 协作宽限后 runtime-only `Process.killProcess`, Binder death 不早于 2.75s, 重绑 PID 必须变化且后继脚本输出 42。进程被杀时底层 AIDL 无法再返回结果 Bundle, 因而可读错误由宿主负责: `NodeJsRuntimePluginHost` 把已派发事务的 transport loss 包为 `dispatchStarted=true`, `NodeJsRuntimePluginBridge` 归一化为 `failure_kind=execution_lost`、`fallback_safe=false`、`ERR_AUTOJS6_NODE_PLUGIN_EXECUTION_LOST`; 新增纯分类单测 2/2 离线通过。该慢用例保持聚焦执行, 不并入高频冒烟组。
+- [x] **M8.3 契约死键裁定**: ① `KEY_EXECUTION_MODE` 接线到 lifecycle-config (替代 engine-info 旁路), 使 `interactive_long_running` 请求能真实开启 checkpoint 门 — `restartPolicy=never` 与"进程死亡不自动重启"决策不变, checkpoint 价值 = 长驻脚本主动存进度、重启后自读恢复; ② `KEY_RUNTIME_ADAPTER` 零消费 → 契约标 deprecated 或删除, 按宽容原则处理。Check: 契约单测更新 (宿主镜像同步); grep main 源码死键零残留; checkpoint 门在显式 executionMode 下可开的单测。— 2026-08-25 完成: lifecycle config 现在以 Bundle `KEY_EXECUTION_MODE` 为权威, 仅在缺键时兼容回退 `engine-info`, 两者均缺失才落 `one_shot`; 无 `engine-info` 的显式 `interactive_long_running` 请求推导 `interactive_session`, 而宿主 live checkpoint 派发仍独立执行 mode + launch-surface 授权。`KEY_RUNTIME_ADAPTER` 为保持 contract-v2 字面兼容而保留并标 `@Deprecated` no-op, 宿主请求模型、wire 写入与插件 conformance 伪填充全部删除; C++ `embedded_script.runtime_adapter.*` 仅是内部 adapter 诊断, 与废弃请求键无关。验证: lifecycle 纯策略单测 4/4; 两仓契约单测各 7/7, 10 文件镜像守卫通过; 精确 grep 显示宿主 main 对 runtimeAdapter 零建模/发送、插件 app main 已真实读取 executionMode; `ExecutionModeLifecycleSmokeTest` 在 API 28/36/37 模拟器与 Android 9/12/15 三真机 6/6, 断言 checkpoint=true、automaticRestart=false、restartPolicy=never; 宿主 main Kotlin 离线编译通过。
+
+### M9 — 能力面第二批扩展 ✅ (2026-08-25 完成)
+
+目标: 每项一条用户可见能力, 按需求频度排序。
+
+- [x] **M9.1 dgram (UDP) 放开**: denylist 移除, 并入 `rawNodeNetworkModulesEnabled` 辖区 (M2.6 网络默认开的自然延伸, manifest 已有 INTERNET); 顺带把 `trace_events` 从隐式缺失改为显式 denylist (给清晰的 `ERR_AUTOJS6_BUILTIN_DISABLED`)。C++ 改动先 NDK clang `-fsyntax-only` 离线校验。Check: androidTest UDP 回环 echo (createSocket/bind/send/message) 模拟器绿; trace_events require 得到清晰错误码; 新样例 udp-discovery (双仓同步) 过门禁。— 2026-08-25 完成: `dgram`/`node:dgram` 并入默认开启的 raw-network builtin 路由, `module.isBuiltin`、`module.builtinModules`、`require.resolve`、profile 与禁用请求负例同步; 同轮把生态依赖实际需要的 `http2` 纳入相同网络边界, `trace_events` 则转为明确 denylist。`DgramUdpSmokeTest` 在 API 37 x86_64 模拟器完成 UDP4 loopback bind/send/message/reply, 并断言关闭 raw-network 时 dgram/http2 可读拒绝、trace_events 始终返回 `ERR_AUTOJS6_BUILTIN_DISABLED`; `udp-discovery` 样例已双仓镜像且过样例门禁。
+- [x] **M9.2 npm 生态第二批**: axios + express (M2.4 明言延后, 收账) + 2~3 个 ESM-only 真实包 (顺带收 `realEsmCorpus: partial_required` 的账)。corpus 在开发机一次性 `npm install` 制备 (**唯一联网步骤, 可走 npmmirror 镜像避 Cloudflare**), 产物进 androidTest assets, 设备端离线实跑。Check: `NpmEcosystemSmokeTest` 扩展 — axios loopback 自请求、express 起服务自访问、ESM 包 import 断言, 全绿。— 2026-08-25 完成: 真实锁定的 npm-install corpus 从 10 包扩到 15 包, 新增 axios 1.19.0、express 5.2.1、nanoid 6.0.1、p-limit 7.3.1、yocto-queue 1.2.2 及其传递依赖; 设备端全程离线, axios/express 各用 localhost HTTP 自服务验证完整网络栈, 三个 ESM-only 包用动态 import 验证 exports/条件解析。实跑暴露并修复 package `exports` 数组 fallback 解析以及 http2 builtin 路由两个兼容缺口; `NpmEcosystemSmokeTest` 在 Android 9/12/15 三台 arm64 真机与 API 36/37 x86_64 模拟器矩阵 6/6 通过, `realEsmCorpus` 欠账关闭。
+- [x] **M9.3 registry 设备端下载评估** (`registryDownload: deferred` 收账): 先出一页决策 — 范围 (纯 JS 包 + 生命周期脚本维持 denied)、网络策略 (归入宿主 network 能力声明)、镜像源可配置; 决策通过再实施 `package_manager.install` 端到端。Check: 决策记录入本文件; 若实施, package-install 样例升级 + 真机跑通一例真实小包下载安装 (此步涉外网, 单独手动触发, 不入常规验证链)。— 2026-08-25 评估完成, **决策为暂不实施设备端 registry 下载**: 当前 `package_manager.install/update` 继续只消费宿主管理、已落盘且可验证的本地包, 这是能力收账而不是暗中开放网络。允许实施前必须同时具备 ① 仅纯 JS 包且 install/preinstall/postinstall 等生命周期脚本永久 denied, ② registry/mirror 显式 allowlist 与 HTTPS/重定向/SSRF 策略, ③ 宿主 `network` 能力声明和每次安装用户可见授权, ④ tar 路径穿越/符号链接/解压炸弹防护, ⑤ 单包/文件数/总字节/依赖深度与时间配额, ⑥ lockfile、完整性哈希及依赖图确定性, ⑦ 下载/解析/提交全链取消与原子回滚。现有 facade 没有这些边界, 为一个已有宿主离线解包替代方案的功能引入供应链攻击面收益不成立; 因而不升级 package-install 样例, `registryDownload: deferred` 保持为有理由的产品决策。
+
+### M10 — 深水区 (2/3; M10.1 等待上游 Android 产物)
+
+- [ ] **M10.1 Node 24.5.0 → 24.17.0 (lts-security) 晋级**: 被上游 Android 产物阻塞 (`node2417Promotion: deferred`, nodejs-mobile 24.17 port 不存在; runtime-kit `releaseReady: false` 同源)。动作: 每月手动复查上游一次 (联网, 单独触发); 长期无产物则评估自建容器源码构建 (现 `sourceBuild: bootstrap_only`, 需先钉容器 digest)。Check (晋级时): 3 ABI libnode.so 产出且 sha256/buildId 落 lock; 插件全量冒烟组回归; runtime-kit `releaseReady` 转 true。— 2026-08-25 已按月度动作复查: 上游 [degaso/nodejs-mobile releases](https://github.com/degaso/nodejs-mobile/releases) 最新仍为 `v24.5.0-r1`, [全部分支](https://github.com/degaso/nodejs-mobile/branches/all) 也没有 24.17 port/产物; Node 官方 24.17.0 已发布但不能替代 Android libnode。阻塞条件未变, 本项保持未勾选; 不以未经钉定容器与三 ABI 验证的自建产物冒充晋级。
+- [x] **M10.2 inspector 本地调试档位**: 现为 Environment 级三重封锁 (`kNoCreateInspector` 等)。分解: ① 安全边界决策 (debug 构建限定 + 显式请求键双门 + 仅 localhost + adb forward; `sensitivePathRedaction: not_proven` 一并裁定); ② native 条件解锁; ③ 端到端 chrome://inspect 连插件进程断点调试。Check: debug 构建 devtools 可连且断点命中; release 构建三重封锁不变 (负例); inspector-debug/cpu-profile/heap-snapshot 三样例按落地面重标。— 2026-08-25 完成: 新增 contract-v2 `inspectorEnabled` 请求键, 宿主只在自身 Debug 构建发送, 插件再以 `BuildConfig.DEBUG` 和 native `AUTOJS6_NODE_DEBUG_BUILD` 双重裁剪; Release 三 ABI 构建实证宏恒为 0, 继续设置 `kNoCreateInspector`, Debug 显式开启才移除该位并声明 `kOwnsInspector`, 且始终保留 no-start-signal/no-wait。JS 只暴露受控 `Session/console/open/close/url`, `open` 强制 127.0.0.1、拒绝非本机 host 与 `wait=true`, 默认请求仍返回 `ERR_AUTOJS6_BUILTIN_DISABLED`; 为兼容 Node inspector 的惰性初始化, 原生模块在 process facade 冻结前预载。`InspectorDebugSmokeTest` 在 API 37 x86_64 模拟器用真实 WebSocket/CDP 完成 Runtime.enable、Debugger.enable、断点暂停与恢复, 同时验证 CPU Profiler profile 与 Runtime heap usage; 文档明确 adb forward、无敏感路径/值脱敏及仅限本地受信调试。inspector-debug/cpu-profile/heap-snapshot 双仓样例由 disabled 改为 partial: 前两者可用, heap snapshot 的有界导出仍未实现。公共 API 以向后兼容的常量增量发布 `nodejs-api:1.3.0` (AIDL transaction hash 保持不变), runtime-kit 1.3.0 同步钉定新 AAR SHA-256, 手动 publication 门禁通过。
+- [x] **M10.3 冷启动优化评估**: V8 startup snapshot 现禁用 (`disabled-until-snapshot-batch`)。先测量常驻进程复用下冷启动的真实占比与耗时分布; 若冷启动 <1s 且频率低, 记录"不值得做"结论并关闭本项 (合法完成态); 否则再立实施项。Check: 测量数据与结论记录入本文件。— 2026-08-25 完成评估, **结论为当前不值得实现自定义 startup snapshot**。新增 `RuntimeColdStartMeasurementTest`: 每台设备先 force-stop, 将专用进程 bind + service 同步预热单独计时, 再在同一常驻 PID 内连续执行 21 个 fresh isolate (首轮 + 20 个 warm 样本), 记录 wall/native total 及 isolate/environment/bootstrap/script 分相。Android 15/12/9 三台 arm64 真机的 bind+首次执行分别为 403/362/661ms, warm fresh-isolate wall median/P95 分别为 121/135、157/166、361/404ms; API 37 x86_64 模拟器为 bind+首次 1767ms、warm median/P95 228/396ms, 其 1065ms 一次性 bind/预热成本不属于每次 isolate snapshot 的主要收益。四设备 80 个 warm 样本 P95 均远低于 1s, process runtime 全程复用且执行频率受单槽串行模型约束; 预期收益不足以抵消 snapshot 生成、ABI/Node 版本耦合和发布验证成本, 保持 `disabled-until-snapshot-batch`, 有新实机证据跨过阈值时再重开。
 
 ## 五. 明确不做的事
 
