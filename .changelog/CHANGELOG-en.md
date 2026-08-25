@@ -4,6 +4,24 @@
 
 ******
 
+# v1.2.0
+
+###### 2026/08/25
+
+* `Feature` Enabled desktop-like filesystem access within Android app permissions while keeping `/proc`, `/sys`, and `/dev` denied
+* `Feature` Added `accessibility.swipe` and `accessibility.gesture` behind the dedicated `accessibility.gesture` capability
+* `Fix` Made raw TypeScript fail closed unless the host supplies compiler output, mapped snapshot dynamic imports, and normalized generated/imported stack frames
+* `Improvement` Aligned the v2 host/plugin contract, capability manifests, example mirror, and plugin-only runtime responsibility boundary
+
+# v1.1.0
+
+###### 2026/08/18
+
+* `Feature` Added live stdout/stderr streaming and cooperative cancellation through `node::Stop`
+* `Feature` Replaced BUSY rejection with a bounded serial queue of three waiters and added resident long-running script lifecycle support
+* `Feature` Enabled raw Node network builtins, `worker_threads`, and `child_process` by default, and verified ten popular pure-JavaScript npm packages
+* `Improvement` Added direct-run workspaces and tolerant v1..v2 module-source-provider negotiation with concise error codes and JavaScript stacks
+
 # v1.0.0
 
 ###### 2026/07/18

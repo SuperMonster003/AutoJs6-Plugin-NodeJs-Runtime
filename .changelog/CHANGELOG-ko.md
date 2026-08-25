@@ -4,6 +4,24 @@
 
 ******
 
+# v1.2.0
+
+###### 2026/08/25
+
+* `추가` Android 앱 권한 범위에서 데스크톱과 유사한 파일 시스템 접근을 활성화하고 `/proc`, `/sys`, `/dev` 는 계속 거부
+* `추가` 전용 기능 `accessibility.gesture` 아래에 `accessibility.swipe` 와 `accessibility.gesture` 추가
+* `수정` 호스트가 컴파일러 출력을 제공하지 않은 원시 TypeScript 를 fail-closed 로 변경하고 snapshot 동적 import 매핑과 생성/가져온 스택 프레임 정규화 추가
+* `개선` 호스트/플러그인 v2 계약, 기능 매니페스트, 예제 미러 및 plugin-only 런타임 책임 경계를 정렬
+
+# v1.1.0
+
+###### 2026/08/18
+
+* `추가` stdout/stderr 실시간 스트리밍과 `node::Stop` 기반 협력 취소 추가
+* `추가` BUSY 즉시 거부를 최대 3개 대기의 제한된 직렬 큐로 교체하고 상주 장기 실행 스크립트 수명 주기 지원 추가
+* `추가` Node 네이티브 네트워크 내장 모듈, `worker_threads`, `child_process` 를 기본 활성화하고 인기 순수 JavaScript npm 패키지 10개 검증
+* `개선` direct-run 워크스페이스와 v1..v2 모듈 소스 provider 관대한 협상을 추가하고 간결한 오류 코드와 JavaScript 스택으로 정리
+
 # v1.0.0
 
 ###### 2026/07/18

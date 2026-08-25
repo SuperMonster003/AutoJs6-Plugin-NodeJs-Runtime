@@ -4,6 +4,24 @@
 
 ******
 
+# v1.2.0
+
+###### 2026/08/25
+
+* `Ajout` Activation d'un accès au système de fichiers comparable au bureau dans les limites des autorisations Android, avec refus permanent de `/proc`, `/sys` et `/dev`
+* `Ajout` Ajout de `accessibility.swipe` et `accessibility.gesture` derrière la capacité dédiée `accessibility.gesture`
+* `Correction` Échec fermé du TypeScript brut sans sortie de compilation fournie par l'hôte, mappage des imports dynamiques de snapshot et normalisation des piles générées/importées
+* `Amelioration` Alignement du contrat v2 hôte/plugin, des manifestes de capacités, du miroir d'exemples et de la frontière de responsabilité du runtime plugin-only
+
+# v1.1.0
+
+###### 2026/08/18
+
+* `Ajout` Ajout du flux stdout/stderr en direct et de l'annulation coopérative via `node::Stop`
+* `Ajout` Remplacement du rejet BUSY par une file série bornée à trois attentes et ajout du cycle de vie des scripts résidents de longue durée
+* `Ajout` Activation par défaut des modules réseau Node natifs, de `worker_threads` et de `child_process`, avec validation de dix paquets npm JavaScript purs courants
+* `Amelioration` Ajout des espaces de travail direct-run et de la négociation tolérante v1..v2 du provider de sources, avec codes d'erreur concis et piles JavaScript
+
 # v1.0.0
 
 ###### 2026/07/18

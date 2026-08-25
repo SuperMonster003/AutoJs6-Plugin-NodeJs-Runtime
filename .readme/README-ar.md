@@ -54,6 +54,8 @@
 - يوفر خدمة الملحق `nodejs` مع معرف الملحق `nodejs` والمحرك `nodejs`.
 - يعرض تنفيذ السكربتات المتزامن وتسخين بيئة التشغيل للمضيف عبر `org.autojs.plugin.nodejs.RUNTIME`.
 - يدعم مصدر CommonJS/ESM, مصادر الوحدات, دليل العمل, جذر sandbox, متغيرات البيئة, ونتائج stdout/stderr.
+- يوفر وصولا شبيها بسطح المكتب إلى نظام الملفات ضمن أذونات Android لتطبيق الملحق; وتبقى `/proc` و `/sys` و `/dev` مرفوضة دائما.
+- يشغّل ناتج مترجم TypeScript الذي يقدمه المضيف; وتفشل ملفات `.ts`/`.mts`/`.cts` الخام بشكل مغلق افتراضيا, أما محو الأنواع legacy فهو خيار صريح للترحيل فقط.
 - يوفر وسيط قدرات المضيف و live bridge مع وحدات تشغيل مثل `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, و `autojs6:bridge-permissions`.
 - يتضمن مشاريع `sample/nodejs` وقائمة قدرات واجهة برمجة تطبيقات المضيف `docs/HOST-API.md`.
 - بيانات الملحق, تعليمات الاستخدام, README, و CHANGELOG مترجمة للاسبانية/الفرنسية/الروسية/العربية/اليابانية/الكورية/الانجليزية/الصينية المبسطة/الصينية التقليدية لهونغ كونغ/الصينية التقليدية لتايوان.
@@ -79,8 +81,8 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
-- **التثبيت** — نزّل ملف APK المطابق لبنية جهازك من [Releases](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/releases) (اختر `universal` عند الشك) وثبّته, أو ابنِ محليًا بالأمر `.\gradlew.bat :app:assembleDebug` ثم ثبّت من `app/build/outputs/apk/debug/`. بعد ذلك فعّل هذه الإضافة في مركز إضافات AutoJs6.
-- **التشغيل** — أنشئ سكربتًا في محرر AutoJs6 سطره الأول `"nodejs";` واكتب الباقي كما في Node.js لسطح المكتب (يدعم CommonJS/ESM وحزم npm بجافاسكربت خالص ووحدات الشبكة المدمجة). عند التشغيل يظهر الإخراج مباشرة ويمكن إيقاف السكربت في أي وقت.
+- **التثبيت** — نزّل ملف APK المطابق لبنية جهازك من [Releases](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/releases) (اختر `universal` عند الشك) وثبّته, أو ابنِ محليًا بالأمر `.\gradlew.bat :app:assembleDebug` ثم ثبّت من `app/build/outputs/apk/debug/`. بعد ذلك فعّل هذه الإضافة في مركز إضافات AutoJs6. على Android 11 فأحدث, امنح الملحق إذن الوصول إلى كل الملفات من إعدادات النظام عند الحاجة إلى التخزين المشترك; وظهور `EACCES` دون الإذن متوقع.
+- **التشغيل** — أنشئ سكربتًا في محرر AutoJs6 سطره الأول `"nodejs";` واكتب الباقي كما في Node.js لسطح المكتب (يدعم CommonJS/ESM وحزم npm بجافاسكربت خالص ووحدات الشبكة المدمجة). عند التشغيل يظهر الإخراج مباشرة ويمكن إيقاف السكربت في أي وقت. يجب أن يترجم المضيف ملفات `.ts`/`.mts`/`.cts` الخام إلى JavaScript أولا; فالملحق لا يتضمن `tsc`.
 - **أين تنظر عند الخطأ** — عند فشل السكربت تعرض وحدة التحكم مكدس JS مع رمز خطأ من سطر واحد (مثل `ERR_AUTOJS6_NODE_SCRIPT_CANCELLED`); لمزيد من التفاصيل راجع سجل عملية الإضافة عبر `adb logcat -s AutoJs6NodeBridge NodeJsRuntimePlugin`. تُوثَّق قدرات API المضيف في `docs/HOST-API.md`.
 
 ******
@@ -94,6 +96,8 @@ console.log("AutoJs6 Node.js runtime");
 - اجراء خدمة بيئة التشغيل: `org.autojs.plugin.nodejs.RUNTIME`.
 - مكتبات بيئة التشغيل الاصلية: `libnode.so` و `libautojs6-node.so`.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, و `universal`.
+- نظام الملفات: يمكن الوصول إلى مسارات الجهاز التي تسمح بها أذونات Android; وتعد `/proc` و `/sys` و `/dev` حدودا صارمة.
+- TypeScript: يقبل ناتج الترجمة فقط افتراضيا; ويعيد TypeScript الخام `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
 - القدرات: تنفيذ سكربت متزامن, bundle transport, بيئة تشغيل اصلية مدمجة, وسيط قدرات المضيف, host capability live bridge.
 
 ******
@@ -101,6 +105,24 @@ console.log("AutoJs6 Node.js runtime");
 ### سجل الاصدارات
 
 ******
+
+# v1.2.0
+
+###### 2026/08/25
+
+* `ميزة` تفعيل وصول شبيه بسطح المكتب إلى نظام الملفات ضمن أذونات Android مع استمرار رفض `/proc` و `/sys` و `/dev`
+* `ميزة` إضافة `accessibility.swipe` و `accessibility.gesture` خلف القدرة المستقلة `accessibility.gesture`
+* `اصلاح` أصبح TypeScript الخام يفشل بشكل مغلق ما لم يقدم المضيف ناتج المترجم, مع ربط dynamic import في snapshot وتوحيد إطارات المكدس المولدة والمستوردة
+* `تحسين` مواءمة عقد v2 بين المضيف والملحق وبيانات القدرات ومرآة الأمثلة وحدود مسؤولية بيئة التشغيل plugin-only
+
+# v1.1.0
+
+###### 2026/08/18
+
+* `ميزة` إضافة بث stdout/stderr المباشر والإلغاء التعاوني عبر `node::Stop`
+* `ميزة` استبدال رفض BUSY بطابور تسلسلي محدود لثلاثة منتظرين وإضافة دورة حياة السكربتات المقيمة طويلة التشغيل
+* `ميزة` تفعيل وحدات شبكة Node الأصلية و `worker_threads` و `child_process` افتراضيا, والتحقق من عشرة حزم npm شائعة مكتوبة بجافاسكربت خالص
+* `تحسين` إضافة مساحات عمل direct-run وتفاوض متسامح v1..v2 مع provider مصادر الوحدات وأكواد أخطاء موجزة ومكدسات JavaScript
 
 # v1.0.0
 
