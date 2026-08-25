@@ -28,6 +28,7 @@ private val nodePluginExampleKnownTags = setOf(
     "dynamic-import",
     "network",
     "raw-network",
+    "udp",
     "websocket",
     "ocr",
     "long-running",
@@ -161,11 +162,15 @@ tasks.register("verifyNodePluginExamples") {
         examples.forEach { entry ->
             val name = entry["name"].toString()
             val status = entry["status"].toString()
+            val reason = entry["reason"]?.toString().orEmpty().trim()
             val tags = nodePluginExampleList(entry["tags"])
             val mainAppSmoke = entry["mainAppSmoke"] as? Boolean ?: false
             val packagedCompatible = entry["packagedCompatible"] as? Boolean ?: false
             if (status !in nodePluginExampleKnownStatuses) {
                 throw GradleException("Node plugin example '$name' has unknown status '$status'.")
+            }
+            if (status != "stable" && reason.isBlank()) {
+                throw GradleException("Node plugin example '$name' with status '$status' must declare a non-blank reason.")
             }
             val unknownTags = tags.filterNot(nodePluginExampleKnownTags::contains)
             if (unknownTags.isNotEmpty()) {
@@ -234,6 +239,7 @@ tasks.register("verifyNodePluginExamples") {
             rows += linkedMapOf(
                 "name" to name,
                 "status" to status,
+                "reason" to reason,
                 "tags" to tags,
                 "mainAppSmoke" to mainAppSmoke,
                 "packagedCompatible" to packagedCompatible,
@@ -259,11 +265,11 @@ tasks.register("verifyNodePluginExamples") {
                 buildString {
                     appendLine("# AutoJs6 Node Plugin Example Validation")
                     appendLine()
-                    appendLine("| Example | Status | Main app smoke | Packaged | Tags |")
-                    appendLine("| --- | --- | --- | --- | --- |")
+                    appendLine("| Example | Status | Reason | Main app smoke | Packaged | Tags |")
+                    appendLine("| --- | --- | --- | --- | --- | --- |")
                     rows.forEach { row ->
                         appendLine(
-                            "| ${row["name"]} | ${row["status"]} | ${row["mainAppSmoke"]} | ${row["packagedCompatible"]} | " +
+                            "| ${row["name"]} | ${row["status"]} | ${row["reason"]} | ${row["mainAppSmoke"]} | ${row["packagedCompatible"]} | " +
                                     "${(row["tags"] as List<*>).joinToString(", ")} |"
                         )
                     }
