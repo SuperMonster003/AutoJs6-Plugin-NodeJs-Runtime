@@ -50,7 +50,7 @@ gradlePlugin {
             description = "Configures Java/Kotlin targets for Android modules using central Versions."
         }
         register("localAarRegisterConvention") {
-            id = "org.autojs.build.local-arr-register-convention"
+            id = "org.autojs.build.local-aar-register-convention"
             implementationClass = "org.autojs.build.LocalAarRegisterConventionPlugin"
             displayName = "AutoJs6 Local AAR Register Convention Plugin"
             description = "Provides local AAR register helpers."

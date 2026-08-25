@@ -17,18 +17,16 @@ and deferred promotion decision. Maintainers still need a digest-pinned build
 container, a published Android patch series, and per-ABI Node 24.17 outputs and
 Build IDs before the source-build status can move beyond `bootstrap_only`.
 
-Run the host-side check:
-
-```powershell
-.\gradlew.bat --console=plain :app:verifyNodeRuntimeBuildPlan
-```
-
-Plan-only script entry points:
+Validate or inspect the pinned plan without materializing artifacts:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\nodejs\runtime-build\build-node-runtime.ps1
 sh tools/nodejs/runtime-build/build-node-runtime.sh
 ```
+
+The shell entry point runs `verify-runtime-build-plan.js`; the PowerShell entry
+point reads the same lock and prints the selected versions, toolchain, output,
+and ABI plan. Both stay in plan-only mode unless their execute switch is passed.
 
 Materialize and verify Node 24.5 without trusting the checked-in libraries:
 
