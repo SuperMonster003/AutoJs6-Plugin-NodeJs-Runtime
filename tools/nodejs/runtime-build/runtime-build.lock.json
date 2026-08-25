@@ -24,7 +24,6 @@
   "androidFork": {
     "repository": "https://github.com/degaso/nodejs-mobile",
     "originalRepository": "https://github.com/nodejs-mobile/nodejs-mobile",
-    "localPath": "D:/idea-projects/nodejs-mobile",
     "currentBranch": "update-v24.5.0",
     "currentTag": "v24.5.0-r1",
     "currentCommit": "116bad1dc919702d4a701d49df26d960403ee4a4",

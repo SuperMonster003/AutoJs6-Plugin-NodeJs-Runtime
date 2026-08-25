@@ -2,7 +2,7 @@ package io.github.supermonster003.autojs6.plugin.nodejs;
 
 import java.util.ArrayDeque;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Owns the service-process execution admission state. The native runtime is
@@ -21,9 +21,16 @@ final class NodeRuntimeExecutionGate {
     }
 
     static final class Lease {
+        enum State {
+            ACTIVE,
+            CANCELLED,
+            TIMED_OUT,
+            COMPLETED
+        }
+
         final String executionId;
         volatile long startedAtMs;
-        private final AtomicBoolean cancellationRequested = new AtomicBoolean(false);
+        private final AtomicReference<State> state = new AtomicReference<>(State.ACTIVE);
 
         private Lease(String executionId, long startedAtMs) {
             this.executionId = executionId;
@@ -31,11 +38,55 @@ final class NodeRuntimeExecutionGate {
         }
 
         boolean cancellationRequested() {
-            return cancellationRequested.get();
+            State current = state.get();
+            return current == State.CANCELLED || current == State.TIMED_OUT;
         }
 
-        private void requestCancellation() {
-            cancellationRequested.set(true);
+        boolean timedOut() {
+            return state.get() == State.TIMED_OUT;
+        }
+
+        boolean cancelled() {
+            return state.get() == State.CANCELLED;
+        }
+
+        State markCompleted() {
+            state.compareAndSet(State.ACTIVE, State.COMPLETED);
+            return state.get();
+        }
+
+        private boolean requestCooperativeCancellation() {
+            while (true) {
+                State current = state.get();
+                if (current == State.CANCELLED) {
+                    return true;
+                }
+                if (current != State.ACTIVE) {
+                    return false;
+                }
+                if (state.compareAndSet(State.ACTIVE, State.CANCELLED)) {
+                    return true;
+                }
+            }
+        }
+
+        private boolean requestTimeout() {
+            return state.compareAndSet(State.ACTIVE, State.TIMED_OUT);
+        }
+
+        private boolean requestRestartCancellation() {
+            while (true) {
+                State current = state.get();
+                if (current == State.CANCELLED || current == State.TIMED_OUT) {
+                    return true;
+                }
+                if (current == State.COMPLETED) {
+                    return false;
+                }
+                if (state.compareAndSet(State.ACTIVE, State.CANCELLED)) {
+                    return true;
+                }
+            }
         }
     }
 
@@ -136,7 +187,7 @@ final class NodeRuntimeExecutionGate {
             }
             waiter = new Waiter(executionId);
             queue.addLast(waiter);
-            long deadline = enqueuedAt + Math.max(0L, maxWaitMs);
+            long deadline = saturatedDeadline(enqueuedAt, maxWaitMs);
             while (true) {
                 if (waiter.admittedLease != null) {
                     return new Admission(
@@ -188,6 +239,7 @@ final class NodeRuntimeExecutionGate {
             if (active != lease) {
                 return false;
             }
+            lease.markCompleted();
             active = null;
             if (!closed) {
                 Waiter next = queue.pollFirst();
@@ -210,7 +262,9 @@ final class NodeRuntimeExecutionGate {
             if (active == null || executionId == null || !active.executionId.equals(executionId)) {
                 return false;
             }
-            active.requestCancellation();
+            if (!active.requestRestartCancellation()) {
+                return false;
+            }
             closed = true;
             monitor.notifyAll();
             return true;
@@ -228,8 +282,20 @@ final class NodeRuntimeExecutionGate {
             if (active == null || executionId == null || !active.executionId.equals(executionId)) {
                 return false;
             }
-            active.requestCancellation();
-            return true;
+            return active.requestCooperativeCancellation();
+        }
+    }
+
+    /**
+     * Lets the execution deadline win exactly once. A completed or manually
+     * cancelled lease cannot be reclassified as timed out.
+     */
+    boolean requestTimeout(String executionId) {
+        synchronized (monitor) {
+            if (active == null || executionId == null || !active.executionId.equals(executionId)) {
+                return false;
+            }
+            return active.requestTimeout();
         }
     }
 
@@ -281,5 +347,13 @@ final class NodeRuntimeExecutionGate {
         if (executionId == null || executionId.trim().isEmpty()) {
             throw new IllegalArgumentException("executionId must not be blank");
         }
+    }
+
+    static long saturatedDeadline(long startedAt, long budgetMs) {
+        long nonNegativeBudget = Math.max(0L, budgetMs);
+        if (startedAt > Long.MAX_VALUE - nonNegativeBudget) {
+            return Long.MAX_VALUE;
+        }
+        return startedAt + nonNegativeBudget;
     }
 }

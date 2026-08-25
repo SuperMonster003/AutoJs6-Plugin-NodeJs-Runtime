@@ -391,6 +391,11 @@ public final class NodeBridgePermissionManifest {
                     metadata.nativeAssets.add(value);
                     metadata.sources.add(sourceName + ".nativeAssets");
                 });
+        // Compatibility-only diagnostics: packaged projects may describe the
+        // roots they expect to use, but this metadata never grants, widens, or
+        // narrows filesystem authority. Android app permissions define the
+        // device-visible reach and the runtime independently rejects its
+        // sensitive /proc, /sys, and /dev boundaries.
         collectOptionalStringArray(json, "filesystemRoots", sourceName + ".filesystemRoots", warnings)
                 .forEach(value -> {
                     metadata.filesystemRoots.add(value);

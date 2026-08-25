@@ -44,6 +44,10 @@
 #define AUTOJS6_NODE_BRIDGE_LINKS_LIBNODE 0
 #endif
 
+#ifndef AUTOJS6_NODE_DEBUG_BUILD
+#define AUTOJS6_NODE_DEBUG_BUILD 0
+#endif
+
 namespace autojs6::node_bridge::internal {
 
 using namespace autojs6::node_bridge;
@@ -869,6 +873,7 @@ struct EmbeddedScriptExecutionRequest {
     bool esmEnabled = false;
     bool dynamicImportEnabled = false;
     bool rawNodeNetworkModulesEnabled = false;
+    bool inspectorEnabled = false;
     bool workerThreadsEnabled = false;
     bool childProcessEnabled = false;
     bool javaInteropEnabled = false;
@@ -918,6 +923,7 @@ void runEmbeddedScriptNodeLifecycle(
         const std::string* sourceOverride,
         const char* sourceLabelOverride,
         const char* workingDirectoryOverride,
+        bool inspectorEnabled,
         bool fullUvDiagnostics,
         node::MultiIsolatePlatform* processRuntimePlatform,
         bool processRuntimePersistent,
@@ -950,6 +956,7 @@ std::string buildEmbeddedScriptExecutionSource(
         bool esmEnabled,
         bool dynamicImportEnabled,
         bool rawNodeNetworkModulesEnabled,
+        bool inspectorEnabled,
         bool workerThreadsEnabled,
         bool childProcessEnabled,
         bool javaInteropEnabled);

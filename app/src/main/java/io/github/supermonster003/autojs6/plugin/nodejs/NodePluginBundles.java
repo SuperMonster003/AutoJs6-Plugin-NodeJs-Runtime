@@ -141,10 +141,18 @@ final class NodePluginBundles {
                 admissionStatus = "draining";
                 break;
         }
-        String errorCode = admission.outcome == NodeRuntimeExecutionGate.AdmissionOutcome.CANCELLED_WHILE_QUEUED
-                ? NodeJsRuntimePluginService.ERROR_SCRIPT_CANCELLED
-                : NodeJsRuntimePluginService.ERROR_BUSY;
-        Bundle failure = failureBundle(request, startedAt, message, null, errorCode);
+        long timeoutMs = request.getLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 0L);
+        boolean totalBudgetTimedOut =
+                admission.outcome == NodeRuntimeExecutionGate.AdmissionOutcome.WAIT_TIMEOUT &&
+                        timeoutMs > 0L;
+        String errorCode = totalBudgetTimedOut
+                ? NodeJsRuntimePluginService.ERROR_SCRIPT_TIMEOUT
+                : admission.outcome == NodeRuntimeExecutionGate.AdmissionOutcome.CANCELLED_WHILE_QUEUED
+                        ? NodeJsRuntimePluginService.ERROR_SCRIPT_CANCELLED
+                        : NodeJsRuntimePluginService.ERROR_BUSY;
+        Bundle failure = totalBudgetTimedOut
+                ? timeoutFailureBundle(request, startedAt, timeoutMs, "queue_wait")
+                : failureBundle(request, startedAt, message, null, errorCode);
         NodeRuntimeExecutionGate.Snapshot active = service.executionGate.snapshot();
         LinkedHashMap<String, String> diagnostics = new LinkedHashMap<>();
         diagnostics.put("embedded_script.runtime_plugin.admission.status", admissionStatus);
@@ -169,6 +177,58 @@ final class NodePluginBundles {
                 )
         );
         return failure;
+    }
+
+    Bundle timeoutFailureBundle(
+            Bundle request,
+            long startedAt,
+            long timeoutMs,
+            String phase
+    ) {
+        Bundle failure = failureBundle(
+                request,
+                startedAt,
+                timeoutMessage(timeoutMs),
+                null,
+                NodeJsRuntimePluginService.ERROR_SCRIPT_TIMEOUT
+        );
+        markResultTimedOut(failure, timeoutMs, elapsedSince(startedAt), phase);
+        return failure;
+    }
+
+    void markResultTimedOut(Bundle result, long timeoutMs, long elapsedMs, String phase) {
+        if (result == null) {
+            return;
+        }
+        result.putBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED, false);
+        result.putInt(NodeJsRuntimeContract.KEY_EXIT_CODE, 1);
+        result.putString(NodeJsRuntimeContract.KEY_ERROR_NAME, "NodeJsRuntimePluginTimeoutError");
+        result.putString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, timeoutMessage(timeoutMs));
+        result.putString(NodeJsRuntimeContract.KEY_ERROR_STACK, null);
+        result.putString(
+                NodeJsRuntimeContract.KEY_ERROR_CODE,
+                NodeJsRuntimePluginService.ERROR_SCRIPT_TIMEOUT
+        );
+        result.putBoolean(NodeJsRuntimeContract.KEY_TIMED_OUT, true);
+        result.putLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, timeoutMs);
+        result.putLong(NodeJsRuntimeContract.KEY_ELAPSED_MS, elapsedMs);
+        result.putStringArray(
+                NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD,
+                appendNativePayload(
+                        result.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD),
+                        new String[]{
+                                "embedded_script.timed_out=true",
+                                "embedded_script.error_code=" + NodeJsRuntimePluginService.ERROR_SCRIPT_TIMEOUT,
+                                "embedded_script.runtime_plugin.timed_out=true",
+                                "embedded_script.runtime_plugin.timeout_ms=" + timeoutMs,
+                                "embedded_script.runtime_plugin.timeout_phase=" + phase
+                        }
+                )
+        );
+    }
+
+    private static String timeoutMessage(long timeoutMs) {
+        return "Node.js script exceeded its " + timeoutMs + " ms wall-clock budget.";
     }
 
     Bundle busyFailureBundle(Bundle request, long startedAt) {

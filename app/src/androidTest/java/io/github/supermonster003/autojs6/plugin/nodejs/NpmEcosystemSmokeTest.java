@@ -42,11 +42,12 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Roadmap M2.4: ten high-frequency pure-JS npm packages (lodash, dayjs, ms,
- * semver, uuid, debug, mime, qs, js-yaml, ajv) run for real inside the plugin
- * runtime. The corpus is a genuine `npm install` node_modules tree (~1.3k
- * files) shipped as androidTest assets and delivered through the workspace
- * archive transport; main.js asserts one core behavior per package.
+ * Roadmap M2.4/M9.2: fifteen real npm packages run inside the plugin runtime.
+ * The original high-frequency CommonJS corpus is extended with axios and
+ * Express loopback probes plus three ESM-only packages (nanoid, p-limit and
+ * yocto-queue). The genuine npm-install tree is shipped as androidTest assets
+ * through the workspace archive transport; main.js asserts one core behavior
+ * per package without registry access on the Android device.
  */
 @RunWith(AndroidJUnit4.class)
 public final class NpmEcosystemSmokeTest {
@@ -58,11 +59,12 @@ public final class NpmEcosystemSmokeTest {
     private static final long SCRIPT_TIMEOUT_MS = 120_000L;
     private static final List<String> PACKAGES = List.of(
             "lodash", "dayjs", "ms", "semver", "uuid",
-            "debug", "mime", "qs", "js-yaml", "ajv"
+            "debug", "mime", "qs", "js-yaml", "ajv",
+            "axios", "express", "nanoid", "p-limit", "yocto-queue"
     );
 
     @Test
-    public void tenPopularPackagesRunInsidePluginRuntime() throws Exception {
+    public void commonJsAndEsmPackagesRunInsidePluginRuntime() throws Exception {
         Context targetContext = InstrumentationRegistry.getInstrumentation()
                 .getTargetContext()
                 .getApplicationContext();

@@ -153,6 +153,7 @@ public final class NativeNodeEmbeddedRuntimeBridge {
             boolean esmEnabled,
             boolean dynamicImportEnabled,
             boolean rawNodeNetworkModulesEnabled,
+            boolean inspectorEnabled,
             boolean workerThreadsEnabled,
             boolean childProcessEnabled,
             boolean javaInteropEnabled
@@ -173,6 +174,7 @@ public final class NativeNodeEmbeddedRuntimeBridge {
                 esmEnabled,
                 dynamicImportEnabled,
                 rawNodeNetworkModulesEnabled,
+                inspectorEnabled,
                 workerThreadsEnabled,
                 childProcessEnabled,
                 javaInteropEnabled
@@ -195,6 +197,7 @@ public final class NativeNodeEmbeddedRuntimeBridge {
             boolean esmEnabled,
             boolean dynamicImportEnabled,
             boolean rawNodeNetworkModulesEnabled,
+            boolean inspectorEnabled,
             boolean workerThreadsEnabled,
             boolean childProcessEnabled,
             boolean javaInteropEnabled

@@ -65,15 +65,16 @@ public class NodeJsRuntimePluginService extends Service {
     /** Grace window for node::Stop to drain the loop before the restart fallback fires. */
     private static final long COOPERATIVE_STOP_FALLBACK_GRACE_MS = 3_000L;
     static final String ERROR_SCRIPT_CANCELLED = "ERR_AUTOJS6_NODE_SCRIPT_CANCELLED";
+    static final String ERROR_SCRIPT_TIMEOUT = "ERR_AUTOJS6_SCRIPT_TIMEOUT";
     /** Queue wait ceiling for requests that carry no explicit timeout. */
     private static final long DEFAULT_ADMISSION_WAIT_MS = 10 * 60_000L;
     static final String ERROR_BUSY = "ERR_AUTOJS6_NODE_PLUGIN_BUSY";
     static final String ERROR_UNAVAILABLE = "ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE";
     static final String ERROR_CONTRACT_MISMATCH = "ERR_AUTOJS6_NODE_PLUGIN_CONTRACT_MISMATCH";
     static final String NODE_CAPABILITY_CATALOG_SCHEMA = "autojs6-node-capability-catalog-v1";
-    static final String NODE_CAPABILITY_CATALOG_VERSION = "1.2.0";
+    static final String NODE_CAPABILITY_CATALOG_VERSION = "1.3.0";
     static final String NODE_CAPABILITY_CATALOG_SHA256 =
-            "1a33e3f3df88412ea3cc1dbf125886e0daa01862663157eaf2c5c284857a89e7";
+            "78e573627e8a19e7dc511a4c8e527a564ecf7277d6389e08194963a597f1d0ab";
     static final String KEY_NODE_CAPABILITY_CATALOG_SCHEMA = "nodeCapabilityCatalogSchema";
     static final String KEY_NODE_CAPABILITY_CATALOG_VERSION = "nodeCapabilityCatalogVersion";
     static final String KEY_NODE_CAPABILITY_CATALOG_SHA256 = "nodeCapabilityCatalogSha256";
@@ -142,9 +143,26 @@ public class NodeJsRuntimePluginService extends Service {
                         "plugin-" + UUID.randomUUID()
                 );
                 normalizedRequest.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, executionId);
+                long timeoutMs = normalizedRequest.getLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 0L);
+                long admissionWaitBudgetMs = admissionWaitBudgetMs(
+                        normalizedRequest,
+                        startedAt,
+                        SystemClock.elapsedRealtime()
+                );
+                if (timeoutMs > 0L && admissionWaitBudgetMs <= 0L) {
+                    return completeImmediateFailure(
+                            callback,
+                            bundles.timeoutFailureBundle(
+                                    normalizedRequest,
+                                    startedAt,
+                                    timeoutMs,
+                                    "pre_admission"
+                            )
+                    );
+                }
                 NodeRuntimeExecutionGate.Admission admission = executionGate.acquire(
                         executionId,
-                        admissionWaitBudgetMs(normalizedRequest)
+                        admissionWaitBudgetMs
                 );
                 if (admission.outcome != NodeRuntimeExecutionGate.AdmissionOutcome.ADMITTED) {
                     return completeImmediateFailure(
@@ -153,18 +171,76 @@ public class NodeJsRuntimePluginService extends Service {
                     );
                 }
                 NodeRuntimeExecutionGate.Lease lease = admission.lease;
+                Runnable timeoutWatchdog = null;
+                boolean stopScopeOpened = false;
                 try {
+                    long remainingBudgetMs = remainingTimeoutBudgetMs(
+                            timeoutMs,
+                            startedAt,
+                            SystemClock.elapsedRealtime()
+                    );
+                    if (timeoutMs > 0L && remainingBudgetMs <= 0L) {
+                        lease.markCompleted();
+                        return completeImmediateFailure(
+                                callback,
+                                bundles.timeoutFailureBundle(
+                                        normalizedRequest,
+                                        startedAt,
+                                        timeoutMs,
+                                        "post_admission"
+                                )
+                        );
+                    }
                     NativeNodeEmbeddedRuntimeBridge.beginScriptStopScope(
                             NodeJsRuntimePluginService.this,
                             executionId
                     );
+                    stopScopeOpened = true;
+                    if (timeoutMs > 0L) {
+                        remainingBudgetMs = remainingTimeoutBudgetMs(
+                                timeoutMs,
+                                startedAt,
+                                SystemClock.elapsedRealtime()
+                        );
+                        if (remainingBudgetMs <= 0L) {
+                            executionGate.requestTimeout(executionId);
+                            return completeImmediateFailure(
+                                    callback,
+                                    bundles.timeoutFailureBundle(
+                                            normalizedRequest,
+                                            startedAt,
+                                            timeoutMs,
+                                            "pre_execution"
+                                    )
+                            );
+                        }
+                        timeoutWatchdog = () -> handleExecutionTimeout(executionId);
+                        processHandler.postDelayed(timeoutWatchdog, remainingBudgetMs);
+                    }
                     Bundle result = runScriptActive(normalizedRequest, callback);
-                    if (lease.cancellationRequested()) {
+                    NodeRuntimeExecutionGate.Lease.State completionState = lease.markCompleted();
+                    if (timeoutWatchdog != null) {
+                        processHandler.removeCallbacks(timeoutWatchdog);
+                    }
+                    if (completionState == NodeRuntimeExecutionGate.Lease.State.TIMED_OUT) {
+                        bundles.markResultTimedOut(
+                                result,
+                                timeoutMs,
+                                elapsedSince(startedAt),
+                                "execution"
+                        );
+                    } else if (completionState == NodeRuntimeExecutionGate.Lease.State.CANCELLED) {
                         markResultCancelled(result);
                     }
                     return result;
                 } finally {
-                    NativeNodeEmbeddedRuntimeBridge.endScriptStopScope(NodeJsRuntimePluginService.this);
+                    lease.markCompleted();
+                    if (timeoutWatchdog != null) {
+                        processHandler.removeCallbacks(timeoutWatchdog);
+                    }
+                    if (stopScopeOpened) {
+                        NativeNodeEmbeddedRuntimeBridge.endScriptStopScope(NodeJsRuntimePluginService.this);
+                    }
                     executionGate.release(lease);
                 }
             } finally {
@@ -459,9 +535,23 @@ public class NodeJsRuntimePluginService extends Service {
      * otherwise wait generously — desktop `node foo.js` semantics are "run
      * when it's my turn", not "fail because someone else is running".
      */
-    private static long admissionWaitBudgetMs(Bundle request) {
+    private static long admissionWaitBudgetMs(Bundle request, long startedAt, long now) {
         long timeoutMs = request.getLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 0L);
-        return timeoutMs > 0L ? timeoutMs : DEFAULT_ADMISSION_WAIT_MS;
+        return timeoutMs > 0L
+                ? remainingTimeoutBudgetMs(timeoutMs, startedAt, now)
+                : DEFAULT_ADMISSION_WAIT_MS;
+    }
+
+    /** Remaining part of a positive wall-clock budget; non-positive means unbounded. */
+    static long remainingTimeoutBudgetMs(long timeoutMs, long startedAt, long now) {
+        if (timeoutMs <= 0L) {
+            return Long.MAX_VALUE;
+        }
+        long elapsedMs = now <= startedAt ? 0L : now - startedAt;
+        if (elapsedMs < 0L || elapsedMs >= timeoutMs) {
+            return 0L;
+        }
+        return timeoutMs - elapsedMs;
     }
 
     boolean isDedicatedRuntimeProcess() {
@@ -489,6 +579,31 @@ public class NodeJsRuntimePluginService extends Service {
                 scheduleDedicatedRuntimeProcessRestart("cooperative-stop-timeout:" + executionId);
             }
         }, COOPERATIVE_STOP_FALLBACK_GRACE_MS);
+    }
+
+    private void handleExecutionTimeout(String executionId) {
+        if (!executionGate.requestTimeout(executionId)) {
+            return;
+        }
+        Log.w(TAG, "Execution " + executionId + " exceeded its wall-clock budget; stopping it.");
+        boolean stopDispatched;
+        try {
+            stopDispatched = NativeNodeEmbeddedRuntimeBridge.requestScriptStop(
+                    NodeJsRuntimePluginService.this,
+                    executionId
+            );
+        } catch (Throwable error) {
+            Log.w(TAG, "Timeout stop dispatch failed; falling back to process restart.", error);
+            stopDispatched = false;
+        }
+        if (!stopDispatched) {
+            if (executionGate.requestCancellation(executionId)) {
+                scheduleDedicatedRuntimeProcessRestart("timeout:" + executionId);
+            }
+            return;
+        }
+        Log.i(TAG, "Timeout stop dispatched for execution " + executionId);
+        scheduleCooperativeStopFallback(executionId);
     }
 
     /**

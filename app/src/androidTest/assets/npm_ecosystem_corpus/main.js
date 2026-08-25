@@ -15,6 +15,48 @@ function check(label, action) {
   }
 }
 
+async function checkAsync(label, action) {
+  try {
+    const value = await action();
+    if (value !== true) {
+      throw new Error("assertion returned " + value);
+    }
+    console.log("npm." + label + "=ok");
+  } catch (error) {
+    console.error("npm." + label + "=fail " + (error && error.message));
+    process.exitCode = 1;
+  }
+}
+
+function listen(server) {
+  return new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      server.removeListener("error", reject);
+      resolve(server.address().port);
+    });
+  });
+}
+
+function close(server) {
+  return new Promise((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
+  });
+}
+
+function httpGet(port, path) {
+  const http = require("node:http");
+  return new Promise((resolve, reject) => {
+    const request = http.get({ hostname: "127.0.0.1", port, path }, (response) => {
+      let body = "";
+      response.setEncoding("utf8");
+      response.on("data", (chunk) => { body += chunk; });
+      response.on("end", () => resolve({ status: response.statusCode, body }));
+    });
+    request.on("error", reject);
+  });
+}
+
 check("lodash", () => {
   const _ = require("lodash");
   return _.chunk([1, 2, 3, 4], 2).length === 2 &&
@@ -85,4 +127,75 @@ check("ajv", () => {
   return validateFn({ count: 3 }) === true && validateFn({ count: 0 }) === false;
 });
 
-console.log("npm.suite=done");
+(async () => {
+  await checkAsync("express", async () => {
+    const express = require("express");
+    const app = express();
+    app.get("/health", (_request, response) => {
+      response.json({ runtime: "autojs6", ok: true });
+    });
+    const server = app.listen(0, "127.0.0.1");
+    try {
+      if (!server.listening) {
+        await new Promise((resolve, reject) => {
+          server.once("listening", resolve);
+          server.once("error", reject);
+        });
+      }
+      const response = await httpGet(server.address().port, "/health");
+      return response.status === 200 &&
+          JSON.parse(response.body).runtime === "autojs6";
+    } finally {
+      await close(server);
+    }
+  });
+
+  await checkAsync("axios", async () => {
+    const http = require("node:http");
+    const axios = require("axios");
+    const server = http.createServer((_request, response) => {
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ via: "axios", ok: true }));
+    });
+    const port = await listen(server);
+    try {
+      const response = await axios.get("http://127.0.0.1:" + port + "/probe", {
+        proxy: false,
+        timeout: 5000,
+      });
+      return response.status === 200 && response.data.via === "axios";
+    } finally {
+      await close(server);
+    }
+  });
+
+  await checkAsync("nanoid", async () => {
+    const { nanoid } = await import("nanoid");
+    const id = nanoid(18);
+    return typeof id === "string" && id.length === 18;
+  });
+
+  await checkAsync("p-limit", async () => {
+    const { default: pLimit } = await import("p-limit");
+    const limit = pLimit(1);
+    const order = [];
+    await Promise.all([
+      limit(async () => { order.push("a"); }),
+      limit(async () => { order.push("b"); }),
+    ]);
+    return order.join("") === "ab" && limit.activeCount === 0;
+  });
+
+  await checkAsync("yocto-queue", async () => {
+    const { default: Queue } = await import("yocto-queue");
+    const queue = new Queue();
+    queue.enqueue("first");
+    queue.enqueue("second");
+    return queue.dequeue() === "first" && queue.dequeue() === "second" && queue.size === 0;
+  });
+
+  console.log("npm.suite=done");
+})().catch((error) => {
+  console.error("npm.suite=fail " + (error && error.stack || error));
+  process.exitCode = 1;
+});

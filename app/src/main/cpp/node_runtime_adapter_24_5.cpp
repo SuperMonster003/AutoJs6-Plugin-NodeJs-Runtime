@@ -766,6 +766,7 @@ int32_t executeRequest(
     execution.dynamicImportEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_DYNAMIC_IMPORT) != 0;
     execution.rawNodeNetworkModulesEnabled =
             (flags & AUTOJS_NODE_EXECUTION_FLAG_RAW_NODE_NETWORK_MODULES) != 0;
+    execution.inspectorEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_INSPECTOR) != 0;
     execution.workerThreadsEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_WORKER_THREADS) != 0;
     execution.childProcessEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_CHILD_PROCESS) != 0;
     execution.javaInteropEnabled = (flags & AUTOJS_NODE_EXECUTION_FLAG_JAVA_INTEROP) != 0;

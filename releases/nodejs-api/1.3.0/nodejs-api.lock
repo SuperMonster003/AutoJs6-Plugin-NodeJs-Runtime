@@ -1,0 +1,19 @@
+# Immutable Node.js runtime API distribution lock.
+format=1
+coordinate=org.autojs.plugin.nodejs:nodejs-api:1.3.0
+file=nodejs-api-1.3.0.aar
+sha256=88d154e2dc80abbb3779d7fce85cf2ca2f0c802736d60a622d08e093310e8f03
+aar.sha256=88d154e2dc80abbb3779d7fce85cf2ca2f0c802736d60a622d08e093310e8f03
+classes.jar.sha256=c8e4cbf32d1655cf58e0d8687e267f9e816554e9724ee26d0bedce3f762f589d
+source.sha256=f00183d625f3af91c7841a19aca7a55809f26037b731dfd9ba8ddc24d0d7d6d8
+binary.api.sha256=04cdbd528b4888e290ec5dc855632a090e15472eda2ce3ca72e01021df3a6d9a
+abi.sha256=e91d59bd19b628a849f5550493309ad15529f17860fb47ab978b427bb2714481
+public.abi.sha256=e91d59bd19b628a849f5550493309ad15529f17860fb47ab978b427bb2714481
+aidl.transactions.sha256=74c886570e635704bb10f9735ebba7838dd6e0a8df79641f4478320deb723084
+contract.version=2
+contract.min=2
+contract.max=2
+module.source.provider.contract.version=2
+source.owner=AutoJs6-Plugin-NodeJs-Runtime
+source.repository=AutoJs6-Plugin-NodeJs-Runtime
+source.gitBase=3f1b3b1e80eaaa43dbebc6cd403cdf62a1022e7a
