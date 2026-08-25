@@ -572,6 +572,7 @@ static jobjectArray runEmbeddedScriptLifecycleNative(
         bool esmEnabled,
         bool dynamicImportEnabled,
         bool rawNodeNetworkModulesEnabled,
+        bool inspectorEnabled,
         bool workerThreadsEnabled,
         bool childProcessEnabled,
         bool javaInteropEnabled
@@ -589,6 +590,7 @@ static jobjectArray runEmbeddedScriptLifecycleNative(
     request.esmEnabled = esmEnabled;
     request.dynamicImportEnabled = dynamicImportEnabled;
     request.rawNodeNetworkModulesEnabled = rawNodeNetworkModulesEnabled;
+    request.inspectorEnabled = inspectorEnabled;
     request.workerThreadsEnabled = workerThreadsEnabled;
     request.childProcessEnabled = childProcessEnabled;
     request.javaInteropEnabled = javaInteropEnabled;
@@ -1273,6 +1275,7 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeRunEmbeddedS
             esmEnabled == JNI_TRUE,
             dynamicImportEnabled == JNI_TRUE,
             rawNodeNetworkModulesEnabled == JNI_TRUE,
+            false,
             workerThreadsEnabled == JNI_TRUE,
             childProcessEnabled == JNI_TRUE,
             javaInteropEnabled == JNI_TRUE
@@ -1300,6 +1303,7 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeRunEmbeddedS
         jboolean esmEnabled,
         jboolean dynamicImportEnabled,
         jboolean rawNodeNetworkModulesEnabled,
+        jboolean inspectorEnabled,
         jboolean workerThreadsEnabled,
         jboolean childProcessEnabled,
         jboolean javaInteropEnabled
@@ -1377,6 +1381,7 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeRunEmbeddedS
             esmEnabled == JNI_TRUE,
             dynamicImportEnabled == JNI_TRUE,
             rawNodeNetworkModulesEnabled == JNI_TRUE,
+            inspectorEnabled == JNI_TRUE,
             workerThreadsEnabled == JNI_TRUE,
             childProcessEnabled == JNI_TRUE,
             javaInteropEnabled == JNI_TRUE

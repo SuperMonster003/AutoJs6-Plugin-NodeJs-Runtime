@@ -86,6 +86,7 @@ std::vector<std::string> runEmbeddedScriptExecution(
         const char* runtimeAdapterPath,
         const char* runtimeAdapterMode
 ) {
+    const bool inspectorEnabled = request.inspectorEnabled && AUTOJS6_NODE_DEBUG_BUILD != 0;
     std::lock_guard<std::recursive_mutex> processRuntimeLock(embeddedProcessRuntimeExecutionMutex());
     const auto startedAt = Clock::now();
     __android_log_print(ANDROID_LOG_INFO, kLogTag, "embedded_script.enter");
@@ -127,6 +128,9 @@ std::vector<std::string> runEmbeddedScriptExecution(
     putPayload(payload, "embedded_script.request.esm_enabled", request.esmEnabled);
     putPayload(payload, "embedded_script.request.dynamic_import_enabled", request.dynamicImportEnabled);
     putPayload(payload, "embedded_script.request.raw_node_network_modules_enabled", request.rawNodeNetworkModulesEnabled);
+    putPayload(payload, "embedded_script.request.inspector_requested", request.inspectorEnabled);
+    putPayload(payload, "embedded_script.request.inspector_enabled", inspectorEnabled);
+    putPayload(payload, "embedded_script.request.inspector_debug_build", AUTOJS6_NODE_DEBUG_BUILD != 0);
     putPayload(payload, "embedded_script.request.worker_threads_enabled", request.workerThreadsEnabled);
     putPayload(payload, "embedded_script.request.child_process_enabled", request.childProcessEnabled);
     putPayload(payload, "embedded_script.request.java_interop_enabled", request.javaInteropEnabled);
@@ -173,6 +177,7 @@ std::vector<std::string> runEmbeddedScriptExecution(
             request.esmEnabled,
             request.dynamicImportEnabled,
             request.rawNodeNetworkModulesEnabled,
+            inspectorEnabled,
             request.workerThreadsEnabled,
             request.childProcessEnabled,
             request.javaInteropEnabled
@@ -232,6 +237,7 @@ std::vector<std::string> runEmbeddedScriptExecution(
                 &wrappedSource,
                 "embedded_script",
                 workingDirectoryPtr,
+                inspectorEnabled,
                 fullUvDiagnostics,
                 processRuntimePersistent ? processExecution.platform : nullptr,
                 processRuntimePersistent,
@@ -271,6 +277,7 @@ void runEmbeddedScriptNodeLifecycle(
         const std::string* sourceOverride,
         const char* sourceLabelOverride,
         const char* workingDirectoryOverride,
+        bool inspectorEnabled,
         bool fullUvDiagnostics,
         node::MultiIsolatePlatform* processRuntimePlatform,
         bool processRuntimePersistent,
@@ -1276,16 +1283,23 @@ void runEmbeddedScriptNodeLifecycle(
                 createEnvironmentLookup.symbol.c_str()
         );
         const auto environmentCreateStartedAt = Clock::now();
+        uint64_t environmentFlagBits =
+                static_cast<uint64_t>(node::EnvironmentFlags::kNoRegisterESMLoader) |
+                static_cast<uint64_t>(node::EnvironmentFlags::kNoNativeAddons) |
+                static_cast<uint64_t>(node::EnvironmentFlags::kNoGlobalSearchPaths) |
+                static_cast<uint64_t>(node::EnvironmentFlags::kNoBrowserGlobals) |
+                static_cast<uint64_t>(node::EnvironmentFlags::kNoStartDebugSignalHandler) |
+                static_cast<uint64_t>(node::EnvironmentFlags::kNoWaitForInspectorFrontend);
+        if (!inspectorEnabled) {
+            environmentFlagBits |= static_cast<uint64_t>(node::EnvironmentFlags::kNoCreateInspector);
+        } else {
+            // CreateEnvironment() only associates its InspectorAgent with the
+            // process inspector server when this ownership bit is present.
+            // Signal-based activation and frontend waiting remain disabled.
+            environmentFlagBits |= static_cast<uint64_t>(node::EnvironmentFlags::kOwnsInspector);
+        }
         const auto environmentFlags =
-                static_cast<node::EnvironmentFlags::Flags>(
-                        static_cast<uint64_t>(node::EnvironmentFlags::kNoRegisterESMLoader) |
-                        static_cast<uint64_t>(node::EnvironmentFlags::kNoNativeAddons) |
-                        static_cast<uint64_t>(node::EnvironmentFlags::kNoGlobalSearchPaths) |
-                        static_cast<uint64_t>(node::EnvironmentFlags::kNoBrowserGlobals) |
-                        static_cast<uint64_t>(node::EnvironmentFlags::kNoCreateInspector) |
-                        static_cast<uint64_t>(node::EnvironmentFlags::kNoStartDebugSignalHandler) |
-                        static_cast<uint64_t>(node::EnvironmentFlags::kNoWaitForInspectorFrontend)
-                );
+                static_cast<node::EnvironmentFlags::Flags>(environmentFlagBits);
         std::vector<std::string> environmentArgs = {
                 "autojs6-embedded-environment-probe"
         };

@@ -59,11 +59,17 @@ final class NodeRuntimeModuleInjector {
 
     private static final String EXECUTION_MODE_INTERACTIVE_LONG_RUNNING = "interactive_long_running";
 
+    private static final String EXECUTION_MODE_ONE_SHOT = "one_shot";
+
+    private static final String EXECUTION_MODE_SCHEDULED = "scheduled";
+
     private static final String LAUNCH_SURFACE_SCRIPT = "script";
 
     private static final String LAUNCH_SURFACE_INTERACTIVE_SESSION = "interactive_session";
 
     private static final String LAUNCH_SURFACE_PACKAGED_LONG_RUNNING = "packaged_long_running";
+
+    private static final String LAUNCH_SURFACE_SCHEDULED_RUNNER = "scheduled_runner";
 
     RuntimeModuleInjection withPluginRuntimeModules(
             Map<String, String> runtimeModuleSources,
@@ -122,8 +128,8 @@ final class NodeRuntimeModuleInjector {
         injection = injection.withRuntimeModule(
                 "lifecycle_config",
                 LIFECYCLE_CONFIG_RUNTIME_MODULE_NAME,
-                lifecycleConfigRuntimeModuleSource(injectedEngineInfo, workingDirectory),
-                "bridge_engine_info"
+                lifecycleConfigRuntimeModuleSource(injectedEngineInfo, workingDirectory, request),
+                "request_contract_with_bridge_context"
         );
         return injection;
     }
@@ -209,30 +215,50 @@ final class NodeRuntimeModuleInjector {
         ).toJson();
     }
 
-    private String lifecycleConfigRuntimeModuleSource(String engineInfoJson, String workingDirectory) {
+    private String lifecycleConfigRuntimeModuleSource(
+            String engineInfoJson,
+            String workingDirectory,
+            Bundle request
+    ) {
         JSONObject engineInfo = parseJsonObject(engineInfoJson);
-        if (engineInfo == null) {
-            return null;
-        }
         String packageName = stringJsonValue(engineInfo, "packageName", context.getPackageName());
         String cwd = canonicalPath(stringJsonValue(engineInfo, "cwd", workingDirectory));
-        String executionMode = stringJsonValue(engineInfo, "executionMode", "");
-        String launchSurface = stringJsonValue(engineInfo, "launchSurface", LAUNCH_SURFACE_SCRIPT);
-        boolean checkpointEnabled = EXECUTION_MODE_INTERACTIVE_LONG_RUNNING.equals(executionMode) &&
-                (LAUNCH_SURFACE_INTERACTIVE_SESSION.equals(launchSurface) ||
-                        LAUNCH_SURFACE_PACKAGED_LONG_RUNNING.equals(launchSurface));
+        String requestExecutionMode = request == null
+                ? null
+                : request.getString(NodeJsRuntimeContract.KEY_EXECUTION_MODE);
+        LifecycleRequestPolicy lifecyclePolicy = resolveLifecycleRequest(
+                requestExecutionMode,
+                stringJsonValue(engineInfo, "executionMode", null),
+                stringJsonValue(engineInfo, "launchSurface", null)
+        );
+        String executionId = stringJsonValue(
+                engineInfo,
+                "id",
+                request == null ? "" : nonBlank(
+                        request.getString(NodeJsRuntimeContract.KEY_EXECUTION_ID),
+                        ""
+                )
+        );
+        String sourceName = stringJsonValue(
+                engineInfo,
+                "sourceName",
+                request == null ? "" : nonBlank(
+                        request.getString(NodeJsRuntimeContract.KEY_SOURCE_NAME),
+                        ""
+                )
+        );
         try {
             return new JSONObject()
                     .put("schemaVersion", LIFECYCLE_CONFIG_SCHEMA_VERSION)
-                    .put("executionId", stringJsonValue(engineInfo, "id", ""))
-                    .put("sourceName", stringJsonValue(engineInfo, "sourceName", ""))
+                    .put("executionId", executionId)
+                    .put("sourceName", sourceName)
                     .put("packageName", packageName)
                     .put("workingDirectory", cwd)
                     .put("projectKey", sha256(packageName + "\n" + cwd).substring(0, 32))
-                    .put("executionMode", executionMode)
-                    .put("launchSurface", launchSurface)
+                    .put("executionMode", lifecyclePolicy.executionMode)
+                    .put("launchSurface", lifecyclePolicy.launchSurface)
                     .put("checkpoint", new JSONObject()
-                            .put("enabled", checkpointEnabled)
+                            .put("enabled", lifecyclePolicy.checkpointEnabled)
                             .put("maxBytes", LIFECYCLE_MAX_CHECKPOINT_BYTES)
                             .put("automaticRestart", false)
                             .put("restartPolicy", "never"))
@@ -245,6 +271,38 @@ final class NodeRuntimeModuleInjector {
         } catch (Throwable ignored) {
             return null;
         }
+    }
+
+    /**
+     * The published request key is authoritative. Engine-info remains a
+     * compatibility fallback for older v2 callers that populated only the
+     * host-broker metadata. A direct explicit long-running request has no
+     * separate launch-surface key, so it is treated as an interactive session;
+     * host-broker checkpoint dispatch still applies its own independent mode
+     * and launch-surface authorization.
+     */
+    static LifecycleRequestPolicy resolveLifecycleRequest(
+            String requestExecutionMode,
+            String engineInfoExecutionMode,
+            String engineInfoLaunchSurface
+    ) {
+        String executionMode = nonBlank(
+                requestExecutionMode,
+                nonBlank(engineInfoExecutionMode, EXECUTION_MODE_ONE_SHOT)
+        ).trim();
+        String defaultLaunchSurface;
+        if (EXECUTION_MODE_INTERACTIVE_LONG_RUNNING.equals(executionMode)) {
+            defaultLaunchSurface = LAUNCH_SURFACE_INTERACTIVE_SESSION;
+        } else if (EXECUTION_MODE_SCHEDULED.equals(executionMode)) {
+            defaultLaunchSurface = LAUNCH_SURFACE_SCHEDULED_RUNNER;
+        } else {
+            defaultLaunchSurface = LAUNCH_SURFACE_SCRIPT;
+        }
+        String launchSurface = nonBlank(engineInfoLaunchSurface, defaultLaunchSurface).trim();
+        boolean checkpointEnabled = EXECUTION_MODE_INTERACTIVE_LONG_RUNNING.equals(executionMode) &&
+                (LAUNCH_SURFACE_INTERACTIVE_SESSION.equals(launchSurface) ||
+                        LAUNCH_SURFACE_PACKAGED_LONG_RUNNING.equals(launchSurface));
+        return new LifecycleRequestPolicy(executionMode, launchSurface, checkpointEnabled);
     }
 
     private String canonicalPath(String path) {
@@ -511,6 +569,22 @@ final class NodeRuntimeModuleInjector {
                 }
                 return null;
             }
+        }
+    }
+
+    static final class LifecycleRequestPolicy {
+        final String executionMode;
+        final String launchSurface;
+        final boolean checkpointEnabled;
+
+        private LifecycleRequestPolicy(
+                String executionMode,
+                String launchSurface,
+                boolean checkpointEnabled
+        ) {
+            this.executionMode = executionMode;
+            this.launchSurface = launchSurface;
+            this.checkpointEnabled = checkpointEnabled;
         }
     }
 }

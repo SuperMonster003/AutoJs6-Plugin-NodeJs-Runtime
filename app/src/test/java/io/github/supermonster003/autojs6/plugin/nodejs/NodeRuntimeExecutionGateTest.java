@@ -87,6 +87,77 @@ public class NodeRuntimeExecutionGateTest {
     }
 
     @Test
+    public void timeoutWinsOnceAndLeavesGateOpenForNextExecution() {
+        NodeRuntimeExecutionGate gate = new NodeRuntimeExecutionGate(() -> 10L);
+        NodeRuntimeExecutionGate.Lease lease = gate.tryAcquire("active");
+
+        assertFalse(gate.requestTimeout("different"));
+        assertTrue(gate.requestTimeout("active"));
+        assertFalse("a deadline may only win once", gate.requestTimeout("active"));
+        assertTrue(lease.cancellationRequested());
+        assertTrue(lease.timedOut());
+        assertFalse(lease.cancelled());
+        assertFalse("manual cancellation must not overwrite timeout", gate.requestCooperativeCancellation("active"));
+        assertFalse(gate.isClosed());
+
+        assertTrue(gate.release(lease));
+        assertNotNull("cooperative timeout must preserve the process", gate.tryAcquire("after-timeout"));
+    }
+
+    @Test
+    public void completedLeaseRejectsLateCancellationAndTimeout() {
+        NodeRuntimeExecutionGate gate = new NodeRuntimeExecutionGate(() -> 10L);
+        NodeRuntimeExecutionGate.Lease lease = gate.tryAcquire("active");
+
+        assertEquals(NodeRuntimeExecutionGate.Lease.State.COMPLETED, lease.markCompleted());
+        assertFalse(gate.requestTimeout("active"));
+        assertFalse(gate.requestCooperativeCancellation("active"));
+        assertFalse(gate.requestCancellation("active"));
+        assertFalse(gate.isClosed());
+
+        assertTrue(gate.release(lease));
+        assertNotNull(gate.tryAcquire("after-completion"));
+    }
+
+    @Test
+    public void manualCancellationCannotBeReclassifiedAsTimeout() {
+        NodeRuntimeExecutionGate gate = new NodeRuntimeExecutionGate(() -> 10L);
+        NodeRuntimeExecutionGate.Lease lease = gate.tryAcquire("active");
+
+        assertTrue(gate.requestCooperativeCancellation("active"));
+        assertFalse(gate.requestTimeout("active"));
+        assertTrue(lease.cancelled());
+        assertFalse(lease.timedOut());
+        assertEquals(NodeRuntimeExecutionGate.Lease.State.CANCELLED, lease.markCompleted());
+    }
+
+    @Test
+    public void admissionDeadlineSaturatesInsteadOfOverflowing() {
+        assertEquals(
+                Long.MAX_VALUE,
+                NodeRuntimeExecutionGate.saturatedDeadline(Long.MAX_VALUE - 5L, 10L)
+        );
+        assertEquals(125L, NodeRuntimeExecutionGate.saturatedDeadline(100L, 25L));
+        assertEquals(100L, NodeRuntimeExecutionGate.saturatedDeadline(100L, -1L));
+    }
+
+    @Test
+    public void remainingWallClockBudgetIncludesTimeBeforeAdmission() {
+        assertEquals(
+                750L,
+                NodeJsRuntimePluginService.remainingTimeoutBudgetMs(1_000L, 5_000L, 5_250L)
+        );
+        assertEquals(
+                0L,
+                NodeJsRuntimePluginService.remainingTimeoutBudgetMs(1_000L, 5_000L, 6_000L)
+        );
+        assertEquals(
+                Long.MAX_VALUE,
+                NodeJsRuntimePluginService.remainingTimeoutBudgetMs(0L, 5_000L, Long.MAX_VALUE)
+        );
+    }
+
+    @Test
     public void queuedExecutionsAreAdmittedInFifoOrderAsSlotsFree() throws Exception {
         NodeRuntimeExecutionGate gate =
                 new NodeRuntimeExecutionGate(NodeRuntimeExecutionGateTest::wallClock);

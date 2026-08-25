@@ -959,7 +959,6 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         request.putString(NodeJsRuntimeContract.KEY_SANDBOX_ROOT, sandboxRoot.getAbsolutePath());
         request.putLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, timeoutMs);
         request.putString(NodeJsRuntimeContract.KEY_EXECUTION_MODE, "one_shot");
-        request.putString(NodeJsRuntimeContract.KEY_RUNTIME_ADAPTER, NodeJsPluginIds.VARIANT_NODE_24_5);
         request.putStringArray(NodeJsRuntimeContract.KEY_ENV_NAMES, new String[0]);
         request.putStringArray(NodeJsRuntimeContract.KEY_ENV_VALUES, new String[0]);
         request.putStringArray(

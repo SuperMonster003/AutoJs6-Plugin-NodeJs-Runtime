@@ -1,13 +1,13 @@
 {
   "schema": "autojs6-node-capability-catalog-v1",
-  "catalogVersion": "1.2.0",
+  "catalogVersion": "1.3.0",
   "runtime": {
     "pluginId": "nodejs",
     "engine": "nodejs",
     "runtimeSlot": "node24_5",
     "nodeVersion": "24.5.0",
     "profileName": "AutoJs6 Safe Node Profile",
-    "profileVersion": "autojs6-node-profile-v1.2",
+    "profileVersion": "autojs6-node-profile-v1.3",
     "nativeLibraryName": "node",
     "bridgeLibraryName": "autojs6-node",
     "supportedAbis": [
@@ -68,6 +68,13 @@
       "cts",
       "mts",
       "ts"
+    ],
+    "typeScriptDefaultPolicy": "compiler_output_required",
+    "typeScriptCompilerBundled": false,
+    "typeScriptLegacyStrippingRequestKey": "legacyTypeScriptStrippingEnabled",
+    "typeScriptPrecompiledSnapshotRequestKeys": [
+      "typeScriptPrecompiledSnapshot",
+      "typeScriptPrecompiledSourceNames"
     ],
     "unsupportedTypeScriptModuleExtensions": [
       "tsx"
@@ -137,6 +144,29 @@
         "packagedApk": false,
         "releaseEnableAllowed": true
       }
+    },
+    {
+      "id": "filesystem_access",
+      "diagnosticName": "filesystemAccess",
+      "property": null,
+      "defaultEnabled": true,
+      "securityLevel": "critical",
+      "status": "stable",
+      "overrides": {
+        "buildTime": true,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": false
+      },
+      "mode": "unrestricted_android_permission_bounded",
+      "workspaceRootPurpose": "module_resolution_and_relative_path_base",
+      "absolutePaths": "allowed_within_android_app_permissions",
+      "sensitiveRootsDenied": [
+        "/proc",
+        "/sys",
+        "/dev"
+      ],
+      "filesystemRootsMetadata": "diagnostic_only"
     },
     {
       "id": "inspector",
@@ -211,6 +241,27 @@
       },
       "requestKey": "rawNodeNetworkModulesEnabled",
       "requestFallbackEnabled": true
+    },
+    {
+      "id": "typescript",
+      "diagnosticName": "typeScript",
+      "property": null,
+      "defaultEnabled": false,
+      "securityLevel": "medium",
+      "status": "partial",
+      "overrides": {
+        "buildTime": false,
+        "projectJson": false,
+        "packagedApk": false,
+        "releaseEnableAllowed": false
+      },
+      "defaultPolicy": "compiler_output_required",
+      "compilerBundled": false,
+      "compilerOutputAccepted": true,
+      "rawSourceFailureCode": "ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED",
+      "legacyStrippingRequestKey": "legacyTypeScriptStrippingEnabled",
+      "legacyStrippingDefaultEnabled": false,
+      "sourceMapOwner": "host_compiler"
     },
     {
       "id": "vm",
@@ -774,6 +825,14 @@
       },
       {
         "module": "accessibility",
+        "method": "gesture",
+        "requiredCapabilities": [
+          "accessibility",
+          "accessibility.gesture"
+        ]
+      },
+      {
+        "module": "accessibility",
         "method": "home",
         "requiredCapabilities": [
           "accessibility"
@@ -819,6 +878,14 @@
         "method": "setText",
         "requiredCapabilities": [
           "accessibility"
+        ]
+      },
+      {
+        "module": "accessibility",
+        "method": "swipe",
+        "requiredCapabilities": [
+          "accessibility",
+          "accessibility.gesture"
         ]
       },
       {
@@ -1768,6 +1835,11 @@
         "androidPermissions": []
       },
       {
+        "id": "accessibility.gesture",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
         "id": "app",
         "aliases": [],
         "androidPermissions": []
@@ -2535,6 +2607,18 @@
       {
         "name": "SHELL_SHIZUKU_UNSUPPORTED",
         "code": "ERR_AUTOJS6_SHELL_SHIZUKU_UNSUPPORTED"
+      },
+      {
+        "name": "TYPESCRIPT_COMPILER_REQUIRED",
+        "code": "ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED"
+      },
+      {
+        "name": "TYPESCRIPT_SNAPSHOT_MODULE_AMBIGUOUS",
+        "code": "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_AMBIGUOUS"
+      },
+      {
+        "name": "TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND",
+        "code": "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND"
       },
       {
         "name": "TYPESCRIPT_UNSUPPORTED_EXTENSION",

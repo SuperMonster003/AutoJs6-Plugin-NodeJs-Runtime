@@ -16,7 +16,7 @@ plugins {
 }
 
 group = "org.autojs.plugin.nodejs"
-version = "1.2.0"
+version = "1.3.0"
 
 android {
     namespace = "org.autojs.plugin.nodejs.api"
@@ -51,7 +51,7 @@ val nodeJsApiPublicationDirectory = rootProject.layout.projectDirectory
 val nodeJsApiPublishedAar = nodeJsApiPublicationDirectory.file(nodeJsApiArtifactName)
 val nodeJsApiPublicationLock = nodeJsApiPublicationDirectory.file("nodejs-api.lock")
 val nodeJsApiPreviousPublicationLock = rootProject.layout.projectDirectory
-    .file("releases/nodejs-api/1.1.0/nodejs-api.lock")
+    .file("releases/nodejs-api/1.2.0/nodejs-api.lock")
 val nodeJsApiAidlSnapshot = layout.projectDirectory.file("compat/v1/aidl-transactions.txt")
 val nodeJsApiReportDirectory = rootProject.layout.buildDirectory.dir("reports/nodejs")
 
@@ -339,7 +339,7 @@ val verifyNodeJsApiPublication = tasks.register("verifyNodeJsApiPublication") {
             .nodeJsApiSha256()
         val previousLock = nodeJsApiLoadLock(nodeJsApiPreviousPublicationLock.asFile)
         check(previousLock.getProperty("aidl.transactions.sha256") == aidlTransactionsSha256) {
-            "Node.js API 1.2.0 must preserve the immutable 1.1.0 AIDL transaction identity"
+            "Node.js API 1.3.0 must preserve the immutable 1.2.0 AIDL transaction identity"
         }
         val classesJarSha256 = currentClassesJar.nodeJsApiSha256()
 
@@ -426,7 +426,7 @@ tasks.register("stageNodeJsApiPublication") {
             .nodeJsApiSha256()
         val previousLock = nodeJsApiLoadLock(nodeJsApiPreviousPublicationLock.asFile)
         check(previousLock.getProperty("aidl.transactions.sha256") == aidlTransactionsSha256) {
-            "Refusing to stage Node.js API 1.2.0 with AIDL transaction drift from 1.1.0"
+            "Refusing to stage Node.js API 1.3.0 with AIDL transaction drift from 1.2.0"
         }
 
         publishedAar.parentFile.mkdirs()
