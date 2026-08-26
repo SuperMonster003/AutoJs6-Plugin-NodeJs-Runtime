@@ -4985,16 +4985,16 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_profile_rollback_policy_report(featureFlags) {
     const profileKillSwitches = Object.freeze({
-      pro_compat_opt_in: "autojs.nodejs.profile.pro.enabled",
-      desktop_compat_opt_in: "autojs.nodejs.profile.desktop.enabled",
-      debug_unsafe_lab: "autojs.nodejs.profile.debugUnsafeLab.enabled"
+      pro_compat_opt_in: "not_selectable",
+      desktop_compat_opt_in: "not_selectable",
+      debug_unsafe_lab: "debug_request_only"
     });
     const capabilityKillSwitches = Object.freeze({
       network: "built_in_stable_no_build_switch",
       raw_network: "built_in_stable_no_build_switch",
       worker_threads: "built_in_stable_no_build_switch",
       java_interop: "built_in_stable_no_build_switch",
-      all_relaxed_capabilities: "autojs.nodejs.relaxedCapabilities.enabled",
+      all_relaxed_capabilities: "not_supported",
       raw_node_network_modules: "built_in_stable_no_build_switch",
       filesystem_relaxation: "safe_profile_scoped_fs",
       child_process: "built_in_stable_no_build_switch",

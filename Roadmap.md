@@ -1,8 +1,10 @@
 # AutoJs6 Node.js Runtime 插件 — 开发路线图 (Roadmap)
 
-> 修订日期: 2026-08-25
+> 修订日期: 2026-08-26
 >
 > 本路线图取代此前所有里程碑编号 (X3d/X3e/X3f/X3g/X3i/X3j 等)。旧编号只保留在 `tools/nodejs/ownership/evidence/` 的历史证据文件中, 不再继续演进。
+>
+> 2026-08-26 所有权更新: M5 中关于宿主保留 `sample/nodejs` 与 `docs/nodejs/types` 副本的决策已被取代。样例, 类型声明, 项目向导及其 Gradle 校验现在仅由本插件仓库维护; 宿主只保留路由, Binder 客户端, 工作区传输, Android 能力桥接与最小集成测试。详见 `docs/DEVELOPMENT-ASSETS.md`。
 
 ## 一. 项目定位 (不变的初衷)
 
@@ -184,9 +186,9 @@ M0~M5 完成后对全仓四面 (C++ 桥 / Java 服务层 / 样例与发布链 / 
 ### M6~M10 通用约定 (2026-08-25 增补, 每项执行前重读)
 
 1. **验证一律本地/离线优先** (网络环境易触发 Cloudflare 502/524/529, 尤其 524): gradle 一律带 `--offline` (依赖已在本地缓存); C++ 改动先用 NDK clang `-fsyntax-only` 离线语法校验 (手法见 fs 放开时的实践: `clang++.exe -fsyntax-only -std=c++20 --target=aarch64-linux-android24 -I. -Inode-v24.5.0/include/node ...`, 宏列表按现状调整) 再进构建; androidTest 走本地模拟器 (x86_64) / USB 真机, 不依赖外网。全部 M6~M10 中**仅两处**允许联网且单独标注: M9.2 corpus 制备 (开发机一次性, 可走镜像源)、M10.1 上游版本复查 (手动)。
-2. `sample/nodejs` (含 `examples.json`) 任何改动必须**双仓同步** — 宿主镜像 358 文件字节级一致, 由宿主 `verifyNodePluginExampleMirror` 守护, 调用需显式 `-Pautojs.nodejs.plugin.root=D:\idea-projects\AutoJs6-Plugin-NodeJs-Runtime`。
+2. `sample/nodejs` (含 `examples.json`) 仅在插件仓维护, 任何改动由插件侧 `verifyNodePluginExamples` 校验; 宿主不再保留样例镜像。
 3. README/CHANGELOG 只改 `.readme/` 与 `.changelog/` 的 lang JSON 及模板, 经 `.python/generate_markdown.py` 生成, 不直接编辑产物 .md; 生成时被顺带重写但无实质变化的文件用 git checkout 还原。
-4. 契约 (nodejs-api) 改动延续 M0.2 宽容原则: 新键缺失有默认、旧键不破坏、AIDL 事务号零改动优先; 宿主镜像经 `:plugin-api:nodejs-api:verifyNodeJsApiMirror` 守护。
+4. 契约 (nodejs-api) 改动延续 M0.2 宽容原则: 新键缺失有默认、旧键不破坏、AIDL 事务号零改动优先; 插件仓作为权威源, 由 `verifyNodeHostApiMirror` 反向校验宿主编译镜像。
 5. 延续既有红线: 不新增 probe/哈希锁类基础设施; 新守卫一律手动任务不挂默认构建链; 宿主仓用户未提交改动不碰。
 
 **计划执行顺序**: M6 (全离线, 最快清欠账) → M7 与 M8 可并行 (互无依赖) → M9 → M10 按条件成熟推进。每项独立提交, 完成标准 = 该项 Check 全绿。

@@ -108,12 +108,13 @@ console.log("AutoJs6 Node.js runtime");
 
 # v1.2.0
 
-###### 2026/08/25
+###### 2026/08/26
 
 * `新增` 在 Android 应用权限范围内启用桌面式文件系统访问, 同时继续拒绝 `/proc`、`/sys`、`/dev`
 * `新增` 支持 `accessibility.swipe` 与 `accessibility.gesture`, 并由独立能力 `accessibility.gesture` 门禁
 * `修复` raw TypeScript 在宿主未提供编译产物时改为 fail-closed, 补齐快照动态 import 映射并归一化生成/导入栈帧
-* `优化` 对齐宿主/插件 v2 合约、能力清单、样例镜像与 plugin-only 运行时职责边界
+* `优化` 对齐宿主/插件 v2 合约, 能力清单与 plugin-only 运行时职责边界
+* `优化` 将 Node.js 样例, TypeScript 类型声明, 项目向导, 运行时默认值及宿主对齐校验统一归属插件仓库, 移除宿主侧 Gradle 开关与重复开发资产
 
 # v1.1.0
 
@@ -136,7 +137,6 @@ console.log("AutoJs6 Node.js runtime");
 * `新增` 支持请求级工作区归档传输 v2, 包含显式输入映射/插件私有工作区执行/输出回写/删除 tombstone 清单, 且不扫描宿主沙盒
 * `新增` 单活动零队列准入, 通过 `ERR_AUTOJS6_NODE_PLUGIN_BUSY` 提供背压, 并支持重启进程式取消
 * `新增` 支持宿主能力代理与 live bridge, 并注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等运行时模块
-* `新增` debug 构建支持请求级 `inspectorEnabled` 本地调试档位: 仅 `127.0.0.1` + 手动 adb forward, release/远程监听/阻塞等待保持禁用
 * `新增` 支持按 ABI 构建 APK, 包括 `arm64-v8a`/`armeabi-v7a`/`x86_64` 以及 `universal` 通用包
 * `新增` 分包及通用 APK 输出均随 Node.js 运行库打包 `libc++_shared.so`
 * `新增` `sample/nodejs` 示例项目, Node 解析诊断工具和运行时构建计划校验工具

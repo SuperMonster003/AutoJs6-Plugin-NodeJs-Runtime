@@ -42,3 +42,6 @@ tasks {
 }
 
 apply(from = "node-plugin-examples.gradle.kts")
+apply(from = "node-project-wizard.gradle.kts")
+apply(from = "node-types.gradle.kts")
+apply(from = "node-host-alignment.gradle.kts")
