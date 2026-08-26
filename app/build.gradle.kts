@@ -45,7 +45,6 @@ android {
         multiDexKeepProguard = file("multidex-keep.pro")
 
         buildConfigField("String", "VERSION_DATE", "\"${utils.getDateString("MMM d, yyyy", "GMT+08:00")}\"")
-        buildConfigField("boolean", "NODEJS_NETWORK_ENABLED", "true")
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")

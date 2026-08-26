@@ -35,6 +35,8 @@ import static io.github.supermonster003.autojs6.plugin.nodejs.NodePluginPayloads
  */
 final class NodeRuntimeModuleInjector {
 
+    private static final boolean NETWORK_POLICY_ENABLED = true;
+
     private final Context context;
 
     NodeRuntimeModuleInjector(Context context) {
@@ -115,7 +117,7 @@ final class NodeRuntimeModuleInjector {
                         runtimeMetadata == null ? null : runtimeMetadata.workingPackageJson,
                         runtimeMetadata == null ? null : runtimeMetadata.sandboxProjectJson,
                         runtimeMetadata == null ? null : runtimeMetadata.sandboxPackageJson,
-                        BuildConfig.NODEJS_NETWORK_ENABLED
+                        NETWORK_POLICY_ENABLED
                 ),
                 "exact_metadata_snapshot"
         );

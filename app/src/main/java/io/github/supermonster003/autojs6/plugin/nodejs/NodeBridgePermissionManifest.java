@@ -156,14 +156,14 @@ public final class NodeBridgePermissionManifest {
             String workingPackageJson,
             String sandboxProjectJson,
             String sandboxPackageJson,
-            boolean includeBuildNetworkPolicy
+            boolean includeStableNetworkPolicy
     ) {
         return fromRuntimeMetadata(
                 workingProjectJson,
                 workingPackageJson,
                 sandboxProjectJson,
                 sandboxPackageJson,
-                includeBuildNetworkPolicy
+                includeStableNetworkPolicy
         ).toJson();
     }
 
@@ -172,27 +172,27 @@ public final class NodeBridgePermissionManifest {
             String workingPackageJson,
             String sandboxProjectJson,
             String sandboxPackageJson,
-            boolean includeBuildNetworkPolicy
+            boolean includeStableNetworkPolicy
     ) {
         Manifest primary = fromJsonSources(workingProjectJson, workingPackageJson);
         Manifest fallback = sandboxProjectJson != null || sandboxPackageJson != null
                 ? fromJsonSources(sandboxProjectJson, sandboxPackageJson)
                 : Manifest.empty();
-        if (!includeBuildNetworkPolicy && !fallback.enforced) {
+        if (!includeStableNetworkPolicy && !fallback.enforced) {
             return primary;
         }
 
         List<String> permissions = new ArrayList<>();
         permissions.addAll(primary.permissions);
         permissions.addAll(fallback.permissions);
-        if (includeBuildNetworkPolicy) {
+        if (includeStableNetworkPolicy) {
             permissions.add(NETWORK);
         }
 
         List<String> sources = new ArrayList<>();
         addNonNone(sources, primary.sources);
         addNonNone(sources, fallback.sources);
-        if (includeBuildNetworkPolicy) {
+        if (includeStableNetworkPolicy) {
             sources.add("runtime:stable-network");
         }
 
@@ -200,7 +200,7 @@ public final class NodeBridgePermissionManifest {
         warnings.addAll(primary.warnings);
         warnings.addAll(fallback.warnings);
         return buildManifest(
-                primary.enforced || fallback.enforced || includeBuildNetworkPolicy,
+                primary.enforced || fallback.enforced || includeStableNetworkPolicy,
                 normalizeDistinctSorted(permissions),
                 distinctPreserveOrder(sources),
                 distinctPreserveOrder(warnings),
