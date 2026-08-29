@@ -14,7 +14,8 @@
       ],
       "fix": [
         "raw TypeScript 在宿主未提供编译产物时改为 fail-closed, 补齐快照动态 import 映射并归一化生成/导入栈帧",
-        "以 V8 native linker 替换快照式 partial ESM adapter, 修复循环 re-export 中可变导出不会实时更新的问题"
+        "以 V8 native linker 替换快照式 partial ESM adapter, 修复循环 re-export 中可变导出不会实时更新的问题",
+        "修复 AutoJs6 兼容 facade 的 ESM 导入与不存在的 TypeScript 后缀探测, 同时保持已安装 npm 包优先"
       ],
       "improvement": [
         "删除基于 regex 的 legacy TypeScript 类型剥离 fallback 及其请求开关, raw `.ts/.mts/.cts` 现始终要求宿主编译产物",

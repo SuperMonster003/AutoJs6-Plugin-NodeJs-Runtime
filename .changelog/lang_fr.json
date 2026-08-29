@@ -14,7 +14,8 @@
       ],
       "fix": [
         "Échec fermé du TypeScript brut sans sortie de compilation fournie par l'hôte, mappage des imports dynamiques de snapshot et normalisation des piles générées/importées",
-        "Remplacement de l'adaptateur ESM partiel basé sur des snapshots par le linker natif V8, corrigeant les exports mutables non mis à jour dans les réexports cycliques"
+        "Remplacement de l'adaptateur ESM partiel basé sur des snapshots par le linker natif V8, corrigeant les exports mutables non mis à jour dans les réexports cycliques",
+        "Correction des imports ESM des façades de compatibilité AutoJs6 et de la détection de suffixes TypeScript inexistants, tout en préservant la priorité des paquets npm installés"
       ],
       "improvement": [
         "Suppression du fallback legacy d'effacement TypeScript fondé sur des regex et de son commutateur de requête; les `.ts/.mts/.cts` bruts exigent désormais toujours la sortie du compilateur hôte",
