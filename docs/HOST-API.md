@@ -82,7 +82,7 @@
 插件运行时负责**执行 JavaScript 编译产物**, 不内置 `tsc`、SWC 或其他完整 TypeScript 编译器:
 
 - raw `.ts` / `.mts` / `.cts` **直接派给本插件**仍会 fail-closed, 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`。当前 AutoJs6 宿主源码已接通独立 TypeScript Compiler 0.6.0+ 的完整 `Program` 编译链: 宿主先编译项目快照, 再把 JavaScript 产物派给本插件; 用户从宿主启动 `.ts` 项目时无需自行生成中间文件。
-- `legacyTypeScriptStrippingEnabled` 只是在迁移期显式启用旧的轻量类型剥离器; 默认值为 false。它只覆盖可擦除语法, 不支持 TSX、enum、decorator 等需要变换的语法, 不应作为生产编译器。
+- 运行时不再提供正则剥离回退或兼容请求开关。raw `.ts` / `.mts` / `.cts` 无论语法是否可擦除都返回同一个 compiler-required 错误; 只有宿主编译器产出的 JavaScript 快照进入执行链。
 - 已编译项目快照可通过 `typeScriptPrecompiledSnapshot` 与 `typeScriptPrecompiledSourceNames` 标记; 运行时先把 `.ts`/`.mts`/`.cts` 静态或动态说明符映射到请求中已存在的 JavaScript 模块。若 compiler-backed Node 项目在运行期间新建精确普通文件, module-source provider v3 可使用 `compile_missing_typescript` 把 no-follow 读取的源码以 PFD + byte count + SHA-256 交回宿主编译, 成功状态为 `compiled_typescript`。v1/v2 provider 仍保持 snapshot not-found。
 - v3 只接受项目私有 workspace 内非声明形式的 lowercase `.ts/.mts/.cts`; 路径逃逸、符号链接、identity 变化、大小写/extensionless 歧义、Host 项目或生成目标碰撞都会 fail closed。单个 Host 编译输入最终受 8 MiB 上限约束; ordinary provider 操作仍最多 5 s, v3 compile transport 独立最多 30 s。
 - 编译器 source map 与宿主控制台中的 `.ts` 原始栈回映由宿主编译链负责。当前链路已覆盖入口、导入模块、dynamic import 与 v3 运行时源码; 插件负责归一化生成代码和导入 CommonJS 的栈位置, 但不会凭空生成 source map。动态类型错误使用 `ERR_AUTOJS6_TYPESCRIPT_COMPILATION_FAILED`, 并保留文件名与 TypeScript diagnostic。

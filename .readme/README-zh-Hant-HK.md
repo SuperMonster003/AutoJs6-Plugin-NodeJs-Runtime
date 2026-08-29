@@ -56,7 +56,7 @@ AutoJs6 Node.js Runtime 插件為 AutoJs6 提供內嵌 Node.js 24.5.0 原生運�
 - 支援 CommonJS/ESM 源碼, 模組源碼, 工作目錄, 沙盒根目錄, 環境變數, stdout/stderr 結果回傳.
 - ESM 入口與 dynamic `import()` 使用 V8 native linker, 支援循環依賴、可變匯出與 re-export live binding; CommonJS `require(esm)` 保留同步互操作邊界.
 - 提供由插件本身 Android 權限約束的桌面式檔案系統存取; `/proc`、`/sys`、`/dev` 一律由運行時拒絕.
-- 執行宿主提供的 TypeScript 編譯產物, 並可透過 provider v3 請求按需編譯執行期間建立的項目 `.ts`/`.mts`/`.cts`; direct raw dispatch 仍 fail-closed, legacy 類型剝離只供遷移期明確啟用.
+- 執行宿主提供的 TypeScript 編譯產物, 並可透過 provider v3 請求按需編譯執行期間建立的項目 `.ts`/`.mts`/`.cts`; 運行時類型剝離 fallback 與兼容開關已刪除, direct raw dispatch 始終 fail-closed.
 - 提供宿主能力代理與 live bridge, 可注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等運行時模組.
 - 附帶 `sample/nodejs` 示例項目與 `docs/HOST-API.md` 宿主 API 能力清單.
 - 插件資訊, 使用說明, README 與 CHANGELOG 均支援西班牙語/法語/俄語/阿拉伯語/日語/韓語/英語/簡體中文/香港繁體/台灣繁體.
@@ -117,6 +117,7 @@ console.log("AutoJs6 Node.js runtime");
 * `新增` 支援 `accessibility.swipe` 與 `accessibility.gesture`, 並由獨立能力 `accessibility.gesture` 門禁
 * `修復` raw TypeScript 在宿主未提供編譯產物時改為 fail-closed, 補齊快照動態 import 映射並統一生成/匯入堆疊幀
 * `修復` 以 V8 native linker 取代快照式 partial ESM adapter, 修復循環 re-export 中可變匯出未能即時更新的問題
+* `優化` 刪除基於 regex 的 legacy TypeScript 類型剝離 fallback 及其請求開關, raw `.ts/.mts/.cts` 現始終要求宿主編譯產物
 * `優化` 對齊宿主/插件 v2 合約, 能力清單與 plugin-only 運行時職責邊界
 * `優化` 將 Node.js 示例, TypeScript 類型聲明, 項目嚮導, 運行時默認值及宿主對齊校驗統一歸屬插件倉庫, 移除宿主側 Gradle 開關與重複開發資產
 
