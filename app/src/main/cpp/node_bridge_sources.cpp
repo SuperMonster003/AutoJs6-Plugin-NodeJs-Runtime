@@ -24963,8 +24963,7 @@ std::string buildEmbeddedScriptExecutionSource(
     responsePath,
     sourcePath,
     deadline,
-    timeoutMs,
-    responseKind
+    timeoutMs
   ) {
     while (true) {
       try {
@@ -24987,18 +24986,12 @@ std::string buildEmbeddedScriptExecutionSource(
           throw new Error("Module-source provider response identity or version is invalid.");
         }
         const status = String(response.status || "");
-        const preparationResponse = responseKind === "typescript_preparation";
-        const validStatus = preparationResponse
-          ? (
-              status === "prepared" || status === "cancelled" ||
-              status === "timed_out" || status === "failed"
-            )
-          : (
-               status === "decrypted" || status === "compiled_typescript" ||
-               status === "materialized_plaintext" ||
-               status === "not_encrypted" || status === "not_found" ||
-              status === "denied" || status === "cancelled" || status === "timed_out" || status === "failed"
-            );
+        const validStatus =
+          status === "decrypted" || status === "compiled_typescript" ||
+          status === "materialized_plaintext" ||
+          status === "not_encrypted" || status === "not_found" ||
+          status === "denied" || status === "cancelled" ||
+          status === "timed_out" || status === "failed";
         if (!validStatus) {
           throw new Error("Module-source provider response status is invalid: " + status);
         }
@@ -25024,206 +25017,19 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     }
   }
-  function __autojs6_is_plaintext_typescript_source(sourceName) {
-    const normalizedSourceName = String(sourceName || "").toLowerCase();
-    if (/\.d\.(?:ts|mts|cts)$/.test(normalizedSourceName)) return false;
-    const extension = __autojs6_source_extension(sourceName);
-    return extension === ".ts" || extension === ".mts" || extension === ".cts";
+  function __autojs6_is_raw_typescript_source(sourceName) {
+    return /\.(?:tsx?|mts|cts)$/i.test(String(sourceName || ""));
   }
-  function __autojs6_module_source_provider_atomic_write(fs, temporaryPath, destinationPath, value, encoding) {
-    let fd;
-    try {
-      fd = fs.openSync(temporaryPath, "wx", 0o600);
-      if (encoding) {
-        fs.writeFileSync(fd, value, encoding);
-      } else {
-        fs.writeFileSync(fd, value);
-      }
-      fs.fsyncSync(fd);
-    } finally {
-      if (fd !== undefined) {
-        try {
-          fs.closeSync(fd);
-        } catch (_) {}
-      }
-    }
-    fs.renameSync(temporaryPath, destinationPath);
-  }
-  function __autojs6_prepare_plaintext_typescript_source(
-    sourceName,
-    rawSource,
-    parentRequestId,
-    parentDeadline
-  ) {
-    if (!__autojs6_is_plaintext_typescript_source(sourceName)) {
-      return rawSource && typeof rawSource.toString === "function"
-        ? rawSource.toString("utf8")
-        : String(rawSource || "");
-    }
-    const config = __autojs6_module_source_provider_config();
-    const fs = __autojs6_fs_module();
-    const path = __autojs6_path_module();
-    if (
-      !config || !fs || !path || typeof path.resolve !== "function" ||
-      typeof fs.openSync !== "function" || typeof fs.writeFileSync !== "function" ||
-      typeof fs.fsyncSync !== "function" || typeof fs.closeSync !== "function" ||
-      typeof fs.renameSync !== "function"
-    ) {
-      throw __autojs6_module_source_provider_error(
-        "failed",
-        sourceName,
-        "Plaintext TypeScript preparation transport is unavailable.",
-        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED",
-        false
-      );
-    }
-    const authorizedParentRequestId = String(parentRequestId || "");
-    if (!authorizedParentRequestId) {
-      throw __autojs6_module_source_provider_error(
-        "failed",
-        sourceName,
-        "Plaintext TypeScript preparation is missing its authorized provider request identity.",
-        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_INVALID_REQUEST",
-        false
-      );
-    }
-    const authorizedParentDeadline = Number(parentDeadline);
-    if (!Number.isSafeInteger(authorizedParentDeadline) || authorizedParentDeadline <= Date.now()) {
-      throw __autojs6_module_source_provider_error(
-        "timed_out",
-        sourceName,
-        "Plaintext TypeScript preparation exceeded its authorized provider deadline.",
-        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_TIMEOUT",
-        false
-      );
-    }
-    const rawSourceBytes = rawSource && typeof rawSource.length === "number"
-      ? rawSource.length
-      : __autojs6_runtime_module_source_bytes(rawSource);
-    if (
-      !Number.isSafeInteger(rawSourceBytes) || rawSourceBytes < 0 ||
-      rawSourceBytes > __autojs6_runtime_module_single_source_bytes_limit
-    ) {
-      throw __autojs6_module_source_provider_error(
-        "failed",
-        sourceName,
-        "Plaintext TypeScript source exceeds the single-source byte budget.",
-        "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED",
-        false
-      );
-    }
-    __autojs6_module_source_provider_sequence += 1;
-    const id = __autojs6_module_source_provider_safe_id(
-      "typescript-" + __autojs6_module_source_provider_sequence + "-" + config.executionId
+  function __autojs6_require_compiler_output(sourceName) {
+    if (!__autojs6_is_raw_typescript_source(sourceName)) return;
+    throw __autojs6_module_source_provider_error(
+      "failed",
+      sourceName,
+      "Raw TypeScript must be compiled before Node.js Runtime execution: " + sourceName +
+        ". Compile it through the AutoJs6 TypeScript Compiler plugin and dispatch the JavaScript output.",
+      "ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED",
+      false
     );
-    const requestPath = __autojs6_module_source_provider_file(config, config.requestDir, id, ".json");
-    const requestTempPath = requestPath + ".tmp";
-    const rawSourcePath = __autojs6_module_source_provider_file(config, config.requestDir, id, ".source");
-    const rawSourceTempPath = rawSourcePath + ".tmp";
-    const responsePath = __autojs6_module_source_provider_file(config, config.responseDir, id, ".json");
-    const preparedSourcePath = __autojs6_module_source_provider_file(config, config.responseDir, id, ".source");
-    try {
-      __autojs6_module_source_provider_atomic_write(
-        fs,
-        rawSourceTempPath,
-        rawSourcePath,
-        rawSource,
-        ""
-      );
-      const remainingTimeoutMs = Math.floor(authorizedParentDeadline - Date.now());
-      if (remainingTimeoutMs <= 0) {
-        throw __autojs6_module_source_provider_error(
-          "timed_out",
-          sourceName,
-          "Plaintext TypeScript preparation exceeded its authorized provider deadline.",
-          "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_TIMEOUT",
-          false
-        );
-      }
-      __autojs6_module_source_provider_atomic_write(fs, requestTempPath, requestPath, JSON.stringify({
-        version: config.version,
-        id,
-        executionId: config.executionId,
-        operation: "prepare_plaintext_typescript",
-        parentRequestId: authorizedParentRequestId,
-        sourceName: String(sourceName || ""),
-        sourcePath: rawSourcePath,
-        sourceBytes: rawSourceBytes,
-        timeoutMs: remainingTimeoutMs
-      }), "utf8");
-      const response = __autojs6_module_source_provider_response(
-        fs,
-        config,
-        id,
-        sourceName,
-        responsePath,
-        preparedSourcePath,
-        authorizedParentDeadline,
-        remainingTimeoutMs,
-        "typescript_preparation"
-      );
-      __autojs6_module_source_provider_cleanup_file(fs, responsePath);
-      __autojs6_module_source_provider_cleanup_file(fs, requestPath);
-      __autojs6_module_source_provider_cleanup_file(fs, rawSourcePath);
-      const status = String(response.status || "failed");
-      if (status !== "prepared") {
-        const defaultCodes = {
-          cancelled: "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_CANCELLED",
-          timed_out: "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_TIMEOUT",
-          failed: "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED"
-        };
-        throw __autojs6_module_source_provider_error(
-          status,
-          sourceName,
-          String(response.errorMessage || "Plaintext TypeScript preparation returned " + status + "."),
-          String(response.errorCode || defaultCodes[status] || defaultCodes.failed),
-          false
-        );
-      }
-      const responseSourcePath = path.resolve(String(response.sourcePath || ""));
-      const declaredSourceBytes = Number(response.sourceBytes);
-      const declaredRawSourceBytes = Number(response.rawSourceBytes);
-      const responseResolvedPath = String(response.resolvedPath || "");
-      if (
-        responseSourcePath !== preparedSourcePath || !Number.isSafeInteger(declaredSourceBytes) ||
-        declaredSourceBytes < 0 || declaredSourceBytes > __autojs6_runtime_module_single_source_bytes_limit ||
-        !Number.isSafeInteger(declaredRawSourceBytes) || declaredRawSourceBytes !== rawSourceBytes ||
-        responseResolvedPath !== String(sourceName || "")
-      ) {
-        throw new Error("Prepared plaintext TypeScript response identity, path, or byte count is invalid.");
-      }
-      let preparedSource;
-      try {
-        preparedSource = __autojs6_module_source_provider_verified_read(
-          fs,
-          responseSourcePath,
-          sourceName,
-          "",
-          declaredSourceBytes
-        );
-      } finally {
-        __autojs6_module_source_provider_cleanup_file(fs, responseSourcePath);
-      }
-      return __autojs6_text_decoder_decode_utf8(preparedSource, true, true);
-    } catch (error) {
-      __autojs6_module_source_provider_cleanup_file(fs, requestTempPath);
-      __autojs6_module_source_provider_cleanup_file(fs, requestPath);
-      __autojs6_module_source_provider_cleanup_file(fs, rawSourceTempPath);
-      __autojs6_module_source_provider_cleanup_file(fs, rawSourcePath);
-      __autojs6_module_source_provider_cleanup_file(fs, responsePath);
-      __autojs6_module_source_provider_cleanup_file(fs, preparedSourcePath);
-      if (error && error.__autojs6ModuleSourceProviderRecorded) {
-        throw error;
-      }
-      throw __autojs6_module_source_provider_error(
-        "failed",
-        sourceName,
-        "Plaintext TypeScript preparation failed for '" + sourceName + "': " +
-          (error && error.message ? error.message : String(error)),
-        error && error.code ? String(error.code) : "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_FAILED",
-        false
-      );
-    }
   }
   function __autojs6_request_module_source(readable, operation) {
     const requestOperation = operation === "materialize_missing_plaintext"
@@ -25526,7 +25332,7 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
   }
-  function __autojs6_validate_runtime_module_path(resolved, allowEsm) {
+  function __autojs6_validate_runtime_module_path(resolved, allowEsm, allowRawTypeScriptForCompilation) {
     const path = __autojs6_path_module();
     const fs = __autojs6_fs_module();
     if (!path || !fs || typeof fs.readFileSync !== "function" || typeof fs.lstatSync !== "function") {
@@ -25553,11 +25359,13 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_runtime_module_error("Embedded Node dynamic require fallback path escapes working directory: " + absolute);
     }
     const extension = path.extname(absolute);
-    __autojs6_throw_if_unsupported_typescript_extension(
-      extension,
-      absolute,
-      "Embedded Node dynamic require fallback"
-    );
+    if (!allowRawTypeScriptForCompilation) {
+      __autojs6_throw_if_raw_typescript_extension(
+        extension,
+        absolute,
+        "Embedded Node dynamic require fallback"
+      );
+    }
     if (!allowEsm) {
       __autojs6_throw_if_esm_extension(extension, absolute, "Embedded Node dynamic require fallback");
     }
@@ -25761,6 +25569,8 @@ std::string buildEmbeddedScriptExecutionSource(
       allowEsm,
       providerResult
     );
+    const sourceName = String(providerResult.resolvedPath || "");
+    __autojs6_require_compiler_output(sourceName);
     const fs = __autojs6_fs_module();
     const rawSource = __autojs6_module_source_provider_verified_read(
       fs,
@@ -25769,13 +25579,9 @@ std::string buildEmbeddedScriptExecutionSource(
       providerResult.identity,
       undefined
     );
-    const preparationSourceName = String(providerResult.resolvedPath || "");
-    const source = __autojs6_prepare_plaintext_typescript_source(
-      preparationSourceName,
-      rawSource,
-      providerResult.requestId,
-      providerResult.deadline
-    );
+    const source = rawSource && typeof rawSource.toString === "function"
+      ? rawSource.toString("utf8")
+      : String(rawSource || "");
     const record = Object.freeze({
       source: String(source),
       sourceURL: __autojs6_runtime_module_source_url(plaintextReadable)
@@ -26029,12 +25835,12 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_is_native_addon_extension(extension) {
     return __autojs6_normalized_extension(extension) === ".node";
   }
-  function __autojs6_throw_if_unsupported_typescript_extension(extension, sourceName, context) {
-    if (__autojs6_normalized_extension(extension) === ".tsx") {
+  function __autojs6_throw_if_raw_typescript_extension(extension, sourceName, context) {
+    if (/^\.(?:tsx?|mts|cts)$/.test(__autojs6_normalized_extension(extension))) {
       throw __autojs6_runtime_module_error(
-        context + " rejects unsupported TypeScript TSX source: " + sourceName +
-          ". AutoJs6 lightweight TypeScript stripping does not support TSX.",
-        "ERR_AUTOJS6_TYPESCRIPT_UNSUPPORTED_EXTENSION"
+        context + " requires compiler output for raw TypeScript source: " + sourceName +
+          ". Compile it through the AutoJs6 TypeScript Compiler plugin before Node execution.",
+        "ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED"
       );
     }
   }
@@ -26042,7 +25848,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const path = __autojs6_path_module();
     const absolute = path && typeof path.resolve === "function" ? path.resolve(resolved) : String(resolved || "");
     const extension = path && typeof path.extname === "function" ? path.extname(absolute) : "";
-    __autojs6_throw_if_unsupported_typescript_extension(extension, absolute, context);
+    __autojs6_throw_if_raw_typescript_extension(extension, absolute, context);
     if (!allowEsm) {
       __autojs6_throw_if_esm_extension(extension, absolute, context);
     }
@@ -26413,7 +26219,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const extension = path.extname(base);
     const allowEsm = __autojs6_package_target_allows_esm(mode);
-    __autojs6_throw_if_unsupported_typescript_extension(
+    __autojs6_throw_if_raw_typescript_extension(
       extension,
       target,
       "Embedded Node package " + fieldName + " target"
@@ -26981,7 +26787,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const resolutionMode = mode || "cjs";
     const allowEsm = __autojs6_package_target_allows_esm(resolutionMode);
     const extension = path.extname(base);
-    __autojs6_throw_if_unsupported_typescript_extension(
+    __autojs6_throw_if_raw_typescript_extension(
       extension,
       moduleName,
       "Embedded Node local module"
@@ -27194,7 +27000,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const allowEsm = __autojs6_package_target_allows_esm(mode);
     const extension = path.extname(base);
-    __autojs6_throw_if_unsupported_typescript_extension(
+    __autojs6_throw_if_raw_typescript_extension(
       extension,
       moduleName,
       "Embedded Node node_modules module"
@@ -41205,7 +41011,7 @@ std::string buildEmbeddedScriptExecutionSource(
     specifier,
     parentFilename
   ) {
-    const readable = __autojs6_validate_runtime_module_path(source, true);
+    const readable = __autojs6_validate_runtime_module_path(source, true, true);
     if (!readable) return false;
     const result = __autojs6_request_module_source(readable, "compile_missing_typescript");
     if (!result || result.status !== "compiled_typescript") return false;
@@ -41320,7 +41126,7 @@ std::string buildEmbeddedScriptExecutionSource(
       { source: base + ".cts", extension: ".cts" }
     ].filter(function(candidate) {
       return __autojs6_has_own(__autojs6_typescript_precompiled_source_names, candidate.source) ||
-        __autojs6_validate_runtime_module_path(candidate.source, true) !== null;
+        __autojs6_validate_runtime_module_path(candidate.source, true, true) !== null;
     });
     if (candidates.length > 1) {
       __autojs6_reject_typescript_snapshot_module(
@@ -41537,7 +41343,7 @@ std::string buildEmbeddedScriptExecutionSource(
         : __autojs6_resolve_precompiled_typescript_extensionless(base, name, parentFilename);
       if (mappedTypeScript) return mappedTypeScript;
     }
-    __autojs6_throw_if_unsupported_typescript_extension(
+    __autojs6_throw_if_raw_typescript_extension(
       extension,
       name,
       "Embedded Node partial ESM import"

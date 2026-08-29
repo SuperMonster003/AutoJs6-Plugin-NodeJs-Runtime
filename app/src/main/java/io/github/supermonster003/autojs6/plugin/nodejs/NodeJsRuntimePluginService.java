@@ -336,38 +336,20 @@ public class NodeJsRuntimePluginService extends Service {
         return NodePluginPayloads.procStatusLongValue(statusText, fieldName, fallback);
     }
 
-    static NodeTypeScriptStripper.Result prepareTypeScriptEntryForNative(
-            String sourceName,
-            String source,
-            boolean legacyTypeScriptStrippingEnabled
-    ) {
-        return NodeTypeScriptStripper.stripIfTypeScript(
-                sourceName,
-                source,
-                legacyTypeScriptStrippingEnabled
-        );
+    static String prepareTypeScriptEntryForNative(String sourceName, String source) {
+        return NodeTypeScriptSourcePolicy.requireJavaScriptSource(sourceName, source);
     }
 
-    static NodeTypeScriptStripper.SourceMapResult prepareTypeScriptModuleSourcesForNative(
-            Map<String, String> sources,
-            boolean legacyTypeScriptStrippingEnabled
+    static Map<String, String> prepareTypeScriptModuleSourcesForNative(
+            Map<String, String> sources
     ) {
-        return NodeTypeScriptStripper.stripSourceMap(
-                NodeTypeScriptStripper.DIAGNOSTIC_SCOPE_MODULE_SOURCES,
-                sources,
-                legacyTypeScriptStrippingEnabled
-        );
+        return NodeTypeScriptSourcePolicy.requireJavaScriptSources(sources);
     }
 
-    static NodeTypeScriptStripper.SourceMapResult prepareTypeScriptRuntimeModuleSourcesForNative(
-            Map<String, String> sources,
-            boolean legacyTypeScriptStrippingEnabled
+    static Map<String, String> prepareTypeScriptRuntimeModuleSourcesForNative(
+            Map<String, String> sources
     ) {
-        return NodeTypeScriptStripper.stripSourceMap(
-                NodeTypeScriptStripper.DIAGNOSTIC_SCOPE_RUNTIME_MODULE_SOURCES,
-                sources,
-                legacyTypeScriptStrippingEnabled
-        );
+        return NodeTypeScriptSourcePolicy.requireJavaScriptSources(sources);
     }
 
     static NodeStartupEnvironmentPolicy.Result prepareNodeStartupEnvironmentForNative(

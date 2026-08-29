@@ -235,35 +235,33 @@ public final class NodeRuntimePluginAndroidConformanceTest {
 
     @Test
     public void x3d_04_rawTypeScriptEntryRequiresCompilerBeforeWorkspaceCreation() throws Exception {
-        LinkedHashMap<String, String> files = new LinkedHashMap<>();
-        files.put("main.ts", "const answer: number = 42;\nconsole.log(answer);\n");
+        for (String entryName : Arrays.asList("main.ts", "main.mts", "main.cts")) {
+            LinkedHashMap<String, String> files = new LinkedHashMap<>();
+            files.put(entryName, "const answer: number = 42;\nconsole.log(answer);\n");
 
-        try (WorkspaceInvocation invocation = execute(
-                "raw-typescript-entry-negative",
-                "main.ts",
-                files,
-                false
-        )) {
-            assertFalse("Raw TypeScript entry unexpectedly succeeded",
-                    invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
-            assertEquals(
-                    NodeJsRuntimeContract.ERROR_TYPESCRIPT_COMPILER_REQUIRED,
-                    invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_CODE)
-            );
-            assertNativeValue(invocation.result,
-                    "embedded_script.typescript.legacy_stripping_enabled", "false");
-            assertNativeValue(invocation.result,
-                    "embedded_script.typescript.preparation_mode", "precompiled_only");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.native_dispatch_started", "false");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.workspace.commit_allowed", "false");
-            invocation.callback.assertOneStartedAndOneTerminalEvent();
+            try (WorkspaceInvocation invocation = execute(
+                    "raw-typescript-entry-negative-" + entryName,
+                    entryName,
+                    files,
+                    false
+            )) {
+                assertFalse("Raw TypeScript entry unexpectedly succeeded: " + entryName,
+                        invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+                assertEquals(
+                        NodeJsRuntimeContract.ERROR_TYPESCRIPT_COMPILER_REQUIRED,
+                        invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_CODE)
+                );
+                assertNativeValue(invocation.result,
+                        "embedded_script.runtime_plugin.native_dispatch_started", "false");
+                assertNativeValue(invocation.result,
+                        "embedded_script.runtime_plugin.workspace.commit_allowed", "false");
+                invocation.callback.assertOneStartedAndOneTerminalEvent();
+            }
         }
     }
 
     @Test
-    public void x3d_05_dynamicCtsRequiresCompilerWithoutLegacyOptIn() throws Exception {
+    public void x3d_05_dynamicCtsRequiresCompilerOutput() throws Exception {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();
         files.put(
                 "main.cjs",
@@ -286,22 +284,9 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                     invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_CODE)
             );
             assertNativeValue(invocation.result,
-                    "embedded_script.typescript.legacy_stripping_enabled", "false");
-            assertNativeValue(invocation.result,
-                    "embedded_script.typescript.preparation_mode", "precompiled_only");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.typescript.legacy_stripping_enabled",
-                    "false");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.typescript.stripped_count", "0");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.typescript.last_error_code",
-                    NodeJsRuntimeContract.ERROR_TYPESCRIPT_COMPILER_REQUIRED);
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.typescript.last_syntax_kind",
-                    "compiler_required");
+                    "embedded_script.module_provider.missing_candidate_request_count", "0");
             invocation.callback.assertOneStartedAndOneTerminalEvent();
-            invocation.provider.assertHealthyAndResolved("dynamic.cts");
+            invocation.provider.assertHealthyAndNotCalled();
         }
     }
 
@@ -356,7 +341,6 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 "main.mjs",
                 "const extension = '.mts';\nawait import('./late' + extension);\n"
         );
-        missingFiles.put("late.mts", "export const value: number = 42;\n");
         try (WorkspaceInvocation invocation = executeWithTypeScriptSnapshot(
                 "typescript-snapshot-missing",
                 "main.mjs",
@@ -366,6 +350,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 true
         )) {
             assertFalse(invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            assertNativeValue(invocation.result,
+                    "embedded_script.typescript.dynamic_specifier.snapshot_enabled", "true");
             assertEquals(
                     NodeJsRuntimeContract.ERROR_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND,
                     invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_CODE)
@@ -488,10 +474,16 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         assertEquals("node_compat_corpus_v2 asset count", 15, files.size());
         files.put("main.cjs", nodeCompatCorpusV2RunnerSource());
 
-        try (WorkspaceInvocation invocation = executeWithLegacyTypeScript(
+        LinkedHashMap<String, String> generatedModules = new LinkedHashMap<>();
+        generatedModules.put("ts-cjs.cjs", files.get("ts-cjs.cts"));
+        generatedModules.put("ts-esm.mjs", files.get("ts-esm.mts"));
+
+        try (WorkspaceInvocation invocation = executeWithTypeScriptSnapshot(
                 "node-compat-corpus-v2",
                 "main.cjs",
                 files,
+                generatedModules,
+                Arrays.asList("ts-cjs.cts", "ts-esm.mts"),
                 false
         )) {
             assertSucceeded(invocation.result, "compat.v2.total=7");
@@ -512,7 +504,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
     }
 
     @Test
-    public void x3f_13_missingComputedCtsMaterializesThroughProviderV2AndStaysProtected() throws Exception {
+    public void x3f_13_missingComputedCtsRequiresCompilerOutputBeforeProviderMaterialization()
+            throws Exception {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();
         files.put(
                 "main.cjs",
@@ -524,7 +517,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 "const base: number = 41;\n" +
                         "module.exports = { answer: base + 1 };\n"
         ).getBytes(StandardCharsets.UTF_8);
-        try (WorkspaceInvocation invocation = executeWithLegacyTypeScript(
+        try (WorkspaceInvocation invocation = execute(
                 "missing-computed-cts",
                 "main.cjs",
                 files,
@@ -532,55 +525,16 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 true,
                 rawPlaintext
         )) {
-            assertSucceeded(invocation.result, "x3f.cts=42");
+            assertFalse("Provider raw TypeScript unexpectedly succeeded",
+                    invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            assertEquals(
+                    NodeJsRuntimeContract.ERROR_TYPESCRIPT_COMPILER_REQUIRED,
+                    invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_CODE)
+            );
             invocation.callback.assertOneStartedAndOneTerminalEvent();
-            invocation.provider.assertHealthyAndMaterialized("computed.cts");
-            invocation.assertWorkspaceOutputCommitted();
-            invocation.assertWorkspaceExcludes("computed.cts", "const base: number = 41");
+            invocation.provider.assertHealthyAndNotCalled();
             assertNativeValue(invocation.result,
-                    "embedded_script.module_provider.missing_candidate_request_count", "1");
-            assertNativeValue(invocation.result,
-                    "embedded_script.module_provider.materialized_count", "1");
-            assertNativeValue(invocation.result,
-                    "embedded_script.module_provider.materialized_source_bytes",
-                    Integer.toString(rawPlaintext.length));
-            // Two metadata preflight resolves, the missing-candidate resolve
-            // (not_encrypted), and the materialization itself.
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.request_count", "4");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.metadata_preflight.provider_request_count",
-                    "2");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.missing_candidate_request_count", "1");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.plaintext_count", "1");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.materialized_count", "1");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.materialized_source_bytes",
-                    Integer.toString(rawPlaintext.length));
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.not_encrypted_count", "1");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.typescript." +
-                            "raw_already_accounted_preparation_count", "1");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.typescript." +
-                            "plaintext_preparation_request_count", "1");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.typescript." +
-                            "plaintext_preparation_count", "1");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.module_provider.typescript.stripped_count", "1");
-            assertNativeValue(invocation.result,
-                    "embedded_script.module_provider.transport_failure_count", "0");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.workspace.provider_materialized_count", "1");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.workspace.provider_protected_output_file_count", "1");
-            assertNativeValue(invocation.result,
-                    "embedded_script.runtime_plugin.workspace.provider_protected_tombstone_count", "0");
+                    "embedded_script.module_provider.missing_candidate_request_count", "0");
         }
     }
 
@@ -676,8 +630,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 withPlaintextProvider,
                 null,
                 null,
-                SCRIPT_TIMEOUT_MS,
-                false
+                SCRIPT_TIMEOUT_MS
         );
     }
 
@@ -696,8 +649,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 withPlaintextProvider,
                 null,
                 null,
-                timeoutMs,
-                false
+                timeoutMs
         );
     }
 
@@ -716,8 +668,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 withPlaintextProvider,
                 null,
                 null,
-                SCRIPT_TIMEOUT_MS,
-                false
+                SCRIPT_TIMEOUT_MS
         );
     }
 
@@ -737,48 +688,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 withPlaintextProvider,
                 missingPlaintextSource,
                 null,
-                SCRIPT_TIMEOUT_MS,
-                false
-        );
-    }
-
-    private WorkspaceInvocation executeWithLegacyTypeScript(
-            String label,
-            String entryName,
-            LinkedHashMap<String, String> sourceFiles,
-            boolean withPlaintextProvider
-    ) throws Exception {
-        return execute(
-                label,
-                entryName,
-                sourceFiles,
-                new LinkedHashMap<>(),
-                withPlaintextProvider,
-                null,
-                null,
-                SCRIPT_TIMEOUT_MS,
-                true
-        );
-    }
-
-    private WorkspaceInvocation executeWithLegacyTypeScript(
-            String label,
-            String entryName,
-            LinkedHashMap<String, String> sourceFiles,
-            LinkedHashMap<String, String> moduleSourceFiles,
-            boolean withPlaintextProvider,
-            byte[] missingPlaintextSource
-    ) throws Exception {
-        return execute(
-                label,
-                entryName,
-                sourceFiles,
-                moduleSourceFiles,
-                withPlaintextProvider,
-                missingPlaintextSource,
-                null,
-                SCRIPT_TIMEOUT_MS,
-                true
+                SCRIPT_TIMEOUT_MS
         );
     }
 
@@ -799,7 +709,6 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 null,
                 null,
                 SCRIPT_TIMEOUT_MS,
-                false,
                 true,
                 precompiledSourceNames
         );
@@ -813,8 +722,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
             boolean withPlaintextProvider,
             byte[] missingPlaintextSource,
             LinkedHashMap<String, ProviderAction> exactProviderActions,
-            long timeoutMs,
-            boolean legacyTypeScriptStrippingEnabled
+            long timeoutMs
     ) throws Exception {
         return execute(
                 label,
@@ -825,7 +733,6 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 missingPlaintextSource,
                 exactProviderActions,
                 timeoutMs,
-                legacyTypeScriptStrippingEnabled,
                 false,
                 Collections.emptyList()
         );
@@ -840,7 +747,6 @@ public final class NodeRuntimePluginAndroidConformanceTest {
             byte[] missingPlaintextSource,
             LinkedHashMap<String, ProviderAction> exactProviderActions,
             long timeoutMs,
-            boolean legacyTypeScriptStrippingEnabled,
             boolean typeScriptPrecompiledSnapshot,
             List<String> precompiledSourceNames
     ) throws Exception {
@@ -901,10 +807,6 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                     moduleSources,
                     provider == null ? exactGraphProvider : provider,
                     timeoutMs
-            );
-            request.putBoolean(
-                    NodeJsRuntimeContract.KEY_LEGACY_TYPESCRIPT_STRIPPING_ENABLED,
-                    legacyTypeScriptStrippingEnabled
             );
             request.putBoolean(
                     NodeJsRuntimeContract.KEY_TYPESCRIPT_PRECOMPILED_SNAPSHOT,
@@ -1809,51 +1711,11 @@ public final class NodeRuntimePluginAndroidConformanceTest {
             // The request-scoped transport always closes its provider at terminal completion.
         }
 
-        void assertHealthyAndResolved(String expectedName) {
-            assertEquals("plaintext provider failure", null, failure.get());
-            assertEquals("plaintext provider resolve count", 1, resolveCount.get());
-            assertEquals("plaintext provider Binder caller PID", expectedRuntimePid, callerPid.get());
-            assertNotEquals(
-                    "plaintext provider unexpectedly ran in the instrumentation process",
-                    Process.myPid(),
-                    callerPid.get()
-            );
-            assertTrue(
-                    lastResolvedPath.get(),
-                    lastResolvedPath.get().toLowerCase(Locale.ROOT)
-                            .endsWith(expectedName.toLowerCase(Locale.ROOT))
-            );
-            assertEquals(
-                    NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_RESOLVE_EXISTING,
-                    lastOperation.get()
-            );
-        }
-
         void assertHealthyAndNotCalled() {
             assertEquals("plaintext provider failure", null, failure.get());
             assertEquals("plaintext provider resolve count", 0, resolveCount.get());
             assertEquals("plaintext provider last resolved path", "", lastResolvedPath.get());
             assertEquals("plaintext provider last operation", "", lastOperation.get());
-        }
-
-        void assertHealthyAndMaterialized(String expectedName) {
-            assertEquals("plaintext provider failure", null, failure.get());
-            assertEquals("plaintext provider resolve count", 1, resolveCount.get());
-            assertEquals("plaintext provider Binder caller PID", expectedRuntimePid, callerPid.get());
-            assertNotEquals(
-                    "plaintext provider unexpectedly ran in the instrumentation process",
-                    Process.myPid(),
-                    callerPid.get()
-            );
-            assertTrue(
-                    lastResolvedPath.get(),
-                    lastResolvedPath.get().toLowerCase(Locale.ROOT)
-                            .endsWith(expectedName.toLowerCase(Locale.ROOT))
-            );
-            assertEquals(
-                    NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_MATERIALIZE_MISSING_PLAINTEXT,
-                    lastOperation.get()
-            );
         }
 
         private void recordCallerPid() {
@@ -1997,45 +1859,6 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                     tombstone.optJSONArray("deletedFiles"));
             assertEquals("conformance scripts unexpectedly deleted an explicit input", 0,
                     tombstone.optJSONArray("deletedFiles").length());
-        }
-
-        void assertWorkspaceExcludes(String forbiddenPath, String forbiddenText) throws IOException {
-            String normalizedForbiddenPath = forbiddenPath.replace('\\', '/');
-            byte[] forbiddenBytes = forbiddenText.getBytes(StandardCharsets.UTF_8);
-            try (ZipInputStream input = new ZipInputStream(new FileInputStream(outputArchive))) {
-                ZipEntry entry;
-                byte[] buffer = new byte[4096];
-                while ((entry = input.getNextEntry()) != null) {
-                    assertNotEquals(
-                            "provider materialization leaked into workspace output",
-                            normalizedForbiddenPath,
-                            entry.getName()
-                    );
-                    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                    int count;
-                    while ((count = input.read(buffer)) >= 0) {
-                        if (count == 0) continue;
-                        bytes.write(buffer, 0, count);
-                    }
-                    assertFalse(
-                            "provider plaintext leaked through workspace output entry " + entry.getName(),
-                            containsBytes(bytes.toByteArray(), forbiddenBytes)
-                    );
-                    input.closeEntry();
-                }
-            }
-        }
-
-        private static boolean containsBytes(byte[] haystack, byte[] needle) {
-            if (needle.length == 0) return true;
-            for (int start = 0; start <= haystack.length - needle.length; start++) {
-                int index = 0;
-                while (index < needle.length && haystack[start + index] == needle[index]) {
-                    index++;
-                }
-                if (index == needle.length) return true;
-            }
-            return false;
         }
 
         void assertWorkspaceNotMaterializedBeforeNative() {

@@ -84,11 +84,8 @@ final class PluginModuleSourceProviderFileTransportSession {
     private static final String OPERATION_RESOLVE = "resolve";
     private static final String OPERATION_MATERIALIZE_MISSING_PLAINTEXT =
             NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_MATERIALIZE_MISSING_PLAINTEXT;
-    private static final String OPERATION_PREPARE_PLAINTEXT_TYPESCRIPT =
-            "prepare_plaintext_typescript";
     private static final String OPERATION_COMPILE_MISSING_TYPESCRIPT =
             NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_COMPILE_MISSING_TYPESCRIPT;
-    private static final String STATUS_PREPARED = "prepared";
     private static final String STATUS_MATERIALIZED_PLAINTEXT = "materialized_plaintext";
     private static final String STATUS_COMPILED_TYPESCRIPT =
             NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_STATUS_COMPILED_TYPESCRIPT;
@@ -115,7 +112,6 @@ final class PluginModuleSourceProviderFileTransportSession {
     private final PluginWorkspaceArchiveSession workspaceSession;
     private final long timeoutMs;
     private final long compilationTimeoutMs;
-    private final boolean legacyTypeScriptStrippingEnabled;
     // Starts at the requested (or maximum supported) version and downgrades
     // once, permanently, when the provider answers with a v1 envelope.
     private volatile int providerContractVersion;
@@ -142,16 +138,11 @@ final class PluginModuleSourceProviderFileTransportSession {
     private final AtomicInteger materializedCount = new AtomicInteger(0);
     private final AtomicLong materializedSourceBytes = new AtomicLong(0L);
     private final AtomicInteger materializationFailureCount = new AtomicInteger(0);
-    private final AtomicInteger rawAlreadyAccountedPreparationCount = new AtomicInteger(0);
     private final AtomicInteger preparedSourceCount = new AtomicInteger(0);
     private final AtomicLong preparedSourceBytes = new AtomicLong(0L);
     private final AtomicInteger typeScriptSourceCount = new AtomicInteger(0);
-    private final AtomicInteger typeScriptStrippedCount = new AtomicInteger(0);
     private final AtomicInteger typeScriptFailureCount = new AtomicInteger(0);
     private final AtomicLong typeScriptInputBytes = new AtomicLong(0L);
-    private final AtomicLong typeScriptOutputBytes = new AtomicLong(0L);
-    private final AtomicInteger plaintextTypeScriptPreparationRequestCount = new AtomicInteger(0);
-    private final AtomicInteger plaintextTypeScriptPreparationCount = new AtomicInteger(0);
     private final AtomicLong elapsedMs = new AtomicLong(0L);
     private final AtomicLong transportElapsedMs = new AtomicLong(0L);
     private final AtomicInteger mappedRequestPathCount = new AtomicInteger(0);
@@ -167,14 +158,11 @@ final class PluginModuleSourceProviderFileTransportSession {
     private final AtomicReference<String> lastTypeScriptStatus = new AtomicReference<>("");
     private final AtomicReference<String> lastTypeScriptSourceName = new AtomicReference<>("");
     private final AtomicReference<String> lastTypeScriptExtension = new AtomicReference<>("");
-    private final AtomicReference<String> lastTypeScriptStripped = new AtomicReference<>("");
     private final AtomicReference<String> lastTypeScriptErrorCode = new AtomicReference<>("");
     private final AtomicReference<String> lastTypeScriptSyntaxKind = new AtomicReference<>("");
     private final AtomicInteger lastTypeScriptLine = new AtomicInteger(0);
     private final AtomicInteger lastTypeScriptColumn = new AtomicInteger(0);
     private final AtomicReference<ParcelFileDescriptor> activeSourceDescriptor = new AtomicReference<>(null);
-    private final Map<String, PendingPlaintextTypeScriptPreparation> pendingPlaintextPreparations =
-            new ConcurrentHashMap<>();
     private final Map<String, MetadataPreflightReplay> metadataPreflightReplays =
             new ConcurrentHashMap<>();
     private final Thread thread;
@@ -192,7 +180,6 @@ final class PluginModuleSourceProviderFileTransportSession {
                 provider,
                 requestedTimeoutMs,
                 workspaceSession,
-                false,
                 CONTRACT_VERSION
         );
     }
@@ -203,7 +190,6 @@ final class PluginModuleSourceProviderFileTransportSession {
             INodeJsModuleSourceProvider provider,
             long requestedTimeoutMs,
             PluginWorkspaceArchiveSession workspaceSession,
-            boolean legacyTypeScriptStrippingEnabled,
             int providerContractVersion
     ) {
         this.executionId = nonBlank(executionId, "execution-" + System.nanoTime());
@@ -211,7 +197,6 @@ final class PluginModuleSourceProviderFileTransportSession {
         this.workspaceSession = workspaceSession;
         this.timeoutMs = boundedTimeoutMs(requestedTimeoutMs);
         this.compilationTimeoutMs = CONTRACT_VERSION >= 3 ? HARD_TIMEOUT_MS : this.timeoutMs;
-        this.legacyTypeScriptStrippingEnabled = legacyTypeScriptStrippingEnabled;
         this.providerContractVersion = providerContractVersion;
         this.root = new File(
                 new File(cacheDir, "nodejs-module-source-provider"),
@@ -764,7 +749,6 @@ final class PluginModuleSourceProviderFileTransportSession {
         cancelled.set(true);
         cancelProviderAsync(nonBlank(reason, "Node.js runtime plugin execution finished."));
         running.set(false);
-        pendingPlaintextPreparations.clear();
         metadataPreflightReplays.clear();
         closeActiveSourceDescriptor();
         thread.interrupt();
@@ -818,33 +802,14 @@ final class PluginModuleSourceProviderFileTransportSession {
                 "embedded_script.runtime_plugin.module_provider.materialization_failure_count",
                 Integer.toString(materializationFailureCount.get())
         );
-        values.put(
-                "embedded_script.runtime_plugin.module_provider.typescript.raw_already_accounted_preparation_count",
-                Integer.toString(rawAlreadyAccountedPreparationCount.get())
-        );
         values.put("embedded_script.runtime_plugin.module_provider.prepared_source_count", Integer.toString(preparedSourceCount.get()));
         values.put("embedded_script.runtime_plugin.module_provider.prepared_source_bytes", Long.toString(preparedSourceBytes.get()));
         values.put("embedded_script.runtime_plugin.module_provider.typescript.source_count", Integer.toString(typeScriptSourceCount.get()));
-        values.put("embedded_script.runtime_plugin.module_provider.typescript.stripped_count", Integer.toString(typeScriptStrippedCount.get()));
         values.put("embedded_script.runtime_plugin.module_provider.typescript.failure_count", Integer.toString(typeScriptFailureCount.get()));
-        values.put(
-                "embedded_script.runtime_plugin.module_provider.typescript.legacy_stripping_enabled",
-                Boolean.toString(legacyTypeScriptStrippingEnabled)
-        );
         values.put("embedded_script.runtime_plugin.module_provider.typescript.input_bytes", Long.toString(typeScriptInputBytes.get()));
-        values.put("embedded_script.runtime_plugin.module_provider.typescript.output_bytes", Long.toString(typeScriptOutputBytes.get()));
-        values.put(
-                "embedded_script.runtime_plugin.module_provider.typescript.plaintext_preparation_request_count",
-                Integer.toString(plaintextTypeScriptPreparationRequestCount.get())
-        );
-        values.put(
-                "embedded_script.runtime_plugin.module_provider.typescript.plaintext_preparation_count",
-                Integer.toString(plaintextTypeScriptPreparationCount.get())
-        );
         values.put("embedded_script.runtime_plugin.module_provider.typescript.last_status", lastTypeScriptStatus.get());
         values.put("embedded_script.runtime_plugin.module_provider.typescript.last_source_name", lastTypeScriptSourceName.get());
         values.put("embedded_script.runtime_plugin.module_provider.typescript.last_extension", lastTypeScriptExtension.get());
-        values.put("embedded_script.runtime_plugin.module_provider.typescript.last_stripped", lastTypeScriptStripped.get());
         values.put("embedded_script.runtime_plugin.module_provider.typescript.last_error_code", lastTypeScriptErrorCode.get());
         values.put("embedded_script.runtime_plugin.module_provider.typescript.last_syntax_kind", lastTypeScriptSyntaxKind.get());
         values.put("embedded_script.runtime_plugin.module_provider.typescript.last_line", Integer.toString(lastTypeScriptLine.get()));
@@ -918,7 +883,6 @@ final class PluginModuleSourceProviderFileTransportSession {
             }
         } finally {
             closeActiveSourceDescriptor();
-            pendingPlaintextPreparations.clear();
             if (stopped.get()) {
                 deleteRecursively(root);
             }
@@ -946,7 +910,6 @@ final class PluginModuleSourceProviderFileTransportSession {
         JSONObject requestJson = null;
         String fallbackId = fileId(requestFile);
         boolean transportFailureRecorded = false;
-        boolean plaintextPreparationRequest = false;
         boolean materializationRequest = false;
         boolean compilationRequest = false;
         byte[] compilationSource = null;
@@ -960,14 +923,11 @@ final class PluginModuleSourceProviderFileTransportSession {
             String id = validId ? requestedId : fallbackId;
             String requestedExecutionId = nonBlank(requestJson.optString("executionId"), "");
             String operation = nonBlank(requestJson.optString("operation"), OPERATION_RESOLVE);
-            plaintextPreparationRequest = OPERATION_PREPARE_PLAINTEXT_TYPESCRIPT.equals(operation);
             materializationRequest = OPERATION_MATERIALIZE_MISSING_PLAINTEXT.equals(operation);
             compilationRequest = OPERATION_COMPILE_MISSING_TYPESCRIPT.equals(operation);
             boolean validOperation = OPERATION_RESOLVE.equals(operation) ||
-                    materializationRequest || compilationRequest || plaintextPreparationRequest;
-            String path = plaintextPreparationRequest
-                    ? nonBlank(requestJson.optString("sourceName"), "")
-                    : nonBlank(requestJson.optString("path"), "");
+                    materializationRequest || compilationRequest;
+            String path = nonBlank(requestJson.optString("path"), "");
             if (count > TRANSPORT_REQUEST_COUNT_LIMIT) {
                 transportFailureCount.incrementAndGet();
                 transportFailureRecorded = true;
@@ -980,7 +940,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                         ERROR_BUDGET_EXCEEDED,
                         "Module-source provider transport operation count exceeds " +
                                 TRANSPORT_REQUEST_COUNT_LIMIT + "."
-                ), null, !plaintextPreparationRequest);
+                ), null, true);
                 return;
             }
             if (!validId || !validOperation ||
@@ -995,7 +955,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                         elapsedSince(startedAt),
                         ERROR_INVALID_REQUEST,
                         "Invalid module-source provider request identity or version."
-                ), null, !plaintextPreparationRequest);
+                ), null, true);
                 return;
             }
             if (!executionId.equals(requestedExecutionId)) {
@@ -1009,7 +969,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                         elapsedSince(startedAt),
                         "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
                         "Module-source provider request was denied."
-                ), null, !plaintextPreparationRequest);
+                ), null, true);
                 return;
             }
             long operationTimeoutMs = compilationRequest ? compilationTimeoutMs : timeoutMs;
@@ -1023,17 +983,6 @@ final class PluginModuleSourceProviderFileTransportSession {
             long providerWaitMs = remainingMs(requestDeadline);
             if (providerWaitMs <= 0L) {
                 throw new ProviderTimeoutException("Module-source provider request deadline expired.");
-            }
-            if (plaintextPreparationRequest) {
-                handlePlaintextTypeScriptPreparation(
-                        requestFile,
-                        id,
-                        path,
-                        startedAt,
-                        requestDeadline,
-                        requestJson
-                );
-                return;
             }
             if (!materializationRequest && !compilationRequest) {
                 MetadataPreflightReplay replay = metadataPreflightReplays.remove(
@@ -1098,9 +1047,7 @@ final class PluginModuleSourceProviderFileTransportSession {
             }
             String id = requestJson == null ? fallbackId : nonBlank(requestJson.optString("id"), fallbackId);
             String path = requestJson == null ? "" : nonBlank(requestJson.optString("path"), "");
-            if (!plaintextPreparationRequest) {
-                cancelProviderAsync("Module-source provider request timed out: " + id);
-            }
+            cancelProviderAsync("Module-source provider request timed out: " + id);
             writeResponseQuietly(requestFile, failureJson(
                     id,
                     STATUS_TIMED_OUT,
@@ -1109,7 +1056,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                     elapsedSince(startedAt),
                     ERROR_TIMED_OUT,
                     publicFailureMessage(error)
-            ), !plaintextPreparationRequest);
+            ), true);
         } catch (BudgetExceededException error) {
             if (!transportFailureRecorded) {
                 transportFailureCount.incrementAndGet();
@@ -1124,8 +1071,8 @@ final class PluginModuleSourceProviderFileTransportSession {
                     elapsedSince(startedAt),
                     ERROR_BUDGET_EXCEEDED,
                     publicFailureMessage(error)
-            ), !plaintextPreparationRequest);
-        } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException error) {
+            ), true);
+        } catch (NodeTypeScriptSourcePolicy.CompilerRequiredException error) {
             transportFailureCount.incrementAndGet();
             recordTypeScriptFailure(
                     error.sourceName(),
@@ -1144,7 +1091,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                     elapsedSince(startedAt),
                     error.errorCode(),
                     messageOf(error)
-            ), !plaintextPreparationRequest);
+            ), true);
         } catch (Throwable error) {
             if (!transportFailureRecorded) {
                 transportFailureCount.incrementAndGet();
@@ -1161,7 +1108,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                     cancelled.get()
                             ? "Module-source provider transport was cancelled."
                             : publicFailureMessage(error)
-            ), !plaintextPreparationRequest);
+            ), true);
         } finally {
             if (compilationSource != null) {
                 Arrays.fill(compilationSource, (byte) 0);
@@ -1197,7 +1144,6 @@ final class PluginModuleSourceProviderFileTransportSession {
                     .put("resolvedPath", replay.resolvedPath)
                     .put("sourcePath", sourceFile == null ? "" : sourceFile.getAbsolutePath())
                     .put("sourceBytes", replayBytes)
-                    .put("rawAlreadyAccounted", true)
                     .put("elapsedMs", elapsedSince(startedAt))
                     .put("errorCode", "")
                     .put("errorMessage", "");
@@ -1396,176 +1342,6 @@ final class PluginModuleSourceProviderFileTransportSession {
         response.putString(NodeJsRuntimeContract.KEY_ERROR_CODE, "");
         response.putString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, "");
         return response;
-    }
-
-    /**
-     * Completes the second, plugin-private leg of plaintext TypeScript
-     * preparation. Native code publishes this request only after it has
-     * revalidated the authorized workspace path and obtained the raw bytes
-     * through its fd-identity checked read. Java therefore never reopens the
-     * workspace path: it consumes only the exact request-scoped private file,
-     * applies the same plugin-owned stripper used for entry and preloaded
-     * sources, and publishes another exact private file for native code.
-     */
-    private void handlePlaintextTypeScriptPreparation(
-            File requestFile,
-            String id,
-            String sourceName,
-            long startedAt,
-            long requestDeadline,
-            JSONObject requestJson
-    ) throws Exception {
-        plaintextTypeScriptPreparationRequestCount.incrementAndGet();
-        if (plaintextTypeScriptPreparationRequestCount.get() > REQUEST_COUNT_LIMIT) {
-            throw new BudgetExceededException(
-                    "Plaintext TypeScript preparation request count exceeds " + REQUEST_COUNT_LIMIT + "."
-            );
-        }
-        String parentRequestId = nonBlank(requestJson.optString("parentRequestId"), "");
-        PendingPlaintextTypeScriptPreparation pending =
-                pendingPlaintextPreparations.remove(parentRequestId);
-        if (pending == null || !pending.sourceName.equals(sourceName)) {
-            throw new IOException("Plaintext TypeScript preparation is not linked to an authorized response.");
-        }
-        long effectiveDeadline = Math.min(requestDeadline, pending.deadline);
-        if (remainingMs(effectiveDeadline) <= 0L) {
-            throw new ProviderTimeoutException("Plaintext TypeScript preparation deadline expired.");
-        }
-        String declaredSourcePath = nonBlank(requestJson.optString("sourcePath"), "");
-        File requestSource = new File(requestDir, safeFileName(id) + ".source");
-        long declaredBytes;
-        try {
-            declaredBytes = validatePlaintextTypeScriptPreparationEnvelope(
-                    requestDir,
-                    id,
-                    sourceName,
-                    declaredSourcePath,
-                    requestJson.opt("sourceBytes")
-            );
-        } catch (BudgetExceededException error) {
-            recordTypeScriptFailure(sourceName, ERROR_BUDGET_EXCEEDED, "raw_budget_exceeded", 0, 0);
-            throw error;
-        }
-        byte[] rawSource;
-        try {
-            if (pending.rawAlreadyAccounted) {
-                if (pending.rawSourceBytes != declaredBytes) {
-                    throw new IOException(
-                            "Plaintext TypeScript preparation raw-byte receipt does not match materialization."
-                    );
-                }
-            } else {
-                long rawBefore = sourceBytes.get();
-                if (rawBefore > TOTAL_SOURCE_BYTES_LIMIT - declaredBytes) {
-                    throw new BudgetExceededException(
-                            "Plaintext TypeScript module sources exceed the aggregate raw byte budget."
-                    );
-                }
-            }
-            rawSource = readPrivatePreparationSource(
-                    requestSource,
-                    declaredBytes,
-                    effectiveDeadline
-            );
-        } catch (BudgetExceededException error) {
-            recordTypeScriptFailure(sourceName, ERROR_BUDGET_EXCEEDED, "raw_budget_exceeded", 0, 0);
-            throw error;
-        } catch (IOException error) {
-            recordTypeScriptFailure(sourceName, ERROR_FAILED, "private_input_io", 0, 0);
-            throw error;
-        }
-        if (pending.rawAlreadyAccounted) {
-            rawAlreadyAccountedPreparationCount.incrementAndGet();
-        } else {
-            rawSourceCount.incrementAndGet();
-            sourceBytes.addAndGet(rawSource.length);
-        }
-        typeScriptSourceCount.incrementAndGet();
-        typeScriptInputBytes.addAndGet(rawSource.length);
-
-        File responseSource = new File(responseDir, safeFileName(id) + ".source");
-        try {
-            PreparedTypeScriptSource preparation = prepareDecryptedTypeScriptBytes(
-                    sourceName,
-                    rawSource,
-                    legacyTypeScriptStrippingEnabled
-            );
-            byte[] prepared = preparation.source();
-            if (!preparation.typeScript()) {
-                throw new IOException("Plaintext TypeScript preparation did not classify its source as TypeScript.");
-            }
-            if (prepared.length > SINGLE_SOURCE_BYTES_LIMIT) {
-                throw new BudgetExceededException(
-                        "Prepared plaintext TypeScript module source exceeds the single-source byte budget."
-                );
-            }
-            ensurePreparedSourceBudget(prepared.length);
-            replaceSourceAtomically(responseSource, prepared);
-            JSONObject responseJson = new JSONObject()
-                    .put("version", CONTRACT_VERSION)
-                    .put("id", id)
-                    .put("status", STATUS_PREPARED)
-                    .put("resolvedPath", sourceName)
-                    .put("sourcePath", responseSource.getAbsolutePath())
-                    .put("sourceBytes", responseSource.length())
-                    .put("rawSourceBytes", rawSource.length)
-                    .put("elapsedMs", elapsedSince(startedAt))
-                    .put("errorCode", "")
-                    .put("errorMessage", "");
-            writeResponse(requestFile, responseJson, responseSource, false);
-            commitPreparedSource(prepared.length);
-            if (preparation.stripped()) {
-                typeScriptStrippedCount.incrementAndGet();
-            }
-            typeScriptOutputBytes.addAndGet(prepared.length);
-            plaintextTypeScriptPreparationCount.incrementAndGet();
-            recordTypeScriptSuccess(sourceName, preparation, prepared.length);
-        } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException error) {
-            responseSource.delete();
-            throw error;
-        } catch (BudgetExceededException error) {
-            responseSource.delete();
-            recordTypeScriptFailure(sourceName, ERROR_BUDGET_EXCEEDED, "budget_exceeded", 0, 0);
-            throw error;
-        } catch (CharacterCodingException error) {
-            responseSource.delete();
-            recordTypeScriptFailure(sourceName, ERROR_FAILED, "invalid_utf8", 0, 0);
-            throw new IOException("Plaintext TypeScript module source is not valid UTF-8.", error);
-        } catch (IOException error) {
-            responseSource.delete();
-            recordTypeScriptFailure(sourceName, ERROR_FAILED, "transport_io", 0, 0);
-            throw error;
-        }
-    }
-
-    static long validatePlaintextTypeScriptPreparationEnvelope(
-            File privateRequestDirectory,
-            String id,
-            String sourceName,
-            String declaredSourcePath,
-            Object declaredBytesValue
-    ) throws IOException {
-        File expectedSource = new File(privateRequestDirectory, safeFileName(id) + ".source");
-        if (!expectedSource.getAbsolutePath().equals(declaredSourcePath)) {
-            throw new IOException("Plaintext TypeScript preparation source path is invalid.");
-        }
-        if (!(declaredBytesValue instanceof Byte) &&
-                !(declaredBytesValue instanceof Short) &&
-                !(declaredBytesValue instanceof Integer) &&
-                !(declaredBytesValue instanceof Long)) {
-            throw new IOException("Plaintext TypeScript preparation byte count is invalid.");
-        }
-        long declaredBytes = ((Number) declaredBytesValue).longValue();
-        if (declaredBytes < 0L || declaredBytes > SINGLE_SOURCE_BYTES_LIMIT) {
-            throw new BudgetExceededException(
-                    "Plaintext TypeScript module source exceeds the single-source byte budget."
-            );
-        }
-        if (!NodeTypeScriptStripper.isTypeScriptSourceName(sourceName) &&
-                !NodeTypeScriptStripper.isUnsupportedTypeScriptSourceName(sourceName)) {
-            throw new IOException("Plaintext TypeScript preparation requires a TypeScript source name.");
-        }
-        return declaredBytes;
     }
 
     /**
@@ -1805,35 +1581,10 @@ final class PluginModuleSourceProviderFileTransportSession {
                 .put("resolvedPath", resolvedPath)
                 .put("sourcePath", sourceFile == null ? "" : sourceFile.getAbsolutePath())
                 .put("sourceBytes", responseSourceBytes)
-                .put("rawAlreadyAccounted", STATUS_MATERIALIZED_PLAINTEXT.equals(nativeStatus))
                 .put("elapsedMs", totalElapsedMs)
                 .put("errorCode", errorCode)
                 .put("errorMessage", errorMessage);
-        PendingPlaintextTypeScriptPreparation pending = null;
-        if ((STATUS_NOT_ENCRYPTED.equals(nativeStatus) ||
-                STATUS_MATERIALIZED_PLAINTEXT.equals(nativeStatus)) &&
-                NodeTypeScriptStripper.isAnyTypeScriptSourceName(resolvedPath)) {
-            pending = new PendingPlaintextTypeScriptPreparation(
-                    resolvedPath,
-                    requestDeadline,
-                    STATUS_MATERIALIZED_PLAINTEXT.equals(nativeStatus),
-                    responseSourceBytes
-            );
-            if (running.get() && !stopped.get()) {
-                pendingPlaintextPreparations.put(id, pending);
-                if (!running.get() || stopped.get()) {
-                    pendingPlaintextPreparations.remove(id, pending);
-                }
-            }
-        }
-        try {
-            writeResponse(requestFile, responseJson, sourceFile, true);
-        } catch (Throwable error) {
-            if (pending != null) {
-                pendingPlaintextPreparations.remove(id, pending);
-            }
-            throw error;
-        }
+        writeResponse(requestFile, responseJson, sourceFile, true);
     }
 
     static void validatePositiveProviderResolvedPath(
@@ -1877,20 +1628,14 @@ final class PluginModuleSourceProviderFileTransportSession {
         }
     }
 
-    /**
-     * Applies plugin-owned TypeScript erasure only after the raw provider PFD
-     * has passed its declared-byte and transport budgets. The Host/Binder
-     * accounting therefore remains an intentionally stricter raw-input bound,
-     * while the private response consumed by native code reports the prepared
-     * UTF-8 byte count.
-     */
+    /** Rejects decrypted raw TypeScript after its PFD has passed transport budgets. */
     private void prepareDecryptedTypeScriptSource(
             File sourceFile,
             String resolvedPath,
             long rawBytes
     ) throws IOException {
         String sourceName = nonBlank(resolvedPath, sourceFile.getName());
-        boolean typeScript = NodeTypeScriptStripper.isAnyTypeScriptSourceName(sourceName);
+        boolean typeScript = NodeTypeScriptSourcePolicy.isAnyTypeScriptSourceName(sourceName);
         if (!typeScript) {
             recordPreparedSource(rawBytes);
             return;
@@ -1899,51 +1644,9 @@ final class PluginModuleSourceProviderFileTransportSession {
         typeScriptSourceCount.incrementAndGet();
         typeScriptInputBytes.addAndGet(rawBytes);
         try {
-            byte[] rawSource = readSourceBytesBounded(sourceFile, rawBytes);
-            PreparedTypeScriptSource preparation = prepareDecryptedTypeScriptBytes(
-                    sourceName,
-                    rawSource,
-                    legacyTypeScriptStrippingEnabled
-            );
-            byte[] prepared = preparation.source();
-            if (prepared.length > SINGLE_SOURCE_BYTES_LIMIT) {
-                throw new BudgetExceededException(
-                        "Prepared TypeScript module source exceeds the single-source byte budget."
-                );
-            }
-            long preparedBefore = preparedSourceBytes.get();
-            if (preparedBefore > TOTAL_SOURCE_BYTES_LIMIT - prepared.length) {
-                throw new BudgetExceededException(
-                        "Prepared TypeScript module sources exceed the aggregate byte budget."
-                );
-            }
-            if (preparation.stripped()) {
-                replaceSourceAtomically(sourceFile, prepared);
-                typeScriptStrippedCount.incrementAndGet();
-            }
-            typeScriptOutputBytes.addAndGet(prepared.length);
-            recordPreparedSource(prepared.length);
-            recordTypeScriptSuccess(sourceName, preparation, prepared.length);
-        } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException error) {
+            NodeTypeScriptSourcePolicy.requireCompilerOutput(sourceName);
+        } catch (NodeTypeScriptSourcePolicy.CompilerRequiredException error) {
             sourceFile.delete();
-            throw error;
-        } catch (BudgetExceededException error) {
-            sourceFile.delete();
-            recordTypeScriptFailure(
-                    sourceName,
-                    ERROR_BUDGET_EXCEEDED,
-                    "budget_exceeded",
-                    0,
-                    0
-            );
-            throw error;
-        } catch (CharacterCodingException error) {
-            sourceFile.delete();
-            recordTypeScriptFailure(sourceName, ERROR_FAILED, "invalid_utf8", 0, 0);
-            throw new IOException("Decrypted TypeScript module source is not valid UTF-8.", error);
-        } catch (IOException error) {
-            sourceFile.delete();
-            recordTypeScriptFailure(sourceName, ERROR_FAILED, "transport_io", 0, 0);
             throw error;
         }
     }
@@ -1968,27 +1671,6 @@ final class PluginModuleSourceProviderFileTransportSession {
         preparedSourceBytes.addAndGet(bytes);
     }
 
-    private void recordTypeScriptSuccess(
-            String sourceName,
-            PreparedTypeScriptSource preparation,
-            long preparedBytes
-    ) {
-        lastTypeScriptStatus.set("prepared");
-        lastTypeScriptSourceName.set(diagnosticSourceName(sourceName));
-        lastTypeScriptExtension.set(nonBlank(
-                preparation.diagnostics().get("embedded_script.typescript.extension"),
-                sourceExtension(sourceName)
-        ));
-        lastTypeScriptStripped.set(Boolean.toString(preparation.stripped()));
-        lastTypeScriptErrorCode.set("");
-        lastTypeScriptSyntaxKind.set("");
-        lastTypeScriptLine.set(0);
-        lastTypeScriptColumn.set(0);
-        if (preparedBytes < 0L) {
-            throw new IllegalStateException("Prepared TypeScript byte count cannot be negative.");
-        }
-    }
-
     private void recordTypeScriptFailure(
             String sourceName,
             String errorCode,
@@ -2000,7 +1682,6 @@ final class PluginModuleSourceProviderFileTransportSession {
         lastTypeScriptStatus.set("failed");
         lastTypeScriptSourceName.set(diagnosticSourceName(sourceName));
         lastTypeScriptExtension.set(sourceExtension(sourceName));
-        lastTypeScriptStripped.set("false");
         lastTypeScriptErrorCode.set(nonBlank(errorCode, ERROR_FAILED));
         lastTypeScriptSyntaxKind.set(nonBlank(syntaxKind, "unknown"));
         lastTypeScriptLine.set(Math.max(0, line));
@@ -2033,108 +1714,6 @@ final class PluginModuleSourceProviderFileTransportSession {
         }
     }
 
-    private byte[] readPrivatePreparationSource(
-            File sourceFile,
-            long expectedBytes,
-            long deadline
-    ) throws IOException {
-        if (expectedBytes < 0L || expectedBytes > SINGLE_SOURCE_BYTES_LIMIT) {
-            throw new BudgetExceededException(
-                    "Plaintext TypeScript preparation source exceeds its byte budget."
-            );
-        }
-        File canonicalRequestDirectory = requestDir.getCanonicalFile();
-        File canonicalSource = sourceFile.getCanonicalFile();
-        if (!canonicalRequestDirectory.equals(canonicalSource.getParentFile())) {
-            throw new IOException("Plaintext TypeScript preparation source escapes its private request directory.");
-        }
-
-        android.system.StructStat rootBefore;
-        android.system.StructStat before;
-        try {
-            rootBefore = Os.lstat(requestDir.getAbsolutePath());
-            before = Os.lstat(sourceFile.getAbsolutePath());
-        } catch (ErrnoException error) {
-            throw new IOException("Could not inspect plaintext TypeScript preparation source.", error);
-        }
-        if (!OsConstants.S_ISDIR(rootBefore.st_mode) || OsConstants.S_ISLNK(rootBefore.st_mode) ||
-                !OsConstants.S_ISREG(before.st_mode) || OsConstants.S_ISLNK(before.st_mode) ||
-                before.st_size != expectedBytes) {
-            throw new IOException("Plaintext TypeScript preparation source is not the expected regular file.");
-        }
-
-        java.io.FileDescriptor descriptor;
-        try {
-            descriptor = Os.open(
-                    sourceFile.getAbsolutePath(),
-                    OsConstants.O_RDONLY | OsConstants.O_CLOEXEC | OsConstants.O_NOFOLLOW,
-                    0
-            );
-        } catch (ErrnoException error) {
-            throw new IOException("Could not open plaintext TypeScript preparation source.", error);
-        }
-        try (FileInputStream input = new FileInputStream(descriptor);
-             ByteArrayOutputStream output = new ByteArrayOutputStream((int) expectedBytes)) {
-            android.system.StructStat opened = Os.fstat(input.getFD());
-            String openedPath = openedDescriptorPath(input.getFD());
-            if (!OsConstants.S_ISREG(opened.st_mode) ||
-                    opened.st_dev != before.st_dev || opened.st_ino != before.st_ino ||
-                    opened.st_size != expectedBytes || openedPath == null ||
-                    !canonicalSource.equals(new File(openedPath).getCanonicalFile())) {
-                throw new IOException("Plaintext TypeScript preparation source changed during open.");
-            }
-
-            byte[] buffer = new byte[COPY_BUFFER_BYTES];
-            long total = 0L;
-            while (true) {
-                if (stopped.get()) {
-                    throw new IOException("Module-source provider transport is stopped.");
-                }
-                if (remainingMs(deadline) <= 0L) {
-                    throw new ProviderTimeoutException("Plaintext TypeScript preparation read timed out.");
-                }
-                int count = input.read(buffer);
-                if (count < 0) {
-                    break;
-                }
-                if (count == 0) {
-                    continue;
-                }
-                total += count;
-                if (total > expectedBytes || total > SINGLE_SOURCE_BYTES_LIMIT) {
-                    throw new IOException("Plaintext TypeScript preparation source exceeds its exact byte count.");
-                }
-                output.write(buffer, 0, count);
-            }
-            android.system.StructStat completed = Os.fstat(input.getFD());
-            android.system.StructStat after = Os.lstat(sourceFile.getAbsolutePath());
-            android.system.StructStat rootAfter = Os.lstat(requestDir.getAbsolutePath());
-            if (total != expectedBytes ||
-                    completed.st_dev != before.st_dev || completed.st_ino != before.st_ino ||
-                    completed.st_size != expectedBytes ||
-                    after.st_dev != before.st_dev || after.st_ino != before.st_ino ||
-                    after.st_size != expectedBytes ||
-                    !OsConstants.S_ISDIR(rootAfter.st_mode) || OsConstants.S_ISLNK(rootAfter.st_mode) ||
-                    rootAfter.st_dev != rootBefore.st_dev || rootAfter.st_ino != rootBefore.st_ino ||
-                    !canonicalRequestDirectory.equals(requestDir.getCanonicalFile()) ||
-                    !canonicalSource.equals(sourceFile.getCanonicalFile())) {
-                throw new IOException("Plaintext TypeScript preparation source changed while reading.");
-            }
-            return output.toByteArray();
-        } catch (ErrnoException error) {
-            throw new IOException("Could not verify plaintext TypeScript preparation source.", error);
-        }
-    }
-
-    private static String openedDescriptorPath(java.io.FileDescriptor descriptor) {
-        try (ParcelFileDescriptor duplicate = ParcelFileDescriptor.dup(descriptor)) {
-            String value = Os.readlink("/proc/self/fd/" + duplicate.getFd());
-            return value.endsWith(" (deleted)") ? null : new File(value).getAbsolutePath();
-        } catch (Throwable error) {
-            return null;
-        }
-    }
-
     private static String decodeStrictUtf8(byte[] source) throws CharacterCodingException {
         return StandardCharsets.UTF_8.newDecoder()
                 .onMalformedInput(CodingErrorAction.REPORT)
@@ -2143,48 +1722,12 @@ final class PluginModuleSourceProviderFileTransportSession {
                 .toString();
     }
 
-    /**
-     * Pure preparation seam shared by production transport and local JVM
-     * conformance tests. Classification is deliberately based on the mapped
-     * provider {@code resolvedPath}, never the private transport file name.
-     */
-    static PreparedTypeScriptSource prepareDecryptedTypeScriptBytes(
-            String resolvedPath,
-            byte[] rawSource,
-            boolean legacyTypeScriptStrippingEnabled
-    ) throws CharacterCodingException {
-        byte[] boundedRawSource = rawSource == null ? new byte[0] : rawSource;
-        boolean typeScript = NodeTypeScriptStripper.isAnyTypeScriptSourceName(resolvedPath);
-        if (!typeScript) {
-            return new PreparedTypeScriptSource(
-                    boundedRawSource.clone(),
-                    boundedRawSource.length,
-                    false,
-                    false,
-                    java.util.Collections.emptyMap()
-            );
-        }
-        String source = decodeStrictUtf8(boundedRawSource);
-        NodeTypeScriptStripper.Result result = NodeTypeScriptStripper.stripIfTypeScript(
-                resolvedPath,
-                source,
-                legacyTypeScriptStrippingEnabled
-        );
-        return new PreparedTypeScriptSource(
-                result.source().getBytes(StandardCharsets.UTF_8),
-                boundedRawSource.length,
-                true,
-                result.stripped(),
-                result.diagnostics()
-        );
-    }
-
     private static void replaceSourceAtomically(File destination, byte[] source) throws IOException {
         File parent = destination.getParentFile();
         if (parent == null) {
-            throw new IOException("Prepared TypeScript module source has no parent directory.");
+            throw new IOException("Prepared module source has no parent directory.");
         }
-        File temporary = new File(parent, destination.getName() + ".typescript.tmp");
+        File temporary = new File(parent, destination.getName() + ".source.tmp");
         temporary.delete();
         try {
             try (FileOutputStream output = new FileOutputStream(temporary)) {
@@ -2194,7 +1737,7 @@ final class PluginModuleSourceProviderFileTransportSession {
             try {
                 Os.rename(temporary.getAbsolutePath(), destination.getAbsolutePath());
             } catch (ErrnoException error) {
-                throw new IOException("Could not publish prepared TypeScript module source.", error);
+                throw new IOException("Could not publish prepared module source.", error);
             }
         } finally {
             temporary.delete();
@@ -2224,71 +1767,6 @@ final class PluginModuleSourceProviderFileTransportSession {
         return dot > slash && dot < normalized.length() - 1
                 ? normalized.substring(dot + 1).toLowerCase(java.util.Locale.ROOT)
                 : "";
-    }
-
-    private static final class PendingPlaintextTypeScriptPreparation {
-        private final String sourceName;
-        private final long deadline;
-        private final boolean rawAlreadyAccounted;
-        private final long rawSourceBytes;
-
-        private PendingPlaintextTypeScriptPreparation(
-                String sourceName,
-                long deadline,
-                boolean rawAlreadyAccounted,
-                long rawSourceBytes
-        ) {
-            this.sourceName = sourceName;
-            this.deadline = deadline;
-            this.rawAlreadyAccounted = rawAlreadyAccounted;
-            this.rawSourceBytes = rawSourceBytes;
-        }
-    }
-
-    static final class PreparedTypeScriptSource {
-        private final byte[] source;
-        private final long rawSourceBytes;
-        private final boolean typeScript;
-        private final boolean stripped;
-        private final Map<String, String> diagnostics;
-
-        private PreparedTypeScriptSource(
-                byte[] source,
-                long rawSourceBytes,
-                boolean typeScript,
-                boolean stripped,
-                Map<String, String> diagnostics
-        ) {
-            this.source = source;
-            this.rawSourceBytes = rawSourceBytes;
-            this.typeScript = typeScript;
-            this.stripped = stripped;
-            this.diagnostics = diagnostics;
-        }
-
-        byte[] source() {
-            return source.clone();
-        }
-
-        long sourceBytes() {
-            return source.length;
-        }
-
-        long rawSourceBytes() {
-            return rawSourceBytes;
-        }
-
-        boolean typeScript() {
-            return typeScript;
-        }
-
-        boolean stripped() {
-            return stripped;
-        }
-
-        Map<String, String> diagnostics() {
-            return diagnostics;
-        }
     }
 
     private long copySource(
