@@ -700,7 +700,7 @@ function validateEntry(root, projectJson, packageJson, issues) {
   if (extension === ".node") {
     issue(issues, "ENTRY_NATIVE_ADDON_DISABLED", entryPath, "Native addon entry files are disabled.", "Use a JavaScript or TypeScript .js, .cjs, .mjs, .ts, .cts, or .mts entry file.");
   } else if (extension === ".tsx") {
-    issue(issues, "ENTRY_TYPESCRIPT_TSX_UNSUPPORTED", entryPath, "TypeScript TSX entry files are not supported by lightweight type stripping.", "Compile TSX to JavaScript before packaging or running it.");
+    issue(issues, "ENTRY_TYPESCRIPT_COMPILER_REQUIRED", entryPath, "Raw TypeScript entry files require compiler output.", "Compile TSX to JavaScript before packaging or running it.");
   } else if (!SUPPORTED_ENTRY_EXTENSIONS.has(extension)) {
     issue(issues, "ENTRY_EXTENSION_UNSUPPORTED", entryPath, "Unsupported Node entry extension '" + extension + "'.", "Use .js, .cjs, .mjs, .ts, .cts, or .mts.");
   }

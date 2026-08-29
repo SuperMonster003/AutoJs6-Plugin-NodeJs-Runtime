@@ -337,7 +337,7 @@ val verifyNodeProjectWizard = tasks.register("verifyNodeProjectWizard") {
             listOf("validate", unsupportedTsxEntry.absolutePath),
             expectSuccess = false,
         )
-        assertNodeProjectWizardIssueCodes(unsupportedTsxReport, "ENTRY_TYPESCRIPT_TSX_UNSUPPORTED")
+        assertNodeProjectWizardIssueCodes(unsupportedTsxReport, "ENTRY_TYPESCRIPT_COMPILER_REQUIRED")
 
         val report = linkedMapOf<String, Any?>(
             "schema" to "autojs6-node-project-wizard-report-v1",

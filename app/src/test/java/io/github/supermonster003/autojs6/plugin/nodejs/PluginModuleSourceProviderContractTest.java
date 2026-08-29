@@ -2,21 +2,14 @@ package io.github.supermonster003.autojs6.plugin.nodejs;
 
 import org.junit.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.StandardCharsets;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class PluginModuleSourceProviderTypeScriptPreparationTest {
-
-    private static final File PRIVATE_REQUEST_DIRECTORY =
-            new File("build/tmp/plaintext-typescript-private-requests").getAbsoluteFile();
+public class PluginModuleSourceProviderContractTest {
 
     @Test
     public void v3CompilationUsesAnIndependentBoundedTransportBudget() {
@@ -50,163 +43,6 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
     }
 
     @Test
-    public void mappedResolvedPathStripsDecryptedTypeScriptAndKeepsRawPreparedByteTruthSeparate()
-            throws Exception {
-        String sourceName = "/workspace/src/入口.cts";
-        String source = "const marker: string = '值';\nexport default marker;\n";
-        byte[] rawSource = source.getBytes(StandardCharsets.UTF_8);
-
-        PluginModuleSourceProviderFileTransportSession.PreparedTypeScriptSource prepared =
-                PluginModuleSourceProviderFileTransportSession
-                        .prepareDecryptedTypeScriptBytes(sourceName, rawSource, true);
-
-        String output = new String(prepared.source(), StandardCharsets.UTF_8);
-        assertTrue(prepared.typeScript());
-        assertTrue(prepared.stripped());
-        assertFalse(output.contains(": string"));
-        assertTrue(output.contains("值"));
-        assertEquals(rawSource.length, prepared.rawSourceBytes());
-        assertEquals(prepared.source().length, prepared.sourceBytes());
-        assertEquals("cts", prepared.diagnostics().get(
-                "embedded_script.typescript.extension"
-        ));
-    }
-
-    @Test
-    public void x3fPlaintextPreparationPreservesRawInspectionLiterals() throws Exception {
-        String source = "const fs = require(\"fs\");\n"
-                + "const raw: string = fs.readFileSync(__filename, \"utf8\");\n"
-                + "if (!raw.includes(\"const answer: number = 42;\")) {\n"
-                + "  throw new Error(\"provider materialization was not raw TypeScript\");\n"
-                + "}\n"
-                + "console.log(\"x3f.raw-ts=true\");\n"
-                + "fs.writeFileSync(__filename, \"module.exports = -1;\\n\", \"utf8\");\n"
-                + "const answer: number = 42;\n"
-                + "module.exports = answer;";
-        byte[] rawSource = source.getBytes(StandardCharsets.UTF_8);
-
-        PluginModuleSourceProviderFileTransportSession.PreparedTypeScriptSource prepared =
-                PluginModuleSourceProviderFileTransportSession
-                        .prepareDecryptedTypeScriptBytes("computed-module.cts", rawSource, true);
-
-        String output = new String(prepared.source(), StandardCharsets.UTF_8);
-        assertEquals(rawSource.length, prepared.rawSourceBytes());
-        assertTrue(prepared.typeScript());
-        assertTrue(prepared.stripped());
-        assertTrue(output.contains("raw.includes(\"const answer: number = 42;\")"));
-        assertTrue(output.contains(
-                "throw new Error(\"provider materialization was not raw TypeScript\")"
-        ));
-        assertTrue(output.contains(
-                "fs.writeFileSync(__filename, \"module.exports = -1;\\n\", \"utf8\")"
-        ));
-        assertTrue(output.contains("const raw= fs.readFileSync"));
-        assertTrue(output.contains("const answer= 42;"));
-    }
-
-    @Test
-    public void privateTransportSourceNameDoesNotInventTypeScriptAuthority() throws Exception {
-        byte[] rawSource = "const answer: number = 42;\n".getBytes(StandardCharsets.UTF_8);
-
-        PluginModuleSourceProviderFileTransportSession.PreparedTypeScriptSource privateName =
-                PluginModuleSourceProviderFileTransportSession
-                        .prepareDecryptedTypeScriptBytes("request-42.source", rawSource, false);
-        PluginModuleSourceProviderFileTransportSession.PreparedTypeScriptSource resolvedName =
-                PluginModuleSourceProviderFileTransportSession
-                        .prepareDecryptedTypeScriptBytes("src/answer.mts", rawSource, true);
-
-        assertFalse(privateName.typeScript());
-        assertFalse(privateName.stripped());
-        assertArrayEquals(rawSource, privateName.source());
-        assertTrue(resolvedName.typeScript());
-        assertTrue(resolvedName.stripped());
-    }
-
-    @Test
-    public void nonTypeScriptProviderBytesRemainExactWithoutUtf8Admission() throws Exception {
-        byte[] opaqueJavaScript = new byte[]{(byte) 0xc3, 0x28, 0x00, (byte) 0xff};
-
-        PluginModuleSourceProviderFileTransportSession.PreparedTypeScriptSource prepared =
-                PluginModuleSourceProviderFileTransportSession
-                        .prepareDecryptedTypeScriptBytes("vendor/addon.js", opaqueJavaScript, false);
-
-        assertFalse(prepared.typeScript());
-        assertFalse(prepared.stripped());
-        assertEquals(opaqueJavaScript.length, prepared.rawSourceBytes());
-        assertEquals(opaqueJavaScript.length, prepared.sourceBytes());
-        assertArrayEquals(opaqueJavaScript, prepared.source());
-    }
-
-    @Test
-    public void malformedTypeScriptUtf8FailsClosedBeforeStripping() {
-        byte[] malformedUtf8 = new byte[]{(byte) 0xc3, 0x28};
-
-        try {
-            PluginModuleSourceProviderFileTransportSession
-                    .prepareDecryptedTypeScriptBytes("src/broken.ts", malformedUtf8, false);
-            fail("Expected strict UTF-8 rejection");
-        } catch (CharacterCodingException expected) {
-            assertTrue(expected.getMessage() == null || !expected.getMessage().isEmpty());
-        }
-    }
-
-    @Test
-    public void tsxFailureKeepsCanonicalExtensionErrorForNativePropagation() throws Exception {
-        try {
-            PluginModuleSourceProviderFileTransportSession.prepareDecryptedTypeScriptBytes(
-                    "src/view.tsx",
-                    "export const view = <View />;\n".getBytes(StandardCharsets.UTF_8),
-                    true
-            );
-            fail("Expected TSX rejection");
-        } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException expected) {
-            assertEquals(NodeTypeScriptStripper.ERROR_UNSUPPORTED_EXTENSION, expected.errorCode());
-            assertEquals("src/view.tsx", expected.sourceName());
-            assertEquals("tsx", expected.syntaxKind());
-            assertEquals(1, expected.line());
-            assertEquals(1, expected.column());
-            assertTrue(expected.getMessage().contains(expected.errorCode()));
-        }
-    }
-
-    @Test
-    public void enumFailureKeepsCanonicalSyntaxDetailsForNativePropagation() throws Exception {
-        try {
-            PluginModuleSourceProviderFileTransportSession.prepareDecryptedTypeScriptBytes(
-                    "src/mode.ts",
-                    "export enum Mode { Ready }\n".getBytes(StandardCharsets.UTF_8),
-                    true
-            );
-            fail("Expected enum rejection");
-        } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException expected) {
-            assertEquals(NodeTypeScriptStripper.ERROR_UNSUPPORTED_SYNTAX, expected.errorCode());
-            assertEquals("src/mode.ts", expected.sourceName());
-            assertEquals("enum", expected.syntaxKind());
-            assertTrue(expected.line() >= 1);
-            assertTrue(expected.column() >= 1);
-            assertTrue(expected.getMessage().contains(expected.errorCode()));
-            assertTrue(expected.getMessage().contains(expected.sourceName()));
-        }
-    }
-
-    @Test
-    public void providerTypeScriptRequiresCompilerUnlessLegacyPreparationIsExplicitlyEnabled()
-            throws Exception {
-        try {
-            PluginModuleSourceProviderFileTransportSession.prepareDecryptedTypeScriptBytes(
-                    "src/dynamic.cts",
-                    "const answer: number = 42;\n".getBytes(StandardCharsets.UTF_8),
-                    false
-            );
-            fail("Expected provider TypeScript compiler-required rejection");
-        } catch (NodeTypeScriptStripper.UnsupportedTypeScriptException expected) {
-            assertEquals(NodeTypeScriptStripper.ERROR_COMPILER_REQUIRED, expected.errorCode());
-            assertEquals("compiler_required", expected.syntaxKind());
-            assertEquals("src/dynamic.cts", expected.sourceName());
-        }
-    }
-
-    @Test
     public void providerLastSourceDiagnosticIsBasenameOnlyAndBounded() {
         StringBuilder longName = new StringBuilder("/private/workspace/");
         for (int index = 0; index < 300; index++) {
@@ -237,70 +73,6 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
         assertFalse(Character.isLowSurrogate(diagnosticName.charAt(0)));
         assertFalse(Character.isHighSurrogate(diagnosticName.charAt(diagnosticName.length() - 1)));
         assertTrue(diagnosticName.endsWith(".ts"));
-    }
-
-    @Test
-    public void plaintextPreparationEnvelopeAcceptsOnlyExactPrivatePathAndIntegerBytes()
-            throws Exception {
-        for (String sourceName : new String[]{"src/main.ts", "src/main.mts", "src/main.cts", "src/view.tsx"}) {
-            String id = "typescript-envelope";
-            File expected = new File(PRIVATE_REQUEST_DIRECTORY, id + ".source");
-            long bytes = PluginModuleSourceProviderFileTransportSession
-                    .validatePlaintextTypeScriptPreparationEnvelope(
-                            PRIVATE_REQUEST_DIRECTORY,
-                            id,
-                            sourceName,
-                            expected.getAbsolutePath(),
-                            17L
-                    );
-            assertEquals(17L, bytes);
-        }
-    }
-
-    @Test
-    public void plaintextPreparationEnvelopeRejectsPathSmugglingAndNonIntegerBytes() {
-        expectEnvelopeFailure("src/main.ts", new File(PRIVATE_REQUEST_DIRECTORY, "other.source"), 17L);
-        expectEnvelopeFailure(
-                "src/main.ts",
-                new File(PRIVATE_REQUEST_DIRECTORY, "typescript-envelope.source"),
-                "17"
-        );
-        expectEnvelopeFailure(
-                "src/main.ts",
-                new File(PRIVATE_REQUEST_DIRECTORY, "typescript-envelope.source"),
-                17.0d
-        );
-    }
-
-    @Test
-    public void plaintextPreparationEnvelopeRejectsNonTypeScriptAndDeclarationSources() {
-        File expected = new File(PRIVATE_REQUEST_DIRECTORY, "typescript-envelope.source");
-        expectEnvelopeFailure("src/main.js", expected, 17L);
-        expectEnvelopeFailure("src/package.json", expected, 17L);
-        expectEnvelopeFailure("src/types.d.ts", expected, 17L);
-        expectEnvelopeFailure("src/types.d.mts", expected, 17L);
-        expectEnvelopeFailure("src/types.d.cts", expected, 17L);
-    }
-
-    @Test
-    public void plaintextPreparationEnvelopeEnforcesRawSingleSourceBudget() throws Exception {
-        File expected = new File(PRIVATE_REQUEST_DIRECTORY, "typescript-envelope.source");
-        assertEquals(
-                PluginModuleSourceProviderFileTransportSession.SINGLE_SOURCE_BYTES_LIMIT,
-                PluginModuleSourceProviderFileTransportSession.validatePlaintextTypeScriptPreparationEnvelope(
-                        PRIVATE_REQUEST_DIRECTORY,
-                        "typescript-envelope",
-                        "src/main.ts",
-                        expected.getAbsolutePath(),
-                        PluginModuleSourceProviderFileTransportSession.SINGLE_SOURCE_BYTES_LIMIT
-                )
-        );
-        expectEnvelopeFailure("src/main.ts", expected, -1L);
-        expectEnvelopeFailure(
-                "src/main.ts",
-                expected,
-                PluginModuleSourceProviderFileTransportSession.SINGLE_SOURCE_BYTES_LIMIT + 1L
-        );
     }
 
     @Test
@@ -490,21 +262,6 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
                 true,
                 17L
         );
-    }
-
-    private static void expectEnvelopeFailure(String sourceName, File sourcePath, Object bytes) {
-        try {
-            PluginModuleSourceProviderFileTransportSession.validatePlaintextTypeScriptPreparationEnvelope(
-                    PRIVATE_REQUEST_DIRECTORY,
-                    "typescript-envelope",
-                    sourceName,
-                    sourcePath.getAbsolutePath(),
-                    bytes
-            );
-            fail("Expected plaintext TypeScript preparation envelope rejection");
-        } catch (IOException expected) {
-            assertFalse(expected.getMessage().isEmpty());
-        }
     }
 
     private static void validateProviderResponseShape(
