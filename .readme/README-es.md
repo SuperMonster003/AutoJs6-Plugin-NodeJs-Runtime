@@ -56,7 +56,7 @@ El plugin AutoJs6 Node.js Runtime proporciona a AutoJs6 un runtime nativo integr
 - Admite codigo CommonJS/ESM, fuentes de modulos, directorio de trabajo, raiz de sandbox, variables de entorno y resultados stdout/stderr.
 - Usa el linker nativo de V8 para entradas ESM y dynamic `import()`, conservando dependencias cíclicas, exports mutables y live bindings reexportados; CommonJS `require(esm)` mantiene su límite de interoperabilidad síncrona.
 - Ofrece acceso al sistema de archivos similar al de escritorio, limitado por los permisos Android de la aplicación del plugin; `/proc`, `/sys` y `/dev` siempre se rechazan.
-- Ejecuta la salida del compilador TypeScript suministrada por el host; `.ts`/`.mts`/`.cts` sin compilar falla de forma cerrada y el borrado legacy es solo para migración explícita.
+- Ejecuta la salida TypeScript suministrada por el host y puede solicitar compilación provider-v3 para `.ts`/`.mts`/`.cts` de proyecto creados durante la ejecución; el envío raw directo sigue fallando de forma cerrada y el borrado legacy es solo para migración explícita.
 - Proporciona broker de capacidades del host y live bridge con modulos de runtime como `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config` y `autojs6:bridge-permissions`.
 - Incluye proyectos `sample/nodejs` y el inventario de capacidades de API del host `docs/HOST-API.md`.
 - Los metadatos del plugin, las instrucciones de uso, el README y el CHANGELOG estan localizados en espanol, frances, ruso, arabe, japones, coreano, ingles, chino simplificado, chino tradicional de Hong Kong y chino tradicional de Taiwan.
@@ -98,7 +98,7 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 - Bibliotecas nativas de runtime: `libnode.so` y `libautojs6-node.so`.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64` y `universal`.
 - Sistema de archivos: se puede acceder a las rutas permitidas por Android; `/proc`, `/sys` y `/dev` son límites estrictos.
-- TypeScript: solo salida compilada de forma predeterminada; TypeScript sin compilar devuelve `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
+- TypeScript: acepta salida del host y puede solicitar compilación provider-v3 de archivos creados durante la ejecución; TypeScript raw directo devuelve `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
 - Linker ESM: `vm.SourceTextModule` / `vm.SyntheticModule`, con live bindings nativos y dependencias cíclicas.
 - Capacidades: ejecucion sincronica de scripts, bundle transport, runtime nativo integrado, broker de capacidades del host, host capability live bridge.
 
@@ -110,8 +110,9 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 # v1.2.0
 
-###### 2026/08/26
+###### 2026/08/29
 
+* `Nuevo` Se añadió module-source provider v3 para compilar bajo demanda archivos `.ts/.mts/.cts` creados durante la ejecución mediante PFD acotados por bytes y SHA-256, con un presupuesto de compilación independiente de 30 s, rechazo estable de rutas, enlaces simbólicos y ambigüedad, además de diagnósticos TypeScript y mapeo de pila Source Map del host
 * `Nuevo` Se habilitó el acceso al sistema de archivos similar al escritorio dentro de los permisos Android, manteniendo bloqueados `/proc`, `/sys` y `/dev`
 * `Nuevo` Se añadieron `accessibility.swipe` y `accessibility.gesture` tras la capacidad dedicada `accessibility.gesture`
 * `Correccion` TypeScript sin compilar ahora falla de forma cerrada si el host no aporta la salida del compilador; también se mapearon imports dinámicos de snapshot y se normalizaron las pilas generadas/importadas

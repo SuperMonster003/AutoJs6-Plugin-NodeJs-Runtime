@@ -56,7 +56,7 @@ The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.5.0 native ru
 - Supports CommonJS/ESM source, module sources, working directory, sandbox root, environment variables, and stdout/stderr result payloads.
 - Uses the V8 native linker for ESM entries and dynamic `import()`, preserving cyclic dependencies, mutable exports, and re-export live bindings; CommonJS `require(esm)` retains its synchronous interop boundary.
 - Provides desktop-like filesystem access bounded by the plugin app's Android permissions; `/proc`, `/sys`, and `/dev` are always denied by the runtime.
-- Executes host-supplied TypeScript compiler output; raw `.ts`/`.mts`/`.cts` fails closed by default and legacy erasure is an explicit migration-only opt-in.
+- Executes host-supplied TypeScript compiler output and can request provider-v3 compilation for runtime-created project `.ts`/`.mts`/`.cts`; direct raw dispatch still fails closed and legacy erasure remains an explicit migration-only opt-in.
 - Provides host capability broker and live bridge support with runtime modules such as `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, and `autojs6:bridge-permissions`.
 - Includes `sample/nodejs` projects and the `docs/HOST-API.md` host API capability inventory.
 - Plugin metadata, usage instructions, README, and CHANGELOG are localized for Spanish, French, Russian, Arabic, Japanese, Korean, English, Simplified Chinese, Hong Kong Traditional Chinese, and Taiwan Traditional Chinese.
@@ -98,7 +98,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 - Native runtime libraries: `libnode.so` and `libautojs6-node.so`.
 - ABIs: `arm64-v8a`, `armeabi-v7a`, `x86_64`, and `universal`.
 - Filesystem: device paths allowed by Android permissions are reachable; `/proc`, `/sys`, and `/dev` are hard boundaries.
-- TypeScript: compiler output only by default; raw TypeScript returns `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
+- TypeScript: accepts host output and can request provider-v3 compilation for runtime-created project files; direct raw TypeScript returns `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
 - ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, with native live bindings and cyclic dependencies.
 - Capabilities: sync script execution, bundle transport, native embedded runtime, host capability broker, host capability live bridge.
 
@@ -110,8 +110,9 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 # v1.2.0
 
-###### 2026/08/26
+###### 2026/08/29
 
+* `Feature` Added module-source provider v3 for on-demand compilation of runtime-created `.ts/.mts/.cts` through byte- and SHA-256-bound PFDs, with an independent 30 s compilation budget, stable path/symlink/ambiguity rejection, and host TypeScript diagnostics plus Source Map stack mapping
 * `Feature` Enabled desktop-like filesystem access within Android app permissions while keeping `/proc`, `/sys`, and `/dev` denied
 * `Feature` Added `accessibility.swipe` and `accessibility.gesture` behind the dedicated `accessibility.gesture` capability
 * `Fix` Made raw TypeScript fail closed unless the host supplies compiler output, mapped snapshot dynamic imports, and normalized generated/imported stack frames

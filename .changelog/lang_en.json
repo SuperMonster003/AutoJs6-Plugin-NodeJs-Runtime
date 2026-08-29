@@ -6,8 +6,9 @@
   "changelog_label_dependency": "Dependency",
   "$data": {
     "v1.2.0": {
-      "released_date": "2026/08/26",
+      "released_date": "2026/08/29",
       "feature": [
+        "Added module-source provider v3 for on-demand compilation of runtime-created `.ts/.mts/.cts` through byte- and SHA-256-bound PFDs, with an independent 30 s compilation budget, stable path/symlink/ambiguity rejection, and host TypeScript diagnostics plus Source Map stack mapping",
         "Enabled desktop-like filesystem access within Android app permissions while keeping `/proc`, `/sys`, and `/dev` denied",
         "Added `accessibility.swipe` and `accessibility.gesture` behind the dedicated `accessibility.gesture` capability"
       ],

@@ -13,7 +13,7 @@
     "CommonJS/ESM ソース, モジュールソース, 作業ディレクトリ, サンドボックスルート, 環境変数, stdout/stderr 結果ペイロードに対応します.",
     "ESM エントリと dynamic `import()` に V8 native linker を使用し, 循環依存, 可変 export, re-export の live binding を保持します; CommonJS `require(esm)` は同期相互運用境界を維持します.",
     "プラグインアプリの Android 権限を境界とするデスクトップ相当のファイルシステムアクセスを提供し, `/proc`, `/sys`, `/dev` は常に拒否します.",
-    "ホストが提供する TypeScript コンパイラ出力を実行します. 未コンパイルの `.ts`/`.mts`/`.cts` は既定で fail-closed となり, legacy 型消去は移行時の明示的オプトイン専用です.",
+    "ホストが提供する TypeScript 出力を実行し, 実行中に作成された project `.ts`/`.mts`/`.cts` には provider-v3 compilation を要求できます. direct raw dispatch は引き続き fail-closed で, legacy 型消去は移行時の明示的オプトイン専用です.",
     "ホスト能力ブローカーと live bridge を提供し, `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` などのランタイムモジュールを注入できます.",
     "`sample/nodejs` プロジェクトとホスト API 能力一覧 `docs/HOST-API.md` を含みます.",
     "プラグイン情報, 使用説明, README, CHANGELOG はスペイン語/フランス語/ロシア語/アラビア語/日本語/韓国語/英語/簡体字中国語/香港繁体字/台湾繁体字に対応します."
@@ -35,7 +35,7 @@
     "ネイティブランタイムライブラリ: `libnode.so` と `libautojs6-node.so`.",
     "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, および `universal`.",
     "ファイルシステム: Android 権限が許す端末パスへアクセスでき, `/proc`, `/sys`, `/dev` は厳格な境界です.",
-    "TypeScript: 既定ではコンパイル済み出力のみを受け付け, 未コンパイル TypeScript は `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` を返します.",
+    "TypeScript: host output を受け入れ, 実行中に作成された project file には provider-v3 compilation を要求できます. direct raw TypeScript は `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` を返します.",
     "ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, ネイティブ live binding と循環依存に対応します.",
     "能力: 同期スクリプト実行, bundle transport, ネイティブ組み込みランタイム, ホスト能力ブローカー, host capability live bridge."
   ],

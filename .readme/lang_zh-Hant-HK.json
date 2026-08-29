@@ -13,7 +13,7 @@
     "支援 CommonJS/ESM 源碼, 模組源碼, 工作目錄, 沙盒根目錄, 環境變數, stdout/stderr 結果回傳.",
     "ESM 入口與 dynamic `import()` 使用 V8 native linker, 支援循環依賴、可變匯出與 re-export live binding; CommonJS `require(esm)` 保留同步互操作邊界.",
     "提供由插件本身 Android 權限約束的桌面式檔案系統存取; `/proc`、`/sys`、`/dev` 一律由運行時拒絕.",
-    "執行宿主提供的 TypeScript 編譯產物; raw `.ts`/`.mts`/`.cts` 預設 fail-closed, legacy 類型剝離只供遷移期明確啟用.",
+    "執行宿主提供的 TypeScript 編譯產物, 並可透過 provider v3 請求按需編譯執行期間建立的項目 `.ts`/`.mts`/`.cts`; direct raw dispatch 仍 fail-closed, legacy 類型剝離只供遷移期明確啟用.",
     "提供宿主能力代理與 live bridge, 可注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等運行時模組.",
     "附帶 `sample/nodejs` 示例項目與 `docs/HOST-API.md` 宿主 API 能力清單.",
     "插件資訊, 使用說明, README 與 CHANGELOG 均支援西班牙語/法語/俄語/阿拉伯語/日語/韓語/英語/簡體中文/香港繁體/台灣繁體."
@@ -35,7 +35,7 @@
     "原生運行庫: `libnode.so` 和 `libautojs6-node.so`.",
     "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.",
     "檔案系統: 可存取 Android 權限容許的裝置路徑; `/proc`、`/sys`、`/dev` 為硬邊界.",
-    "TypeScript: 預設只接受編譯產物; raw TypeScript 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.",
+    "TypeScript: 接受宿主產物並可透過 provider v3 按需編譯執行期間建立的項目檔案; direct raw TypeScript 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.",
     "ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, 原生 live binding 與循環依賴.",
     "能力: 同步腳本執行, bundle transport, 原生內嵌運行時, 宿主能力代理, host capability live bridge."
   ],
