@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Runtime 插件 — 开发路线图 (Roadmap)
 
-> 修订日期: 2026-08-26
+> 修订日期: 2026-08-29
 >
 > 本路线图取代此前所有里程碑编号 (X3d/X3e/X3f/X3g/X3i/X3j 等)。旧编号只保留在 `tools/nodejs/ownership/evidence/` 的历史证据文件中, 不再继续演进。
 >
@@ -27,7 +27,7 @@
 - ✅ Node.js 24.5.0 真实内嵌: 每 ABI 一个 `libnode.so` (~100 MB, arm64-v8a / armeabi-v7a / x86_64), dlopen + dlsym 驱动 `node::NewIsolate → CreateEnvironment → LoadEnvironment → SpinEventLoop` 完整生命周期, 常驻进程复用 V8 平台。
 - ✅ 构建链可用: `:app:assembleDebug` 产出各 ABI + universal APK (已本机验证, v1.1.3 build 41)。
 - ✅ 插件服务完备: `org.autojs.plugin.INFO` 发现 + `org.autojs.plugin.nodejs.RUNTIME` 执行, 独立 `:nodejs_runtime` 进程, 同步执行 + 预热 + 重启式取消。
-- ✅ CJS/ESM/TS(擦除级) 源码执行, stdout/stderr 回传, 环境变量, 模块源注入, 运行时模块注入 (`autojs6:host-app-info` 等)。
+- ✅ CJS/ESM 与宿主预编译 TypeScript 执行, stdout/stderr 回传, 环境变量, 模块源注入, 运行时模块注入 (`autojs6:host-app-info` 等); 原始 TypeScript 在运行时边界 fail closed。
 - ✅ 历史真机证据: API 34 x86_64 模拟器上 CJS/ESM 端到端执行通过 (见 evidence 存档)。
 
 ### 诊断出的 "跑不起来" 断点
@@ -203,14 +203,14 @@ M0~M5 完成后对全仓四面 (C++ 桥 / Java 服务层 / 样例与发布链 / 
 - [x] **M6.4 用户文档同步 (10 语言生成体系)**: ① README features 与快速上手补 fs 权限模式 (插件独立 uid、装后需手动授予"所有文件访问"、不授予时报 EACCES 属预期) 与 TS 现状 (需编译器, 迁移期 legacy 开关); ② CHANGELOG 补 1.1.0 与 1.2.0 条目 (M1~M5 用户可见变更: 流式输出/协作取消/串行队列/npm 实测/网络默认开/swipe/契约收口/fs 放开/TS fail-closed); ③ HOST-API.md 增补 "fs 访问模式" 与 "TypeScript 编译要求" 两节。Check: `generate_markdown.py` 全 10 语言生成无报错; 抽查 zh-Hans 与 en 两份内容正确; 无关文件 git checkout 还原后工作区仅含预期改动。— 2026-08-25 完成: 10 份语言源补齐 fs/TS 能力与快速上手, 10 语言 CHANGELOG 补发 v1.1.0/v1.2.0, HOST-API 明确 Android 权限边界、敏感根、诊断元数据与宿主编译责任; 生成器全量成功并抽查中英文产物。
 - [x] **M6.5 catalog 1.3.0 发布 (本地发布物, 无联网)**: ① `accessibility.gesture` 补入 `bridge.permissionCapabilities`, 删除守卫历史例外; ② features 增补 fs 访问模式条目、修订 TypeScript 策略条目; ③ runtime-kit 同步引用新 catalog, 顺带清理 `runtime-build.lock.json` 的 `androidFork.localPath` 本机绝对路径 — **注意 lock 的 sha256 被 kit 的 buildProvenance 引用, 两文件必须同一提交联动更新**; ④ 终态三方对齐: 插件 manifest 48 = 宿主 manifest 48 = catalog 48。Check: 宿主 `:app:verifyNodeCapabilityManifestAlignment --offline` 三方一致且零白名单例外; 插件 `:app:assembleDebug --offline` (runtime-kit BuildConfig 回显) 通过。— 2026-08-25 完成: 发布 catalog/runtime-kit 1.3.0, 补 gesture/swipe operation 与 48th capability、fs/TS 策略和 TS 新错误码; 清除本机路径并联动更新三段 SHA-256, hashed JSON 统一 LF 以跨平台复现; 宿主守卫为 48=48=48、documentedDifferences=0, 插件 APK 内两份资产哈希与 release lock 完全一致, assembleDebug 通过并回显 kit 1.3.0。
 
-### M7 — TypeScript 战线闭环 (4/5; M7.4 等待公开版本观察期)
+### M7 — TypeScript 战线闭环 ✅ (5/5; 2026-08-29 完成)
 
 目标: TS 从"默认不可用"回到一条端到端用户能力 — 编辑器 .ts 脚本一键运行, 报错栈指向 .ts 原始行号。涉宿主仓, 红线照旧。
 
 - [x] **M7.1 编译器落点决策** (一次性, 同 M1.2 模式): 候选 ① 独立 TypeScript Compiler 插件 APK (错误文案的既有方向, 架构最干净, 工程量最大); ② 宿主借插件 Node 自举编译 — typescript npm 预置为资产, 编译请求本身作为一次插件 runtime 执行 (跑 tsc API), 产物 js + source map 回宿主后再派发真正执行, 零新仓库 (建议先做一次可行性 spike: 插件跑 tsc 编译 hello.ts 的耗时与内存); ③ 插件内嵌编译 (与 8e08b3b "插件退出 TS 转译业务"方向冲突, 仅作对照)。决策与依据记录写入本文件。— 2026-08-25 完成并纠正勘察误判: 采用候选①, 但无需新建工程 — 相邻仓 `AutoJs6-Plugin-TypeScript-Engine` 已存在, 当前正式候选为 v0.6.0 / TypeScript 6.0.3, 使用官方完整 `Program` 编译而非 transpile-only; 宿主 `0938deed2` 起已有公开 Binder client。候选②会重复已完成的独立编译服务且把编译与执行生命周期重新耦合, 不再 spike; 候选③继续否决。
 - [x] **M7.2 编译链路端到端**: .ts 入口 → 编译产物 → `typeScriptPrecompiledSnapshot` + `typeScriptPrecompiledSourceNames` 请求键 (3f1b3b1 已备好消费端) → 插件执行; 覆盖单文件、多文件项目、动态 import (.ts 说明符经快照映射, 含 missing/ambiguous 负例)。Check: 宿主模拟器/真机用例 — TS hello + 多文件项目 + 动态 import 三例全绿; 插件 conformance x3d_06/07 回归。— 2026-08-25 完成: 宿主 `0ae1ec30e`/`622bfddcc`/`ebbf1b8d2` 已分别交付 Node 预编译、多文件项目与封闭动态映射; TypeScript Engine Roadmap 保存 API 31/35/37 的聚焦通过证据。当前插件源码的 x3d_06/07 在 API 37 回归 2/2; 仓库原样的 CJS、ESM、project、packaged-dynamic 四例经宿主→Compiler 0.6.0→Node Runtime 在同一目录各连续执行两次, 8/8 PASS。实跑发现并修复宿主 workspace v2 把虚拟 compiler `moduleSources` 回写成 `main.cjs/main.mjs`、导致复跑冲突的问题: 仅运行前不存在的 module-source 覆盖被标为 ephemeral, 输出快照不再物化它们; 原有真实支持文件和脚本其他输出仍同步。新增策略单测 1/1, 主应用离线构建安装通过, 四个目录复跑后文件清单与原始输入完全一致。
 - [x] **M7.3 栈帧回映**: 宿主组合编译器 source map 与插件已归一化的栈位置基线 (61f3a36/92f3be6), TS 脚本 throw 时控制台栈指向 .ts 文件与原始行号 (M1.5 "码+一句话"风格保持)。Check: 用例断言栈文本含 `.ts:` 与正确行号。— 2026-08-25 完成: 宿主 `TypeScriptSourceMapTest` 7/7 离线通过, 覆盖 entry/imported 模块与相对路径唯一映射; TypeScript Engine S4-1 的三设备证据精确回映 `lib/fail.ts:3:11` 与 `main.ts:2:5`, 生成的 `fail.js` 不泄漏。Node Runtime 的 `61f3a36`/`92f3be6` 继续作为生成行偏移与 imported CJS 帧归一化基线。
-- [ ] **M7.4 legacy 剥离器退役**: 新链路稳定后删除 `NodeTypeScriptStripper` (~800 行) 及其单测; `KEY_LEGACY_TYPESCRIPT_STRIPPING_ENABLED` 按宽容原则处理 (保留常量 + 显式传入时拒绝并提示新链路, 或直接移除, 决策时定); conformance x3d_04/05 断言同步。Check: `:app:testDebugUnitTest --offline` 全绿; grep 零 stripper 生产引用。— 2026-08-25 状态裁定: 不提前删除。生产宿主已无任何 `true` 调用点, `.ts/.mts/.cts` 默认且唯一走 compiler, 但 TypeScript Engine S4-2/S6-2 明确冻结 v0.6.0 为迁移观察版本; 观察期必须从实际公开分发起覆盖一个完整发布周期, 本地开发时间不冒充发布观察。后继版本开发前若无兼容报告, 再删除兼容键、正则实现与专属测试并勾选本项。
+- [x] **M7.4 legacy 剥离器退役**: 新链路稳定后删除 `NodeTypeScriptStripper` (~800 行) 及其单测; 删除 `KEY_LEGACY_TYPESCRIPT_STRIPPING_ENABLED`; conformance x3d_04/05 断言同步。Check: `:app:testDebugUnitTest --offline` 全绿; grep 零 stripper 生产引用。— 2026-08-29 完成: 直接删除 802 行正则 erasure、专属 JVM 兼容测试和 provider 私有 `prepare_plaintext_typescript` 二次准备协议, 宿主与两仓 nodejs-api 源码镜像同步删除请求键。运行时改为单一 JavaScript-output admission policy；入口、预加载模块、provider 解密明文以及 native 直达路径遇到 `.ts/.mts/.cts` 均返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`, snapshot / provider v3 按需编译仍可读取原始源码但只有编译后的 `.js/.mjs/.cjs` 能进入执行。完整离线 JVM/构建/镜像/样例门禁通过；Android 9/12/15 三台真机各跑 conformance 10/10, 合计 30/30。`releases/**/1.3.0` 与 APK 中随附的 1.3.0 catalog/runtime-kit 是已发布元数据快照, 保持不可变；其中遗留字段没有生产消费者, 其版本化刷新留给下一次 catalog/runtime-kit 发布，不构成可调用的 stripping 路径。
 - [x] **M7.5 样例收账 (双仓同步)**: 5 个 TypeScript-tag 样例 (其中 4 个为可执行 raw TS 项目) 接新链路升 stable, expected-output/项目元数据更新; packaged-typescript 走打包与动态 import 路径验证。Check: `verifyNodePluginExamples` + 宿主镜像守卫通过; 设备至少抽 2 例实跑绿。— 2026-08-25 完成: typescript-cjs/typescript-esm/typescript-project/packaged-typescript 与声明元数据 smoke 全部升 stable, README/project.json 明确需 Compiler 0.6.0+ 且 raw 直派仍 fail-closed; 57 例当前分布 stable 28 / partial 22 / disabled 7, 29 个非 stable reason 全覆盖。插件样例门禁与宿主 358 文件字节镜像门禁通过; API 37 对 4 个可执行样例做同目录双跑 8/8 PASS, packaged 例真实输出 `packaged:dynamic`, 且零编译产物泄漏。
 
 ### M8 — 执行可靠性补课 ✅ (2026-08-25 完成)
