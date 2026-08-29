@@ -242,7 +242,7 @@ M0~M5 完成后对全仓四面 (C++ 桥 / Java 服务层 / 样例与发布链 / 
 - ❌ 不追求发布工件的可复现性证明链 (哈希锁), 版本号 + git tag 足够。
 - ❌ 不为未发生过的异常写处理代码; 异常发生后针对该异常修复并附一个最小回归用例。
 
-## 六. TypeScript Engine T1-7 联调增量
+## 六. TypeScript Engine 联调增量
 
 - [x] **完整 ESM linker 与 live-binding 循环依赖** — 2026-08-27 完成：ESM entry 与
       dynamic `import()` 已从 snapshot 式 partial transform 切换到 V8
@@ -258,3 +258,15 @@ M0~M5 完成后对全仓四面 (C++ 桥 / Java 服务层 / 样例与发布链 / 
       CommonJS `require(esm)` 的同步 adapter 明确保留为互操作边界，不冒充
       ESM live binding。该项对宿主 Binder contract 仅新增 native payload additive keys，
       不修改 AIDL transaction、workspace schema 或请求版本。
+- [x] **T5-1 运行时 TypeScript 按需编译** — 2026-08-29 完成: module-source provider
+      独立升级为 additive v3, 运行时在快照未命中时只从 execution-scoped 私有 workspace
+      no-follow 精确读取 lowercase `.ts/.mts/.cts`, 将源码通过 PFD + byte count + SHA-256
+      交回宿主编译。v3 compile 使用独立 30 s transport budget, 普通 v1/v2 operation 仍为
+      5 s; 旧 provider 回退保持 snapshot not-found。成功 JS 只进入可变的 null-prototype
+      execution module table, 响应生成路径与编译期间源文件 identity 均再次校验; path escape,
+      symlink, declaration, generated collision 与 extensionless ambiguity 继续 fail closed。
+      native payload 新增 on-demand count/source-bytes, Host provider 同时报告 compile/failure
+      count。最终 versionCode 63 的 arm64 APK 在 API 35 Xiaomi 23046RP50C 与宿主配套完成
+      3/3 真机验收: 运行期 `.mts` 成功执行, TS2322 返回稳定可读诊断, 动态异常栈回映到
+      `late-stack.mts:3` 且不含 `.mjs` 帧。runtime contract 仍为 2, AIDL transaction 与
+      workspace schema 均未改变。

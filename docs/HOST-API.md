@@ -1,6 +1,6 @@
 # Node 脚本可用的宿主 API 清单 (M3.1)
 
-> 盘点日期: 2026-08-25。基于插件 `node_bridge_sources.cpp` 的 require 拦截链与宿主 `NodeBridgeProtocol.kt` 的 dispatch 路由逐条核对。
+> 盘点日期: 2026-08-29。基于插件 `node_bridge_sources.cpp` 的 require 拦截链与宿主 `NodeBridgeProtocol.kt` 的 dispatch 路由逐条核对。
 >
 > 用法: Node 脚本内 `const toast = require("toast")` 即可, 无需 import 前缀; 也可以 `require("autojs6:bridge").callAutoJs({ module, method, args })` 直接发底层调用。
 
@@ -83,8 +83,9 @@
 
 - raw `.ts` / `.mts` / `.cts` **直接派给本插件**仍会 fail-closed, 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`。当前 AutoJs6 宿主源码已接通独立 TypeScript Compiler 0.6.0+ 的完整 `Program` 编译链: 宿主先编译项目快照, 再把 JavaScript 产物派给本插件; 用户从宿主启动 `.ts` 项目时无需自行生成中间文件。
 - `legacyTypeScriptStrippingEnabled` 只是在迁移期显式启用旧的轻量类型剥离器; 默认值为 false。它只覆盖可擦除语法, 不支持 TSX、enum、decorator 等需要变换的语法, 不应作为生产编译器。
-- 已编译的封闭项目快照可通过 `typeScriptPrecompiledSnapshot` 与 `typeScriptPrecompiledSourceNames` 标记; 运行时据此把 `.ts`/`.mts`/`.cts` 静态或动态说明符映射到请求中已存在的 JavaScript 模块, 不会回退读取未声明文件。
-- 编译器 source map 与宿主控制台中的 `.ts` 原始栈回映由宿主编译链负责。当前链路已覆盖入口、导入模块与动态 import; 插件负责归一化生成代码和导入 CommonJS 的栈位置, 但不会凭空生成 source map。
+- 已编译项目快照可通过 `typeScriptPrecompiledSnapshot` 与 `typeScriptPrecompiledSourceNames` 标记; 运行时先把 `.ts`/`.mts`/`.cts` 静态或动态说明符映射到请求中已存在的 JavaScript 模块。若 compiler-backed Node 项目在运行期间新建精确普通文件, module-source provider v3 可使用 `compile_missing_typescript` 把 no-follow 读取的源码以 PFD + byte count + SHA-256 交回宿主编译, 成功状态为 `compiled_typescript`。v1/v2 provider 仍保持 snapshot not-found。
+- v3 只接受项目私有 workspace 内非声明形式的 lowercase `.ts/.mts/.cts`; 路径逃逸、符号链接、identity 变化、大小写/extensionless 歧义、Host 项目或生成目标碰撞都会 fail closed。单个 Host 编译输入最终受 8 MiB 上限约束; ordinary provider 操作仍最多 5 s, v3 compile transport 独立最多 30 s。
+- 编译器 source map 与宿主控制台中的 `.ts` 原始栈回映由宿主编译链负责。当前链路已覆盖入口、导入模块、dynamic import 与 v3 运行时源码; 插件负责归一化生成代码和导入 CommonJS 的栈位置, 但不会凭空生成 source map。动态类型错误使用 `ERR_AUTOJS6_TYPESCRIPT_COMPILATION_FAILED`, 并保留文件名与 TypeScript diagnostic。
 
 普通 `.js` / `.cjs` / `.mjs` 与 npm 纯 JavaScript 包不受此限制。
 
@@ -133,6 +134,7 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 | `device.isScreenOn` | 宿主 `pluginRuntimeUsesLiveHostBridgeForDeviceCall` | ✅ M1.1 |
 | `toast` + `clipboard` + `storage` + `shell.exec` + `app.getAppName` | 宿主 `pluginRuntimeDrivesCommonAutomationApisThroughLiveBridge` | ✅ M3.1 |
 | 加密模块 provider (v1) | 宿主 `pluginRuntimeDecryptsEncryptedModuleThroughHostV1Provider` | ✅ M1.3 |
+| TypeScript provider (v3) | 宿主 `compilesRuntimeCreatedTypeScriptAndKeepsSnapshotErrorsStable`、`runtimeCreatedTypeScriptTypeErrorsReturnReadableDiagnostics`、`mapsRuntimeCreatedTypeScriptFailureBackToDynamicSource` | ✅ T5-1, API 35 Xiaomi 23046RP50C |
 | `accessibility.swipe` 派发链 + `accessibility.gesture` 能力门禁 | 宿主 `pluginRuntimeSwipesThroughAccessibilityGestureCapability` (服务未开时断言可读 capabilityProviderMissing; 未声明能力被插件本地拒绝且零派发) | ✅ M3.2 |
 | `accessibility.*` 动作在服务开启下的完成路径 | 无障碍开启依赖手工授权 (小米 adb 不可直写 secure settings), 待手工开启后跑同一用例补证 | ⚠️ 部分验证 |
 | 其余 bridged 模块 | 无真机断言 | ⚠️ 未验证 |

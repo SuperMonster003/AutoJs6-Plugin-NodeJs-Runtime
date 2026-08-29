@@ -6,8 +6,9 @@
 
 # v1.2.0
 
-###### 2026/08/26
+###### 2026/08/29
 
+* `Ajout` Ajout du module-source provider v3 pour compiler à la demande les fichiers `.ts/.mts/.cts` créés pendant l'exécution via des PFD bornés par octets et SHA-256, avec un budget de compilation indépendant de 30 s, le refus stable des sorties de chemin, liens symboliques et ambiguïtés, ainsi que les diagnostics TypeScript et la remise en correspondance Source Map de l'hôte
 * `Ajout` Activation d'un accès au système de fichiers comparable au bureau dans les limites des autorisations Android, avec refus permanent de `/proc`, `/sys` et `/dev`
 * `Ajout` Ajout de `accessibility.swipe` et `accessibility.gesture` derrière la capacité dédiée `accessibility.gesture`
 * `Correction` Échec fermé du TypeScript brut sans sortie de compilation fournie par l'hôte, mappage des imports dynamiques de snapshot et normalisation des piles générées/importées
