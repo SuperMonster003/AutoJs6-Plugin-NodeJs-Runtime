@@ -25332,7 +25332,12 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
   }
-  function __autojs6_validate_runtime_module_path(resolved, allowEsm, allowRawTypeScriptForCompilation) {
+  function __autojs6_validate_runtime_module_path(
+    resolved,
+    allowEsm,
+    allowRawTypeScriptForCompilation,
+    probeMissingRawTypeScript
+  ) {
     const path = __autojs6_path_module();
     const fs = __autojs6_fs_module();
     if (!path || !fs || typeof fs.readFileSync !== "function" || typeof fs.lstatSync !== "function") {
@@ -25359,7 +25364,11 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_runtime_module_error("Embedded Node dynamic require fallback path escapes working directory: " + absolute);
     }
     const extension = path.extname(absolute);
-    if (!allowRawTypeScriptForCompilation) {
+    const deferRawTypeScriptPolicy =
+      probeMissingRawTypeScript === true &&
+      !allowRawTypeScriptForCompilation &&
+      __autojs6_is_raw_typescript_source(absolute);
+    if (!allowRawTypeScriptForCompilation && !deferRawTypeScriptPolicy) {
       __autojs6_throw_if_raw_typescript_extension(
         extension,
         absolute,
@@ -25392,6 +25401,13 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     if (!lstat || (!lstat.isFile() && !(typeof lstat.isSymbolicLink === "function" && lstat.isSymbolicLink()))) {
       return null;
+    }
+    if (deferRawTypeScriptPolicy) {
+      __autojs6_throw_if_raw_typescript_extension(
+        extension,
+        absolute,
+        "Embedded Node dynamic require fallback"
+      );
     }
     let real;
     try {
@@ -25728,13 +25744,32 @@ std::string buildEmbeddedScriptExecutionSource(
       sourceURL: __autojs6_runtime_module_source_url(readable)
     };
   }
-  function __autojs6_runtime_module_record(resolved, allowEsm, materializeMissingPlaintext) {
+  function __autojs6_runtime_module_record(
+    resolved,
+    allowEsm,
+    materializeMissingPlaintext,
+    probeMissingRawTypeScript
+  ) {
     if (__autojs6_has_own(__autojs6_runtime_module_records, resolved)) {
       return __autojs6_runtime_module_records[resolved];
     }
-    let readable = __autojs6_validate_runtime_module_path(resolved, allowEsm);
+    let readable = __autojs6_validate_runtime_module_path(
+      resolved,
+      allowEsm,
+      false,
+      probeMissingRawTypeScript === true
+    );
     let providerResult;
     if (!readable) {
+      // A suffix search may probe index.mts/index.cts before JavaScript or a
+      // controlled facade. Missing raw TypeScript candidates are not dynamic
+      // compilation requests; the precompiled snapshot resolver owns those.
+      if (
+        probeMissingRawTypeScript === true &&
+        __autojs6_is_raw_typescript_source(resolved)
+      ) {
+        return null;
+      }
       if (!materializeMissingPlaintext) return null;
       const missingCandidate = __autojs6_probe_missing_module_candidate(resolved, allowEsm);
       if (!missingCandidate) return null;
@@ -25812,12 +25847,34 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_runtime_module_diagnostics.loadedModules.push(readable);
     return record;
   }
-  function __autojs6_module_record(resolved, allowEsm, materializeMissingPlaintext) {
-    __autojs6_throw_if_disallowed_module_source_extension(resolved, allowEsm, "Embedded Node module source");
+  function __autojs6_module_record(
+    resolved,
+    allowEsm,
+    materializeMissingPlaintext,
+    probeMissingRawTypeScript
+  ) {
+    let record;
     if (__autojs6_has_own(__autojs6_module_sources, resolved)) {
-      return __autojs6_module_sources[resolved];
+      record = __autojs6_module_sources[resolved];
+    } else {
+      record = __autojs6_runtime_module_record(
+        resolved,
+        allowEsm,
+        materializeMissingPlaintext === true,
+        probeMissingRawTypeScript === true
+      );
     }
-    return __autojs6_runtime_module_record(resolved, allowEsm, materializeMissingPlaintext === true);
+    if (!record) return null;
+    // LOAD_AS_FILE probes several possible suffixes. Apply the raw TypeScript
+    // admission policy only after a candidate actually exists; otherwise an
+    // absent index.mts/index.cts would mask later JavaScript candidates and
+    // AutoJs6 facade fallback with a false compiler-required error.
+    __autojs6_throw_if_disallowed_module_source_extension(
+      resolved,
+      allowEsm,
+      "Embedded Node module source"
+    );
+    return record;
   }
   function __autojs6_normalized_extension(extension) {
     return String(extension || "").toLowerCase();
@@ -25983,7 +26040,12 @@ std::string buildEmbeddedScriptExecutionSource(
       ) {
         continue;
       }
-      if (__autojs6_module_record(resolved, allowEsm, materializeMissingPlaintext === true)) {
+      if (__autojs6_module_record(
+        resolved,
+        allowEsm,
+        materializeMissingPlaintext === true,
+        true
+      )) {
         return resolved;
       }
     }
@@ -40963,6 +41025,9 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_has_own(__autojs6_limited_builtin_module_map, name) ||
       __autojs6_denied_builtin_module_name(name);
   }
+  function __autojs6_esm_facade_specifier(name) {
+    return __autojs6_rhino_compat_basic_module_names.indexOf(name) >= 0;
+  }
   function __autojs6_esm_namespace_from_commonjs(value) {
     const namespace = Object.create(null);
     namespace.default = value;
@@ -41254,7 +41319,12 @@ std::string buildEmbeddedScriptExecutionSource(
       if (packageDir && !__autojs6_path_within_root(resolved, packageDir)) {
         throw __autojs6_esm_error("Embedded Node partial ESM package import escapes package directory: " + specifier, "ERR_AUTOJS6_FS_PATH_ESCAPE");
       }
-      const record = __autojs6_module_record(resolved, true, materializeMissingPlaintext === true);
+      const record = __autojs6_module_record(
+        resolved,
+        true,
+        materializeMissingPlaintext === true,
+        true
+      );
       if (!record) continue;
       const kind = __autojs6_esm_module_kind(resolved);
       if (!kind) {
@@ -41325,6 +41395,29 @@ std::string buildEmbeddedScriptExecutionSource(
       };
     }
     if (!__autojs6_is_relative_module_name(name)) {
+      // Keep the CommonJS M2.4 rule for ESM: an installed npm package wins
+      // over a same-named AutoJs6 compatibility facade. Only when no package
+      // resolves do bare imports such as app/device/toast become synthetic
+      // namespaces backed by the controlled facade implementation.
+      if (__autojs6_esm_facade_specifier(name)) {
+        const packageResolved = __autojs6_try_resolve_node_modules_module(
+          name,
+          parentFilename,
+          "esm"
+        );
+        if (packageResolved) {
+          return {
+            kind: __autojs6_esm_module_kind(packageResolved) || "cjs",
+            resolved: packageResolved
+          };
+        }
+        __autojs6_resolve_trace("esm facade matched", {
+          request: name,
+          from: parentFilename,
+          final: name
+        });
+        return { kind: "builtin", name };
+      }
       const resolved = __autojs6_resolve_node_modules_module(name, parentFilename, "esm");
       return {
         kind: __autojs6_esm_module_kind(resolved) || "cjs",

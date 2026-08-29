@@ -467,6 +467,75 @@ public final class NodeRuntimePluginAndroidConformanceTest {
     }
 
     @Test
+    public void x3d_09_esmAndCjsFacadesSkipMissingTypeScriptCandidatesAndKeepNpmPrecedence()
+            throws Exception {
+        LinkedHashMap<String, String> esmFacadeFiles = new LinkedHashMap<>();
+        esmFacadeFiles.put(
+                "main.mjs",
+                "import app from 'app';\n" +
+                        "import device from 'device';\n" +
+                        "import toast from 'toast';\n" +
+                        "console.log('x3d.esm.facades=' + [typeof app.isInstalled, " +
+                        "typeof device.isScreenOn, typeof toast.showToast].join(','));\n"
+        );
+        try (WorkspaceInvocation invocation = execute(
+                "esm-autojs6-facades",
+                "main.mjs",
+                esmFacadeFiles,
+                false
+        )) {
+            assertSucceeded(invocation.result, "x3d.esm.facades=function,function,function");
+            invocation.callback.assertOneStartedAndOneTerminalEvent();
+            invocation.assertWorkspaceOutputCommitted();
+        }
+
+        LinkedHashMap<String, String> cjsFacadeFiles = new LinkedHashMap<>();
+        cjsFacadeFiles.put(
+                "main.cjs",
+                "const app = require('app');\n" +
+                        "const device = require('device');\n" +
+                        "const toast = require('toast');\n" +
+                        "console.log('x3d.cjs.facades=' + [typeof app.isInstalled, " +
+                        "typeof device.isScreenOn, typeof toast.showToast].join(','));\n"
+        );
+        try (WorkspaceInvocation invocation = execute(
+                "cjs-autojs6-facades",
+                "main.cjs",
+                cjsFacadeFiles,
+                false
+        )) {
+            assertSucceeded(invocation.result, "x3d.cjs.facades=function,function,function");
+            invocation.callback.assertOneStartedAndOneTerminalEvent();
+            invocation.assertWorkspaceOutputCommitted();
+        }
+
+        LinkedHashMap<String, String> npmShadowFiles = new LinkedHashMap<>();
+        npmShadowFiles.put(
+                "main.mjs",
+                "import app from 'app';\n" +
+                        "console.log('x3d.esm.facade-shadow=' + app.source);\n"
+        );
+        npmShadowFiles.put(
+                "node_modules/app/package.json",
+                "{\"name\":\"app\",\"type\":\"module\",\"exports\":\"./index.mjs\"}\n"
+        );
+        npmShadowFiles.put(
+                "node_modules/app/index.mjs",
+                "export default { source: 'npm' };\n"
+        );
+        try (WorkspaceInvocation invocation = execute(
+                "esm-autojs6-facade-npm-shadow",
+                "main.mjs",
+                npmShadowFiles,
+                false
+        )) {
+            assertSucceeded(invocation.result, "x3d.esm.facade-shadow=npm");
+            invocation.callback.assertOneStartedAndOneTerminalEvent();
+            invocation.assertWorkspaceOutputCommitted();
+        }
+    }
+
+    @Test
     public void x3e_05_nodeCompatCorpusV2PassesThroughPublishedBinder() throws Exception {
         // This is the plugin-owned, normalized-text migration of the former Host v2 corpus.
         // The companion Host ownership gate verifies that its copy and selector are absent.
