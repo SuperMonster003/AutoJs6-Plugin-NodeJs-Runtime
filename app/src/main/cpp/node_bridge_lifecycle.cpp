@@ -121,7 +121,9 @@ std::vector<std::string> runEmbeddedScriptExecution(
     putPayload(
             payload,
             "embedded_script.request.require_mode",
-            request.esmEnabled ? "restricted_commonjs_mvp_with_esm" : "restricted_commonjs_mvp"
+            request.esmEnabled
+                    ? "restricted_commonjs_with_native_esm_linker"
+                    : "restricted_commonjs_mvp"
     );
     putPayload(payload, "embedded_script.request.fs_allowed", "scoped_working_directory_sync_mvp");
     putPayload(payload, "embedded_script.request.import_allowed", request.esmEnabled);
@@ -823,7 +825,10 @@ void runEmbeddedScriptNodeLifecycle(
             reinterpret_cast<UvRun>(runUvLoopCleanup ? uvRunLookup.address : nullptr);
 
     const int buildConfiguration = v8BuildConfiguration();
-    std::vector<std::string> args = {"autojs6-embedded-script"};
+    std::vector<std::string> args = {
+            "autojs6-embedded-script",
+            "--experimental-vm-modules"
+    };
     const auto flags = embeddedNodeInitializationFlags(stdoutCapture);
     const char* flagsName = embeddedNodeInitializationFlagsName(stdoutCapture);
     putPayload(payload, "initialize.symbol", initializeLookup.symbol);

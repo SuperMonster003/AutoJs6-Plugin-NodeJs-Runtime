@@ -183,7 +183,10 @@ bool ensureUnlocked(std::vector<std::string>& payload) {
                         reinterpret_cast<NodeInitializeOncePerProcess>(initializeLookup.address);
                 runtime.tearDownOncePerProcess =
                         reinterpret_cast<NodeTearDownOncePerProcess>(teardownLookup.address);
-                const std::vector<std::string> args = {"autojs6-embedded-process-runtime"};
+                const std::vector<std::string> args = {
+                        "autojs6-embedded-process-runtime",
+                        "--experimental-vm-modules"
+                };
                 runtime.initializationResult = initializeOncePerProcess(
                         args,
                         persistentInitializationFlags()

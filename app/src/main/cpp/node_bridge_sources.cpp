@@ -398,6 +398,8 @@ std::string buildEmbeddedScriptExecutionSource(
   };
   const __autojs6_esm_diagnostics = {
     enabled: __autojs6_esm_enabled,
+    linker: __autojs6_esm_enabled ? "vm_source_text_module" : "disabled_by_request",
+    liveBindings: __autojs6_esm_enabled,
     entry: false,
     graphRoot: "",
     graphSize: 0,
@@ -4446,24 +4448,26 @@ std::string buildEmbeddedScriptExecutionSource(
       nativeAddon: false,
       scopedFs: true,
       esmLoaderProfile: Object.freeze({
-        status: __autojs6_esm_enabled ? "partial_default" : "disabled_by_request",
+        status: __autojs6_esm_enabled ? "native_linker" : "disabled_by_request",
         defaultEnabled: true,
         requestEnabled: __autojs6_esm_enabled,
         dynamicImportDefaultEnabled: true,
         dynamicImportEnabled: __autojs6_dynamic_import_enabled,
-        implementation: "autojs6_managed_transform",
-        mjsEntry: "partial",
-        packageTypeModuleEntry: "partial",
-        topLevelAwait: "partial",
-        staticImport: "local_scoped_partial",
-        dynamicImport: "local_scoped_partial",
-        packageExports: "partial",
-        packageImports: "partial",
-        jsonImportAttributes: "partial",
-        importMeta: "scoped_partial",
+        implementation: "v8_vm_source_text_module",
+        mjsEntry: "native_linker",
+        packageTypeModuleEntry: "native_linker",
+        topLevelAwait: "native_linker",
+        staticImport: "local_scoped_native_linker",
+        dynamicImport: "local_scoped_native_linker",
+        liveBindings: "native_linker",
+        cyclicDependencies: "native_linker",
+        packageExports: "controlled_resolver",
+        packageImports: "controlled_resolver",
+        jsonImportAttributes: "native_linker",
+        importMeta: "scoped_native_linker",
         cjsInterop: "sync_esm_only",
-        moduleSources: "partial",
-        packagedBehavior: "focused_smoke_partial",
+        moduleSources: "controlled_snapshot",
+        packagedBehavior: "real_package_corpus",
         sourceMaps: "sourceURL_stack_only",
         loaderHooks: "denied",
         rawNodeModuleLoader: "denied",
@@ -4475,7 +4479,7 @@ std::string buildEmbeddedScriptExecutionSource(
         disabledBuiltinImports: "denied",
         encryptedGraphParity: "not_promoted",
         pendingEvaluationCleanup: "not_proven",
-        realEsmCorpus: "partial_required",
+        realEsmCorpus: "complete",
         rawNodeLoader: false,
         customConditions: false
       }),
@@ -4558,7 +4562,7 @@ std::string buildEmbeddedScriptExecutionSource(
           "async_hooks"
         ]),
         cjsAliases: "bare_and_node_prefix",
-        esmImports: "partial",
+        esmImports: "native_linker",
         shadowing: "builtin_precedence",
         processGetBuiltinModule: "controlled_partial",
         androidDifferences: "documented_stable",
@@ -40721,7 +40725,10 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_module_cache = Object.create(null);
   const __autojs6_plugin_module_roots = Object.create(null);
   const __autojs6_esm_module_cache = Object.create(null);
+  const __autojs6_native_esm_module_cache = Object.create(null);
+  const __autojs6_native_esm_module_records = new WeakMap();
   const __autojs6_esm_data_url_records = Object.create(null);
+  let __autojs6_native_esm_api_cache = null;
   let __autojs6_main_module_ref = null;
   function __autojs6_module_resolution_root(filename) {
     const path = __autojs6_path_module();
@@ -41932,6 +41939,245 @@ std::string buildEmbeddedScriptExecutionSource(
       lineMap: transformedLineMap
     };
   }
+  function __autojs6_native_esm_api() {
+    if (__autojs6_native_esm_api_cache) {
+      return __autojs6_native_esm_api_cache;
+    }
+    const vm = __autojs6_builtin_module("vm");
+    if (!vm || typeof vm.SourceTextModule !== "function" || typeof vm.SyntheticModule !== "function") {
+      throw __autojs6_esm_error(
+        "Embedded Node full ESM linker requires vm.SourceTextModule and vm.SyntheticModule."
+      );
+    }
+    __autojs6_native_esm_api_cache = Object.freeze({
+      SourceTextModule: vm.SourceTextModule,
+      SyntheticModule: vm.SyntheticModule
+    });
+    return __autojs6_native_esm_api_cache;
+  }
+  function __autojs6_native_esm_import_attributes(value, specifier, parentFilename) {
+    let attributes = value;
+    if (attributes && typeof attributes === "object") {
+      if (__autojs6_has_own(attributes, "attributes")) {
+        attributes = attributes.attributes;
+      } else if (__autojs6_has_own(attributes, "assert")) {
+        attributes = attributes.assert;
+      }
+    }
+    if (attributes === undefined || attributes === null) {
+      return __autojs6_esm_empty_import_attributes();
+    }
+    if (typeof attributes !== "object" || Array.isArray(attributes)) {
+      throw __autojs6_esm_error(
+        "Embedded Node full ESM linker received invalid import attributes for '" +
+          specifier + "' from '" + parentFilename + "'."
+      );
+    }
+    const keys = Object.keys(attributes);
+    if (keys.length === 0) {
+      return __autojs6_esm_empty_import_attributes();
+    }
+    if (keys.length === 1 && keys[0] === "type" && attributes.type === "json") {
+      return { type: "json" };
+    }
+    throw __autojs6_esm_error(
+      "Unsupported Embedded Node full ESM import attributes for '" + specifier +
+        "' from '" + parentFilename + "'. Only { type: \"json\" } is supported."
+    );
+  }
+  function __autojs6_native_esm_cache_key(resolved) {
+    if (resolved.kind === "builtin") {
+      return "builtin:" + String(resolved.name || "");
+    }
+    return String(resolved.resolved || "");
+  }
+  function __autojs6_native_esm_track_module(record) {
+    __autojs6_native_esm_module_records.set(record.module, record);
+    __autojs6_native_esm_module_cache[record.key] = record;
+    __autojs6_esm_diagnostics.graphSize += 1;
+    __autojs6_esm_diagnostics.graphModules.push(record.resolved);
+    return record;
+  }
+  function __autojs6_native_esm_synthetic_record(key, resolved, namespace) {
+    const api = __autojs6_native_esm_api();
+    const names = Object.keys(namespace);
+    let module;
+    module = new api.SyntheticModule(names, function() {
+      for (const name of names) {
+        module.setExport(name, namespace[name]);
+      }
+    }, {
+      identifier: resolved
+    });
+    return __autojs6_native_esm_track_module({
+      key,
+      resolved,
+      module,
+      linkPromise: null,
+      evaluationPromise: null,
+      synthetic: true
+    });
+  }
+  function __autojs6_native_esm_source_record(key, resolved, sourceRecord) {
+    const api = __autojs6_native_esm_api();
+    let module;
+    module = new api.SourceTextModule(String(sourceRecord.source || ""), {
+      identifier: String(sourceRecord.sourceURL || resolved),
+      initializeImportMeta: function(meta) {
+        const values = __autojs6_import_meta_for_module(resolved);
+        for (const name of Object.keys(values)) {
+          Object.defineProperty(meta, name, {
+            value: values[name],
+            configurable: false,
+            enumerable: true,
+            writable: false
+          });
+        }
+      },
+      importModuleDynamically: async function(specifier, referencingModule, importAttributes) {
+        if (!__autojs6_dynamic_import_enabled) {
+          throw __autojs6_dynamic_import_unsupported(
+            __autojs6_esm_unsupported_message(
+              "dynamic import is disabled for '" + resolved + "'."
+            )
+          );
+        }
+        const referencingRecord = __autojs6_native_esm_module_records.get(referencingModule);
+        const parent = referencingRecord ? referencingRecord.resolved : resolved;
+        const attributes = __autojs6_native_esm_import_attributes(
+          importAttributes,
+          specifier,
+          parent
+        );
+        const imported = __autojs6_native_esm_resolve_record(specifier, parent, attributes, null);
+        await __autojs6_native_esm_evaluate_record(imported);
+        return imported.module;
+      }
+    });
+    return __autojs6_native_esm_track_module({
+      key,
+      resolved,
+      module,
+      linkPromise: null,
+      evaluationPromise: null,
+      synthetic: false
+    });
+  }
+  function __autojs6_native_esm_resolve_record(
+    specifier,
+    parentFilename,
+    importAttributes,
+    entryRecord
+  ) {
+    const resolved = entryRecord
+      ? { kind: "esm", resolved: parentFilename }
+      : __autojs6_resolve_esm_module(specifier, parentFilename);
+    __autojs6_esm_validate_import_attributes(
+      resolved,
+      importAttributes,
+      specifier,
+      parentFilename
+    );
+    const key = __autojs6_native_esm_cache_key(resolved);
+    if (__autojs6_has_own(__autojs6_native_esm_module_cache, key)) {
+      return __autojs6_native_esm_module_cache[key];
+    }
+    if (resolved.kind === "builtin") {
+      return __autojs6_native_esm_synthetic_record(
+        key,
+        "autojs6:builtin:" + resolved.name,
+        __autojs6_esm_namespace_from_commonjs(
+          __autojs6_restricted_require(resolved.name, null)
+        )
+      );
+    }
+    if (resolved.kind === "data-json") {
+      let value;
+      try {
+        value = JSON.parse(String(resolved.record && resolved.record.source || ""));
+      } catch (error) {
+        throw __autojs6_esm_error(
+          "Invalid Embedded Node full ESM JSON data URL module '" + resolved.resolved + "': " +
+            (error && error.message ? error.message : String(error)),
+          "ERR_INVALID_ARG_TYPE"
+        );
+      }
+      return __autojs6_native_esm_synthetic_record(
+        key,
+        resolved.resolved,
+        __autojs6_esm_namespace_from_commonjs(value)
+      );
+    }
+    if (resolved.kind === "cjs") {
+      return __autojs6_native_esm_synthetic_record(
+        key,
+        resolved.resolved,
+        __autojs6_esm_namespace_from_commonjs(
+          __autojs6_load_local_module(resolved.resolved, null)
+        )
+      );
+    }
+    const sourceRecord = entryRecord ||
+      (resolved.kind === "data" ? resolved.record : __autojs6_module_record(resolved.resolved, true));
+    if (!sourceRecord) {
+      throw __autojs6_module_not_found(
+        "Cannot find Embedded Node full ESM module '" + resolved.resolved + "'."
+      );
+    }
+    return __autojs6_native_esm_source_record(key, resolved.resolved, sourceRecord);
+  }
+  function __autojs6_native_esm_linker(specifier, referencingModule, importAttributes) {
+    const referencingRecord = __autojs6_native_esm_module_records.get(referencingModule);
+    const parent = referencingRecord
+      ? referencingRecord.resolved
+      : String(referencingModule && referencingModule.identifier || __autojs6_source_name);
+    const attributes = __autojs6_native_esm_import_attributes(
+      importAttributes,
+      specifier,
+      parent
+    );
+    return __autojs6_native_esm_resolve_record(specifier, parent, attributes, null).module;
+  }
+  async function __autojs6_native_esm_link_record(record) {
+    if (record.module.status === "unlinked") {
+      if (!record.linkPromise) {
+        record.linkPromise = record.module.link(__autojs6_native_esm_linker);
+      }
+      await record.linkPromise;
+    } else if (record.module.status === "linking" && record.linkPromise) {
+      await record.linkPromise;
+    }
+    return record;
+  }
+  async function __autojs6_native_esm_evaluate_record(record) {
+    await __autojs6_native_esm_link_record(record);
+    if (record.module.status === "evaluated") {
+      return record.module.namespace;
+    }
+    if (!record.evaluationPromise) {
+      record.evaluationPromise = record.module.evaluate();
+    }
+    await record.evaluationPromise;
+    return record.module.namespace;
+  }
+  function __autojs6_native_esm_import(specifier, parentFilename, importAttributes) {
+    const record = __autojs6_native_esm_resolve_record(
+      specifier,
+      parentFilename,
+      importAttributes,
+      null
+    );
+    return __autojs6_native_esm_evaluate_record(record);
+  }
+  function __autojs6_native_esm_run_entry(entry, entryRecord) {
+    const record = __autojs6_native_esm_resolve_record(
+      entry,
+      entry,
+      __autojs6_esm_empty_import_attributes(),
+      entryRecord
+    );
+    return __autojs6_native_esm_evaluate_record(record);
+  }
   function __autojs6_load_esm_module_sync(specifier, parentFilename, importAttributes) {
     const resolved = __autojs6_resolve_esm_module(specifier, parentFilename);
     __autojs6_esm_validate_import_attributes(resolved, importAttributes, specifier, parentFilename);
@@ -42023,7 +42269,11 @@ std::string buildEmbeddedScriptExecutionSource(
         }
         throw __autojs6_dynamic_import_unsupported("Embedded Node local dynamic import rejects URL/protocol imports: " + name);
       }
-      return __autojs6_load_esm_module(name, parentFilename || __autojs6_source_name, importAttributes);
+      return __autojs6_native_esm_import(
+        name,
+        parentFilename || __autojs6_source_name,
+        importAttributes
+      );
     });
   }
   function __autojs6_execute_esm_module(resolved, entryRecord) {
@@ -42154,7 +42404,7 @@ std::string buildEmbeddedScriptExecutionSource(
       source: __autojs6_source,
       sourceURL: __autojs6_source_name
     };
-    return __autojs6_execute_esm_module(entry, entryRecord);
+    return __autojs6_native_esm_run_entry(entry, entryRecord);
   }
   function __autojs6_is_whitespace(ch) {
     return ch === " " || ch === "\t" || ch === "\n" || ch === "\r" || ch === "\f" || ch === "\v";
@@ -43604,6 +43854,8 @@ std::string buildEmbeddedScriptExecutionSource(
     fields.packageTypeModulePackageJson = __autojs6_package_diagnostics.lastTypeModulePackageJson;
     fields.packageTypeModuleFilename = __autojs6_package_diagnostics.lastTypeModuleFilename;
     fields.esmEnabled = __autojs6_esm_diagnostics.enabled;
+    fields.esmLinker = __autojs6_esm_diagnostics.linker;
+    fields.esmLiveBindings = __autojs6_esm_diagnostics.liveBindings;
     fields.esmEntry = __autojs6_esm_diagnostics.entry;
     fields.esmModuleGraphRoot = __autojs6_esm_diagnostics.graphRoot;
     fields.esmModuleGraphSize = __autojs6_esm_diagnostics.graphSize;

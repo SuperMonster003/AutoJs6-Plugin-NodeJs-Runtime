@@ -429,6 +429,58 @@ public final class NodeRuntimePluginAndroidConformanceTest {
     }
 
     @Test
+    public void x3d_08_esmCyclePreservesLiveBindingsThroughReExport() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put(
+                "main.mjs",
+                "import { snapshot, setValue } from './state.mjs';\n" +
+                        "console.log('x3d.esm.live.initial=' + snapshot());\n" +
+                        "setValue(42);\n" +
+                        "console.log('x3d.esm.live.updated=' + snapshot());\n"
+        );
+        files.put(
+                "state.mjs",
+                "import { readValue } from './reader.mjs';\n" +
+                        "export let value = 1;\n" +
+                        "export function setValue(next) { value = next; }\n" +
+                        "export function snapshot() { return readValue(); }\n"
+        );
+        files.put(
+                "reader.mjs",
+                "import { value } from './barrel.mjs';\n" +
+                        "export function readValue() { return value; }\n"
+        );
+        files.put("barrel.mjs", "export { value } from './state.mjs';\n");
+
+        try (WorkspaceInvocation invocation = execute(
+                "esm-live-binding-cycle",
+                "main.mjs",
+                files,
+                false
+        )) {
+            assertSucceeded(invocation.result, "x3d.esm.live.initial=1");
+            assertTrue(
+                    "ESM cycle did not observe the mutated live binding: " +
+                            invocation.result.getString(NodeJsRuntimeContract.KEY_STDOUT, ""),
+                    invocation.result.getString(NodeJsRuntimeContract.KEY_STDOUT, "")
+                            .contains("x3d.esm.live.updated=42")
+            );
+            assertNativeValue(
+                    invocation.result,
+                    "embedded_script.esm_linker",
+                    "vm_source_text_module"
+            );
+            assertNativeValue(
+                    invocation.result,
+                    "embedded_script.esm_live_bindings",
+                    "true"
+            );
+            invocation.callback.assertOneStartedAndOneTerminalEvent();
+            invocation.assertWorkspaceOutputCommitted();
+        }
+    }
+
+    @Test
     public void x3e_05_nodeCompatCorpusV2PassesThroughPublishedBinder() throws Exception {
         // This is the plugin-owned, normalized-text migration of the former Host v2 corpus.
         // The companion Host ownership gate verifies that its copy and selector are absent.
