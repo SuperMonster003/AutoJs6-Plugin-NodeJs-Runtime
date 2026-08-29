@@ -135,6 +135,7 @@ public class PluginModuleSourceProviderMetadataPolicyTest {
                     false,
                     true,
                     7L,
+                    false,
                     false
             );
             fail("Expected invalid metadata response rejection");

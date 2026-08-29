@@ -48,9 +48,10 @@ public class NodeJsRuntimePluginServiceTest {
     }
 
     @Test
-    public void moduleSourceProviderContractAcceptsPublishedV1HostsAndRejectsFutureVersions() {
+    public void moduleSourceProviderContractAcceptsPublishedV1AndCurrentV3() {
         assertTrue(NodeJsRuntimePluginService.supportsRequestedModuleSourceProviderContract(true, 1));
-        assertFalse(NodeJsRuntimePluginService.supportsRequestedModuleSourceProviderContract(true, 3));
+        assertTrue(NodeJsRuntimePluginService.supportsRequestedModuleSourceProviderContract(true, 3));
+        assertFalse(NodeJsRuntimePluginService.supportsRequestedModuleSourceProviderContract(true, 4));
     }
 
     @Test

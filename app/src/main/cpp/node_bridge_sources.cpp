@@ -302,7 +302,7 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_current_working_directory = __autojs6_module_root || __autojs6_sandbox_root;
   let __autojs6_chdir_last_failure_reason = "";
   let __autojs6_create_require_last_failure_reason = "";
-  const __autojs6_module_sources = Object.freeze()JS";
+  const __autojs6_module_sources = Object.assign(Object.create(null), )JS";
     script += moduleSourcesLiteral;
     script += R"JS();
   const __autojs6_runtime_module_embedded_sources = Object.freeze()JS";
@@ -318,7 +318,7 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_typescript_precompiled_snapshot = )JS";
     script += typeScriptPrecompiledSnapshot ? "true" : "false";
     script += R"JS(;
-  const __autojs6_typescript_precompiled_source_names = Object.freeze()JS";
+  const __autojs6_typescript_precompiled_source_names = Object.assign(Object.create(null), )JS";
     script += typeScriptPrecompiledSourceNamesLiteral;
     script += R"JS();
   const __autojs6_esm_enabled = )JS";
@@ -411,6 +411,8 @@ std::string buildEmbeddedScriptExecutionSource(
     enabled: __autojs6_typescript_precompiled_snapshot,
     sourceCount: Object.keys(__autojs6_typescript_precompiled_source_names).length,
     mappedCount: 0,
+    onDemandCompileCount: 0,
+    onDemandCompileSourceBytes: 0,
     rejectedCount: 0,
     ambiguousCount: 0,
     lastSpecifier: "",
@@ -24586,7 +24588,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const parsedVersion = parsed && typeof parsed === "object" ? Number(parsed.version) : NaN;
       if (
         !parsed || typeof parsed !== "object" || parsed.enabled !== true ||
-        (parsedVersion !== 1 && parsedVersion !== 2)
+        (parsedVersion !== 1 && parsedVersion !== 2 && parsedVersion !== 3)
       ) {
         throw new Error("Module-source provider transport configuration version or enabled state is invalid.");
       }
@@ -24608,10 +24610,17 @@ std::string buildEmbeddedScriptExecutionSource(
         throw new Error("Module-source provider transport configuration paths or execution id are invalid.");
       }
       const rawTimeoutMs = Number(parsed.timeoutMs);
+      const rawCompilationTimeoutMs = Number(parsed.compilationTimeoutMs);
       const rawPollIntervalMs = Number(parsed.pollIntervalMs);
-      const timeoutMs = Number.isFinite(rawTimeoutMs) && rawTimeoutMs > 0
-        ? Math.max(1, Math.min(Math.floor(rawTimeoutMs), 5000))
-        : 5000;
+      const configuredTimeoutCeilingMs = parsedVersion >= 3 ? 30000 : 5000;
+      const configuredTimeoutMs = Number.isFinite(rawTimeoutMs) && rawTimeoutMs > 0
+        ? Math.max(1, Math.min(Math.floor(rawTimeoutMs), configuredTimeoutCeilingMs))
+        : configuredTimeoutCeilingMs;
+      const timeoutMs = Math.min(configuredTimeoutMs, 5000);
+      const compilationTimeoutMs = parsedVersion >= 3 &&
+          Number.isFinite(rawCompilationTimeoutMs) && rawCompilationTimeoutMs > 0
+        ? Math.max(1, Math.min(Math.floor(rawCompilationTimeoutMs), 30000))
+        : timeoutMs;
       const pollIntervalMs = Number.isFinite(rawPollIntervalMs) && rawPollIntervalMs > 0
         ? Math.max(1, Math.min(Math.floor(rawPollIntervalMs), 250))
         : 5;
@@ -24621,6 +24630,7 @@ std::string buildEmbeddedScriptExecutionSource(
         requestDir: path.resolve(requestDir),
         responseDir: path.resolve(responseDir),
         timeoutMs,
+        compilationTimeoutMs,
         pollIntervalMs
       });
       return __autojs6_module_source_provider_config_cache;
@@ -24716,6 +24726,8 @@ std::string buildEmbeddedScriptExecutionSource(
     if (status === "decrypted") {
       diagnostics.resolvedCount += 1;
       diagnostics.decryptedCount += 1;
+    } else if (status === "compiled_typescript") {
+      diagnostics.resolvedCount += 1;
     } else if (status === "materialized_plaintext") {
       diagnostics.resolvedCount += 1;
       diagnostics.materializedCount += 1;
@@ -24951,6 +24963,7 @@ std::string buildEmbeddedScriptExecutionSource(
     responsePath,
     sourcePath,
     deadline,
+    timeoutMs,
     responseKind
   ) {
     while (true) {
@@ -24981,7 +24994,8 @@ std::string buildEmbeddedScriptExecutionSource(
               status === "timed_out" || status === "failed"
             )
           : (
-               status === "decrypted" || status === "materialized_plaintext" ||
+               status === "decrypted" || status === "compiled_typescript" ||
+               status === "materialized_plaintext" ||
                status === "not_encrypted" || status === "not_found" ||
               status === "denied" || status === "cancelled" || status === "timed_out" || status === "failed"
             );
@@ -24997,11 +25011,11 @@ std::string buildEmbeddedScriptExecutionSource(
         if (remainingMs <= 0) {
           __autojs6_module_source_provider_cleanup_file(fs, responsePath);
           __autojs6_module_source_provider_cleanup_file(fs, sourcePath);
-          __autojs6_module_source_provider_diagnostics.elapsedMs += config.timeoutMs;
+          __autojs6_module_source_provider_diagnostics.elapsedMs += timeoutMs;
           throw __autojs6_module_source_provider_error(
             "timed_out",
             requestedPath,
-            "Module-source provider transport timed out after " + config.timeoutMs + " ms.",
+            "Module-source provider transport timed out after " + timeoutMs + " ms.",
             "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_TIMEOUT",
             false
           );
@@ -25145,6 +25159,7 @@ std::string buildEmbeddedScriptExecutionSource(
         responsePath,
         preparedSourcePath,
         authorizedParentDeadline,
+        remainingTimeoutMs,
         "typescript_preparation"
       );
       __autojs6_module_source_provider_cleanup_file(fs, responsePath);
@@ -25213,9 +25228,11 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_request_module_source(readable, operation) {
     const requestOperation = operation === "materialize_missing_plaintext"
       ? "materialize_missing_plaintext"
-      : operation === "resolve_missing_candidate"
-        ? "resolve_missing_candidate"
-        : "resolve";
+      : operation === "compile_missing_typescript"
+        ? "compile_missing_typescript"
+        : operation === "resolve_missing_candidate"
+          ? "resolve_missing_candidate"
+          : "resolve";
     const cacheKey = requestOperation + "\n" + String(readable || "");
     if (__autojs6_has_own(__autojs6_module_source_provider_results, cacheKey)) {
       return __autojs6_module_source_provider_results[cacheKey];
@@ -25224,6 +25241,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (!config) return Object.freeze({ status: "disabled" });
     const diagnostics = __autojs6_module_source_provider_diagnostics;
     const materializeMissingPlaintext = requestOperation === "materialize_missing_plaintext";
+    const compileMissingTypeScript = requestOperation === "compile_missing_typescript";
     const resolveMissingCandidate = requestOperation === "resolve_missing_candidate";
     diagnostics.requestCount += 1;
     if (materializeMissingPlaintext) diagnostics.missingCandidateRequestCount += 1;
@@ -25258,7 +25276,10 @@ std::string buildEmbeddedScriptExecutionSource(
     const requestTempPath = requestPath + ".tmp";
     const responsePath = __autojs6_module_source_provider_file(config, config.responseDir, id, ".json");
     const expectedSourcePath = __autojs6_module_source_provider_file(config, config.responseDir, id, ".source");
-    const requestDeadline = Date.now() + config.timeoutMs;
+    const requestTimeoutMs = compileMissingTypeScript
+      ? config.compilationTimeoutMs
+      : config.timeoutMs;
+    const requestDeadline = Date.now() + requestTimeoutMs;
     let candidateIdentity = "";
     try {
       if (!materializeMissingPlaintext) {
@@ -25282,9 +25303,13 @@ std::string buildEmbeddedScriptExecutionSource(
         version: config.version,
         id,
         executionId: config.executionId,
-        operation: materializeMissingPlaintext ? "materialize_missing_plaintext" : "resolve",
+        operation: materializeMissingPlaintext
+          ? "materialize_missing_plaintext"
+          : compileMissingTypeScript
+            ? "compile_missing_typescript"
+            : "resolve",
         path: String(readable),
-        timeoutMs: config.timeoutMs
+        timeoutMs: requestTimeoutMs
       }), "utf8");
       fs.renameSync(requestTempPath, requestPath);
       const response = __autojs6_module_source_provider_response(
@@ -25294,12 +25319,13 @@ std::string buildEmbeddedScriptExecutionSource(
         readable,
         responsePath,
         expectedSourcePath,
-        requestDeadline
+        requestDeadline,
+        requestTimeoutMs
       );
       __autojs6_module_source_provider_cleanup_file(fs, responsePath);
       __autojs6_module_source_provider_cleanup_file(fs, requestPath);
       const status = String(response.status);
-      if (status === "decrypted") {
+      if (status === "decrypted" || status === "compiled_typescript") {
         const path = __autojs6_path_module();
         const responseSourcePath = path.resolve(String(response.sourcePath || ""));
         const declaredSourceBytes = Number(response.sourceBytes);
@@ -25351,6 +25377,7 @@ std::string buildEmbeddedScriptExecutionSource(
           status,
           source,
           sourceBytes: actualSourceBytes,
+          resolvedPath: String(response.resolvedPath || readable),
           sourceURL: __autojs6_runtime_module_source_url(response.resolvedPath || readable)
         });
         if (
@@ -25365,6 +25392,18 @@ std::string buildEmbeddedScriptExecutionSource(
             "denied",
             readable,
             "Missing module-source candidate resolved to a different path.",
+            "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+            false
+          );
+        }
+        if (
+          compileMissingTypeScript && candidateIdentity &&
+          __autojs6_module_source_provider_file_identity(fs, readable) !== candidateIdentity
+        ) {
+          throw __autojs6_module_source_provider_error(
+            "denied",
+            readable,
+            "On-demand TypeScript source identity changed during compilation.",
             "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
             false
           );
@@ -41155,25 +41194,89 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_typescript_snapshot_diagnostics.lastGenerated = String(generated || "");
     __autojs6_typescript_snapshot_diagnostics.lastErrorCode = code;
     throw __autojs6_typescript_snapshot_error(
-      detail + " Only TypeScript modules emitted from the execution's closed precompiled snapshot can be imported.",
+      detail + " The target must come from the initial snapshot or the execution-scoped on-demand compiler.",
       code
     );
+  }
+  function __autojs6_compile_missing_typescript_source(
+    source,
+    extension,
+    generated,
+    specifier,
+    parentFilename
+  ) {
+    const readable = __autojs6_validate_runtime_module_path(source, true);
+    if (!readable) return false;
+    const result = __autojs6_request_module_source(readable, "compile_missing_typescript");
+    if (!result || result.status !== "compiled_typescript") return false;
+    const path = __autojs6_path_module();
+    if (
+      !path ||
+      !__autojs6_same_authorized_canonical_path(path, generated, result.resolvedPath)
+    ) {
+      throw __autojs6_module_source_provider_error(
+        "denied",
+        source,
+        "On-demand TypeScript compiler returned a different generated module path.",
+        "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_DENIED",
+        false
+      );
+    }
+    __autojs6_module_sources[generated] = Object.freeze({
+      source: String(result.source || ""),
+      sourceURL: __autojs6_runtime_module_source_url(generated)
+    });
+    __autojs6_typescript_precompiled_source_names[source] = true;
+    __autojs6_typescript_snapshot_diagnostics.sourceCount += 1;
+    __autojs6_typescript_snapshot_diagnostics.onDemandCompileCount += 1;
+    __autojs6_typescript_snapshot_diagnostics.onDemandCompileSourceBytes +=
+      Number(result.sourceBytes) || 0;
+    __autojs6_resolve_trace("typescript on-demand compilation matched", {
+      request: specifier,
+      from: parentFilename,
+      source,
+      final: generated
+    });
+    return true;
   }
   function __autojs6_resolve_precompiled_typescript_source(source, extension, specifier, parentFilename) {
     if (!__autojs6_typescript_precompiled_snapshot) return null;
     const generatedExtension = __autojs6_typescript_generated_extension(extension);
     if (!generatedExtension) return null;
-    if (!__autojs6_has_own(__autojs6_typescript_precompiled_source_names, source)) {
+    const generated = source.slice(0, source.length - String(extension || "").length) + generatedExtension;
+    if (
+      !__autojs6_has_own(__autojs6_typescript_precompiled_source_names, source) &&
+      __autojs6_has_own(__autojs6_module_sources, generated)
+    ) {
+      __autojs6_reject_typescript_snapshot_module(
+        "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_AMBIGUOUS",
+        specifier,
+        source,
+        generated,
+        parentFilename,
+        "TypeScript dynamic import target '" + specifier + "' collides with an existing generated or runtime-support module."
+      );
+    }
+    if (
+      (!__autojs6_has_own(__autojs6_typescript_precompiled_source_names, source) ||
+        !__autojs6_has_own(__autojs6_module_sources, generated)) &&
+      !__autojs6_compile_missing_typescript_source(
+        source,
+        extension,
+        generated,
+        specifier,
+        parentFilename
+      )
+    ) {
       __autojs6_reject_typescript_snapshot_module(
         "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND",
         specifier,
         source,
-        "",
+        generated,
         parentFilename,
-        "TypeScript dynamic import target '" + specifier + "' from '" + parentFilename + "' was not emitted in the precompiled snapshot."
+        "TypeScript dynamic import target '" + specifier + "' from '" + parentFilename + "' was not emitted and could not be compiled on demand."
       );
     }
-    const generated = source.slice(0, source.length - String(extension || "").length) + generatedExtension;
     if (!__autojs6_has_own(__autojs6_module_sources, generated)) {
       __autojs6_reject_typescript_snapshot_module(
         "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND",
@@ -41216,7 +41319,8 @@ std::string buildEmbeddedScriptExecutionSource(
       { source: base + ".ts", extension: ".ts" },
       { source: base + ".cts", extension: ".cts" }
     ].filter(function(candidate) {
-      return __autojs6_has_own(__autojs6_typescript_precompiled_source_names, candidate.source);
+      return __autojs6_has_own(__autojs6_typescript_precompiled_source_names, candidate.source) ||
+        __autojs6_validate_runtime_module_path(candidate.source, true) !== null;
     });
     if (candidates.length > 1) {
       __autojs6_reject_typescript_snapshot_module(
@@ -43866,6 +43970,8 @@ std::string buildEmbeddedScriptExecutionSource(
     fields.typeScriptPrecompiledSnapshotEnabled = __autojs6_typescript_snapshot_diagnostics.enabled;
     fields.typeScriptPrecompiledSnapshotSourceCount = __autojs6_typescript_snapshot_diagnostics.sourceCount;
     fields.typeScriptDynamicSpecifierMappedCount = __autojs6_typescript_snapshot_diagnostics.mappedCount;
+    fields.typeScriptOnDemandCompileCount = __autojs6_typescript_snapshot_diagnostics.onDemandCompileCount;
+    fields.typeScriptOnDemandCompileSourceBytes = __autojs6_typescript_snapshot_diagnostics.onDemandCompileSourceBytes;
     fields.typeScriptDynamicSpecifierRejectedCount = __autojs6_typescript_snapshot_diagnostics.rejectedCount;
     fields.typeScriptDynamicSpecifierAmbiguousCount = __autojs6_typescript_snapshot_diagnostics.ambiguousCount;
     fields.typeScriptDynamicSpecifierLastSpecifier = __autojs6_typescript_snapshot_diagnostics.lastSpecifier;

@@ -332,28 +332,63 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
             long maxBytes,
             long deadlineElapsedRealtimeMs
     ) throws IOException {
-        if (committed.get() || closed.get()) {
-            throw new IOException("Runtime metadata cannot be read after workspace finalization.");
-        }
-        String normalizedRuntimePath = normalizeAbsolutePath(runtimePath);
-        String runtimeRootPath = normalizeAbsolutePath(runtimeSandboxRoot.getAbsolutePath());
-        if (!containsPath(runtimeRootPath, normalizedRuntimePath) ||
-                normalizedRuntimePath.equals(runtimeRootPath)) {
-            throw new IOException("Runtime metadata path escapes the private workspace.");
-        }
-        File target = new File(normalizedRuntimePath);
+        File target = new File(normalizeAbsolutePath(runtimePath));
         String name = target.getName();
         if (!("project.json".equals(name) || "package.json".equals(name))) {
             throw new IOException("Runtime policy metadata must be an exact project.json or package.json path.");
         }
+        return readExactRuntimeRegularFileNoFollow(
+                target,
+                maxBytes,
+                deadlineElapsedRealtimeMs,
+                "Runtime policy metadata"
+        );
+    }
+
+    /**
+     * Reads one exact runtime-created TypeScript source without following a
+     * link at the leaf or in any parent directory.
+     */
+    synchronized byte[] readExactRuntimeTypeScriptNoFollow(
+            String runtimePath,
+            long maxBytes,
+            long deadlineElapsedRealtimeMs
+    ) throws IOException {
+        if (!isSupportedOnDemandTypeScriptPath(runtimePath)) {
+            throw new IOException("On-demand compilation requires an exact .ts, .mts, or .cts source path.");
+        }
+        return readExactRuntimeRegularFileNoFollow(
+                new File(normalizeAbsolutePath(runtimePath)),
+                maxBytes,
+                deadlineElapsedRealtimeMs,
+                "Runtime TypeScript source"
+        );
+    }
+
+    private byte[] readExactRuntimeRegularFileNoFollow(
+            File target,
+            long maxBytes,
+            long deadlineElapsedRealtimeMs,
+            String label
+    ) throws IOException {
+        if (committed.get() || closed.get()) {
+            throw new IOException(label + " cannot be read after workspace finalization.");
+        }
+        String normalizedRuntimePath = normalizeAbsolutePath(target.getAbsolutePath());
+        String runtimeRootPath = normalizeAbsolutePath(runtimeSandboxRoot.getAbsolutePath());
+        if (!containsPath(runtimeRootPath, normalizedRuntimePath) ||
+                normalizedRuntimePath.equals(runtimeRootPath)) {
+            throw new IOException(label + " path escapes the private workspace.");
+        }
+        target = new File(normalizedRuntimePath);
         File parent = target.getParentFile();
         if (parent == null) {
-            throw new IOException("Runtime metadata path has no parent directory.");
+            throw new IOException(label + " path has no parent directory.");
         }
         validateProviderMaterializationParent(parent);
         requireProviderMaterializationDeadline(
                 deadlineElapsedRealtimeMs,
-                "before exact runtime metadata inspection",
+                "before exact runtime file inspection",
                 SYSTEM_PROVIDER_MATERIALIZATION_CLOCK
         );
         StructStat expected = lstatOrNull(target);
@@ -361,10 +396,10 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
             return null;
         }
         if (OsConstants.S_ISLNK(expected.st_mode) || !OsConstants.S_ISREG(expected.st_mode)) {
-            throw new IOException("Runtime policy metadata is linked or not a regular file.");
+            throw new IOException(label + " is linked or not a regular file.");
         }
         if (expected.st_size < 0L || expected.st_size > maxBytes) {
-            throw new IOException("Runtime policy metadata exceeds its exact-read byte budget.");
+            throw new IOException(label + " exceeds its exact-read byte budget.");
         }
         java.io.FileDescriptor descriptor;
         try {
@@ -374,7 +409,8 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
                     0
             );
         } catch (ErrnoException error) {
-            throw new IOException("Could not open runtime policy metadata without following links.", error);
+            throw new IOException("Could not open " + label.toLowerCase(java.util.Locale.ROOT) +
+                    " without following links.", error);
         }
         try (FileInputStream input = new FileInputStream(descriptor);
              ByteArrayOutputStream output = new ByteArrayOutputStream((int) Math.min(expected.st_size, 8192L))) {
@@ -382,17 +418,19 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
             try {
                 opened = Os.fstat(input.getFD());
             } catch (ErrnoException error) {
-                throw new IOException("Could not inspect opened runtime policy metadata.", error);
+                throw new IOException("Could not inspect opened " +
+                        label.toLowerCase(java.util.Locale.ROOT) + ".", error);
             }
             if (!sameFileIdentity(expected, opened) || !OsConstants.S_ISREG(opened.st_mode)) {
-                throw new IOException("Runtime policy metadata identity changed before read.");
+                throw new IOException(label + " identity changed before read.");
             }
             String openedPath = openedDescriptorPath(input.getFD());
             if (openedPath == null || !sameAndroidCredentialAliasedPath(
                     target.getCanonicalPath(),
                     new File(openedPath).getCanonicalPath()
             )) {
-                throw new IOException("Opened runtime policy metadata path changed before read.");
+                throw new IOException("Opened " + label.toLowerCase(java.util.Locale.ROOT) +
+                        " path changed before read.");
             }
             byte[] buffer = new byte[COPY_BUFFER_BYTES];
             long copied = 0L;
@@ -400,13 +438,14 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
             while ((count = input.read(buffer)) >= 0) {
                 requireProviderMaterializationDeadline(
                         deadlineElapsedRealtimeMs,
-                        "during exact runtime metadata read",
+                        "during exact runtime file read",
                         SYSTEM_PROVIDER_MATERIALIZATION_CLOCK
                 );
                 if (count == 0) continue;
                 copied += count;
                 if (copied > maxBytes || copied > expected.st_size) {
-                    throw new IOException("Runtime policy metadata changed or exceeded its byte budget during read.");
+                    throw new IOException(label +
+                            " changed or exceeded its byte budget during read.");
                 }
                 output.write(buffer, 0, count);
             }
@@ -414,16 +453,29 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
             try {
                 completed = Os.fstat(input.getFD());
             } catch (ErrnoException error) {
-                throw new IOException("Could not revalidate runtime policy metadata.", error);
+                throw new IOException("Could not revalidate " +
+                        label.toLowerCase(java.util.Locale.ROOT) + ".", error);
             }
             StructStat pathCompleted = lstatOrNull(target);
             if (copied != expected.st_size || !sameFileIdentity(expected, completed) ||
                     !sameFileIdentity(expected, pathCompleted) ||
                     !openedPath.equals(openedDescriptorPath(input.getFD()))) {
-                throw new IOException("Runtime policy metadata identity or byte count changed during read.");
+                throw new IOException(label + " identity or byte count changed during read.");
             }
             return output.toByteArray();
         }
+    }
+
+    static boolean isSupportedOnDemandTypeScriptPath(String value) {
+        String normalized = value == null
+                ? ""
+                : value.replace('\\', '/');
+        if (normalized.endsWith(".d.ts") || normalized.endsWith(".d.mts") ||
+                normalized.endsWith(".d.cts")) {
+            return false;
+        }
+        return normalized.endsWith(".ts") || normalized.endsWith(".mts") ||
+                normalized.endsWith(".cts");
     }
 
     /**

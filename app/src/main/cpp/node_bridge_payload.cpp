@@ -184,6 +184,8 @@ void putEmbeddedScriptExecutionFields(std::vector<std::string>& payload, const s
     putPayload(payload, "embedded_script.typescript.dynamic_specifier.snapshot_enabled", jsonBooleanField(text, "typeScriptPrecompiledSnapshotEnabled"));
     putPayload(payload, "embedded_script.typescript.dynamic_specifier.source_count", jsonNumberField(text, "typeScriptPrecompiledSnapshotSourceCount"));
     putPayload(payload, "embedded_script.typescript.dynamic_specifier.mapped_count", jsonNumberField(text, "typeScriptDynamicSpecifierMappedCount"));
+    putPayload(payload, "embedded_script.typescript.on_demand_compile.count", jsonNumberField(text, "typeScriptOnDemandCompileCount"));
+    putPayload(payload, "embedded_script.typescript.on_demand_compile.source_bytes", jsonNumberField(text, "typeScriptOnDemandCompileSourceBytes"));
     putPayload(payload, "embedded_script.typescript.dynamic_specifier.rejected_count", jsonNumberField(text, "typeScriptDynamicSpecifierRejectedCount"));
     putPayload(payload, "embedded_script.typescript.dynamic_specifier.ambiguous_count", jsonNumberField(text, "typeScriptDynamicSpecifierAmbiguousCount"));
     putPayload(payload, "embedded_script.typescript.dynamic_specifier.last_specifier", jsonStringField(text, "typeScriptDynamicSpecifierLastSpecifier"));
