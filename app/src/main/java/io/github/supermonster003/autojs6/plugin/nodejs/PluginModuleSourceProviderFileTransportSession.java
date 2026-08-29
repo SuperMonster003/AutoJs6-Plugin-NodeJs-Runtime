@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -55,6 +56,9 @@ final class PluginModuleSourceProviderFileTransportSession {
     static final String KEY_RESOLVED_PATH = NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_RESOLVED_PATH;
     static final String KEY_SOURCE_FD = NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_SOURCE_FD;
     static final String KEY_SOURCE_BYTES = NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_SOURCE_BYTES;
+    static final String KEY_INPUT_FD = NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_INPUT_FD;
+    static final String KEY_INPUT_BYTES = NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_INPUT_BYTES;
+    static final String KEY_INPUT_SHA256 = NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_INPUT_SHA256;
     static final String KEY_ELAPSED_MS = NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_ELAPSED_MS;
     static final String KEY_OPERATION = NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_OPERATION;
     static final String KEY_DEADLINE_ELAPSED_REALTIME_MS =
@@ -71,7 +75,7 @@ final class PluginModuleSourceProviderFileTransportSession {
     static final int TRANSPORT_REQUEST_COUNT_LIMIT = REQUEST_COUNT_LIMIT * 2;
 
     private static final long DEFAULT_TIMEOUT_MS = 5000L;
-    private static final long HARD_TIMEOUT_MS = 5000L;
+    private static final long HARD_TIMEOUT_MS = 30_000L;
     private static final long POLL_INTERVAL_MS = 5L;
     private static final long STOP_JOIN_MS = 1000L;
     private static final int REQUEST_JSON_BYTES_LIMIT = 64 * 1024;
@@ -82,8 +86,12 @@ final class PluginModuleSourceProviderFileTransportSession {
             NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_MATERIALIZE_MISSING_PLAINTEXT;
     private static final String OPERATION_PREPARE_PLAINTEXT_TYPESCRIPT =
             "prepare_plaintext_typescript";
+    private static final String OPERATION_COMPILE_MISSING_TYPESCRIPT =
+            NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_COMPILE_MISSING_TYPESCRIPT;
     private static final String STATUS_PREPARED = "prepared";
     private static final String STATUS_MATERIALIZED_PLAINTEXT = "materialized_plaintext";
+    private static final String STATUS_COMPILED_TYPESCRIPT =
+            NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_STATUS_COMPILED_TYPESCRIPT;
     private static final String STATUS_DECRYPTED = NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_STATUS_DECRYPTED;
     private static final String STATUS_PLAINTEXT = NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_STATUS_PLAINTEXT;
     private static final String STATUS_NOT_ENCRYPTED = NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_STATUS_NOT_ENCRYPTED;
@@ -106,6 +114,7 @@ final class PluginModuleSourceProviderFileTransportSession {
     private final INodeJsModuleSourceProvider provider;
     private final PluginWorkspaceArchiveSession workspaceSession;
     private final long timeoutMs;
+    private final long compilationTimeoutMs;
     private final boolean legacyTypeScriptStrippingEnabled;
     // Starts at the requested (or maximum supported) version and downgrades
     // once, permanently, when the provider answers with a v1 envelope.
@@ -201,6 +210,7 @@ final class PluginModuleSourceProviderFileTransportSession {
         this.provider = provider;
         this.workspaceSession = workspaceSession;
         this.timeoutMs = boundedTimeoutMs(requestedTimeoutMs);
+        this.compilationTimeoutMs = CONTRACT_VERSION >= 3 ? HARD_TIMEOUT_MS : this.timeoutMs;
         this.legacyTypeScriptStrippingEnabled = legacyTypeScriptStrippingEnabled;
         this.providerContractVersion = providerContractVersion;
         this.root = new File(
@@ -228,6 +238,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                     .put("requestDir", requestDir.getAbsolutePath())
                     .put("responseDir", responseDir.getAbsolutePath())
                     .put("timeoutMs", timeoutMs)
+                    .put("compilationTimeoutMs", compilationTimeoutMs)
                     .put("pollIntervalMs", POLL_INTERVAL_MS)
                     .toString();
         } catch (Throwable error) {
@@ -461,7 +472,14 @@ final class PluginModuleSourceProviderFileTransportSession {
         String id = __metadataRequestId();
         Bundle response = null;
         try {
-            response = callProvider(id, runtimePath, materializationRequest, deadline, remaining);
+            response = callProvider(
+                    id,
+                    runtimePath,
+                    materializationRequest ? OPERATION_MATERIALIZE_MISSING_PLAINTEXT : OPERATION_RESOLVE,
+                    null,
+                    deadline,
+                    remaining
+            );
             if (response == null) {
                 throw new IOException("Module-source provider returned a null policy-metadata response.");
             }
@@ -497,7 +515,8 @@ final class PluginModuleSourceProviderFileTransportSession {
                     hasSourceFd,
                     hasSourceBytes,
                     declaredBytes,
-                    materializationRequest
+                    materializationRequest,
+                    false
             );
             String resolvedPath = nonBlank(response.getString(KEY_RESOLVED_PATH), runtimePath);
             String mappedResolvedPath = workspaceSession.mapHostPathToRuntime(resolvedPath);
@@ -929,6 +948,8 @@ final class PluginModuleSourceProviderFileTransportSession {
         boolean transportFailureRecorded = false;
         boolean plaintextPreparationRequest = false;
         boolean materializationRequest = false;
+        boolean compilationRequest = false;
+        byte[] compilationSource = null;
         int count = requestCount.incrementAndGet();
         try {
             requestJson = new JSONObject(readTextBounded(requestFile));
@@ -941,8 +962,9 @@ final class PluginModuleSourceProviderFileTransportSession {
             String operation = nonBlank(requestJson.optString("operation"), OPERATION_RESOLVE);
             plaintextPreparationRequest = OPERATION_PREPARE_PLAINTEXT_TYPESCRIPT.equals(operation);
             materializationRequest = OPERATION_MATERIALIZE_MISSING_PLAINTEXT.equals(operation);
+            compilationRequest = OPERATION_COMPILE_MISSING_TYPESCRIPT.equals(operation);
             boolean validOperation = OPERATION_RESOLVE.equals(operation) ||
-                    materializationRequest || plaintextPreparationRequest;
+                    materializationRequest || compilationRequest || plaintextPreparationRequest;
             String path = plaintextPreparationRequest
                     ? nonBlank(requestJson.optString("sourceName"), "")
                     : nonBlank(requestJson.optString("path"), "");
@@ -990,9 +1012,12 @@ final class PluginModuleSourceProviderFileTransportSession {
                 ), null, !plaintextPreparationRequest);
                 return;
             }
-            long perRequestTimeoutMs = Math.min(
+            long operationTimeoutMs = compilationRequest ? compilationTimeoutMs : timeoutMs;
+            long perRequestTimeoutMs = selectPerRequestTimeoutMs(
                     timeoutMs,
-                    boundedTimeoutMs(requestJson.optLong("timeoutMs", timeoutMs))
+                    compilationTimeoutMs,
+                    requestJson.optLong("timeoutMs", operationTimeoutMs),
+                    compilationRequest
             );
             long requestDeadline = deadlineAfter(startedAt, perRequestTimeoutMs);
             long providerWaitMs = remainingMs(requestDeadline);
@@ -1010,7 +1035,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                 );
                 return;
             }
-            if (!materializationRequest) {
+            if (!materializationRequest && !compilationRequest) {
                 MetadataPreflightReplay replay = metadataPreflightReplays.remove(
                         metadataReplayKey(path)
                 );
@@ -1028,6 +1053,22 @@ final class PluginModuleSourceProviderFileTransportSession {
                 }
                 missingCandidateRequestCount.incrementAndGet();
             }
+            if (compilationRequest) {
+                if (workspaceSession == null ||
+                        !PluginWorkspaceArchiveSession.isSupportedOnDemandTypeScriptPath(path)) {
+                    throw new IOException(
+                            "On-demand TypeScript compilation requires a private workspace and exact source extension."
+                    );
+                }
+                compilationSource = workspaceSession.readExactRuntimeTypeScriptNoFollow(
+                        path,
+                        SINGLE_SOURCE_BYTES_LIMIT,
+                        requestDeadline
+                );
+                if (compilationSource == null) {
+                    throw new IOException("On-demand TypeScript source disappeared before compilation.");
+                }
+            }
             int providerCount = providerRequestCount.incrementAndGet();
             if (providerCount > REQUEST_COUNT_LIMIT) {
                 throw new BudgetExceededException(
@@ -1037,7 +1078,8 @@ final class PluginModuleSourceProviderFileTransportSession {
             Bundle providerResponse = callProvider(
                     id,
                     path,
-                    materializationRequest,
+                    operation,
+                    compilationSource,
                     requestDeadline,
                     providerWaitMs
             );
@@ -1047,7 +1089,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                     path,
                     startedAt,
                     requestDeadline,
-                    materializationRequest,
+                    operation,
                     providerResponse
             );
         } catch (ProviderTimeoutException error) {
@@ -1121,6 +1163,9 @@ final class PluginModuleSourceProviderFileTransportSession {
                             : publicFailureMessage(error)
             ), !plaintextPreparationRequest);
         } finally {
+            if (compilationSource != null) {
+                Arrays.fill(compilationSource, (byte) 0);
+            }
             new File(requestDir, safeFileName(fallbackId) + ".source").delete();
         }
     }
@@ -1171,14 +1216,14 @@ final class PluginModuleSourceProviderFileTransportSession {
      * responses into the v2 shape the downstream validators expect instead of
      * rejecting the whole execution.
      */
-    private Bundle normalizeProviderResponseForContract(Bundle response, boolean materializationRequest) {
+    private Bundle normalizeProviderResponseForContract(Bundle response, String expectedOperation) {
         if (response == null) {
             return null;
         }
         Object rawVersion = response.get(KEY_VERSION);
         boolean legacyEnvelope = rawVersion instanceof Integer
-                && (Integer) rawVersion == NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_MIN_CONTRACT_VERSION
-                && CONTRACT_VERSION != NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_MIN_CONTRACT_VERSION;
+                && (Integer) rawVersion >= NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_MIN_CONTRACT_VERSION
+                && (Integer) rawVersion < CONTRACT_VERSION;
         if (!legacyEnvelope) {
             return response;
         }
@@ -1187,12 +1232,10 @@ final class PluginModuleSourceProviderFileTransportSession {
         if (operation.isEmpty()) {
             response.putString(
                     KEY_OPERATION,
-                    materializationRequest
-                            ? OPERATION_MATERIALIZE_MISSING_PLAINTEXT
-                            : NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_RESOLVE_EXISTING
+                    expectedOperation
             );
         }
-        if (materializationRequest) {
+        if (OPERATION_MATERIALIZE_MISSING_PLAINTEXT.equals(expectedOperation)) {
             String status = nonBlank(response.getString(KEY_STATUS), "");
             if (STATUS_DECRYPTED.equals(status)) {
                 response.putString(KEY_STATUS, STATUS_PLAINTEXT);
@@ -1211,24 +1254,37 @@ final class PluginModuleSourceProviderFileTransportSession {
      * exactly 1. Detect that rejection so the session can downgrade its
      * request header once and retry.
      */
-    private static boolean isLegacyProviderVersionRejection(Bundle response) {
+    private static int olderProviderVersionRejection(Bundle response) {
         if (response == null) {
-            return false;
+            return -1;
         }
         Object rawVersion = response.get(KEY_VERSION);
-        return rawVersion instanceof Integer
-                && (Integer) rawVersion == NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_MIN_CONTRACT_VERSION
+        if (!(rawVersion instanceof Integer)) {
+            return -1;
+        }
+        int version = (Integer) rawVersion;
+        return version >= NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_MIN_CONTRACT_VERSION
+                && version < CONTRACT_VERSION
                 && ERROR_INVALID_REQUEST.equals(
-                        nonBlank(response.getString(NodeJsRuntimeContract.KEY_ERROR_CODE), ""));
+                        nonBlank(response.getString(NodeJsRuntimeContract.KEY_ERROR_CODE), ""))
+                ? version
+                : -1;
     }
 
     private Bundle callProvider(
             String id,
             String path,
-            boolean materializeMissingPlaintext,
+            String transportOperation,
+            byte[] compilationSource,
             long requestDeadline,
             long callTimeoutMs
     ) throws Exception {
+        boolean compilationRequest = OPERATION_COMPILE_MISSING_TYPESCRIPT.equals(transportOperation);
+        String providerOperation = OPERATION_MATERIALIZE_MISSING_PLAINTEXT.equals(transportOperation)
+                ? NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_MATERIALIZE_MISSING_PLAINTEXT
+                : compilationRequest
+                        ? NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_COMPILE_MISSING_TYPESCRIPT
+                        : NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_RESOLVE_EXISTING;
         String providerPath = workspaceSession == null
                 ? path
                 : workspaceSession.mapRuntimePathToHost(path);
@@ -1240,14 +1296,28 @@ final class PluginModuleSourceProviderFileTransportSession {
         providerRequest.putString(KEY_REQUEST_ID, id);
         providerRequest.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, executionId);
         providerRequest.putString(KEY_PATH, providerPath);
-        providerRequest.putString(
-                KEY_OPERATION,
-                materializeMissingPlaintext
-                        ? NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_MATERIALIZE_MISSING_PLAINTEXT
-                        : NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_RESOLVE_EXISTING
-        );
+        providerRequest.putString(KEY_OPERATION, providerOperation);
         providerRequest.putLong(KEY_DEADLINE_ELAPSED_REALTIME_MS, requestDeadline);
         providerRequest.putLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, callTimeoutMs);
+        if (compilationRequest && providerContractVersion < CONTRACT_VERSION) {
+            return unsupportedCompilationResponse(id, providerPath);
+        }
+        File inputFile = null;
+        ParcelFileDescriptor inputDescriptor = null;
+        if (compilationRequest) {
+            if (compilationSource == null) {
+                throw new IOException("On-demand TypeScript compilation source is missing.");
+            }
+            inputFile = new File(requestDir, safeFileName(id) + ".typescript.input");
+            replaceSourceAtomically(inputFile, compilationSource);
+            inputDescriptor = ParcelFileDescriptor.open(
+                    inputFile,
+                    ParcelFileDescriptor.MODE_READ_ONLY
+            );
+            providerRequest.putParcelable(KEY_INPUT_FD, inputDescriptor);
+            providerRequest.putLong(KEY_INPUT_BYTES, compilationSource.length);
+            providerRequest.putString(KEY_INPUT_SHA256, sha256Lower(compilationSource));
+        }
         AtomicBoolean abandoned = new AtomicBoolean(false);
         AtomicReference<Bundle> pendingResponse = new AtomicReference<>(null);
         FutureTask<Bundle> task = new FutureTask<>(() -> {
@@ -1265,22 +1335,24 @@ final class PluginModuleSourceProviderFileTransportSession {
         try {
             Bundle result = task.get(callTimeoutMs, TimeUnit.MILLISECONDS);
             pendingResponse.compareAndSet(result, null);
+            int olderProviderVersion = olderProviderVersionRejection(result);
             if (providerContractVersion > NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_MIN_CONTRACT_VERSION
-                    && isLegacyProviderVersionRejection(result)) {
-                // The provider only speaks v1: downgrade this session's
-                // request header once and retry the same request.
-                providerContractVersion =
-                        NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_MIN_CONTRACT_VERSION;
+                    && olderProviderVersion > 0) {
+                providerContractVersion = olderProviderVersion;
                 closeSourceFd(result);
+                if (compilationRequest) {
+                    return unsupportedCompilationResponse(id, providerPath);
+                }
                 return callProvider(
                         id,
                         path,
-                        materializeMissingPlaintext,
+                        transportOperation,
+                        compilationSource,
                         requestDeadline,
                         remainingMs(requestDeadline)
                 );
             }
-            return normalizeProviderResponseForContract(result, materializeMissingPlaintext);
+            return normalizeProviderResponseForContract(result, providerOperation);
         } catch (TimeoutException error) {
             abandoned.set(true);
             closeSourceFd(pendingResponse.getAndSet(null));
@@ -1300,7 +1372,30 @@ final class PluginModuleSourceProviderFileTransportSession {
                 throw (Exception) cause;
             }
             throw new IOException(messageOf(cause), cause);
+        } finally {
+            if (inputDescriptor != null) {
+                try {
+                    inputDescriptor.close();
+                } catch (IOException ignored) {
+                }
+            }
+            if (inputFile != null) {
+                inputFile.delete();
+            }
         }
+    }
+
+    private static Bundle unsupportedCompilationResponse(String id, String path) {
+        Bundle response = new Bundle();
+        response.putInt(KEY_VERSION, CONTRACT_VERSION);
+        response.putString(KEY_REQUEST_ID, id);
+        response.putString(KEY_OPERATION, OPERATION_COMPILE_MISSING_TYPESCRIPT);
+        response.putString(KEY_STATUS, STATUS_NOT_FOUND);
+        response.putString(KEY_RESOLVED_PATH, path);
+        response.putLong(KEY_ELAPSED_MS, 0L);
+        response.putString(NodeJsRuntimeContract.KEY_ERROR_CODE, "");
+        response.putString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, "");
+        return response;
     }
 
     /**
@@ -1487,7 +1582,8 @@ final class PluginModuleSourceProviderFileTransportSession {
             boolean hasSourceFd,
             boolean hasSourceBytes,
             long sourceBytes,
-            boolean materializationRequest
+            boolean materializationRequest,
+            boolean compilationRequest
     ) throws IOException {
         if (version != CONTRACT_VERSION || !expectedId.equals(responseId) ||
                 !expectedOperation.equals(responseOperation) || !isStatus(status)) {
@@ -1497,10 +1593,13 @@ final class PluginModuleSourceProviderFileTransportSession {
         }
         if ((materializationRequest &&
                 (STATUS_DECRYPTED.equals(status) || STATUS_NOT_ENCRYPTED.equals(status))) ||
-                (!materializationRequest && STATUS_PLAINTEXT.equals(status))) {
+                (!materializationRequest && STATUS_PLAINTEXT.equals(status)) ||
+                (compilationRequest && STATUS_DECRYPTED.equals(status)) ||
+                (!compilationRequest && STATUS_COMPILED_TYPESCRIPT.equals(status))) {
             throw new IOException("Module-source provider returned a status incompatible with its operation.");
         }
-        boolean pfdStatus = STATUS_DECRYPTED.equals(status) || STATUS_PLAINTEXT.equals(status);
+        boolean pfdStatus = STATUS_DECRYPTED.equals(status) || STATUS_PLAINTEXT.equals(status) ||
+                STATUS_COMPILED_TYPESCRIPT.equals(status);
         if (pfdStatus && (!hasSourceFd || !hasSourceBytes)) {
             throw new IOException("PFD module-source response is missing its descriptor or byte count.");
         }
@@ -1537,9 +1636,12 @@ final class PluginModuleSourceProviderFileTransportSession {
             String requestedPath,
             long startedAt,
             long requestDeadline,
-            boolean materializationRequest,
+            String transportOperation,
             Bundle response
     ) throws Exception {
+        boolean materializationRequest =
+                OPERATION_MATERIALIZE_MISSING_PLAINTEXT.equals(transportOperation);
+        boolean compilationRequest = OPERATION_COMPILE_MISSING_TYPESCRIPT.equals(transportOperation);
         if (response == null) {
             throw new IOException("Module-source provider returned a null response.");
         }
@@ -1573,7 +1675,9 @@ final class PluginModuleSourceProviderFileTransportSession {
         long declaredResponseSourceBytes = hasSourceBytes ? (Long) rawSourceBytes : 0L;
         String expectedOperation = materializationRequest
                 ? NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_MATERIALIZE_MISSING_PLAINTEXT
-                : NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_RESOLVE_EXISTING;
+                : compilationRequest
+                        ? NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_COMPILE_MISSING_TYPESCRIPT
+                        : NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_RESOLVE_EXISTING;
         try {
             validateProviderResponseShape(
                     version,
@@ -1585,7 +1689,8 @@ final class PluginModuleSourceProviderFileTransportSession {
                     hasSourceFd,
                     hasSourceBytes,
                     declaredResponseSourceBytes,
-                    materializationRequest
+                    materializationRequest,
+                    compilationRequest
             );
         } catch (IOException error) {
             closeSourceFd(response);
@@ -1600,7 +1705,11 @@ final class PluginModuleSourceProviderFileTransportSession {
             resolvedPath = mappedResolvedPath;
         }
         try {
-            validatePositiveProviderResolvedPath(requestedPath, resolvedPath, status);
+            if (compilationRequest) {
+                validateCompiledTypeScriptResolvedPath(requestedPath, resolvedPath, status);
+            } else {
+                validatePositiveProviderResolvedPath(requestedPath, resolvedPath, status);
+            }
         } catch (IOException error) {
             closeSourceFd(response);
             throw error;
@@ -1608,7 +1717,8 @@ final class PluginModuleSourceProviderFileTransportSession {
         String errorCode = nonBlank(response.getString(NodeJsRuntimeContract.KEY_ERROR_CODE), "");
         String errorMessage = nonBlank(response.getString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE), "");
         long providerElapsedMs = Math.max(0L, response.getLong(KEY_ELAPSED_MS, 0L));
-        boolean pfdStatus = STATUS_DECRYPTED.equals(status) || STATUS_PLAINTEXT.equals(status);
+        boolean pfdStatus = STATUS_DECRYPTED.equals(status) || STATUS_PLAINTEXT.equals(status) ||
+                STATUS_COMPILED_TYPESCRIPT.equals(status);
         File sourceFile = null;
         long responseSourceBytes = 0L;
         String nativeStatus = status;
@@ -1680,7 +1790,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                 materializedCount.incrementAndGet();
                 materializedSourceBytes.addAndGet(copiedBytes);
                 nativeStatus = STATUS_MATERIALIZED_PLAINTEXT;
-            } else {
+            } else if (STATUS_DECRYPTED.equals(status)) {
                 prepareDecryptedTypeScriptSource(sourceFile, resolvedPath, copiedBytes);
                 responseSourceBytes = sourceFile.length();
             }
@@ -1737,6 +1847,32 @@ final class PluginModuleSourceProviderFileTransportSession {
         if (positivePathBoundStatus && !requestedPath.equals(resolvedPath)) {
             throw new IOException(
                     "Module-source provider positive response resolved path differs from its exact candidate."
+            );
+        }
+    }
+
+    static void validateCompiledTypeScriptResolvedPath(
+            String requestedPath,
+            String resolvedPath,
+            String status
+    ) throws IOException {
+        if (!STATUS_COMPILED_TYPESCRIPT.equals(status)) {
+            return;
+        }
+        String lower = requestedPath.toLowerCase(java.util.Locale.ROOT);
+        String expected;
+        if (lower.endsWith(".mts")) {
+            expected = requestedPath.substring(0, requestedPath.length() - 4) + ".mjs";
+        } else if (lower.endsWith(".cts")) {
+            expected = requestedPath.substring(0, requestedPath.length() - 4) + ".cjs";
+        } else if (lower.endsWith(".ts") && !lower.endsWith(".d.ts")) {
+            expected = requestedPath.substring(0, requestedPath.length() - 3) + ".js";
+        } else {
+            throw new IOException("Compiled TypeScript response belongs to an unsupported source extension.");
+        }
+        if (!expected.equals(resolvedPath)) {
+            throw new IOException(
+                    "Compiled TypeScript response resolved path differs from its exact generated module."
             );
         }
     }
@@ -2324,6 +2460,9 @@ final class PluginModuleSourceProviderFileTransportSession {
             case STATUS_MATERIALIZED_PLAINTEXT:
                 resolvedCount.incrementAndGet();
                 break;
+            case STATUS_COMPILED_TYPESCRIPT:
+                resolvedCount.incrementAndGet();
+                break;
             case STATUS_NOT_ENCRYPTED:
                 resolvedCount.incrementAndGet();
                 notEncryptedCount.incrementAndGet();
@@ -2376,6 +2515,7 @@ final class PluginModuleSourceProviderFileTransportSession {
     private static boolean isStatus(String value) {
         return STATUS_DECRYPTED.equals(value) ||
                 STATUS_PLAINTEXT.equals(value) ||
+                STATUS_COMPILED_TYPESCRIPT.equals(value) ||
                 STATUS_NOT_ENCRYPTED.equals(value) ||
                 STATUS_NOT_FOUND.equals(value) ||
                 STATUS_DENIED.equals(value) ||
@@ -2384,9 +2524,32 @@ final class PluginModuleSourceProviderFileTransportSession {
                 STATUS_FAILED.equals(value);
     }
 
+    private static String sha256Lower(byte[] value) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(value);
+            StringBuilder result = new StringBuilder(digest.length * 2);
+            for (byte item : digest) {
+                result.append(String.format(java.util.Locale.ROOT, "%02x", item & 0xff));
+            }
+            return result.toString();
+        } catch (java.security.NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException("SHA-256 is unavailable.", impossible);
+        }
+    }
+
     private static long boundedTimeoutMs(long value) {
         long normalized = value <= 0L ? DEFAULT_TIMEOUT_MS : value;
         return Math.max(1L, Math.min(normalized, HARD_TIMEOUT_MS));
+    }
+
+    static long selectPerRequestTimeoutMs(
+            long sessionTimeoutMs,
+            long compilationTimeoutMs,
+            long requestedTimeoutMs,
+            boolean compilationRequest
+    ) {
+        long operationTimeoutMs = compilationRequest ? compilationTimeoutMs : sessionTimeoutMs;
+        return Math.min(operationTimeoutMs, boundedTimeoutMs(requestedTimeoutMs));
     }
 
     private static long elapsedSince(long startedAt) {

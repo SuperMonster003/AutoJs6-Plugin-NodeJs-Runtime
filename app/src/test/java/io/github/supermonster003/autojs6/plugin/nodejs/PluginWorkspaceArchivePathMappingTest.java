@@ -3,6 +3,7 @@ package io.github.supermonster003.autojs6.plugin.nodejs;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -121,6 +122,19 @@ public class PluginWorkspaceArchivePathMappingTest {
         expectProviderMaterializationDeadlineFailure(1000L, 1000L);
         expectProviderMaterializationDeadlineFailure(1001L, 1000L);
         expectProviderMaterializationDeadlineFailure(0L, 0L);
+    }
+
+    @Test
+    public void onDemandTypeScriptPathAdmissionRejectsDeclarationsAndOtherExtensions() {
+        for (String accepted : new String[]{"runtime/new.ts", "runtime/new.mts", "runtime/new.cts"}) {
+            assertTrue(PluginWorkspaceArchiveSession.isSupportedOnDemandTypeScriptPath(accepted));
+        }
+        for (String rejected : new String[]{
+                "runtime/new.tsx", "runtime/new.js", "runtime/new.CTS", "runtime/types.d.ts",
+                "runtime/types.d.mts", "runtime/types.d.cts", "runtime/new.ts/map"
+        }) {
+            assertFalse(PluginWorkspaceArchiveSession.isSupportedOnDemandTypeScriptPath(rejected));
+        }
     }
 
     private static String map(String value, String sourceRoot, String destinationRoot) {

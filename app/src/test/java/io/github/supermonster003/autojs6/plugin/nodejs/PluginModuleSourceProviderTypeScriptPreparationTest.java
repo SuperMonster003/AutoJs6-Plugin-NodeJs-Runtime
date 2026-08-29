@@ -19,6 +19,37 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
             new File("build/tmp/plaintext-typescript-private-requests").getAbsoluteFile();
 
     @Test
+    public void v3CompilationUsesAnIndependentBoundedTransportBudget() {
+        assertEquals(
+                30_000L,
+                PluginModuleSourceProviderFileTransportSession.selectPerRequestTimeoutMs(
+                        5_000L,
+                        30_000L,
+                        30_000L,
+                        true
+                )
+        );
+        assertEquals(
+                7_000L,
+                PluginModuleSourceProviderFileTransportSession.selectPerRequestTimeoutMs(
+                        5_000L,
+                        30_000L,
+                        7_000L,
+                        true
+                )
+        );
+        assertEquals(
+                5_000L,
+                PluginModuleSourceProviderFileTransportSession.selectPerRequestTimeoutMs(
+                        5_000L,
+                        30_000L,
+                        30_000L,
+                        false
+                )
+        );
+    }
+
+    @Test
     public void mappedResolvedPathStripsDecryptedTypeScriptAndKeepsRawPreparedByteTruthSeparate()
             throws Exception {
         String sourceName = "/workspace/src/入口.cts";
@@ -348,7 +379,8 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
                     true,
                     true,
                     17L,
-                    true
+                    true,
+                    false
             );
             fail("Expected response-operation echo rejection");
         } catch (IOException expected) {
@@ -384,6 +416,40 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
         expectProviderResponseShapeFailure(
                 "materialize_missing_plaintext", "plaintext", true, false, 0L, true
         );
+    }
+
+    @Test
+    public void providerV3CompilationBindsPfdOutputToExactGeneratedPath() throws Exception {
+        PluginModuleSourceProviderFileTransportSession.validateProviderResponseShape(
+                PluginModuleSourceProviderFileTransportSession.CONTRACT_VERSION,
+                "provider-v3-compile",
+                "provider-v3-compile",
+                "compile_missing_typescript",
+                "compile_missing_typescript",
+                "compiled_typescript",
+                true,
+                true,
+                17L,
+                false,
+                true
+        );
+        for (String[] pair : new String[][]{
+                {"/runtime/src/new.ts", "/runtime/src/new.js"},
+                {"/runtime/src/new.mts", "/runtime/src/new.mjs"},
+                {"/runtime/src/new.cts", "/runtime/src/new.cjs"}
+        }) {
+            PluginModuleSourceProviderFileTransportSession.validateCompiledTypeScriptResolvedPath(
+                    pair[0], pair[1], "compiled_typescript"
+            );
+        }
+        try {
+            PluginModuleSourceProviderFileTransportSession.validateCompiledTypeScriptResolvedPath(
+                    "/runtime/src/new.ts", "/runtime/src/other.js", "compiled_typescript"
+            );
+            fail("Expected generated-path mismatch rejection");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains("exact generated module"));
+        }
     }
 
     @Test
@@ -459,7 +525,8 @@ public class PluginModuleSourceProviderTypeScriptPreparationTest {
                 hasSourceFd,
                 hasSourceBytes,
                 sourceBytes,
-                materializationRequest
+                materializationRequest,
+                false
         );
     }
 
