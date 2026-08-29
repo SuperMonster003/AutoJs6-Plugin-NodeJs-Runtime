@@ -18,24 +18,26 @@ declare namespace AutoJs6Node {
   }
 
   export interface EsmLoaderProfile {
-    readonly status: "partial_default" | "disabled_by_request" | string;
+    readonly status: "native_linker" | "disabled_by_request" | string;
     readonly defaultEnabled: boolean;
     readonly requestEnabled: boolean;
     readonly dynamicImportDefaultEnabled: boolean;
     readonly dynamicImportEnabled: boolean;
-    readonly implementation: "autojs6_managed_transform" | string;
-    readonly mjsEntry: "partial" | "unsupported" | string;
-    readonly packageTypeModuleEntry: "partial" | "unsupported" | string;
-    readonly topLevelAwait: "partial" | "unsupported" | string;
-    readonly staticImport: "local_scoped_partial" | string;
-    readonly dynamicImport: "local_scoped_partial" | string;
-    readonly packageExports: "partial" | string;
-    readonly packageImports: "partial" | string;
-    readonly jsonImportAttributes: "partial" | string;
-    readonly importMeta: "scoped_partial" | string;
+    readonly implementation: "v8_vm_source_text_module" | string;
+    readonly mjsEntry: "native_linker" | "unsupported" | string;
+    readonly packageTypeModuleEntry: "native_linker" | "unsupported" | string;
+    readonly topLevelAwait: "native_linker" | "unsupported" | string;
+    readonly staticImport: "local_scoped_native_linker" | string;
+    readonly dynamicImport: "local_scoped_native_linker" | string;
+    readonly liveBindings: "native_linker" | string;
+    readonly cyclicDependencies: "native_linker" | string;
+    readonly packageExports: "controlled_resolver" | string;
+    readonly packageImports: "controlled_resolver" | string;
+    readonly jsonImportAttributes: "native_linker" | string;
+    readonly importMeta: "scoped_native_linker" | string;
     readonly cjsInterop: "sync_esm_only" | string;
-    readonly moduleSources: "partial" | string;
-    readonly packagedBehavior: "focused_smoke_partial" | string;
+    readonly moduleSources: "controlled_snapshot" | string;
+    readonly packagedBehavior: "real_package_corpus" | string;
     readonly sourceMaps: "sourceURL_stack_only" | string;
     readonly loaderHooks: "denied" | string;
     readonly rawNodeModuleLoader: "denied" | string;
@@ -47,7 +49,7 @@ declare namespace AutoJs6Node {
     readonly disabledBuiltinImports: "denied" | string;
     readonly encryptedGraphParity: "not_promoted" | string;
     readonly pendingEvaluationCleanup: "not_proven" | string;
-    readonly realEsmCorpus: "partial_required" | string;
+    readonly realEsmCorpus: "complete" | string;
     readonly rawNodeLoader: boolean;
     readonly customConditions: boolean;
   }
@@ -105,7 +107,7 @@ declare namespace AutoJs6Node {
     readonly moduleStatus: Readonly<Record<string, "partial" | "limited_network_gated" | "disabled" | string>>;
     readonly conformanceModules: readonly string[];
     readonly cjsAliases: "bare_and_node_prefix" | string;
-    readonly esmImports: "partial" | string;
+    readonly esmImports: "native_linker" | string;
     readonly shadowing: "builtin_precedence" | string;
     readonly processGetBuiltinModule: "controlled_partial" | "denied" | string;
     readonly androidDifferences: "documented_stable" | string;

@@ -241,3 +241,20 @@ M0~M5 完成后对全仓四面 (C++ 桥 / Java 服务层 / 样例与发布链 / 
 - ❌ 不做请求级多层防御性校验 (同一个值不在 Java/C++/JS 三层各验一遍)。
 - ❌ 不追求发布工件的可复现性证明链 (哈希锁), 版本号 + git tag 足够。
 - ❌ 不为未发生过的异常写处理代码; 异常发生后针对该异常修复并附一个最小回归用例。
+
+## 六. TypeScript Engine T1-7 联调增量
+
+- [x] **完整 ESM linker 与 live-binding 循环依赖** — 2026-08-27 完成：ESM entry 与
+      dynamic `import()` 已从 snapshot 式 partial transform 切换到 V8
+      `vm.SourceTextModule` / `vm.SyntheticModule`；受控 resolver、package
+      `exports`/`imports`、module source overlay、JSON import attribute 与工作目录边界继续
+      作为解析权威。模块 record 在递归 link 前进入 canonical cache，由 V8 负责
+      instantiate/evaluate、TDZ、top-level await、export cell、re-export 与循环图。
+      `NodeRuntimePluginAndroidConformanceTest#x3d_08_esmCyclePreservesLiveBindingsThroughReExport`
+      在 API 35 Xiaomi 23046RP50C 上输出 `initial=1`、`updated=42`，并断言原生诊断
+      `esm_linker=vm_source_text_module`、`esm_live_bindings=true`；完整 conformance 类
+      10/10 通过。Release 三 ABI + universal 构建通过；本轮 APK 的 versionCode 为 61，
+      构建脚本随后按既有规则把 `version.properties` 推进至下一构建号 62。
+      CommonJS `require(esm)` 的同步 adapter 明确保留为互操作边界，不冒充
+      ESM live binding。该项对宿主 Binder contract 仅新增 native payload additive keys，
+      不修改 AIDL transaction、workspace schema 或请求版本。

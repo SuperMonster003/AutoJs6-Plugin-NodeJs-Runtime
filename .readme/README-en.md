@@ -54,6 +54,7 @@ The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.5.0 native ru
 - Provides the `nodejs` plugin service with plugin ID `nodejs` and engine `nodejs`.
 - Exposes synchronous script execution and runtime prewarm to the host through `org.autojs.plugin.nodejs.RUNTIME`.
 - Supports CommonJS/ESM source, module sources, working directory, sandbox root, environment variables, and stdout/stderr result payloads.
+- Uses the V8 native linker for ESM entries and dynamic `import()`, preserving cyclic dependencies, mutable exports, and re-export live bindings; CommonJS `require(esm)` retains its synchronous interop boundary.
 - Provides desktop-like filesystem access bounded by the plugin app's Android permissions; `/proc`, `/sys`, and `/dev` are always denied by the runtime.
 - Executes host-supplied TypeScript compiler output; raw `.ts`/`.mts`/`.cts` fails closed by default and legacy erasure is an explicit migration-only opt-in.
 - Provides host capability broker and live bridge support with runtime modules such as `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, and `autojs6:bridge-permissions`.
@@ -98,6 +99,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 - ABIs: `arm64-v8a`, `armeabi-v7a`, `x86_64`, and `universal`.
 - Filesystem: device paths allowed by Android permissions are reachable; `/proc`, `/sys`, and `/dev` are hard boundaries.
 - TypeScript: compiler output only by default; raw TypeScript returns `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
+- ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, with native live bindings and cyclic dependencies.
 - Capabilities: sync script execution, bundle transport, native embedded runtime, host capability broker, host capability live bridge.
 
 ******
@@ -113,6 +115,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 * `Feature` Enabled desktop-like filesystem access within Android app permissions while keeping `/proc`, `/sys`, and `/dev` denied
 * `Feature` Added `accessibility.swipe` and `accessibility.gesture` behind the dedicated `accessibility.gesture` capability
 * `Fix` Made raw TypeScript fail closed unless the host supplies compiler output, mapped snapshot dynamic imports, and normalized generated/imported stack frames
+* `Fix` Replaced the snapshot-based partial ESM adapter with the V8 native linker, fixing mutable exports that failed to update through cyclic re-exports
 * `Improvement` Aligned the v2 host/plugin contract, capability manifests, and plugin-only runtime responsibility boundary
 * `Improvement` Centralized Node.js examples, TypeScript declarations, the project wizard, runtime defaults, and host-alignment checks in the plugin repository, removing host-side Gradle switches and duplicate development assets
 

@@ -12,7 +12,8 @@
         "専用能力 `accessibility.gesture` の下で `accessibility.swipe` と `accessibility.gesture` を追加"
       ],
       "fix": [
-        "ホストがコンパイラ出力を提供しない未コンパイル TypeScript を fail-closed に変更し, snapshot 動的 import のマッピングと生成/インポートスタックフレームの正規化を追加"
+        "ホストがコンパイラ出力を提供しない未コンパイル TypeScript を fail-closed に変更し, snapshot 動的 import のマッピングと生成/インポートスタックフレームの正規化を追加",
+        "snapshot ベースの partial ESM adapter を V8 native linker に置き換え, 循環 re-export で可変 export が更新されない問題を修正"
       ],
       "improvement": [
         "ホスト/プラグイン v2 コントラクト, 能力マニフェスト, plugin-only ランタイムの責務境界を整合",
