@@ -54,6 +54,7 @@
 - يوفر خدمة الملحق `nodejs` مع معرف الملحق `nodejs` والمحرك `nodejs`.
 - يعرض تنفيذ السكربتات المتزامن وتسخين بيئة التشغيل للمضيف عبر `org.autojs.plugin.nodejs.RUNTIME`.
 - يدعم مصدر CommonJS/ESM, مصادر الوحدات, دليل العمل, جذر sandbox, متغيرات البيئة, ونتائج stdout/stderr.
+- يستخدم رابط V8 الأصلي لمداخل ESM و dynamic `import()` مع الحفاظ على التبعيات الدائرية وعمليات التصدير القابلة للتغيير و live binding عبر إعادة التصدير; يحتفظ CommonJS `require(esm)` بحدود التوافق المتزامن.
 - يوفر وصولا شبيها بسطح المكتب إلى نظام الملفات ضمن أذونات Android لتطبيق الملحق; وتبقى `/proc` و `/sys` و `/dev` مرفوضة دائما.
 - يشغّل ناتج مترجم TypeScript الذي يقدمه المضيف; وتفشل ملفات `.ts`/`.mts`/`.cts` الخام بشكل مغلق افتراضيا, أما محو الأنواع legacy فهو خيار صريح للترحيل فقط.
 - يوفر وسيط قدرات المضيف و live bridge مع وحدات تشغيل مثل `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, و `autojs6:bridge-permissions`.
@@ -98,6 +99,7 @@ console.log("AutoJs6 Node.js runtime");
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, و `universal`.
 - نظام الملفات: يمكن الوصول إلى مسارات الجهاز التي تسمح بها أذونات Android; وتعد `/proc` و `/sys` و `/dev` حدودا صارمة.
 - TypeScript: يقبل ناتج الترجمة فقط افتراضيا; ويعيد TypeScript الخام `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
+- رابط ESM: `vm.SourceTextModule` / `vm.SyntheticModule` مع live binding أصلي وتبعيات دائرية.
 - القدرات: تنفيذ سكربت متزامن, bundle transport, بيئة تشغيل اصلية مدمجة, وسيط قدرات المضيف, host capability live bridge.
 
 ******
@@ -113,6 +115,7 @@ console.log("AutoJs6 Node.js runtime");
 * `ميزة` تفعيل وصول شبيه بسطح المكتب إلى نظام الملفات ضمن أذونات Android مع استمرار رفض `/proc` و `/sys` و `/dev`
 * `ميزة` إضافة `accessibility.swipe` و `accessibility.gesture` خلف القدرة المستقلة `accessibility.gesture`
 * `اصلاح` أصبح TypeScript الخام يفشل بشكل مغلق ما لم يقدم المضيف ناتج المترجم, مع ربط dynamic import في snapshot وتوحيد إطارات المكدس المولدة والمستوردة
+* `اصلاح` استُبدل محول ESM الجزئي القائم على snapshot برابط V8 الأصلي, مع إصلاح عدم تحديث عمليات التصدير القابلة للتغيير عبر إعادة التصدير الدائرية
 * `تحسين` مواءمة عقد v2 بين المضيف والملحق وبيانات القدرات وحدود مسؤولية بيئة التشغيل plugin-only
 * `تحسين` تجميع أمثلة Node.js وتعريفات TypeScript ومعالج المشاريع وقيم runtime الافتراضية وفحوصات التوافق مع المضيف في مستودع الملحق, مع إزالة مفاتيح Gradle والنسخ المكررة من أصول التطوير من المضيف
 

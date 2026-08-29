@@ -12,7 +12,8 @@
         "Added `accessibility.swipe` and `accessibility.gesture` behind the dedicated `accessibility.gesture` capability"
       ],
       "fix": [
-        "Made raw TypeScript fail closed unless the host supplies compiler output, mapped snapshot dynamic imports, and normalized generated/imported stack frames"
+        "Made raw TypeScript fail closed unless the host supplies compiler output, mapped snapshot dynamic imports, and normalized generated/imported stack frames",
+        "Replaced the snapshot-based partial ESM adapter with the V8 native linker, fixing mutable exports that failed to update through cyclic re-exports"
       ],
       "improvement": [
         "Aligned the v2 host/plugin contract, capability manifests, and plugin-only runtime responsibility boundary",

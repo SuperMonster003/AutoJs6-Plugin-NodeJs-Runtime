@@ -11,6 +11,7 @@
     "提供 `nodejs` 插件服務, 插件 ID 為 `nodejs`, 引擎為 `nodejs`.",
     "透過 `org.autojs.plugin.nodejs.RUNTIME` 為宿主提供同步腳本執行和執行階段預熱.",
     "支援 CommonJS/ESM 原始碼, 模組原始碼, 工作目錄, 沙盒根目錄, 環境變數, stdout/stderr 結果回傳.",
+    "ESM 入口與 dynamic `import()` 使用 V8 native linker, 支援循環相依、可變匯出與 re-export live binding; CommonJS `require(esm)` 保留同步互操作邊界.",
     "提供由外掛本身 Android 權限約束的桌面式檔案系統存取; `/proc`、`/sys`、`/dev` 一律由執行階段拒絕.",
     "執行宿主提供的 TypeScript 編譯產物; raw `.ts`/`.mts`/`.cts` 預設 fail-closed, legacy 型別移除只供遷移期明確啟用.",
     "提供宿主能力代理與 live bridge, 可注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等執行階段模組.",
@@ -35,6 +36,7 @@
     "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.",
     "檔案系統: 可存取 Android 權限允許的裝置路徑; `/proc`、`/sys`、`/dev` 為硬邊界.",
     "TypeScript: 預設只接受編譯產物; raw TypeScript 回傳 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.",
+    "ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, 原生 live binding 與循環相依.",
     "能力: 同步腳本執行, bundle transport, 原生內嵌執行階段, 宿主能力代理, host capability live bridge."
   ],
   "h3_release_history": "發行歷史",

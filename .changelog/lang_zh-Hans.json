@@ -12,7 +12,8 @@
         "支持 `accessibility.swipe` 与 `accessibility.gesture`, 并由独立能力 `accessibility.gesture` 门禁"
       ],
       "fix": [
-        "raw TypeScript 在宿主未提供编译产物时改为 fail-closed, 补齐快照动态 import 映射并归一化生成/导入栈帧"
+        "raw TypeScript 在宿主未提供编译产物时改为 fail-closed, 补齐快照动态 import 映射并归一化生成/导入栈帧",
+        "以 V8 native linker 替换快照式 partial ESM adapter, 修复循环 re-export 中可变导出不会实时更新的问题"
       ],
       "improvement": [
         "对齐宿主/插件 v2 合约, 能力清单与 plugin-only 运行时职责边界",

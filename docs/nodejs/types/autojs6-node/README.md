@@ -177,11 +177,12 @@ packaged behavior, and raw-handle denial. It does not declare
 `require("child_process")` or make child_process APIs callable.
 
 P13-41 extends the `autojs6:profile` declaration with `esmLoaderProfile`. The
-field reports the current partial AutoJs6-managed ESM loader contract for
-`.mjs`, `type=module`, TLA, local static/dynamic import, package
-`exports`/`imports`, JSON import attributes, scoped `import.meta`, CJS interop,
-controlled JavaScript/JSON `data:` URL imports, source-name stack behavior, and
-focused packaged ESM evidence. It also records raw loader hooks, raw
+field reports the V8 `vm.SourceTextModule` / `vm.SyntheticModule` ESM linker
+contract for `.mjs`, `type=module`, TLA, local static/dynamic import, live
+bindings, cyclic dependencies, package `exports`/`imports`, JSON import
+attributes, scoped `import.meta`, CJS interop, controlled JavaScript/JSON
+`data:` URL imports, source-name stack behavior, and real-package ESM evidence.
+It also records raw loader hooks, raw
 `node:module` loader authority, network/file/unrestricted URL imports,
 working-directory escapes, and raw Node loader handles as denied.
 
