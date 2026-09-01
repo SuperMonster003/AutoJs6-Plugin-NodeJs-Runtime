@@ -328,8 +328,14 @@ disclosure UX, OEM matrices, and background-launch behavior remain future work.
 
 P13-26 records the partial media/recorder/mediainfo provider gate.
 `media.getAudioStreamVolume()`, `media.getAudioStreamMaxVolume()`,
-`media.getAudioStreamInfo()`, `mediainfo.read()`, `mediainfo.get()`, and
-`recorder.getStatus()` are typed with JSON-safe result schemas. Exact
+`media.getAudioStreamInfo()`, `mediainfo.read()`, `mediainfo.get()`,
+`mediainfo.capabilities()`, and `recorder.getStatus()` are typed with JSON-safe
+result schemas. Omitting `mediainfo.read().schema` preserves the existing
+`autojs6-node-mediainfo-snapshot-v1` result. Callers may explicitly request the
+plugin-owned snapshot v1 or v2 schema; v2 is forwarded only when the active
+MediaInfo plugin advertises it through `mediainfo.capabilities()`. The v2
+envelope exposes dynamic, JSON-safe track fields and short engine metadata
+without treating upstream MediaInfoLib fields as a fixed declaration surface. Exact
 `media.audio`, `media.metadata`, and `media.recording` capabilities are
 required for the promoted helpers; playback, real recorder sessions, MediaStore,
 foreground microphone disclosure/cleanup, and broader corpus evidence remain

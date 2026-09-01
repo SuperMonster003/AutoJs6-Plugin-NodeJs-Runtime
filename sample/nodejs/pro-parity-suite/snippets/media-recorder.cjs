@@ -15,8 +15,16 @@ function codeOf(error) {
 
   try {
     const mediainfo = require("mediainfo");
-    const snapshot = await mediainfo.read("sample.mp3", { includeInform: false, timeoutMs: 1000 });
-    console.log("sample.pro-parity-suite.media-recorder.mediainfo=" + snapshot.fileName);
+    const capabilities = await mediainfo.capabilities({ timeoutMs: 1000 });
+    const v2 = "autojs6-plugin-mediainfo-snapshot-v2";
+    const supportsV2 = capabilities.snapshotSchemas.includes(v2);
+    const snapshot = await mediainfo.read("sample.mp3", {
+      ...(supportsV2 ? { schema: v2 } : {}),
+      includeInform: false,
+      timeoutMs: 1000
+    });
+    const fileName = snapshot.schema === v2 ? snapshot.file.name : snapshot.fileName;
+    console.log("sample.pro-parity-suite.media-recorder.mediainfo=" + fileName);
   } catch (error) {
     console.log("sample.pro-parity-suite.media-recorder.skipped=mediainfo:" + codeOf(error));
   }

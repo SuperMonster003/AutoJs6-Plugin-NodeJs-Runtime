@@ -8,6 +8,7 @@
 
 ###### 2026/08/29
 
+* `新增` `mediainfo` facade 新增 `capabilities()`, 且其可調用入口與 `read()` 支援顯式選擇插件快照 v1/v2; 省略 schema 時繼續返回原有宿主 Node v1 快照
 * `新增` 新增 module-source provider v3, 透過綁定精確位元組數及 SHA-256 的有界 PFD 按需編譯執行期間建立的 `.ts/.mts/.cts`, 使用獨立 30 s 編譯預算, 穩定拒絕路徑逃逸, 符號連結和歧義, 並保留宿主 TypeScript 診斷及 Source Map 堆疊映射
 * `新增` 在 Android 應用權限範圍內啟用桌面式檔案系統存取, 同時繼續拒絕 `/proc`、`/sys`、`/dev`
 * `新增` 支援 `accessibility.swipe` 與 `accessibility.gesture`, 並由獨立能力 `accessibility.gesture` 門禁
