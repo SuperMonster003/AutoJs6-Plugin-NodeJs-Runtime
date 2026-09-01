@@ -159,6 +159,12 @@ async function smoke(): Promise<void> {
     timeoutMs: 1000
   });
   const mediaInfoCallableSnapshot: mediainfo.Snapshot = await mediainfo("sample.mp3", { timeoutMs: 1000 });
+  const mediaInfoSnapshotV2: mediainfo.PluginSnapshotV2 = await mediainfo.read("sample.mp3", {
+    schema: "autojs6-plugin-mediainfo-snapshot-v2",
+    includeInform: false,
+    timeoutMs: 1000
+  });
+  const mediaInfoCapabilities: mediainfo.Capabilities = await mediainfo.capabilities({ timeoutMs: 1000 });
   const mediaInfoFormat: string = await mediainfo.get("sample.mp3", "general", "Format", { timeoutMs: 1000 });
   const compatMediaInfoSnapshot: mediainfo.Snapshot = await rhinoCompat.mediainfo.read("sample.mp3", { timeoutMs: 1000 });
   const recorderStatus: recorder.RecorderStatus = await recorder.getStatus({ timeoutMs: 1000 });
