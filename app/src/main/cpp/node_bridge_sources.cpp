@@ -25524,12 +25524,21 @@ std::string buildEmbeddedScriptExecutionSource(
         return value === undefined || value === null ? "" : String(value);
       });
     }
+    function capabilities(options) {
+      return __autojs6_call_autojs(
+        "mediainfo",
+        "capabilities",
+        [],
+        __autojs6_media_bridge_options("mediainfo", "capabilities", options, 5000)
+      ).then(__autojs6_media_freeze_record);
+    }
     const facade = function(path, options) {
       return read(path, options);
     };
     Object.defineProperties(facade, {
       read: { value: read, enumerable: true },
-      get: { value: get, enumerable: true }
+      get: { value: get, enumerable: true },
+      capabilities: { value: capabilities, enumerable: true }
     });
     __autojs6_limited_mediainfo_cache = Object.freeze(facade);
     return __autojs6_limited_mediainfo_cache;
