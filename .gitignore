@@ -6,6 +6,7 @@
 *.log
 *.ffs_db
 *.patch
+*.pre-platform-versions.bak
 *.hprof
 
 .DS_Store
@@ -33,6 +34,7 @@ sync.ffs_db
 /app/**/build/
 /build-logic/build/
 /build-logic/*/build/
+/plugin-api/**/build/
 /build-logic/**/.kotlin/
 /libs/**/build/
 /app/release/
