@@ -1,4 +1,4 @@
-﻿/** @remarks 捕获需 Android 录屏授权; 高级分析方法尚未提供宿主 provider。参见 docs/HOST-API.md。 */
+﻿/** @remarks 捕获需 Android 录屏授权; 图像分析复用宿主 OpenCV 插件。参见 docs/HOST-API.md。 */
 declare module "image" {
   namespace image {
     export type ColorInput = number | string;
@@ -57,21 +57,13 @@ declare module "image" {
       readImage(path: string, options?: AutoJs6Node.BridgeCallOptions): Promise<AutoJs6Node.ImageHandle>;
       saveImage(image: AutoJs6Node.ImageHandleLike, path: string, options?: SaveImageOptions): Promise<void>;
       saveImage(image: AutoJs6Node.ImageHandleLike, path: string, format: SaveImageOptions["format"], options?: AutoJs6Node.BridgeCallOptions): Promise<void>;
-      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       clip(image: AutoJs6Node.ImageHandleLike, x: number, y: number, width: number, height: number, options?: AutoJs6Node.BridgeCallOptions): Promise<AutoJs6Node.ImageHandle>;
-      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       resize(image: AutoJs6Node.ImageHandleLike, width: number, height: number, options?: AutoJs6Node.BridgeCallOptions): Promise<AutoJs6Node.ImageHandle>;
-      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       grayscale(image: AutoJs6Node.ImageHandleLike, options?: AutoJs6Node.BridgeCallOptions): Promise<AutoJs6Node.ImageHandle>;
-      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       threshold(image: AutoJs6Node.ImageHandleLike, options?: ThresholdOptions): Promise<AutoJs6Node.ImageHandle>;
-      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       findImage(image: AutoJs6Node.ImageHandleLike, template: AutoJs6Node.ImageHandleLike, options?: FindImageOptions): Promise<AutoJs6Node.Point | null>;
-      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       matchTemplate(image: AutoJs6Node.ImageHandleLike, template: AutoJs6Node.ImageHandleLike, options?: MatchTemplateOptions): Promise<readonly ImageMatch[]>;
-      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       findColor(image: AutoJs6Node.ImageHandleLike, color: ColorInput, options?: FindColorOptions): Promise<AutoJs6Node.Point | null>;
-      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       findMultiColors(image: AutoJs6Node.ImageHandleLike, color: ColorInput, points: readonly MultiColorPointInput[], options?: FindColorOptions): Promise<AutoJs6Node.Point | null>;
       getSize(image: AutoJs6Node.ImageHandleLike): ImageSize;
       recycle(image: AutoJs6Node.ImageHandleLike, options?: AutoJs6Node.BridgeCallOptions): Promise<void>;

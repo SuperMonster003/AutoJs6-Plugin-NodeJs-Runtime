@@ -23,7 +23,8 @@
         "全局 fetch, Request, Response, Headers, FormData 与 WebSocket 默认使用 Node 原生 Web API; autojs6:fetch 与 autojs6:websocket 显式模块继续提供宿主网络栈",
         "新增带文件边界检查的原生 node:sqlite, 支持 CRUD, 事务与备份; 提供原生 node:test 报告器和可运行测试样例, 离线 npm corpus 扩展 zod, cheerio, date-fns, mqtt 与 ws",
         "process.stdin / readline 接收控制台输入, autojs6:host 接收执行级 JSON 消息, v3 postMessage 事务兼容旧宿主",
-        "Node.js 截屏会话接入 Android 授权和既有前台服务, 支持图片句柄, PNG/JPEG/WebP 保存及停止或脚本退出时清理"
+        "Node.js 截屏会话接入 Android 授权和既有前台服务, 支持图片句柄, PNG/JPEG/WebP 保存及停止或脚本退出时清理",
+        "Node.js 图片句柄支持裁剪, 缩放, 灰度, 阈值, 找图及找色, 复用宿主图像后端, 返回独立图片并在执行结束时清理"
       ]
     },
     "v1.2.0": {

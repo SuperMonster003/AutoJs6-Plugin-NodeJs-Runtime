@@ -1,3 +1,6 @@
-sample.screenshot-find-image.point=<point or null>
-sample.screenshot-find-image.skipped=<permission or provider error when screen capture is unavailable>
+sample.screenshot-find-image.size=<screen width>x<screen height>
+sample.screenshot-find-image.point=<matched point or null>
 sample.screenshot-find-image=PASS
+
+When capture is denied or the host OpenCV plugin is unavailable:
+sample.screenshot-find-image.skipped=<readable error>

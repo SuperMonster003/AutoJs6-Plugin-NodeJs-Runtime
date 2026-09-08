@@ -81,7 +81,7 @@
     {
       "name": "screenshot-find-image",
       "status": "partial",
-      "reason": "Requires user-approved screen capture and a live image provider; it reports a skip when either is unavailable.",
+      "reason": "Requests Android capture consent and uses the host OpenCV plugin; image fixture tests pass, while the manual screenshot acceptance check is pending.",
       "tags": [
         "main-app",
         "bridge",

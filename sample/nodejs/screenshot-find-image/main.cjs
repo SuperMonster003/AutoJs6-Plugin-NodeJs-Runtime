@@ -1,27 +1,35 @@
 "nodejs";
 
 (async function main() {
-  const fs = require("fs");
   const image = require("image");
-
-  const onePixelPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
-  fs.writeFileSync("template.png", Buffer.from(onePixelPng, "base64"));
-
+  const handles = [];
   try {
-    const capture = await image.captureScreen({
-      requireExistingPermission: true,
-      timeoutMs: 3000
-    });
-    const template = await image.readImage("template.png", { timeoutMs: 1000 });
-    const point = await image.findImage(capture, template, { threshold: 0.9, timeoutMs: 3000 });
-    await image.recycle(template);
-    await image.recycle(capture);
+    await image.requestScreenCapture({ timeoutMs: 120000 });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const capture = await image.captureScreen();
+    handles.push(capture);
+    await image.saveImage(capture, "screen.png");
+    const width = Math.min(160, capture.width), height = Math.min(120, capture.height);
+    const x = Math.floor((capture.width - width) / 2), y = Math.floor((capture.height - height) / 2);
+    const clipped = await image.clip(capture, x, y, width, height);
+    handles.push(clipped);
+    await image.saveImage(clipped, "template.png");
+    const template = await image.readImage("template.png");
+    handles.push(template);
+    const point = await image.findImage(capture, template, { threshold: 0.99 });
+    console.log("sample.screenshot-find-image.size=" + capture.width + "x" + capture.height);
     console.log("sample.screenshot-find-image.point=" + JSON.stringify(point));
+    console.log("sample.screenshot-find-image=PASS");
   } catch (error) {
-    console.log("sample.screenshot-find-image.skipped=" + (error && (error.autojs6Code || error.code || error.name)));
+    if (error && (error.category === "permission-denied" || /OpenCV/i.test(error.message))) {
+      console.log("sample.screenshot-find-image.skipped=" + error.message);
+    } else {
+      throw error;
+    }
+  } finally {
+    await Promise.allSettled(handles.map(handle => image.recycle(handle)));
+    await image.stopScreenCapture();
   }
-
-  console.log("sample.screenshot-find-image=PASS");
 })().catch((error) => {
   console.error(error && (error.stack || error.message) || error);
   process.exitCode = 1;
