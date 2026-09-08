@@ -122,6 +122,13 @@ async function smoke(): Promise<void> {
   const screenWidth: number = device.width;
   const density: number = device.density;
   const screenOn: boolean = await device.isScreenOn({ timeoutMs: 1000 });
+  const deviceInfo: device.DeviceInfo = await device.info();
+  const availableMemory: number = await device.getAvailMem();
+  const charging: boolean = await device.isCharging();
+  const buildFingerprint: string = device.fingerprint;
+  const setBrightness: (value: number) => Promise<void> = device.setBrightness;
+  const keepScreenOn: (timeoutMs: number) => Promise<void> = device.keepScreenOn;
+  void [deviceInfo, availableMemory, charging, buildFingerprint, setBrightness, keepScreenOn];
   await device.wakeUp({ timeoutMs: 1000 });
   await device.vibrate(25, { timeoutMs: 1000 });
   const batteryIgnored: boolean = await device.isIgnoringBatteryOptimizations({ timeoutMs: 1000 });
@@ -159,6 +166,9 @@ async function smoke(): Promise<void> {
   const audioVolume: number = await media.getAudioStreamVolume("music", { timeoutMs: 1000 });
   const audioMaxVolume: number = await media.getAudioStreamMaxVolume("music", { timeoutMs: 1000 });
   const audioInfo: media.AudioStreamInfo = await media.getAudioStreamInfo("music", { timeoutMs: 1000 });
+  const setMusicVolume: (volume: number) => Promise<void> = device.setMusicVolume;
+  const setStreamVolume: (stream: media.AudioStreamName, volume: number) => Promise<void> = media.setAudioStreamVolume;
+  void [setMusicVolume, setStreamVolume];
   const compatAudioInfo: media.AudioStreamInfo = await rhinoCompat.media.getAudioStreamInfo("music", { timeoutMs: 1000 });
   const mediaInfoSnapshot: mediainfo.Snapshot = await mediainfo.read("sample.mp3", {
     includeInform: false,

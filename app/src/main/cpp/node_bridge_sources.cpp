@@ -5882,8 +5882,14 @@ std::string buildEmbeddedScriptExecutionSource(
       return ["input_observer", "input_observer.keys"];
     }
     if (moduleName === "clipboard") return ["clipboard"];
+    if (moduleName === "pinyin" || moduleName === "pinyin4j" || moduleName === "console") return [moduleName];
+    if (moduleName === "files") {
+      if (["write", "mkdir", "rename"].includes(methodName)) return ["files", "files.write"];
+      if (methodName === "delete") return ["files", "files.delete"];
+      return ["files"];
+    }
     if (moduleName === "device") {
-      if (methodName === "isIgnoringBatteryOptimizations" || methodName === "openBatteryOptimizationSettings") return ["device", "device.power"];
+      if (["isIgnoringBatteryOptimizations", "openBatteryOptimizationSettings", "setBrightness", "setBrightnessMode", "keepScreenOn", "cancelKeepingAwake"].includes(methodName)) return ["device", "device.power"];
       return ["device"];
     }
     if (moduleName === "shell") return ["shell"];
@@ -11118,12 +11124,17 @@ std::string buildEmbeddedScriptExecutionSource(
       if (!parsed || typeof parsed !== "object") {
         return fallback;
       }
-      return {
+      const info = {
         sdkInt: Math.max(0, Math.trunc(__autojs6_device_number_property(parsed.sdkInt, fallback.sdkInt))),
         width: Math.max(0, Math.trunc(__autojs6_device_number_property(parsed.width, fallback.width))),
         height: Math.max(0, Math.trunc(__autojs6_device_number_property(parsed.height, fallback.height))),
-        density: Math.max(0, __autojs6_device_number_property(parsed.density, fallback.density))
+        density: Math.max(0, __autojs6_device_number_property(parsed.density, fallback.density)),
+        densityDpi: Math.max(0, Math.trunc(__autojs6_device_number_property(parsed.densityDpi, 0)))
       };
+      for (const key of ["release", "model", "brand", "product", "board", "bootloader", "hardware", "fingerprint", "buildId"]) {
+        info[key] = typeof parsed[key] === "string" ? parsed[key] : "unknown";
+      }
+      return info;
     } catch (_) {
       return fallback;
     }
@@ -11204,7 +11215,46 @@ std::string buildEmbeddedScriptExecutionSource(
         return Object.freeze(Object.assign({}, result || {}));
       });
     }
-    __autojs6_limited_device_cache = Object.freeze({
+    function liveInfo(options) {
+      return __autojs6_call_autojs("device", "info", [], __autojs6_device_bridge_options(options, 5000));
+    }
+    function control(method, value, options) {
+      return __autojs6_call_autojs("device", method, value === undefined ? [] : [value],
+        __autojs6_device_power_bridge_options(options, 5000)).then(function() { return undefined; });
+    }
+    const methods = {
+      info: liveInfo,
+      setBrightness: function(value, options) { return control("setBrightness", value, options); },
+      setBrightnessMode: function(value, options) { return control("setBrightnessMode", value, options); },
+      keepScreenOn: function(timeoutMs, options) { return control("keepScreenOn", timeoutMs, options); },
+      cancelKeepingAwake: function(options) { return control("cancelKeepingAwake", undefined, options); }
+    };
+    const fields = {
+      getWidth: ["screen", "width"], getHeight: ["screen", "height"], getDensity: ["screen", "density"],
+      getDensityDpi: ["screen", "densityDpi"], getBrightness: ["screen", "brightness"], getBrightnessMode: ["screen", "brightnessMode"],
+      getBattery: ["battery", "percent"], isCharging: ["battery", "isCharging"],
+      getTotalMem: ["memory", "totalMem"], getAvailMem: ["memory", "availMem"]
+    };
+    for (const key of ["sdkInt", "release", "model", "brand", "product", "board", "bootloader", "hardware", "fingerprint", "buildId"]) {
+      fields["get" + key[0].toUpperCase() + key.slice(1)] = ["build", key];
+    }
+    for (const [name, path] of Object.entries(fields)) {
+      methods[name] = function(options) {
+        return liveInfo(options).then(function(value) {
+          const section = value && value[path[0]];
+          if (!section || section[path[1]] === undefined || section[path[1]] === null) {
+            throw new Error("device." + name + ": " + (section && section.error || "device information unavailable"));
+          }
+          return section[path[1]];
+        });
+      };
+    }
+    for (const [name, stream] of [["Music", "music"], ["Notification", "notification"], ["Alarm", "alarm"]]) {
+      methods["get" + name + "Volume"] = function(options) { return __autojs6_limited_media().getAudioStreamVolume(stream, options); };
+      methods["get" + name + "MaxVolume"] = function(options) { return __autojs6_limited_media().getAudioStreamMaxVolume(stream, options); };
+      methods["set" + name + "Volume"] = function(value, options) { return __autojs6_limited_media().setAudioStreamVolume(stream, value, options); };
+    }
+    __autojs6_limited_device_cache = Object.freeze(Object.assign({}, info, methods, {
       sdkInt: info.sdkInt,
       width: info.width,
       height: info.height,
@@ -11214,7 +11264,7 @@ std::string buildEmbeddedScriptExecutionSource(
       vibrate,
       isIgnoringBatteryOptimizations,
       openBatteryOptimizationSettings
-    });
+    }));
     return __autojs6_limited_device_cache;
   }
   function __autojs6_shell_options(value) {
@@ -20472,10 +20522,20 @@ std::string buildEmbeddedScriptExecutionSource(
     function getAudioStreamInfo(stream, options) {
       return call("getAudioStreamInfo", stream, options).then(__autojs6_media_freeze_record);
     }
+    function setAudioStreamVolume(stream, volume, options) {
+      let streamName;
+      try {
+        streamName = __autojs6_media_stream_name(stream, "setAudioStreamVolume");
+        if (!Number.isSafeInteger(volume) || volume < 0) throw new TypeError("media.setAudioStreamVolume requires a non-negative integer volume.");
+      } catch (error) { return Promise.reject(error); }
+      return __autojs6_call_autojs("media", "setAudioStreamVolume", [streamName, volume],
+        __autojs6_media_bridge_options("media", "setAudioStreamVolume", options, 5000)).then(function() { return undefined; });
+    }
     __autojs6_limited_media_cache = Object.freeze({
       getAudioStreamVolume,
       getAudioStreamMaxVolume,
-      getAudioStreamInfo
+      getAudioStreamInfo,
+      setAudioStreamVolume
     });
     return __autojs6_limited_media_cache;
   }

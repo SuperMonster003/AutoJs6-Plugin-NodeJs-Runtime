@@ -17,7 +17,7 @@
     ],
     "contract": {
       "min": 2,
-      "max": 2
+      "max": 3
     }
   },
   "budgets": {
@@ -642,6 +642,11 @@
         "providerOwner": "host_capability_provider"
       },
       {
+        "id": "console",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
         "id": "database",
         "aliases": [
           "sqlite"
@@ -665,6 +670,11 @@
       },
       {
         "id": "fetch",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "files",
         "aliases": [],
         "providerOwner": "host_capability_provider"
       },
@@ -717,6 +727,16 @@
       },
       {
         "id": "package_manager",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "pinyin",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "pinyin4j",
         "aliases": [],
         "providerOwner": "host_capability_provider"
       },
@@ -1005,6 +1025,13 @@
         ]
       },
       {
+        "module": "console",
+        "method": "tail",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
         "module": "database",
         "method": "all",
         "requiredCapabilities": [
@@ -1055,6 +1082,21 @@
       },
       {
         "module": "device",
+        "method": "cancelKeepingAwake",
+        "requiredCapabilities": [
+          "device",
+          "device.power"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "info",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
         "method": "isIgnoringBatteryOptimizations",
         "requiredCapabilities": [
           "device",
@@ -1070,7 +1112,31 @@
       },
       {
         "module": "device",
+        "method": "keepScreenOn",
+        "requiredCapabilities": [
+          "device",
+          "device.power"
+        ]
+      },
+      {
+        "module": "device",
         "method": "openBatteryOptimizationSettings",
+        "requiredCapabilities": [
+          "device",
+          "device.power"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "setBrightness",
+        "requiredCapabilities": [
+          "device",
+          "device.power"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "setBrightnessMode",
         "requiredCapabilities": [
           "device",
           "device.power"
@@ -1167,6 +1233,59 @@
         "method": "request",
         "requiredCapabilities": [
           "network"
+        ]
+      },
+      {
+        "module": "files",
+        "method": "delete",
+        "requiredCapabilities": [
+          "files",
+          "files.delete"
+        ]
+      },
+      {
+        "module": "files",
+        "method": "list",
+        "requiredCapabilities": [
+          "files"
+        ]
+      },
+      {
+        "module": "files",
+        "method": "mkdir",
+        "requiredCapabilities": [
+          "files",
+          "files.write"
+        ]
+      },
+      {
+        "module": "files",
+        "method": "read",
+        "requiredCapabilities": [
+          "files"
+        ]
+      },
+      {
+        "module": "files",
+        "method": "rename",
+        "requiredCapabilities": [
+          "files",
+          "files.write"
+        ]
+      },
+      {
+        "module": "files",
+        "method": "stat",
+        "requiredCapabilities": [
+          "files"
+        ]
+      },
+      {
+        "module": "files",
+        "method": "write",
+        "requiredCapabilities": [
+          "files",
+          "files.write"
         ]
       },
       {
@@ -1397,6 +1516,14 @@
         ]
       },
       {
+        "module": "media",
+        "method": "setAudioStreamVolume",
+        "requiredCapabilities": [
+          "media",
+          "media.audio"
+        ]
+      },
+      {
         "module": "media_projection",
         "method": "nextImage",
         "requiredCapabilities": [
@@ -1557,6 +1684,69 @@
         "method": "verify",
         "requiredCapabilities": [
           "package_manager"
+        ]
+      },
+      {
+        "module": "pinyin",
+        "method": "compact",
+        "requiredCapabilities": [
+          "pinyin"
+        ]
+      },
+      {
+        "module": "pinyin",
+        "method": "compare",
+        "requiredCapabilities": [
+          "pinyin"
+        ]
+      },
+      {
+        "module": "pinyin",
+        "method": "convert",
+        "requiredCapabilities": [
+          "pinyin"
+        ]
+      },
+      {
+        "module": "pinyin",
+        "method": "fromCodePoint",
+        "requiredCapabilities": [
+          "pinyin"
+        ]
+      },
+      {
+        "module": "pinyin",
+        "method": "fromPhrase",
+        "requiredCapabilities": [
+          "pinyin"
+        ]
+      },
+      {
+        "module": "pinyin",
+        "method": "simple",
+        "requiredCapabilities": [
+          "pinyin"
+        ]
+      },
+      {
+        "module": "pinyin4j",
+        "method": "as",
+        "requiredCapabilities": [
+          "pinyin4j"
+        ]
+      },
+      {
+        "module": "pinyin4j",
+        "method": "of",
+        "requiredCapabilities": [
+          "pinyin4j"
+        ]
+      },
+      {
+        "module": "pinyin4j",
+        "method": "readings",
+        "requiredCapabilities": [
+          "pinyin4j"
         ]
       },
       {
@@ -1899,6 +2089,11 @@
         "androidPermissions": []
       },
       {
+        "id": "console",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
         "id": "database",
         "aliases": [
           "sqlite"
@@ -1936,6 +2131,21 @@
           "engine.exec",
           "engines:exec"
         ],
+        "androidPermissions": []
+      },
+      {
+        "id": "files",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "files.delete",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "files.write",
+        "aliases": [],
         "androidPermissions": []
       },
       {
@@ -2081,6 +2291,16 @@
           "package-manager.mutate",
           "package.manager.mutate"
         ],
+        "androidPermissions": []
+      },
+      {
+        "id": "pinyin",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "pinyin4j",
+        "aliases": [],
         "androidPermissions": []
       },
       {

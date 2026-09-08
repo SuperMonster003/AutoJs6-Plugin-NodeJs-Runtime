@@ -202,6 +202,16 @@ final class NodeRuntimeModuleInjector {
                     .put("width", metrics == null ? 0 : Math.max(0, metrics.widthPixels))
                     .put("height", metrics == null ? 0 : Math.max(0, metrics.heightPixels))
                     .put("density", density)
+                    .put("densityDpi", metrics == null ? 0 : metrics.densityDpi)
+                    .put("release", Build.VERSION.RELEASE)
+                    .put("model", Build.MODEL)
+                    .put("brand", Build.BRAND)
+                    .put("product", Build.PRODUCT)
+                    .put("board", Build.BOARD)
+                    .put("bootloader", Build.BOOTLOADER)
+                    .put("hardware", Build.HARDWARE)
+                    .put("fingerprint", Build.FINGERPRINT)
+                    .put("buildId", Build.ID)
                     .toString();
         } catch (Throwable ignored) {
             return null;

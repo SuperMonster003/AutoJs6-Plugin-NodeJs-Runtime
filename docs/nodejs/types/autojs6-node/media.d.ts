@@ -26,6 +26,8 @@ declare module "media" {
       getAudioStreamVolume(stream?: AudioStreamName, options?: AutoJs6Node.BridgeCallOptions): Promise<number>;
       getAudioStreamMaxVolume(stream?: AudioStreamName, options?: AutoJs6Node.BridgeCallOptions): Promise<number>;
       getAudioStreamInfo(stream?: AudioStreamName, options?: AutoJs6Node.BridgeCallOptions): Promise<AudioStreamInfo>;
+      /** Integer within getAudioStreamInfo's minVolume..maxVolume; Android policy may restrict changes. */
+      setAudioStreamVolume(stream: AudioStreamName, volume: number, options?: AutoJs6Node.BridgeCallOptions): Promise<void>;
     }
   }
 
