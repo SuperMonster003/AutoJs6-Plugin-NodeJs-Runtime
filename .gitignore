@@ -3,6 +3,8 @@
 *.exe
 *.iml
 *.jks
+*.keystore
+*.pre-platform-versions.bak
 *.log
 *.ffs_db
 *.patch
@@ -19,6 +21,8 @@ sync.ffs_db
 .git/
 .gradle/
 .kotlin/
+.venv/
+__pycache__/
 .hprof/
 
 !.run
