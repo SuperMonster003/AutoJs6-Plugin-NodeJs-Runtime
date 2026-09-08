@@ -46,12 +46,13 @@
 | 模块 | 方法 | 备注 |
 |---|---|---|
 | `toast` | showToast, toast | 真 toast |
-| `app` | launchPackage, launchApp, openAppSetting, startActivity, getPackageName, getAppName, isInstalled, viewFile, editFile | 真启动 |
+| `app` | launchPackage, launchApp, openAppSetting, startActivity, openUrl, sendEmail, uninstall, intent, startService, sendBroadcast, getInstalledApps, getPackageInfo, getPackageName, getAppName, isInstalled, viewFile, editFile | Android Intent 与包查询; 邮件打开编辑页, 卸载打开确认页; 服务/广播不使用 root 或 Shizuku |
 | `accessibility` | isEnabled, ensureEnabled, click, back, home, recentApps, findByText, clickText, findOne, findAll, longClick, setText, scrollForward, scrollBackward, **swipe, gesture** (M3.2) | 真无障碍; 有每秒限速; 服务未启用时返回 capabilityProviderMissing。swipe/gesture 需显式声明 `accessibility.gesture` 权限 (不被 `accessibility` 隐含), 时长上限 10s |
 | `clipboard` | getText, setText, hasText | 真剪贴板 |
 | `device` | info, getWidth/Height/Density/DensityDpi, getBrightness/Mode, getBattery/isCharging, getSdkInt/Release/Model/Brand/Product/Board/Bootloader/Hardware/Fingerprint/BuildId, getTotalMem/AvailMem, isScreenOn, wakeUp, vibrate, setBrightness/Mode, keepScreenOn, cancelKeepingAwake, isIgnoringBatteryOptimizations, openBatteryOptimizationSettings | 控制需 device.power; 亮度写入另需 Android 修改系统设置权限; 硬件标识符 (imei/androidId/serial/mac) 仍 blocked |
 | `shell` | exec | 真 ProcessBuilder; execRoot 需 `shell.root` 权限; execShizuku 拒绝 |
-| `dialogs` | alert, confirm, input, select | 宿主对话框 |
+| `dialogs` | alert, confirm, input/prompt, rawInput, select, singleChoice, multiChoice, progress.show/update/dismiss | Activity 持有真实对话框; 请求超时/关闭/脚本结束释放 |
+| `keys` | notifications, quickSettings, lockScreen, takeScreenshot, splitScreen, powerDialog | 声明 keys 且开启无障碍; 返回 Android 是否接受该全局动作 |
 | `engines` | myEngine, all, stopAll, stopSelf, execScript, execScriptFile | 宿主脚本引擎 |
 | `storage` / `storages` | get, put, remove, clear, keys, contains | |
 | `database` / `sqlite` | open, exec, run, get, all, transaction, close | 单线程 executor |
@@ -61,6 +62,12 @@
 | `work_manager` | scheduleOnce, schedulePeriodic, cancel, list | WorkManager 真调度 |
 | `autojs6:events` | observeNotification, observeToast, observeKey, observeBroadcasts, on/once/off, close | events 根声明仅授权屏幕/电池广播; 通知/Toast/按键各需显式子能力和 Android 对应权限 |
 | `autojs6:lifecycle` | checkpoint, readCheckpoint, clearCheckpoint | 注意: 宿主 getBrokerInfo 能力清单里不含它 (由 policy 层单独补), 以本清单为准 |
+
+`app.intent()` 继续返回 JSON 描述符, action/data/type/extras/flags 保留给 Android。`startService()` 返回组件名或 null, 使用普通服务启动并遵循 Android 后台限制; `sendBroadcast()` 使用宿主身份发广播, 接收权限由 Android 检查。`getInstalledApps({includeSystem})` 和 `getPackageInfo(packageName)` 返回 Android 可见包的名称、版本、系统标记及安装/更新时间, 不存在的包返回 null。应用查询须显式声明 app.query, 服务/广播须显式声明 app.activity, 与既有 app 子能力规则一致。
+
+`dialogs.rawInput()` 只返回文本, 不求值; 取消时 input/rawInput 返回 null、confirm 返回 false、单选返回 -1、多选返回 []。singleChoice/multiChoice 接受初始索引。`const progress = await dialogs.progress.show({title, message, max:100, value:0})` 后可 `await progress.update({value:50})` 与 `await progress.dismiss()`; 也可通过 dialogs.progress.update/dismiss 使用 id。进度窗口持续到显式关闭或脚本结束, 不需要悬浮窗权限。Android 若不允许当前应用启动 Activity, 本次调用会失败或超时。
+
+`keys.takeScreenshot()` 触发系统截图操作, 不返回像素, 图片处理请用 images。`keys.powerDialog()` 的决策为开放 Android 电源菜单, 后续关机/重启仍由菜单中的用户选择。无障碍关闭返回 permission-denied; 服务可用但设备不支持或拒绝某个全局动作时返回 false。
 
 ## 二. 部分可用 (bridged-partial)
 
@@ -217,7 +224,7 @@ try {
 | 项 | 原因 |
 |---|---|
 | `wasi` / `node:wasi` | 继续禁用: 原生 WASI 文件调用绕过 JS fs 路径检查, 单独限制 preopens 不能落实 `/proc`、`/sys`、`/dev` 边界; 普通 WebAssembly 与 WASM worker 可用 |
-| accessibility 的 powerDialog / waitFor / rawNode | 宿主 blockedMethods (swipe/gesture 已于 M3.2 放开, 见第一节) |
+| accessibility 的 powerDialog / waitFor / rawNode | 此旧入口仍 blocked; 电源菜单通过 keys.powerDialog, swipe/gesture 见第一节 |
 | 硬件标识符 (imei 等) | 隐私 fail-closed |
 | 非白名单 Node builtin | `ERR_AUTOJS6_BUILTIN_DISABLED` |
 

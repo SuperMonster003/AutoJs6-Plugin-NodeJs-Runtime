@@ -1,6 +1,7 @@
 import toast = require("toast");
 import app = require("app");
 import dialogs = require("dialogs");
+import keys = require("keys");
 import clipboard = require("clipboard");
 import device = require("device");
 import hostEvents = require("autojs6:events");
@@ -107,7 +108,7 @@ async function smoke(): Promise<void> {
   await app.openAppSettings({ timeoutMs: 1000 });
   await app.launchSettings(app.packageName, { timeoutMs: 1000 });
   await app.launchAppDetailsSettings(app.packageName, { timeoutMs: 1000 });
-  const broadcastDenied: Promise<never> = app.sendBroadcast({ action: "org.autojs6.TEST" }, { timeoutMs: 1000 });
+  const broadcastSent: Promise<void> = app.sendBroadcast({ action: "org.autojs6.TEST" }, { timeoutMs: 1000 });
 
   await dialogs.alert("Title", "Message", { timeoutMs: 1000 });
   const confirmed: boolean = await dialogs.confirm("Confirm", "Message", { timeoutMs: 1000 });
@@ -164,7 +165,7 @@ async function smoke(): Promise<void> {
   const compatGetUriForFileDenied: () => never = () => rhinoCompat.app.getUriForFile("README.md");
   const compatKillDenied: Promise<never> = rhinoCompat.app.kill(app.packageName, { timeoutMs: 1000 });
   await rhinoCompat.app.openUrl("https://example.invalid", { timeoutMs: 1000 });
-  const compatBroadcastDenied: Promise<never> = rhinoCompat.app.sendBroadcast("inspect_layout_bounds", { timeoutMs: 1000 });
+  const compatBroadcastSent: Promise<void> = rhinoCompat.app.sendBroadcast("inspect_layout_bounds", { timeoutMs: 1000 });
   const compatScreenOn: boolean = await rhinoCompat.device.isScreenOn({ timeoutMs: 1000 });
   const compatBatteryIgnored: boolean = await rhinoCompat.device.isIgnoringBatteryOptimizations({ timeoutMs: 1000 });
   const audioVolume: number = await media.getAudioStreamVolume("music", { timeoutMs: 1000 });
@@ -950,10 +951,10 @@ async function smoke(): Promise<void> {
   void launchAlias;
   void viewIntent;
   void shellIntent;
-  void broadcastDenied;
+  void broadcastSent;
   void compatIntent;
   void compatShellIntent;
-  void compatBroadcastDenied;
+  void compatBroadcastSent;
   void confirmed;
   void input;
   void prompted;
@@ -1353,6 +1354,22 @@ async function smoke(): Promise<void> {
 }
 
 void smoke;
+
+async function appAndDialogExpansionSmoke() {
+  const packages: readonly app.PackageInfo[] = await app.getInstalledApps({ includeSystem: false });
+  const info: app.PackageInfo | null = await app.getPackageInfo(app.packageName);
+  await app.startService({ packageName: app.packageName, className: "example.Service" });
+  await app.sendBroadcast({ action: "example.ACTION", extras: { count: 1 } });
+  const text: string | null = await dialogs.rawInput("Name", "Node");
+  const choice: number = await dialogs.singleChoice("One", ["a", "b"], 0);
+  const choices: readonly number[] = await dialogs.multiChoice("Many", ["a", "b"], [0]);
+  const progress = await dialogs.progress.show({ title: "Working", max: 100 });
+  await progress.update({ value: 50 });
+  await progress.dismiss();
+  const opened: boolean = await keys.notifications();
+  void [packages, info, text, choice, choices, opened];
+}
+void appAndDialogExpansionSmoke;
 
 const compatibleFetch: typeof legacyFetch = fetchModule;
 const compatibleWebsocket: typeof legacyWebsocket = websocket;

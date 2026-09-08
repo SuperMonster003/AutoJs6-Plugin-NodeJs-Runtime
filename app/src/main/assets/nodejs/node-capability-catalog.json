@@ -701,6 +701,11 @@
         "providerOwner": "host_capability_provider"
       },
       {
+        "id": "keys",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
         "id": "lifecycle",
         "aliases": [],
         "providerOwner": "host_control_plane"
@@ -915,6 +920,14 @@
       },
       {
         "module": "app",
+        "method": "currentWindow",
+        "requiredCapabilities": [
+          "app.query",
+          "accessibility"
+        ]
+      },
+      {
+        "module": "app",
         "method": "editFile",
         "requiredCapabilities": [
           "app.activity"
@@ -923,6 +936,20 @@
       {
         "module": "app",
         "method": "getAppName",
+        "requiredCapabilities": [
+          "app.query"
+        ]
+      },
+      {
+        "module": "app",
+        "method": "getInstalledApps",
+        "requiredCapabilities": [
+          "app.query"
+        ]
+      },
+      {
+        "module": "app",
+        "method": "getPackageInfo",
         "requiredCapabilities": [
           "app.query"
         ]
@@ -957,6 +984,13 @@
       },
       {
         "module": "app",
+        "method": "listSamples",
+        "requiredCapabilities": [
+          "app.query"
+        ]
+      },
+      {
+        "module": "app",
         "method": "openAppSetting",
         "requiredCapabilities": [
           "app.settings"
@@ -964,7 +998,28 @@
       },
       {
         "module": "app",
+        "method": "readSample",
+        "requiredCapabilities": [
+          "app.query"
+        ]
+      },
+      {
+        "module": "app",
+        "method": "sendBroadcast",
+        "requiredCapabilities": [
+          "app.activity"
+        ]
+      },
+      {
+        "module": "app",
         "method": "startActivity",
+        "requiredCapabilities": [
+          "app.activity"
+        ]
+      },
+      {
+        "module": "app",
+        "method": "startService",
         "requiredCapabilities": [
           "app.activity"
         ]
@@ -1184,7 +1239,49 @@
       },
       {
         "module": "dialogs",
+        "method": "multiChoice",
+        "requiredCapabilities": [
+          "dialogs"
+        ]
+      },
+      {
+        "module": "dialogs",
+        "method": "progressDismiss",
+        "requiredCapabilities": [
+          "dialogs"
+        ]
+      },
+      {
+        "module": "dialogs",
+        "method": "progressShow",
+        "requiredCapabilities": [
+          "dialogs"
+        ]
+      },
+      {
+        "module": "dialogs",
+        "method": "progressUpdate",
+        "requiredCapabilities": [
+          "dialogs"
+        ]
+      },
+      {
+        "module": "dialogs",
+        "method": "rawInput",
+        "requiredCapabilities": [
+          "dialogs"
+        ]
+      },
+      {
+        "module": "dialogs",
         "method": "select",
+        "requiredCapabilities": [
+          "dialogs"
+        ]
+      },
+      {
+        "module": "dialogs",
+        "method": "singleChoice",
         "requiredCapabilities": [
           "dialogs"
         ]
@@ -1515,6 +1612,48 @@
         "method": "type",
         "requiredCapabilities": [
           "java_interop"
+        ]
+      },
+      {
+        "module": "keys",
+        "method": "lockScreen",
+        "requiredCapabilities": [
+          "keys"
+        ]
+      },
+      {
+        "module": "keys",
+        "method": "notifications",
+        "requiredCapabilities": [
+          "keys"
+        ]
+      },
+      {
+        "module": "keys",
+        "method": "powerDialog",
+        "requiredCapabilities": [
+          "keys"
+        ]
+      },
+      {
+        "module": "keys",
+        "method": "quickSettings",
+        "requiredCapabilities": [
+          "keys"
+        ]
+      },
+      {
+        "module": "keys",
+        "method": "splitScreen",
+        "requiredCapabilities": [
+          "keys"
+        ]
+      },
+      {
+        "module": "keys",
+        "method": "takeScreenshot",
+        "requiredCapabilities": [
+          "keys"
         ]
       },
       {
@@ -2271,6 +2410,11 @@
         "aliases": [
           "java"
         ],
+        "androidPermissions": []
+      },
+      {
+        "id": "keys",
+        "aliases": [],
         "androidPermissions": []
       },
       {

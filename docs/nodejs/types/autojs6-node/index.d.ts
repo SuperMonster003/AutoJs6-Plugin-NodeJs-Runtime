@@ -6,6 +6,7 @@
 /// <reference path="./toast.d.ts" />
 /// <reference path="./app.d.ts" />
 /// <reference path="./dialogs.d.ts" />
+/// <reference path="./keys.d.ts" />
 /// <reference path="./clipboard.d.ts" />
 /// <reference path="./device.d.ts" />
 /// <reference path="./shell.d.ts" />
