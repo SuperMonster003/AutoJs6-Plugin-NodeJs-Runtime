@@ -103,6 +103,26 @@ public final class NativeNodeEmbeddedRuntimeBridge {
         void onStderr(byte[] chunk);
     }
 
+    /** UTF-8 JSON crosses JNI as bytes, including supplementary Unicode characters. */
+    public interface BridgeSink {
+        boolean post(long channelId, byte[] requestJson);
+
+        void useFileTransport();
+    }
+
+    public static void setBridgeSink(Context context, BridgeSink sink, int maxPending) {
+        loadLibraries(context);
+        INSTANCE.nativeSetBridgeSink(sink, maxPending);
+    }
+
+    public static void clearBridgeSink() {
+        if (librariesLoaded) INSTANCE.nativeSetBridgeSink(null, 32);
+    }
+
+    public static void receiveBridgeResponse(long channelId, byte[] requestId, byte[] responseJson) {
+        INSTANCE.nativeReceiveBridgeResponse(channelId, requestId, responseJson);
+    }
+
     /**
      * Installs (or clears, when {@code sink} is null) the process-wide
      * streaming output sink consulted by the next embedded script execution.
@@ -204,6 +224,10 @@ public final class NativeNodeEmbeddedRuntimeBridge {
     );
 
     private native void nativeSetOutputStreamSink(OutputSink sink);
+
+    private native void nativeSetBridgeSink(BridgeSink sink, int maxPending);
+
+    private native void nativeReceiveBridgeResponse(long channelId, byte[] requestId, byte[] responseJson);
 
     private native void nativeBeginScriptStopScope(String executionTag);
 

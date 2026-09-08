@@ -180,14 +180,15 @@ final class NodePluginScriptExecution {
                         service.getCacheDir(),
                         request.getString(NodeJsRuntimeContract.KEY_EXECUTION_ID),
                         hostBroker,
-                        PluginNodeBridgeFileTransportSession.maxPendingBridgeCallsFromRuntimeModule(runtimeModuleSources)
+                        PluginNodeBridgeFileTransportSession.maxPendingBridgeCallsFromRuntimeModule(runtimeModuleSources),
+                        PluginNodeBridgeFileTransportSession.transportFromRuntimeModule(runtimeModuleSources)
                 );
+                liveBridgeSession.start(service);
                 runtimeModuleSources = withRuntimeModuleSource(
                         runtimeModuleSources,
                         PluginNodeBridgeFileTransportSession.RUNTIME_MODULE_NAME,
                         liveBridgeSession.configJson()
                 );
-                liveBridgeSession.start();
             }
             if (moduleSourceProvider != null) {
                 runtimeModuleSources = withRuntimeModuleSource(

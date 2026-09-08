@@ -43,6 +43,7 @@ add_library(
         node_bridge_process_runtime.cpp
         node_bridge_payload.cpp
         node_bridge_lifecycle.cpp
+        node_bridge_native_transport.cpp
         node_bridge_jni.cpp
         node_runtime_adapter_24_5.cpp
         node_bridge/payload_utils.cpp
@@ -61,7 +62,7 @@ target_compile_definitions(
         AUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE=$<BOOL:${AUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE}>
         AUTOJS6_NODE_ENABLE_EMBEDDED_SCRIPT_EXECUTION=$<BOOL:${AUTOJS6_NODE_ENABLE_EMBEDDED_SCRIPT_EXECUTION}>
         AUTOJS6_NODE_DEBUG_BUILD=$<CONFIG:Debug>
-        AUTOJS6_NODE_BRIDGE_LINKS_LIBNODE=0
+        AUTOJS6_NODE_BRIDGE_LINKS_LIBNODE=1
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
@@ -71,6 +72,7 @@ endif ()
 target_link_libraries(
         autojs6-node
         PRIVATE
+        node
         log
         dl
 )

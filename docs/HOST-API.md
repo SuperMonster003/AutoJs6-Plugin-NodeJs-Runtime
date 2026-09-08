@@ -107,6 +107,14 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 
 人工取消或执行超时若遇到同步原生调用无法响应 `node::Stop`, 插件会在 3 秒宽限后只杀死独立 runtime 进程。由于被杀的 Binder 事务不可能返回结果 Bundle, 直接 AIDL 调用方看到 transport loss; AutoJs6 宿主将已派发后的丢失规范化为 `ERR_AUTOJS6_NODE_PLUGIN_EXECUTION_LOST` 且禁止自动回退重放, 随后的新会话可拉起新 PID 继续服务。
 
+### 实时桥传输
+
+实时桥默认通过 JNI 直达 Java/Binder 宿主 broker, 响应经 `uv_async_t` 回到 Node 事件循环后交付给原调用的 Promise。JNI 路径不创建请求/响应文件, 也不启动文件轮询线程。JSON 以 UTF-8 字节数组跨 JNI 传输, 支持补充平面字符及 JSON 转义后的 NUL。
+
+`autojs6:bridge-live-config` 的可选 `transport` 字段接受 `"jni"` (默认) 或 `"file"`。宿主可在运行时模块中传入 `{"transport":"file"}` 强制保留原文件协议; 缓存目录由插件生成。JNI 初始化或接收请求前不可用时自动回退文件传输; 已接受的调用发生 broker 错误会直接拒绝 Promise, 避免重新派发产生重复副作用。`embedded_script.bridge_live_transport` 报告实际通道, JNI 模式下 `bridge_live_dispatch_poll_count=0`。
+
+两条通道共享 `autojs6:bridge-limits.maxPendingBridgeCalls` (默认 32, 硬上限 128)。JNI 响应队列仅接受当前通道的待处理请求, 重复响应与超时/取消后迟到的响应不再交付。超时会解除原生事件循环引用; 脚本结束时清理 V8 回调、请求队列和 JNI 通道, 下一次执行使用独立通道编号。
+
 ### 长驻桥会话诊断
 
 `embedded_script.bridge_live_responses_json` 是最近 32 条响应的诊断摘要, 不再保存整段会话的所有响应。每条诊断最多 1536 UTF-8 字节; 大响应的诊断副本替换为带 `diagnosticTruncated=true` 与 `responseCharacters` 的记录, 实际交付给脚本的响应保持完整。响应数组最多 49185 字节, 调用总计数与失败计数继续累计。
