@@ -65,13 +65,16 @@
 
 | 模块 | live 方法 | blocked 方法 |
 |---|---|---|
-| `image` / `images` | readImage, recycle | captureScreen, saveImage, clip, resize, grayscale, threshold, findImage, matchTemplate, findColor, findMultiColors |
+| `image` / `images` | requestScreenCapture, stopScreenCapture, captureScreen, readImage, saveImage, recycle | clip, resize, grayscale, threshold, findImage, matchTemplate, findColor, findMultiColors |
+| `media_projection` | requestScreenCapture, nextImage, stop | 需用户确认 Android 录屏授权 |
 | `recorder` | getStatus | start, stop |
 | `media` | getAudioStreamVolume/MaxVolume/Info (只读) | — |
 | `mediainfo` | read, get, capabilities (作用域内相对路径; 缺省保持 Node v1, 插件明确宣告后可显式请求插件 v1/v2) | — |
 | `ui.overlay` | show, update, drainEvents, close, closeAll, hasPermission, openPermissionSettings | 需 SYSTEM_ALERT_WINDOW; POC 级 |
 | `package_manager` (`npm` 为其别名) | list, verify, prune, planInstall/Update/Remove, install, update, remove (app 私有本地库) | npm CLI / registry 下载 / 生命周期脚本 |
 | `input_observer` | observeKeys, drainEvents, close, getAvailableSources (fake 源) | accessibility 实源在 scheduled/background 启动面拒绝 |
+
+截屏需声明 `screen_capture` 与 `image`。`await images.requestScreenCapture()` 打开宿主既有 Android 授权流程, 授权后才启动 mediaProjection 前台服务; `captureScreen` / `media_projection.nextImage` 返回宿主图片句柄。`saveImage(handle, relativePath, {format, quality})` 在项目工作目录中保存 PNG/JPEG/WebP, 默认 PNG, quality 为 0..100。`images.stopScreenCapture()` / capturer.stop、系统撤销和脚本结束释放会话; 未授权捕获返回 `permission-denied`。图片延续每次执行默认 32 个活跃句柄的既有限制, recycle 或执行结束释放。M14.1 已验证未授权及图片保存路径, 正常授权的真机验收等待人工确认系统对话框, 进度见 Roadmap。
 
 ## 三. 稳定能力与外部依赖 (bridged-policy)
 
@@ -185,9 +188,8 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 | 项 | 原因 |
 |---|---|
 | `wasi` / `node:wasi` | 继续禁用: 原生 WASI 文件调用绕过 JS fs 路径检查, 单独限制 preopens 不能落实 `/proc`、`/sys`、`/dev` 边界; 普通 WebAssembly 与 WASM worker 可用 |
-| `media_projection` (requestScreenCapture/nextImage/stop) | 宿主侧 UNAVAILABLE |
 | accessibility 的 powerDialog / waitFor / rawNode | 宿主 blockedMethods (swipe/gesture 已于 M3.2 放开, 见第一节) |
-| `image.captureScreen` 及全部图像分析方法 | 同 media_projection 链路 |
+| 图像分析 clip/resize/grayscale/threshold/findImage/matchTemplate/findColor/findMultiColors | 尚未接入宿主图像分析 provider |
 | 硬件标识符 (imei 等) | 隐私 fail-closed |
 | 非白名单 Node builtin | `ERR_AUTOJS6_BUILTIN_DISABLED` |
 

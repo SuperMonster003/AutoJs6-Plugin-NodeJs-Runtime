@@ -22,7 +22,8 @@
         "خيار idleExitMs لإنهاء عملية Node.js الخاملة وإعادة الاتصال للبرنامج النصي التالي, مع تشخيص idleForMs والإبقاء على العملية مقيمة افتراضيا",
         "تستخدم fetch و Request و Response و Headers و FormData و WebSocket العامة واجهات Node الأصلية; تحتفظ وحدتا autojs6:fetch و autojs6:websocket بمكدس شبكة المضيف",
         "إضافة node:sqlite الأصلي مع فحص مسارات الملفات وعمليات CRUD والمعاملات والنسخ الاحتياطي؛ تقارير node:test الأصلية ومثال قابل للتشغيل، وإضافة zod وcheerio وdate-fns وmqtt وws إلى مجموعة npm للاختبار دون اتصال",
-        "إدخال وحدة التحكم عبر process.stdin / readline ورسائل JSON لكل تشغيل عبر autojs6:host مع توافق postMessage v3 مع المضيفين السابقين"
+        "إدخال وحدة التحكم عبر process.stdin / readline ورسائل JSON لكل تشغيل عبر autojs6:host مع توافق postMessage v3 مع المضيفين السابقين",
+        "تستخدم جلسات التقاط الشاشة في Node.js موافقة Android وخدمة المقدمة الحالية, مع مقابض الصور وحفظ PNG/JPEG/WebP والتنظيف عند الإيقاف أو انتهاء البرنامج النصي"
       ]
     },
     "v1.2.0": {

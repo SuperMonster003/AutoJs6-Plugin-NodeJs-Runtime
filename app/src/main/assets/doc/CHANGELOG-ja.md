@@ -7,6 +7,7 @@
 * `追加` グローバル fetch, Request, Response, Headers, FormData, WebSocket に Node ネイティブ Web API を使用; autojs6:fetch と autojs6:websocket はホストのネットワークスタックを提供
 * `追加` ファイル境界を検査するネイティブ node:sqlite を追加し、CRUD・トランザクション・バックアップに対応。node:test のネイティブレポーターと実行可能なサンプルを提供し、オフライン npm corpus に zod、cheerio、date-fns、mqtt、ws を追加
 * `追加` process.stdin / readline がコンソール入力に対応し, autojs6:host が実行ごとの JSON メッセージを受信; v3 postMessage は旧ホストと互換
+* `追加` Node.js の画面キャプチャに Android の許可と既存のフォアグラウンドサービスを使用し, 画像ハンドル, PNG/JPEG/WebP 保存, 停止時およびスクリプト終了時の解放に対応
 * `修正` 常駐スクリプトのブリッジでリクエストと応答の履歴が増え続ける問題を修正し, 完了したリクエストを削除して直近 32 件の応答のみをサイズ上限付きで診断に保持
 * `修正` ネイティブ非同期処理の完了前に成功と判定してエラーや終了コードが失われる問題を修正; Node イベントループの最終終了時に結果を確定
 * `改善` ライブブリッジを既定の JNI/Binder 転送と Node イベントループ応答に変更して遅延を削減し、ファイル転送への切り替えと保留中の呼び出し数制限を維持

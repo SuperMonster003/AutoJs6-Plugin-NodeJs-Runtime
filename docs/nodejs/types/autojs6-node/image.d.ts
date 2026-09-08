@@ -1,4 +1,4 @@
-﻿/** @remarks readImage/recycle 与本地 getSize 可用; 捕获、写盘和分析方法尚未提供宿主 provider。参见 docs/HOST-API.md。 */
+﻿/** @remarks 捕获需 Android 录屏授权; 高级分析方法尚未提供宿主 provider。参见 docs/HOST-API.md。 */
 declare module "image" {
   namespace image {
     export type ColorInput = number | string;
@@ -51,12 +51,11 @@ declare module "image" {
     }
 
     export interface ImageModule {
-      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
+      requestScreenCapture(options?: CaptureScreenOptions & { width?: number; height?: number }): Promise<boolean>;
+      stopScreenCapture(): Promise<void>;
       captureScreen(options?: CaptureScreenOptions): Promise<AutoJs6Node.ImageHandle>;
       readImage(path: string, options?: AutoJs6Node.BridgeCallOptions): Promise<AutoJs6Node.ImageHandle>;
-      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       saveImage(image: AutoJs6Node.ImageHandleLike, path: string, options?: SaveImageOptions): Promise<void>;
-      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       saveImage(image: AutoJs6Node.ImageHandleLike, path: string, format: SaveImageOptions["format"], options?: AutoJs6Node.BridgeCallOptions): Promise<void>;
       /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       clip(image: AutoJs6Node.ImageHandleLike, x: number, y: number, width: number, height: number, options?: AutoJs6Node.BridgeCallOptions): Promise<AutoJs6Node.ImageHandle>;
