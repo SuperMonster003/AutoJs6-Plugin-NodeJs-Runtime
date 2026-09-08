@@ -33,6 +33,9 @@ android {
     compileSdk = versions.sdkVersionCompile
     testBuildType = providers.gradleProperty("nodeAndroidTestBuildType").orElse("debug").get()
 
+    // Device tests execute the published examples from their canonical sources.
+    sourceSets.getByName("androidTest").assets.directories.add(rootProject.file("sample/nodejs").path)
+
     defaultConfig {
         applicationId = globalApplicationId
 

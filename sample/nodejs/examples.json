@@ -420,14 +420,12 @@
     },
     {
       "name": "wasm-worker",
-      "status": "partial",
-      "reason": "Worker availability is real, but the sample only records the future bounded WASM-worker policy and resource budgets.",
+      "status": "stable",
       "tags": [
         "main-app",
         "wasm",
         "wasm-worker",
-        "worker",
-        "design-gated"
+        "worker"
       ],
       "mainAppSmoke": false,
       "packagedCompatible": false

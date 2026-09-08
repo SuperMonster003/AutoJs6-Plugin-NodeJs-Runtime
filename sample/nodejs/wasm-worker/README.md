@@ -1,10 +1,10 @@
 # wasm-worker
 
-WASM worker policy example for Phase 9.
+Compiles and instantiates a real WebAssembly module inside a native Node worker,
+then sends the result of `add(19, 23)` to the main thread. The worker exits after
+the computation. This uses the default worker policy and needs no host provider.
 
-- Capabilities: future WASM worker integration
-- Expected provider: stable native `worker_threads` compute isolation
-- Packaged support: supported by the three-ABI runtime kit
-- Security limitations: workers cannot access AutoJs bridge modules or raw Android objects; heavy WASM must remain within worker count, memory, timeout, and cleanup budgets
+Worker count and optional resource limits apply as described in HOST-API.
+AutoJs bridge modules and inspector remain unavailable inside workers.
 
 Expected output is listed in `expected-output.txt`.

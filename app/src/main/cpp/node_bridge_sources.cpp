@@ -3678,49 +3678,57 @@ std::string buildEmbeddedScriptExecutionSource(
       "kotlin.reflect."
     ])
   });
-  const __autojs6_worker_threads_policy = Object.freeze({
-    maxWorkers: 1,
-    startupTimeoutMs: 5000,
-    maxMessageBytes: 65536,
-    maxQueuedMessages: 32,
-    allowedBuiltins: Object.freeze([
-      "assert",
-      "buffer",
-      "events",
-      "fs",
-      "fs/promises",
-      "path",
-      "querystring",
-      "string_decoder",
-      "timers",
-      "url",
-      "util"
-    ]),
-    workerProfile: Object.freeze({
-      fs: Object.freeze({
-        read: "workingDirectory",
-        write: "workingDirectory"
+  const __autojs6_worker_threads_policy = (function() {
+    const record = __autojs6_runtime_module_embedded_sources["autojs6:worker-policy"];
+    const input = record && typeof record.source === "string" ? JSON.parse(record.source) : {};
+    if (!input || typeof input !== "object" || Array.isArray(input)) throw new TypeError("autojs6:worker-policy must be a JSON object.");
+    function integer(name, fallback, min, max) {
+      if (input[name] === undefined) return fallback;
+      const value = input[name];
+      if (!Number.isInteger(value) || value < min || value > max) throw new RangeError("autojs6:worker-policy." + name + " must be between " + min + " and " + max + ".");
+      return value;
+    }
+    const os = __autojs6_builtin_module("os");
+    const parallelism = os && typeof os.availableParallelism === "function" ? os.availableParallelism() : 1;
+    const maxWorkers = integer("maxWorkers", Math.max(1, Math.min(8, parallelism)), 1, 8);
+    const resourceLimits = {};
+    const suppliedLimits = input.resourceLimits || {};
+    if (typeof suppliedLimits !== "object" || Array.isArray(suppliedLimits)) throw new TypeError("autojs6:worker-policy.resourceLimits must be an object.");
+    const limitNames = ["maxOldGenerationSizeMb", "maxYoungGenerationSizeMb", "codeRangeSizeMb", "stackSizeMb"];
+    for (const name of Object.keys(suppliedLimits)) {
+      if (!limitNames.includes(name) || !Number.isFinite(suppliedLimits[name]) || suppliedLimits[name] <= 0) throw new RangeError("Invalid autojs6:worker-policy.resourceLimits." + name);
+      resourceLimits[name] = suppliedLimits[name];
+    }
+    const builtins = __autojs6_limited_builtin_module_names.concat(["node:test", "worker_threads"]);
+    if (__autojs6_raw_node_network_modules_enabled) builtins.push("dgram", "http2");
+    if (__autojs6_child_process_enabled) builtins.push("child_process");
+    return Object.freeze({
+      maxWorkers,
+      startupTimeoutMs: integer("startupTimeoutMs", 5000, 1, 60000),
+      maxMessageBytes: 65536,
+      maxQueuedMessages: 32,
+      allowedBuiltins: Object.freeze(builtins),
+      workerProfile: Object.freeze({
+        fs: Object.freeze({
+          read: __autojs6_unrestricted_fs_access_enabled ? "androidPermissions" : "workingDirectory",
+          write: __autojs6_unrestricted_fs_access_enabled ? "androidPermissions" : "workingDirectory"
+        }),
+        network: __autojs6_raw_node_network_modules_enabled ? "native" : "denied",
+        autoJsBridge: "denied",
+        shell: __autojs6_child_process_enabled ? "native" : "denied",
+        javaInterop: "denied",
+        inspector: "denied"
       }),
-      network: "denied",
-      autoJsBridge: "denied",
-      shell: "denied",
-      javaInterop: "denied",
-      inspector: "denied"
-    }),
-    workerPool: Object.freeze({
-      minWorkers: 0,
-      maxWorkers: 1,
-      idleTimeoutMs: 1000,
-      taskTimeoutMs: 5000,
-      queueLimit: 8
-    }),
-    resourceLimits: Object.freeze({
-      maxOldGenerationSizeMb: 64,
-      maxYoungGenerationSizeMb: 16,
-      codeRangeSizeMb: 32,
-      stackSizeMb: 8
-    })
-  });
+      workerPool: Object.freeze({
+        minWorkers: 0,
+        maxWorkers,
+        idleTimeoutMs: 1000,
+        taskTimeoutMs: integer("taskTimeoutMs", 0, 0, 2147483647),
+        queueLimit: 8
+      }),
+      resourceLimits: Object.freeze(resourceLimits)
+    });
+  })();
   const __autojs6_worker_threads_diagnostics = {
     activeWorkerCount: 0,
     maxActiveWorkerCount: 0,
@@ -8989,11 +8997,13 @@ std::string buildEmbeddedScriptExecutionSource(
         "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
       );
     }
-    const name = filename === undefined || filename === null ? "" : String(filename);
-    if (!name || !__autojs6_is_relative_module_name(name)) {
+    const name = filename instanceof URL
+      ? __autojs6_builtin_module("url").fileURLToPath(filename)
+      : (filename === undefined || filename === null ? "" : String(filename));
+    if (!name || (!path.isAbsolute(name) && !__autojs6_is_relative_module_name(name))) {
       throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 worker_threads accepts only local relative worker scripts.",
-        "non_relative_script",
+        "AutoJs6 worker_threads requires a local relative path, absolute path or file URL.",
+        "non_local_script",
         "ERR_AUTOJS6_FS_SCOPED_PATH"
       );
     }
@@ -9002,13 +9012,6 @@ std::string buildEmbeddedScriptExecutionSource(
         "AutoJs6 worker_threads rejects NUL worker script paths.",
         "nul_script",
         "ERR_AUTOJS6_FS_NUL_BYTE"
-      );
-    }
-    if (path.isAbsolute(name)) {
-      throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 worker_threads rejects absolute worker scripts: " + name,
-        "absolute_script",
-        "ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED"
       );
     }
     const root = __autojs6_module_resolution_root(parentFilename || __autojs6_source_name);
@@ -9094,6 +9097,9 @@ std::string buildEmbeddedScriptExecutionSource(
       policy: {
         maxMessageBytes: __autojs6_worker_threads_policy.maxMessageBytes,
         maxQueuedMessages: __autojs6_worker_threads_policy.maxQueuedMessages,
+        allowedBuiltins: __autojs6_worker_threads_policy.allowedBuiltins,
+        rawNetwork: __autojs6_raw_node_network_modules_enabled,
+        unrestrictedFs: __autojs6_unrestricted_fs_access_enabled,
         workerProfile: __autojs6_worker_threads_policy_snapshot().workerProfile
       },
       moduleSources: descriptor.moduleSources || Object.create(null)
@@ -9157,29 +9163,22 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __error("AutoJs6 worker_threads disables process." + name + " in workers.", "ERR_AUTOJS6_PROCESS_API_DISABLED");
     };
   }
+  // Trigger lazy Node web exports before guarding process methods.
+  ["fetch", "Request", "Response", "Headers", "FormData", "WebSocket"].forEach(name => { void globalThis[name]; });
+  if (!__descriptor.policy.rawNetwork) {
+    const networkDisabled = () => __error("Raw Node networking is disabled for this execution.", "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED");
+    globalThis.fetch = function() { return Promise.reject(networkDisabled()); };
+    if (typeof globalThis.WebSocket === "function") globalThis.WebSocket = new Proxy(globalThis.WebSocket, { construct() { throw networkDisabled(); } });
+  }
   if (typeof process === "object" && process) {
+    Object.defineProperty(process, "cwd", { value: () => __root, configurable: true });
     ["binding", "_linkedBinding", "dlopen", "getBuiltinModule", "chdir", "exit", "abort", "kill"].forEach(function(name) {
       try { Object.defineProperty(process, name, { value: __disabledProcess(name), configurable: true, writable: false }); }
       catch (_) { try { process[name] = __disabledProcess(name); } catch (_) {} }
     });
   }
-  const __allowed = Object.freeze({
-    assert: "assert",
-    "assert/strict": "assert/strict",
-    buffer: "buffer",
-    events: "events",
-    fs: "fs",
-    "fs/promises": "fs/promises",
-    path: "path",
-    "path/posix": "path/posix",
-    "path/win32": "path/win32",
-    querystring: "querystring",
-    string_decoder: "string_decoder",
-    timers: "timers",
-    url: "url",
-    util: "util",
-    "util/types": "util/types"
-  });
+  const __allowed = Object.freeze(Object.fromEntries(__descriptor.policy.allowedBuiltins.map(name => [name.replace(/^node:/, ""), name])));
+  const __networkBuiltins = new Set(["net", "http", "https", "tls", "dns", "dns/promises", "dgram", "http2"]);
   const __messagePolicy = Object.freeze({
     maxMessageBytes: (__descriptor.policy && __descriptor.policy.maxMessageBytes) || 65536,
     maxQueuedMessages: (__descriptor.policy && __descriptor.policy.maxQueuedMessages) || 32
@@ -9309,6 +9308,7 @@ std::string buildEmbeddedScriptExecutionSource(
     unref: function() { if (typeof __parentPort.unref === "function") __parentPort.unref(); return this; }
   });
   const __limitedWorkerThreads = Object.freeze({
+    ...__workerThreads,
     isMainThread: false,
     parentPort: __limitedParentPort,
     workerData: __workerData,
@@ -9317,6 +9317,11 @@ std::string buildEmbeddedScriptExecutionSource(
     MessagePort: __workerThreads.MessagePort,
     workerProfile: __workerProfile,
     Worker: function Worker() { throw __error("Nested AutoJs6 worker_threads workers are disabled.", "ERR_AUTOJS6_WORKER_DISABLED"); }
+  });
+  // Preserve legacy aliases without adding parameters that conflict with normal CJS declarations.
+  Object.defineProperties(globalThis, {
+    parentPort: { value: __limitedParentPort, configurable: true },
+    workerData: { value: __workerData, configurable: true }
   });
   function __normalBuiltinName(request) {
     const raw = String(request || "");
@@ -9332,6 +9337,9 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "worker_threads") return __limitedWorkerThreads;
     if (name === "fs") return __limitedFsModule();
     if (name === "fs/promises") return __limitedFsPromisesModule();
+    if (__networkBuiltins.has(name) && !__descriptor.policy.rawNetwork) throw __error("Raw Node networking is disabled for this execution.", "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED");
+    if (name === "module") return __limitedModule;
+    if (name === "process") return process;
     if (Object.prototype.hasOwnProperty.call(__allowed, name)) return __nativeRequire(__allowed[name]);
     return __deny(raw);
   }
@@ -9342,6 +9350,15 @@ std::string buildEmbeddedScriptExecutionSource(
     if (Object.prototype.hasOwnProperty.call(__allowed, name)) return __allowed[name];
     return __deny(raw);
   }
+  const __limitedModule = Object.freeze({
+    createRequire: function(filename) {
+      const path = filename instanceof URL ? __nativeRequire("url").fileURLToPath(filename) : filename;
+      return __createRequire({ filename: __validatePath(__path.resolve(path), "createRequire"), children: [] });
+    },
+    isBuiltin: __builtinAllowed,
+    builtinModules: Object.freeze(__descriptor.policy.allowedBuiltins.slice()),
+    syncBuiltinESMExports: function() {}
+  });
   function __isRelativeModuleName(name) {
     return name === "." || name === ".." || name.indexOf("./") === 0 || name.indexOf("../") === 0;
   }
@@ -9360,7 +9377,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __validatePath(resolved, label) {
     const absolute = __path.resolve(resolved);
-    if (!__withinRoot(absolute, __root) || __sensitivePath(absolute)) {
+    if ((!__descriptor.policy.unrestrictedFs && !__withinRoot(absolute, __root)) || __sensitivePath(absolute)) {
       throw __error(
         "AutoJs6 worker_threads " + label + " escapes working directory: " + resolved,
         "ERR_AUTOJS6_FS_PATH_ESCAPE"
@@ -9397,7 +9414,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __workerFsNearestExistingParent(absolute, label) {
     let current = __path.dirname(absolute);
-    while (__withinRoot(current, __root) && !__sensitivePath(current)) {
+    while ((__descriptor.policy.unrestrictedFs || __withinRoot(current, __root)) && !__sensitivePath(current)) {
       try {
         const stat = __fs.statSync(current);
         if (stat && typeof stat.isDirectory === "function" && stat.isDirectory()) {
@@ -9410,7 +9427,7 @@ std::string buildEmbeddedScriptExecutionSource(
       } catch (error) {
         if (!error || error.code !== "ENOENT") throw error;
       }
-      if (current === __root) break;
+      if (!__descriptor.policy.unrestrictedFs && current === __root) break;
       const parent = __path.dirname(current);
       if (!parent || parent === current) break;
       current = parent;
@@ -9800,12 +9817,9 @@ std::string buildEmbeddedScriptExecutionSource(
       "module",
       "__filename",
       "__dirname",
-      "parentPort",
-      "workerData",
-      "Buffer",
       "\"use strict\";\n" + record.source + "\n//# sourceURL=" + sourceURL
     );
-    run(workerRequire, module.exports, module, module.filename, module.dirname, __parentPort, __workerData, __nativeRequire("buffer").Buffer);
+    run(workerRequire, module.exports, module, module.filename, module.dirname);
     module.loaded = true;
     return module.exports;
   }
@@ -10220,7 +10234,7 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     }
     function __autojs6_worker_threads_normalize_resource_limits(resourceLimits, label) {
-      if (resourceLimits === undefined || resourceLimits === null) return undefined;
+      if (resourceLimits === undefined || resourceLimits === null) resourceLimits = {};
       if (typeof resourceLimits !== "object" || Array.isArray(resourceLimits)) {
         throw __autojs6_worker_threads_policy_error(
           "AutoJs6 worker_threads " + label + " resourceLimits must be an object.",
@@ -10234,7 +10248,7 @@ std::string buildEmbeddedScriptExecutionSource(
         codeRangeSizeMb: caps.codeRangeSizeMb,
         stackSizeMb: caps.stackSizeMb
       });
-      const output = {};
+      const output = Object.assign({}, caps);
       for (const key of Object.keys(resourceLimits)) {
         if (!__autojs6_has_own(allowed, key)) {
           throw __autojs6_worker_threads_policy_error(
@@ -10249,13 +10263,13 @@ std::string buildEmbeddedScriptExecutionSource(
             "invalid_resource_limit"
           );
         }
-        if (value > allowed[key]) {
+        if (allowed[key] !== undefined && value > allowed[key]) {
           throw __autojs6_worker_threads_policy_error(
             "AutoJs6 worker_threads " + label + " resourceLimits." + key + " exceeds " + allowed[key] + ".",
             "resource_limit_too_large"
           );
         }
-        output[key] = Math.floor(value);
+        output[key] = value;
       }
       return Object.keys(output).length > 0 ? output : undefined;
     }
@@ -10578,7 +10592,7 @@ std::string buildEmbeddedScriptExecutionSource(
         minWorkers,
         maxWorkers,
         idleTimeoutMs: __autojs6_worker_pool_int(input.idleTimeoutMs, policy.idleTimeoutMs, 0, 60000, "idleTimeoutMs"),
-        taskTimeoutMs: __autojs6_worker_pool_int(input.taskTimeoutMs, policy.taskTimeoutMs, 1, 60000, "taskTimeoutMs"),
+        taskTimeoutMs: __autojs6_worker_pool_int(input.taskTimeoutMs, policy.taskTimeoutMs, 0, 2147483647, "taskTimeoutMs"),
         queueLimit: __autojs6_worker_pool_int(input.queueLimit, policy.queueLimit, 0, 128, "queueLimit"),
         workerData: input.workerData,
         resourceLimits: __autojs6_worker_threads_normalize_resource_limits(input.resourceLimits, "WorkerPool options")
@@ -10889,7 +10903,7 @@ std::string buildEmbeddedScriptExecutionSource(
         id: ++this.__autojs6PoolNextTaskId,
         value,
         transferList: input.transferList,
-        timeoutMs: __autojs6_worker_pool_int(input.timeoutMs, this.__autojs6PoolTaskTimeoutMs, 1, 60000, "task timeoutMs"),
+        timeoutMs: __autojs6_worker_pool_int(input.timeoutMs, this.__autojs6PoolTaskTimeoutMs, 0, 2147483647, "task timeoutMs"),
         resolve: null,
         reject: null,
         settled: false,

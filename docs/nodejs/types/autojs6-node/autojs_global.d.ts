@@ -558,15 +558,28 @@ declare namespace AutoJs6Node {
     readonly minWorkers: number;
     readonly maxWorkers: number;
     readonly idleTimeoutMs: number;
+    /** Zero leaves WorkerPool tasks without a default deadline. */
     readonly taskTimeoutMs: number;
     readonly queueLimit: number;
   }
 
   export interface WorkerThreadsResourceLimits {
-    readonly maxOldGenerationSizeMb: number;
-    readonly maxYoungGenerationSizeMb: number;
-    readonly codeRangeSizeMb: number;
-    readonly stackSizeMb: number;
+    readonly maxOldGenerationSizeMb?: number;
+    readonly maxYoungGenerationSizeMb?: number;
+    readonly codeRangeSizeMb?: number;
+    readonly stackSizeMb?: number;
+  }
+
+  /** JSON supplied as the autojs6:worker-policy runtime module in an execution request. */
+  export interface WorkerThreadsRequestPolicy {
+    /** Defaults to min(8, os.availableParallelism()); accepted range 1..8. */
+    readonly maxWorkers?: number;
+    /** Defaults to 5000; accepted range 1..60000. */
+    readonly startupTimeoutMs?: number;
+    /** Defaults to zero (no WorkerPool task deadline). */
+    readonly taskTimeoutMs?: number;
+    /** Request defaults and caps; individual Worker values may be lower. */
+    readonly resourceLimits?: WorkerThreadsResourceLimits;
   }
 
   export interface WorkerThreadsPolicy {
