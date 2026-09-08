@@ -21,6 +21,7 @@ import org.autojs.plugin.nodejs.api.INodeJsRuntimeCallback;
 import org.autojs.plugin.nodejs.api.INodeJsRuntimePlugin;
 import org.autojs.plugin.nodejs.api.NodeJsRuntimeContract;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -151,7 +152,64 @@ public final class BridgeLatencySmokeTest {
         }
     }
 
-    private Bundle run(INodeJsHostCapabilityBroker broker, String transport, String source) throws Exception {
+    @Test
+    public void pushedBurstIsBoundedAndListenersCloseWithoutPolling() throws Exception {
+        INodeJsHostCapabilityBroker broker = new INodeJsHostCapabilityBroker.Stub() {
+            @Override public Bundle getBrokerInfo() {
+                Bundle info = new ScreenStateTestBroker().getBrokerInfo();
+                info.putStringArray(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_MODULES, new String[]{"sensors"});
+                return info;
+            }
+            @Override public Bundle getNativeDiagnostics() { return new Bundle(); }
+            @Override public void destroy(Bundle reason) { }
+            @Override public void dispatch(Bundle request, INodeJsHostCapabilityCallback callback) {
+                try {
+                    JSONObject call = new JSONObject(request.getString(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_JSON));
+                    String id = call.getString("id");
+                    boolean subscribe = "subscribe".equals(call.getString("method"));
+                    if (subscribe && !call.optBoolean("events")) throw new AssertionError("push was not negotiated");
+                    Bundle reply = new Bundle();
+                    reply.putString(NodeJsRuntimeContract.KEY_BRIDGE_RESPONSE_JSON,
+                            new JSONObject().put("id", id).put("ok", true).put("result", subscribe
+                                    ? new JSONObject().put("id", "burst").put("subscriptionId", "burst").put("type", "accelerometer")
+                                    : JSONObject.NULL).toString());
+                    callback.onResponse(reply);
+                    if (subscribe) {
+                        // Synchronous dispatch holds the Node thread until the burst is queued.
+                        for (int i = 0; i < 300; i++) {
+                            JSONObject event = new JSONObject().put("type", "event").put("event",
+                                    new JSONObject().put("type", "accelerometer").put("values", new JSONArray().put(i).put(0).put(0)));
+                            Bundle pushed = new Bundle();
+                            pushed.putBoolean("event", true);
+                            pushed.putString(NodeJsRuntimeContract.KEY_BRIDGE_RESPONSE_JSON,
+                                    new JSONObject().put("id", id).put("ok", true).put("event", true)
+                                            .put("subscriptionId", "burst").put("result", event).toString());
+                            callback.onResponse(pushed);
+                        }
+                    }
+                } catch (Exception error) {
+                    throw new AssertionError(error);
+                }
+            }
+        };
+        Bundle result = run(broker, null,
+                "(async () => { const values = []; let once = 0; let removed = 0;\n" +
+                "const sub = require('sensors').subscribe('accelerometer');\n" +
+                "const unwanted = () => removed++; sub.once('event', unwanted).off('event', unwanted);\n" +
+                "sub.once('event', () => once++);\n" +
+                "const done = new Promise(resolve => sub.on('event', event => { values.push(event.values[0]); if (values.length === 128) resolve(); }));\n" +
+                "await sub.ready; await done; await sub.close();\n" +
+                "if (sub.subscriptionId !== 'burst' || once !== 1 || removed !== 0 || values[0] !== 172 || values[127] !== 299) throw new Error('push ordering or listener mismatch');\n" +
+                "console.log('m12.push=bounded closed'); })().catch(e => { console.error(e); process.exitCode = 1; });", "sensors");
+        assertTrue(result.getString(NodeJsRuntimeContract.KEY_STDOUT, "").contains("m12.push=bounded closed"));
+        String[] payload = result.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD);
+        assertEquals("2", value(payload, "embedded_script.bridge_live_dispatch_count"));
+        assertEquals("300", value(payload, "embedded_script.bridge_live_event_count"));
+        assertEquals("172", value(payload, "embedded_script.bridge_live_event_dropped_count"));
+        assertEquals("0", value(payload, "embedded_script.bridge_live_dispatch_poll_count"));
+    }
+
+    private Bundle run(INodeJsHostCapabilityBroker broker, String transport, String source, String... permissions) throws Exception {
         Bundle request = new Bundle();
         request.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, "m12-bridge-" + System.nanoTime());
         request.putString(NodeJsRuntimeContract.KEY_SOURCE, source);
@@ -160,7 +218,8 @@ public final class BridgeLatencySmokeTest {
         request.putStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCE_NAMES,
                 new String[]{"autojs6:bridge-permissions", "autojs6:bridge-live-config"});
         request.putStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCES,
-                new String[]{"{\"version\":1,\"enforced\":true,\"permissions\":[\"device\"]}",
+                new String[]{new JSONObject().put("version", 1).put("enforced", true)
+                        .put("permissions", new JSONArray(permissions.length == 0 ? new String[]{"device"} : permissions)).toString(),
                         transport == null ? "{}" : "{\"transport\":\"" + transport + "\"}"});
         Bundle result = runtime.runScript(request, new INodeJsRuntimeCallback.Stub() {
             @Override public void onEvent(Bundle event) { }

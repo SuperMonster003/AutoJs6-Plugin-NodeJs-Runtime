@@ -1706,6 +1706,10 @@ void runEmbeddedScriptNodeLifecycle(
             }
         }
 
+        if (bridgeChannel) {
+            putPayload(payload, "embedded_script.bridge_live_event_dropped_count",
+                       static_cast<long long>(nativeBridgeDroppedEvents(bridgeChannel)));
+        }
         closeNativeBridgeChannel(bridgeChannel);
         bridgeChannel.reset();
         if (environment != nullptr) {

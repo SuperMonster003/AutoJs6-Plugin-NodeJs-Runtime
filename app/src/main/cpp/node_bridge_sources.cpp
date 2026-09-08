@@ -6560,6 +6560,11 @@ std::string buildEmbeddedScriptExecutionSource(
     if (!response || typeof response !== "object" || !response.id) {
       return false;
     }
+    if (response.event === true) {
+      const handler = __autojs6_bridge_event_handlers.get(String(response.subscriptionId || ""));
+      if (handler) handler(response.result);
+      return Boolean(handler);
+    }
     const id = String(response.id);
     const record = __autojs6_bridge_pending.get(id);
     if (!record) {
@@ -6576,8 +6581,67 @@ std::string buildEmbeddedScriptExecutionSource(
     globalThis.__autojs6_bridge_native_listen(__autojs6_bridge_receive_message);
   }
   let __autojs6_bridge_native_unavailable = false;
+  const __autojs6_bridge_event_handlers = new Map();
+  function __autojs6_bridge_attach_events(record, handler, referenced = true) {
+    const id = String(record && record.subscriptionId || "");
+    if (!id || typeof globalThis.__autojs6_bridge_native_subscription !== "function") return null;
+    __autojs6_bridge_event_handlers.set(id, handler);
+    globalThis.__autojs6_bridge_native_subscription(id, referenced);
+    const stop = function() {
+      __autojs6_bridge_event_handlers.delete(id);
+      globalThis.__autojs6_bridge_native_subscription(id, false);
+    };
+    stop.ref = function(value) { globalThis.__autojs6_bridge_native_subscription(id, Boolean(value)); };
+    return stop;
+  }
+  // Overlay/input observers gain listeners without changing their explicit drain API.
+  function __autojs6_bridge_observer(record, drain, isClosed, normalize, onClose) {
+    const emitter = new (__autojs6_events_module().EventEmitter)();
+    let timer = null;
+    let stopped = false;
+    const stopNative = __autojs6_bridge_attach_events(record, dispatch, false);
+    function count() { return emitter.eventNames().reduce((n, event) => n + emitter.listenerCount(event), 0); }
+    function refresh() {
+      if (stopNative) { stopNative.ref(!stopped && count() > 0); return; }
+      if (timer !== null && (stopped || count() === 0)) { clearTimeout(timer); timer = null; }
+      if (timer === null && !stopped && !isClosed() && count() > 0) {
+        timer = setTimeout(() => {
+          timer = null;
+          drain().then(events => { for (const event of events) dispatch(event); }, error => {
+            if (emitter.listenerCount("error")) emitter.emit("error", error);
+          }).finally(refresh);
+        }, 25);
+      }
+    }
+    function dispatch(raw) {
+      if (stopped || isClosed()) return;
+      const event = normalize(raw);
+      try {
+        emitter.emit("event", event);
+        if (event.type !== "event" && (event.type !== "error" || emitter.listenerCount("error"))) emitter.emit(event.type, event);
+      } finally {
+        if (event.type === "close") { onClose(); stop(); }
+        refresh();
+      }
+    }
+    function stop() {
+      stopped = true;
+      if (timer !== null) { clearTimeout(timer); timer = null; }
+      if (stopNative) stopNative();
+    }
+    return {
+      stop,
+      methods: {
+        on(event, listener) { emitter.on(event, listener); refresh(); return this; },
+        once(event, listener) { emitter.once(event, listener); refresh(); return this; },
+        off(event, listener) { emitter.off(event, listener); refresh(); return this; }
+      }
+    };
+  }
   function __autojs6_bridge_destroy(reason) {
     __autojs6_bridge_destroyed = true;
+    for (const id of __autojs6_bridge_event_handlers.keys()) globalThis.__autojs6_bridge_native_subscription(id, false);
+    __autojs6_bridge_event_handlers.clear();
     __autojs6_destroy_all_zlib_streams("bridge destroy");
     __autojs6_destroy_all_scoped_fs_streams("bridge destroy");
     const message = reason ? String(reason) : "AutoJs6 bridge process is not available.";
@@ -6887,6 +6951,12 @@ std::string buildEmbeddedScriptExecutionSource(
       if (typeof globalThis.__autojs6_bridge_native_file_fallback === "function") {
         globalThis.__autojs6_bridge_native_file_fallback();
       }
+    }
+    // A file fallback cannot deliver repeated callbacks. Re-negotiate this request
+    // as a pull subscription before creating its request file.
+    if (request.events) {
+      delete request.events;
+      message = JSON.stringify(request);
     }
     const fs = __autojs6_fs_module();
     if (
@@ -8308,6 +8378,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return;
     }
     connection.__closed = true;
+    if (connection.__stopEvents) connection.__stopEvents();
     connection.readyState = "closed";
     if (connection.__drainTimer !== null) {
       clearTimeout(connection.__drainTimer);
@@ -8371,6 +8442,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const connectionOptions = options && typeof options === "object" ? options : {};
     const connection = {
       id: String(record.id || ""),
+      subscriptionId: record.subscriptionId,
       url: String(record.url || ""),
       readyState: "open",
       maxMessageBytes: __autojs6_websocket_max_message_bytes(connectionOptions.maxMessageBytes),
@@ -8389,11 +8461,16 @@ std::string buildEmbeddedScriptExecutionSource(
         (this.__listeners[key] || (this.__listeners[key] = [])).push(listener);
         return this;
       },
+      once(eventName, listener) {
+        const wrapped = (...args) => { this.off(eventName, wrapped); listener.apply(this, args); };
+        wrapped.listener = listener;
+        return this.on(eventName, wrapped);
+      },
       off(eventName, listener) {
         const key = String(eventName);
         const list = this.__listeners[key];
         if (!list) return this;
-        this.__listeners[key] = list.filter(function(item) { return item !== listener; });
+        this.__listeners[key] = list.filter(function(item) { return item !== listener && item.listener !== listener; });
         return this;
       },
       addEventListener(eventName, listener) {
@@ -8447,7 +8524,8 @@ std::string buildEmbeddedScriptExecutionSource(
         });
       }
     };
-    __autojs6_websocket_schedule_drain(connection);
+    connection.__stopEvents = __autojs6_bridge_attach_events(record, event => __autojs6_websocket_process_events(connection, [event]));
+    if (!connection.__stopEvents) __autojs6_websocket_schedule_drain(connection);
     return connection;
   }
   function __autojs6_websocket_connect(url, options) {
@@ -18365,6 +18443,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const listeners = Object.create(null);
     let closed = false;
+    const stopEvents = __autojs6_bridge_attach_events(result, dispatchEvent, false);
     let terminalEventDispatching = false;
     let drainTimer = null;
     let draining = false;
@@ -18379,6 +18458,7 @@ std::string buildEmbeddedScriptExecutionSource(
       }, 0);
     }
     function stopDrainIfIdle() {
+      if (stopEvents) stopEvents.ref(listenerCount() > 0);
       if (listenerCount() === 0 && drainTimer !== null) {
         clearInterval(drainTimer);
         drainTimer = null;
@@ -18389,6 +18469,7 @@ std::string buildEmbeddedScriptExecutionSource(
         return false;
       }
       closed = true;
+      if (stopEvents) stopEvents();
       terminalEventDispatching = false;
       drainGeneration += 1;
       draining = false;
@@ -18466,6 +18547,7 @@ std::string buildEmbeddedScriptExecutionSource(
       });
     }
     function ensureDrain(options) {
+      if (stopEvents) { stopEvents.ref(listenerCount() > 0); return; }
       if (closed || terminalEventDispatching || drainTimer !== null || listenerCount() === 0) {
         return;
       }
@@ -18494,6 +18576,16 @@ std::string buildEmbeddedScriptExecutionSource(
         }
         stopDrainIfIdle();
       };
+    }
+    function once(event, callback, options) {
+      const wrapped = value => { off(event, wrapped); callback(value); };
+      wrapped.listener = callback;
+      return on(event, wrapped, options);
+    }
+    function off(event, callback) {
+      const bucket = listeners[event] || [];
+      listeners[event] = bucket.filter(listener => listener !== callback && listener.listener !== callback);
+      stopDrainIfIdle();
     }
     function update(patch, options) {
       if (closed || terminalEventDispatching) {
@@ -18597,7 +18689,10 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return Object.freeze({
       id,
+      subscriptionId: result.subscriptionId,
       on,
+      once,
+      off,
       update,
       batchUpdate,
       close
@@ -18843,13 +18938,20 @@ std::string buildEmbeddedScriptExecutionSource(
         __autojs6_ui_overlay_bridge_options(opts, "close", 5000)
       ).then(function(result) {
         state.closed = true;
+        observer.stop();
         return Boolean(result);
       }, function(error) {
         state.closed = true;
+        observer.stop();
         throw error;
       });
     }
+    const observer = __autojs6_bridge_observer(record, drainEvents, () => state.closed,
+      raw => raw && raw.type === "close" ? Object.freeze(Object.assign({}, raw)) : __autojs6_ui_overlay_event(raw),
+      () => { state.closed = true; });
     return Object.freeze({
+      ...observer.methods,
+      subscriptionId: record.subscriptionId,
       get id() { return state.id; },
       get type() { return "overlay"; },
       get closed() { return state.closed; },
@@ -21212,7 +21314,7 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_sensors_allowed_types = Object.freeze(["accelerometer", "gyroscope", "light"]);
   const __autojs6_sensors_policy = Object.freeze({
     maxSubscriptions: 4,
-    minSamplingIntervalMs: 100,
+    minSamplingIntervalMs: 20,
     defaultSamplingIntervalMs: 250,
     maxSamplingIntervalMs: 60000,
     defaultTimeoutMs: 5000,
@@ -21301,6 +21403,20 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     }
   }
+  function __autojs6_sensors_process_event(state, event) {
+    if (state.closed || !event || typeof event !== "object") return;
+    try {
+      if (event.type === "event") state.emitter.emit("event", __autojs6_sensors_freeze_event(event.event));
+      else if (event.type === "error") {
+        if (state.emitter.listenerCount("error")) state.emitter.emit("error", event.error || event);
+        else __autojs6_sensors_emit_error(state, event.error || event);
+      } else state.emitter.emit(event.type, event);
+    } catch (error) { setImmediate(function() { throw error; }); }
+    if (event.type === "close") {
+      state.closed = true;
+      if (state.stopEvents) state.stopEvents();
+    }
+  }
   function __autojs6_sensors_schedule_drain(state) {
     if (state.closed || state.timer !== null || state.drainPromise !== null || !state.id) {
       return;
@@ -21319,21 +21435,7 @@ std::string buildEmbeddedScriptExecutionSource(
         if (state.closed) {
           return;
         }
-        const list = Array.isArray(events) ? events : [];
-        for (const event of list) {
-          if (!event || typeof event !== "object") continue;
-          if (event.type === "event") {
-            try {
-              state.callback(__autojs6_sensors_freeze_event(event.event));
-            } catch (error) {
-              setImmediate(function() { throw error; });
-            }
-          } else if (event.type === "error") {
-            __autojs6_sensors_emit_error(state, event.error || event);
-          } else if (event.type === "close") {
-            state.closed = true;
-          }
-        }
+        for (const event of (Array.isArray(events) ? events : [])) __autojs6_sensors_process_event(state, event);
       }, function(error) {
         if (!state.closed) {
           state.closed = true;
@@ -21379,7 +21481,7 @@ std::string buildEmbeddedScriptExecutionSource(
       ).then(__autojs6_sensors_freeze_event);
     }
     function subscribe(type, callback, options) {
-      if (typeof callback !== "function") {
+      if (callback !== undefined && typeof callback !== "function") {
         throw __autojs6_sensors_invalid_argument_error(
           "subscribe",
           "sensors.subscribe requires a callback function."
@@ -21393,7 +21495,8 @@ std::string buildEmbeddedScriptExecutionSource(
         closed: false,
         timer: null,
         drainPromise: null,
-        callback,
+        emitter: new (__autojs6_events_module().EventEmitter)(),
+        stopEvents: null,
         onerror: null,
         drainIntervalMs: __autojs6_sensors_number(
           opts.drainIntervalMs,
@@ -21402,8 +21505,13 @@ std::string buildEmbeddedScriptExecutionSource(
           5000
         )
       };
+      if (callback) state.emitter.on("event", callback);
       const subscription = Object.freeze({
+        on(event, listener) { state.emitter.on(event, listener); return this; },
+        once(event, listener) { state.emitter.once(event, listener); return this; },
+        off(event, listener) { state.emitter.off(event, listener); return this; },
         get id() { return state.id; },
+        get subscriptionId() { return state.subscriptionId; },
         get type() { return state.type; },
         get closed() { return state.closed; },
         get ready() { return ready; },
@@ -21412,6 +21520,7 @@ std::string buildEmbeddedScriptExecutionSource(
             return Promise.resolve(undefined);
           }
           state.closed = true;
+          if (state.stopEvents) state.stopEvents();
           if (state.timer !== null) {
             clearTimeout(state.timer);
             state.timer = null;
@@ -21441,7 +21550,11 @@ std::string buildEmbeddedScriptExecutionSource(
       ).then(function(record) {
         state.id = String(record && record.id || "");
         state.type = String(record && record.type || descriptor.type);
-        __autojs6_sensors_schedule_drain(state);
+        state.subscriptionId = record && record.subscriptionId;
+        if (!state.closed) {
+          state.stopEvents = __autojs6_bridge_attach_events(record, event => __autojs6_sensors_process_event(state, event));
+          if (!state.stopEvents) __autojs6_sensors_schedule_drain(state);
+        }
         return undefined;
       }, function(error) {
         state.closed = true;
@@ -21652,13 +21765,20 @@ std::string buildEmbeddedScriptExecutionSource(
         __autojs6_input_observer_bridge_options(options, "close", 5000)
       ).then(function(result) {
         state.closed = true;
+        observer.stop();
         return Boolean(result);
       }, function(error) {
         state.closed = true;
+        observer.stop();
         throw error;
       });
     }
+    const observer = __autojs6_bridge_observer(record, drainEvents, () => state.closed,
+      raw => raw && raw.type === "close" ? Object.freeze(Object.assign({}, raw)) : __autojs6_input_observer_freeze_event(raw),
+      () => { state.closed = true; });
     return Object.freeze({
+      ...observer.methods,
+      subscriptionId: record.subscriptionId,
       get id() { return state.id; },
       get type() { return state.type; },
       get source() { return state.source; },
@@ -21757,6 +21877,12 @@ std::string buildEmbeddedScriptExecutionSource(
       timeoutMs,
       permissions: effectivePermissions
     };
+    const eventMethod = { sensors: "subscribe", websocket: "connect", ui: "showLayout", "ui.overlay": "show", input_observer: "observeKeys" };
+    const liveConfig = __autojs6_bridge_live_config();
+    if (eventMethod[moduleValue] === methodValue && liveConfig && liveConfig.transport === "jni" &&
+        !__autojs6_bridge_native_unavailable && typeof globalThis.__autojs6_bridge_native_subscription === "function") {
+      request.events = true;
+    }
     return new Promise(function(resolve, reject) {
       const record = {
         id: request.id,

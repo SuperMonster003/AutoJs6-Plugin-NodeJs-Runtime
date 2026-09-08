@@ -67,8 +67,11 @@ declare module "ui" {
     }
 
     export interface UiHandle {
+      readonly subscriptionId?: string;
       readonly id: string;
       on(event: string, callback: (event: UiEvent) => void, options?: UiEventOptions): () => void;
+      once(event: string, callback: (event: UiEvent) => void, options?: UiEventOptions): () => void;
+      off(event: string, callback: (event: UiEvent) => void): void;
       update(patch: LayoutPatch, options?: AutoJs6Node.BridgeCallOptions): Promise<void>;
       batchUpdate(patches: readonly LayoutPatch[], options?: AutoJs6Node.BridgeCallOptions): Promise<void>;
       close(options?: AutoJs6Node.BridgeCallOptions): Promise<void>;

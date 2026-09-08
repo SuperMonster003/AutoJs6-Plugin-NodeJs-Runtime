@@ -115,6 +115,22 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 
 两条通道共享 `autojs6:bridge-limits.maxPendingBridgeCalls` (默认 32, 硬上限 128)。JNI 响应队列仅接受当前通道的待处理请求, 重复响应与超时/取消后迟到的响应不再交付。超时会解除原生事件循环引用; 脚本结束时清理 V8 回调、请求队列和 JNI 通道, 下一次执行使用独立通道编号。
 
+### 订阅事件推送
+
+`sensors.subscribe`, `websocket.connect`, `ui.showLayout`, `ui.overlay.show` 与 `input_observer.observeKeys` 在 JNI 通道上协商事件推送。建立订阅的请求带可选 `events=true`; 支持推送的宿主在原成功结果中增加 `subscriptionId`。此后同一个 `INodeJsHostCapabilityCallback.onResponse` 可多次收到 `event=true` 的 Bundle, `KEY_BRIDGE_RESPONSE_JSON` 对应如下信封:
+
+```json
+{"id":"原订阅请求 ID","ok":true,"event":true,"subscriptionId":"订阅 ID","result":{"type":"event","event":{"type":"accelerometer","values":[0,0,9.8]}}}
+```
+
+宿主先交付订阅确认, 再发送注册期间积累的事件。旧宿主未返回 `subscriptionId`、或显式使用文件通道时, facade 继续采用 `drainEvents`。现有能力声明与 AIDL 事务不变; 缺省 `events=false` 的旧请求继续使用原协议。
+
+订阅句柄提供 `on/once/off`, 传感器可使用 `sensors.subscribe("accelerometer", undefined, {samplingIntervalMs:20}).on("event", listener)`。传感器最小可请求间隔为 20 ms, 默认仍为 250 ms; Android 将采样间隔视为调度提示, 实际首事件还取决于传感器产生数据的时间 ([SensorManager 文档](https://developer.android.com/reference/android/hardware/SensorManager))。WebSocket 的属性回调与 `addEventListener/removeEventListener` 继续可用。UI 的 `on/once` 保留返回取消函数的约定, `off` 显式移除监听。UI、悬浮窗和输入观察者只在存在监听时保持事件循环存活; 传感器订阅及 WebSocket 在关闭前保持活动。
+
+`drainEvents` 保留原有有界队列。显式同时使用推送和拉取时可在两处读到同一事件, facade 不会再自动重复拉取已经协商推送的订阅。关闭句柄或脚本结束会撤销事件回调和原生循环引用; 宿主资源继续由既有资源注册表清理。
+
+原生等待交付的事件队列最多 128 条、4 MiB, 超限丢弃最旧事件; 普通 RPC 响应保留各自的待处理上限并不被事件流挤出。`embedded_script.bridge_live_event_count` 统计已接收推送, `embedded_script.bridge_live_event_dropped_count` 报告原生队列丢弃数。宿主在订阅确认前也只保留最近 128 条事件。
+
 ### 长驻桥会话诊断
 
 `embedded_script.bridge_live_responses_json` 是最近 32 条响应的诊断摘要, 不再保存整段会话的所有响应。每条诊断最多 1536 UTF-8 字节; 大响应的诊断副本替换为带 `diagnosticTruncated=true` 与 `responseCharacters` 的记录, 实际交付给脚本的响应保持完整。响应数组最多 49185 字节, 调用总计数与失败计数继续累计。

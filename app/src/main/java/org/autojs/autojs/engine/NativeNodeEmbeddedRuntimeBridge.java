@@ -229,6 +229,12 @@ public final class NativeNodeEmbeddedRuntimeBridge {
 
     private native void nativeReceiveBridgeResponse(long channelId, byte[] requestId, byte[] responseJson);
 
+    public static void receiveBridgeEvent(long channelId, byte[] eventJson) {
+        INSTANCE.nativeReceiveBridgeEvent(channelId, eventJson);
+    }
+
+    private native void nativeReceiveBridgeEvent(long channelId, byte[] eventJson);
+
     private native void nativeBeginScriptStopScope(String executionTag);
 
     private native void nativeEndScriptStopScope();

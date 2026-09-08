@@ -6,6 +6,7 @@
 #include <deque>
 #include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace autojs6::node_bridge::internal {
 namespace {
@@ -78,6 +79,8 @@ public:
         std::shared_ptr<NativeBridgeChannel> channel;
     };
     struct Response { std::string id; std::string json; };
+    static constexpr size_t maxEventBytes = 4 * 1024 * 1024;
+    static constexpr size_t maxEvents = 128;
 
     jlong id = nextChannelId.fetch_add(1);
     std::shared_ptr<JavaBridgeSink> sink;
@@ -90,6 +93,43 @@ public:
     // A true value denotes an already queued reply. Duplicate/late replies are ignored.
     std::unordered_map<std::string, bool> pending;
     std::deque<Response> responses;
+    std::unordered_set<std::string> subscriptions;
+    size_t eventBytes = 0;
+    size_t eventCount = 0;
+    size_t droppedEvents = 0;
+
+    void enqueueEvent(std::string json) {
+        std::lock_guard lock(mutex);
+        if (closing) return;
+        if (json.size() > maxEventBytes) { ++droppedEvents; return; }
+        while (eventCount >= maxEvents || eventBytes + json.size() > maxEventBytes) {
+            auto oldest = std::find_if(responses.begin(), responses.end(),
+                                       [](const Response& r) { return r.id.empty(); });
+            if (oldest == responses.end()) break;
+            eventBytes -= oldest->json.size();
+            --eventCount;
+            ++droppedEvents;
+            responses.erase(oldest);
+        }
+        eventBytes += json.size();
+        ++eventCount;
+        responses.push_back({{}, std::move(json)});
+        uv_async_send(&async->handle);
+    }
+
+    static void subscription(const v8::FunctionCallbackInfo<v8::Value>& args) {
+        if (args.Length() != 2 || !args[0]->IsString()) return;
+        auto* channel = from(args);
+        v8::String::Utf8Value id(args.GetIsolate(), args[0]);
+        if (!*id) return;
+        const std::string key(*id, id.length());
+        {
+            std::lock_guard lock(channel->mutex);
+            if (args[1]->IsTrue()) channel->subscriptions.insert(key);
+            else channel->subscriptions.erase(key);
+        }
+        channel->updateLoopReference();
+    }
 
     void enqueue(std::string requestId, std::string response) {
         std::lock_guard lock(mutex);
@@ -104,7 +144,7 @@ public:
     void updateLoopReference() {
         std::lock_guard lock(mutex);
         auto* handle = reinterpret_cast<uv_handle_t*>(&async->handle);
-        if (pending.empty()) uv_unref(handle);
+        if (pending.empty() && subscriptions.empty()) uv_unref(handle);
         else uv_ref(handle);
     }
 
@@ -198,6 +238,8 @@ public:
             std::lock_guard lock(channel->mutex);
             if (channel->closing) return;
             ready.swap(channel->responses);
+            channel->eventBytes = 0;
+            channel->eventCount = 0;
         }
         v8::HandleScope handles(channel->isolate);
         auto context = channel->context.Get(channel->isolate);
@@ -206,7 +248,7 @@ public:
         for (const auto& response : ready) {
             {
                 std::lock_guard lock(channel->mutex);
-                if (!channel->pending.erase(response.id)) continue;
+                if (!response.id.empty() && !channel->pending.erase(response.id)) continue;
             }
             v8::Local<v8::String> json;
             if (!channel->listener.IsEmpty() &&
@@ -251,7 +293,8 @@ std::shared_ptr<NativeBridgeChannel> createNativeBridgeChannel(
             {"__autojs6_bridge_native_post", NativeBridgeChannel::post},
             {"__autojs6_bridge_native_listen", NativeBridgeChannel::listen},
             {"__autojs6_bridge_native_cancel", NativeBridgeChannel::cancelRequest},
-            {"__autojs6_bridge_native_file_fallback", NativeBridgeChannel::fallback}
+            {"__autojs6_bridge_native_file_fallback", NativeBridgeChannel::fallback},
+            {"__autojs6_bridge_native_subscription", NativeBridgeChannel::subscription}
     };
     for (const auto& [name, callback] : bindings) {
         v8::Local<v8::Function> function;
@@ -269,6 +312,12 @@ std::shared_ptr<NativeBridgeChannel> createNativeBridgeChannel(
     return channel;
 }
 
+size_t nativeBridgeDroppedEvents(const std::shared_ptr<NativeBridgeChannel>& channel) {
+    if (!channel) return 0;
+    std::lock_guard lock(channel->mutex);
+    return channel->droppedEvents;
+}
+
 void closeNativeBridgeChannel(const std::shared_ptr<NativeBridgeChannel>& channel) {
     if (!channel) return;
     {
@@ -280,6 +329,7 @@ void closeNativeBridgeChannel(const std::shared_ptr<NativeBridgeChannel>& channe
         channel->closing = true;
         channel->responses.clear();
         channel->pending.clear();
+        channel->subscriptions.clear();
         uv_close(reinterpret_cast<uv_handle_t*>(&channel->async->handle), [](uv_handle_t* handle) {
             delete static_cast<NativeBridgeChannel::AsyncHandle*>(handle->data);
         });
@@ -324,4 +374,17 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeReceiveBridg
         if (found != channels.end()) channel = found->second.lock();
     }
     if (channel) channel->enqueue(bytesToString(env, requestId), bytesToString(env, response));
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeReceiveBridgeEvent(
+        JNIEnv* env, jobject, jlong channelId, jbyteArray event) {
+    using namespace autojs6::node_bridge::internal;
+    std::shared_ptr<NativeBridgeChannel> channel;
+    {
+        std::lock_guard lock(channelsMutex);
+        auto found = channels.find(channelId);
+        if (found != channels.end()) channel = found->second.lock();
+    }
+    if (channel) channel->enqueueEvent(bytesToString(env, event));
 }

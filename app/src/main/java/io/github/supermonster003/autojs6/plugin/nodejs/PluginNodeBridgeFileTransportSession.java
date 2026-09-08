@@ -51,6 +51,7 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
     private final AtomicInteger failed = new AtomicInteger(0);
     private final AtomicInteger pending = new AtomicInteger(0);
     private final AtomicInteger resourceLimited = new AtomicInteger(0);
+    private final AtomicInteger eventCount = new AtomicInteger(0);
     private final AtomicInteger pollCount = new AtomicInteger(0);
     private final AtomicLong lastPollAtEpochMs = new AtomicLong(0L);
     private final AtomicLong lastRequestAtEpochMs = new AtomicLong(0L);
@@ -164,11 +165,20 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
         if (stopped.get()) return false;
         String requestText = new String(requestJson, StandardCharsets.UTF_8);
         BridgeRequestIdentity identity = bridgeRequestIdentity(requestText, "invalid");
-        dispatchRequest(requestText, identity, response -> {
-            recordResponse(response);
-            if (!stopped.get()) {
-                NativeNodeEmbeddedRuntimeBridge.receiveBridgeResponse(channelId,
-                        identity.id.getBytes(StandardCharsets.UTF_8), response.getBytes(StandardCharsets.UTF_8));
+        dispatchRequest(requestText, identity, new ResponseDelivery() {
+            @Override public void deliver(String response) {
+                recordResponse(response);
+                if (!stopped.get()) {
+                    NativeNodeEmbeddedRuntimeBridge.receiveBridgeResponse(channelId,
+                            identity.id.getBytes(StandardCharsets.UTF_8), response.getBytes(StandardCharsets.UTF_8));
+                }
+            }
+
+            @Override public void event(String eventJson) {
+                if (!stopped.get()) {
+                    eventCount.incrementAndGet();
+                    NativeNodeEmbeddedRuntimeBridge.receiveBridgeEvent(channelId, eventJson.getBytes(StandardCharsets.UTF_8));
+                }
             }
         });
         // Once dispatch is accepted, even a broker error is a response; never replay it.
@@ -204,6 +214,7 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
         LinkedHashMap<String, String> values = new LinkedHashMap<>();
         values.put("embedded_script.bridge_live_enabled", "true");
         values.put("embedded_script.bridge_live_transport", transport);
+        values.put("embedded_script.bridge_live_event_count", Integer.toString(eventCount.get()));
         values.put("embedded_script.bridge_live_request_count", Integer.toString(requestCount.get()));
         values.put("embedded_script.bridge_live_dispatch_count", Integer.toString(completed.get()));
         values.put("embedded_script.bridge_live_dispatch_failed_count", Integer.toString(failed.get()));
@@ -290,6 +301,7 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
 
     private interface ResponseDelivery {
         void deliver(String responseJson);
+        default void event(String eventJson) { }
     }
 
     private void dispatchRequest(String requestText, BridgeRequestIdentity identity, ResponseDelivery delivery) {
@@ -307,7 +319,12 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
         INodeJsHostCapabilityCallback callback = new INodeJsHostCapabilityCallback.Stub() {
             @Override
             public void onResponse(Bundle response) {
-                completeResponse(responded, delivery, responseJsonFromBundle(response, identity));
+                String json = responseJsonFromBundle(response, identity);
+                if (response != null && response.getBoolean("event", false)) {
+                    if (responded.get()) delivery.event(json);
+                } else {
+                    completeResponse(responded, delivery, json);
+                }
             }
         };
         try {

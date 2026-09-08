@@ -28,6 +28,14 @@ declare module "sensors" {
     }
 
     export interface SensorSubscription {
+      /** Present when the host negotiated pushed events. */
+      readonly subscriptionId?: string;
+      on(event: "event", listener: (event: SensorEvent) => void): this;
+      once(event: "event", listener: (event: SensorEvent) => void): this;
+      off(event: "event", listener: (event: SensorEvent) => void): this;
+      on(event: "close" | "accuracy" | "error", listener: (event: unknown) => void): this;
+      once(event: "close" | "accuracy" | "error", listener: (event: unknown) => void): this;
+      off(event: "close" | "accuracy" | "error", listener: (event: unknown) => void): this;
       readonly id: string;
       readonly type: SensorType;
       readonly closed: boolean;
@@ -49,7 +57,7 @@ declare module "sensors" {
 
       getAvailableSensors(options?: AutoJs6Node.BridgeCallOptions): Promise<readonly SensorInfo[]>;
       once(type: SensorType, options?: SensorOptions): Promise<SensorEvent>;
-      subscribe(type: SensorType, callback: (event: SensorEvent) => void, options?: SensorOptions): SensorSubscription;
+      subscribe(type: SensorType, callback?: (event: SensorEvent) => void, options?: SensorOptions): SensorSubscription;
     }
   }
 
