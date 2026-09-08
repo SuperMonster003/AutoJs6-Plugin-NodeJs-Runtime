@@ -40,6 +40,7 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
     private static final int DRAIN_ITERATIONS = 20;
 
     private final File root;
+    private final String executionId;
     private final File requestDir;
     private final File responseDir;
     private final INodeJsHostCapabilityBroker hostBroker;
@@ -76,6 +77,7 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
             int maxPendingBridgeCalls, String transport
     ) {
         this.transport = transport;
+        this.executionId = executionId;
         this.root = new File(
                 new File(cacheDir, "nodejs-bridge-live"),
                 safeFileName(nonBlank(executionId, "execution-" + System.nanoTime()))
@@ -320,6 +322,17 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
             @Override
             public void onResponse(Bundle response) {
                 String json = responseJsonFromBundle(response, identity);
+                if (response != null) {
+                    try (android.os.ParcelFileDescriptor binary = response.getParcelable(NodeJsRuntimeContract.KEY_BRIDGE_BINARY_PFD)) {
+                        if (binary != null && !NativeNodeEmbeddedRuntimeBridge.attachBridgeBinary(executionId,
+                                identity.id.getBytes(StandardCharsets.UTF_8), binary.getFd(),
+                                response.getLong(NodeJsRuntimeContract.KEY_BRIDGE_BINARY_BYTE_COUNT, -1))) {
+                            json = bridgeFailureResponseJson(identity, "Image byte response is invalid or no longer active.", BRIDGE_PROVIDER_FAILED);
+                        }
+                    } catch (java.io.IOException | RuntimeException error) {
+                        json = bridgeFailureResponseJson(identity, messageOf(error), BRIDGE_PROVIDER_FAILED);
+                    }
+                }
                 if (response != null && response.getBoolean("event", false)) {
                     if (responded.get()) delivery.event(json);
                 } else {

@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.res.AssetManager;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
@@ -42,7 +43,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Roadmap M2.4/M9.2/M13.4: twenty real npm packages run inside the plugin runtime.
+ * Roadmap M2.4/M9.2/M13.4/M14.3: twenty-one real npm packages run inside the plugin runtime.
  * The original high-frequency CommonJS corpus is extended with axios and
  * Express loopback probes plus three ESM-only packages (nanoid, p-limit and
  * yocto-queue). The genuine npm-install tree is shipped as androidTest assets
@@ -61,7 +62,7 @@ public final class NpmEcosystemSmokeTest {
             "lodash", "dayjs", "ms", "semver", "uuid",
             "debug", "mime", "qs", "js-yaml", "ajv",
             "axios", "express", "nanoid", "p-limit", "yocto-queue",
-            "zod", "cheerio", "date-fns", "mqtt", "ws"
+            "zod", "cheerio", "date-fns", "mqtt", "ws", "pngjs"
     );
 
     @Test
@@ -199,6 +200,14 @@ public final class NpmEcosystemSmokeTest {
      * copy, no decoding, so package payloads arrive byte-identical.
      */
     private static String writeCorpusArchive(AssetManager assets, File archive) throws Exception {
+        // This is an instrumentation screenshot for the PNG corpus, independent of MediaProjection consent.
+        Bitmap screenshot = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+        assertNotNull("instrumentation screenshot is unavailable", screenshot);
+        ByteArrayOutputStream png = new ByteArrayOutputStream();
+        assertTrue(screenshot.compress(Bitmap.CompressFormat.PNG, 100, png));
+        byte[] expected = new JSONObject().put("width", screenshot.getWidth()).put("height", screenshot.getHeight())
+                .toString().getBytes(StandardCharsets.UTF_8);
+        screenshot.recycle();
         List<String> files = new ArrayList<>();
         ArrayDeque<String> pending = new ArrayDeque<>();
         pending.add(ASSET_ROOT);
@@ -220,6 +229,8 @@ public final class NpmEcosystemSmokeTest {
         for (String assetPath : files) {
             workspaceNames.add(assetPath.substring(ASSET_ROOT.length() + 1));
         }
+        workspaceNames.add("device-screen.png");
+        workspaceNames.add("device-screen.json");
         Collections.sort(workspaceNames);
 
         JSONObject manifest = new JSONObject()
@@ -231,7 +242,9 @@ public final class NpmEcosystemSmokeTest {
             output.write(manifest.toString().getBytes(StandardCharsets.UTF_8));
             output.closeEntry();
             for (String workspaceName : workspaceNames) {
-                byte[] content = readAsset(assets, ASSET_ROOT + "/" + workspaceName);
+                byte[] content = "device-screen.png".equals(workspaceName) ? png.toByteArray()
+                        : "device-screen.json".equals(workspaceName) ? expected
+                        : readAsset(assets, ASSET_ROOT + "/" + workspaceName);
                 if ("main.js".equals(workspaceName)) {
                     entrySource = new String(content, StandardCharsets.UTF_8);
                 }

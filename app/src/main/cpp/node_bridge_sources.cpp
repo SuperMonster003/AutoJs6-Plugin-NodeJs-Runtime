@@ -6319,6 +6319,19 @@ std::string buildEmbeddedScriptExecutionSource(
       return false;
     }
     if (response.ok === true) {
+      if (record.request.binary === true) {
+        try {
+          const bytes = globalThis.__autojs6_bridge_native_take_binary(record.id);
+          if (!bytes || !response.result || bytes.byteLength !== response.result.byteCount) {
+            throw new Error("Host image bytes are missing or have an invalid length.");
+          }
+          __autojs6_bridge_resolve_pending(record, __autojs6_buffer_module().Buffer.from(bytes));
+        } catch (error) {
+          __autojs6_bridge_reject_pending(record, __autojs6_bridge_error(
+            String(error.message || error), "ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED", record.request.module, record.request.method));
+        }
+        return true;
+      }
       __autojs6_bridge_resolve_pending(record, response.result === undefined ? null : response.result);
       return true;
     }
@@ -19697,6 +19710,14 @@ std::string buildEmbeddedScriptExecutionSource(
       return cached;
     }
     const recycledImageHandles = new Set();
+    function toBytes(image, options) {
+      const handle = __autojs6_normalize_image_handle(image);
+      if (!handle) return Promise.reject(__autojs6_image_invalid_argument_error(bridgeModuleName, "toBytes", "Image bytes require an image handle."));
+      const input = typeof options === "string" ? { format: options } : __autojs6_image_options(options);
+      const format = input.format || "png";
+      if (format !== "png" && format !== "rgba") return Promise.reject(__autojs6_image_invalid_argument_error(bridgeModuleName, "toBytes", "Image byte format must be png or rgba."));
+      return __autojs6_call_autojs(bridgeModuleName, "toBytes", [handle, { format }], __autojs6_image_bridge_options(input, 10000));
+    }
     function captureScreen(options) {
       const captureOptions = __autojs6_image_options(options);
       return __autojs6_track_image_creation(bridgeModuleName, "captureScreen", function() {
@@ -19978,6 +19999,7 @@ std::string buildEmbeddedScriptExecutionSource(
       captureScreen,
       requestScreenCapture: __autojs6_rhino_compat_request_screen_capture,
       stopScreenCapture: __autojs6_rhino_compat_stop_screen_capture,
+      toBytes,
       readImage,
       saveImage,
       clip,
@@ -21647,6 +21669,7 @@ std::string buildEmbeddedScriptExecutionSource(
       permissions: effectivePermissions
     };
     const eventMethod = { sensors: "subscribe", websocket: "connect", ui: "showLayout", "ui.overlay": "show", input_observer: "observeKeys" };
+    if ((moduleValue === "image" || moduleValue === "images") && methodValue === "toBytes") request.binary = true;
     const liveConfig = __autojs6_bridge_live_config();
     if (eventMethod[moduleValue] === methodValue && liveConfig && liveConfig.transport === "jni" &&
         !__autojs6_bridge_native_unavailable && typeof globalThis.__autojs6_bridge_native_subscription === "function") {
@@ -21701,6 +21724,10 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_bridge_pending.set(request.id, record);
       __autojs6_bridge_publish_diagnostics(record, "start", null);
       try {
+        if (request.binary === true && (typeof globalThis.__autojs6_bridge_native_expect_binary !== "function" ||
+            !globalThis.__autojs6_bridge_native_expect_binary(request.id, bridgeLimits.maxPendingBridgeCalls))) {
+          throw __autojs6_bridge_error("Image byte transport is unavailable or full.", "ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT", moduleValue, methodValue);
+        }
         const requestMessage = JSON.stringify(request);
         if (!__autojs6_bridge_transport || typeof __autojs6_bridge_transport.postMessage !== "function") {
           if (__autojs6_bridge_post_live_host_message(requestMessage, request)) {

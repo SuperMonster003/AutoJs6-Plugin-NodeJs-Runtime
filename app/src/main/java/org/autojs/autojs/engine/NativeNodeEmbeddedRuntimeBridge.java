@@ -125,6 +125,10 @@ public final class NativeNodeEmbeddedRuntimeBridge {
         INSTANCE.nativeReceiveBridgeResponse(channelId, requestId, responseJson);
     }
 
+    public static boolean attachBridgeBinary(String executionId, byte[] requestId, int fd, long byteCount) {
+        return librariesLoaded && INSTANCE.nativeAttachBridgeBinary(executionId, requestId, fd, byteCount);
+    }
+
     /**
      * Installs (or clears, when {@code sink} is null) the process-wide
      * streaming output sink consulted by the next embedded script execution.
@@ -230,6 +234,7 @@ public final class NativeNodeEmbeddedRuntimeBridge {
     private native void nativeSetBridgeSink(BridgeSink sink, int maxPending);
 
     private native void nativeReceiveBridgeResponse(long channelId, byte[] requestId, byte[] responseJson);
+    private native boolean nativeAttachBridgeBinary(String executionId, byte[] requestId, int fd, long byteCount);
 
     public static void receiveBridgeEvent(long channelId, byte[] eventJson) {
         INSTANCE.nativeReceiveBridgeEvent(channelId, eventJson);

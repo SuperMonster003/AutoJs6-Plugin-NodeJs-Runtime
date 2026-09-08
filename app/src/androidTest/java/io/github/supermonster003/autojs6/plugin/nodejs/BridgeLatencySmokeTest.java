@@ -232,6 +232,89 @@ public final class BridgeLatencySmokeTest {
         return result;
     }
 
+    @Test public void binaryAttachmentsCloseAfterUseTimeoutAndExecutionExit() throws Exception {
+        java.io.File payload = java.io.File.createTempFile("bridge-bytes-", ".bin", context.getCacheDir());
+        byte[] content = new byte[8192];
+        for (int index = 0; index < content.length; index++) content[index] = (byte) index;
+        try (java.io.FileOutputStream stream = new java.io.FileOutputStream(payload)) { stream.write(content); }
+        ScheduledExecutorService replies = Executors.newSingleThreadScheduledExecutor();
+        INodeJsHostCapabilityBroker broker = new INodeJsHostCapabilityBroker.Stub() {
+            @Override public Bundle getBrokerInfo() {
+                Bundle info = new Bundle();
+                info.putInt(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_BROKER_VERSION, 1);
+                info.putStringArray(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_MODULES, new String[]{"image"});
+                return info;
+            }
+            @Override public Bundle getNativeDiagnostics() { return new Bundle(); }
+            @Override public void destroy(Bundle reason) { }
+            @Override public void dispatch(Bundle request, INodeJsHostCapabilityCallback callback) {
+                try {
+                    JSONObject call = new JSONObject(request.getString(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_JSON));
+                    boolean binary = "toBytes".equals(call.getString("method"));
+                    Runnable reply = () -> {
+                        try {
+                            JSONObject result = binary ? new JSONObject().put("byteCount", content.length)
+                                    : new JSONObject().put("id", "image-fixture").put("__autojs6ImageHandle", "image-fixture")
+                                            .put("width", 2048).put("height", 1);
+                            Bundle response = new Bundle();
+                            response.putString(NodeJsRuntimeContract.KEY_BRIDGE_RESPONSE_JSON,
+                                    new JSONObject().put("id", call.getString("id")).put("ok", true).put("result", result).toString());
+                            if (binary) {
+                                try (android.os.ParcelFileDescriptor fd = android.os.ParcelFileDescriptor.open(payload,
+                                        android.os.ParcelFileDescriptor.MODE_READ_ONLY)) {
+                                    response.putParcelable(NodeJsRuntimeContract.KEY_BRIDGE_BINARY_PFD, fd);
+                                    response.putLong(NodeJsRuntimeContract.KEY_BRIDGE_BINARY_BYTE_COUNT, content.length);
+                                    callback.onResponse(response);
+                                }
+                            } else callback.onResponse(response);
+                        } catch (Exception error) { throw new AssertionError(error); }
+                    };
+                    if (binary && "png".equals(call.getJSONArray("args").getJSONObject(1).optString("format")))
+                        replies.schedule(reply, 100, TimeUnit.MILLISECONDS);
+                    else reply.run();
+                } catch (Exception error) { throw new AssertionError(error); }
+            }
+        };
+        try {
+            for (String transport : new String[]{"jni", "file"}) {
+                Bundle warm = run(broker, transport, "console.log(process.pid);", "image");
+                int pid = Integer.parseInt(warm.getString(NodeJsRuntimeContract.KEY_STDOUT, "").trim());
+                java.io.File descriptors = new java.io.File("/proc/" + pid + "/fd");
+                String[] before = descriptors.list();
+                assertNotNull("runtime FD list unavailable", before);
+                Bundle result = run(broker, transport, """
+                    (async () => {
+                      const image = require('image');
+                      const frame = await image.readImage('fixture.png');
+                      const held = [];
+                      for (let i = 0; i < 40; ++i) {
+                        const bytes = await image.toBytes(frame, 'rgba');
+                        if (!Buffer.isBuffer(bytes) || bytes.length !== 8192 || bytes[4095] !== 255) throw new Error('bad mapped bytes');
+                        held.push(bytes);
+                      }
+                      let timeouts = 0;
+                      await Promise.all(Array.from({length: 16}, () => image.toBytes(frame, {format: 'png', timeoutMs: 10})
+                        .catch(error => { if (error.code !== 'ERR_AUTOJS6_BRIDGE_TIMEOUT') throw error; ++timeouts; })));
+                      if (timeouts !== 16) throw new Error('missing timeout');
+                      await new Promise(resolve => setTimeout(resolve, 250));
+                      const next = await image.toBytes(frame, 'rgba');
+                      if (next[17] !== 17 || held[0][4095] !== 255) throw new Error('mapping invalidated');
+                      console.log('m14.binary.lifetime=PASS');
+                    })().catch(error => { console.error(error.stack); process.exitCode = 1; });
+                    """, "image");
+                assertTrue(result.getString(NodeJsRuntimeContract.KEY_STDOUT, "").contains("m14.binary.lifetime=PASS"));
+                String[] after = descriptors.list();
+                assertNotNull(after);
+                assertTrue("FD growth after " + transport + ": " + before.length + " -> " + after.length,
+                        after.length <= before.length + 2);
+                System.out.println("m14.binary.fd." + transport + "=" + before.length + "->" + after.length);
+            }
+        } finally {
+            replies.shutdownNow();
+            payload.delete();
+        }
+    }
+
     private static String value(String[] payload, String key) {
         for (String entry : payload) {
             if (entry.startsWith(key + "=")) return entry.substring(key.length() + 1);

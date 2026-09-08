@@ -1,0 +1,11 @@
+# Immutable Node.js capability catalog distribution lock.
+format=1
+schema=autojs6-node-capability-catalog-lock-v1
+catalog.version=1.4.0
+file=node-capability-catalog.json
+sha256=9693aaf75960b85aea5e37801ce7bc12903cea72be95b68233cc524fcc0d9ece
+source.file=app/src/main/assets/nodejs/node-capability-catalog.json
+source.owner=AutoJs6-Plugin-NodeJs-Runtime
+source.repository=AutoJs6-Plugin-NodeJs-Runtime
+source.gitBase=4c0f62903fc1724df5633006e5cd1494c95ba00e
+source.sha256=9693aaf75960b85aea5e37801ce7bc12903cea72be95b68233cc524fcc0d9ece

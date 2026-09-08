@@ -93,7 +93,7 @@ val verifyNodeHostCapabilityManifestAlignment = tasks.register("verifyNodeHostCa
         "app/src/main/java/io/github/supermonster003/autojs6/plugin/nodejs/NodeBridgePermissionManifest.java",
     )
     val catalogFile = rootProject.projectDir.resolve(
-        "releases/nodejs-capability-catalog/1.3.0/node-capability-catalog.json",
+        "releases/nodejs-capability-catalog/1.4.0/node-capability-catalog.json",
     )
     val reportFile = layout.buildDirectory.file("reports/nodejs/host-capability-manifest-alignment.json")
 

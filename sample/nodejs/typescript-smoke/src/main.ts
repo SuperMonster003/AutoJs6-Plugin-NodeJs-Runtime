@@ -249,6 +249,9 @@ async function smoke(): Promise<void> {
 
   const capture = await image.captureScreen({ requireExistingPermission: true, timeoutMs: 1000 });
   const template = await images.readImage("template.png", { timeoutMs: 1000 });
+  const rgba: Uint8Array = await image.toBytes(capture, { format: "rgba", timeoutMs: 1000 });
+  const png: Uint8Array = await images.toBytes(template, "png");
+  void [rgba, png];
   await image.saveImage(capture, "out/result.png", { format: "png", timeoutMs: 1000 });
   await image.saveImage(capture, "out/result-copy.png", "png", { timeoutMs: 1000 });
   const clipped = await image.clip(capture, 0, 0, 10, 10, { timeoutMs: 1000 });

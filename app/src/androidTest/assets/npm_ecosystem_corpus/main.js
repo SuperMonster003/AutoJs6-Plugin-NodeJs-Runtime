@@ -270,6 +270,14 @@ check("ajv", () => {
     return queue.dequeue() === "first" && queue.dequeue() === "second" && queue.size === 0;
   });
 
+  check("pngjs", () => {
+    const fs = require("fs"), { PNG } = require("pngjs");
+    const expected = JSON.parse(fs.readFileSync("device-screen.json", "utf8"));
+    const screenshot = PNG.sync.read(fs.readFileSync("device-screen.png"));
+    return screenshot.width === expected.width && screenshot.height === expected.height &&
+      screenshot.data.length === expected.width * expected.height * 4;
+  });
+
   console.log("npm.suite=done");
 })().catch((error) => {
   console.error("npm.suite=fail " + (error && error.stack || error));

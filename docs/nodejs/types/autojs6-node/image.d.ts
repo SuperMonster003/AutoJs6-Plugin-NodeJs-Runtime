@@ -2,6 +2,8 @@
 declare module "image" {
   namespace image {
     export type ColorInput = number | string;
+    /** Native Node Buffer when @types/node is present; byte-array methods are always available. */
+    export type ImageBytes = typeof globalThis extends { Buffer: { prototype: infer NativeBuffer } } ? NativeBuffer : Uint8Array;
     export type MultiColorPointInput = readonly [number, number, ColorInput] | MultiColorPoint;
 
     export interface ImageSize {
@@ -27,6 +29,11 @@ declare module "image" {
     export interface SaveImageOptions extends AutoJs6Node.BridgeCallOptions {
       format?: "png" | "jpg" | "jpeg" | "webp";
       quality?: number;
+    }
+
+    export interface ImageBytesOptions extends AutoJs6Node.BridgeCallOptions {
+      /** PNG by default; rgba is tightly packed, straight-alpha sRGB RGBA8. */
+      format?: "png" | "rgba";
     }
 
     export interface FindImageOptions extends AutoJs6Node.BridgeCallOptions {
@@ -55,6 +62,8 @@ declare module "image" {
       stopScreenCapture(): Promise<void>;
       captureScreen(options?: CaptureScreenOptions): Promise<AutoJs6Node.ImageHandle>;
       readImage(path: string, options?: AutoJs6Node.BridgeCallOptions): Promise<AutoJs6Node.ImageHandle>;
+      /** Returns a native Buffer mapped from a PFD; it remains valid after the image handle is recycled. */
+      toBytes(image: AutoJs6Node.ImageHandleLike, options?: ImageBytesOptions | ImageBytesOptions["format"]): Promise<ImageBytes>;
       saveImage(image: AutoJs6Node.ImageHandleLike, path: string, options?: SaveImageOptions): Promise<void>;
       saveImage(image: AutoJs6Node.ImageHandleLike, path: string, format: SaveImageOptions["format"], options?: AutoJs6Node.BridgeCallOptions): Promise<void>;
       clip(image: AutoJs6Node.ImageHandleLike, x: number, y: number, width: number, height: number, options?: AutoJs6Node.BridgeCallOptions): Promise<AutoJs6Node.ImageHandle>;
