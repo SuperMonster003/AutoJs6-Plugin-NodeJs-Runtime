@@ -58,7 +58,7 @@ public final class CancellationRestartFallbackSmokeTest {
         assertTrue("stale entry marker could not be removed", !entered.exists() || entered.delete());
         Os.mkfifo(fifo.getAbsolutePath(), 0600);
 
-        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ExecutorService executor = Executors.newFixedThreadPool(2);
         int firstPid;
         Future<Bundle> pending;
         try (ServiceSession first = ServiceSession.connect(context)) {
@@ -101,14 +101,18 @@ public final class CancellationRestartFallbackSmokeTest {
             Thread.sleep(NATIVE_BLOCK_SETTLE_MS);
             assertFalse("FIFO fixture returned before cancellation", pending.isDone());
 
+            CountDownLatch survivorReady = new CountDownLatch(1);
+            Future<Bundle> survivor = executor.submit(() -> first.runtime.runScript(
+                    ConcurrentExecutionSmokeTest.request("m16-fallback-survivor", "console.log('survivor'); setInterval(() => {}, 1000);"),
+                    ConcurrentExecutionSmokeTest.output(survivorReady)));
+            assertTrue(survivorReady.await(FIRST_OUTPUT_TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
             CountDownLatch binderDied = new CountDownLatch(1);
             first.binder.linkToDeath(binderDied::countDown, 0);
             long cancellationStartedAt = SystemClock.elapsedRealtime();
             assertTrue("cancelScript declined the active execution", first.runtime.cancelScript(EXECUTION_ID));
-            assertTrue(
-                    "runtime process survived an uncooperative stop past the fallback window",
-                    binderDied.await(PROCESS_DEATH_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            );
+            Bundle stopped = pending.get(PROCESS_DEATH_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            assertEquals(NodeJsRuntimePluginService.ERROR_SCRIPT_CANCELLED, stopped.getString(NodeJsRuntimeContract.KEY_ERROR_CODE));
             long restartElapsedMs = SystemClock.elapsedRealtime() - cancellationStartedAt;
             assertTrue(
                     "restart fallback fired before the 3s cooperative grace: " + restartElapsedMs + "ms",
@@ -119,15 +123,11 @@ public final class CancellationRestartFallbackSmokeTest {
                     restartElapsedMs < PROCESS_DEATH_TIMEOUT_MS
             );
 
-            try {
-                Bundle unexpected = pending.get(RUN_RETURN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-                fail("killed Binder execution unexpectedly returned a Bundle: " + unexpected);
-            } catch (ExecutionException expected) {
-                assertTrue(
-                        "runtime process death did not surface as Binder transport loss: " + expected,
-                        containsRemoteException(expected.getCause())
-                );
-            }
+            assertEquals("dispatcher died with one worker", 1L, binderDied.getCount());
+            assertFalse("unrelated worker stopped during fallback", survivor.isDone());
+            assertTrue(first.runtime.cancelScript("m16-fallback-survivor"));
+            Bundle survivorStopped = survivor.get(RUN_RETURN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            assertNotEquals(firstPid, survivorStopped.getInt(NodeJsRuntimeContract.KEY_PID));
         } finally {
             executor.shutdownNow();
             assertTrue("FIFO fixture could not be removed", !fifo.exists() || fifo.delete());

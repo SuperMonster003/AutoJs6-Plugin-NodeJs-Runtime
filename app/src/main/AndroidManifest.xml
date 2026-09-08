@@ -81,6 +81,9 @@
             </intent-filter>
         </service>
 
+        <service android:name=".NodeJsRuntimeSlot0Service" android:exported="false" android:process=":nodejs_runtime0" />
+        <service android:name=".NodeJsRuntimeSlot1Service" android:exported="false" android:process=":nodejs_runtime1" />
+
     </application>
 
 </manifest>

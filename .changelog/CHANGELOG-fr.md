@@ -20,6 +20,7 @@
 * `Ajout` autojs6:events observe les notifications Android, les Toast externes, les touches d’accessibilité et les événements écran ou batterie par callbacks, avec autorisations explicites et nettoyage automatique; events natif de Node reste compatible
 * `Ajout` Node app prend en charge les services Android, les broadcasts et la recherche des applications installées; dialogs propose la saisie, les choix et les fenêtres de progression fermées avec le script, et keys expose les actions système d’accessibilité
 * `Ajout` Node recorder prend en charge l’enregistrement AAC avec autorisation du microphone, notification, limite de durée et arrêt avec le script; ui.overlay permet la mise à jour des propriétés, le déplacement et les événements transmis
+* `Ajout` Les scripts Node peuvent s’exécuter dans deux processus indépendants avec une file FIFO partagée et un routage des annulations et des entrées par exécution
 * `Correction` Correction de l’accumulation des requêtes et réponses du pont dans les scripts résidents : suppression des requêtes terminées et conservation des 32 dernières réponses avec une taille de diagnostic limitée
 * `Correction` Correction des résultats de succès prématurés perdant les erreurs asynchrones natives et les codes de sortie tardifs; fin alignée sur la sortie finale de la boucle Node
 * `Amelioration` Réduction de la latence du pont grâce au transport JNI/Binder par défaut et aux réponses via la boucle événementielle Node, avec repli sur fichiers et limites des appels en attente

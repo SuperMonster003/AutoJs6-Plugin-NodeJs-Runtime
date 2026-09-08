@@ -131,15 +131,19 @@ public class NodeJsRuntimePluginService extends Service {
     volatile RuntimeReadiness lastRuntimeReadiness = RuntimeReadiness.notStarted();
     final NodeRuntimeModuleInjector moduleInjector = new NodeRuntimeModuleInjector(this);
     final NodePluginBundles bundles = new NodePluginBundles(this);
+    private NodeRuntimeProcessPool processPool;
+    int runtimeSlotId() { return -1; }
 
     private final INodeJsRuntimePlugin.Stub binder = new INodeJsRuntimePlugin.Stub() {
         @Override
         public Bundle getRuntimeInfo() {
+            if (processPool != null) return processPool.getRuntimeInfo();
             return bundles.runtimeInfoBundle();
         }
 
         @Override
         public Bundle runScript(Bundle request, INodeJsRuntimeCallback callback) {
+            if (processPool != null) return processPool.runScript(request, callback);
             long startedAt = SystemClock.elapsedRealtime();
             Bundle normalizedRequest = request == null ? new Bundle() : new Bundle(request);
             NodeRuntimeExecutionGate.Lease acquiredLease = null;
@@ -268,6 +272,7 @@ public class NodeJsRuntimePluginService extends Service {
 
         @Override
         public boolean postMessage(String executionId, Bundle message) {
+            if (processPool != null) return processPool.postMessage(executionId, message);
             if (!isDedicatedRuntimeProcess() || executionId == null || message == null) return false;
             try {
                 String kind = message.getString(NodeJsRuntimeContract.KEY_MESSAGE_KIND);
@@ -294,6 +299,7 @@ public class NodeJsRuntimePluginService extends Service {
 
         @Override
         public boolean cancelScript(String executionId) {
+            if (processPool != null) return processPool.cancelScript(executionId);
             if (!isDedicatedRuntimeProcess()) {
                 Log.e(TAG, "Refusing cancellation outside the dedicated runtime process.");
                 return false;
@@ -331,6 +337,7 @@ public class NodeJsRuntimePluginService extends Service {
 
         @Override
         public Bundle prewarmRuntime(Bundle request) {
+            if (processPool != null) return processPool.prewarmRuntime(request);
             long startedAt = SystemClock.elapsedRealtime();
             Bundle normalizedRequest = request == null ? new Bundle() : new Bundle(request);
             try {
@@ -365,6 +372,10 @@ public class NodeJsRuntimePluginService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        if (runtimeSlotId() < 0) {
+            processPool = new NodeRuntimeProcessPool(this);
+            return;
+        }
         RuntimeReadiness readiness = ensurePersistentRuntimeReady();
         if (!readiness.ready) {
             Log.e(TAG, "Dedicated Node.js runtime process failed to become ready: " + readiness.detail);
@@ -375,6 +386,11 @@ public class NodeJsRuntimePluginService extends Service {
     @Override
     public IBinder onBind(android.content.Intent intent) {
         return binder;
+    }
+
+    @Override public void onDestroy() {
+        if (processPool != null) processPool.close();
+        super.onDestroy();
     }
 
     private void scheduleIdleExitCheck() {
@@ -488,7 +504,7 @@ public class NodeJsRuntimePluginService extends Service {
         }
     }
 
-    private Bundle validateRequestContract(Bundle request, long startedAt) {
+    Bundle validateRequestContract(Bundle request, long startedAt) {
         int receivedVersion;
         try {
             // A request without an explicit version is treated as the current
@@ -605,7 +621,7 @@ public class NodeJsRuntimePluginService extends Service {
     }
 
     boolean isDedicatedRuntimeProcess() {
-        return currentProcessName().equals(getPackageName() + RUNTIME_PROCESS_SUFFIX);
+        return runtimeSlotId() >= 0 && currentProcessName().equals(getPackageName() + RUNTIME_PROCESS_SUFFIX + runtimeSlotId());
     }
 
     /**

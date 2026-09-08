@@ -30,7 +30,8 @@
         "Les API Node device exposent les informations actuelles du système, de l’écran, de la batterie et de la mémoire, le réglage de luminosité et le maintien temporaire de l’écran allumé; media règle le volume selon les autorisations Android",
         "autojs6:events observe les notifications Android, les Toast externes, les touches d’accessibilité et les événements écran ou batterie par callbacks, avec autorisations explicites et nettoyage automatique; events natif de Node reste compatible",
         "Node app prend en charge les services Android, les broadcasts et la recherche des applications installées; dialogs propose la saisie, les choix et les fenêtres de progression fermées avec le script, et keys expose les actions système d’accessibilité",
-        "Node recorder prend en charge l’enregistrement AAC avec autorisation du microphone, notification, limite de durée et arrêt avec le script; ui.overlay permet la mise à jour des propriétés, le déplacement et les événements transmis"
+        "Node recorder prend en charge l’enregistrement AAC avec autorisation du microphone, notification, limite de durée et arrêt avec le script; ui.overlay permet la mise à jour des propriétés, le déplacement et les événements transmis",
+        "Les scripts Node peuvent s’exécuter dans deux processus indépendants avec une file FIFO partagée et un routage des annulations et des entrées par exécution"
       ]
     },
     "v1.2.0": {

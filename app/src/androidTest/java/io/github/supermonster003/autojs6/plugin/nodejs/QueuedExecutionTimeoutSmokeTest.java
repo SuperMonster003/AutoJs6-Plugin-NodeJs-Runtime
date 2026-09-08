@@ -64,8 +64,9 @@ public final class QueuedExecutionTimeoutSmokeTest {
                 "bindService was rejected",
                 context.bindService(new Intent().setComponent(component), connection, Context.BIND_AUTO_CREATE)
         );
-        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ExecutorService executor = Executors.newFixedThreadPool(2);
         Future<Bundle> activeResult = null;
+        Future<Bundle> secondResult = null;
         INodeJsRuntimePlugin runtime = null;
         try {
             assertTrue("bind timed out", connected.await(BIND_TIMEOUT_MS, TimeUnit.MILLISECONDS));
@@ -99,6 +100,11 @@ public final class QueuedExecutionTimeoutSmokeTest {
                     "blocking execution never became active",
                     activeStarted.await(RESULT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             );
+            Bundle secondRequest = new Bundle(activeRequest);
+            secondRequest.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, ACTIVE_EXECUTION_ID + "-second");
+            CountDownLatch secondStarted = new CountDownLatch(1);
+            secondResult = executor.submit(() -> activeRuntime.runScript(secondRequest, ConcurrentExecutionSmokeTest.output(secondStarted)));
+            assertTrue(secondStarted.await(RESULT_TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
             Bundle queuedRequest = new Bundle();
             queuedRequest.putString(
@@ -142,10 +148,13 @@ public final class QueuedExecutionTimeoutSmokeTest {
                     "ERR_AUTOJS6_NODE_SCRIPT_CANCELLED",
                     stopped.getString(NodeJsRuntimeContract.KEY_ERROR_CODE, "")
             );
+            assertTrue(runtime.cancelScript(ACTIVE_EXECUTION_ID + "-second"));
+            secondResult.get(RESULT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } finally {
             if (runtime != null && activeResult != null && !activeResult.isDone()) {
                 runtime.cancelScript(ACTIVE_EXECUTION_ID);
             }
+            if (runtime != null && secondResult != null && !secondResult.isDone()) runtime.cancelScript(ACTIVE_EXECUTION_ID + "-second");
             executor.shutdownNow();
             context.unbindService(connection);
         }
