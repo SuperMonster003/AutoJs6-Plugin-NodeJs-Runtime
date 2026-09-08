@@ -1369,17 +1369,6 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_limited_revoke_object_url(url) {
     __autojs6_object_url_records.delete(String(url));
   }
-  function __autojs6_limited_resolve_object_url(url) {
-    const key = String(url);
-    if (__autojs6_object_url_records.has(key)) {
-      return __autojs6_object_url_records.get(key);
-    }
-    const nodeBuffer = __autojs6_buffer_module();
-    if (nodeBuffer && typeof nodeBuffer.resolveObjectURL === "function") {
-      return nodeBuffer.resolveObjectURL(key);
-    }
-    return undefined;
-  }
   function __autojs6_body_blob(body) {
     const BlobCtor = __autojs6_blob_constructor();
     if (!BlobCtor) {
@@ -2952,7 +2941,7 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_install_performance_globals() {
     let perfHooks;
     try {
-      perfHooks = __autojs6_limited_perf_hooks();
+      perfHooks = __autojs6_builtin_module("perf_hooks");
     } catch (_) {
       return;
     }
@@ -3080,6 +3069,9 @@ std::string buildEmbeddedScriptExecutionSource(
     typeof process === "object" && process && typeof process.getBuiltinModule === "function"
       ? process.getBuiltinModule.bind(process)
       : null;
+  // internal/worker replaces process.chdir during module initialization. Load it
+  // before process facade properties become read-only; node:test also imports it.
+  if (__autojs6_get_builtin_module) __autojs6_get_builtin_module("worker_threads");
   // inspector.js lazily initializes process internals on first load. Capture
   // it before the controlled process facade makes those properties read-only.
   const __autojs6_preloaded_inspector = (function() {
@@ -3517,11 +3509,6 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_pending_timer_count(kind) {
     return __autojs6_timer_bucket(kind).length;
   }
-  function __autojs6_pending_timer_total() {
-    return __autojs6_pending_timer_count("timeout") +
-      __autojs6_pending_timer_count("interval") +
-      __autojs6_pending_timer_count("immediate");
-  }
   function __autojs6_install_timer_diagnostics() {
     const nativeSetTimeout = typeof globalThis.setTimeout === "function" ? globalThis.setTimeout : null;
     const nativeClearTimeout = typeof globalThis.clearTimeout === "function" ? globalThis.clearTimeout : null;
@@ -3685,46 +3672,19 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_resolve_trace_stack = [];
   let __autojs6_scoped_fs_cache = null;
   let __autojs6_limited_fs_promises_cache = null;
-  let __autojs6_limited_buffer_cache = null;
   let __autojs6_object_url_counter = 0;
   const __autojs6_object_url_records = new Map();
   let __autojs6_limited_console_cache = null;
   let __autojs6_limited_module_cache = null;
-  let __autojs6_limited_path_cache = null;
-  let __autojs6_limited_util_cache = null;
-  let __autojs6_limited_async_hooks_cache = null;
-  let __autojs6_limited_diagnostics_channel_cache = null;
-  let __autojs6_limited_node_test_cache = null;
   let __autojs6_limited_dns_cache = null;
   let __autojs6_limited_dns_promises_cache = null;
-  let __autojs6_limited_events_cache = null;
   let __autojs6_limited_http_cache = null;
   let __autojs6_limited_https_cache = null;
   let __autojs6_limited_net_cache = null;
-  let __autojs6_limited_perf_hooks_cache = null;
-  let __autojs6_limited_readline_cache = null;
-  let __autojs6_limited_readline_promises_cache = null;
-  let __autojs6_limited_stream_cache = null;
-  let __autojs6_limited_stream_promises_cache = null;
-  let __autojs6_limited_stream_web_cache = null;
-  let __autojs6_limited_stream_consumers_cache = null;
-  let __autojs6_limited_timers_cache = null;
-  let __autojs6_limited_timers_promises_cache = null;
   let __autojs6_limited_tls_cache = null;
-  let __autojs6_limited_zlib_cache = null;
-  let __autojs6_limited_crypto_cache = null;
   let __autojs6_limited_web_crypto_cache = null;
   let __autojs6_limited_web_compression_cache = null;
-  let __autojs6_limited_os_cache = null;
-  let __autojs6_limited_url_cache = null;
-  let __autojs6_limited_querystring_cache = null;
-  let __autojs6_limited_string_decoder_cache = null;
-  let __autojs6_limited_assert_cache = null;
-  let __autojs6_limited_punycode_cache = null;
-  let __autojs6_limited_constants_cache = null;
-  let __autojs6_safe_os_constants_cache = null;
-  let __autojs6_limited_v8_cache = null;
-  let __autojs6_limited_tty_cache = null;
+  let __autojs6_os_facade_cache = null;
   let __autojs6_limited_inspector_cache = null;
   let __autojs6_profile_cache = null;
   let __autojs6_autojs_global_cache = null;
@@ -4530,21 +4490,21 @@ std::string buildEmbeddedScriptExecutionSource(
         rawRegistryAccess: false
       }),
       stdlibProfile: Object.freeze({
-        status: "safe_subset_partial",
+        status: "native_builtins_with_host_policies",
         defaultEnabled: true,
         targetProfiles: Object.freeze(["safe_default", "desktop_compat_opt_in"]),
-        conformanceSet: "node24_safe_stdlib_subset",
+        conformanceSet: "node24_native_builtins",
         moduleStatus: Object.freeze({
-          crypto: "partial",
-          stream: "partial",
-          zlib: "partial",
-          buffer: "partial",
-          url: "partial",
-          os: "partial",
-          readline: "partial",
-          tty: "partial",
-          perf_hooks: "partial",
-          async_hooks: "partial",
+          crypto: "native",
+          stream: "native",
+          zlib: "native",
+          buffer: "native",
+          url: "native",
+          os: "native_with_host_directory_and_identity_policy",
+          readline: "native",
+          tty: "native",
+          perf_hooks: "native",
+          async_hooks: "native",
           "zlib/promises": "disabled"
         }),
         conformanceModules: Object.freeze([
@@ -4569,13 +4529,11 @@ std::string buildEmbeddedScriptExecutionSource(
         processGetBuiltinModule: "controlled_partial",
         androidDifferences: "documented_stable",
         androidUnsupported: Object.freeze([
-          "os.setPriority",
-          "real_network_interfaces",
-          "tty_raw_mode",
+          "terminal_input_without_stdin",
           "zlib/promises",
           "node:test/reporters"
         ]),
-        resourceLimits: "bounded_callbacks_streams_crypto_zlib",
+        resourceLimits: "node_runtime_and_android_process_limits",
         npmCorpus: "real_npm_phase13_60_fixture_corpus",
         desktopDifferential: "modern_core_s7_36_partial",
         packagedBehavior: "existing_v1_1_smokes_partial",
@@ -13247,7 +13205,7 @@ std::string buildEmbeddedScriptExecutionSource(
           "  subtype: '" + subtype + "',",
           "  mimeType: '" + mimeType + "',",
           "  mimeTypeRefined: '" + mimeTypeRefined + "',",
-          "  parameters: '" + __autojs6_limited_util().format(parameters) + "',",
+          "  parameters: '" + __autojs6_builtin_module("util").format(parameters) + "',",
           "  raw: '" + raw + "',",
           "}"
         ].join("\n");
@@ -16151,7 +16109,7 @@ std::string buildEmbeddedScriptExecutionSource(
       s13n: __autojs6_limited_s13n(),
       mime: __autojs6_limited_mime(),
       nanoid: __autojs6_limited_nanoid(),
-      util: __autojs6_limited_util(),
+      util: __autojs6_builtin_module("util"),
       opencc: __autojs6_limited_opencc(),
       pinyin: __autojs6_limited_pinyin(),
       pinyin4j: __autojs6_limited_pinyin4j(),
@@ -16161,11 +16119,11 @@ std::string buildEmbeddedScriptExecutionSource(
       database: __autojs6_limited_database("database"),
       sqlite: __autojs6_limited_database("sqlite"),
       console: __autojs6_limited_console(),
-      timers: __autojs6_limited_timers(),
-      setTimeout: __autojs6_limited_timers().setTimeout,
-      clearTimeout: __autojs6_limited_timers().clearTimeout,
-      setInterval: __autojs6_limited_timers().setInterval,
-      clearInterval: __autojs6_limited_timers().clearInterval,
+      timers: __autojs6_builtin_module("timers"),
+      setTimeout: __autojs6_builtin_module("timers").setTimeout,
+      clearTimeout: __autojs6_builtin_module("timers").clearTimeout,
+      setInterval: __autojs6_builtin_module("timers").setInterval,
+      clearInterval: __autojs6_builtin_module("timers").clearInterval,
       selector: selector,
       text: selector.text,
       desc: selector.desc,
@@ -16330,7 +16288,7 @@ std::string buildEmbeddedScriptExecutionSource(
       s13n: __autojs6_limited_s13n(),
       mime: __autojs6_limited_mime(),
       nanoid: __autojs6_limited_nanoid(),
-      util: __autojs6_limited_util(),
+      util: __autojs6_builtin_module("util"),
       opencc: __autojs6_limited_opencc(),
       pinyin: __autojs6_limited_pinyin(),
       pinyin4j: __autojs6_limited_pinyin4j(),
@@ -16342,11 +16300,11 @@ std::string buildEmbeddedScriptExecutionSource(
       database: __autojs6_limited_database("database"),
       sqlite: __autojs6_limited_database("sqlite"),
       console: __autojs6_limited_console(),
-      timers: __autojs6_limited_timers(),
-      setTimeout: __autojs6_limited_timers().setTimeout,
-      clearTimeout: __autojs6_limited_timers().clearTimeout,
-      setInterval: __autojs6_limited_timers().setInterval,
-      clearInterval: __autojs6_limited_timers().clearInterval,
+      timers: __autojs6_builtin_module("timers"),
+      setTimeout: __autojs6_builtin_module("timers").setTimeout,
+      clearTimeout: __autojs6_builtin_module("timers").clearTimeout,
+      setInterval: __autojs6_builtin_module("timers").setInterval,
+      clearInterval: __autojs6_builtin_module("timers").clearInterval,
       selector: selector,
       text: selector.text,
       desc: selector.desc,
@@ -24289,17 +24247,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return null;
   }
-  function __autojs6_util_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "util")) {
-      return __autojs6_require_builtin_cache.util;
-    }
-    const moduleValue = __autojs6_builtin_module("util");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache.util = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
   function __autojs6_fs_module() {
     if (__autojs6_has_own(__autojs6_require_builtin_cache, "fs")) {
       return __autojs6_require_builtin_cache.fs;
@@ -24374,39 +24321,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return null;
   }
-  function __autojs6_async_hooks_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "async_hooks")) {
-      return __autojs6_require_builtin_cache["async_hooks"];
-    }
-    const moduleValue = __autojs6_builtin_module("async_hooks");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache["async_hooks"] = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
-  function __autojs6_diagnostics_channel_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "diagnostics_channel")) {
-      return __autojs6_require_builtin_cache["diagnostics_channel"];
-    }
-    const moduleValue = __autojs6_builtin_module("diagnostics_channel");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache["diagnostics_channel"] = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
-  function __autojs6_perf_hooks_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "perf_hooks")) {
-      return __autojs6_require_builtin_cache["perf_hooks"];
-    }
-    const moduleValue = __autojs6_builtin_module("perf_hooks");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache["perf_hooks"] = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
   function __autojs6_readline_module() {
     if (__autojs6_has_own(__autojs6_require_builtin_cache, "readline")) {
       return __autojs6_require_builtin_cache.readline;
@@ -24414,28 +24328,6 @@ std::string buildEmbeddedScriptExecutionSource(
     const moduleValue = __autojs6_builtin_module("readline");
     if (moduleValue) {
       __autojs6_require_builtin_cache.readline = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
-  function __autojs6_readline_promises_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "readline/promises")) {
-      return __autojs6_require_builtin_cache["readline/promises"];
-    }
-    const moduleValue = __autojs6_builtin_module("readline/promises");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache["readline/promises"] = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
-  function __autojs6_timers_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "timers")) {
-      return __autojs6_require_builtin_cache.timers;
-    }
-    const moduleValue = __autojs6_builtin_module("timers");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache.timers = moduleValue;
       return moduleValue;
     }
     return null;
@@ -24451,39 +24343,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return null;
   }
-  function __autojs6_stream_promises_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "stream/promises")) {
-      return __autojs6_require_builtin_cache["stream/promises"];
-    }
-    const moduleValue = __autojs6_builtin_module("stream/promises");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache["stream/promises"] = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
-  function __autojs6_stream_web_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "stream/web")) {
-      return __autojs6_require_builtin_cache["stream/web"];
-    }
-    const moduleValue = __autojs6_builtin_module("stream/web");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache["stream/web"] = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
-  function __autojs6_stream_consumers_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "stream/consumers")) {
-      return __autojs6_require_builtin_cache["stream/consumers"];
-    }
-    const moduleValue = __autojs6_builtin_module("stream/consumers");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache["stream/consumers"] = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
   function __autojs6_zlib_module() {
     if (__autojs6_has_own(__autojs6_require_builtin_cache, "zlib")) {
       return __autojs6_require_builtin_cache.zlib;
@@ -24491,61 +24350,6 @@ std::string buildEmbeddedScriptExecutionSource(
     const moduleValue = __autojs6_builtin_module("zlib");
     if (moduleValue) {
       __autojs6_require_builtin_cache.zlib = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
-  function __autojs6_querystring_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "querystring")) {
-      return __autojs6_require_builtin_cache.querystring;
-    }
-    const moduleValue = __autojs6_builtin_module("querystring");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache.querystring = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
-  function __autojs6_string_decoder_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "string_decoder")) {
-      return __autojs6_require_builtin_cache.string_decoder;
-    }
-    const moduleValue = __autojs6_builtin_module("string_decoder");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache.string_decoder = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
-  function __autojs6_assert_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "assert")) {
-      return __autojs6_require_builtin_cache.assert;
-    }
-    const moduleValue = __autojs6_builtin_module("assert");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache.assert = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
-  function __autojs6_punycode_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "punycode")) {
-      return __autojs6_require_builtin_cache.punycode;
-    }
-    const moduleValue = __autojs6_builtin_module("punycode");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache.punycode = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
-  function __autojs6_constants_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "constants")) {
-      return __autojs6_require_builtin_cache.constants;
-    }
-    const moduleValue = __autojs6_builtin_module("constants");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache.constants = moduleValue;
       return moduleValue;
     }
     return null;
@@ -28208,17 +28012,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     callback();
   }
-  function __autojs6_try_finish_deferred_success() {
-    if (!__autojs6_deferred_success_waiting || __autojs6_pending_callback_count() > 0) {
-      return;
-    }
-    const value = __autojs6_deferred_success_value;
-    __autojs6_deferred_success_value = undefined;
-    __autojs6_deferred_success_waiting = false;
-    __autojs6_schedule_task(function () {
-      __autojs6_finish_success(value);
-    });
-  }
   function __autojs6_adjust_pending_callback(kind, delta) {
     if (kind === "crypto") {
       __autojs6_pending_crypto_callbacks = Math.max(0, __autojs6_pending_crypto_callbacks + delta);
@@ -28237,70 +28030,14 @@ std::string buildEmbeddedScriptExecutionSource(
         action();
       } finally {
         __autojs6_adjust_pending_callback(kind, -1);
-        __autojs6_try_finish_deferred_success();
       }
     });
   }
   function __autojs6_schedule_scoped_fs_callback(callback, action) {
     __autojs6_schedule_pending_callback("fs", action);
   }
-  function __autojs6_schedule_crypto_callback(callback, action) {
-    __autojs6_schedule_pending_callback("crypto", action);
-  }
   function __autojs6_schedule_dns_callback(action) {
     __autojs6_schedule_pending_callback("dns", action);
-  }
-  function __autojs6_schedule_zlib_callback(callback, action) {
-    __autojs6_schedule_pending_callback("zlib", action);
-  }
-  function __autojs6_adjust_pending_node_test(delta) {
-    __autojs6_pending_node_test_callbacks = Math.max(0, __autojs6_pending_node_test_callbacks + delta);
-  }
-  function __autojs6_track_zlib_stream(stream) {
-    if (!stream || typeof stream.once !== "function") {
-      return stream;
-    }
-    let settled = false;
-    let keepAliveHandle = null;
-    const record = {
-      stream,
-      settle
-    };
-    __autojs6_pending_zlib_streams.push(record);
-    if (typeof setInterval === "function" && typeof clearInterval === "function") {
-      try {
-        keepAliveHandle = setInterval(function() {}, 2147483647);
-        __autojs6_untrack_timer("interval", keepAliveHandle);
-      } catch (_) {
-        keepAliveHandle = null;
-      }
-    }
-    function clearKeepAlive() {
-      if (keepAliveHandle === null) {
-        return;
-      }
-      try {
-        clearInterval(keepAliveHandle);
-      } catch (_) {}
-      keepAliveHandle = null;
-    }
-    function settle() {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearKeepAlive();
-      const index = __autojs6_pending_zlib_streams.indexOf(record);
-      if (index >= 0) {
-        __autojs6_pending_zlib_streams.splice(index, 1);
-      }
-      __autojs6_try_finish_deferred_success();
-    }
-    stream.once("close", settle);
-    stream.once("end", settle);
-    stream.once("finish", settle);
-    stream.once("error", settle);
-    return stream;
   }
   function __autojs6_destroy_all_zlib_streams(reason) {
     const records = __autojs6_pending_zlib_streams.slice();
@@ -28623,7 +28360,6 @@ std::string buildEmbeddedScriptExecutionSource(
       record.pending = false;
       __autojs6_adjust_pending_callback("fs", -1);
     }
-    __autojs6_try_finish_deferred_success();
   }
   function __autojs6_set_watch_record_pending(record, pending) {
     if (!record || !record.active || record.pending === pending) {
@@ -28632,7 +28368,6 @@ std::string buildEmbeddedScriptExecutionSource(
     record.pending = pending;
     __autojs6_adjust_pending_callback("fs", pending ? 1 : -1);
     if (!pending) {
-      __autojs6_try_finish_deferred_success();
     }
   }
   function __autojs6_set_watch_file_records_pending(resolvedPath, pending) {
@@ -28765,7 +28500,6 @@ std::string buildEmbeddedScriptExecutionSource(
       record.pending = false;
       __autojs6_adjust_pending_callback("fs", -1);
     }
-    __autojs6_try_finish_deferred_success();
   }
   function __autojs6_fs_watch_keeps_pending(options) {
     return !(options && typeof options === "object" && options.persistent === false);
@@ -30090,7 +29824,6 @@ std::string buildEmbeddedScriptExecutionSource(
         __autojs6_pending_scoped_fs_streams.splice(index, 1);
       }
       __autojs6_adjust_pending_callback("fs", -1);
-      __autojs6_try_finish_deferred_success();
     }
     function settleError(error) {
       const listenerCount = typeof stream.listenerCount === "function"
@@ -32352,15 +32085,6 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     })();
   }
-  function __autojs6_validate_random_bytes_size(size) {
-    if (typeof size !== "number") {
-      throw __autojs6_invalid_arg_type("Embedded Node limited crypto randomBytes size must be a number.");
-    }
-    if (!Number.isSafeInteger(size) || size < 0 || size > 65536) {
-      throw __autojs6_out_of_range("Embedded Node limited crypto randomBytes size must be an integer between 0 and 65536.");
-    }
-    return size;
-  }
   function __autojs6_crypto_binary_size(value, label) {
     if (typeof Buffer === "function" && Buffer.isBuffer(value)) {
       return value.length;
@@ -32374,22 +32098,6 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     }
     throw __autojs6_invalid_arg_type("Embedded Node limited crypto " + label + " must be a Buffer, ArrayBuffer, TypedArray, or DataView.");
-  }
-  function __autojs6_crypto_hmac_key_size(key) {
-    if (typeof key === "string") {
-      return typeof Buffer === "function" && typeof Buffer.byteLength === "function"
-        ? Buffer.byteLength(key)
-        : key.length;
-    }
-    return __autojs6_crypto_binary_size(key, "createHmac key");
-  }
-  function __autojs6_crypto_secret_key_input_size(key, encoding) {
-    if (typeof key === "string") {
-      return typeof Buffer === "function" && typeof Buffer.byteLength === "function"
-        ? Buffer.byteLength(key, encoding)
-        : key.length;
-    }
-    return __autojs6_crypto_binary_size(key, "createSecretKey key");
   }
   function __autojs6_crypto_base64_url(buffer) {
     return buffer.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
@@ -32426,77 +32134,6 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_invalid_arg_type("Embedded Node limited crypto " + operation + " algorithm is not allowed: " + algorithm);
     }
     return normalized;
-  }
-  function __autojs6_validate_crypto_hmac_key(key) {
-    const size = __autojs6_crypto_hmac_key_size(key);
-    if (size > 65536) {
-      throw __autojs6_out_of_range("Embedded Node limited crypto createHmac key must be at most 65536 bytes.");
-    }
-    return key;
-  }
-  function __autojs6_crypto_random_fill_size(buffer, offset, size) {
-    const total = __autojs6_crypto_binary_size(buffer, "randomFill buffer");
-    const normalizedOffset = offset === undefined ? 0 : Number(offset);
-    const normalizedSize = size === undefined ? total - normalizedOffset : Number(size);
-    if (
-      Number.isSafeInteger(normalizedOffset) &&
-      Number.isSafeInteger(normalizedSize) &&
-      normalizedOffset >= 0 &&
-      normalizedSize >= 0 &&
-      normalizedOffset <= total &&
-      normalizedOffset + normalizedSize <= total
-    ) {
-      return normalizedSize;
-    }
-    return total;
-  }
-  function __autojs6_validate_crypto_random_fill(buffer, offset, size) {
-    const fillSize = __autojs6_crypto_random_fill_size(buffer, offset, size);
-    if (fillSize > 65536) {
-      throw __autojs6_out_of_range("Embedded Node limited crypto randomFill size must be at most 65536 bytes.");
-    }
-  }
-  function __autojs6_validate_crypto_pbkdf2(allowedHashes, password, salt, iterations, keylen, digest) {
-    __autojs6_validate_crypto_data(password, "pbkdf2 password", 65536);
-    __autojs6_validate_crypto_data(salt, "pbkdf2 salt", 65536);
-    return {
-      iterations: __autojs6_validate_crypto_integer(iterations, "pbkdf2 iterations", 1, 200000),
-      keylen: __autojs6_validate_crypto_integer(keylen, "pbkdf2 key length", 0, 65536),
-      digest: __autojs6_validate_crypto_algorithm(allowedHashes, digest, "pbkdf2")
-    };
-  }
-  function __autojs6_scrypt_option_value(options, firstName, secondName) {
-    if (!options || (typeof options !== "object" && typeof options !== "function")) {
-      return undefined;
-    }
-    if (options[firstName] !== undefined) {
-      return options[firstName];
-    }
-    return secondName && options[secondName] !== undefined ? options[secondName] : undefined;
-  }
-  function __autojs6_validate_crypto_scrypt_options(options) {
-    const cost = __autojs6_scrypt_option_value(options, "N", "cost");
-    const blockSize = __autojs6_scrypt_option_value(options, "r", "blockSize");
-    const parallelization = __autojs6_scrypt_option_value(options, "p", "parallelization");
-    const maxmem = __autojs6_scrypt_option_value(options, "maxmem");
-    if (cost !== undefined) {
-      __autojs6_validate_crypto_integer(cost, "scrypt cost", 2, 16384);
-    }
-    if (blockSize !== undefined) {
-      __autojs6_validate_crypto_integer(blockSize, "scrypt block size", 1, 8);
-    }
-    if (parallelization !== undefined) {
-      __autojs6_validate_crypto_integer(parallelization, "scrypt parallelization", 1, 4);
-    }
-    if (maxmem !== undefined) {
-      __autojs6_validate_crypto_integer(maxmem, "scrypt maxmem", 1024, 64 * 1024 * 1024);
-    }
-  }
-  function __autojs6_validate_crypto_scrypt(password, salt, keylen, options) {
-    __autojs6_validate_crypto_data(password, "scrypt password", 65536);
-    __autojs6_validate_crypto_data(salt, "scrypt salt", 65536);
-    __autojs6_validate_crypto_integer(keylen, "scrypt key length", 0, 65536);
-    __autojs6_validate_crypto_scrypt_options(options);
   }
   function __autojs6_validate_crypto_hkdf(allowedHashes, digest, ikm, salt, info, keylen) {
     const normalizedDigest = __autojs6_validate_crypto_algorithm(allowedHashes, digest, "hkdf");
@@ -32915,423 +32552,22 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_limited_web_crypto_cache = Object.freeze(limitedCrypto);
     return __autojs6_limited_web_crypto_cache;
   }
-  function __autojs6_limited_crypto() {
-    if (__autojs6_limited_crypto_cache) {
-      return __autojs6_limited_crypto_cache;
-    }
-    const nodeCrypto = __autojs6_crypto_module();
-    if (
-      !nodeCrypto ||
-      typeof nodeCrypto.randomBytes !== "function" ||
-      typeof nodeCrypto.randomFillSync !== "function" ||
-      typeof nodeCrypto.randomInt !== "function" ||
-      typeof nodeCrypto.randomUUID !== "function" ||
-      typeof nodeCrypto.createHash !== "function" ||
-      typeof nodeCrypto.createHmac !== "function" ||
-      typeof nodeCrypto.createSecretKey !== "function" ||
-      typeof nodeCrypto.timingSafeEqual !== "function" ||
-      typeof nodeCrypto.pbkdf2Sync !== "function" ||
-      typeof nodeCrypto.scryptSync !== "function" ||
-      typeof nodeCrypto.hkdfSync !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'crypto' is unavailable.");
-    }
-    const allowedHashes = Object.freeze(["md5", "sha1", "sha256", "sha512"]);
-    const secretKeyNativeMap = new WeakMap();
-    function KeyObject() {
-      throw __autojs6_invalid_arg_value("Embedded Node limited crypto KeyObject cannot be constructed directly.");
-    }
-    function __autojs6_limited_secret_key_native(value, label) {
-      if (value && (typeof value === "object" || typeof value === "function") && secretKeyNativeMap.has(value)) {
-        return secretKeyNativeMap.get(value);
-      }
-      throw __autojs6_invalid_arg_type("Embedded Node limited crypto " + label + " must be a secret KeyObject.");
-    }
-    function __autojs6_limited_secret_key_argument(value, label, allowSecretKey) {
-      if (allowSecretKey && value && (typeof value === "object" || typeof value === "function") && secretKeyNativeMap.has(value)) {
-        const nativeKey = secretKeyNativeMap.get(value);
-        if ((nativeKey.symmetricKeySize || 0) > 65536) {
-          throw __autojs6_out_of_range("Embedded Node limited crypto " + label + " must be at most 65536 bytes.");
-        }
-        return nativeKey;
-      }
-      __autojs6_validate_crypto_data(value, label, 65536);
-      return value;
-    }
-    function __autojs6_limited_hmac_key(key) {
-      if (key && (typeof key === "object" || typeof key === "function") && secretKeyNativeMap.has(key)) {
-        const nativeKey = secretKeyNativeMap.get(key);
-        if ((nativeKey.symmetricKeySize || 0) > 65536) {
-          throw __autojs6_out_of_range("Embedded Node limited crypto createHmac key must be at most 65536 bytes.");
-        }
-        return nativeKey;
-      }
-      return __autojs6_validate_crypto_hmac_key(key);
-    }
-    function __autojs6_validate_limited_crypto_hkdf(digest, ikm, salt, info, keylen) {
-      return {
-        digest: __autojs6_validate_crypto_algorithm(allowedHashes, digest, "hkdf"),
-        ikm: __autojs6_limited_secret_key_argument(ikm, "hkdf input key material", true),
-        keylen: __autojs6_validate_crypto_integer(keylen, "hkdf key length", 0, 65536)
-      };
-    }
-    Object.defineProperties(KeyObject.prototype, {
-      constructor: { value: KeyObject, configurable: true },
-      type: {
-        get: function() {
-          __autojs6_limited_secret_key_native(this, "KeyObject");
-          return "secret";
-        },
-        enumerable: true
-      },
-      symmetricKeySize: {
-        get: function() {
-          return __autojs6_limited_secret_key_native(this, "KeyObject").symmetricKeySize || 0;
-        },
-        enumerable: true
-      },
-      export: {
-        value: function(options) {
-          const nativeKey = __autojs6_limited_secret_key_native(this, "KeyObject");
-          if (options !== undefined && (!options || (typeof options !== "object" && typeof options !== "function"))) {
-            throw __autojs6_invalid_arg_type("Embedded Node limited crypto KeyObject export options must be an object.");
-          }
-          const format = options && options.format !== undefined ? options.format : "buffer";
-          if (format === "buffer") {
-            return Buffer.from(nativeKey.export());
-          }
-          if (format === "jwk") {
-            return {
-              kty: "oct",
-              k: __autojs6_crypto_base64_url(Buffer.from(nativeKey.export()))
-            };
-          }
-          throw __autojs6_invalid_arg_value("Embedded Node limited crypto KeyObject export format must be 'buffer' or 'jwk'.");
-        }
-      },
-      equals: {
-        value: function(otherKeyObject) {
-          const nativeKey = __autojs6_limited_secret_key_native(this, "KeyObject");
-          const otherNativeKey = __autojs6_limited_secret_key_native(otherKeyObject, "otherKeyObject");
-          if ((nativeKey.symmetricKeySize || 0) !== (otherNativeKey.symmetricKeySize || 0)) {
-            return false;
-          }
-          return typeof nativeKey.equals === "function"
-            ? nativeKey.equals(otherNativeKey)
-            : nodeCrypto.timingSafeEqual(Buffer.from(nativeKey.export()), Buffer.from(otherNativeKey.export()));
-        }
-      },
-      [Symbol.toStringTag]: { value: "KeyObject" }
-    });
-    Object.freeze(KeyObject.prototype);
-    Object.freeze(KeyObject);
-    function __autojs6_create_limited_secret_key(nativeKey) {
-      const wrapper = Object.create(KeyObject.prototype);
-      secretKeyNativeMap.set(wrapper, nativeKey);
-      return Object.freeze(wrapper);
-    }
-    const limitedWebCrypto = __autojs6_limited_web_crypto();
-    const limitedCrypto = Object.create(null);
-    Object.defineProperties(limitedCrypto, {
-      randomBytes: {
-        value: function(size, callback) {
-          const count = __autojs6_validate_random_bytes_size(size);
-          if (callback !== undefined && typeof callback !== "function") {
-            throw __autojs6_invalid_arg_type("Embedded Node limited crypto randomBytes callback must be a function.");
-          }
-          if (typeof callback === "function") {
-            __autojs6_schedule_crypto_callback(callback, function () {
-              try {
-                callback(null, nodeCrypto.randomBytes(count));
-              } catch (error) {
-                callback(error);
-              }
-            });
-            return;
-          }
-          return nodeCrypto.randomBytes(count);
-        },
-        enumerable: true
-      },
-      randomFillSync: {
-        value: function(buffer, offset, size) {
-          __autojs6_validate_crypto_random_fill(buffer, offset, size);
-          return nodeCrypto.randomFillSync.apply(nodeCrypto, arguments);
-        },
-        enumerable: true
-      },
-      randomFill: {
-        value: function(buffer, offset, size, callback) {
-          let cb = callback;
-          let normalizedSize = size;
-          if (typeof offset === "function") {
-            cb = offset;
-            offset = undefined;
-            normalizedSize = undefined;
-          } else if (typeof size === "function") {
-            cb = size;
-            normalizedSize = undefined;
-          }
-          if (typeof cb !== "function") {
-            throw __autojs6_invalid_arg_type("Embedded Node limited crypto randomFill callback must be a function.");
-          }
-          const normalizedOffset = offset === undefined && normalizedSize !== undefined ? 0 : offset;
-          __autojs6_validate_crypto_random_fill(buffer, normalizedOffset, normalizedSize);
-          __autojs6_schedule_crypto_callback(cb, function () {
-            try {
-              const result = normalizedOffset === undefined
-                ? nodeCrypto.randomFillSync(buffer)
-                : (normalizedSize === undefined
-                    ? nodeCrypto.randomFillSync(buffer, normalizedOffset)
-                    : nodeCrypto.randomFillSync(buffer, normalizedOffset, normalizedSize));
-              cb(null, result);
-            } catch (error) {
-              cb(error);
-            }
-          });
-        },
-        enumerable: true
-      },
-      randomInt: {
-        value: function(min, max, callback) {
-          let cb = callback;
-          let upper = max;
-          if (typeof max === "function") {
-            cb = max;
-            upper = undefined;
-          }
-          if (cb !== undefined && typeof cb !== "function") {
-            throw __autojs6_invalid_arg_type("Embedded Node limited crypto randomInt callback must be a function.");
-          }
-          const action = function() {
-            return upper === undefined
-              ? nodeCrypto.randomInt(min)
-              : nodeCrypto.randomInt(min, upper);
-          };
-          if (typeof cb === "function") {
-            __autojs6_schedule_crypto_callback(cb, function () {
-              try {
-                cb(null, action());
-              } catch (error) {
-                cb(error);
-              }
-            });
-            return;
-          }
-          return action();
-        },
-        enumerable: true
-      },
-      randomUUID: {
-        value: function(options) {
-          return nodeCrypto.randomUUID(options);
-        },
-        enumerable: true
-      },
-      createHash: {
-        value: function(algorithm) {
-          return nodeCrypto.createHash(__autojs6_validate_crypto_algorithm(allowedHashes, algorithm, "createHash"));
-        },
-        enumerable: true
-      },
-      createHmac: {
-        value: function(algorithm, key, options) {
-          return nodeCrypto.createHmac(
-            __autojs6_validate_crypto_algorithm(allowedHashes, algorithm, "createHmac"),
-            __autojs6_limited_hmac_key(key),
-            options
-          );
-        },
-        enumerable: true
-      },
-      createSecretKey: {
-        value: function(key, encoding) {
-          const size = __autojs6_crypto_secret_key_input_size(key, encoding);
-          if (size > 65536) {
-            throw __autojs6_out_of_range("Embedded Node limited crypto createSecretKey key must be at most 65536 bytes.");
-          }
-          const nativeKey = arguments.length > 1
-            ? nodeCrypto.createSecretKey(key, encoding)
-            : nodeCrypto.createSecretKey(key);
-          if ((nativeKey.symmetricKeySize || 0) > 65536) {
-            throw __autojs6_out_of_range("Embedded Node limited crypto createSecretKey key must be at most 65536 bytes.");
-          }
-          return __autojs6_create_limited_secret_key(nativeKey);
-        },
-        enumerable: true
-      },
-      KeyObject: {
-        value: KeyObject,
-        enumerable: true
-      },
-      webcrypto: {
-        value: limitedWebCrypto,
-        enumerable: true
-      },
-      subtle: {
-        value: limitedWebCrypto.subtle,
-        enumerable: true
-      },
-      timingSafeEqual: {
-        value: function(left, right) {
-          if (
-            __autojs6_crypto_binary_size(left, "timingSafeEqual left") > 65536 ||
-            __autojs6_crypto_binary_size(right, "timingSafeEqual right") > 65536
-          ) {
-            throw __autojs6_out_of_range("Embedded Node limited crypto timingSafeEqual inputs must be at most 65536 bytes.");
-          }
-          return nodeCrypto.timingSafeEqual(left, right);
-        },
-        enumerable: true
-      },
-      pbkdf2Sync: {
-        value: function(password, salt, iterations, keylen, digest) {
-          const parsed = __autojs6_validate_crypto_pbkdf2(allowedHashes, password, salt, iterations, keylen, digest);
-          return nodeCrypto.pbkdf2Sync(password, salt, parsed.iterations, parsed.keylen, parsed.digest);
-        },
-        enumerable: true
-      },
-      pbkdf2: {
-        value: function(password, salt, iterations, keylen, digest, callback) {
-          if (typeof callback !== "function") {
-            throw __autojs6_invalid_arg_type("Embedded Node limited crypto pbkdf2 callback must be a function.");
-          }
-          const parsed = __autojs6_validate_crypto_pbkdf2(allowedHashes, password, salt, iterations, keylen, digest);
-          __autojs6_schedule_crypto_callback(callback, function() {
-            try {
-              callback(null, nodeCrypto.pbkdf2Sync(password, salt, parsed.iterations, parsed.keylen, parsed.digest));
-            } catch (error) {
-              callback(error);
-            }
-          });
-        },
-        enumerable: true
-      },
-      scryptSync: {
-        value: function(password, salt, keylen, options) {
-          __autojs6_validate_crypto_scrypt(password, salt, keylen, options);
-          return arguments.length > 3
-            ? nodeCrypto.scryptSync(password, salt, keylen, options)
-            : nodeCrypto.scryptSync(password, salt, keylen);
-        },
-        enumerable: true
-      },
-      scrypt: {
-        value: function(password, salt, keylen, options, callback) {
-          let cb = callback;
-          let normalizedOptions = options;
-          if (typeof options === "function") {
-            cb = options;
-            normalizedOptions = undefined;
-          }
-          if (typeof cb !== "function") {
-            throw __autojs6_invalid_arg_type("Embedded Node limited crypto scrypt callback must be a function.");
-          }
-          __autojs6_validate_crypto_scrypt(password, salt, keylen, normalizedOptions);
-          __autojs6_schedule_crypto_callback(cb, function() {
-            try {
-              const value = normalizedOptions === undefined
-                ? nodeCrypto.scryptSync(password, salt, keylen)
-                : nodeCrypto.scryptSync(password, salt, keylen, normalizedOptions);
-              cb(null, value);
-            } catch (error) {
-              cb(error);
-            }
-          });
-        },
-        enumerable: true
-      },
-      hkdfSync: {
-        value: function(digest, ikm, salt, info, keylen) {
-          const parsed = __autojs6_validate_limited_crypto_hkdf(digest, ikm, salt, info, keylen);
-          __autojs6_validate_crypto_data(salt, "hkdf salt", 65536);
-          __autojs6_validate_crypto_data(info, "hkdf info", 1024);
-          return nodeCrypto.hkdfSync(parsed.digest, parsed.ikm, salt, info, parsed.keylen);
-        },
-        enumerable: true
-      },
-      hkdf: {
-        value: function(digest, ikm, salt, info, keylen, callback) {
-          if (typeof callback !== "function") {
-            throw __autojs6_invalid_arg_type("Embedded Node limited crypto hkdf callback must be a function.");
-          }
-          const parsed = __autojs6_validate_limited_crypto_hkdf(digest, ikm, salt, info, keylen);
-          __autojs6_validate_crypto_data(salt, "hkdf salt", 65536);
-          __autojs6_validate_crypto_data(info, "hkdf info", 1024);
-          __autojs6_schedule_crypto_callback(callback, function() {
-            try {
-              callback(null, nodeCrypto.hkdfSync(parsed.digest, parsed.ikm, salt, info, parsed.keylen));
-            } catch (error) {
-              callback(error);
-            }
-          });
-        },
-        enumerable: true
-      },
-      getHashes: {
-        value: function() {
-          return allowedHashes.slice();
-        },
-        enumerable: true
+  function __autojs6_os_facade() {
+    if (__autojs6_os_facade_cache) return __autojs6_os_facade_cache;
+    const directory = () => process.cwd();
+    // Keep writable application directories and the existing host identity policy.
+    // All other exports, including CPU/memory data and constants, come from Node.
+    const overrides = {
+      tmpdir: directory,
+      homedir: directory,
+      userInfo: options => __autojs6_os_user_info(options, directory)
+    };
+    __autojs6_os_facade_cache = new Proxy(__autojs6_os_module(), {
+      get(target, key, receiver) {
+        return __autojs6_has_own(overrides, key) ? overrides[key] : Reflect.get(target, key, receiver);
       }
     });
-    __autojs6_limited_crypto_cache = Object.freeze(limitedCrypto);
-    return __autojs6_limited_crypto_cache;
-  }
-  function __autojs6_os_available_parallelism(nodeOs) {
-    try {
-      if (nodeOs && typeof nodeOs.availableParallelism === "function") {
-        const value = nodeOs.availableParallelism();
-        if (Number.isInteger(value) && value > 0) {
-          return value;
-        }
-      }
-    } catch (_) {}
-    return 1;
-  }
-  function __autojs6_os_machine(nodeOs) {
-    try {
-      if (nodeOs && typeof nodeOs.machine === "function") {
-        const value = nodeOs.machine();
-        if (typeof value === "string" && value.length > 0) {
-          return value;
-        }
-      }
-    } catch (_) {}
-    const arch = typeof process === "object" && process && typeof process.arch === "string"
-      ? process.arch
-      : "";
-    switch (arch) {
-      case "arm64":
-        return "aarch64";
-      case "x64":
-        return "x86_64";
-      case "ia32":
-        return "i686";
-      case "arm":
-        return "arm";
-      default:
-        return arch || "unknown";
-    }
-  }
-  function __autojs6_os_version(nodeOs) {
-    try {
-      if (nodeOs && typeof nodeOs.version === "function") {
-        const value = nodeOs.version();
-        if (typeof value === "string") {
-          return value;
-        }
-      }
-    } catch (_) {}
-    try {
-      if (nodeOs && typeof nodeOs.release === "function") {
-        const value = nodeOs.release();
-        if (typeof value === "string") {
-          return value;
-        }
-      }
-    } catch (_) {}
-    return "";
+    return __autojs6_os_facade_cache;
   }
   function __autojs6_os_user_info(options, safeDirectory) {
     let encoding = "utf8";
@@ -33358,159 +32594,6 @@ std::string buildEmbeddedScriptExecutionSource(
       homedir
     });
   }
-  function __autojs6_os_network_interfaces() {
-    return Object.freeze(Object.create(null));
-  }
-  function __autojs6_os_cpus() {
-    return Object.freeze([
-      Object.freeze({
-        model: "AutoJs6 Embedded CPU",
-        speed: 0,
-        times: Object.freeze({
-          user: 0,
-          nice: 0,
-          sys: 0,
-          idle: 0,
-          irq: 0
-        })
-      })
-    ]);
-  }
-  function __autojs6_os_freemem() {
-    return 256 * 1024 * 1024;
-  }
-  function __autojs6_os_totalmem() {
-    return 512 * 1024 * 1024;
-  }
-  function __autojs6_os_loadavg() {
-    return Object.freeze([0, 0, 0]);
-  }
-  function __autojs6_os_uptime() {
-    try {
-      if (typeof process === "object" && process && typeof process.uptime === "function") {
-        const value = process.uptime();
-        return Number.isFinite(value) && value >= 0 ? value : 0;
-      }
-    } catch (_) {}
-    return 0;
-  }
-  function __autojs6_os_set_priority_disabled() {
-    throw new Error("os.setPriority is disabled in Embedded Node.js MVP.");
-  }
-  function __autojs6_limited_os() {
-    if (__autojs6_limited_os_cache) {
-      return __autojs6_limited_os_cache;
-    }
-    const nodeOs = __autojs6_os_module();
-    if (!nodeOs) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'os' is unavailable.");
-    }
-    const safeDirectory = function() {
-      try {
-        if (typeof process === "object" && process && typeof process.cwd === "function") {
-          return process.cwd();
-        }
-      } catch (_) {}
-      return __autojs6_module_root || ".";
-    };
-    const limitedOs = Object.create(null);
-    Object.defineProperties(limitedOs, {
-      platform: {
-        value: function() {
-          return typeof process === "object" && process && typeof process.platform === "string"
-            ? process.platform
-            : "android";
-        },
-        enumerable: true
-      },
-      arch: {
-        value: function() {
-          return typeof process === "object" && process && typeof process.arch === "string"
-            ? process.arch
-            : "arm64";
-        },
-        enumerable: true
-      },
-      tmpdir: { value: safeDirectory, enumerable: true },
-      homedir: { value: safeDirectory, enumerable: true },
-      endianness: {
-        value: function() {
-          return nodeOs && typeof nodeOs.endianness === "function" ? nodeOs.endianness() : "LE";
-        },
-        enumerable: true
-      },
-      type: {
-        value: function() {
-          return nodeOs && typeof nodeOs.type === "function" ? nodeOs.type() : "Linux";
-        },
-        enumerable: true
-      },
-      release: {
-        value: function() {
-          return nodeOs && typeof nodeOs.release === "function" ? nodeOs.release() : "";
-        },
-        enumerable: true
-      },
-      availableParallelism: {
-        value: function() {
-          return __autojs6_os_available_parallelism(nodeOs);
-        },
-        enumerable: true
-      },
-      machine: {
-        value: function() {
-          return __autojs6_os_machine(nodeOs);
-        },
-        enumerable: true
-      },
-      version: {
-        value: function() {
-          return __autojs6_os_version(nodeOs);
-        },
-        enumerable: true
-      },
-      networkInterfaces: { value: __autojs6_os_network_interfaces, enumerable: true },
-      userInfo: {
-        value: function(options) {
-          return __autojs6_os_user_info(options, safeDirectory);
-        },
-        enumerable: true
-      },
-      cpus: { value: __autojs6_os_cpus, enumerable: true },
-      freemem: { value: __autojs6_os_freemem, enumerable: true },
-      totalmem: { value: __autojs6_os_totalmem, enumerable: true },
-      loadavg: { value: __autojs6_os_loadavg, enumerable: true },
-      hostname: {
-        value: function() {
-          return "localhost";
-        },
-        enumerable: true
-      },
-      uptime: { value: __autojs6_os_uptime, enumerable: true },
-      getPriority: {
-        value: function() {
-          return 0;
-        },
-        enumerable: true
-      },
-      setPriority: { value: __autojs6_os_set_priority_disabled, enumerable: true },
-      constants: {
-        value: __autojs6_safe_os_constants(__autojs6_constants_module()),
-        enumerable: true
-      },
-      EOL: { value: "\n", enumerable: true },
-      devNull: { value: "/dev/null", enumerable: true }
-    });
-    __autojs6_limited_os_cache = Object.freeze(limitedOs);
-    return __autojs6_limited_os_cache;
-  }
-  function __autojs6_limited_file_url_to_path(urlValue) {
-    const absolute = __autojs6_file_url_to_absolute_path(urlValue, "fileURLToPath");
-    return __autojs6_validate_fs_path(absolute, "fileURLToPath", {
-      allowAbsolute: true,
-      checkParent: true
-    });
-  }
   function __autojs6_limited_path_to_file_url(pathValue) {
     if (typeof pathValue !== "string") {
       throw __autojs6_invalid_arg_type("Embedded Node pathToFileURL path must be a string.");
@@ -33524,48 +32607,6 @@ std::string buildEmbeddedScriptExecutionSource(
       throw new Error("Embedded Node pathToFileURL needs allowlisted url.pathToFileURL.");
     }
     return nodeUrl.pathToFileURL(resolved);
-  }
-  function __autojs6_install_url_static_fallbacks(URLConstructor) {
-    if (typeof URLConstructor !== "function") return;
-    if (typeof URLConstructor.canParse !== "function") {
-      try {
-        Object.defineProperty(URLConstructor, "canParse", {
-          value: function(input, base) {
-            try {
-              if (base === undefined) {
-                new URLConstructor(input);
-              } else {
-                new URLConstructor(input, base);
-              }
-              return true;
-            } catch (_) {
-              return false;
-            }
-          },
-          configurable: true,
-          enumerable: false,
-          writable: true
-        });
-      } catch (_) {}
-    }
-    if (typeof URLConstructor.parse !== "function") {
-      try {
-        Object.defineProperty(URLConstructor, "parse", {
-          value: function(input, base) {
-            try {
-              return base === undefined
-                ? new URLConstructor(input)
-                : new URLConstructor(input, base);
-            } catch (_) {
-              return null;
-            }
-          },
-          configurable: true,
-          enumerable: false,
-          writable: true
-        });
-      } catch (_) {}
-    }
   }
   function __autojs6_escape_url_pattern_regex(value) {
     return String(value).replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
@@ -33775,125 +32816,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return __autojs6_create_limited_url_pattern(URLConstructor);
   }
-  function __autojs6_limited_url() {
-    if (__autojs6_limited_url_cache) {
-      return __autojs6_limited_url_cache;
-    }
-    const nodeUrl = __autojs6_url_module();
-    const URLConstructor = typeof URL === "function" ? URL : (nodeUrl && nodeUrl.URL);
-    const URLSearchParamsConstructor = typeof URLSearchParams === "function"
-      ? URLSearchParams
-      : (nodeUrl && nodeUrl.URLSearchParams);
-    if (typeof URLConstructor !== "function" || typeof URLSearchParamsConstructor !== "function") {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'url' is unavailable.");
-    }
-    __autojs6_install_url_static_fallbacks(URLConstructor);
-    const URLPatternConstructor = __autojs6_url_pattern_constructor(URLConstructor, nodeUrl);
-    const limitedUrl = Object.create(null);
-    const descriptors = {
-      URL: { value: URLConstructor, enumerable: true },
-      URLSearchParams: { value: URLSearchParamsConstructor, enumerable: true },
-      URLPattern: { value: URLPatternConstructor, enumerable: true },
-      domainToASCII: {
-        value: nodeUrl && typeof nodeUrl.domainToASCII === "function"
-          ? function(domain) { return nodeUrl.domainToASCII(String(domain)); }
-          : undefined,
-        enumerable: true
-      },
-      domainToUnicode: {
-        value: nodeUrl && typeof nodeUrl.domainToUnicode === "function"
-          ? function(domain) { return nodeUrl.domainToUnicode(String(domain)); }
-          : undefined,
-        enumerable: true
-      },
-      fileURLToPath: {
-        value: __autojs6_limited_file_url_to_path,
-        enumerable: true
-      },
-      pathToFileURL: {
-        value: __autojs6_limited_path_to_file_url,
-        enumerable: true
-      }
-    };
-    if (nodeUrl && typeof nodeUrl.parse === "function") {
-      descriptors.parse = { value: nodeUrl.parse.bind(nodeUrl), enumerable: true };
-    }
-    if (nodeUrl && typeof nodeUrl.format === "function") {
-      descriptors.format = { value: nodeUrl.format.bind(nodeUrl), enumerable: true };
-    }
-    if (nodeUrl && typeof nodeUrl.resolve === "function") {
-      descriptors.resolve = { value: nodeUrl.resolve.bind(nodeUrl), enumerable: true };
-    }
-    if (nodeUrl && typeof nodeUrl.urlToHttpOptions === "function") {
-      descriptors.urlToHttpOptions = { value: nodeUrl.urlToHttpOptions.bind(nodeUrl), enumerable: true };
-    }
-    Object.defineProperties(limitedUrl, descriptors);
-    __autojs6_limited_url_cache = Object.freeze(limitedUrl);
-    return __autojs6_limited_url_cache;
-  }
-  function __autojs6_timer_function(nodeTimers, name) {
-    if (typeof globalThis[name] === "function") {
-      return globalThis[name];
-    }
-    if (nodeTimers && typeof nodeTimers[name] === "function") {
-      return nodeTimers[name].bind(nodeTimers);
-    }
-    return null;
-  }
-  function __autojs6_limited_timers() {
-    if (__autojs6_limited_timers_cache) {
-      return __autojs6_limited_timers_cache;
-    }
-    const nodeTimers = __autojs6_timers_module();
-    const setTimeoutFn = __autojs6_timer_function(nodeTimers, "setTimeout");
-    const clearTimeoutFn = __autojs6_timer_function(nodeTimers, "clearTimeout");
-    const setIntervalFn = __autojs6_timer_function(nodeTimers, "setInterval");
-    const clearIntervalFn = __autojs6_timer_function(nodeTimers, "clearInterval");
-    const setImmediateFn = __autojs6_timer_function(nodeTimers, "setImmediate");
-    const clearImmediateFn = __autojs6_timer_function(nodeTimers, "clearImmediate");
-    if (
-      typeof setTimeoutFn !== "function" ||
-      typeof clearTimeoutFn !== "function" ||
-      typeof setIntervalFn !== "function" ||
-      typeof clearIntervalFn !== "function" ||
-      typeof setImmediateFn !== "function" ||
-      typeof clearImmediateFn !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'timers' is unavailable.");
-    }
-    const limitedTimers = Object.create(null);
-    Object.defineProperties(limitedTimers, {
-      setTimeout: { value: setTimeoutFn, enumerable: true },
-      clearTimeout: { value: clearTimeoutFn, enumerable: true },
-      setInterval: { value: setIntervalFn, enumerable: true },
-      clearInterval: { value: clearIntervalFn, enumerable: true },
-      setImmediate: { value: setImmediateFn, enumerable: true },
-      clearImmediate: { value: clearImmediateFn, enumerable: true }
-    });
-    __autojs6_limited_timers_cache = Object.freeze(limitedTimers);
-    return __autojs6_limited_timers_cache;
-  }
-  function __autojs6_timers_promises_options(options, operation) {
-    if (options === undefined || options === null) {
-      return {};
-    }
-    if (typeof options !== "object") {
-      throw __autojs6_invalid_arg_type(
-        "Embedded Node limited timers/promises " + operation + " options must be an object."
-      );
-    }
-    return options;
-  }
-  function __autojs6_timers_promises_delay(delay) {
-    if (delay === undefined) {
-      return 1;
-    }
-    const number = Number(delay);
-    if (!Number.isFinite(number) || number <= 0) {
-      return 1;
-    }
-    return Math.min(Math.floor(number), 2147483647);
-  }
   function __autojs6_timers_promises_abort_error() {
     const error = new Error("The operation was aborted");
     error.name = "AbortError";
@@ -33923,304 +32845,6 @@ std::string buildEmbeddedScriptExecutionSource(
       signal.removeEventListener("abort", listener);
     } catch (_) {}
   }
-  function __autojs6_limited_timers_promises_timeout(delay, value, options) {
-    const timers = __autojs6_limited_timers();
-    const opts = __autojs6_timers_promises_options(options, "setTimeout");
-    const signal = opts.signal;
-    if (signal && signal.aborted) {
-      return Promise.reject(__autojs6_timers_promises_abort_error());
-    }
-    return new Promise(function(resolve, reject) {
-      let settled = false;
-      let handle = null;
-      const cleanup = function() {
-        __autojs6_timers_promises_remove_abort_listener(signal, onAbort);
-      };
-      const onAbort = function() {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        if (handle !== null) {
-          timers.clearTimeout(handle);
-        }
-        cleanup();
-        reject(__autojs6_timers_promises_abort_error());
-      };
-      __autojs6_timers_promises_add_abort_listener(signal, onAbort);
-      handle = timers.setTimeout(function() {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        cleanup();
-        resolve(value);
-      }, __autojs6_timers_promises_delay(delay));
-    });
-  }
-  function __autojs6_limited_timers_promises_immediate(value, options) {
-    const timers = __autojs6_limited_timers();
-    const opts = __autojs6_timers_promises_options(options, "setImmediate");
-    const signal = opts.signal;
-    if (signal && signal.aborted) {
-      return Promise.reject(__autojs6_timers_promises_abort_error());
-    }
-    return new Promise(function(resolve, reject) {
-      let settled = false;
-      let handle = null;
-      const cleanup = function() {
-        __autojs6_timers_promises_remove_abort_listener(signal, onAbort);
-      };
-      const onAbort = function() {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        if (handle !== null) {
-          timers.clearImmediate(handle);
-        }
-        cleanup();
-        reject(__autojs6_timers_promises_abort_error());
-      };
-      __autojs6_timers_promises_add_abort_listener(signal, onAbort);
-      handle = timers.setImmediate(function() {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        cleanup();
-        resolve(value);
-      });
-    });
-  }
-  function __autojs6_limited_timers_promises_interval(delay, value, options) {
-    const timers = __autojs6_limited_timers();
-    const opts = __autojs6_timers_promises_options(options, "setInterval");
-    const signal = opts.signal;
-    let done = false;
-    let finalError = signal && signal.aborted ? __autojs6_timers_promises_abort_error() : null;
-    let handle = null;
-    const queuedValues = [];
-    const pendingNext = [];
-    const settlePending = function(record) {
-      if (finalError) {
-        record.reject(finalError);
-      } else {
-        record.resolve({ value: undefined, done: true });
-      }
-    };
-    const cleanup = function() {
-      if (handle !== null) {
-        timers.clearInterval(handle);
-        handle = null;
-      }
-      __autojs6_timers_promises_remove_abort_listener(signal, onAbort);
-    };
-    const finish = function(error) {
-      if (done) {
-        return;
-      }
-      done = true;
-      finalError = error || null;
-      cleanup();
-      while (pendingNext.length > 0) {
-        settlePending(pendingNext.shift());
-      }
-    };
-    const onAbort = function() {
-      finish(__autojs6_timers_promises_abort_error());
-    };
-    const iterator = {
-      next: function() {
-        if (queuedValues.length > 0) {
-          return Promise.resolve({ value: queuedValues.shift(), done: false });
-        }
-        if (done) {
-          return finalError
-            ? Promise.reject(finalError)
-            : Promise.resolve({ value: undefined, done: true });
-        }
-        return new Promise(function(resolve, reject) {
-          pendingNext.push({ resolve, reject });
-        });
-      },
-      return: function() {
-        finish(null);
-        return Promise.resolve({ value: undefined, done: true });
-      },
-      throw: function(error) {
-        finish(error || new Error("Embedded Node timers/promises interval iterator closed."));
-        return Promise.reject(finalError);
-      }
-    };
-    if (typeof Symbol === "function" && Symbol.asyncIterator) {
-      Object.defineProperty(iterator, Symbol.asyncIterator, {
-        value: function() {
-          return this;
-        },
-        enumerable: false
-      });
-    }
-    if (finalError) {
-      done = true;
-      return iterator;
-    }
-    __autojs6_timers_promises_add_abort_listener(signal, onAbort);
-    handle = timers.setInterval(function() {
-      if (done) {
-        return;
-      }
-      if (pendingNext.length > 0) {
-        pendingNext.shift().resolve({ value, done: false });
-      } else {
-        queuedValues.push(value);
-      }
-    }, __autojs6_timers_promises_delay(delay));
-    return iterator;
-  }
-  function __autojs6_limited_timers_promises() {
-    if (__autojs6_limited_timers_promises_cache) {
-      return __autojs6_limited_timers_promises_cache;
-    }
-    const limitedTimersPromises = Object.create(null);
-    const scheduler = Object.freeze({
-      wait: function(delay, options) {
-        return __autojs6_limited_timers_promises_timeout(delay, undefined, options);
-      },
-      yield: function() {
-        return __autojs6_limited_timers_promises_immediate(undefined);
-      }
-    });
-    Object.defineProperties(limitedTimersPromises, {
-      setTimeout: { value: __autojs6_limited_timers_promises_timeout, enumerable: true },
-      setImmediate: { value: __autojs6_limited_timers_promises_immediate, enumerable: true },
-      setInterval: { value: __autojs6_limited_timers_promises_interval, enumerable: true },
-      scheduler: { value: scheduler, enumerable: true }
-    });
-    __autojs6_limited_timers_promises_cache = Object.freeze(limitedTimersPromises);
-    return __autojs6_limited_timers_promises_cache;
-  }
-  function __autojs6_limited_path_valid(nodePath) {
-    return !!nodePath &&
-      typeof nodePath.resolve === "function" &&
-      typeof nodePath.normalize === "function" &&
-      typeof nodePath.isAbsolute === "function" &&
-      typeof nodePath.join === "function" &&
-      typeof nodePath.relative === "function" &&
-      typeof nodePath.dirname === "function" &&
-      typeof nodePath.basename === "function" &&
-      typeof nodePath.extname === "function" &&
-      typeof nodePath.format === "function" &&
-      typeof nodePath.parse === "function" &&
-      typeof nodePath.sep === "string" &&
-      typeof nodePath.delimiter === "string";
-  }
-  function __autojs6_escape_regex_text(value) {
-    return String(value).replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
-  }
-  function __autojs6_limited_path_matches_glob_fallback(pathValue, patternValue) {
-    if (typeof pathValue !== "string") {
-      throw __autojs6_invalid_arg_type("path.matchesGlob path must be a string.");
-    }
-    if (typeof patternValue !== "string") {
-      throw __autojs6_invalid_arg_type("path.matchesGlob pattern must be a string.");
-    }
-    let expression = "^";
-    for (let index = 0; index < patternValue.length; index += 1) {
-      const ch = patternValue[index];
-      if (ch === "*") {
-        if (patternValue[index + 1] === "*") {
-          expression += ".*";
-          index += 1;
-        } else {
-          expression += "[^/\\\\]*";
-        }
-      } else if (ch === "?") {
-        expression += "[^/\\\\]";
-      } else {
-        expression += __autojs6_escape_regex_text(ch);
-      }
-    }
-    expression += "$";
-    return new RegExp(expression).test(pathValue);
-  }
-  function __autojs6_limited_path_matches_glob(nodePath) {
-    if (nodePath && typeof nodePath.matchesGlob === "function") {
-      return function(pathValue, patternValue) {
-        return nodePath.matchesGlob(pathValue, patternValue);
-      };
-    }
-    return __autojs6_limited_path_matches_glob_fallback;
-  }
-  function __autojs6_define_limited_path_properties(target, nodePath) {
-    if (!__autojs6_limited_path_valid(nodePath)) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'path' is unavailable.");
-    }
-    const descriptors = {
-      resolve: { value: nodePath.resolve.bind(nodePath), enumerable: true },
-      normalize: { value: nodePath.normalize.bind(nodePath), enumerable: true },
-      isAbsolute: { value: nodePath.isAbsolute.bind(nodePath), enumerable: true },
-      join: { value: nodePath.join.bind(nodePath), enumerable: true },
-      relative: { value: nodePath.relative.bind(nodePath), enumerable: true },
-      dirname: { value: nodePath.dirname.bind(nodePath), enumerable: true },
-      basename: { value: nodePath.basename.bind(nodePath), enumerable: true },
-      extname: { value: nodePath.extname.bind(nodePath), enumerable: true },
-      format: { value: nodePath.format.bind(nodePath), enumerable: true },
-      parse: { value: nodePath.parse.bind(nodePath), enumerable: true },
-      matchesGlob: { value: __autojs6_limited_path_matches_glob(nodePath), enumerable: true },
-      sep: { value: nodePath.sep, enumerable: true },
-      delimiter: { value: nodePath.delimiter, enumerable: true }
-    };
-    if (typeof nodePath.toNamespacedPath === "function") {
-      descriptors.toNamespacedPath = { value: nodePath.toNamespacedPath.bind(nodePath), enumerable: true };
-    }
-    Object.defineProperties(target, descriptors);
-    return target;
-  }
-  function __autojs6_limited_path_namespace(nodePath) {
-    return Object.freeze(__autojs6_define_limited_path_properties(Object.create(null), nodePath));
-  }
-  function __autojs6_limited_path() {
-    if (__autojs6_limited_path_cache) {
-      return __autojs6_limited_path_cache;
-    }
-    const nodePath = __autojs6_path_module();
-    if (
-      !__autojs6_limited_path_valid(nodePath) ||
-      !__autojs6_limited_path_valid(nodePath.posix) ||
-      !__autojs6_limited_path_valid(nodePath.win32)
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'path' is unavailable.");
-    }
-    const limitedPath = __autojs6_define_limited_path_properties(Object.create(null), nodePath);
-    const limitedPosix = nodePath.posix === nodePath
-      ? limitedPath
-      : __autojs6_limited_path_namespace(nodePath.posix);
-    const limitedWin32 = nodePath.win32 === nodePath
-      ? limitedPath
-      : __autojs6_limited_path_namespace(nodePath.win32);
-    Object.defineProperties(limitedPath, {
-      posix: { value: limitedPosix, enumerable: true },
-      win32: { value: limitedWin32, enumerable: true }
-    });
-    __autojs6_limited_path_cache = Object.freeze(limitedPath);
-    return __autojs6_limited_path_cache;
-  }
-  function __autojs6_limited_util_types(nodeUtil) {
-    const limitedTypes = Object.create(null);
-    if (nodeUtil && nodeUtil.types && typeof nodeUtil.types === "object") {
-      for (const key of Object.keys(nodeUtil.types)) {
-        const value = nodeUtil.types[key];
-        if (typeof value === "function") {
-          Object.defineProperty(limitedTypes, key, {
-            value: value.bind(nodeUtil.types),
-            enumerable: true
-          });
-        }
-      }
-    }
-    return Object.freeze(limitedTypes);
-  }
   const __autojs6_util_system_error_entries = Object.freeze([
     [-2, Object.freeze(["ENOENT", "no such file or directory"])],
     [-13, Object.freeze(["EACCES", "permission denied"])],
@@ -34230,35 +32854,6 @@ std::string buildEmbeddedScriptExecutionSource(
     [-22, Object.freeze(["EINVAL", "invalid argument"])],
     [-32, Object.freeze(["EPIPE", "broken pipe"])]
   ]);
-  function __autojs6_util_validate_system_error_code(err) {
-    if (typeof err !== "number" || !Number.isInteger(err) || err >= 0) {
-      throw __autojs6_out_of_range("The value of \"err\" is out of range. It must be a negative integer.");
-    }
-    return err;
-  }
-  function __autojs6_util_system_error_entry(err) {
-    const code = __autojs6_util_validate_system_error_code(err);
-    for (const entry of __autojs6_util_system_error_entries) {
-      if (entry[0] === code) {
-        return entry[1];
-      }
-    }
-    return null;
-  }
-  function __autojs6_limited_util_get_system_error_name(err) {
-    const entry = __autojs6_util_system_error_entry(err);
-    return entry ? entry[0] : "Unknown system error " + err;
-  }
-  function __autojs6_limited_util_get_system_error_message(err) {
-    const entry = __autojs6_util_system_error_entry(err);
-    return entry ? entry[1] : "Unknown system error " + err;
-  }
-  function __autojs6_limited_util_get_system_error_map() {
-    return new Map(__autojs6_util_system_error_entries.map((entry) => [
-      entry[0],
-      [entry[1][0], entry[1][1]]
-    ]));
-  }
   const __autojs6_util_style_codes = Object.freeze({
     reset: Object.freeze([0, 0]),
     bold: Object.freeze([1, 22]),
@@ -34278,487 +32873,6 @@ std::string buildEmbeddedScriptExecutionSource(
     gray: Object.freeze([90, 39]),
     grey: Object.freeze([90, 39])
   });
-  function __autojs6_limited_util_style_text(format, text) {
-    const formats = Array.isArray(format) ? format : [format];
-    if (typeof text !== "string") {
-      throw __autojs6_invalid_arg_type("util.styleText text must be a string.");
-    }
-    let styled = text;
-    for (let index = formats.length - 1; index >= 0; index--) {
-      const styleName = formats[index];
-      if (typeof styleName !== "string") {
-        throw __autojs6_invalid_arg_type("util.styleText format must be a string or string array.");
-      }
-      const pair = __autojs6_util_style_codes[styleName];
-      if (!pair) {
-        throw __autojs6_invalid_arg_value("util.styleText format is not supported: " + styleName);
-      }
-      styled = "\u001b[" + pair[0] + "m" + styled + "\u001b[" + pair[1] + "m";
-    }
-    return styled;
-  }
-  function __autojs6_limited_util_parse_env(content) {
-    if (typeof content !== "string") {
-      throw __autojs6_invalid_arg_type("util.parseEnv content must be a string.");
-    }
-    const result = Object.create(null);
-    for (const rawLine of content.split(/\r?\n/)) {
-      let line = rawLine.trim();
-      if (!line || line.startsWith("#")) {
-        continue;
-      }
-      if (line.startsWith("export ")) {
-        line = line.slice(7).trimStart();
-      }
-      const equalsIndex = line.indexOf("=");
-      if (equalsIndex <= 0) {
-        continue;
-      }
-      const key = line.slice(0, equalsIndex).trim();
-      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
-        continue;
-      }
-      let value = line.slice(equalsIndex + 1).trim();
-      if (
-        (value.startsWith("\"") && value.endsWith("\"")) ||
-        (value.startsWith("'") && value.endsWith("'"))
-      ) {
-        const quoted = value[0];
-        value = value.slice(1, -1);
-        if (quoted === "\"") {
-          value = value.replace(/\\n/g, "\n").replace(/\\r/g, "\r").replace(/\\t/g, "\t").replace(/\\"/g, "\"");
-        }
-      } else {
-        value = value.replace(/\s+#.*$/, "");
-      }
-      result[key] = value;
-    }
-    return result;
-  }
-  function __autojs6_limited_util_aborted(signal) {
-    if (!signal || typeof signal !== "object" || typeof signal.addEventListener !== "function") {
-      throw __autojs6_invalid_arg_type("util.aborted signal must be an AbortSignal.");
-    }
-    return new Promise((resolve) => {
-      if (signal.aborted) {
-        Promise.resolve().then(resolve);
-        return;
-      }
-      signal.addEventListener("abort", () => resolve(), { once: true });
-    });
-  }
-  function __autojs6_limited_util() {
-    if (__autojs6_limited_util_cache) {
-      return __autojs6_limited_util_cache;
-    }
-    const nodeUtil = __autojs6_util_module();
-    const TextEncoderCtor = nodeUtil && typeof nodeUtil.TextEncoder === "function"
-      ? nodeUtil.TextEncoder
-      : (typeof TextEncoder === "function" ? TextEncoder : null);
-    const TextDecoderCtor = nodeUtil && typeof nodeUtil.TextDecoder === "function"
-      ? __autojs6_text_decoder_compat_constructor(nodeUtil.TextDecoder)
-      : (typeof TextDecoder === "function" ? TextDecoder : null);
-    const getSystemErrorName = nodeUtil && typeof nodeUtil.getSystemErrorName === "function"
-      ? nodeUtil.getSystemErrorName.bind(nodeUtil)
-      : __autojs6_limited_util_get_system_error_name;
-    const getSystemErrorMap = nodeUtil && typeof nodeUtil.getSystemErrorMap === "function"
-      ? nodeUtil.getSystemErrorMap.bind(nodeUtil)
-      : __autojs6_limited_util_get_system_error_map;
-    const getSystemErrorMessage = nodeUtil && typeof nodeUtil.getSystemErrorMessage === "function"
-      ? nodeUtil.getSystemErrorMessage.bind(nodeUtil)
-      : __autojs6_limited_util_get_system_error_message;
-    const styleText = nodeUtil && typeof nodeUtil.styleText === "function"
-      ? nodeUtil.styleText.bind(nodeUtil)
-      : __autojs6_limited_util_style_text;
-    const parseEnv = nodeUtil && typeof nodeUtil.parseEnv === "function"
-      ? nodeUtil.parseEnv.bind(nodeUtil)
-      : __autojs6_limited_util_parse_env;
-    const aborted = __autojs6_limited_util_aborted;
-    if (
-      !nodeUtil ||
-      typeof nodeUtil.format !== "function" ||
-      typeof nodeUtil.formatWithOptions !== "function" ||
-      typeof nodeUtil.inspect !== "function" ||
-      typeof nodeUtil.inherits !== "function" ||
-      typeof nodeUtil.promisify !== "function" ||
-      typeof nodeUtil.promisify.custom !== "symbol" ||
-      typeof nodeUtil.callbackify !== "function" ||
-      typeof nodeUtil.debuglog !== "function" ||
-      typeof nodeUtil.deprecate !== "function" ||
-      typeof nodeUtil.types !== "object" ||
-      typeof nodeUtil.isDeepStrictEqual !== "function" ||
-      typeof nodeUtil.parseArgs !== "function" ||
-      typeof nodeUtil.stripVTControlCharacters !== "function" ||
-      typeof nodeUtil.toUSVString !== "function" ||
-      typeof nodeUtil.MIMEType !== "function" ||
-      typeof nodeUtil.MIMEParams !== "function" ||
-      typeof getSystemErrorName !== "function" ||
-      typeof getSystemErrorMap !== "function" ||
-      typeof getSystemErrorMessage !== "function" ||
-      typeof styleText !== "function" ||
-      typeof parseEnv !== "function" ||
-      typeof aborted !== "function" ||
-      typeof TextEncoderCtor !== "function" ||
-      typeof TextDecoderCtor !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'util' is unavailable.");
-    }
-    const limitedUtil = Object.create(null);
-    Object.defineProperties(limitedUtil, {
-      format: { value: nodeUtil.format.bind(nodeUtil), enumerable: true },
-      formatWithOptions: { value: nodeUtil.formatWithOptions.bind(nodeUtil), enumerable: true },
-      inspect: { value: nodeUtil.inspect, enumerable: true },
-      inherits: { value: nodeUtil.inherits.bind(nodeUtil), enumerable: true },
-      promisify: { value: nodeUtil.promisify, enumerable: true },
-      callbackify: { value: nodeUtil.callbackify, enumerable: true },
-      debuglog: { value: nodeUtil.debuglog.bind(nodeUtil), enumerable: true },
-      deprecate: { value: nodeUtil.deprecate.bind(nodeUtil), enumerable: true },
-      types: { value: __autojs6_limited_util_types(nodeUtil), enumerable: true },
-      isDeepStrictEqual: { value: nodeUtil.isDeepStrictEqual.bind(nodeUtil), enumerable: true },
-      parseArgs: { value: nodeUtil.parseArgs.bind(nodeUtil), enumerable: true },
-      stripVTControlCharacters: { value: nodeUtil.stripVTControlCharacters.bind(nodeUtil), enumerable: true },
-      toUSVString: { value: nodeUtil.toUSVString.bind(nodeUtil), enumerable: true },
-      getSystemErrorName: { value: getSystemErrorName, enumerable: true },
-      getSystemErrorMap: { value: getSystemErrorMap, enumerable: true },
-      getSystemErrorMessage: { value: getSystemErrorMessage, enumerable: true },
-      styleText: { value: styleText, enumerable: true },
-      parseEnv: { value: parseEnv, enumerable: true },
-      aborted: { value: aborted, enumerable: true },
-      MIMEType: { value: nodeUtil.MIMEType, enumerable: true },
-      MIMEParams: { value: nodeUtil.MIMEParams, enumerable: true },
-      TextEncoder: { value: TextEncoderCtor, enumerable: true },
-      TextDecoder: { value: TextDecoderCtor, enumerable: true }
-    });
-    __autojs6_limited_util_cache = Object.freeze(limitedUtil);
-    return __autojs6_limited_util_cache;
-  }
-  function __autojs6_limited_async_hooks() {
-    if (__autojs6_limited_async_hooks_cache) {
-      return __autojs6_limited_async_hooks_cache;
-    }
-    const nodeAsyncHooks = __autojs6_async_hooks_module();
-    if (
-      !nodeAsyncHooks ||
-      typeof nodeAsyncHooks.AsyncLocalStorage !== "function" ||
-      typeof nodeAsyncHooks.AsyncResource !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'async_hooks' is unavailable.");
-    }
-    const limitedAsyncHooks = Object.create(null);
-    Object.defineProperties(limitedAsyncHooks, {
-      AsyncLocalStorage: { value: nodeAsyncHooks.AsyncLocalStorage, enumerable: true },
-      AsyncResource: { value: nodeAsyncHooks.AsyncResource, enumerable: true }
-    });
-    __autojs6_limited_async_hooks_cache = Object.freeze(limitedAsyncHooks);
-    return __autojs6_limited_async_hooks_cache;
-  }
-  function __autojs6_limited_diagnostics_channel() {
-    if (__autojs6_limited_diagnostics_channel_cache) {
-      return __autojs6_limited_diagnostics_channel_cache;
-    }
-    const nodeDiagnostics = __autojs6_diagnostics_channel_module();
-    if (
-      !nodeDiagnostics ||
-      typeof nodeDiagnostics.channel !== "function" ||
-      typeof nodeDiagnostics.hasSubscribers !== "function" ||
-      typeof nodeDiagnostics.subscribe !== "function" ||
-      typeof nodeDiagnostics.unsubscribe !== "function" ||
-      typeof nodeDiagnostics.tracingChannel !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'diagnostics_channel' is unavailable.");
-    }
-    const channelWrapperCache = typeof WeakMap === "function" ? new WeakMap() : null;
-    const channelStateCache = typeof WeakMap === "function" ? new WeakMap() : null;
-    const channelsByName = typeof Map === "function" ? new Map() : null;
-    const globalSubscribers = typeof Map === "function" ? new Map() : null;
-    function diagnosticName(name) {
-      return String(name);
-    }
-    function subscriberList(map, name, create) {
-      if (!map) {
-        return [];
-      }
-      const key = diagnosticName(name);
-      let list = map.get(key);
-      if (!list && create) {
-        list = [];
-        map.set(key, list);
-      }
-      return list || [];
-    }
-    function requireDiagnosticListener(listener, operation) {
-      if (typeof listener !== "function") {
-        throw __autojs6_invalid_arg_type("diagnostics_channel " + operation + " listener must be a function.");
-      }
-      return listener;
-    }
-    function callDiagnosticListener(listener, message, name) {
-      listener(message, name);
-    }
-    function publishDiagnosticState(state, message) {
-      const name = state.name;
-      const local = state.subscribers.slice();
-      const globalList = subscriberList(globalSubscribers, name, false).slice();
-      for (const listener of local) {
-        callDiagnosticListener(listener, message, name);
-      }
-      for (const listener of globalList) {
-        callDiagnosticListener(listener, message, name);
-      }
-    }
-    function diagnosticStateHasSubscribers(state) {
-      return state.subscribers.length > 0 ||
-        subscriberList(globalSubscribers, state.name, false).length > 0;
-    }
-    function diagnosticHasSubscribers(name) {
-      const key = diagnosticName(name);
-      if (subscriberList(globalSubscribers, key, false).length > 0) {
-        return true;
-      }
-      if (channelsByName && channelsByName.has(key)) {
-        return diagnosticStateHasSubscribers(channelsByName.get(key));
-      }
-      return false;
-    }
-    function wrapChannel(nativeChannel) {
-      if (!nativeChannel || typeof nativeChannel !== "object") {
-        throw new Error("require is restricted in Embedded Node.js MVP; diagnostics_channel channel is unavailable.");
-      }
-      if (channelWrapperCache && channelWrapperCache.has(nativeChannel)) {
-        return channelWrapperCache.get(nativeChannel);
-      }
-      const state = {
-        name: diagnosticName(nativeChannel.name),
-        subscribers: []
-      };
-      const limitedChannel = Object.create(null);
-      Object.defineProperties(limitedChannel, {
-        name: { value: state.name, enumerable: true },
-        hasSubscribers: {
-          get: function() {
-            return diagnosticStateHasSubscribers(state);
-          },
-          enumerable: true
-        },
-        publish: {
-          value: function(message) {
-            publishDiagnosticState(state, message);
-          },
-          enumerable: true
-        },
-        subscribe: {
-          value: function(listener) {
-            listener = requireDiagnosticListener(listener, "channel.subscribe");
-            if (state.subscribers.indexOf(listener) < 0) {
-              state.subscribers.push(listener);
-            }
-          },
-          enumerable: true
-        },
-        unsubscribe: {
-          value: function(listener) {
-            listener = requireDiagnosticListener(listener, "channel.unsubscribe");
-            const index = state.subscribers.indexOf(listener);
-            if (index >= 0) {
-              state.subscribers.splice(index, 1);
-            }
-          },
-          enumerable: true
-        }
-      });
-      const frozenChannel = Object.freeze(limitedChannel);
-      if (channelWrapperCache) {
-        channelWrapperCache.set(nativeChannel, frozenChannel);
-      }
-      if (channelStateCache) {
-        channelStateCache.set(nativeChannel, state);
-      }
-      if (channelsByName) {
-        channelsByName.set(state.name, state);
-      }
-      return frozenChannel;
-    }
-    function wrapTracingChannel(nativeTracingChannel) {
-      if (!nativeTracingChannel || typeof nativeTracingChannel !== "object") {
-        throw new Error("require is restricted in Embedded Node.js MVP; diagnostics_channel tracingChannel is unavailable.");
-      }
-      const limitedTracingChannel = Object.create(null);
-      const descriptors = {};
-      for (const name of ["start", "end", "asyncStart", "asyncEnd", "error"]) {
-        if (nativeTracingChannel[name] && typeof nativeTracingChannel[name] === "object") {
-          descriptors[name] = { value: wrapChannel(nativeTracingChannel[name]), enumerable: true };
-        }
-      }
-      const startChannel = descriptors.start && descriptors.start.value;
-      const endChannel = descriptors.end && descriptors.end.value;
-      const errorChannel = descriptors.error && descriptors.error.value;
-      const asyncStartChannel = descriptors.asyncStart && descriptors.asyncStart.value;
-      const asyncEndChannel = descriptors.asyncEnd && descriptors.asyncEnd.value;
-      function traceMessage(context) {
-        return context && typeof context === "object" ? context : {};
-      }
-      function publishTrace(channel, message) {
-        if (channel && typeof channel.publish === "function") {
-          channel.publish(message);
-        }
-      }
-      descriptors.traceSync = {
-        value: function(fn, context, thisArg) {
-          if (typeof fn !== "function") {
-            throw __autojs6_invalid_arg_type("diagnostics_channel traceSync fn must be a function.");
-          }
-          const args = Array.prototype.slice.call(arguments, 3);
-          const message = traceMessage(context);
-          publishTrace(startChannel, message);
-          try {
-            const result = fn.apply(thisArg, args);
-            publishTrace(endChannel, Object.assign({}, message, { result }));
-            return result;
-          } catch (error) {
-            publishTrace(errorChannel, Object.assign({}, message, { error }));
-            throw error;
-          }
-        },
-        enumerable: true
-      };
-      descriptors.tracePromise = {
-        value: function(fn, context, thisArg) {
-          if (typeof fn !== "function") {
-            throw __autojs6_invalid_arg_type("diagnostics_channel tracePromise fn must be a function.");
-          }
-          const args = Array.prototype.slice.call(arguments, 3);
-          const message = traceMessage(context);
-          publishTrace(startChannel, message);
-          publishTrace(asyncStartChannel, message);
-          try {
-            return Promise.resolve(fn.apply(thisArg, args)).then(function(result) {
-              publishTrace(asyncEndChannel, Object.assign({}, message, { result }));
-              publishTrace(endChannel, Object.assign({}, message, { result }));
-              return result;
-            }, function(error) {
-              publishTrace(errorChannel, Object.assign({}, message, { error }));
-              throw error;
-            });
-          } catch (error) {
-            publishTrace(errorChannel, Object.assign({}, message, { error }));
-            return Promise.reject(error);
-          }
-        },
-        enumerable: true
-      };
-      descriptors.traceCallback = {
-        value: function(fn, position, context, thisArg) {
-          if (typeof fn !== "function") {
-            throw __autojs6_invalid_arg_type("diagnostics_channel traceCallback fn must be a function.");
-          }
-          const args = Array.prototype.slice.call(arguments, 4);
-          const callbackIndex = Number(position);
-          const message = traceMessage(context);
-          publishTrace(startChannel, message);
-          if (Number.isInteger(callbackIndex) && callbackIndex >= 0 && callbackIndex < args.length) {
-            const callback = args[callbackIndex];
-            if (typeof callback === "function") {
-              args[callbackIndex] = function() {
-                publishTrace(endChannel, message);
-                return callback.apply(this, arguments);
-              };
-            }
-          }
-          try {
-            return fn.apply(thisArg, args);
-          } catch (error) {
-            publishTrace(errorChannel, Object.assign({}, message, { error }));
-            throw error;
-          }
-        },
-        enumerable: true
-      };
-      descriptors.subscribe = {
-        value: function(listener) {
-          if (startChannel && typeof startChannel.subscribe === "function") {
-            startChannel.subscribe(listener);
-          }
-          if (endChannel && typeof endChannel.subscribe === "function") {
-            endChannel.subscribe(listener);
-          }
-          if (errorChannel && typeof errorChannel.subscribe === "function") {
-            errorChannel.subscribe(listener);
-          }
-        },
-        enumerable: true
-      };
-      descriptors.unsubscribe = {
-        value: function(listener) {
-          if (startChannel && typeof startChannel.unsubscribe === "function") {
-            startChannel.unsubscribe(listener);
-          }
-          if (endChannel && typeof endChannel.unsubscribe === "function") {
-            endChannel.unsubscribe(listener);
-          }
-          if (errorChannel && typeof errorChannel.unsubscribe === "function") {
-            errorChannel.unsubscribe(listener);
-          }
-        },
-        enumerable: true
-      };
-      descriptors.hasSubscribers = {
-        value: function() {
-          return Boolean(
-            (startChannel && startChannel.hasSubscribers) ||
-            (endChannel && endChannel.hasSubscribers) ||
-            (errorChannel && errorChannel.hasSubscribers)
-          );
-        },
-        enumerable: true
-      };
-      Object.defineProperties(limitedTracingChannel, descriptors);
-      return Object.freeze(limitedTracingChannel);
-    }
-    const limitedDiagnosticsChannel = Object.create(null);
-    Object.defineProperties(limitedDiagnosticsChannel, {
-      channel: {
-        value: function(name) {
-          return wrapChannel(nodeDiagnostics.channel(name));
-        },
-        enumerable: true
-      },
-      hasSubscribers: {
-        value: function(name) {
-          return diagnosticHasSubscribers(name);
-        },
-        enumerable: true
-      },
-      subscribe: {
-        value: function(name, listener) {
-          listener = requireDiagnosticListener(listener, "subscribe");
-          const list = subscriberList(globalSubscribers, name, true);
-          if (list.indexOf(listener) < 0) {
-            list.push(listener);
-          }
-        },
-        enumerable: true
-      },
-      unsubscribe: {
-        value: function(name, listener) {
-          listener = requireDiagnosticListener(listener, "unsubscribe");
-          const list = subscriberList(globalSubscribers, name, false);
-          const index = list.indexOf(listener);
-          if (index >= 0) {
-            list.splice(index, 1);
-          }
-        },
-        enumerable: true
-      },
-      tracingChannel: {
-        value: function(nameOrChannels) {
-          return wrapTracingChannel(nodeDiagnostics.tracingChannel(nameOrChannels));
-        },
-        enumerable: true
-      }
-    });
-    __autojs6_limited_diagnostics_channel_cache = Object.freeze(limitedDiagnosticsChannel);
-    return __autojs6_limited_diagnostics_channel_cache;
-  }
   function __autojs6_diagnostics_safe_value(value) {
     const type = typeof value;
     if (
@@ -34788,7 +32902,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return Object.freeze(result);
   }
   function __autojs6_diagnostics_publish(name, message) {
-    const diagnostics = __autojs6_limited_diagnostics_channel_cache;
+    const diagnostics = __autojs6_builtin_module("diagnostics_channel");
     if (!diagnostics || typeof diagnostics.channel !== "function") {
       return;
     }
@@ -34808,579 +32922,6 @@ std::string buildEmbeddedScriptExecutionSource(
         setImmediate(function() { throw error; });
       }
     }
-  }
-  function __autojs6_limited_perf_hooks() {
-    if (__autojs6_limited_perf_hooks_cache) {
-      return __autojs6_limited_perf_hooks_cache;
-    }
-    const nodePerfHooks = __autojs6_perf_hooks_module();
-    const nativePerformance = nodePerfHooks && nodePerfHooks.performance;
-    if (
-      !nodePerfHooks ||
-      !nativePerformance ||
-      typeof nativePerformance.now !== "function" ||
-      typeof nativePerformance.mark !== "function" ||
-      typeof nativePerformance.measure !== "function" ||
-      typeof nativePerformance.clearMarks !== "function" ||
-      typeof nativePerformance.clearMeasures !== "function" ||
-      typeof nativePerformance.getEntries !== "function" ||
-      typeof nativePerformance.getEntriesByName !== "function" ||
-      typeof nativePerformance.getEntriesByType !== "function" ||
-      typeof nodePerfHooks.PerformanceObserver !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'perf_hooks' is unavailable.");
-    }
-    const allowedEntryTypes = Object.freeze(["mark", "measure"]);
-    const nativeEventLoopUtilization = typeof nativePerformance.eventLoopUtilization === "function"
-      ? nativePerformance.eventLoopUtilization.bind(nativePerformance)
-      : null;
-    function freezeEventLoopUtilization(value) {
-      const source = value && typeof value === "object" ? value : {};
-      return Object.freeze({
-        idle: Number(source.idle || 0),
-        active: Number(source.active || 0),
-        utilization: Number(source.utilization || 0)
-      });
-    }
-    function validateEntryType(value) {
-      if (typeof value !== "string" || allowedEntryTypes.indexOf(value) < 0) {
-        throw __autojs6_invalid_arg_value("perf_hooks PerformanceObserver entry type is not supported: " + value);
-      }
-      return value;
-    }
-    function nativeObserverFor(receiver) {
-      if (!receiver || typeof receiver !== "object" || !receiver.__autojs6NativePerformanceObserver) {
-        throw __autojs6_invalid_arg_type("perf_hooks PerformanceObserver method receiver is invalid.");
-      }
-      return receiver.__autojs6NativePerformanceObserver;
-    }
-    function observerOptions(options) {
-      if (!options || typeof options !== "object") {
-        throw __autojs6_invalid_arg_type("perf_hooks PerformanceObserver options must be an object.");
-      }
-      const normalized = {};
-      if (Array.isArray(options.entryTypes)) {
-        normalized.entryTypes = options.entryTypes.map(validateEntryType);
-      }
-      if (options.type !== undefined) {
-        normalized.type = validateEntryType(options.type);
-      }
-      if (!normalized.entryTypes && normalized.type === undefined) {
-        throw __autojs6_invalid_arg_type("perf_hooks PerformanceObserver options must include entryTypes or type.");
-      }
-      if (options.buffered !== undefined) {
-        normalized.buffered = !!options.buffered;
-      }
-      return normalized;
-    }
-    function LimitedPerformanceObserver(callback) {
-      if (!(this instanceof LimitedPerformanceObserver)) {
-        return new LimitedPerformanceObserver(callback);
-      }
-      if (typeof callback !== "function") {
-        throw __autojs6_invalid_arg_type("perf_hooks PerformanceObserver callback must be a function.");
-      }
-      Object.defineProperty(this, "__autojs6NativePerformanceObserver", {
-        value: new nodePerfHooks.PerformanceObserver(callback),
-        enumerable: false
-      });
-    }
-    Object.defineProperties(LimitedPerformanceObserver, {
-      supportedEntryTypes: {
-        value: allowedEntryTypes,
-        enumerable: true
-      }
-    });
-    Object.defineProperties(LimitedPerformanceObserver.prototype, {
-      observe: {
-        value: function(options) {
-          return nativeObserverFor(this).observe(observerOptions(options));
-        }
-      },
-      disconnect: {
-        value: function() {
-          return nativeObserverFor(this).disconnect();
-        }
-      },
-      takeRecords: {
-        value: function() {
-          return nativeObserverFor(this).takeRecords();
-        }
-      }
-    });
-    Object.freeze(LimitedPerformanceObserver.prototype);
-    const limitedPerformance = Object.create(null);
-    Object.defineProperties(limitedPerformance, {
-      timeOrigin: { value: nativePerformance.timeOrigin, enumerable: true },
-      now: { value: nativePerformance.now.bind(nativePerformance), enumerable: true },
-      mark: { value: nativePerformance.mark.bind(nativePerformance), enumerable: true },
-      measure: { value: nativePerformance.measure.bind(nativePerformance), enumerable: true },
-      clearMarks: { value: nativePerformance.clearMarks.bind(nativePerformance), enumerable: true },
-      clearMeasures: { value: nativePerformance.clearMeasures.bind(nativePerformance), enumerable: true },
-      getEntries: { value: nativePerformance.getEntries.bind(nativePerformance), enumerable: true },
-      getEntriesByName: { value: nativePerformance.getEntriesByName.bind(nativePerformance), enumerable: true },
-      getEntriesByType: { value: nativePerformance.getEntriesByType.bind(nativePerformance), enumerable: true },
-      toJSON: {
-        value: function() {
-          return { timeOrigin: nativePerformance.timeOrigin };
-        },
-        enumerable: true
-      }
-    });
-    if (nativeEventLoopUtilization) {
-      Object.defineProperty(limitedPerformance, "eventLoopUtilization", {
-        value: function(utilization1, utilization2) {
-          return freezeEventLoopUtilization(nativeEventLoopUtilization(utilization1, utilization2));
-        },
-        enumerable: true
-      });
-    }
-    const limitedPerfHooks = Object.create(null);
-    const descriptors = {
-      performance: { value: Object.freeze(limitedPerformance), enumerable: true },
-      PerformanceObserver: { value: Object.freeze(LimitedPerformanceObserver), enumerable: true }
-    };
-    for (const name of ["Performance", "PerformanceEntry", "PerformanceMark", "PerformanceMeasure", "PerformanceObserverEntryList"]) {
-      if (typeof nodePerfHooks[name] === "function") {
-        descriptors[name] = { value: nodePerfHooks[name], enumerable: true };
-      }
-    }
-    Object.defineProperties(limitedPerfHooks, descriptors);
-    __autojs6_limited_perf_hooks_cache = Object.freeze(limitedPerfHooks);
-    return __autojs6_limited_perf_hooks_cache;
-  }
-  function __autojs6_limited_events() {
-    if (__autojs6_limited_events_cache) {
-      return __autojs6_limited_events_cache;
-    }
-    const nodeEvents = __autojs6_events_module();
-    if (
-      !nodeEvents ||
-      typeof nodeEvents.EventEmitter !== "function" ||
-      typeof nodeEvents.once !== "function" ||
-      typeof nodeEvents.on !== "function" ||
-      typeof nodeEvents.listenerCount !== "function" ||
-      typeof nodeEvents.getEventListeners !== "function" ||
-      typeof nodeEvents.getMaxListeners !== "function" ||
-      typeof nodeEvents.setMaxListeners !== "function" ||
-      typeof nodeEvents.addAbortListener !== "function" ||
-      typeof nodeEvents.errorMonitor !== "symbol" ||
-      typeof nodeEvents.captureRejectionSymbol !== "symbol"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'events' is unavailable.");
-    }
-    function LimitedEventEmitter() {
-      return Reflect.construct(nodeEvents.EventEmitter, arguments, new.target || LimitedEventEmitter);
-    }
-    Object.setPrototypeOf(LimitedEventEmitter, nodeEvents.EventEmitter);
-    Object.defineProperty(LimitedEventEmitter, "prototype", {
-      value: nodeEvents.EventEmitter.prototype
-    });
-    Object.defineProperties(LimitedEventEmitter, {
-      EventEmitter: { value: LimitedEventEmitter, enumerable: true },
-      EventEmitterAsyncResource: { value: undefined },
-      defaultMaxListeners: {
-        get: function() { return nodeEvents.defaultMaxListeners; },
-        set: function(value) { nodeEvents.defaultMaxListeners = value; },
-        enumerable: true
-      },
-      captureRejections: {
-        get: function() { return nodeEvents.captureRejections; },
-        set: function(value) { nodeEvents.captureRejections = value; },
-        enumerable: true
-      },
-      errorMonitor: { value: nodeEvents.errorMonitor, enumerable: true },
-      captureRejectionSymbol: { value: nodeEvents.captureRejectionSymbol, enumerable: true },
-      once: {
-        value: function() {
-          return nodeEvents.once.apply(nodeEvents, arguments);
-        },
-        enumerable: true
-      },
-      on: {
-        value: function() {
-          return nodeEvents.on.apply(nodeEvents, arguments);
-        },
-        enumerable: true
-      },
-      listenerCount: {
-        value: function() {
-          return nodeEvents.listenerCount.apply(nodeEvents, arguments);
-        },
-        enumerable: true
-      },
-      getEventListeners: {
-        value: function() {
-          return nodeEvents.getEventListeners.apply(nodeEvents, arguments);
-        },
-        enumerable: true
-      },
-      getMaxListeners: {
-        value: function() {
-          return nodeEvents.getMaxListeners.apply(nodeEvents, arguments);
-        },
-        enumerable: true
-      },
-      setMaxListeners: {
-        value: function() {
-          return nodeEvents.setMaxListeners.apply(nodeEvents, arguments);
-        },
-        enumerable: true
-      },
-      addAbortListener: {
-        value: function() {
-          return nodeEvents.addAbortListener.apply(nodeEvents, arguments);
-        },
-        enumerable: true
-      }
-    });
-    __autojs6_limited_events_cache = Object.freeze(LimitedEventEmitter);
-    return __autojs6_limited_events_cache;
-  }
-  function __autojs6_limited_readline() {
-    if (__autojs6_limited_readline_cache) {
-      return __autojs6_limited_readline_cache;
-    }
-    const nodeReadline = __autojs6_readline_module();
-    if (
-      !nodeReadline ||
-      typeof nodeReadline.Interface !== "function" ||
-      typeof nodeReadline.createInterface !== "function" ||
-      typeof nodeReadline.clearLine !== "function" ||
-      typeof nodeReadline.clearScreenDown !== "function" ||
-      typeof nodeReadline.cursorTo !== "function" ||
-      typeof nodeReadline.moveCursor !== "function" ||
-      typeof nodeReadline.emitKeypressEvents !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'readline' is unavailable.");
-    }
-    const limitedReadline = Object.create(null);
-    Object.defineProperties(limitedReadline, {
-      Interface: { value: nodeReadline.Interface, enumerable: true },
-      createInterface: {
-        value: function() {
-          return nodeReadline.createInterface.apply(nodeReadline, arguments);
-        },
-        enumerable: true
-      },
-      clearLine: {
-        value: function() {
-          return nodeReadline.clearLine.apply(nodeReadline, arguments);
-        },
-        enumerable: true
-      },
-      clearScreenDown: {
-        value: function() {
-          return nodeReadline.clearScreenDown.apply(nodeReadline, arguments);
-        },
-        enumerable: true
-      },
-      cursorTo: {
-        value: function() {
-          return nodeReadline.cursorTo.apply(nodeReadline, arguments);
-        },
-        enumerable: true
-      },
-      moveCursor: {
-        value: function() {
-          return nodeReadline.moveCursor.apply(nodeReadline, arguments);
-        },
-        enumerable: true
-      },
-      emitKeypressEvents: {
-        value: function() {
-          return nodeReadline.emitKeypressEvents.apply(nodeReadline, arguments);
-        },
-        enumerable: true
-      }
-    });
-    __autojs6_limited_readline_cache = Object.freeze(limitedReadline);
-    return __autojs6_limited_readline_cache;
-  }
-  function __autojs6_limited_readline_promises() {
-    if (__autojs6_limited_readline_promises_cache) {
-      return __autojs6_limited_readline_promises_cache;
-    }
-    const nodePromises = __autojs6_readline_promises_module();
-    if (
-      !nodePromises ||
-      typeof nodePromises.Interface !== "function" ||
-      typeof nodePromises.Readline !== "function" ||
-      typeof nodePromises.createInterface !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'readline/promises' is unavailable.");
-    }
-    const limitedPromises = Object.create(null);
-    Object.defineProperties(limitedPromises, {
-      Interface: { value: nodePromises.Interface, enumerable: true },
-      Readline: { value: nodePromises.Readline, enumerable: true },
-      createInterface: {
-        value: function() {
-          return nodePromises.createInterface.apply(nodePromises, arguments);
-        },
-        enumerable: true
-      }
-    });
-    __autojs6_limited_readline_promises_cache = Object.freeze(limitedPromises);
-    return __autojs6_limited_readline_promises_cache;
-  }
-  function __autojs6_limited_stream() {
-    if (__autojs6_limited_stream_cache) {
-      return __autojs6_limited_stream_cache;
-    }
-    const nodeStream = __autojs6_stream_module();
-    if (
-      !nodeStream ||
-      typeof nodeStream.Stream !== "function" ||
-      typeof nodeStream.Readable !== "function" ||
-      typeof nodeStream.Writable !== "function" ||
-      typeof nodeStream.Duplex !== "function" ||
-      typeof nodeStream.Transform !== "function" ||
-      typeof nodeStream.PassThrough !== "function" ||
-      typeof nodeStream.pipeline !== "function" ||
-      typeof nodeStream.finished !== "function" ||
-      typeof nodeStream.addAbortSignal !== "function" ||
-      typeof nodeStream.compose !== "function" ||
-      typeof nodeStream.duplexPair !== "function" ||
-      typeof nodeStream.isReadable !== "function" ||
-      typeof nodeStream.isWritable !== "function" ||
-      typeof nodeStream.isErrored !== "function" ||
-      typeof nodeStream.isDestroyed !== "function" ||
-      typeof nodeStream.isDisturbed !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'stream' is unavailable.");
-    }
-    const nativeStream = nodeStream.Stream;
-    const nativeReadable = nodeStream.Readable;
-    const nativeWritable = nodeStream.Writable;
-    const nativeDuplex = nodeStream.Duplex;
-    const nativeTransform = nodeStream.Transform;
-    const nativePassThrough = nodeStream.PassThrough;
-    const nativePipeline = nodeStream.pipeline;
-    const nativeFinished = nodeStream.finished;
-    const nativeAddAbortSignal = nodeStream.addAbortSignal;
-    const nativeCompose = nodeStream.compose;
-    const nativeDuplexPair = nodeStream.duplexPair;
-    const nativeIsReadable = nodeStream.isReadable;
-    const nativeIsWritable = nodeStream.isWritable;
-    const nativeIsErrored = nodeStream.isErrored;
-    const nativeIsDestroyed = nodeStream.isDestroyed;
-    const nativeIsDisturbed = nodeStream.isDisturbed;
-    function limitedStream() {
-      return Reflect.construct(nativeStream, arguments, new.target || nativeStream);
-    }
-    try {
-      Object.setPrototypeOf(limitedStream, nativeStream);
-    } catch (_) {
-      // Best effort only; instanceof compatibility comes from the prototype below.
-    }
-    Object.defineProperty(limitedStream, "prototype", {
-      value: nativeStream.prototype,
-      enumerable: false
-    });
-    Object.defineProperties(limitedStream, {
-      Stream: { value: limitedStream, enumerable: true },
-      Readable: { value: nativeReadable, enumerable: true },
-      Writable: { value: nativeWritable, enumerable: true },
-      Duplex: { value: nativeDuplex, enumerable: true },
-      Transform: { value: nativeTransform, enumerable: true },
-      PassThrough: { value: nativePassThrough, enumerable: true },
-      pipeline: {
-        value: function() {
-          return nativePipeline.apply(nodeStream, arguments);
-        },
-        enumerable: true
-      },
-      finished: {
-        value: function() {
-          return nativeFinished.apply(nodeStream, arguments);
-        },
-        enumerable: true
-      },
-      addAbortSignal: {
-        value: function() {
-          return nativeAddAbortSignal.apply(nodeStream, arguments);
-        },
-        enumerable: true
-      },
-      compose: {
-        value: function() {
-          return nativeCompose.apply(nodeStream, arguments);
-        },
-        enumerable: true
-      },
-      duplexPair: {
-        value: function() {
-          return nativeDuplexPair.apply(nodeStream, arguments);
-        },
-        enumerable: true
-      },
-      isReadable: {
-        value: function(value) {
-          return nativeIsReadable(value);
-        },
-        enumerable: true
-      },
-      isWritable: {
-        value: function(value) {
-          return nativeIsWritable(value);
-        },
-        enumerable: true
-      },
-      isErrored: {
-        value: function(value) {
-          return nativeIsErrored(value);
-        },
-        enumerable: true
-      },
-      isDestroyed: {
-        value: function(value) {
-          return nativeIsDestroyed(value);
-        },
-        enumerable: true
-      },
-      isDisturbed: {
-        value: function(value) {
-          return nativeIsDisturbed(value);
-        },
-        enumerable: true
-      },
-      promises: { value: undefined, enumerable: true }
-    });
-    __autojs6_limited_stream_cache = Object.freeze(limitedStream);
-    return __autojs6_limited_stream_cache;
-  }
-  function __autojs6_limited_stream_promises() {
-    if (__autojs6_limited_stream_promises_cache) {
-      return __autojs6_limited_stream_promises_cache;
-    }
-    const nodePromises = __autojs6_stream_promises_module();
-    if (
-      !nodePromises ||
-      typeof nodePromises.pipeline !== "function" ||
-      typeof nodePromises.finished !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'stream/promises' is unavailable.");
-    }
-    const limitedPromises = Object.create(null);
-    Object.defineProperties(limitedPromises, {
-      pipeline: {
-        value: function() {
-          return nodePromises.pipeline.apply(nodePromises, arguments);
-        },
-        enumerable: true
-      },
-      finished: {
-        value: function() {
-          return nodePromises.finished.apply(nodePromises, arguments);
-        },
-        enumerable: true
-      }
-    });
-    __autojs6_limited_stream_promises_cache = Object.freeze(limitedPromises);
-    return __autojs6_limited_stream_promises_cache;
-  }
-  function __autojs6_limited_stream_web() {
-    if (__autojs6_limited_stream_web_cache) {
-      return __autojs6_limited_stream_web_cache;
-    }
-    const nodeWeb = __autojs6_stream_web_module();
-    if (
-      !nodeWeb ||
-      typeof nodeWeb.ReadableStream !== "function" ||
-      typeof nodeWeb.WritableStream !== "function" ||
-      typeof nodeWeb.TransformStream !== "function" ||
-      typeof nodeWeb.TextEncoderStream !== "function" ||
-      typeof nodeWeb.TextDecoderStream !== "function" ||
-      typeof nodeWeb.ByteLengthQueuingStrategy !== "function" ||
-      typeof nodeWeb.CountQueuingStrategy !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'stream/web' is unavailable.");
-    }
-    const limitedWeb = Object.create(null);
-    Object.defineProperties(limitedWeb, {
-      ReadableStream: {
-        value: nodeWeb.ReadableStream,
-        enumerable: true
-      },
-      WritableStream: {
-        value: nodeWeb.WritableStream,
-        enumerable: true
-      },
-      TransformStream: {
-        value: nodeWeb.TransformStream,
-        enumerable: true
-      },
-      TextEncoderStream: {
-        value: nodeWeb.TextEncoderStream,
-        enumerable: true
-      },
-      TextDecoderStream: {
-        value: nodeWeb.TextDecoderStream,
-        enumerable: true
-      },
-      ByteLengthQueuingStrategy: {
-        value: nodeWeb.ByteLengthQueuingStrategy,
-        enumerable: true
-      },
-      CountQueuingStrategy: {
-        value: nodeWeb.CountQueuingStrategy,
-        enumerable: true
-      }
-    });
-    __autojs6_limited_stream_web_cache = Object.freeze(limitedWeb);
-    return __autojs6_limited_stream_web_cache;
-  }
-  function __autojs6_limited_stream_consumers() {
-    if (__autojs6_limited_stream_consumers_cache) {
-      return __autojs6_limited_stream_consumers_cache;
-    }
-    const nodeConsumers = __autojs6_stream_consumers_module();
-    if (
-      !nodeConsumers ||
-      typeof nodeConsumers.arrayBuffer !== "function" ||
-      typeof nodeConsumers.blob !== "function" ||
-      typeof nodeConsumers.buffer !== "function" ||
-      typeof nodeConsumers.json !== "function" ||
-      typeof nodeConsumers.text !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'stream/consumers' is unavailable.");
-    }
-    const limitedConsumers = Object.create(null);
-    Object.defineProperties(limitedConsumers, {
-      arrayBuffer: {
-        value: function() {
-          return nodeConsumers.arrayBuffer.apply(nodeConsumers, arguments);
-        },
-        enumerable: true
-      },
-      blob: {
-        value: function() {
-          return nodeConsumers.blob.apply(nodeConsumers, arguments);
-        },
-        enumerable: true
-      },
-      buffer: {
-        value: function() {
-          return nodeConsumers.buffer.apply(nodeConsumers, arguments);
-        },
-        enumerable: true
-      },
-      json: {
-        value: function() {
-          return nodeConsumers.json.apply(nodeConsumers, arguments);
-        },
-        enumerable: true
-      },
-      text: {
-        value: function() {
-          return nodeConsumers.text.apply(nodeConsumers, arguments);
-        },
-        enumerable: true
-      }
-    });
-    __autojs6_limited_stream_consumers_cache = Object.freeze(limitedConsumers);
-    return __autojs6_limited_stream_consumers_cache;
   }
   const __autojs6_zlib_input_limit = 8 * 1024 * 1024;
   const __autojs6_zlib_output_limit = 32 * 1024 * 1024;
@@ -35402,220 +32943,6 @@ std::string buildEmbeddedScriptExecutionSource(
     throw __autojs6_invalid_arg_type(
       "Embedded Node zlib sync API expects a string, Buffer, ArrayBuffer, TypedArray, or DataView input."
     );
-  }
-  function __autojs6_checked_zlib_sync(nodeZlib, name) {
-    const fn = nodeZlib && nodeZlib[name];
-    if (typeof fn !== "function") {
-      return null;
-    }
-    return function(input, options) {
-      const inputSize = __autojs6_binary_like_size(input);
-      if (inputSize > __autojs6_zlib_input_limit) {
-        throw __autojs6_out_of_range(
-          "Embedded Node zlib sync API input exceeds " + __autojs6_zlib_input_limit + " bytes."
-        );
-      }
-      const output = arguments.length > 1 ? fn.call(nodeZlib, input, options) : fn.call(nodeZlib, input);
-      const outputSize = __autojs6_binary_like_size(output);
-      if (outputSize > __autojs6_zlib_output_limit) {
-        throw __autojs6_out_of_range(
-          "Embedded Node zlib sync API output exceeds " + __autojs6_zlib_output_limit + " bytes."
-        );
-      }
-      return output;
-    };
-  }
-  function __autojs6_checked_zlib_callback(nodeZlib, syncName, callbackName) {
-    const syncFn = __autojs6_checked_zlib_sync(nodeZlib, syncName);
-    if (typeof syncFn !== "function") {
-      return null;
-    }
-    return function(input, options, callback) {
-      let cb = callback;
-      let normalizedOptions = options;
-      if (typeof options === "function") {
-        cb = options;
-        normalizedOptions = undefined;
-      }
-      if (typeof cb !== "function") {
-        throw __autojs6_invalid_arg_type("Embedded Node limited zlib " + callbackName + " callback must be a function.");
-      }
-      const inputSize = __autojs6_binary_like_size(input);
-      if (inputSize > __autojs6_zlib_input_limit) {
-        throw __autojs6_out_of_range(
-          "Embedded Node zlib callback API input exceeds " + __autojs6_zlib_input_limit + " bytes."
-        );
-      }
-      __autojs6_schedule_zlib_callback(cb, function() {
-        try {
-          const output = normalizedOptions === undefined
-            ? syncFn(input)
-            : syncFn(input, normalizedOptions);
-          cb(null, output);
-        } catch (error) {
-          cb(error);
-        }
-      });
-    };
-  }
-  function __autojs6_zlib_stream_transform_options(options) {
-    if (options === null || options === undefined) {
-      return options;
-    }
-    const valueType = typeof options;
-    if (valueType !== "object" && valueType !== "function") {
-      return options;
-    }
-    const transformOptions = Object.assign({}, options);
-    transformOptions.decodeStrings = true;
-    transformOptions.objectMode = false;
-    transformOptions.readableObjectMode = false;
-    transformOptions.writableObjectMode = false;
-    return transformOptions;
-  }
-  function __autojs6_zlib_stream_chunk_to_buffer(chunk, encoding) {
-    __autojs6_binary_like_size(chunk);
-    if (typeof chunk === "string") {
-      return Buffer.from(chunk, encoding && encoding !== "buffer" ? encoding : "utf8");
-    }
-    if (typeof Buffer === "function" && Buffer.isBuffer(chunk)) {
-      return Buffer.from(chunk);
-    }
-    if (typeof ArrayBuffer !== "undefined") {
-      if (chunk instanceof ArrayBuffer) {
-        return Buffer.from(new Uint8Array(chunk));
-      }
-      if (ArrayBuffer.isView && ArrayBuffer.isView(chunk)) {
-        return Buffer.from(new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength));
-      }
-    }
-    throw __autojs6_invalid_arg_type(
-      "Embedded Node zlib stream API expects string, Buffer, ArrayBuffer, TypedArray, or DataView chunks."
-    );
-  }
-  function __autojs6_checked_zlib_stream(nodeStream, nodeZlib, syncName, streamName) {
-    const syncFn = __autojs6_checked_zlib_sync(nodeZlib, syncName);
-    if (typeof syncFn !== "function" || !nodeStream || typeof nodeStream.Transform !== "function") {
-      return null;
-    }
-    return function(options) {
-      const chunks = [];
-      let inputSize = 0;
-      let tracked = false;
-      const originalOptions = options;
-      const transformOptions = __autojs6_zlib_stream_transform_options(options);
-      const stream = new nodeStream.Transform(transformOptions);
-      function activateStream() {
-        if (tracked) {
-          return;
-        }
-        tracked = true;
-        __autojs6_track_zlib_stream(stream);
-      }
-      stream._transform = function(chunk, encoding, callback) {
-        try {
-          activateStream();
-          const chunkSize = __autojs6_binary_like_size(chunk);
-          inputSize += chunkSize;
-          if (inputSize > __autojs6_zlib_input_limit) {
-            throw __autojs6_out_of_range(
-              "Embedded Node zlib " + streamName + " input exceeds " + __autojs6_zlib_input_limit + " bytes."
-            );
-          }
-          chunks.push(__autojs6_zlib_stream_chunk_to_buffer(chunk, encoding));
-          callback();
-        } catch (error) {
-          callback(error);
-        }
-      };
-      stream._flush = function(callback) {
-        try {
-          activateStream();
-          const input = chunks.length === 1 ? chunks[0] : Buffer.concat(chunks, inputSize);
-          const output = originalOptions === undefined
-            ? syncFn(input)
-            : syncFn(input, originalOptions);
-          if (__autojs6_binary_like_size(output) > 0) {
-            this.push(output);
-          }
-          callback();
-        } catch (error) {
-          callback(error);
-        }
-      };
-      return stream;
-    };
-  }
-  function __autojs6_limited_zlib_constants(nodeZlib) {
-    const constants = Object.create(null);
-    const source = nodeZlib && nodeZlib.constants;
-    if (source && typeof source === "object") {
-      Object.keys(source).forEach(function(name) {
-        const value = source[name];
-        if (typeof value === "number" || typeof value === "string") {
-          Object.defineProperty(constants, name, {
-            value,
-            enumerable: true,
-            configurable: false,
-            writable: false
-          });
-        }
-      });
-    }
-    return Object.freeze(constants);
-  }
-  function __autojs6_limited_zlib() {
-    if (__autojs6_limited_zlib_cache) {
-      return __autojs6_limited_zlib_cache;
-    }
-    const nodeZlib = __autojs6_zlib_module();
-    if (
-      !nodeZlib ||
-      typeof nodeZlib.gzipSync !== "function" ||
-      typeof nodeZlib.gunzipSync !== "function" ||
-      typeof nodeZlib.deflateSync !== "function" ||
-      typeof nodeZlib.inflateSync !== "function" ||
-      typeof nodeZlib.deflateRawSync !== "function" ||
-      typeof nodeZlib.inflateRawSync !== "function" ||
-      typeof nodeZlib.brotliCompressSync !== "function" ||
-      typeof nodeZlib.brotliDecompressSync !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'zlib' is unavailable.");
-    }
-    const nodeStream = __autojs6_stream_module();
-    if (!nodeStream || typeof nodeStream.Transform !== "function") {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'stream' is unavailable.");
-    }
-    const limitedZlib = Object.create(null);
-    Object.defineProperties(limitedZlib, {
-      gzipSync: { value: __autojs6_checked_zlib_sync(nodeZlib, "gzipSync"), enumerable: true },
-      gunzipSync: { value: __autojs6_checked_zlib_sync(nodeZlib, "gunzipSync"), enumerable: true },
-      deflateSync: { value: __autojs6_checked_zlib_sync(nodeZlib, "deflateSync"), enumerable: true },
-      inflateSync: { value: __autojs6_checked_zlib_sync(nodeZlib, "inflateSync"), enumerable: true },
-      deflateRawSync: { value: __autojs6_checked_zlib_sync(nodeZlib, "deflateRawSync"), enumerable: true },
-      inflateRawSync: { value: __autojs6_checked_zlib_sync(nodeZlib, "inflateRawSync"), enumerable: true },
-      brotliCompressSync: { value: __autojs6_checked_zlib_sync(nodeZlib, "brotliCompressSync"), enumerable: true },
-      brotliDecompressSync: { value: __autojs6_checked_zlib_sync(nodeZlib, "brotliDecompressSync"), enumerable: true },
-      gzip: { value: __autojs6_checked_zlib_callback(nodeZlib, "gzipSync", "gzip"), enumerable: true },
-      gunzip: { value: __autojs6_checked_zlib_callback(nodeZlib, "gunzipSync", "gunzip"), enumerable: true },
-      deflate: { value: __autojs6_checked_zlib_callback(nodeZlib, "deflateSync", "deflate"), enumerable: true },
-      inflate: { value: __autojs6_checked_zlib_callback(nodeZlib, "inflateSync", "inflate"), enumerable: true },
-      deflateRaw: { value: __autojs6_checked_zlib_callback(nodeZlib, "deflateRawSync", "deflateRaw"), enumerable: true },
-      inflateRaw: { value: __autojs6_checked_zlib_callback(nodeZlib, "inflateRawSync", "inflateRaw"), enumerable: true },
-      brotliCompress: { value: __autojs6_checked_zlib_callback(nodeZlib, "brotliCompressSync", "brotliCompress"), enumerable: true },
-      brotliDecompress: { value: __autojs6_checked_zlib_callback(nodeZlib, "brotliDecompressSync", "brotliDecompress"), enumerable: true },
-      createGzip: { value: __autojs6_checked_zlib_stream(nodeStream, nodeZlib, "gzipSync", "createGzip"), enumerable: true },
-      createGunzip: { value: __autojs6_checked_zlib_stream(nodeStream, nodeZlib, "gunzipSync", "createGunzip"), enumerable: true },
-      createDeflate: { value: __autojs6_checked_zlib_stream(nodeStream, nodeZlib, "deflateSync", "createDeflate"), enumerable: true },
-      createInflate: { value: __autojs6_checked_zlib_stream(nodeStream, nodeZlib, "inflateSync", "createInflate"), enumerable: true },
-      createDeflateRaw: { value: __autojs6_checked_zlib_stream(nodeStream, nodeZlib, "deflateRawSync", "createDeflateRaw"), enumerable: true },
-      createInflateRaw: { value: __autojs6_checked_zlib_stream(nodeStream, nodeZlib, "inflateRawSync", "createInflateRaw"), enumerable: true },
-      createBrotliCompress: { value: __autojs6_checked_zlib_stream(nodeStream, nodeZlib, "brotliCompressSync", "createBrotliCompress"), enumerable: true },
-      createBrotliDecompress: { value: __autojs6_checked_zlib_stream(nodeStream, nodeZlib, "brotliDecompressSync", "createBrotliDecompress"), enumerable: true },
-      constants: { value: __autojs6_limited_zlib_constants(nodeZlib), enumerable: true }
-    });
-    __autojs6_limited_zlib_cache = Object.freeze(limitedZlib);
-    return __autojs6_limited_zlib_cache;
   }
   function __autojs6_normalize_web_compression_format(format, constructorName) {
     if (format === "gzip") {
@@ -35766,672 +33093,6 @@ std::string buildEmbeddedScriptExecutionSource(
       DecompressionStream
     });
     return __autojs6_limited_web_compression_cache;
-  }
-  function __autojs6_limited_querystring() {
-    if (__autojs6_limited_querystring_cache) {
-      return __autojs6_limited_querystring_cache;
-    }
-    const nodeQuerystring = __autojs6_querystring_module();
-    if (
-      !nodeQuerystring ||
-      typeof nodeQuerystring.parse !== "function" ||
-      typeof nodeQuerystring.stringify !== "function" ||
-      typeof nodeQuerystring.escape !== "function" ||
-      typeof nodeQuerystring.unescape !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'querystring' is unavailable.");
-    }
-    const limitedQuerystring = Object.create(null);
-    Object.defineProperties(limitedQuerystring, {
-      parse: { value: nodeQuerystring.parse.bind(nodeQuerystring), enumerable: true },
-      stringify: { value: nodeQuerystring.stringify.bind(nodeQuerystring), enumerable: true },
-      escape: { value: nodeQuerystring.escape.bind(nodeQuerystring), enumerable: true },
-      unescape: { value: nodeQuerystring.unescape.bind(nodeQuerystring), enumerable: true }
-    });
-    __autojs6_limited_querystring_cache = Object.freeze(limitedQuerystring);
-    return __autojs6_limited_querystring_cache;
-  }
-  function __autojs6_limited_string_decoder() {
-    if (__autojs6_limited_string_decoder_cache) {
-      return __autojs6_limited_string_decoder_cache;
-    }
-    const nodeStringDecoder = __autojs6_string_decoder_module();
-    if (!nodeStringDecoder || typeof nodeStringDecoder.StringDecoder !== "function") {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'string_decoder' is unavailable.");
-    }
-    const limitedStringDecoder = Object.create(null);
-    Object.defineProperties(limitedStringDecoder, {
-      StringDecoder: { value: nodeStringDecoder.StringDecoder, enumerable: true }
-    });
-    __autojs6_limited_string_decoder_cache = Object.freeze(limitedStringDecoder);
-    return __autojs6_limited_string_decoder_cache;
-  }
-  function __autojs6_create_limited_assert(sourceAssert, assertionError) {
-    if (typeof sourceAssert !== "function" || typeof assertionError !== "function") {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'assert' is unavailable.");
-    }
-    const limitedAssert = function(value, message) {
-      return sourceAssert(value, message);
-    };
-    const descriptors = {
-      AssertionError: { value: assertionError, enumerable: true },
-      ok: { value: limitedAssert, enumerable: true }
-    };
-    const methodNames = [
-      "fail",
-      "equal",
-      "notEqual",
-      "deepEqual",
-      "notDeepEqual",
-      "deepStrictEqual",
-      "notDeepStrictEqual",
-      "strictEqual",
-      "notStrictEqual",
-      "partialDeepStrictEqual",
-      "match",
-      "doesNotMatch",
-      "throws",
-      "rejects",
-      "doesNotThrow",
-      "doesNotReject",
-      "ifError"
-    ];
-    for (const methodName of methodNames) {
-      if (typeof sourceAssert[methodName] !== "function") {
-        throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'assert' is unavailable.");
-      }
-      descriptors[methodName] = {
-        value: sourceAssert[methodName].bind(sourceAssert),
-        enumerable: true
-      };
-    }
-    Object.defineProperties(limitedAssert, descriptors);
-    return limitedAssert;
-  }
-  function __autojs6_limited_assert() {
-    if (__autojs6_limited_assert_cache) {
-      return __autojs6_limited_assert_cache;
-    }
-    const nodeAssert = __autojs6_assert_module();
-    if (
-      !nodeAssert ||
-      typeof nodeAssert.AssertionError !== "function" ||
-      typeof nodeAssert.strict !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'assert' is unavailable.");
-    }
-    const limitedAssert = __autojs6_create_limited_assert(nodeAssert, nodeAssert.AssertionError);
-    const limitedStrictAssert = __autojs6_create_limited_assert(nodeAssert.strict, nodeAssert.AssertionError);
-    Object.defineProperty(limitedStrictAssert, "strict", {
-      value: limitedStrictAssert,
-      enumerable: true
-    });
-    Object.freeze(limitedStrictAssert);
-    Object.defineProperty(limitedAssert, "strict", {
-      value: limitedStrictAssert,
-      enumerable: true
-    });
-    __autojs6_limited_assert_cache = Object.freeze(limitedAssert);
-    return __autojs6_limited_assert_cache;
-  }
-  function __autojs6_limited_assert_strict() {
-    return __autojs6_limited_assert().strict;
-  }
-  function __autojs6_limited_node_test() {
-    if (__autojs6_limited_node_test_cache) {
-      return __autojs6_limited_node_test_cache;
-    }
-    const assertStrict = __autojs6_limited_assert_strict();
-    const rootSuite = {
-      kind: "suite",
-      name: "",
-      mode: "run",
-      reason: "",
-      parent: null,
-      children: [],
-      before: [],
-      after: [],
-      beforeEach: [],
-      afterEach: [],
-      setupPromise: null,
-      setupError: null
-    };
-    const state = {
-      scheduled: false,
-      running: false,
-      completed: false,
-      pendingCounted: false,
-      nextId: 1,
-      tests: 0,
-      suites: 0,
-      pass: 0,
-      fail: 0,
-      skipped: 0,
-      todo: 0,
-      startMs: 0,
-      endMs: 0
-    };
-    let currentSuite = rootSuite;
-    function tapText(value) {
-      return String(value === undefined || value === null ? "" : value).replace(/[\r\n]+/g, " ").trim();
-    }
-    function optionReason(value) {
-      return typeof value === "string" ? value : "";
-    }
-    function isPlainOptions(value) {
-      return !!value && typeof value === "object" && !Array.isArray(value);
-    }
-    function timeoutFromOptions(options, label) {
-      if (!options || !__autojs6_has_own(options, "timeout") || options.timeout === undefined) {
-        return 0;
-      }
-      const timeout = Number(options.timeout);
-      if (!Number.isFinite(timeout) || timeout < 0) {
-        throw __autojs6_invalid_arg_value("node:test " + label + " timeout must be a non-negative finite number.");
-      }
-      return Math.min(Math.floor(timeout), 2147483647);
-    }
-    function normalizeRegistration(args, fallbackName, forcedMode) {
-      const values = Array.prototype.slice.call(args);
-      let name = "";
-      let options = Object.create(null);
-      let fn = null;
-      if (typeof values[0] === "string") {
-        name = String(values.shift());
-      } else if (typeof values[0] === "function") {
-        fn = values.shift();
-        name = fn.name || fallbackName;
-      } else if (isPlainOptions(values[0])) {
-        options = values.shift();
-        if (options.name !== undefined) {
-          name = String(options.name);
-        }
-      } else if (values[0] !== undefined) {
-        name = String(values.shift());
-      }
-      if (!fn && isPlainOptions(values[0])) {
-        options = values.shift();
-        if (!name && options.name !== undefined) {
-          name = String(options.name);
-        }
-      }
-      if (!fn && typeof values[0] === "function") {
-        fn = values.shift();
-        if (!name) {
-          name = fn.name || fallbackName;
-        }
-      }
-      if (!name) {
-        name = fallbackName;
-      }
-      const skip = forcedMode === "skip" || options.skip === true || typeof options.skip === "string";
-      const todo = !skip && (forcedMode === "todo" || options.todo === true || typeof options.todo === "string");
-      return {
-        name: tapText(name || fallbackName),
-        fn,
-        mode: skip ? "skip" : todo ? "todo" : "run",
-        reason: forcedMode === "skip" ? optionReason(options.skip) :
-          forcedMode === "todo" ? optionReason(options.todo) :
-          skip ? optionReason(options.skip) :
-          todo ? optionReason(options.todo) : "",
-        timeoutMs: timeoutFromOptions(options, fallbackName),
-        options
-      };
-    }
-    function normalizeHook(args, label) {
-      const values = Array.prototype.slice.call(args);
-      let options = Object.create(null);
-      let fn = null;
-      if (typeof values[0] === "function") {
-        fn = values.shift();
-      } else if (isPlainOptions(values[0])) {
-        options = values.shift();
-        if (typeof values[0] === "function") {
-          fn = values.shift();
-        }
-      }
-      if (!fn && typeof values[0] === "function") {
-        fn = values.shift();
-      }
-      if (typeof fn !== "function") {
-        throw __autojs6_invalid_arg_type("node:test " + label + " hook must be a function.");
-      }
-      return {
-        name: label,
-        fn,
-        timeoutMs: timeoutFromOptions(options, label)
-      };
-    }
-    function scheduleRun() {
-      if (state.scheduled || state.running || state.completed) {
-        return;
-      }
-      state.scheduled = true;
-      state.pendingCounted = true;
-      __autojs6_adjust_pending_node_test(1);
-      __autojs6_schedule_task(function() {
-        Promise.resolve().then(runAll).then(function() {
-          finishRun(null);
-        }, function(error) {
-          finishRun(error);
-        });
-      });
-    }
-    function registerTest(args, forcedMode, fallbackName) {
-      const registration = normalizeRegistration(args, fallbackName, forcedMode);
-      const record = {
-        kind: "test",
-        name: registration.name,
-        fn: registration.fn,
-        mode: registration.mode,
-        reason: registration.reason,
-        timeoutMs: registration.timeoutMs,
-        parent: currentSuite
-      };
-      currentSuite.children.push(record);
-      scheduleRun();
-      return record;
-    }
-    function registerSuite(args, forcedMode, fallbackName) {
-      const registration = normalizeRegistration(args, fallbackName, forcedMode);
-      const suite = {
-        kind: "suite",
-        name: registration.name,
-        fn: registration.fn,
-        mode: registration.mode,
-        reason: registration.reason,
-        timeoutMs: registration.timeoutMs,
-        parent: currentSuite,
-        children: [],
-        before: [],
-        after: [],
-        beforeEach: [],
-        afterEach: [],
-        setupPromise: null,
-        setupError: null
-      };
-      currentSuite.children.push(suite);
-      state.suites += 1;
-      if (suite.mode === "run" && typeof suite.fn === "function") {
-        const previous = currentSuite;
-        currentSuite = suite;
-        try {
-          const result = suite.fn.call(undefined);
-          if (result && typeof result.then === "function") {
-            suite.setupPromise = Promise.resolve(result).catch(function(error) {
-              suite.setupError = error;
-            });
-          }
-        } catch (error) {
-          suite.setupError = error;
-        } finally {
-          currentSuite = previous;
-        }
-      }
-      scheduleRun();
-      return suite;
-    }
-    function registerHook(target, args) {
-      currentSuite[target].push(normalizeHook(args, target));
-      scheduleRun();
-    }
-    function nodeTest() {
-      return registerTest(arguments, "", "test");
-    }
-    nodeTest.skip = function() {
-      return registerTest(arguments, "skip", "test");
-    };
-    nodeTest.todo = function() {
-      return registerTest(arguments, "todo", "test");
-    };
-    function describe() {
-      return registerSuite(arguments, "", "suite");
-    }
-    describe.skip = function() {
-      return registerSuite(arguments, "skip", "suite");
-    };
-    describe.todo = function() {
-      return registerSuite(arguments, "todo", "suite");
-    };
-    function it() {
-      return registerTest(arguments, "", "test");
-    }
-    it.skip = function() {
-      return registerTest(arguments, "skip", "test");
-    };
-    it.todo = function() {
-      return registerTest(arguments, "todo", "test");
-    };
-    function before() {
-      registerHook("before", arguments);
-    }
-    function after() {
-      registerHook("after", arguments);
-    }
-    function beforeEach() {
-      registerHook("beforeEach", arguments);
-    }
-    function afterEach() {
-      registerHook("afterEach", arguments);
-    }
-    function control(kind, reason) {
-      const error = new Error(kind === "skip" ? "test skipped" : "test todo");
-      error.__autojs6NodeTestControl = kind;
-      error.reason = tapText(reason || "");
-      return error;
-    }
-    function controlKind(error) {
-      return error && error.__autojs6NodeTestControl ? String(error.__autojs6NodeTestControl) : "";
-    }
-    function testContext(record) {
-      const context = Object.create(null);
-      Object.defineProperties(context, {
-        name: { value: record.name, enumerable: true },
-        skip: {
-          value: function(reason) {
-            throw control("skip", reason);
-          },
-          enumerable: true
-        },
-        todo: {
-          value: function(reason) {
-            throw control("todo", reason);
-          },
-          enumerable: true
-        },
-        diagnostic: {
-          value: function(message) {
-            console.log("# " + tapText(message));
-          },
-          enumerable: true
-        },
-        timeout: {
-          value: function(timeoutMs) {
-            record.timeoutMs = timeoutFromOptions({ timeout: timeoutMs }, "test context");
-          },
-          enumerable: true
-        }
-      });
-      return Object.freeze(context);
-    }
-    function timeoutError(label, timeoutMs) {
-      return __autojs6_with_error_code(
-        new Error("node:test embedded test timed out after " + timeoutMs + "ms: " + label),
-        "ERR_AUTOJS6_NODE_TEST_TIMEOUT"
-      );
-    }
-    function runFunction(fn, context, timeoutMs, label) {
-      const work = Promise.resolve().then(function() {
-        return fn.call(undefined, context);
-      });
-      if (!timeoutMs) {
-        return work;
-      }
-      let timer = null;
-      let settled = false;
-      return new Promise(function(resolve, reject) {
-        timer = setTimeout(function() {
-          if (settled) return;
-          settled = true;
-          reject(timeoutError(label, timeoutMs));
-        }, timeoutMs);
-        work.then(function(value) {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          resolve(value);
-        }, function(error) {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          reject(error);
-        });
-      });
-    }
-    function settleOneTick() {
-      return new Promise(function(resolve) {
-        __autojs6_schedule_task(resolve);
-      });
-    }
-    function inheritedBeforeEach(suite) {
-      const hooks = [];
-      let current = suite;
-      while (current && current !== rootSuite) {
-        hooks.unshift.apply(hooks, current.beforeEach);
-        current = current.parent;
-      }
-      hooks.unshift.apply(hooks, rootSuite.beforeEach);
-      return hooks;
-    }
-    function inheritedAfterEach(suite) {
-      const hooks = [];
-      let current = suite;
-      while (current && current !== rootSuite) {
-        hooks.push.apply(hooks, current.afterEach);
-        current = current.parent;
-      }
-      hooks.push.apply(hooks, rootSuite.afterEach);
-      return hooks;
-    }
-    async function runHooks(hooks, context) {
-      for (const hook of hooks) {
-        await runFunction(hook.fn, context, hook.timeoutMs, hook.name);
-      }
-    }
-    function emitOk(record, suffix) {
-      const id = state.nextId++;
-      console.log("ok " + id + " - " + tapText(record.name) + (suffix ? " " + suffix : ""));
-    }
-    function emitFailure(record, error, durationMs) {
-      const id = state.nextId++;
-      const message = error && error.message ? String(error.message) : String(error);
-      const name = error && error.name ? String(error.name) : "Error";
-      const code = error && (error.code || error.autojs6Code) ? String(error.code || error.autojs6Code) : "";
-      console.log("not ok " + id + " - " + tapText(record.name));
-      console.log("  ---");
-      console.log("  duration_ms: " + Math.max(0, Number(durationMs || 0)));
-      console.log("  error:");
-      console.log("    name: " + JSON.stringify(name));
-      console.log("    message: " + JSON.stringify(message));
-      if (code) {
-        console.log("    code: " + JSON.stringify(code));
-      }
-      console.log("  ...");
-      state.fail += 1;
-    }
-    function asyncActivityError(beforeCount, afterCount) {
-      return __autojs6_with_error_code(
-        new Error("node:test embedded subset detected async activity after test completion: pending timers changed from " + beforeCount + " to " + afterCount + "."),
-        "ERR_AUTOJS6_NODE_TEST_ASYNC_ACTIVITY"
-      );
-    }
-    async function runTest(record) {
-      state.tests += 1;
-      if (record.mode === "skip") {
-        state.skipped += 1;
-        emitOk(record, "# SKIP" + (record.reason ? " " + tapText(record.reason) : ""));
-        return;
-      }
-      if (record.mode === "todo") {
-        state.todo += 1;
-        emitOk(record, "# TODO" + (record.reason ? " " + tapText(record.reason) : ""));
-        return;
-      }
-      if (typeof record.fn !== "function") {
-        state.todo += 1;
-        emitOk(record, "# TODO no callback");
-        return;
-      }
-      const startedAt = Date.now();
-      const beforeTimerCount = __autojs6_pending_timer_total();
-      const context = testContext(record);
-      let failure = null;
-      let controlled = "";
-      try {
-        await runHooks(inheritedBeforeEach(record.parent), context);
-        await runFunction(record.fn, context, record.timeoutMs, record.name);
-      } catch (error) {
-        controlled = controlKind(error);
-        failure = error;
-      }
-      try {
-        await runHooks(inheritedAfterEach(record.parent), context);
-      } catch (error) {
-        if (!failure) {
-          failure = error;
-        }
-      }
-      await settleOneTick();
-      const durationMs = Date.now() - startedAt;
-      if (controlled === "skip") {
-        state.skipped += 1;
-        emitOk(record, "# SKIP" + (failure.reason ? " " + tapText(failure.reason) : ""));
-        return;
-      }
-      if (controlled === "todo") {
-        state.todo += 1;
-        emitOk(record, "# TODO" + (failure.reason ? " " + tapText(failure.reason) : ""));
-        return;
-      }
-      if (failure) {
-        emitFailure(record, failure, durationMs);
-        return;
-      }
-      const afterTimerCount = __autojs6_pending_timer_total();
-      if (afterTimerCount > beforeTimerCount) {
-        emitFailure(record, asyncActivityError(beforeTimerCount, afterTimerCount), durationMs);
-        return;
-      }
-      state.pass += 1;
-      emitOk(record, "(" + durationMs + "ms)");
-    }
-    async function runSuite(suite) {
-      if (suite.mode === "skip") {
-        state.skipped += 1;
-        emitOk(suite, "# SKIP" + (suite.reason ? " " + tapText(suite.reason) : ""));
-        return;
-      }
-      if (suite.mode === "todo") {
-        state.todo += 1;
-        emitOk(suite, "# TODO" + (suite.reason ? " " + tapText(suite.reason) : ""));
-        return;
-      }
-      if (suite.setupPromise) {
-        await suite.setupPromise;
-      }
-      if (suite.setupError) {
-        emitFailure({ name: suite.name + " setup" }, suite.setupError, 0);
-        return;
-      }
-      try {
-        await runHooks(suite.before, testContext(suite));
-      } catch (error) {
-        emitFailure({ name: suite.name ? suite.name + " before" : "before" }, error, 0);
-        return;
-      }
-      let index = 0;
-      while (index < suite.children.length) {
-        const child = suite.children[index++];
-        if (child.kind === "suite") {
-          await runSuite(child);
-        } else {
-          await runTest(child);
-        }
-      }
-      try {
-        await runHooks(suite.after, testContext(suite));
-      } catch (error) {
-        emitFailure({ name: suite.name ? suite.name + " after" : "after" }, error, 0);
-      }
-    }
-    async function runAll() {
-      if (state.running || state.completed) {
-        return;
-      }
-      state.running = true;
-      state.startMs = Date.now();
-      console.log("TAP version 13");
-      await runSuite(rootSuite);
-      state.endMs = Date.now();
-      state.completed = true;
-    }
-    function emitSummary() {
-      const total = state.pass + state.fail + state.skipped + state.todo;
-      console.log("1.." + total);
-      console.log("# tests " + state.tests);
-      console.log("# suites " + state.suites);
-      console.log("# pass " + state.pass);
-      console.log("# fail " + state.fail);
-      console.log("# skipped " + state.skipped);
-      console.log("# todo " + state.todo);
-      console.log("# duration_ms " + Math.max(0, state.endMs - state.startMs));
-    }
-    function nodeTestFailureError() {
-      return __autojs6_with_error_code(
-        new Error("AutoJs6 node:test embedded subset failed: " + state.fail + " failed, " + state.pass + " passed."),
-        "ERR_AUTOJS6_NODE_TEST_FAILURE"
-      );
-    }
-    function finishRun(error) {
-      if (state.pendingCounted) {
-        state.pendingCounted = false;
-        __autojs6_adjust_pending_node_test(-1);
-      }
-      try {
-        emitSummary();
-      } catch (_) {}
-      if (error) {
-        __autojs6_finish_error(error);
-      } else if (state.fail > 0) {
-        __autojs6_finish_error(nodeTestFailureError());
-      } else {
-        __autojs6_try_finish_deferred_success();
-      }
-    }
-    Object.defineProperties(nodeTest, {
-      test: { value: nodeTest, enumerable: true },
-      describe: { value: describe, enumerable: true },
-      suite: { value: describe, enumerable: true },
-      it: { value: it, enumerable: true },
-      before: { value: before, enumerable: true },
-      after: { value: after, enumerable: true },
-      beforeEach: { value: beforeEach, enumerable: true },
-      afterEach: { value: afterEach, enumerable: true },
-      skip: { value: nodeTest.skip, enumerable: true },
-      todo: { value: nodeTest.todo, enumerable: true },
-      assert: { value: assertStrict, enumerable: true },
-      reporter: { value: "tap", enumerable: true }
-    });
-    Object.freeze(describe);
-    Object.freeze(it);
-    __autojs6_limited_node_test_cache = Object.freeze(nodeTest);
-    return __autojs6_limited_node_test_cache;
-  }
-  function __autojs6_limited_punycode() {
-    if (__autojs6_limited_punycode_cache) {
-      return __autojs6_limited_punycode_cache;
-    }
-    const nodePunycode = __autojs6_punycode_module();
-    if (
-      !nodePunycode ||
-      typeof nodePunycode.toASCII !== "function" ||
-      typeof nodePunycode.toUnicode !== "function" ||
-      typeof nodePunycode.encode !== "function" ||
-      typeof nodePunycode.decode !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'punycode' is unavailable.");
-    }
-    const limitedPunycode = Object.create(null);
-    Object.defineProperties(limitedPunycode, {
-      toASCII: { value: nodePunycode.toASCII.bind(nodePunycode), enumerable: true },
-      toUnicode: { value: nodePunycode.toUnicode.bind(nodePunycode), enumerable: true },
-      encode: { value: nodePunycode.encode.bind(nodePunycode), enumerable: true },
-      decode: { value: nodePunycode.decode.bind(nodePunycode), enumerable: true },
-      ucs2: { value: nodePunycode.ucs2, enumerable: true },
-      version: { value: nodePunycode.version, enumerable: true }
-    });
-    __autojs6_limited_punycode_cache = Object.freeze(limitedPunycode);
-    return __autojs6_limited_punycode_cache;
   }
   function __autojs6_limited_process() {
     if (typeof process !== "object" || !process) {
@@ -36750,125 +33411,6 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     __autojs6_limited_console_cache = Object.freeze(limitedConsole);
     return __autojs6_limited_console_cache;
-  }
-  const __autojs6_limited_v8_serialized_size_limit = 1024 * 1024;
-  function __autojs6_limited_v8_binary_size(value) {
-    if (!value) return -1;
-    if (typeof ArrayBuffer !== "undefined" && value instanceof ArrayBuffer) {
-      return value.byteLength;
-    }
-    if (typeof ArrayBuffer !== "undefined" && typeof ArrayBuffer.isView === "function" && ArrayBuffer.isView(value)) {
-      return value.byteLength;
-    }
-    return -1;
-  }
-  function __autojs6_limited_v8_freeze_record(source) {
-    const target = Object.create(null);
-    if (source && typeof source === "object") {
-      for (const key of Object.keys(source)) {
-        const value = source[key];
-        const valueType = typeof value;
-        if (
-          value === null ||
-          valueType === "number" ||
-          valueType === "string" ||
-          valueType === "boolean" ||
-          valueType === "bigint"
-        ) {
-          Object.defineProperty(target, key, {
-            value,
-            enumerable: true
-          });
-        }
-      }
-    }
-    return Object.freeze(target);
-  }
-  function __autojs6_limited_v8() {
-    if (__autojs6_limited_v8_cache) {
-      return __autojs6_limited_v8_cache;
-    }
-    const nodeV8 = __autojs6_v8_module();
-    if (
-      !nodeV8 ||
-      typeof nodeV8.serialize !== "function" ||
-      typeof nodeV8.deserialize !== "function" ||
-      typeof nodeV8.cachedDataVersionTag !== "function" ||
-      typeof nodeV8.getHeapStatistics !== "function" ||
-      typeof nodeV8.getHeapSpaceStatistics !== "function" ||
-      typeof nodeV8.getHeapCodeStatistics !== "function" ||
-      typeof nodeV8.isStringOneByteRepresentation !== "function"
-    ) {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'v8' is unavailable.");
-    }
-    function limitedSerialize(value) {
-      const result = nodeV8.serialize(value);
-      const size = __autojs6_limited_v8_binary_size(result);
-      if (size > __autojs6_limited_v8_serialized_size_limit) {
-        throw __autojs6_out_of_range(
-          "Embedded Node limited v8.serialize output must be at most " +
-            __autojs6_limited_v8_serialized_size_limit +
-            " bytes."
-        );
-      }
-      return result;
-    }
-    function limitedDeserialize(value) {
-      const size = __autojs6_limited_v8_binary_size(value);
-      if (size < 0) {
-        throw __autojs6_invalid_arg_type("Embedded Node limited v8.deserialize input must be a Buffer, ArrayBuffer, TypedArray, or DataView.");
-      }
-      if (size > __autojs6_limited_v8_serialized_size_limit) {
-        throw __autojs6_out_of_range(
-          "Embedded Node limited v8.deserialize input must be at most " +
-            __autojs6_limited_v8_serialized_size_limit +
-            " bytes."
-        );
-      }
-      return nodeV8.deserialize(value);
-    }
-    function limitedGetHeapStatistics() {
-      return __autojs6_limited_v8_freeze_record(nodeV8.getHeapStatistics());
-    }
-    function limitedGetHeapSpaceStatistics() {
-      const spaces = nodeV8.getHeapSpaceStatistics();
-      if (!Array.isArray(spaces)) {
-        return Object.freeze([]);
-      }
-      return Object.freeze(spaces.map(__autojs6_limited_v8_freeze_record));
-    }
-    function limitedGetHeapCodeStatistics() {
-      return __autojs6_limited_v8_freeze_record(nodeV8.getHeapCodeStatistics());
-    }
-    const limitedV8 = Object.create(null);
-    Object.defineProperties(limitedV8, {
-      cachedDataVersionTag: { value: nodeV8.cachedDataVersionTag.bind(nodeV8), enumerable: true },
-      deserialize: { value: limitedDeserialize, enumerable: true },
-      getHeapCodeStatistics: { value: limitedGetHeapCodeStatistics, enumerable: true },
-      getHeapSpaceStatistics: { value: limitedGetHeapSpaceStatistics, enumerable: true },
-      getHeapStatistics: { value: limitedGetHeapStatistics, enumerable: true },
-      isStringOneByteRepresentation: {
-        value: nodeV8.isStringOneByteRepresentation.bind(nodeV8),
-        enumerable: true
-      },
-      serialize: { value: limitedSerialize, enumerable: true }
-    });
-    __autojs6_limited_v8_cache = Object.freeze(limitedV8);
-    return __autojs6_limited_v8_cache;
-  }
-  function __autojs6_limited_tty_isatty() {
-    return false;
-  }
-  function __autojs6_limited_tty() {
-    if (__autojs6_limited_tty_cache) {
-      return __autojs6_limited_tty_cache;
-    }
-    const limitedTty = Object.create(null);
-    Object.defineProperties(limitedTty, {
-      isatty: { value: __autojs6_limited_tty_isatty, enumerable: true }
-    });
-    __autojs6_limited_tty_cache = Object.freeze(limitedTty);
-    return __autojs6_limited_tty_cache;
   }
   let __autojs6_limited_dns_default_result_order = "verbatim";
   const __autojs6_limited_dns_error_constants = Object.freeze({
@@ -38696,7 +35238,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return Object.freeze(Object.assign(Object.create(null), source || Object.create(null)));
   }
   function __autojs6_limited_tls_ticket_buffer() {
-    const bufferModule = __autojs6_limited_buffer();
+    const bufferModule = __autojs6_builtin_module("buffer");
     const BufferCtor = bufferModule && bufferModule.Buffer;
     return BufferCtor && typeof BufferCtor.alloc === "function"
       ? BufferCtor.alloc(48)
@@ -38923,382 +35465,6 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     __autojs6_limited_tls_cache = Object.freeze(limitedTls);
     return __autojs6_limited_tls_cache;
-  }
-  function __autojs6_copy_constant_values(target, source) {
-    if (source && typeof source === "object") {
-      for (const key of Object.keys(source)) {
-        const value = source[key];
-        const valueType = typeof value;
-        if (
-          value === null ||
-          valueType === "number" ||
-          valueType === "string" ||
-          valueType === "boolean" ||
-          valueType === "bigint"
-        ) {
-          target[key] = value;
-        }
-      }
-    }
-  }
-  function __autojs6_frozen_constants_group(source, fallback) {
-    const group = Object.create(null);
-    __autojs6_copy_constant_values(group, fallback);
-    __autojs6_copy_constant_values(group, source);
-    return Object.freeze(group);
-  }
-  function __autojs6_safe_errno_constants_fallback() {
-    return {
-      E2BIG: 7,
-      EACCES: 13,
-      EADDRINUSE: 98,
-      EADDRNOTAVAIL: 99,
-      EAFNOSUPPORT: 97,
-      EAGAIN: 11,
-      EALREADY: 114,
-      EBADF: 9,
-      EBADMSG: 74,
-      EBUSY: 16,
-      ECANCELED: 125,
-      ECHILD: 10,
-      ECONNABORTED: 103,
-      ECONNREFUSED: 111,
-      ECONNRESET: 104,
-      EDEADLK: 35,
-      EDESTADDRREQ: 89,
-      EDOM: 33,
-      EDQUOT: 122,
-      EEXIST: 17,
-      EFAULT: 14,
-      EFBIG: 27,
-      EHOSTUNREACH: 113,
-      EIDRM: 43,
-      EILSEQ: 84,
-      EINPROGRESS: 115,
-      EINTR: 4,
-      EINVAL: 22,
-      EIO: 5,
-      EISCONN: 106,
-      EISDIR: 21,
-      ELOOP: 40,
-      EMFILE: 24,
-      EMLINK: 31,
-      EMSGSIZE: 90,
-      EMULTIHOP: 72,
-      ENAMETOOLONG: 36,
-      ENETDOWN: 100,
-      ENETRESET: 102,
-      ENETUNREACH: 101,
-      ENFILE: 23,
-      ENOBUFS: 105,
-      ENODATA: 61,
-      ENODEV: 19,
-      ENOENT: 2,
-      ENOEXEC: 8,
-      ENOLCK: 37,
-      ENOLINK: 67,
-      ENOMEM: 12,
-      ENOMSG: 42,
-      ENOPROTOOPT: 92,
-      ENOSPC: 28,
-      ENOSR: 63,
-      ENOSTR: 60,
-      ENOSYS: 38,
-      ENOTCONN: 107,
-      ENOTDIR: 20,
-      ENOTEMPTY: 39,
-      ENOTSOCK: 88,
-      ENOTSUP: 95,
-      ENOTTY: 25,
-      ENXIO: 6,
-      EOPNOTSUPP: 95,
-      EOVERFLOW: 75,
-      EPERM: 1,
-      EPIPE: 32,
-      EPROTO: 71,
-      EPROTONOSUPPORT: 93,
-      EPROTOTYPE: 91,
-      ERANGE: 34,
-      EROFS: 30,
-      ESPIPE: 29,
-      ESRCH: 3,
-      ESTALE: 116,
-      ETIME: 62,
-      ETIMEDOUT: 110,
-      ETXTBSY: 26,
-      EWOULDBLOCK: 11,
-      EXDEV: 18
-    };
-  }
-  function __autojs6_safe_signal_constants_fallback() {
-    return {
-      SIGHUP: 1,
-      SIGINT: 2,
-      SIGQUIT: 3,
-      SIGILL: 4,
-      SIGTRAP: 5,
-      SIGABRT: 6,
-      SIGIOT: 6,
-      SIGBUS: 7,
-      SIGFPE: 8,
-      SIGKILL: 9,
-      SIGUSR1: 10,
-      SIGSEGV: 11,
-      SIGUSR2: 12,
-      SIGPIPE: 13,
-      SIGALRM: 14,
-      SIGTERM: 15,
-      SIGSTKFLT: 16,
-      SIGCHLD: 17,
-      SIGCONT: 18,
-      SIGSTOP: 19,
-      SIGTSTP: 20,
-      SIGTTIN: 21,
-      SIGTTOU: 22,
-      SIGURG: 23,
-      SIGXCPU: 24,
-      SIGXFSZ: 25,
-      SIGVTALRM: 26,
-      SIGPROF: 27,
-      SIGWINCH: 28,
-      SIGIO: 29,
-      SIGPOLL: 29,
-      SIGPWR: 30,
-      SIGSYS: 31
-    };
-  }
-  function __autojs6_safe_dlopen_constants_fallback() {
-    return {
-      RTLD_LAZY: 1,
-      RTLD_NOW: 2,
-      RTLD_GLOBAL: 256,
-      RTLD_LOCAL: 0,
-      RTLD_DEEPBIND: 8
-    };
-  }
-  function __autojs6_safe_priority_constants_fallback() {
-    return {
-      PRIORITY_LOW: 19,
-      PRIORITY_BELOW_NORMAL: 10,
-      PRIORITY_NORMAL: 0,
-      PRIORITY_ABOVE_NORMAL: -7,
-      PRIORITY_HIGH: -14,
-      PRIORITY_HIGHEST: -20
-    };
-  }
-  function __autojs6_safe_os_constants(nodeConstants) {
-    if (__autojs6_safe_os_constants_cache) {
-      return __autojs6_safe_os_constants_cache;
-    }
-    const nodeOsConstants = nodeConstants && nodeConstants.os && typeof nodeConstants.os === "object"
-      ? nodeConstants.os
-      : null;
-    const errnoGroup = __autojs6_frozen_constants_group(
-      nodeOsConstants && nodeOsConstants.errno ? nodeOsConstants.errno : nodeConstants && nodeConstants.errno,
-      __autojs6_safe_errno_constants_fallback()
-    );
-    const signalsGroup = __autojs6_frozen_constants_group(
-      nodeOsConstants && nodeOsConstants.signals ? nodeOsConstants.signals : nodeConstants && nodeConstants.signals,
-      __autojs6_safe_signal_constants_fallback()
-    );
-    const dlopenGroup = __autojs6_frozen_constants_group(
-      nodeOsConstants && nodeOsConstants.dlopen,
-      __autojs6_safe_dlopen_constants_fallback()
-    );
-    const priorityGroup = __autojs6_frozen_constants_group(
-      nodeOsConstants && nodeOsConstants.priority,
-      __autojs6_safe_priority_constants_fallback()
-    );
-    const osConstants = Object.create(null);
-    __autojs6_copy_constant_values(osConstants, {
-      UV_UDP_REUSEADDR: 4
-    });
-    __autojs6_copy_constant_values(osConstants, nodeOsConstants);
-    Object.defineProperties(osConstants, {
-      errno: { value: errnoGroup, enumerable: true },
-      signals: { value: signalsGroup, enumerable: true },
-      dlopen: { value: dlopenGroup, enumerable: true },
-      priority: { value: priorityGroup, enumerable: true }
-    });
-    __autojs6_safe_os_constants_cache = Object.freeze(osConstants);
-    return __autojs6_safe_os_constants_cache;
-  }
-  function __autojs6_define_constant_group_descriptors(descriptors, group) {
-    if (!group || typeof group !== "object") {
-      return;
-    }
-    for (const key of Object.keys(group)) {
-      __autojs6_constant_descriptor(descriptors, key, group[key]);
-    }
-  }
-  function __autojs6_constant_descriptor(descriptors, name, value) {
-    if (value !== undefined) {
-      descriptors[name] = {
-        value,
-        enumerable: true
-      };
-    }
-  }
-  function __autojs6_limited_constants() {
-    if (__autojs6_limited_constants_cache) {
-      return __autojs6_limited_constants_cache;
-    }
-    const nodeConstants = __autojs6_constants_module();
-    const nodeFs = __autojs6_fs_module();
-    const fsConstants = nodeFs && nodeFs.constants && typeof nodeFs.constants === "object"
-      ? nodeFs.constants
-      : (nodeConstants && nodeConstants.fs);
-    const fsGroup = __autojs6_frozen_constants_group(fsConstants);
-    const osGroup = __autojs6_safe_os_constants(nodeConstants);
-    const errnoGroup = osGroup.errno;
-    const signalsGroup = osGroup.signals;
-    const dlopenGroup = osGroup.dlopen;
-    const priorityGroup = osGroup.priority;
-    const cryptoGroup = __autojs6_frozen_constants_group(nodeConstants && nodeConstants.crypto);
-    const descriptors = {
-      fs: { value: fsGroup, enumerable: true },
-      os: { value: osGroup, enumerable: true },
-      errno: { value: errnoGroup, enumerable: true },
-      signals: { value: signalsGroup, enumerable: true },
-      crypto: { value: cryptoGroup, enumerable: true }
-    };
-    [
-      "F_OK",
-      "R_OK",
-      "W_OK",
-      "X_OK",
-      "COPYFILE_EXCL",
-      "COPYFILE_FICLONE",
-      "COPYFILE_FICLONE_FORCE"
-    ].forEach(function(key) {
-      __autojs6_constant_descriptor(descriptors, key, fsGroup[key]);
-    });
-    __autojs6_define_constant_group_descriptors(descriptors, errnoGroup);
-    __autojs6_define_constant_group_descriptors(descriptors, signalsGroup);
-    __autojs6_define_constant_group_descriptors(descriptors, dlopenGroup);
-    __autojs6_define_constant_group_descriptors(descriptors, priorityGroup);
-    const limitedConstants = Object.create(null);
-    Object.defineProperties(limitedConstants, descriptors);
-    __autojs6_limited_constants_cache = Object.freeze(limitedConstants);
-    return __autojs6_limited_constants_cache;
-  }
-  const __autojs6_buffer_transcode_input_limit = 512 * 1024;
-  const __autojs6_buffer_transcode_output_limit = 2 * 1024 * 1024;
-  function __autojs6_buffer_transcode_source_size(source) {
-    if (typeof Uint8Array !== "undefined" && source instanceof Uint8Array) {
-      return source.byteLength;
-    }
-    return -1;
-  }
-  function __autojs6_limited_buffer_transcode(nodeBuffer, source, fromEnc, toEnc) {
-    const inputSize = __autojs6_buffer_transcode_source_size(source);
-    if (inputSize > __autojs6_buffer_transcode_input_limit) {
-      throw __autojs6_out_of_range(
-        "Embedded Node limited buffer.transcode input exceeds " +
-          __autojs6_buffer_transcode_input_limit +
-          " bytes."
-      );
-    }
-    const output = nodeBuffer.transcode(source, fromEnc, toEnc);
-    const outputSize = __autojs6_buffer_transcode_source_size(output);
-    if (outputSize > __autojs6_buffer_transcode_output_limit) {
-      throw __autojs6_out_of_range(
-        "Embedded Node limited buffer.transcode output exceeds " +
-          __autojs6_buffer_transcode_output_limit +
-          " bytes."
-      );
-    }
-    return output;
-  }
-  function __autojs6_limited_buffer_transcode_fallback(BufferCtor, source, fromEnc, toEnc) {
-    const inputSize = __autojs6_buffer_transcode_source_size(source);
-    if (inputSize > __autojs6_buffer_transcode_input_limit) {
-      throw __autojs6_out_of_range(
-        "Embedded Node limited buffer.transcode input exceeds " +
-          __autojs6_buffer_transcode_input_limit +
-          " bytes."
-      );
-    }
-    if (!BufferCtor || typeof BufferCtor.from !== "function" || !(source instanceof Uint8Array)) {
-      throw __autojs6_invalid_arg_type("Embedded Node limited buffer.transcode source must be a Buffer or Uint8Array.");
-    }
-    if (
-      typeof BufferCtor.isEncoding === "function" &&
-      (!BufferCtor.isEncoding(fromEnc) || !BufferCtor.isEncoding(toEnc))
-    ) {
-      throw __autojs6_error("Unable to transcode Buffer.", "U_ILLEGAL_ARGUMENT_ERROR");
-    }
-    let output;
-    try {
-      output = BufferCtor.from(BufferCtor.from(source).toString(fromEnc), toEnc);
-    } catch (_) {
-      throw __autojs6_error("Unable to transcode Buffer.", "U_ILLEGAL_ARGUMENT_ERROR");
-    }
-    const outputSize = __autojs6_buffer_transcode_source_size(output);
-    if (outputSize > __autojs6_buffer_transcode_output_limit) {
-      throw __autojs6_out_of_range(
-        "Embedded Node limited buffer.transcode output exceeds " +
-          __autojs6_buffer_transcode_output_limit +
-          " bytes."
-      );
-    }
-    return output;
-  }
-  function __autojs6_limited_buffer() {
-    if (__autojs6_limited_buffer_cache) {
-      return __autojs6_limited_buffer_cache;
-    }
-    const nodeBuffer = __autojs6_buffer_module();
-    const BufferCtor = nodeBuffer && typeof nodeBuffer.Buffer === "function"
-      ? nodeBuffer.Buffer
-      : (typeof Buffer === "function" ? Buffer : null);
-    if (typeof BufferCtor !== "function") {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'buffer' is unavailable.");
-    }
-    const limitedBuffer = {};
-    const descriptors = {
-      Buffer: { value: BufferCtor, enumerable: true }
-    };
-    [
-      "Blob",
-      "File",
-      "atob",
-      "btoa",
-      "isUtf8",
-      "isAscii"
-    ].forEach(function(key) {
-      if (nodeBuffer && typeof nodeBuffer[key] === "function") {
-        descriptors[key] = { value: nodeBuffer[key], enumerable: true };
-      }
-    });
-    descriptors.resolveObjectURL = { value: __autojs6_limited_resolve_object_url, enumerable: true };
-    descriptors.transcode = {
-      value: function(source, fromEnc, toEnc) {
-        if (nodeBuffer && typeof nodeBuffer.transcode === "function") {
-          return __autojs6_limited_buffer_transcode(nodeBuffer, source, fromEnc, toEnc);
-        }
-        return __autojs6_limited_buffer_transcode_fallback(BufferCtor, source, fromEnc, toEnc);
-      },
-      enumerable: true
-    };
-    if (nodeBuffer && typeof nodeBuffer.SlowBuffer === "function") {
-      descriptors.SlowBuffer = { value: nodeBuffer.SlowBuffer, enumerable: true };
-    }
-    if (nodeBuffer && nodeBuffer.constants && typeof nodeBuffer.constants === "object") {
-      descriptors.constants = { value: nodeBuffer.constants, enumerable: true };
-    }
-    if (nodeBuffer && typeof nodeBuffer.kMaxLength === "number") {
-      descriptors.kMaxLength = { value: nodeBuffer.kMaxLength, enumerable: true };
-    }
-    if (nodeBuffer && typeof nodeBuffer.kStringMaxLength === "number") {
-      descriptors.kStringMaxLength = { value: nodeBuffer.kStringMaxLength, enumerable: true };
-    }
-    if (nodeBuffer && typeof nodeBuffer.INSPECT_MAX_BYTES === "number") {
-      descriptors.INSPECT_MAX_BYTES = { value: nodeBuffer.INSPECT_MAX_BYTES, enumerable: true };
-    }
-    Object.defineProperties(limitedBuffer, descriptors);
-    __autojs6_limited_buffer_cache = Object.freeze(limitedBuffer);
-    return __autojs6_limited_buffer_cache;
   }
   function __autojs6_create_require_error(baseValue, reason, code) {
     const message = "module.createRequire rejected '" + String(baseValue) + "': " + reason;
@@ -43638,7 +39804,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_limited_inspector();
     }
     if (name === "node:test") {
-      return __autojs6_limited_node_test();
+      return __autojs6_get_builtin_module("node:test");
     }
     if (name === "fs" || name === "node:fs") {
       return __autojs6_scoped_fs();
@@ -43647,13 +39813,13 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_scoped_fs().promises;
     }
     if (name === "buffer" || name === "node:buffer") {
-      return __autojs6_limited_buffer();
+      return __autojs6_builtin_module("buffer");
     }
     if (name === "console" || name === "node:console") {
       return __autojs6_limited_console();
     }
     if (name === "v8" || name === "node:v8") {
-      return __autojs6_limited_v8();
+      return __autojs6_builtin_module("v8");
     }
     if (name === "vm" || name === "node:vm") {
       const moduleValue = __autojs6_vm_module();
@@ -43661,7 +39827,7 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_builtin_disabled("require is restricted in Embedded Node.js MVP; builtin module '" + name + "' is unavailable.");
     }
     if (name === "tty" || name === "node:tty") {
-      return __autojs6_limited_tty();
+      return __autojs6_builtin_module("tty");
     }
     if (name === "module" || name === "node:module") {
       return __autojs6_limited_module();
@@ -43670,19 +39836,19 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_limited_process();
     }
     if (name === "constants" || name === "node:constants") {
-      return __autojs6_limited_constants();
+      return __autojs6_builtin_module("constants");
     }
     if (name === "path" || name === "node:path") {
-      return __autojs6_limited_path();
+      return __autojs6_builtin_module("path");
     }
     if (name === "path/posix" || name === "node:path/posix") {
-      return __autojs6_limited_path().posix;
+      return __autojs6_builtin_module("path").posix;
     }
     if (name === "path/win32" || name === "node:path/win32") {
-      return __autojs6_limited_path().win32;
+      return __autojs6_builtin_module("path").win32;
     }
     if (name === "crypto" || name === "node:crypto") {
-      return __autojs6_limited_crypto();
+      return __autojs6_builtin_module("crypto");
     }
     if (name === "dgram" || name === "node:dgram") {
       const nativeNetwork = __autojs6_raw_node_network_builtin(name);
@@ -43724,40 +39890,40 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_limited_net();
     }
     if (name === "os" || name === "node:os") {
-      return __autojs6_limited_os();
+      return __autojs6_os_facade();
     }
     if (name === "url" || name === "node:url") {
-      return __autojs6_limited_url();
+      return __autojs6_builtin_module("url");
     }
     if (name === "util" || name === "node:util") {
-      return __autojs6_limited_util();
+      return __autojs6_builtin_module("util");
     }
     if (name === "util/types" || name === "node:util/types") {
-      return __autojs6_limited_util().types;
+      return __autojs6_builtin_module("util").types;
     }
     if (name === "async_hooks" || name === "node:async_hooks") {
-      return __autojs6_limited_async_hooks();
+      return __autojs6_builtin_module("async_hooks");
     }
     if (name === "diagnostics_channel" || name === "node:diagnostics_channel") {
-      return __autojs6_limited_diagnostics_channel();
+      return __autojs6_builtin_module("diagnostics_channel");
     }
     if (name === "perf_hooks" || name === "node:perf_hooks") {
-      return __autojs6_limited_perf_hooks();
+      return __autojs6_builtin_module("perf_hooks");
     }
     if (name === "events" || name === "node:events") {
-      return __autojs6_limited_events();
+      return __autojs6_builtin_module("events");
     }
     if (name === "readline" || name === "node:readline") {
-      return __autojs6_limited_readline();
+      return __autojs6_builtin_module("readline");
     }
     if (name === "readline/promises" || name === "node:readline/promises") {
-      return __autojs6_limited_readline_promises();
+      return __autojs6_builtin_module("readline/promises");
     }
     if (name === "timers" || name === "node:timers") {
-      return __autojs6_limited_timers();
+      return __autojs6_builtin_module("timers");
     }
     if (name === "timers/promises" || name === "node:timers/promises") {
-      return __autojs6_limited_timers_promises();
+      return __autojs6_builtin_module("timers/promises");
     }
     if (name === "tls" || name === "node:tls") {
       const nativeNetwork = __autojs6_raw_node_network_builtin(name);
@@ -43765,34 +39931,34 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_limited_tls();
     }
     if (name === "stream" || name === "node:stream") {
-      return __autojs6_limited_stream();
+      return __autojs6_builtin_module("stream");
     }
     if (name === "stream/promises" || name === "node:stream/promises") {
-      return __autojs6_limited_stream_promises();
+      return __autojs6_builtin_module("stream/promises");
     }
     if (name === "stream/web" || name === "node:stream/web") {
-      return __autojs6_limited_stream_web();
+      return __autojs6_builtin_module("stream/web");
     }
     if (name === "stream/consumers" || name === "node:stream/consumers") {
-      return __autojs6_limited_stream_consumers();
+      return __autojs6_builtin_module("stream/consumers");
     }
     if (name === "zlib" || name === "node:zlib") {
-      return __autojs6_limited_zlib();
+      return __autojs6_builtin_module("zlib");
     }
     if (name === "querystring" || name === "node:querystring") {
-      return __autojs6_limited_querystring();
+      return __autojs6_builtin_module("querystring");
     }
     if (name === "string_decoder" || name === "node:string_decoder") {
-      return __autojs6_limited_string_decoder();
+      return __autojs6_builtin_module("string_decoder");
     }
     if (name === "assert/strict" || name === "node:assert/strict") {
-      return __autojs6_limited_assert_strict();
+      return __autojs6_builtin_module("assert/strict");
     }
     if (name === "assert" || name === "node:assert") {
-      return __autojs6_limited_assert();
+      return __autojs6_builtin_module("assert");
     }
     if (name === "punycode" || name === "node:punycode") {
-      return __autojs6_limited_punycode();
+      return __autojs6_builtin_module("punycode");
     }
     if (__autojs6_has_own(__autojs6_require_builtin_allowlist, name)) {
       const builtinName = __autojs6_require_builtin_allowlist[name];
@@ -44171,13 +40337,17 @@ std::string buildEmbeddedScriptExecutionSource(
     process.on("uncaughtException", function (error) {
       __autojs6_finish_error(error);
     });
+    // Native async work is owned by Node/libuv, including work started in beforeExit.
+    // Serialize the successful result only when SpinEventLoop emits the final exit.
+    process.on("exit", function (code) {
+      if (__autojs6_finished) return;
+      if (code) __autojs6_finish_process_exit(code);
+      else if (__autojs6_deferred_success_waiting) __autojs6_finish_success(__autojs6_deferred_success_value);
+    });
   }
   function __autojs6_defer_success(value) {
     __autojs6_deferred_success_waiting = true;
     __autojs6_deferred_success_value = value;
-    __autojs6_schedule_task(function () {
-      __autojs6_try_finish_deferred_success();
-    });
   }
   try {
     __autojs6_install_console_shim();

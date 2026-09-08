@@ -8,10 +8,12 @@
     "v1.3.0": {
       "released_date": "Unreleased",
       "fix": [
-        "Fixed growing live-bridge request and response history in resident scripts by retiring completed requests and bounding diagnostics to the latest 32 responses with a size limit"
+        "Fixed growing live-bridge request and response history in resident scripts by retiring completed requests and bounding diagnostics to the latest 32 responses with a size limit",
+        "Fixed prematurely successful results losing native async errors and late exit codes; completion now follows the final Node event-loop exit"
       ],
       "improvement": [
-        "Reduced live bridge latency with a default JNI/Binder transport and Node event-loop responses, preserving selectable file fallback and pending-call limits"
+        "Reduced live bridge latency with a default JNI/Binder transport and Node event-loop responses, preserving selectable file fallback and pending-call limits",
+        "Restored native Node.js builtin exports for streams, crypto, timers, utilities, node:test and related modules while preserving filesystem boundaries and host directory policy"
       ],
       "feature": [
         "Node.js bridge subscriptions push sensor, WebSocket, UI, overlay and input events through existing callbacks, with on/once/off listeners, bounded queues and compatible drainEvents",
