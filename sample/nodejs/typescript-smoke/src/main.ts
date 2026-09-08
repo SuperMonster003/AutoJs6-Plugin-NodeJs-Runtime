@@ -1341,3 +1341,5 @@ const compatibleFetch: typeof legacyFetch = fetchModule;
 const compatibleWebsocket: typeof legacyWebsocket = websocket;
 void compatibleFetch;
 void compatibleWebsocket;
+import host = require("autojs6:host");
+host.once("message", (value: unknown) => console.log(value)).unref();

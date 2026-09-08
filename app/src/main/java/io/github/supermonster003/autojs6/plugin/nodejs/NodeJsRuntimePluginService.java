@@ -267,6 +267,32 @@ public class NodeJsRuntimePluginService extends Service {
         }
 
         @Override
+        public boolean postMessage(String executionId, Bundle message) {
+            if (!isDedicatedRuntimeProcess() || executionId == null || message == null) return false;
+            try {
+                String kind = message.getString(NodeJsRuntimeContract.KEY_MESSAGE_KIND);
+                boolean stdin = NodeJsRuntimeContract.MESSAGE_STDIN.equals(kind);
+                if (!stdin && !NodeJsRuntimeContract.MESSAGE_HOST.equals(kind)) return false;
+                String data = message.getString(NodeJsRuntimeContract.KEY_MESSAGE_DATA, "");
+                if (data == null || data.getBytes(StandardCharsets.UTF_8).length > NodeJsRuntimeContract.MAX_MESSAGE_BYTES) return false;
+                Object value = data;
+                if (!stdin) {
+                    org.json.JSONTokener parser = new org.json.JSONTokener(data);
+                    value = parser.nextValue();
+                    if (parser.nextClean() != 0 || data.trim().isEmpty()) return false;
+                }
+                JSONObject payload = new JSONObject();
+                payload.put("kind", kind);
+                payload.put("data", value);
+                payload.put("eof", stdin && message.getBoolean(NodeJsRuntimeContract.KEY_MESSAGE_EOF, false));
+                return NativeNodeEmbeddedRuntimeBridge.postExecutionMessage(executionId, stdin,
+                        payload.toString().getBytes(StandardCharsets.UTF_8));
+            } catch (Exception invalidMessage) {
+                return false;
+            }
+        }
+
+        @Override
         public boolean cancelScript(String executionId) {
             if (!isDedicatedRuntimeProcess()) {
                 Log.e(TAG, "Refusing cancellation outside the dedicated runtime process.");
@@ -735,6 +761,12 @@ public class NodeJsRuntimePluginService extends Service {
 
         boolean deliveredAnything() {
             return delivered.get();
+        }
+
+        @Override
+        public void onStdinState(byte[] state) {
+            notifyEvent(callback, NodeJsRuntimeContract.EVENT_STDIN_STATE, "INFO",
+                    new String(state, StandardCharsets.UTF_8));
         }
 
         @Override

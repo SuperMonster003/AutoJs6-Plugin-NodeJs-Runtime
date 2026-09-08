@@ -31,6 +31,7 @@ final class NodePluginBundles {
         NodeRuntimeExecutionGate.Snapshot activeExecution = service.executionGate.snapshot();
         Bundle info = new Bundle();
         info.putInt(NodeJsRuntimeContract.KEY_CONTRACT_VERSION, NodeJsRuntimeContract.CONTRACT_VERSION);
+        info.putInt(NodeJsRuntimeContract.KEY_MAX_CONTRACT_VERSION, NodeJsRuntimeContract.MAX_CONTRACT_VERSION);
         info.putString(NodeJsRuntimeContract.KEY_RUNTIME_SLOT, NodeJsPluginIds.VARIANT_NODE_24_5);
         info.putString(NodeJsRuntimeContract.KEY_NODE_VERSION, NodeJsRuntimePluginService.NODE_VERSION);
         info.putString(NodeJsRuntimeContract.KEY_NATIVE_LIBRARY_NAME, NodeJsRuntimePluginService.NATIVE_LIBRARY_NAME);

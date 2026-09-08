@@ -574,6 +574,15 @@
       ],
       "mainAppSmoke": false,
       "packagedCompatible": false
+    },
+    {
+      "name": "host-input",
+      "status": "stable",
+      "tags": [
+        "main-app"
+      ],
+      "mainAppSmoke": false,
+      "packagedCompatible": false
     }
   ]
 }

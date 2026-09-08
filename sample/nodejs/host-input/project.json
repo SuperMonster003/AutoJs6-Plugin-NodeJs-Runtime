@@ -1,0 +1,9 @@
+{
+  "name": "host-input",
+  "type": "node",
+  "main": "main.cjs",
+  "node": {
+    "backend": "embedded",
+    "timeoutMs": 0
+  }
+}

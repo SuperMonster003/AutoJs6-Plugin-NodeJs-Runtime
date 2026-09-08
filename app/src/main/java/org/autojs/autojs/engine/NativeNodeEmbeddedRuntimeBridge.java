@@ -101,6 +101,8 @@ public final class NativeNodeEmbeddedRuntimeBridge {
         void onStdout(byte[] chunk);
 
         void onStderr(byte[] chunk);
+
+        default void onStdinState(byte[] state) {}
     }
 
     /** UTF-8 JSON crosses JNI as bytes, including supplementary Unicode characters. */
@@ -234,6 +236,12 @@ public final class NativeNodeEmbeddedRuntimeBridge {
     }
 
     private native void nativeReceiveBridgeEvent(long channelId, byte[] eventJson);
+
+    public static boolean postExecutionMessage(String executionId, boolean stdin, byte[] json) {
+        return librariesLoaded && INSTANCE.nativePostExecutionMessage(executionId, stdin, json);
+    }
+
+    private native boolean nativePostExecutionMessage(String executionId, boolean stdin, byte[] json);
 
     private native void nativeBeginScriptStopScope(String executionTag);
 

@@ -84,6 +84,12 @@ void endActiveScriptStopScope() {
     state.stopPending = false;
 }
 
+std::string currentScriptExecutionTag() {
+    ActiveScriptStopState& state = activeScriptStopState();
+    std::lock_guard<std::mutex> lock(state.mutex);
+    return state.scopeTag;
+}
+
 bool registerActiveScriptEnvironment(void* libnodeHandle, node::Environment* environment) {
     ActiveScriptStopState& state = activeScriptStopState();
     std::lock_guard<std::mutex> lock(state.mutex);
