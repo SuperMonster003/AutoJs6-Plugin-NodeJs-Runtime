@@ -230,9 +230,12 @@ try {
 | `wasi` / `node:wasi` | 继续禁用: 原生 WASI 文件调用绕过 JS fs 路径检查, 单独限制 preopens 不能落实 `/proc`、`/sys`、`/dev` 边界; 普通 WebAssembly 与 WASM worker 可用 |
 | accessibility 的 powerDialog / waitFor / rawNode | 此旧入口仍 blocked; 电源菜单通过 keys.powerDialog, swipe/gesture 见第一节 |
 | 硬件标识符 (imei 等) | 隐私 fail-closed |
+| RootAutomator / Shizuku 输入通道 | M15.5 决定不新增; gesture/swipe 用无障碍, 设备有 root 时可显式使用 shell.execRoot |
 | 非白名单 Node builtin | `ERR_AUTOJS6_BUILTIN_DISABLED` |
 
 `media_projection` 已接入 Android 授权和前台服务流程, 不属于 denied; 授权条件及当前验收范围见第二节。
+
+2026-09-08 特权输入决策: 保留 `shell.execRoot(command)` 和显式 `shell.root` 声明, 由已有 shell provider 执行用户提供的 input/sendevent 命令并遵循设备 root 授权。当前没有需要另建 RootAutomator 的已复现输入缺口, 因此不增加设备事件节点映射、注入会话或额外取消机制。Shizuku 需要另一套授权与服务依赖, 本阶段不接入, `shell.execShizuku()` 继续拒绝。常规触摸自动化使用已实现的无障碍 gesture/swipe。
 
 2026-09-08 WASI 决策: [Node.js 24.5 官方 WASI 文档](https://nodejs.org/download/release/v24.5.0/docs/api/wasi.html#security) 说明其能力参数不构成安全隔离, 文件系统范围可被绕过。由此, 若仅在适配器中检查 preopens 根目录, 仍不足以覆盖运行中的全部文件调用, 本版继续拒绝原生 WASI, 不引入新的隔离层。已删除仅打印禁用状态的 controlled-wasi / wasi-scoped-fs 样例; wasm-basic 与 wasm-worker 继续展示可执行能力。
 
