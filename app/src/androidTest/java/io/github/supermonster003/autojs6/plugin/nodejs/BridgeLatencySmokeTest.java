@@ -279,9 +279,7 @@ public final class BridgeLatencySmokeTest {
             for (String transport : new String[]{"jni", "file"}) {
                 Bundle warm = run(broker, transport, "console.log(process.pid);", "image");
                 int pid = Integer.parseInt(warm.getString(NodeJsRuntimeContract.KEY_STDOUT, "").trim());
-                java.io.File descriptors = new java.io.File("/proc/" + pid + "/fd");
-                String[] before = descriptors.list();
-                assertNotNull("runtime FD list unavailable", before);
+                long before = runtimeFdCount(pid);
                 Bundle result = run(broker, transport, """
                     (async () => {
                       const image = require('image');
@@ -303,16 +301,27 @@ public final class BridgeLatencySmokeTest {
                     })().catch(error => { console.error(error.stack); process.exitCode = 1; });
                     """, "image");
                 assertTrue(result.getString(NodeJsRuntimeContract.KEY_STDOUT, "").contains("m14.binary.lifetime=PASS"));
-                String[] after = descriptors.list();
-                assertNotNull(after);
-                assertTrue("FD growth after " + transport + ": " + before.length + " -> " + after.length,
-                        after.length <= before.length + 2);
-                System.out.println("m14.binary.fd." + transport + "=" + before.length + "->" + after.length);
+                assertEquals("binary execution moved to another process", pid, result.getInt(NodeJsRuntimeContract.KEY_PID));
+                long after = runtimeFdCount(pid);
+                assertTrue("FD growth after " + transport + ": " + before + " -> " + after, after <= before + 2);
+                System.out.println("m14.binary.fd." + transport + "=" + before + "->" + after);
             }
         } finally {
             replies.shutdownNow();
             payload.delete();
         }
+    }
+
+    private long runtimeFdCount(int expectedPid) throws RemoteException {
+        // A non-debuggable Release process cannot be inspected through another process's /proc.
+        // The runtime already reports its own idle FD count; require the same live worker at both ends.
+        Bundle info = runtime.getRuntimeInfo();
+        String[] payload = info.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD);
+        assertEquals(Integer.toString(expectedPid), value(payload, "runtime_process.pid"));
+        assertEquals("true", value(payload, "runtime_process.proc_fd_readable"));
+        long count = Long.parseLong(value(payload, "runtime_process.fd_count"));
+        assertTrue("runtime FD count unavailable", count > 0);
+        return count;
     }
 
     private static String value(String[] payload, String key) {
