@@ -10,6 +10,10 @@ declare module "ocr" {
     export type Region = readonly [number, number, number, number] | RegionObject;
 
     export interface OcrOptions extends AutoJs6Node.BridgeCallOptions {
+      /** Select an installed host OCR plugin; unavailable selections return category "unavailable". */
+      engineId?: string;
+      engine?: string;
+      variant?: string;
       lang?: string;
       region?: Region;
     }

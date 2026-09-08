@@ -16,3 +16,4 @@
 * `개선` Node.js stream, crypto, timers, util, node:test 등의 네이티브 내보내기 복원, 파일 시스템 경계 및 호스트 디렉터리 정책 유지
 * `개선` 네이티브 worker 기본 수를 CPU 병렬도 (최대 8개)로 변경하고 실행의 네트워크 및 파일 설정과 요청별 리소스 상한을 적용. 풀 작업의 기본 시간 제한을 제거하고 CPU/WASM 예제를 실제 worker 실행으로 변경
 * `개선` 파일 시스템 경계를 유지하도록 원시 WASI를 계속 비활성화하고 비활성 WASI 예제 두 개 제거; 일반 WebAssembly 및 WASM worker는 계속 사용 가능
+* `개선` 화면 OCR 예제가 Android 캡처 승인을 요청하고 실제 이미지 핸들을 인식하며, OCR 또는 바코드 플러그인을 사용할 수 없으면 읽기 쉬운 unavailable 오류를 반환하고 인식 실패는 오류로 처리

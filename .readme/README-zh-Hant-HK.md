@@ -129,6 +129,7 @@ console.log("AutoJs6 Node.js runtime");
 * `優化` Node.js stream, crypto, timers, util, node:test 等內建模組恢復原生匯出, 保留檔案系統邊界與宿主目錄策略
 * `優化` 原生 worker 預設按 CPU 並行度運行 (最多 8 個), 繼承執行的網絡與檔案開關, 支援請求級資源上限且池任務預設不設逾時; CPU 與 WASM 範例改為真實多執行緒執行
 * `優化` 維持原生 WASI 停用以保留檔案系統邊界, 移除兩個 disabled WASI 範例; 一般 WebAssembly 與 WASM worker 繼續可用
+* `優化` 螢幕 OCR 範例申請 Android 擷取授權並辨識真實圖片控制代碼; OCR 或條碼插件不可用時傳回可讀 unavailable 錯誤, 辨識失敗仍按錯誤處理
 
 # v1.2.0
 

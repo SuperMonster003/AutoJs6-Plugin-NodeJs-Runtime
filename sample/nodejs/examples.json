@@ -175,13 +175,14 @@
     {
       "name": "ocr-automation",
       "status": "partial",
-      "reason": "Needs a live OCR/image provider and user-approved capture; packaged OCR model policy is not promoted.",
+      "reason": "Real ML Kit OCR and QR recognition on host UI screenshots passes device tests; the MediaProjection consent acceptance check remains pending.",
       "tags": [
         "main-app",
         "bridge",
         "ocr",
         "requires-image",
-        "permission-optional"
+        "permission-optional",
+        "requires-screen-capture"
       ],
       "mainAppSmoke": false,
       "packagedCompatible": false

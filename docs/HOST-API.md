@@ -80,6 +80,8 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 
 `await image.toBytes(handle, {format: "png" | "rgba"})` 返回原生 Node Buffer, 也可把格式直接作为第二个参数。PNG 为默认值; RGBA 为紧密排列的 sRGB RGBA8, 使用直通 alpha, 长度为 width × height × 4。图片句柄回收后 Buffer 仍有效。宿主在私有临时文件中编码, 回调 Bundle 通过 `bridgeBinaryPfd` / `bridgeBinaryByteCount` 携带描述符及长度; JSON 仅含元数据。插件直接 mmap 文件并由 V8 BackingStore 持有, `Buffer.from(ArrayBuffer)` 不复制像素。文件目录项及 FD 及时关闭, 映射在 Buffer 回收或 isolate 结束时解除。JNI 与文件桥接均支持, 请求 `binary=true` 为 additive, 未声明该字段的旧客户端不会收到 PFD。`readImage(path)` 继续返回宿主图片句柄, 大图也通过随后调用 toBytes 取回像素, 无 base64 或 `/proc` / `/dev` 文件读取入口。PNG 解码已使用真实 [pngjs](https://github.com/pngjs/pngjs) 包在设备测试中验证。
 
+`ocr.recognizeText(handle)` 与 `barcode.detect(handle, {formats: ["QR_CODE"]})` 可直接使用同一图片句柄, 分别需声明 `image` + `ocr` / `barcode`。OCR 选项支持 `engineId` / `engine` / `variant`; 找不到已启用的兼容识别插件时错误 category 为 `unavailable`, 实际识别失败仍返回 provider 错误。OCR 与截图 OCR 样例申请 Android 截屏授权后执行真实识别, 在 finally 中回收图片并停止截屏; 只有权限拒绝或插件不可用才输出可读 skip。M14.4 已在小米与 x86_64 上识别宿主显示的 ROADMAP 2026 和二维码, 测试输入由 UiAutomation 截屏落盘后 readImage 取得; MediaProjection 人工授权链尚待验收, 因此涉及该链的样例仍为 partial。
+
 ## 三. 稳定能力与外部依赖 (bridged-policy)
 
 | 模块 | 门禁 |
@@ -196,6 +198,8 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 | 硬件标识符 (imei 等) | 隐私 fail-closed |
 | 非白名单 Node builtin | `ERR_AUTOJS6_BUILTIN_DISABLED` |
 
+`media_projection` 已接入 Android 授权和前台服务流程, 不属于 denied; 授权条件及当前验收范围见第二节。
+
 2026-09-08 WASI 决策: [Node.js 24.5 官方 WASI 文档](https://nodejs.org/download/release/v24.5.0/docs/api/wasi.html#security) 说明其能力参数不构成安全隔离, 文件系统范围可被绕过。由此, 若仅在适配器中检查 preopens 根目录, 仍不足以覆盖运行中的全部文件调用, 本版继续拒绝原生 WASI, 不引入新的隔离层。已删除仅打印禁用状态的 controlled-wasi / wasi-scoped-fs 样例; wasm-basic 与 wasm-worker 继续展示可执行能力。
 
 ## 九. 真机验证矩阵
@@ -210,6 +214,8 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 | TypeScript provider (v3) | 宿主 `compilesRuntimeCreatedTypeScriptAndKeepsSnapshotErrorsStable`、`runtimeCreatedTypeScriptTypeErrorsReturnReadableDiagnostics`、`mapsRuntimeCreatedTypeScriptFailureBackToDynamicSource` | ✅ T5-1, API 35 Xiaomi 23046RP50C |
 | `accessibility.swipe` 派发链 + `accessibility.gesture` 能力门禁 | 宿主 `pluginRuntimeSwipesThroughAccessibilityGestureCapability` (服务未开时断言可读 capabilityProviderMissing; 未声明能力被插件本地拒绝且零派发) | ✅ M3.2 |
 | `accessibility.*` 动作在服务开启下的完成路径 | 无障碍开启依赖手工授权 (小米 adb 不可直写 secure settings), 待手工开启后跑同一用例补证 | ⚠️ 部分验证 |
+| `image.toBytes` PNG/RGBA + pngjs | 1080p 实际截图夹具, 三 ABI / JNI 与 file, 像素及 Buffer/FD 生命周期 | ✅ M14.3 |
+| `ocr.recognizeText` + `barcode.detect` | 宿主画面 ROADMAP 2026 与二维码; 小米 arm64 与 x86_64, OCR/条码回归各 11/11 | ✅ M14.4 识别链; MediaProjection 授权链待人工验收 |
 | 其余 bridged 模块 | 无真机断言 | ⚠️ 未验证 |
 
 ## 十. 与 Node 原生重叠的能力: 选择指引 (M3.3)
