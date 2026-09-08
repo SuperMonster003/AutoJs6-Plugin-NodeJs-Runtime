@@ -1,2 +1,2 @@
-sample.wasm-worker.mode=design-gated
+sample.wasm-worker.add=42
 sample.wasm-worker=PASS

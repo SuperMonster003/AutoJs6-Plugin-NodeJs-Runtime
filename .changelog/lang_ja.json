@@ -13,7 +13,8 @@
       ],
       "improvement": [
         "ライブブリッジを既定の JNI/Binder 転送と Node イベントループ応答に変更して遅延を削減し、ファイル転送への切り替えと保留中の呼び出し数制限を維持",
-        "Node.js の stream, crypto, timers, util, node:test などのネイティブエクスポートを復元, ファイルシステム境界とホストディレクトリポリシーを維持"
+        "Node.js の stream, crypto, timers, util, node:test などのネイティブエクスポートを復元, ファイルシステム境界とホストディレクトリポリシーを維持",
+        "ネイティブ worker の既定数を CPU 並列度 (最大 8) に変更し、実行のネットワークとファイル設定、リクエスト単位のリソース上限に対応。プールタスクの既定タイムアウトを撤廃し、CPU/WASM サンプルを実際の worker 実行に更新"
       ],
       "feature": [
         "Node.js ブリッジの購読でセンサー, WebSocket, UI, オーバーレイ, 入力イベントを既存のコールバック経由で配信し, on/once/off, 有界キュー, drainEvents 互換性を提供",

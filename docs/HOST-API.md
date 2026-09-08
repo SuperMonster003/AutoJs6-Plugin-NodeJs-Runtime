@@ -64,10 +64,12 @@
 | `barcode` | 需 Barcode 外部插件 |
 | `java` | 默认启用; 仅允许宿主白名单中的类、构造器、方法和字段, 反射/ClassLoader/进程与原生库加载继续拒绝 |
 | `rhino` | 默认提供显式迁移入口; 执行请求使用 `explicit: true`, 不会自动安装旧 Rhino 全局对象 |
-| `worker_threads` | 默认启用; Worker 不能访问 AutoJs 桥、Android 对象或越权文件/网络资源, 并受数量、内存、超时和清理预算约束 |
+| `worker_threads` | 默认启用; 数量默认 `min(8, os.availableParallelism())`, 使用 Node 默认内存限制, WorkerPool 任务默认不设超时; worker 内 builtin 名单与主线程一致, 网络/文件系统继承执行开关, AutoJs 桥与 inspector 仍拒绝 |
 | `child_process` | 默认启用并遵循 Node 原生语义; 受 Android UID/SELinux/清单与调用方校验约束，但不继承独立 `shell` 桥的私有可执行文件白名单或资源预算，脚本必须自行校验命令、限制 stdio/超时并回收子进程 |
 
 全局 `fetch`、`Request`、`Response`、`Headers`、`FormData`、`WebSocket` 使用 Node 自带的 Web API (网络实现为内置 Undici)。全局网络请求与 raw Node http/https 一样默认可用, 无需宿主 `network` 声明; 请求设 `rawNodeNetworkModulesEnabled=false` 会拒绝全局 fetch/WebSocket 的网络操作, 非联网的数据类仍可用。需要宿主代理、证书与网络策略时, 显式使用 `require("autojs6:fetch")` 或 `require("autojs6:websocket")`, 这两个桥模块仍独立检查宿主 `network` 能力。
+
+宿主可通过执行请求的 `runtimeModuleSources` 传入 JSON 模块 `autojs6:worker-policy`, 例如 `{"maxWorkers":4,"taskTimeoutMs":30000,"resourceLimits":{"maxOldGenerationSizeMb":256}}`。`maxWorkers` 范围 1..8; `taskTimeoutMs=0` 表示不设置 WorkerPool 默认任务超时, 池/单任务仍可显式覆盖。`resourceLimits` 仅接受 Node 的四个限制字段, 缺失字段保留 Node 默认; 请求设置的值同时作为默认值和上限, `new Worker(file, {resourceLimits})` 中较小的用户值优先。`startupTimeoutMs` 独立保留 5000 ms 默认值, 可在请求配置中设置 1..60000 ms。worker 内不开放嵌套 Worker、宿主桥与 inspector, 现有局部 ESM 加载范围不变; 消息仍有 64 KiB/32 条队列预算。`worker-cpu` 与 `wasm-worker` 提供真实多线程计算与 WASM 示例。
 
 ## 四. 插件内本地实现 (local-shim, 不出进程)
 

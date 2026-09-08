@@ -1,11 +1,14 @@
 # worker-cpu
 
-CPU task example that uses `worker_threads` when available and falls back to the
-main thread while the Safe Node Profile keeps workers default-disabled.
+Runs the same prime-sum calculation four times sequentially, then in four native
+workers. Main and worker functions receive the same warm-up. The output reports
+both computation speedup and speedup including worker startup; actual results
+depend on available CPUs, Android scheduling and temperature.
 
-- Capabilities: `worker_computation`
-- Expected provider: native `worker_threads` when explicitly enabled; in-process fallback otherwise
-- Packaged support: blocked until native worker execution and packaged source graph verification are promoted
-- Security limitations: bridge, filesystem, and network authority are not inherited by worker code
+Workers are enabled by default. The default limit is `os.availableParallelism()`,
+capped at eight. This example needs at least four worker slots; a lower request
+limit produces a readable worker-limit error. Filesystem and network operations
+inherit the execution's switches. AutoJs bridge modules and inspector remain
+unavailable inside workers.
 
 Expected output is listed in `expected-output.txt`.
