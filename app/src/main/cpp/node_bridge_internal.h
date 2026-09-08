@@ -158,6 +158,7 @@ struct HandleAttemptResult {
 struct OutputMethods {
     jmethodID stdoutMethod = nullptr;
     jmethodID stderrMethod = nullptr;
+    jmethodID stdinStateMethod = nullptr;
 };
 
 struct UvHandleDiagnosticSample {
@@ -281,6 +282,7 @@ public:
         env->DeleteLocalRef(localClass);
         methods_.stdoutMethod = env->GetMethodID(sinkClass_, "onStdout", "([B)V");
         methods_.stderrMethod = env->GetMethodID(sinkClass_, "onStderr", "([B)V");
+        methods_.stdinStateMethod = env->GetMethodID(sinkClass_, "onStdinState", "([B)V");
         if (methods_.stdoutMethod == nullptr || methods_.stderrMethod == nullptr) {
             throwJava(env, "java/lang/NoSuchMethodError", "OutputSink must implement onStdout([B)V and onStderr([B)V");
         }
@@ -299,6 +301,10 @@ public:
 
     void emitStderr(const char* bytes, size_t length) const {
         emit(methods_.stderrMethod, bytes, length);
+    }
+
+    void emitStdinState(bool ready) const {
+        emit(methods_.stdinStateMethod, ready ? "true" : "false", ready ? 4 : 5);
     }
 
     void release(JNIEnv* env) {
@@ -375,6 +381,7 @@ void setCurrentOutputStreamSink(std::shared_ptr<JavaOutputSink> sink);
 // next script. registerActiveScriptEnvironment returns false when the
 // registration immediately dispatched a pending stop.
 void beginActiveScriptStopScope(const char* executionTag);
+std::string currentScriptExecutionTag();
 void endActiveScriptStopScope();
 bool registerActiveScriptEnvironment(void* libnodeHandle, node::Environment* environment);
 void clearActiveScriptEnvironment();

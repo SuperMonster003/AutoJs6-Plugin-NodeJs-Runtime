@@ -1,0 +1,5 @@
+Your name: Ada
+Hello, Ada!
+One more line: Hello from the console
+Received: Hello from the console
+sample.host-input=PASS

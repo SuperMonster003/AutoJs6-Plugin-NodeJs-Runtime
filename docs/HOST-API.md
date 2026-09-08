@@ -26,6 +26,21 @@
 
 此版本不接受 SQLite `file:` URI 字符串和空临时路径, 原生扩展加载仍拒绝。Node 24.5 未提供 authorizer, 因此 SQL 中的 `ATTACH`、`VACUUM INTO`、`PRAGMA temp_store_directory/data_store_directory` 返回 `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED`, 避免绕过文件路径检查; 使用另一个 `DatabaseSync` 或 `sqlite.backup()` 完成文件操作。普通 `VACUUM`、事务和包含这些单词的查询数据仍可用。
 
+## 标准输入与宿主消息
+
+`process.stdin` 是 Node 原生 `Readable`, 支持 `readline` / `readline/promises`、`data` 事件、编码、管道及异步迭代。读取输入会保持脚本存活; 暂停、关闭 readline、EOF 或取消执行会释放相应等待。`stdin.unref()` 可取消它对事件循环的保活, `ref()` 恢复。`host-input` 样例连续询问两行, 使用支持输入的新宿主时控制台自动显示输入框。
+
+`require('autojs6:host')` 或 `import host from 'autojs6:host'` 返回每次执行独立的 EventEmitter。`host.on('message', value => ...)` 接收 JSON 值; `once/off/removeAllListeners` 遵循 Node 事件语义。消息监听器默认保持脚本存活, `host.unref()` 取消保活, `ref()` 恢复。此模块仅在主脚本使用; worker 可通过父线程的 MessagePort 转发。
+
+宿主在 AIDL 末尾追加的 v3 事务 `postMessage(executionId, Bundle)` 投递消息, 原有四个事务号保持不变。`getRuntimeInfo().contractVersion` 继续为 2, 以兼容严格检查版本 2 的已发布宿主; 新字段 `maxContractVersion=3` 表示支持新增事务。新宿主只在该字段至少为 3 时调用 `postMessage`; 旧插件缺字段视为 2, 旧宿主可继续正常执行无需输入的脚本。脚本请求接受版本 2..3, 缺省仍为 2。
+
+| Bundle 字段 | `kind=stdin` | `kind=message` |
+|---|---|---|
+| `data` | 文本字符串, 按 UTF-8 推入流; 调用方负责追加换行 | JSON 值编码成字符串, JS 监听器收到解析后的值 |
+| `eof` | 可选 boolean, 默认 false; 在当前文本后结束流 | 忽略 |
+
+每条 data 最多 64 KiB UTF-8。JNI 队列最多 32 条且总 JSON 编码最多 384 KiB; stdin 每次只接受一个待投递块, 遵循流的读取需求。`false` 表示执行不存在/已退出、类型或大小无效、没有相应读取者或队列已满, 调用方可在下一次读取需求后重试; `true` 表示已入队, 取消执行仍可能使尚未消费的消息丢弃, 不表示脚本已处理成功。stdin 的 `stdin_state` callback 以 text=`true`/`false` 告知能否接收下一块; 新宿主用它登记和取消现有控制台输入队列中的请求, 输入提交在后台执行 Binder 调用。旧宿主忽略这个新增事件。
+
 ## 一. 已桥接 — 默认可用
 
 | 模块 | 方法 | 备注 |

@@ -2416,139 +2416,72 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_define_disabled_process_api("initgroups", false);
     __autojs6_define_process_property("umask", __autojs6_limited_process_umask, false);
   }
+  var __autojs6_host_message_emitter;
+  function __autojs6_host_state(stdin, ready, referenced) {
+    if (typeof globalThis.__autojs6_host_native_state === "function") {
+      globalThis.__autojs6_host_native_state(stdin, ready, referenced);
+    }
+  }
+  function __autojs6_host_module() {
+    if (__autojs6_host_message_emitter) return __autojs6_host_message_emitter;
+    let referenced = true;
+    const update = count => __autojs6_host_state(false, count > 0, referenced);
+    class HostMessages extends __autojs6_builtin_module("events").EventEmitter {
+      on(name, listener) { super.on(name, listener); update(this.listenerCount("message")); return this; }
+      addListener(name, listener) { return this.on(name, listener); }
+      prependListener(name, listener) { super.prependListener(name, listener); update(this.listenerCount("message")); return this; }
+      removeListener(name, listener) { super.removeListener(name, listener); update(this.listenerCount("message")); return this; }
+      off(name, listener) { return this.removeListener(name, listener); }
+      removeAllListeners(...args) { super.removeAllListeners(...args); update(this.listenerCount("message")); return this; }
+    }
+    const emitter = new HostMessages();
+    emitter.ref = function() { referenced = true; update(emitter.listenerCount("message")); return emitter; };
+    emitter.unref = function() { referenced = false; update(emitter.listenerCount("message")); return emitter; };
+    __autojs6_host_message_emitter = emitter;
+    return emitter;
+  }
   function __autojs6_create_process_stdin() {
-    const nodeEvents = __autojs6_events_module();
-    const stdin = nodeEvents && typeof nodeEvents.EventEmitter === "function"
-      ? new nodeEvents.EventEmitter()
-      : Object.create(null);
-    function chain() {
-      return stdin;
+    let waiting = false;
+    let paused = false;
+    let ended = false;
+    let referenced = true;
+    const stdin = new (__autojs6_builtin_module("stream").Readable)({
+      highWaterMark: 64 * 1024,
+      read() { waiting = true; update(); }
+    });
+    function update() {
+      __autojs6_host_state(true, waiting && !paused && !ended && !stdin.destroyed, referenced);
     }
-    function read() {
-      return null;
-    }
-    function pipe(destination) {
-      return destination;
-    }
-    function unpipe() {
-      return stdin;
-    }
-    function isPaused() {
-      return true;
-    }
-    function destroy() {
-      __autojs6_define_stream_property(stdin, "destroyed", true);
-      return stdin;
-    }
-    function asyncIterator() {
-      return {
-        next: function() {
-          return Promise.resolve({ value: undefined, done: true });
-        },
-        return: function() {
-          return Promise.resolve({ value: undefined, done: true });
-        },
-        [Symbol.asyncIterator]: function() {
-          return this;
+    Object.defineProperties(stdin, { fd: { value: 0 }, isTTY: { value: false } });
+    stdin.ref = function() { referenced = true; update(); return stdin; };
+    stdin.unref = function() { referenced = false; update(); return stdin; };
+    stdin.on("pause", () => { paused = true; update(); });
+    stdin.on("resume", () => { paused = false; waiting = true; update(); });
+    stdin.on("end", () => { ended = true; update(); });
+    stdin.on("close", () => { ended = true; update(); });
+    if (typeof globalThis.__autojs6_host_native_listen === "function") {
+      globalThis.__autojs6_host_native_listen(function(json) {
+        const message = JSON.parse(json);
+        if (message.kind === "message") {
+          if (__autojs6_host_message_emitter) {
+            __autojs6_host_message_emitter.emit("message", message.data);
+          }
+          return;
         }
-      };
-    }
-    const descriptors = {
-      fd: { value: 0, enumerable: true },
-      isTTY: { value: false, enumerable: true },
-      readable: { value: true, enumerable: true },
-      readableEnded: { value: true, enumerable: true },
-      readableFlowing: { value: null, enumerable: true },
-      destroyed: { value: false, enumerable: true, configurable: true },
-      writable: { value: false, enumerable: true },
-      read: { value: read, enumerable: true },
-      setEncoding: { value: chain, enumerable: true },
-      pause: { value: chain, enumerable: true },
-      resume: { value: chain, enumerable: true },
-      ref: { value: chain, enumerable: true },
-      unref: { value: chain, enumerable: true },
-      pipe: { value: pipe, enumerable: true },
-      unpipe: { value: unpipe, enumerable: true },
-      isPaused: { value: isPaused, enumerable: true },
-      destroy: { value: destroy, enumerable: true }
-    };
-    if (typeof Symbol === "function" && Symbol.asyncIterator) {
-      descriptors[Symbol.asyncIterator] = {
-        value: asyncIterator,
-        enumerable: false
-      };
-    }
-    if (typeof stdin.on !== "function") {
-      const listeners = Object.create(null);
-      const add = function(name, listener, once) {
-        if (typeof listener !== "function") {
-          throw __autojs6_invalid_arg_type("process.stdin listener must be a function.");
+        waiting = false;
+        update();
+        if (ended || stdin.destroyed) return;
+        if (message.data) stdin.push(message.data, "utf8");
+        if (message.eof) {
+          ended = true;
+          stdin.push(null);
+        } else {
+          waiting = !paused && stdin.readableLength < stdin.readableHighWaterMark &&
+            (stdin.readableFlowing === true || stdin.listenerCount("readable") > 0);
         }
-        const key = String(name);
-        (listeners[key] || (listeners[key] = [])).push({ listener, once: !!once });
-        return stdin;
-      };
-      Object.defineProperties(stdin, {
-        on: { value: function(name, listener) { return add(name, listener, false); }, enumerable: true },
-        addListener: { value: function(name, listener) { return add(name, listener, false); }, enumerable: true },
-        once: { value: function(name, listener) { return add(name, listener, true); }, enumerable: true },
-        off: { value: function(name, listener) { return this.removeListener(name, listener); }, enumerable: true },
-        removeListener: {
-          value: function(name, listener) {
-            const key = String(name);
-            const bucket = listeners[key];
-            if (!bucket) return stdin;
-            listeners[key] = bucket.filter(function(record) {
-              return record.listener !== listener;
-            });
-            return stdin;
-          },
-          enumerable: true
-        },
-        removeAllListeners: {
-          value: function(name) {
-            if (name === undefined) {
-              for (const key of Object.keys(listeners)) delete listeners[key];
-            } else {
-              delete listeners[String(name)];
-            }
-            return stdin;
-          },
-          enumerable: true
-        },
-        emit: {
-          value: function(name) {
-            const key = String(name);
-            const bucket = (listeners[key] || []).slice();
-            if (bucket.length === 0) return false;
-            const args = Array.prototype.slice.call(arguments, 1);
-            listeners[key] = (listeners[key] || []).filter(function(record) {
-              return !record.once;
-            });
-            for (const record of bucket) {
-              record.listener.apply(stdin, args);
-            }
-            return true;
-          },
-          enumerable: true
-        },
-        listeners: {
-          value: function(name) {
-            return (listeners[String(name)] || []).map(function(record) {
-              return record.listener;
-            });
-          },
-          enumerable: true
-        },
-        listenerCount: {
-          value: function(name) {
-            return (listeners[String(name)] || []).length;
-          },
-          enumerable: true
-        }
+        update();
       });
     }
-    Object.defineProperties(stdin, descriptors);
     return stdin;
   }
   function __autojs6_create_process_allowed_node_environment_flags() {
@@ -37319,7 +37252,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return lines;
   }
   function __autojs6_esm_builtin_specifier(name) {
-    return name === "node:test" || name === "node:test/reporters" || name === "node:sqlite" ||
+    return name === "autojs6:host" || name === "node:test" || name === "node:test/reporters" || name === "node:sqlite" ||
       ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_enabled) ||
       name === "rhino" ||
       __autojs6_has_own(__autojs6_require_builtin_allowlist, name) ||
@@ -39221,6 +39154,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_restricted_require_resolve(moduleName, parentFilename) {
     const name = moduleName === undefined ? "" : String(moduleName);
+    if (name === "autojs6:host") return "autojs6:host";
     const traceRecord = __autojs6_resolve_trace_begin(name, parentFilename);
     __autojs6_resolve_trace("request", {
       request: name,
@@ -39586,6 +39520,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_restricted_require(moduleName, parentModule) {
     const name = moduleName === undefined ? "" : String(moduleName);
+    if (name === "autojs6:host") return __autojs6_host_module();
     const parentFilename = parentModule ? parentModule.filename : __autojs6_source_name;
     const traceRecord = __autojs6_resolve_trace_begin(name, parentFilename);
     __autojs6_resolve_trace("request", {

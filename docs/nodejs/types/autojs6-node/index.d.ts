@@ -1,4 +1,5 @@
 /// <reference path="./common.d.ts" />
+/// <reference path="./host.d.ts" />
 /// <reference path="./profile_capabilities.d.ts" />
 /// <reference path="./autojs_global.d.ts" />
 /// <reference path="./toast.d.ts" />
