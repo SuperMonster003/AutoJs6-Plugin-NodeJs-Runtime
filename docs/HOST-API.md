@@ -58,7 +58,7 @@
 
 | 模块 | 门禁 |
 |---|---|
-| `fetch` / `axios` / `undici` | 默认启用; 仍要求项目声明 `network` 能力并满足宿主网络策略。raw Node http/https 同样默认可用; 此桥接走宿主 OkHttp |
+| `autojs6:fetch` / `autojs6:websocket` / `axios` / `undici` | 宿主 OkHttp 网络栈, 需项目声明 `network` 并满足宿主网络策略; `fetch` / `websocket` 旧模块名保留兼容 |
 | `websocket` | 同上 |
 | `ocr` | 需 ML Kit OCR 外部插件 |
 | `barcode` | 需 Barcode 外部插件 |
@@ -66,6 +66,8 @@
 | `rhino` | 默认提供显式迁移入口; 执行请求使用 `explicit: true`, 不会自动安装旧 Rhino 全局对象 |
 | `worker_threads` | 默认启用; Worker 不能访问 AutoJs 桥、Android 对象或越权文件/网络资源, 并受数量、内存、超时和清理预算约束 |
 | `child_process` | 默认启用并遵循 Node 原生语义; 受 Android UID/SELinux/清单与调用方校验约束，但不继承独立 `shell` 桥的私有可执行文件白名单或资源预算，脚本必须自行校验命令、限制 stdio/超时并回收子进程 |
+
+全局 `fetch`、`Request`、`Response`、`Headers`、`FormData`、`WebSocket` 使用 Node 自带的 Web API (网络实现为内置 Undici)。全局网络请求与 raw Node http/https 一样默认可用, 无需宿主 `network` 声明; 请求设 `rawNodeNetworkModulesEnabled=false` 会拒绝全局 fetch/WebSocket 的网络操作, 非联网的数据类仍可用。需要宿主代理、证书与网络策略时, 显式使用 `require("autojs6:fetch")` 或 `require("autojs6:websocket")`, 这两个桥模块仍独立检查宿主 `network` 能力。
 
 ## 四. 插件内本地实现 (local-shim, 不出进程)
 
@@ -188,7 +190,8 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 | 需求 | 用这个 (Node 原生) | 不要用 | 备注 |
 |---|---|---|---|
 | 读写文件 | `fs` / `fs/promises` (Android 权限范围; `/proc`/`/sys`/`/dev` 拒绝) | `files` shim | shim 本身就是 fs 封装, 直接用 fs 少一层; 共享存储授权见第五节 |
-| HTTP/HTTPS 客户端 | `http` / `https` (M2.6 后默认可用), 或工作区安装的 npm 包 | 桥接 `fetch`/`axios`/`undici` | 桥接版走宿主 OkHttp, 仅在需要宿主网络栈 (代理/证书策略跟随宿主) 时使用 |
+| HTTP/HTTPS 客户端 | 全局 `fetch`、`http` / `https`, 或工作区安装的 npm 包 | `autojs6:fetch` / `axios` / `undici` | 全局 fetch 使用 Node 内置 Undici; 显式桥接版走宿主 OkHttp, 代理/证书策略跟随宿主 |
+| WebSocket 客户端 | 全局 `WebSocket`, 或工作区安装的 npm 包 | `autojs6:websocket` | 原生 API 遵循 Web 标准事件接口; 桥接 API 提供异步 connect/send/close 与宿主策略 |
 | HTTP 服务器 | `http.createServer` | — | 桥接版无服务器能力 |
 | Base64 | `Buffer.from(x, "base64")` / `buf.toString("base64")` | `base64` shim | |
 | MIME 判型 | npm `mime` 包 (M2.4 已实测) | `mime` shim | 装了 npm 包时它自动优先于 shim |

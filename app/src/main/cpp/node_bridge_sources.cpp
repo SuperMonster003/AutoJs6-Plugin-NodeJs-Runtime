@@ -1382,162 +1382,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return new BlobCtor([body]);
   }
-  function __autojs6_create_limited_web_data_classes() {
-    const BlobCtor = __autojs6_blob_constructor();
-    const bufferModule = __autojs6_buffer_module();
-    const FileCtor = typeof File === "function"
-      ? File
-      : (bufferModule && typeof bufferModule.File === "function" ? bufferModule.File : null);
-    function normalizeHeaderName(name) {
-      return String(name).toLowerCase();
-    }
-    function Headers(init) {
-      if (!(this instanceof Headers)) {
-        throw new TypeError("Class constructor Headers cannot be invoked without 'new'");
-      }
-      Object.defineProperty(this, "__autojs6Headers", {
-        value: new Map(),
-        enumerable: false
-      });
-      if (init instanceof Headers) {
-        init.forEach((value, name) => this.append(name, value));
-      } else if (Array.isArray(init)) {
-        init.forEach((entry) => this.append(entry[0], entry[1]));
-      } else if (init && typeof init === "object") {
-        Object.keys(init).forEach((name) => this.append(name, init[name]));
-      }
-    }
-    Object.defineProperties(Headers.prototype, {
-      append: { value: function(name, value) {
-        const key = normalizeHeaderName(name);
-        const text = String(value);
-        this.__autojs6Headers.set(key, this.__autojs6Headers.has(key) ? this.__autojs6Headers.get(key) + ", " + text : text);
-      }, enumerable: true },
-      set: { value: function(name, value) {
-        this.__autojs6Headers.set(normalizeHeaderName(name), String(value));
-      }, enumerable: true },
-      get: { value: function(name) {
-        const key = normalizeHeaderName(name);
-        return this.__autojs6Headers.has(key) ? this.__autojs6Headers.get(key) : null;
-      }, enumerable: true },
-      has: { value: function(name) {
-        return this.__autojs6Headers.has(normalizeHeaderName(name));
-      }, enumerable: true },
-      delete: { value: function(name) {
-        this.__autojs6Headers.delete(normalizeHeaderName(name));
-      }, enumerable: true },
-      forEach: { value: function(callback, thisArg) {
-        this.__autojs6Headers.forEach((value, name) => callback.call(thisArg, value, name, this));
-      }, enumerable: true },
-      entries: { value: function() { return this.__autojs6Headers.entries(); }, enumerable: true },
-      keys: { value: function() { return this.__autojs6Headers.keys(); }, enumerable: true },
-      values: { value: function() { return this.__autojs6Headers.values(); }, enumerable: true },
-      [Symbol.iterator]: { value: function() { return this.entries(); } },
-      [Symbol.toStringTag]: { value: "Headers" }
-    });
-    function FormData() {
-      if (!(this instanceof FormData)) {
-        throw new TypeError("Class constructor FormData cannot be invoked without 'new'");
-      }
-      Object.defineProperty(this, "__autojs6FormData", {
-        value: [],
-        enumerable: false
-      });
-    }
-    Object.defineProperties(FormData.prototype, {
-      append: { value: function(name, value, filename) {
-        let entryValue = value;
-        if (BlobCtor && value instanceof BlobCtor && filename !== undefined && FileCtor) {
-          entryValue = new FileCtor([value], String(filename), { type: value.type || "" });
-        } else if (!(BlobCtor && value instanceof BlobCtor)) {
-          entryValue = String(value);
-        }
-        this.__autojs6FormData.push([String(name), entryValue]);
-      }, enumerable: true },
-      get: { value: function(name) {
-        const key = String(name);
-        const entry = this.__autojs6FormData.find((item) => item[0] === key);
-        return entry ? entry[1] : null;
-      }, enumerable: true },
-      getAll: { value: function(name) {
-        const key = String(name);
-        return this.__autojs6FormData.filter((item) => item[0] === key).map((item) => item[1]);
-      }, enumerable: true },
-      has: { value: function(name) {
-        const key = String(name);
-        return this.__autojs6FormData.some((item) => item[0] === key);
-      }, enumerable: true },
-      entries: { value: function*() {
-        for (const entry of this.__autojs6FormData) yield entry.slice();
-      }, enumerable: true },
-      [Symbol.iterator]: { value: function() { return this.entries(); } },
-      [Symbol.toStringTag]: { value: "FormData" }
-    });
-    function Request(input, init) {
-      if (!(this instanceof Request)) {
-        throw new TypeError("Class constructor Request cannot be invoked without 'new'");
-      }
-      const requestInit = init && typeof init === "object" ? init : {};
-      const source = input instanceof Request ? input : null;
-      const url = source ? source.url : String(input);
-      Object.defineProperties(this, {
-        url: { value: url, enumerable: true },
-        method: { value: String(requestInit.method || (source && source.method) || "GET").toUpperCase(), enumerable: true },
-        headers: { value: new Headers(requestInit.headers || (source && source.headers) || undefined), enumerable: true },
-        body: { value: __autojs6_body_blob(__autojs6_has_own(requestInit, "body") ? requestInit.body : null), enumerable: true },
-        bodyUsed: { value: false, writable: true, enumerable: true }
-      });
-    }
-    Object.defineProperties(Request.prototype, {
-      text: { value: function() {
-        this.bodyUsed = true;
-        return this.body.text();
-      }, enumerable: true },
-      arrayBuffer: { value: function() {
-        this.bodyUsed = true;
-        return this.body.arrayBuffer();
-      }, enumerable: true },
-      [Symbol.toStringTag]: { value: "Request" }
-    });
-    function Response(body, init) {
-      if (!(this instanceof Response)) {
-        throw new TypeError("Class constructor Response cannot be invoked without 'new'");
-      }
-      const responseInit = init && typeof init === "object" ? init : {};
-      const status = responseInit.status === undefined ? 200 : Number(responseInit.status);
-      Object.defineProperties(this, {
-        status: { value: status, enumerable: true },
-        statusText: { value: responseInit.statusText === undefined ? "" : String(responseInit.statusText), enumerable: true },
-        ok: { value: status >= 200 && status <= 299, enumerable: true },
-        url: { value: responseInit.url === undefined ? "" : String(responseInit.url), enumerable: true },
-        headers: { value: new Headers(responseInit.headers), enumerable: true },
-        body: { value: __autojs6_body_blob(body), enumerable: true },
-        bodyUsed: { value: false, writable: true, enumerable: true }
-      });
-    }
-    Object.defineProperties(Response.prototype, {
-      text: { value: function() {
-        this.bodyUsed = true;
-        return this.body.text();
-      }, enumerable: true },
-      arrayBuffer: { value: function() {
-        this.bodyUsed = true;
-        return this.body.arrayBuffer();
-      }, enumerable: true },
-      json: { value: function() {
-        this.bodyUsed = true;
-        return this.body.text().then(function(text) {
-          return JSON.parse(text);
-        });
-      }, enumerable: true },
-      [Symbol.toStringTag]: { value: "Response" }
-    });
-    [Headers, FormData, Request, Response].forEach(function(ctor) {
-      Object.freeze(ctor.prototype);
-      Object.freeze(ctor);
-    });
-    return Object.freeze({ Headers, FormData, Request, Response });
-  }
   function __autojs6_web_global_buffer_constructor() {
     if (typeof Buffer === "function") {
       return Buffer;
@@ -3375,11 +3219,9 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_define_global("File", webBufferModule.File);
     }
     __autojs6_install_url_object_url_fallbacks();
-    const webDataClasses = __autojs6_create_limited_web_data_classes();
-    ["Headers", "FormData", "Request", "Response"].forEach(function(name) {
-      if (!__autojs6_define_existing_global_function(name)) {
-        __autojs6_define_global(name, webDataClasses[name]);
-      }
+    // Initialize Node's lazy Undici exports before installing process restrictions.
+    ["fetch", "Request", "Response", "Headers", "FormData", "WebSocket"].forEach(function(name) {
+      void globalThis[name];
     });
     const hasAbortController = __autojs6_define_existing_global_function("AbortController");
     const hasAbortSignal = __autojs6_define_existing_global_function("AbortSignal");
@@ -3451,7 +3293,15 @@ std::string buildEmbeddedScriptExecutionSource(
     if (webCrypto && typeof webCrypto.CryptoKey === "function") {
       __autojs6_define_global("CryptoKey", webCrypto.CryptoKey);
     }
-    __autojs6_define_global("fetch", __autojs6_controlled_fetch);
+    if (!__autojs6_raw_node_network_modules_enabled) {
+      const disabled = () => __autojs6_builtin_disabled("Raw Node networking is disabled for this execution; use autojs6:fetch or autojs6:websocket for the declared host network bridge.");
+      __autojs6_define_global("fetch", function() { return Promise.reject(disabled()); });
+      if (typeof globalThis.WebSocket === "function") {
+        __autojs6_define_global("WebSocket", new Proxy(globalThis.WebSocket, {
+          construct() { throw disabled(); }
+        }));
+      }
+    }
     const timersModule = (
       typeof setTimeout === "function" &&
       typeof clearTimeout === "function" &&
@@ -39383,13 +39233,13 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "shell") {
       return "shell";
     }
-    if (name === "fetch") {
+    if (name === "fetch" || name === "autojs6:fetch") {
       return "fetch";
     }
     if (name === "axios") {
       return "axios";
     }
-    if (name === "websocket") {
+    if (name === "websocket" || name === "autojs6:websocket") {
       return "websocket";
     }
     if (name === "work_manager") {
@@ -39764,7 +39614,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "shell") {
       return __autojs6_limited_shell();
     }
-    if (name === "fetch") {
+    if (name === "fetch" || name === "autojs6:fetch") {
       return __autojs6_limited_fetch();
     }
     if (name === "undici") {
@@ -39773,7 +39623,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "axios") {
       return __autojs6_limited_axios();
     }
-    if (name === "websocket") {
+    if (name === "websocket" || name === "autojs6:websocket") {
       return __autojs6_limited_websocket();
     }
     if (name === "work_manager") {

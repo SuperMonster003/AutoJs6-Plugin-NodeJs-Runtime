@@ -40,7 +40,8 @@ import notifications = require("notifications");
 import sensors = require("sensors");
 import ui = require("ui");
 import overlay = require("ui.overlay");
-import fetchModule = require("fetch");
+import fetchModule = require("autojs6:fetch");
+import legacyFetch = require("fetch");
 import http = require("http");
 import https = require("https");
 import net = require("net");
@@ -48,7 +49,8 @@ import tls = require("tls");
 import dns = require("dns");
 import dnsPromises = require("dns/promises");
 import axios = require("axios");
-import websocket = require("websocket");
+import websocket = require("autojs6:websocket");
+import legacyWebsocket = require("websocket");
 import workManager = require("work_manager");
 import packageManager = require("package_manager");
 import npm = require("npm");
@@ -1329,3 +1331,8 @@ async function smoke(): Promise<void> {
 }
 
 void smoke;
+
+const compatibleFetch: typeof legacyFetch = fetchModule;
+const compatibleWebsocket: typeof legacyWebsocket = websocket;
+void compatibleFetch;
+void compatibleWebsocket;

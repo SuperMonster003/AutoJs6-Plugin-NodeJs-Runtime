@@ -1,6 +1,6 @@
 # live-fetch
 
-Controlled live fetch example using the AutoJs6 `fetch` module.
+Controlled live fetch example using `require("autojs6:fetch")`. The global `fetch` uses Node's native network stack; this explicit module uses the AutoJs6 host stack.
 
 - Capabilities: `network`
 - Expected provider: Android controlled fetch provider

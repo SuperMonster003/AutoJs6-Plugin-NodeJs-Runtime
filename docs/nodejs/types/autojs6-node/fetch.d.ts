@@ -58,3 +58,8 @@
   const fetchModule: fetchModule.FetchModule;
   export = fetchModule;
 }
+
+declare module "autojs6:fetch" {
+  import bridge = require("fetch");
+  export = bridge;
+}

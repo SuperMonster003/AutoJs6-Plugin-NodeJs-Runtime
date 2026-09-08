@@ -1293,7 +1293,6 @@ void runEmbeddedScriptNodeLifecycle(
                 static_cast<uint64_t>(node::EnvironmentFlags::kNoRegisterESMLoader) |
                 static_cast<uint64_t>(node::EnvironmentFlags::kNoNativeAddons) |
                 static_cast<uint64_t>(node::EnvironmentFlags::kNoGlobalSearchPaths) |
-                static_cast<uint64_t>(node::EnvironmentFlags::kNoBrowserGlobals) |
                 static_cast<uint64_t>(node::EnvironmentFlags::kNoStartDebugSignalHandler) |
                 static_cast<uint64_t>(node::EnvironmentFlags::kNoWaitForInspectorFrontend);
         if (!inspectorEnabled) {
