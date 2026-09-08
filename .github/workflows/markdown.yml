@@ -1,0 +1,23 @@
+name: Generated Markdown
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Check generated documentation
+        shell: cmd
+        run: .python\check_markdown.bat
+      - name: Check read-only behavior
+        run: python -m unittest discover -s .python -p 'test_*.py'

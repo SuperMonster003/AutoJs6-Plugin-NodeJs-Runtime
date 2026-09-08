@@ -1,0 +1,96 @@
+name: Android build
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      emulator_smoke:
+        description: Run the API 36 x86_64 smoke suite after packaging
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - name: JVM tests (no native downloads)
+        run: bash ./gradlew --no-daemon :app:testDebugUnitTest
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: unit-test-results
+          path: app/build/reports/tests/
+
+  package:
+    needs: unit
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      - uses: ./.github/actions/restore-native
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - name: Build application and instrumentation APKs
+        run: bash ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+      - uses: actions/upload-artifact@v7
+        with:
+          name: debug-apks
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  emulator:
+    needs: package
+    if: github.event_name == 'workflow_dispatch' && inputs.emulator_smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: debug-apks
+          path: apks
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash .github/scripts/emulator-smoke.sh
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: emulator-results
+          path: smoke-results.txt

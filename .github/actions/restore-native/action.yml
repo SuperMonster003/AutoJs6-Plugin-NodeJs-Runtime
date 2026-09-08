@@ -1,0 +1,26 @@
+name: Restore native runtime
+description: Restore libnode objects by their actual Git LFS identities and reject pointer files.
+runs:
+  using: composite
+  steps:
+    - id: lfs
+      shell: bash
+      run: |
+        git lfs ls-files --long | sort > "$RUNNER_TEMP/node-lfs-objects"
+        test "$(wc -l < "$RUNNER_TEMP/node-lfs-objects")" -eq 3
+        echo "key=$(sha256sum "$RUNNER_TEMP/node-lfs-objects" | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@v6
+      with:
+        path: .git/lfs/objects
+        key: node-lfs-${{ runner.os }}-${{ steps.lfs.outputs.key }}
+    - shell: bash
+      run: |
+        git lfs pull --include='app/src/main/jniLibs/*/libnode.so' --exclude=''
+        python3 - <<'PY'
+        from pathlib import Path
+        for abi in ('arm64-v8a', 'armeabi-v7a', 'x86_64'):
+            path = Path('app/src/main/jniLibs') / abi / 'libnode.so'
+            with path.open('rb') as library:
+                if library.read(4) != b'\x7fELF':
+                    raise SystemExit(f'{path}: expected an ELF library, not a Git LFS pointer')
+        PY
