@@ -22,3 +22,4 @@
 * `Amelioration` Les workers natifs suivent le parallélisme CPU (huit maximum), les réglages réseau et fichiers de chaque exécution et les plafonds de ressources par requête; aucun délai de tâche de pool par défaut, avec de vrais exemples CPU et WASM
 * `Amelioration` WASI natif reste désactivé pour préserver les limites du système de fichiers; suppression des deux exemples WASI désactivés, avec WebAssembly et les workers WASM toujours disponibles
 * `Amelioration` Les exemples OCR demandent le consentement Android et reconnaissent de vraies images; les plugins OCR ou codes-barres indisponibles renvoient une erreur unavailable lisible, et les échecs de reconnaissance restent des erreurs
+* `Amelioration` Les scripts Node prennent en charge un démarrage asynchrone négocié, libèrent les threads Binder pendant les longues exécutions et renvoient les modifications de l’espace de travail à la fin, avec compatibilité des anciens hôtes synchrones

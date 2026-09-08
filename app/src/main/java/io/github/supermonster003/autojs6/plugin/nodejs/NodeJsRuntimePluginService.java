@@ -47,6 +47,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -102,6 +105,7 @@ public class NodeJsRuntimePluginService extends Service {
     static final String[] SUPPORTED_ABIS = new String[]{"arm64-v8a", "armeabi-v7a", "x86_64"};
     static final String[] CAPABILITIES = new String[]{
             NodeJsRuntimeContract.CAPABILITY_SYNC_SCRIPT_EXECUTION,
+            NodeJsRuntimeContract.CAPABILITY_ASYNC_SCRIPT_EXECUTION,
             NodeJsRuntimeContract.CAPABILITY_BUNDLE_TRANSPORT,
             NodeJsRuntimeContract.CAPABILITY_NATIVE_EMBEDDED_RUNTIME,
             NodeJsRuntimeContract.CAPABILITY_HOST_CAPABILITY_BROKER,
@@ -132,6 +136,8 @@ public class NodeJsRuntimePluginService extends Service {
     final NodeRuntimeModuleInjector moduleInjector = new NodeRuntimeModuleInjector(this);
     final NodePluginBundles bundles = new NodePluginBundles(this);
     private NodeRuntimeProcessPool processPool;
+    private final ExecutorService asynchronousExecution = Executors.newSingleThreadExecutor(
+            task -> new Thread(task, "Node-runtime-execution"));
     int runtimeSlotId() { return -1; }
 
     private final INodeJsRuntimePlugin.Stub binder = new INodeJsRuntimePlugin.Stub() {
@@ -271,6 +277,54 @@ public class NodeJsRuntimePluginService extends Service {
         }
 
         @Override
+        public Bundle startScript(Bundle request, INodeJsRuntimeCallback callback) {
+            if (processPool != null) return processPool.startScript(request, callback);
+            Bundle owned = request == null ? new Bundle() : new Bundle(request);
+            String id = nonBlank(owned.getString(NodeJsRuntimeContract.KEY_EXECUTION_ID), "plugin-" + UUID.randomUUID());
+            owned.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, id);
+            long submittedAt = SystemClock.elapsedRealtime();
+            Bundle failure = validateRequestContract(owned, submittedAt);
+            if (failure == null && callback == null) failure = bundles.failureBundle(owned, submittedAt,
+                    "startScript requires a completion callback.", null, "ERR_AUTOJS6_NODE_PLUGIN_INVALID_REQUEST");
+            if (failure == null) {
+                try {
+                    asynchronousExecution.execute(() -> {
+                        Bundle result;
+                        try {
+                            result = runScript(owned, new INodeJsRuntimeCallback.Stub() {
+                                @Override public void onEvent(Bundle event) throws RemoteException {
+                                    if (!NodeJsRuntimeContract.EVENT_FINISHED.equals(event.getString(NodeJsRuntimeContract.KEY_EVENT_TYPE))) {
+                                        callback.onEvent(event);
+                                    }
+                                }
+                            });
+                        } catch (Exception error) {
+                            result = bundles.failureBundle(owned, submittedAt, "Node runtime execution failed: "
+                                    + error.getMessage(), error, ERROR_UNAVAILABLE);
+                        }
+                        // runScript has released its lease and closed the output archive before returning.
+                        Bundle terminal = new Bundle();
+                        terminal.putString(NodeJsRuntimeContract.KEY_EVENT_TYPE, NodeJsRuntimeContract.EVENT_FINISHED);
+                        terminal.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, id);
+                        terminal.putInt(NodeJsRuntimeContract.KEY_SLOT_ID, runtimeSlotId());
+                        terminal.putBundle(NodeJsRuntimeContract.KEY_EVENT_RESULT, result);
+                        try { callback.onEvent(terminal); } catch (RemoteException ignored) { }
+                    });
+                    Bundle ack = new Bundle();
+                    ack.putBoolean(NodeJsRuntimeContract.KEY_ACCEPTED, true);
+                    ack.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, id);
+                    return ack;
+                } catch (RejectedExecutionException error) {
+                    failure = bundles.failureBundle(owned, submittedAt, "Node runtime is closing.", error, ERROR_UNAVAILABLE);
+                }
+            }
+            closeWorkspaceDescriptors(owned);
+            failure.putBoolean(NodeJsRuntimeContract.KEY_ACCEPTED, false);
+            failure.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, id);
+            return failure;
+        }
+
+        @Override
         public boolean postMessage(String executionId, Bundle message) {
             if (processPool != null) return processPool.postMessage(executionId, message);
             if (!isDedicatedRuntimeProcess() || executionId == null || message == null) return false;
@@ -390,6 +444,7 @@ public class NodeJsRuntimePluginService extends Service {
 
     @Override public void onDestroy() {
         if (processPool != null) processPool.close();
+        asynchronousExecution.shutdown();
         super.onDestroy();
     }
 

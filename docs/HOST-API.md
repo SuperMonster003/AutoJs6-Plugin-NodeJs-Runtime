@@ -149,7 +149,7 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 
 ## 七. 执行总预算与取消
 
-`runScript` 请求中的 `timeoutMs` 采用**等待 + 执行的 wall-clock 总预算**:
+`runScript` / `startScript` 请求中的 `timeoutMs` 采用**等待 + 执行的 wall-clock 总预算**:
 
 - 正数预算从插件 Binder 入口开始计时, 包含契约检查、串行队列等待、工作区/模块准备和原生 Node 执行。队列阶段耗尽同样返回脚本超时, 不再伪装成 `BUSY`。
 - 超时结果固定为 `timedOut=true`、`errorCode=ERR_AUTOJS6_SCRIPT_TIMEOUT`, 并回显 `timeoutMs`。诊断 payload 记录超时发生在 `queue_wait`、`pre_*` 或 `execution` 阶段。
@@ -159,7 +159,7 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 
 M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在 3 秒预算后均得到规范化超时, 且后继脚本 6/6 复用同一 PID; 队列预算、无 timeout 长驻与人工取消也均通过。
 
-`runScript` / `prewarmRuntime` 可以携带 `idleExitMs` (Long)。缺失或非正数为 0, 保持常驻; 正数表示最后一个执行完成且队列为空后, 空闲这么多毫秒便退出专用运行时进程。只有实际获准执行的请求会更新策略, 后续未带此字段的请求会恢复默认常驻; 队列等待、执行与预热期间不计为空闲。`getRuntimeInfo` 返回当前 `idleExitMs` 和 `idleForMs` (忙碌时为 0), 查询本身不重置计时。AutoJs6 的 `NodePluginScriptRequest.idleExitMs` 会透传正数, 旧宿主无需变更。
+`runScript` / `startScript` / `prewarmRuntime` 可以携带 `idleExitMs` (Long)。缺失或非正数为 0, 保持常驻; 正数表示最后一个执行完成且队列为空后, 空闲这么多毫秒便退出专用运行时进程。只有实际获准执行的请求会更新策略, 后续未带此字段的请求会恢复默认常驻; 队列等待、执行与预热期间不计为空闲。`getRuntimeInfo` 返回当前 `idleExitMs` 和 `idleForMs` (忙碌时为 0), 查询本身不重置计时。AutoJs6 的 `NodePluginScriptRequest.idleExitMs` 会透传正数, 旧宿主无需变更。
 
 例如 `idleExitMs=3000` 会在目标工作槽执行完成后空闲约 3 秒时退出。退出前在同一准入锁内再次确认无执行并关闭准入, 防止定时器误杀新任务。Android 在客户端仍绑定时不会仅因 `stopSelf()` 就销毁服务, 因此这里先停止服务再退出工作 PID; 调度器负责重连, 宿主继续使用原公开 Binder。该策略不限制长驻脚本的执行时长, Android 调度或设备休眠也可能使实际退出晚于设定时间。参见 [Android 服务生命周期](https://developer.android.com/develop/background-work/services)。
 
@@ -167,9 +167,18 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 
 `runtimeAdapter` 是保留字面值的 deprecated no-op 键: 运行时槽位由已绑定插件服务的 runtime info 决定, 单次请求不能覆盖。当前 AutoJs6 宿主不再建模或发送该键; 旧调用方继续发送时会被宽容忽略。native payload 中的 `embedded_script.runtime_adapter.*` 是插件内部 C++ adapter 诊断, 与这个废弃请求键无关。
 
-M16 的公开 RUNTIME 服务在 `:nodejs_runtime` 中调度, 默认有两个不导出的工作服务, 分别运行于 `:nodejs_runtime0` 和 `:nodejs_runtime1`。空闲槽优先, 两槽全忙时进入容量 3 的全局 FIFO; 满载再提交返回 BUSY。每工作进程仍保持一个 Node Environment, 脚本内 worker_threads 的既有预算独立计算。prewarmRuntime 预热空闲槽, 不打断运行中的脚本。getRuntimeInfo 增加 processModel=process_pool、maxConcurrentExecutions=2、dispatcherPid 与 slots 数组; 每槽含 slotId/pid/active (executionId 或空串)/queued/rss (bytes)/ready。等待任务属于全局队列, 因此每槽 queued 为 0, 总数位于 queuedExecutions。顶层 pid/processName 兼容表示第 0 槽, activeExecutionId 表示当前第一个活跃槽; 精确状态使用 slots。结果和回调增加 slotId (排队前失败为 -1), 输出回调经调度器转发, 工作区和宿主 broker Binder 继续直接在执行进程调用。
+M16 的公开 RUNTIME 服务在 `:nodejs_runtime` 中调度, 默认有两个不导出的工作服务, 分别运行于 `:nodejs_runtime0` 和 `:nodejs_runtime1`。空闲槽优先, 两槽全忙时进入容量 3 的全局 FIFO; 满载再提交返回 BUSY。每工作进程仍保持一个 Node Environment, 脚本内 worker_threads 的既有预算独立计算。prewarmRuntime 预热空闲槽, 不打断运行中的脚本。getRuntimeInfo 增加 processModel=process_pool、processPoolMaxConcurrentExecutions=2、dispatcherPid 与 slots 数组; 每槽含 slotId/pid/active (executionId 或空串)/queued/rss (bytes)/ready。等待任务属于全局队列, 因此每槽 queued 为 0, 总数位于 queuedExecutions。顶层 pid/processName 兼容表示第 0 槽, activeExecutionId 表示当前第一个活跃槽; 精确状态使用 slots。maxConcurrentExecutions 保持 1, 表示每个运行时进程的单活容量, 兼容已发布宿主的固定值校验; 池总容量只读新增的 processPoolMaxConcurrentExecutions。结果和回调增加 slotId (排队前失败为 -1), 输出回调经调度器转发, 工作区和宿主 broker Binder 继续直接在执行进程调用。
 
 cancelScript 和 postMessage 按 executionId 路由, 取消排队脚本不会执行其源码。同步原生调用无法响应 node::Stop 时, 3 s 兜底只重启目标槽, 调度器将已请求的取消/超时返回对应终态; 其他进程死亡返回 unavailable, 不重放脚本。调度器自身死亡时仍由宿主既有 execution-lost 逻辑处理。M16.2 已验证第二槽 stdin、FIFO/队列满载/取消、超时、空闲重连与强制重启后另一槽持续运行。
+
+### 异步执行
+
+异步执行使用第六个 AIDL 事务 `startScript(request, callback)`。调用前必须同时确认 `maxContractVersion >= 3` 和 capabilities 中的 `asyncScriptExecution`; 早期仅支持 postMessage 的 v3 插件没有该标记。基础握手仍为 contractVersion=2, 前五个事务号与旧 runScript 返回值保持兼容。
+
+- 非空 callback 为必需参数。`accepted=true` 和 executionId 表示已经登记并进入执行或等待队列, 不是执行成功; 返回后可立即取消。拒绝时直接返回 `accepted=false` 的错误结果, 不发送终态回调。
+- 接受后 stdout/stderr/stdin_state 按原格式推送, 唯一的 `finished` 事件增加 `result` Bundle, 内容与同步 runScript 的完整结果相同, 并回显 executionId/slotId。该事件在工作进程及调度器关闭工作区 FD、释放执行后发送, 宿主此时才验证并回传输出归档。
+- 调度器与工作进程均在普通执行线程等待长驻脚本; Binder 只处理短启动事务和既有事件/取消/输入调用。callback 保持原同步 AIDL, 以保留已发布客户端的回复协议与输出背压, 不改为 oneway。
+- 新宿主协商后使用 startScript, 插件或调度器死亡则结束等待并报告响应丢失, 不重放。未广告异步能力的插件继续使用同步 runScript。正数总预算与宿主额外 5 s 响应兜底适用于两种入口。
 
 ### 实时桥传输
 

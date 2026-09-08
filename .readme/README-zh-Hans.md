@@ -135,6 +135,7 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` 原生 worker 默认按 CPU 并行度运行 (最多 8 个), 继承执行的网络与文件开关, 支持请求级资源上限且池任务默认不设超时; CPU 与 WASM 样例改为真实多线程执行
 * `优化` 维持原生 WASI 禁用以保留文件系统边界, 移除两个 disabled WASI 样例; 普通 WebAssembly 与 WASM worker 继续可用
 * `优化` 屏幕 OCR 样例申请 Android 截屏授权并识别真实图片句柄; OCR 或条码插件不可用时返回可读 unavailable 错误, 识别失败仍按错误处理
+* `优化` Node 脚本支持协商式异步启动, 长驻执行释放 Binder 线程, 终态回调完成后回传工作区, 兼容旧同步宿主
 
 # v1.2.0
 
