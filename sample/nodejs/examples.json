@@ -219,8 +219,7 @@
     },
     {
       "name": "node-test-project",
-      "status": "partial",
-      "reason": "Covers the managed node:test subset only; automated test execution and full desktop runner behavior remain developer-only.",
+      "status": "stable",
       "tags": [
         "main-app",
         "node-test"

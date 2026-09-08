@@ -36,6 +36,11 @@ android {
     // Device tests execute the published examples from their canonical sources.
     sourceSets.getByName("androidTest").assets.directories.add(rootProject.file("sample/nodejs").path)
 
+    androidResources {
+        // npm packages such as date-fns require directories beginning with an underscore.
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~"
+    }
+
     defaultConfig {
         applicationId = globalApplicationId
 

@@ -128,6 +128,82 @@ check("ajv", () => {
 });
 
 (async () => {
+  check("zod", () => {
+    const { z } = require("zod");
+    const schema = z.object({ name: z.string().trim().min(1), count: z.number().int().positive() });
+    return schema.parse({ name: " node ", count: 2 }).name === "node" &&
+        !schema.safeParse({ name: "", count: -1 }).success;
+  });
+
+  check("cheerio", () => {
+    const $ = require("cheerio").load('<ul><li data-id="1">alpha</li><li data-id="2">beta</li></ul>');
+    $("li").last().append("!");
+    return $("li").length === 2 && $("li[data-id=2]").text() === "beta!";
+  });
+
+  check("date-fns", () => {
+    const { addDays, format, parseISO, differenceInDays } = require("date-fns");
+    const date = parseISO("2026-09-08T12:00:00");
+    return format(addDays(date, 2), "yyyy-MM-dd") === "2026-09-10" && differenceInDays(addDays(date, 2), date) === 2;
+  });
+
+  await checkAsync("ws", async () => {
+    const WebSocket = require("ws");
+    const server = require("node:http").createServer();
+    const wss = new WebSocket.WebSocketServer({ server });
+    wss.on("connection", socket => socket.on("message", data => socket.send(data)));
+    const port = await listen(server);
+    const socket = new WebSocket("ws://127.0.0.1:" + port);
+    try {
+      const echo = await new Promise((resolve, reject) => {
+        socket.once("error", reject);
+        socket.once("open", () => socket.send("npm-ws"));
+        socket.once("message", data => resolve(data.toString()));
+      });
+      const closed = new Promise(resolve => socket.once("close", resolve));
+      socket.close(); await closed;
+      return echo === "npm-ws";
+    } finally {
+      socket.terminate();
+      for (const client of wss.clients) client.terminate();
+      await new Promise(resolve => wss.close(resolve));
+      await close(server);
+    }
+  });
+
+  await checkAsync("mqtt", async () => {
+    const mqtt = require("mqtt"), packet = require("mqtt-packet");
+    const sockets = new Set();
+    const server = require("node:net").createServer(socket => {
+      sockets.add(socket); socket.once("close", () => sockets.delete(socket));
+      const parser = packet.parser();
+      socket.on("data", data => parser.parse(data));
+      parser.on("packet", message => {
+        if (message.cmd === "connect") socket.write(packet.generate({ cmd: "connack", sessionPresent: false, returnCode: 0 }));
+        else if (message.cmd === "subscribe") socket.write(packet.generate({ cmd: "suback", messageId: message.messageId, granted: message.subscriptions.map(() => 0) }));
+        else if (message.cmd === "publish") socket.write(packet.generate({ cmd: "publish", topic: message.topic, payload: message.payload, qos: 0, dup: false, retain: false }));
+        else if (message.cmd === "pingreq") socket.write(packet.generate({ cmd: "pingresp" }));
+        else if (message.cmd === "disconnect") socket.end();
+      });
+    });
+    const port = await listen(server);
+    const client = mqtt.connect("mqtt://127.0.0.1:" + port, { protocolVersion: 4, reconnectPeriod: 0, connectTimeout: 3000 });
+    try {
+      await new Promise((resolve, reject) => { client.once("connect", resolve); client.once("error", reject); });
+      await client.subscribeAsync("autojs6/echo");
+      const echoed = new Promise((resolve, reject) => {
+        client.once("message", (topic, payload) => resolve(topic + ":" + payload.toString()));
+        client.once("error", reject);
+      });
+      await client.publishAsync("autojs6/echo", "npm-mqtt");
+      return await echoed === "autojs6/echo:npm-mqtt";
+    } finally {
+      await client.endAsync(true);
+      for (const socket of sockets) socket.destroy();
+      await close(server);
+    }
+  });
+
   await checkAsync("express", async () => {
     const express = require("express");
     const app = express();

@@ -16,11 +16,15 @@
 
 ## Node.js 内建模块
 
-以下模块直接返回 Node.js 24.5 的原生导出, 普通名称与 `node:` 前缀名称共享同一模块对象: `buffer`, `events`, `path` (含 posix/win32), `util` (含 types), `url`, `querystring`, `string_decoder`, `assert` (含 strict), `punycode`, `stream` (含 promises/web/consumers), `zlib`, `timers` (含 promises), `perf_hooks`, `async_hooks`, `diagnostics_channel`, `v8`, `vm`, `tty`, `readline` (含 promises), `crypto`, `constants`。异步 crypto、完整 EventEmitter/AsyncLocalStorage、流与序列化遵循对应 Node API, 不再受原子集包装器的方法或输入大小限制。`node:test` 也使用原生实现; `node:test/reporters` 与项目级测试工作流仍按 M13.4 推进。
+以下模块直接返回 Node.js 24.5 的原生导出, 普通名称与 `node:` 前缀名称共享同一模块对象: `buffer`, `events`, `path` (含 posix/win32), `util` (含 types), `url`, `querystring`, `string_decoder`, `assert` (含 strict), `punycode`, `stream` (含 promises/web/consumers), `zlib`, `timers` (含 promises), `perf_hooks`, `async_hooks`, `diagnostics_channel`, `v8`, `vm`, `tty`, `readline` (含 promises), `crypto`, `constants`。异步 crypto、完整 EventEmitter/AsyncLocalStorage、流与序列化遵循对应 Node API, 不再受原子集包装器的方法或输入大小限制。`node:test` 与 `node:test/reporters` 使用原生实现; 普通脚本中的 `test()` 会由默认 spec reporter 输出到 stdout, 失败测试使执行退出码为 1, `node-test-project` 提供可运行样例。
 
 `os` 通过 Proxy 保留应用工作目录形式的 `tmpdir` / `homedir` 及既有 `userInfo` 身份策略, 其余导出 (含 CPU、内存、constants) 来自原生 Node。`fs` / `fs/promises` 的 `/proc`、`/sys`、`/dev` 边界仍在实际文件操作时检查; `url.fileURLToPath` 本身仅作路径转换。`process`、`module`、子进程、worker、网络和 inspector 的请求级策略见对应章节。
 
 成功结果在 Node 事件循环完成、触发最终 `exit` 时生成, 因此原生异步工作及 `beforeExit` 中追加的任务均可完成, 最终 stdout/stderr 与 `process.exitCode` 会正确回传。
+
+`node:sqlite` 提供 Node 原生同步 SQLite 引擎, 支持 `DatabaseSync`、预编译语句、CRUD、事务、函数与备份, 主线程和 worker 均可使用。普通名 `sqlite` 继续表示宿主异步数据库桥。数据库构造、重新打开和 `backup` 目标经过既有 fs 路径及符号链接检查; 支持字符串/Buffer 文件路径、file URL 对象及 `:memory:`。Node 24.5 的 SQLite API 仍标为 experimental, 其原生警告予以保留。
+
+此版本不接受 SQLite `file:` URI 字符串和空临时路径, 原生扩展加载仍拒绝。Node 24.5 未提供 authorizer, 因此 SQL 中的 `ATTACH`、`VACUUM INTO`、`PRAGMA temp_store_directory/data_store_directory` 返回 `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED`, 避免绕过文件路径检查; 使用另一个 `DatabaseSync` 或 `sqlite.backup()` 完成文件操作。普通 `VACUUM`、事务和包含这些单词的查询数据仍可用。
 
 ## 一. 已桥接 — 默认可用
 

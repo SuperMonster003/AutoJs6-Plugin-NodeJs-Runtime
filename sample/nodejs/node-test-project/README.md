@@ -1,11 +1,12 @@
 # node-test-project
 
-Small `node:test` style project with a manual fallback for runtimes where the
-test runner is unavailable.
+Runs two tests using native Node 24.5 `node:test`, with its default reporter on
+stdout and a failing process exit code if an assertion fails. Custom reporters
+are available through `node:test/reporters`.
 
 - Capabilities: `node:test`
-- Expected provider: Safe Node Profile `node:test` subset
-- Packaged support: source files can be packaged, but automated test execution is a developer workflow
-- Security limitations: test code has the same scoped filesystem and disabled builtin policy as app code
+- Expected provider: native Node test runner
+- Packaged support: the script can be executed as an ordinary Node entry
+- File, network and process policies are the same as other code in this execution
 
 Expected output is listed in `expected-output.txt`.
