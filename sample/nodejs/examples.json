@@ -404,20 +404,6 @@
       "packagedCompatible": false
     },
     {
-      "name": "wasi-scoped-fs",
-      "status": "disabled",
-      "reason": "Neither raw node:wasi nor a brokered scoped-fs WASI facade is exposed.",
-      "tags": [
-        "main-app",
-        "wasm",
-        "wasi",
-        "scoped-fs",
-        "design-gated"
-      ],
-      "mainAppSmoke": false,
-      "packagedCompatible": false
-    },
-    {
       "name": "wasm-worker",
       "status": "stable",
       "tags": [
@@ -482,18 +468,6 @@
         "main-app",
         "bridge",
         "sensors"
-      ],
-      "mainAppSmoke": false,
-      "packagedCompatible": false
-    },
-    {
-      "name": "controlled-wasi",
-      "status": "disabled",
-      "reason": "The controlled WASI facade is not implemented and raw node:wasi remains disabled.",
-      "tags": [
-        "main-app",
-        "wasi",
-        "design-gated"
       ],
       "mainAppSmoke": false,
       "packagedCompatible": false

@@ -18,6 +18,7 @@
 * `优化` 实时桥默认使用 JNI/Binder 直通并经 Node 事件循环返回响应, 降低调用延迟, 保留可选文件回退与待处理调用上限
 * `优化` Node.js stream, crypto, timers, util, node:test 等内建模块恢复原生导出, 保留文件系统边界与宿主目录策略
 * `优化` 原生 worker 默认按 CPU 并行度运行 (最多 8 个), 继承执行的网络与文件开关, 支持请求级资源上限且池任务默认不设超时; CPU 与 WASM 样例改为真实多线程执行
+* `优化` 维持原生 WASI 禁用以保留文件系统边界, 移除两个 disabled WASI 样例; 普通 WebAssembly 与 WASM worker 继续可用
 
 # v1.2.0
 
