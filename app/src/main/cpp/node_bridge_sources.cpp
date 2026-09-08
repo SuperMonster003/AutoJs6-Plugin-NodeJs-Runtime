@@ -18836,6 +18836,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (disclosure) {
       output.disclosure = Object.freeze({ title: String(disclosure.title || "") });
     }
+    if (source.window && typeof source.window === "object") output.window = Object.freeze(Object.assign({}, source.window));
     if (source.droppedCount !== undefined) {
       output.droppedCount = Number(source.droppedCount || 0);
     }
@@ -20754,10 +20755,15 @@ std::string buildEmbeddedScriptExecutionSource(
       ).then(__autojs6_media_freeze_record);
     }
     function start(options) {
+      const source = __autojs6_media_options(options);
+      const payload = {};
+      for (const key of ["path", "format", "sampleRate", "bitRate", "maxDurationMs"]) {
+        if (source[key] !== undefined) payload[key] = source[key];
+      }
       return __autojs6_call_autojs(
         "recorder",
         "start",
-        [__autojs6_media_options(options)],
+        [payload],
         __autojs6_media_bridge_options("recorder", "start", options, 5000)
       );
     }
@@ -20765,7 +20771,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_call_autojs(
         "recorder",
         "stop",
-        [__autojs6_media_options(options)],
+        [],
         __autojs6_media_bridge_options("recorder", "stop", options, 5000)
       );
     }

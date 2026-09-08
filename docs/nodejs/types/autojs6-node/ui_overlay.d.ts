@@ -1,8 +1,30 @@
 declare module "ui.overlay" {
   export interface OverlayDescriptor {
-    readonly content: Record<string, unknown>;
+    readonly content: OverlayNode;
     readonly window?: OverlayWindowOptions;
     readonly disclosure: OverlayDisclosure;
+  }
+
+  export interface OverlayNode {
+    readonly type: "Column" | "Row" | "Text" | "Button" | "Vertical" | "Horizontal" | "column" | "row" | "text" | "button";
+    readonly id?: string;
+    readonly text?: string;
+    readonly textSize?: number;
+    readonly textColor?: string | number;
+    readonly backgroundColor?: string | number;
+    readonly padding?: number;
+    readonly width?: number | "wrap_content" | "match_parent";
+    readonly height?: number | "wrap_content" | "match_parent";
+    readonly enabled?: boolean;
+    readonly visible?: boolean;
+    readonly children?: readonly OverlayNode[];
+  }
+  /** Node fields patch the root or the selected id; content replaces the entire tree. */
+  export interface OverlayPatch extends Partial<Omit<OverlayNode, "type">> {
+    readonly type?: OverlayNode["type"];
+    readonly content?: OverlayNode;
+    readonly window?: OverlayWindowOptions;
+    readonly disclosure?: OverlayDisclosure;
   }
 
   export interface OverlayWindowOptions {
@@ -40,6 +62,12 @@ declare module "ui.overlay" {
       readonly title: string;
     };
     readonly droppedCount?: number;
+    readonly window?: Readonly<{
+      touchable: boolean;
+      focusable: boolean;
+      draggable: boolean;
+      alpha: number;
+    }>;
   }
 
   export interface OverlayEvent {
@@ -84,7 +112,7 @@ declare module "ui.overlay" {
     readonly id: string;
     readonly type: "overlay";
     readonly closed: boolean;
-    update(patch: Record<string, unknown>, options?: OverlayRequestOptions): Promise<OverlaySnapshot>;
+    update(patch: OverlayPatch, options?: OverlayRequestOptions): Promise<OverlaySnapshot>;
     drainEvents(options?: OverlayRequestOptions): Promise<readonly OverlayEvent[]>;
     close(options?: OverlayRequestOptions): Promise<boolean>;
   }

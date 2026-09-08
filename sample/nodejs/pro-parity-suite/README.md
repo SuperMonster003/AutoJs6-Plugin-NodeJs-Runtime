@@ -14,10 +14,10 @@ permissions or future providers are already promoted.
 | Java interop | `snippets/java-interop.cjs` | `java_interop` | stable packaged allowlist; metadata cannot expand classes or members | stable provider enforces the exact class/member allowlist and execution-owned handles |
 | Rhino install | `snippets/rhino-install.cjs` | `rhino`, `java_interop` | packaged Rhino proxy globals require an explicit call and never mutate globals by default | `rhino.install({ explicit: true })` requires Java proxy provider readiness |
 | UI layout | `snippets/ui-layout.cjs` | `ui` | packaged UI is provider-dependent until lifecycle/disclosure evidence lands | live Activity-owned UI provider may be unavailable |
-| Floaty overlay | `snippets/overlay-floaty.cjs` | `ui.overlay`, `ui.overlay.permission` | packaged overlay requires reviewed disclosure and foreground notification ownership | overlay permission or promoted overlay provider may be unavailable |
+| Floaty overlay | `snippets/overlay-floaty.cjs` | `ui.overlay`, `ui.overlay.permission` | visible window with property updates, dragging, pushed events and script cleanup | Android overlay permission may be unavailable |
 | Tasks | `snippets/tasks-work-manager.cjs` | `work_manager` | one-shot metadata is supported; daily/weekly/intent tasks remain gated | WorkManager provider or persistent task rows may be unavailable |
 | Notifications/power | `snippets/notifications-power.cjs` | `notifications`, `notifications.settings`, `device`, `device.power` | settings/status metadata is supported; notification ownership, foreground disclosure, and OEM power behavior remain gated | notifications/settings or device.power provider may be unavailable |
-| Media/recorder | `snippets/media-recorder.cjs` | `media`, `media.audio`, `media.metadata`, `media.recording` | read-only media status and recorder denial are covered; real recording requires privacy-reviewed foreground disclosure | media, mediainfo, recorder, or scoped media fixture may be unavailable |
+| Media/recorder | `snippets/media-recorder.cjs` | `media`, `media.audio`, `media.metadata`, `media.recording` | 3-second AAC recording with microphone permission and foreground disclosure, followed by MediaInfo parsing | microphone permission or MediaInfo plugin may be unavailable |
 | Screenshot/OCR | `snippets/screenshot-ocr.cjs` | `screen_capture`, `image`, `ocr` | packaged capture/OCR remains gated by disclosure and permission review | MediaProjection permission, image handle, or OCR provider may be unavailable |
 | Accessibility | `snippets/accessibility-selector.cjs` | `accessibility` | packaged accessibility needs explicit service/disclosure review | accessibility service may be disabled |
 
@@ -35,8 +35,11 @@ the WorkManager one-shot schedule/cancel path represented by
 global install, overlay, notifications/power, media/recorder, screenshot/OCR,
 or accessibility authority examples.
 
-P14-27 docs sync keeps `tasks-work-manager` as the only task/device/media
-runtime smoke path. `notifications-power` and `media-recorder` remain migration
-evidence and guarded/denial-oriented snippets until notification disclosure,
-OEM power behavior, real recorder sessions, packaged recorder stress, playback,
-and MediaStore provider gates are promoted.
+`overlay-floaty` is stable after real window checks on three ABIs. Run it directly
+to show a draggable window for three seconds; its text and alpha change, events
+are logged, and the window closes. `media-recorder` requires explicit Android
+microphone permission before it records three seconds to `record.m4a` in the
+workspace. The foreground notification offers a stop action. Its physical
+recording acceptance remains pending, so the snippet is still partial. Neither
+snippet prints PASS for a skipped permission or missing provider. Playback and
+MediaStore remain outside this recording example.

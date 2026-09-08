@@ -191,8 +191,8 @@ async function smoke(): Promise<void> {
   const compatMediaInfoSnapshot: mediainfo.Snapshot = await rhinoCompat.mediainfo.read("sample.mp3", { timeoutMs: 1000 });
   const recorderStatus: recorder.RecorderStatus = await recorder.getStatus({ timeoutMs: 1000 });
   const compatRecorderStatus: recorder.RecorderStatus = await rhinoCompat.recorder.getStatus({ timeoutMs: 1000 });
-  const recorderStart: (options?: recorder.RecorderStartOptions) => Promise<never> = recorder.start;
-  const recorderStop: (options?: AutoJs6Node.BridgeCallOptions) => Promise<never> = rhinoCompat.recorder.stop;
+  const recorderStart: (options?: recorder.RecorderStartOptions) => Promise<recorder.Recording> = recorder.start;
+  const recorderStop: (options?: AutoJs6Node.BridgeCallOptions) => Promise<recorder.RecordingResult | null> = rhinoCompat.recorder.stop;
   const compatShellResult: shell.ShellResult = await rhinoCompat.shell("echo compat", { timeoutMs: 1000 });
   const compatRootShellResult: shell.ShellResult = await rhinoCompat.shell("id", true);
   const compatExecRootResult: shell.ShellResult = await rhinoCompat.shell.execRoot("id", { timeoutMs: 1000 });
