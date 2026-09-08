@@ -72,9 +72,9 @@ public class NodeJsRuntimePluginService extends Service {
     static final String ERROR_UNAVAILABLE = "ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE";
     static final String ERROR_CONTRACT_MISMATCH = "ERR_AUTOJS6_NODE_PLUGIN_CONTRACT_MISMATCH";
     static final String NODE_CAPABILITY_CATALOG_SCHEMA = "autojs6-node-capability-catalog-v1";
-    static final String NODE_CAPABILITY_CATALOG_VERSION = "1.3.0";
+    static final String NODE_CAPABILITY_CATALOG_VERSION = "1.4.0";
     static final String NODE_CAPABILITY_CATALOG_SHA256 =
-            "78e573627e8a19e7dc511a4c8e527a564ecf7277d6389e08194963a597f1d0ab";
+            "9693aaf75960b85aea5e37801ce7bc12903cea72be95b68233cc524fcc0d9ece";
     static final String KEY_NODE_CAPABILITY_CATALOG_SCHEMA = "nodeCapabilityCatalogSchema";
     static final String KEY_NODE_CAPABILITY_CATALOG_VERSION = "nodeCapabilityCatalogVersion";
     static final String KEY_NODE_CAPABILITY_CATALOG_SHA256 = "nodeCapabilityCatalogSha256";

@@ -8,6 +8,10 @@
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
+#include <fcntl.h>
+#include <limits>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
 namespace autojs6::node_bridge::internal {
 namespace {
@@ -81,6 +85,11 @@ public:
         std::shared_ptr<NativeBridgeChannel> channel;
     };
     struct Response { std::string id; std::string json; };
+    struct BinaryPayload {
+        int fd;
+        size_t size;
+        ~BinaryPayload() { if (fd >= 0) ::close(fd); }
+    };
     static constexpr size_t maxEventBytes = 4 * 1024 * 1024;
     static constexpr size_t maxEvents = 128;
 
@@ -102,6 +111,8 @@ public:
     bool closing = false;
     // A true value denotes an already queued reply. Duplicate/late replies are ignored.
     std::unordered_map<std::string, bool> pending;
+    // Reserve before either JNI or file dispatch. Cancellation removes late attachments.
+    std::unordered_map<std::string, std::unique_ptr<BinaryPayload>> binary;
     std::deque<Response> responses;
     std::unordered_set<std::string> subscriptions;
     size_t eventBytes = 0;
@@ -202,6 +213,7 @@ public:
         {
             std::lock_guard lock(mutex);
             pending.erase(requestId);
+            binary.erase(requestId);
             std::erase_if(responses, [&](const Response& r) { return r.id == requestId; });
         }
         updateLoopReference();
@@ -221,6 +233,56 @@ public:
         if (args.Length() != 1 || !args[0]->IsString()) return;
         v8::String::Utf8Value id(args.GetIsolate(), args[0]);
         if (*id) from(args)->cancel(std::string(*id, id.length()));
+    }
+
+    static void expectBinary(const v8::FunctionCallbackInfo<v8::Value>& args) {
+        args.GetReturnValue().Set(false);
+        if (args.Length() != 2 || !args[0]->IsString() || !args[1]->IsUint32()) return;
+        v8::String::Utf8Value id(args.GetIsolate(), args[0]);
+        if (!*id) return;
+        auto* channel = from(args);
+        std::lock_guard lock(channel->mutex);
+        const auto limit = std::clamp(args[1].As<v8::Uint32>()->Value(), 1u, 128u);
+        if (channel->closing || channel->binary.size() >= limit) return;
+        args.GetReturnValue().Set(channel->binary.try_emplace(std::string(*id, id.length()), nullptr).second);
+    }
+
+    bool attachBinary(const std::string& requestId, int fd, jlong byteCount) {
+        if (fd < 0 || byteCount <= 0 || static_cast<uint64_t>(byteCount) > std::numeric_limits<size_t>::max()) return false;
+        struct stat info{};
+        if (fstat(fd, &info) != 0 || !S_ISREG(info.st_mode) || info.st_size < byteCount) return false;
+        std::lock_guard lock(mutex);
+        auto found = binary.find(requestId);
+        if (closing || found == binary.end() || found->second) return false;
+        int copy = fcntl(fd, F_DUPFD_CLOEXEC, 0);
+        if (copy < 0) return false;
+        found->second = std::unique_ptr<BinaryPayload>(new BinaryPayload{copy, static_cast<size_t>(byteCount)});
+        return true;
+    }
+
+    static void takeBinary(const v8::FunctionCallbackInfo<v8::Value>& args) {
+        if (args.Length() != 1 || !args[0]->IsString()) return;
+        v8::String::Utf8Value id(args.GetIsolate(), args[0]);
+        if (!*id) return;
+        auto* channel = from(args);
+        std::unique_ptr<BinaryPayload> payload;
+        {
+            std::lock_guard lock(channel->mutex);
+            auto found = channel->binary.find(std::string(*id, id.length()));
+            if (found == channel->binary.end()) return;
+            payload = std::move(found->second);
+            channel->binary.erase(found);
+        }
+        if (!payload) return;
+        void* mapped = mmap(nullptr, payload->size, PROT_READ | PROT_WRITE, MAP_PRIVATE, payload->fd, 0);
+        if (mapped == MAP_FAILED) {
+            throwBridgeError(args.GetIsolate(), "ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED", "Could not map image bytes from the host.");
+            return;
+        }
+        auto backing = v8::ArrayBuffer::NewBackingStore(mapped, payload->size,
+            [](void* data, size_t length, void*) { munmap(data, length); }, nullptr);
+        args.GetReturnValue().Set(v8::ArrayBuffer::New(args.GetIsolate(), std::move(backing)));
+        // Closing the FD does not invalidate mmap. V8 releases the mapping with the Buffer.
     }
 
     static void fallback(const v8::FunctionCallbackInfo<v8::Value>& args) {
@@ -362,6 +424,8 @@ std::shared_ptr<NativeBridgeChannel> createNativeBridgeChannel(
             {"__autojs6_bridge_native_post", NativeBridgeChannel::post},
             {"__autojs6_bridge_native_listen", NativeBridgeChannel::listen},
             {"__autojs6_bridge_native_cancel", NativeBridgeChannel::cancelRequest},
+            {"__autojs6_bridge_native_expect_binary", NativeBridgeChannel::expectBinary},
+            {"__autojs6_bridge_native_take_binary", NativeBridgeChannel::takeBinary},
             {"__autojs6_bridge_native_file_fallback", NativeBridgeChannel::fallback},
             {"__autojs6_bridge_native_subscription", NativeBridgeChannel::subscription},
             {"__autojs6_host_native_listen", NativeBridgeChannel::inputListen},
@@ -403,6 +467,7 @@ void closeNativeBridgeChannel(const std::shared_ptr<NativeBridgeChannel>& channe
         channel->responses.clear();
         channel->inputs.clear();
         channel->pending.clear();
+        channel->binary.clear();
         channel->subscriptions.clear();
         uv_close(reinterpret_cast<uv_handle_t*>(&channel->async->handle), [](uv_handle_t* handle) {
             delete static_cast<NativeBridgeChannel::AsyncHandle*>(handle->data);
@@ -462,6 +527,24 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeReceiveBridg
         if (found != channels.end()) channel = found->second.lock();
     }
     if (channel) channel->enqueueEvent(bytesToString(env, event));
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeAttachBridgeBinary(
+        JNIEnv* env, jobject, jstring executionId, jbyteArray requestId, jint fd, jlong byteCount) {
+    using namespace autojs6::node_bridge::internal;
+    if (!executionId || !requestId) return JNI_FALSE;
+    const char* chars = env->GetStringUTFChars(executionId, nullptr);
+    if (!chars) return JNI_FALSE;
+    std::string tag(chars);
+    env->ReleaseStringUTFChars(executionId, chars);
+    std::shared_ptr<NativeBridgeChannel> channel;
+    {
+        std::lock_guard lock(channelsMutex);
+        auto found = executionChannels.find(tag);
+        if (found != executionChannels.end()) channel = found->second.lock();
+    }
+    return channel && channel->attachBinary(bytesToString(env, requestId), fd, byteCount) ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
