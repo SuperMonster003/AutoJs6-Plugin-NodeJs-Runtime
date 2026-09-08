@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class ConcurrentExecutionSmokeTest {
     @Test public void residentScriptDoesNotDelayASecondProcess() throws Exception {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ExecutorService executor = Executors.newFixedThreadPool(2);
         try (Binding single = new Binding("NodeJsRuntimeSlot0Service")) {
             assertSucceeded(single.runtime.prewarmRuntime(new Bundle()));
             int singlePid = single.runtime.getRuntimeInfo().getInt(NodeJsRuntimeContract.KEY_PID);
@@ -39,22 +39,27 @@ public final class ConcurrentExecutionSmokeTest {
                     assertTrue("resident never started", started.await(20, TimeUnit.SECONDS));
                     long submitted = SystemClock.elapsedRealtime();
                     AtomicLong firstOutput = new AtomicLong();
-                    java.util.concurrent.atomic.AtomicBoolean inputAccepted = new java.util.concurrent.atomic.AtomicBoolean();
-                    Bundle quick = runtime.runScript(request("m16-quick", "process.stdin.once('data', data => { console.log('quick-result=' + data.toString()); process.stdin.pause(); }); process.stdin.resume(); console.log('quick-ready');"), new INodeJsRuntimeCallback.Stub() {
+                    CountDownLatch inputReady = new CountDownLatch(1);
+                    Bundle quickRequest = request("m16-quick", "process.stdin.once('data', data => { console.log('quick-result=' + data.toString()); process.stdin.pause(); }); process.stdin.resume(); console.log('quick-ready');");
+                    quickRequest.putLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 20_000L);
+                    Future<Bundle> quickRun = executor.submit(() -> runtime.runScript(quickRequest, new INodeJsRuntimeCallback.Stub() {
                         @Override public void onEvent(Bundle event) {
                             if (NodeJsRuntimeContract.EVENT_STDOUT.equals(event.getString(NodeJsRuntimeContract.KEY_EVENT_TYPE))) {
                                 firstOutput.compareAndSet(0, SystemClock.elapsedRealtime());
-                                if (event.getString(NodeJsRuntimeContract.KEY_EVENT_TEXT, "").contains("quick-ready")) {
-                                    Bundle message = new Bundle();
-                                    message.putString(NodeJsRuntimeContract.KEY_MESSAGE_KIND, NodeJsRuntimeContract.MESSAGE_STDIN);
-                                    message.putString(NodeJsRuntimeContract.KEY_MESSAGE_DATA, "42");
-                                    try { inputAccepted.set(runtime.postMessage("m16-quick", message)); } catch (android.os.RemoteException ignored) { }
-                                }
+                            }
+                            if (NodeJsRuntimeContract.EVENT_STDIN_STATE.equals(event.getString(NodeJsRuntimeContract.KEY_EVENT_TYPE))
+                                    && "true".equals(event.getString(NodeJsRuntimeContract.KEY_EVENT_TEXT))) {
+                                inputReady.countDown();
                             }
                         }
-                    });
+                    }));
+                    assertTrue("second slot never requested stdin", inputReady.await(15, TimeUnit.SECONDS));
+                    Bundle message = new Bundle();
+                    message.putString(NodeJsRuntimeContract.KEY_MESSAGE_KIND, NodeJsRuntimeContract.MESSAGE_STDIN);
+                    message.putString(NodeJsRuntimeContract.KEY_MESSAGE_DATA, "42");
+                    assertTrue("second-slot stdin route rejected", runtime.postMessage("m16-quick", message));
+                    Bundle quick = quickRun.get(25, TimeUnit.SECONDS);
                     assertSucceeded(quick);
-                    assertTrue("second-slot stdin route rejected", inputAccepted.get());
                     assertTrue(quick.getString(NodeJsRuntimeContract.KEY_STDOUT).contains("quick-result=42"));
                     assertTrue("first stdout exceeded 1 second: " + (firstOutput.get() - submitted),
                             firstOutput.get() > 0 && firstOutput.get() - submitted < 1000);
@@ -79,7 +84,7 @@ public final class ConcurrentExecutionSmokeTest {
                             + " baselinePssKiB=" + baselinePss + " poolPssKiB=" + poolPss + " deltaPssKiB=" + (poolPss - baselinePss)
                             + " slotRssBytes=" + slots.get(0).getLong("rss") + "," + slots.get(1).getLong("rss") + "\n");
                     InstrumentationRegistry.getInstrumentation().sendStatus(0, measurement);
-                } finally { runtime.cancelScript("m16-resident"); }
+                } finally { runtime.cancelScript("m16-quick"); runtime.cancelScript("m16-resident"); }
             }
         } finally { executor.shutdownNow(); }
     }
