@@ -44,14 +44,12 @@
   "reproducibility": {
     "artifactMaterialization": "pinned_upstream_binary",
     "artifactMaterializationStatus": "ready",
-    "sourceBuild": "not_source_reproducible",
-    "sourceBuildStatus": "bootstrap_only",
+    "sourceBuild": "source_build_verification_pending",
+    "sourceBuildStatus": "building",
     "kitUsable": true,
     "releaseReady": false,
     "blockedReasons": [
-      "the Android fork toolchain container image is not pinned by digest",
-      "the Node 24.17 Android port patch series has not been published",
-      "the Node 24.17 per-ABI artifacts, hashes, and Build IDs do not exist"
+      "three ABI builds, clean repeat comparison and device validation are not complete"
     ]
   },
   "buildProvenance": {
@@ -59,7 +57,7 @@
     "sourceGitBase": "3f1b3b1e80eaaa43dbebc6cd403cdf62a1022e7a",
     "runtimeBuildPlan": {
       "lockFile": "tools/nodejs/runtime-build/runtime-build.lock.json",
-      "lockSha256": "458271758a26a98eab027fca809b1aea343a7d4ce2b967866e596f92fe10cb10",
+      "lockSha256": "ba190b69260fbff984edb3d8fb93c5eb519c0d6d4639918db448d533bc3d7768",
       "powershellMaterializer": "tools/nodejs/runtime-build/build-node-runtime.ps1",
       "powershellMaterializerSha256": "f8776f851ead6dade26fcef4d20f864a74b0bade8e4c633f368c49a72af0f067",
       "shellMaterializer": "tools/nodejs/runtime-build/build-node-runtime.sh",

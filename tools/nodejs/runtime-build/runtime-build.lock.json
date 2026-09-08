@@ -2,24 +2,27 @@
   "schema": "autojs6-node-runtime-build-lock-v1",
   "node": {
     "currentVersion": "24.5.0",
-    "targetVersion": "24.17.0",
+    "targetVersion": "24.20.0",
     "upstreamRepository": "https://github.com/nodejs/node",
-    "upstreamTag": "v24.17.0",
-    "upstreamTagUrl": "https://github.com/nodejs/node/tree/v24.17.0",
-    "upstreamReleaseUrl": "https://github.com/nodejs/node/releases/tag/v24.17.0",
-    "upstreamCommitUrl": "https://github.com/nodejs/node/commit/413e874773eef1e27a8397ddc949dbbe19cadb31",
-    "upstreamTagObject": "9c9a7894a60efe6ef9084ec9796a36f0b8091408",
+    "upstreamTag": "v24.20.0",
+    "upstreamTagUrl": "https://github.com/nodejs/node/tree/v24.20.0",
+    "upstreamReleaseUrl": "https://github.com/nodejs/node/releases/tag/v24.20.0",
+    "upstreamCommitUrl": "https://github.com/nodejs/node/commit/71b8b174857e25106d39b61a9e6f30d927da8b01",
+    "upstreamTagObject": "8392e555cbdef2145d2cd2a2a7d29204d88d4e15",
     "ltsCodename": "Krypton",
-    "releaseKind": "lts-security",
-    "publishedAt": "2026-06-18T04:37:35Z",
-    "sourceUrl": "https://nodejs.org/dist/v24.17.0/node-v24.17.0.tar.xz",
-    "headersUrl": "https://nodejs.org/dist/v24.17.0/node-v24.17.0-headers.tar.xz",
-    "sourceCommit": "413e874773eef1e27a8397ddc949dbbe19cadb31",
-    "sourceSha256": "a7ab562ed2369a29c68b72fa00e3103bcdfe37063dff799c6acc8e404e275fcd",
-    "headersSha256": "aab64d32cd1690e4027326e746877bdac62f0a8458215241638477cbfe0a4192",
+    "releaseKind": "lts",
+    "publishedAt": "2026-08-26T13:57:28Z",
+    "sourceUrl": "https://nodejs.org/dist/v24.20.0/node-v24.20.0.tar.xz",
+    "headersUrl": "https://nodejs.org/dist/v24.20.0/node-v24.20.0-headers.tar.xz",
+    "sourceCommit": "71b8b174857e25106d39b61a9e6f30d927da8b01",
+    "sourceSha256": "2732fc3f588dd335cd6779c06864f7cd424bb1b5ff9a1743059a66c54f9ca4a1",
+    "headersSha256": "cb5420ff135b64fdcb3d050223146ecc3e257c413abe915604d48e589498ae47",
     "nodejsMobileForkCommit": "116bad1dc919702d4a701d49df26d960403ee4a4",
-    "patchSeries": "pending-node24.17-android-port-from-degaso-nodejs-mobile-v24.5.0-r1",
-    "patchSet": "pending-node24.17-android-port"
+    "patchSeries": "patches/0001-nodejs-mobile-android.patch",
+    "patchSet": "node24.20-android-from-degaso-v24.5.0-r1",
+    "patchFiles": {
+      "0001-nodejs-mobile-android.patch": "2933143f3280dc40c32de05df2a5a9f3dd9c6b8f5586a3e599cf699cdcd330c7"
+    }
   },
   "androidFork": {
     "repository": "https://github.com/degaso/nodejs-mobile",
@@ -57,20 +60,20 @@
         }
       }
     },
-    "targetPortStatus": "pending-node24.17-android-artifacts"
+    "targetPortStatus": "node24.20-source-build-in-progress"
   },
   "promotionDecision": {
     "defaultRuntimeSlot": "node24_5",
     "defaultRuntimeVersion": "24.5.0",
-    "node2417Promotion": "deferred",
-    "reason": "Node 24.17 Android libnode.so artifacts are not currently producible.",
+    "reason": "Node 24.20 source builds are in progress; Android artifacts have not passed device validation.",
     "requiredBeforePromotion": [
-      "produce Node 24.17 Android libnode.so for arm64-v8a, armeabi-v7a, and x86_64",
-      "record per-ABI SHA-256 values",
-      "record per-ABI Build IDs",
-      "run adapter export and Phase 9 native modernization gates",
-      "run Sony device validation before changing the default runtime"
-    ]
+      "build and record Node 24.20 libnode.so with SHA-256 and Build ID for all three Android ABIs",
+      "validate raw Node/V8/libuv embedding symbols and the bridge adapter export map",
+      "run the twelve smoke classes and complete Android conformance against the new artifacts",
+      "compare two clean builds with identical inputs and record equality or actual differences",
+      "run all Android tests and three physical devices before changing the default runtime"
+    ],
+    "targetPromotion": "deferred"
   },
   "reproducibility": {
     "artifactMaterialization": {
@@ -79,45 +82,57 @@
       "description": "The current Node 24.5 Android runtime can be reconstructed from the pinned release archive without using the checked-in libnode.so files."
     },
     "sourceBuild": {
-      "status": "bootstrap_only",
-      "classification": "not_source_reproducible",
+      "status": "building",
+      "classification": "source_build_verification_pending",
       "blockedReasons": [
-        "the Android fork toolchain container image is not pinned by digest",
-        "the Node 24.17 Android port patch series has not been published",
-        "the Node 24.17 per-ABI artifacts, hashes, and Build IDs do not exist"
+        "three ABI builds, clean repeat comparison and device validation are not complete"
       ]
     }
   },
   "toolchain": {
     "host": "linux-x86_64",
-    "ndkVersion": "26.1.10909125",
-    "clangVersion": "17.0.2",
-    "pythonVersion": "3.11.9",
-    "cmakeVersion": "3.22.1",
+    "ndkVersion": "28.2.13676358",
+    "clangVersion": "19.0.1",
+    "hostClangVersion": "18.1.3",
+    "pythonVersion": "3.12.3",
+    "ninjaVersion": "1.11.1",
     "minSdk": 24,
     "pageSizeBytes": [
       4096,
       16384
     ],
-    "containerImage": "autojs6-node-runtime-builder:TBD",
-    "dockerfile": "tools/nodejs/runtime-build/container/Dockerfile"
+    "containerImage": "autojs6/node-source:r28c-20260908",
+    "containerImageId": "sha256:aab5d6b491066aad55da3890e88e97429b4dbb7da2b5697287b7d2b95566d046",
+    "containerRepoDigest": null,
+    "baseImage": "ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517",
+    "dockerfile": "tools/nodejs/runtime-build/container/Dockerfile.source",
+    "sourceDateEpoch": 1754006400,
+    "ndkArchive": {
+      "url": "https://dl.google.com/android/repository/android-ndk-r28c-linux.zip",
+      "size": 722261334,
+      "sha1": "a7b54a5de87fecd125a17d54f73c446199e72a64"
+    }
   },
   "runtimeConfig": {
-    "icu": "small-icu",
+    "icu": "none",
     "openssl": "bundled-node-openssl",
     "libuv": "bundled-node-libuv",
-    "snapshot": "disabled-until-snapshot-batch",
+    "snapshot": "node-snapshot-disabled-v8-default",
     "npm": "disabled",
-    "corepack": "disabled"
+    "corepack": "disabled",
+    "inspector": "enabled"
   },
   "configureArgs": [
     "--dest-cpu=$AUTOJS6_NODE_TARGET_CPU",
     "--dest-os=android",
     "--cross-compiling",
     "--shared",
+    "--ninja",
+    "--without-node-snapshot",
     "--without-npm",
     "--without-corepack",
-    "--openssl-no-asm"
+    "--openssl-no-asm",
+    "--with-intl=none"
   ],
   "abis": {
     "arm64-v8a": {
@@ -125,13 +140,12 @@
       "clangTarget": "aarch64-linux-android24",
       "cflags": [
         "-fPIC",
-        "-ffunction-sections",
-        "-fdata-sections"
+        "-ffile-prefix-map=/work/node=.",
+        "-fdebug-prefix-map=/work/node=."
       ],
       "ldflags": [
-        "-Wl,--gc-sections",
-        "-Wl,--build-id=sha1",
-        "-Wl,-z,max-page-size=16384"
+        "-Wl,-z,max-page-size=16384",
+        "-Wl,--build-id=sha1"
       ],
       "expectedLibnodeSha256": null,
       "expectedBuildId": null
@@ -141,11 +155,11 @@
       "clangTarget": "armv7a-linux-androideabi24",
       "cflags": [
         "-fPIC",
-        "-ffunction-sections",
-        "-fdata-sections"
+        "-ffile-prefix-map=/work/node=.",
+        "-fdebug-prefix-map=/work/node=."
       ],
       "ldflags": [
-        "-Wl,--gc-sections",
+        "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
       "expectedLibnodeSha256": null,
@@ -156,26 +170,26 @@
       "clangTarget": "x86_64-linux-android24",
       "cflags": [
         "-fPIC",
-        "-ffunction-sections",
-        "-fdata-sections"
+        "-ffile-prefix-map=/work/node=.",
+        "-fdebug-prefix-map=/work/node=."
       ],
       "ldflags": [
-        "-Wl,--gc-sections",
-        "-Wl,--build-id=sha1",
-        "-Wl,-z,max-page-size=16384"
+        "-Wl,-z,max-page-size=16384",
+        "-Wl,--build-id=sha1"
       ],
       "expectedLibnodeSha256": null,
       "expectedBuildId": null
     }
   },
   "linker": {
-    "visibility": "hidden-by-default",
+    "visibility": "upstream-embedding-exports",
     "versionScript": "tools/nodejs/runtime-build/libnode.exports.map",
-    "buildId": "sha1"
+    "buildId": "sha1",
+    "versionScriptAppliesTo": "libautojs6-node.so adapter, not raw libnode.so"
   },
   "outputs": {
-    "manifest": "build/reports/nodejs/runtime-build-manifest.json",
+    "manifest": "output/runtime-artifact.json",
     "libraryName": "libnode.so",
-    "headerArchive": "node-v24.17.0-headers.tar.zst"
+    "headerArchive": "node-v24.20.0-headers.tar.xz"
   }
 }

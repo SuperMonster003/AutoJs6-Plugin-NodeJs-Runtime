@@ -1,0 +1,373 @@
+--- a/common.gypi
++++ b/common.gypi
+@@ -529,11 +529,13 @@
+           }],
+           ['_toolset=="host"', {
+             'conditions': [
+-              [ 'host_arch=="ia32"', {
++              # nodejs-mobile patch: https://github.com/nodejs/node/pull/57748
++              [ 'host_arch=="ia32" or (target_arch=="ia32" or target_arch=="arm")', {
+                 'cflags': [ '-m32' ],
+                 'ldflags': [ '-m32' ],
+               }],
+-              [ 'host_arch=="x64"', {
++              # nodejs-mobile patch: https://github.com/nodejs/node/pull/57748
++              [ 'host_arch=="x64" and (target_arch=="x64" or target_arch=="arm64")', {
+                 'cflags': [ '-m64' ],
+                 'ldflags': [ '-m64' ],
+               }],
+--- a/deps/openssl/openssl_no_asm.gypi
++++ b/deps/openssl/openssl_no_asm.gypi
+@@ -13,7 +13,7 @@
+       'includes': ['config/archs/linux-aarch64/no-asm/openssl.gypi'],
+     }, 'target_arch=="ia32" and OS=="freebsd"', {
+       'includes': ['config/archs/BSD-x86/no-asm/openssl.gypi'],
+-    }, 'target_arch=="ia32" and OS=="linux"', {
++    }, 'target_arch=="ia32" and OS in ("linux", "android")', {
+       'includes': ['config/archs/linux-elf/no-asm/openssl.gypi'],
+     }, 'target_arch=="ia32" and OS=="mac"', {
+       'includes': ['config/archs/darwin-i386-cc/no-asm/openssl.gypi'],
+@@ -36,7 +36,7 @@
+       'includes': ['config/archs/VC-WIN64A/no-asm/openssl.gypi'],
+     }, 'target_arch=="arm64" and OS=="win"', {
+       'includes': ['config/archs/VC-WIN64-ARM/no-asm/openssl.gypi'],
+-    }, 'target_arch=="x64" and OS=="linux"', {
++    }, 'target_arch=="x64" and OS in ("linux", "android")', {
+       'includes': ['config/archs/linux-x86_64/no-asm/openssl.gypi'],
+     }, 'target_arch=="mips64el" and OS=="linux"', {
+       'includes': ['config/archs/linux64-mips64/no-asm/openssl.gypi'],
+--- a/deps/uv/src/unix/fs.c
++++ b/deps/uv/src/unix/fs.c
+@@ -1045,8 +1045,11 @@
+     try_sendfile = 1;
+ 
+ #ifdef __linux__
++#if !defined(__ANDROID__) || (!defined(__i386__) && !defined(__arm__)) || (defined(_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS-0 == 64)
++// copy_file_range needs large offsets.
+     r = uv__fs_try_copy_file_range(in_fd, &off, out_fd, len);
+     try_sendfile = (r == -1 && errno == ENOSYS);
++#endif
+ #endif
+ 
+     if (try_sendfile)
+--- a/deps/uv/uv.gyp
++++ b/deps/uv/uv.gyp
+@@ -3,6 +3,12 @@
+     'conditions': [
+       ['OS=="win"', {
+         'shared_unix_defines': [ ],
++      }, 'OS=="android" and target_arch in ("arm","ia32")', {
++        # Android on API < 24 will miss function definitions for
++        #_FILE_OFFSET_BITS=64
++        'shared_unix_defines': [
++          '_LARGEFILE_SOURCE',
++        ],
+       }, {
+         'shared_unix_defines': [
+           '_LARGEFILE_SOURCE',
+@@ -292,8 +298,22 @@
+           'defines': [
+             '_GNU_SOURCE',
+           ],
+-          'sources': [
+-            '<@(uv_sources_android)',
++          'target_conditions': [
++            ['_toolset=="target"', {
++              'sources': [
++                '<@(uv_sources_android)',
++              ],
++            }],
++            ['_toolset=="host" and host_os=="mac"', {
++              'sources': [
++                '<@(uv_sources_apple)',
++              ],
++            }],
++            ['_toolset=="host" and host_os=="linux"', {
++              'sources': [
++                '<@(uv_sources_linux)',
++              ],
++            }],
+           ],
+           'link_settings': {
+             'libraries': [ '-ldl' ],
+--- a/deps/zlib/zlib.gyp
++++ b/deps/zlib/zlib.gyp
+@@ -181,11 +181,18 @@
+           'sources': [
+             '<!@pymod_do_main(GN-scraper "<(ZLIB_ROOT)/BUILD.gn" "\\"zlib\\".*?sources = ")',
+           ],
+-          'include_dirs': [ '<(ZLIB_ROOT)' ],
++          # nodejs-mobile patch: silenced this 'include_dirs', in favor of the next patch below.
++          # 'include_dirs': [ '<(ZLIB_ROOT)' ],
+           'direct_dependent_settings': {
+             'include_dirs': [ '<(ZLIB_ROOT)' ],
+           },
+           'conditions': [
++            # nodejs-mobile patch: for Android, make available <cpu_features.h> from the NDK:
++            ['OS=="android"', {
++              'include_dirs': [ '<(ZLIB_ROOT)', '<(android_ndk_path)/sources/android/cpufeatures' ],
++            }, {
++              'include_dirs': [ '<(ZLIB_ROOT)' ],
++            }],
+             ['OS!="win"', {
+               'cflags!': [ '-ansi' ],
+               'cflags': [ '-Wno-implicit-fallthrough' ],
+--- a/node.gyp
++++ b/node.gyp
+@@ -1236,8 +1254,8 @@
+         ['OS=="solaris"', {
+           'ldflags': [ '-I<(SHARED_INTERMEDIATE_DIR)' ]
+         }],
+-        # Skip cctest while building shared lib node for Windows
+-        [ 'OS=="win" and node_shared=="true"', {
++        # Skip cctest while building shared lib node for Windows and mobile
++        [ 'OS in ("win", "android") and node_shared=="true"', {
+           'type': 'none',
+         }],
+         [ 'node_shared=="true"', {
+--- a/node.gypi
++++ b/node.gypi
+@@ -380,11 +385,15 @@
+           'defines': [ 'OPENSSL_API_COMPAT=0x10100000L', ],
+           'dependencies': [
+             './deps/openssl/openssl.gyp:openssl',
+-
+-            # For tests
+-            './deps/openssl/openssl.gyp:openssl-cli',
+           ],
+           'conditions': [
++            [ 'OS not in "ios android"', {
++              'dependencies': [
++                # Not needed for iOS and Android, doesn't build
++                # For tests
++                './deps/openssl/openssl.gyp:openssl-cli',
++              ],
++            }],
+             # -force_load or --whole-archive are not applicable for
+             # the static library
+             [ 'force_load=="true"', {
+--- a/src/node_credentials.cc
++++ b/src/node_credentials.cc
+@@ -181,6 +181,19 @@
+   return nullptr;
+ }
+ 
++#ifdef __ANDROID__
++// Android has getgrnam instead of getgrnam_r.
++static gid_t gid_by_name(const char* name) {
++  struct group* pp = getgrnam(name);  // NOLINT(runtime/threadsafe_fn)
++
++  errno = 0;
++
++  if (pp != nullptr)
++    return pp->gr_gid;
++
++  return gid_not_found;
++}
++#else  // __ANDROID__
+ static gid_t gid_by_name(const char* name) {
+   struct group pwd;
+   struct group* pp;
+@@ -194,6 +207,7 @@
+ 
+   return gid_not_found;
+ }
++#endif  // __ANDROID__
+ 
+ #if 0  // For future use.
+ static const char* name_by_gid(gid_t gid) {
+@@ -286,6 +300,8 @@
+   args.GetReturnValue().Set(static_cast<uint32_t>(getegid()));
+ }
+ 
++#ifndef __ANDROID__
++// Android blocks setting Uid and Gid.
+ static void SetGid(const FunctionCallbackInfo<Value>& args) {
+   Environment* env = Environment::GetCurrent(args);
+   CHECK(env->owns_process_state());
+@@ -369,6 +385,7 @@
+     args.GetReturnValue().Set(0);
+   }
+ }
++#endif  // ifndef __ANDROID__
+ 
+ static void GetGroups(const FunctionCallbackInfo<Value>& args) {
+   Environment* env = Environment::GetCurrent(args);
+@@ -392,6 +409,8 @@
+   }
+ }
+ 
++#ifndef __ANDROID__
++// Android blocks setting groups
+ static void SetGroups(const FunctionCallbackInfo<Value>& args) {
+   Environment* env = Environment::GetCurrent(args);
+ 
+@@ -427,6 +446,7 @@
+ 
+   args.GetReturnValue().Set(0);
+ }
++#endif  // ifndef __ANDROID__
+ 
+ static void InitGroups(const FunctionCallbackInfo<Value>& args) {
+   Environment* env = Environment::GetCurrent(args);
+@@ -486,11 +506,13 @@
+   registry->Register(GetGroups);
+ 
+   registry->Register(InitGroups);
++  #ifndef __ANDROID__
+   registry->Register(SetEGid);
+   registry->Register(SetEUid);
+   registry->Register(SetGid);
+   registry->Register(SetUid);
+   registry->Register(SetGroups);
++  #endif
+ #endif  // NODE_IMPLEMENTS_POSIX_CREDENTIALS
+ }
+ 
+@@ -514,11 +536,13 @@
+ 
+   if (env->owns_process_state()) {
+     SetMethod(context, target, "initgroups", InitGroups);
++    #ifndef __ANDROID__ // nodejs-mobile patch
+     SetMethod(context, target, "setegid", SetEGid);
+     SetMethod(context, target, "seteuid", SetEUid);
+     SetMethod(context, target, "setgid", SetGid);
+     SetMethod(context, target, "setuid", SetUid);
+     SetMethod(context, target, "setgroups", SetGroups);
++    #endif
+   }
+ #endif  // NODE_IMPLEMENTS_POSIX_CREDENTIALS
+ }
+--- a/src/node_internals.h
++++ b/src/node_internals.h
+@@ -319,7 +319,7 @@
+ 
+ // Functions defined in node.cc that are exposed via the bootstrapper object
+ 
+-#if defined(__POSIX__) && !defined(__ANDROID__) && !defined(__CloudABI__)
++#if defined(__POSIX__) && !(defined(__ANDROID__) && __ANDROID_API__ < 21) && !defined(__CloudABI__)  // NOLINT(whitespace/line_length)
+ #define NODE_IMPLEMENTS_POSIX_CREDENTIALS 1
+ #endif  // defined(__POSIX__) && !defined(__ANDROID__) && !defined(__CloudABI__)
+ 
+--- a/tools/gyp/pylib/gyp/generator/ninja.py
++++ b/tools/gyp/pylib/gyp/generator/ninja.py
+@@ -42,7 +42,8 @@
+     # the start of a string, while $| is used for variables that can appear
+     # anywhere in a string.
+     "INTERMEDIATE_DIR": "$!INTERMEDIATE_DIR",
+-    "SHARED_INTERMEDIATE_DIR": "$!PRODUCT_DIR/gen",
++    # nodejs-mobile patch: allow multiple rules to generate the same object (host and target)
++    "SHARED_INTERMEDIATE_DIR": "$!PRODUCT_DIR/$|OBJ/gen",
+     "PRODUCT_DIR": "$!PRODUCT_DIR",
+     "CONFIGURATION_NAME": "$|CONFIGURATION_NAME",
+     # Special variables that may be used by gyp 'rule' targets.
+@@ -283,6 +284,13 @@
+         CONFIGURATION_NAME = "$|CONFIGURATION_NAME"
+         path = path.replace(CONFIGURATION_NAME, self.config_name)
+ 
++        # nodejs-mobile patch: allow multiple rules to generate the same object (host and target)
++        obj = "obj"
++        if self.toolset != "target":
++            obj += "." + self.toolset
++
++        path = path.replace("$|OBJ", obj)
++
+         return path
+ 
+     def ExpandRuleVariables(self, path, root, dirname, source, ext, name):
+--- a/tools/v8_gypfiles/v8.gyp
++++ b/tools/v8_gypfiles/v8.gyp
+@@ -1313,7 +1313,8 @@
+         # Platforms that don't have Compare-And-Swap (CAS) support need to link atomic library
+         # to implement atomic memory access.
+         # Clang needs it for some atomic operations (https://clang.llvm.org/docs/Toolchain.html#atomics-library).
+-        ['(OS=="linux" and clang==1) or (v8_current_cpu in ["mips64", "mips64el", "arm", "riscv64", "loong64"])', {
++        # nodejs-mobile patch: https://github.com/nodejs/node/pull/57748
++        ['((OS=="linux" or OS=="android") and clang==1) or (v8_current_cpu in ["mips64", "mips64el", "ppc", "arm", "riscv64", "loong64"])', {
+           'link_settings': {
+             'libraries': ['-latomic', ],
+           },
+@@ -1452,6 +1453,8 @@
+             '<(V8_ROOT)/src/base/platform/platform-posix.h',
+             '<(V8_ROOT)/src/base/platform/platform-posix-time.cc',
+             '<(V8_ROOT)/src/base/platform/platform-posix-time.h',
++            # nodejs-mobile patch: https://github.com/nodejs/node/pull/57748
++            '<(V8_ROOT)/src/base/platform/platform-linux.h',
+           ],
+           'link_settings': {
+             'target_conditions': [
+@@ -1977,12 +1989,14 @@
+             ],
+           }, { # 'OS!="win"'
+             'conditions': [
+-              ['_toolset == "host" and host_arch == "x64" or _toolset == "target" and target_arch=="x64"', {
++              # nodejs-mobile patch: https://github.com/nodejs/node/pull/57748
++              ['_toolset == "host" and host_arch == "x64" and (target_arch == "x64" or target_arch == "arm64") or (_toolset == "target" and target_arch == "x64")', {
+                 'sources': [
+                   '<(V8_ROOT)/src/heap/base/asm/x64/push_registers_asm.cc',
+                 ],
+               }],
+-              ['_toolset == "host" and host_arch == "ia32" or _toolset == "target" and target_arch=="ia32"', {
++              # nodejs-mobile patch: https://github.com/nodejs/node/pull/57748
++              ['_toolset == "host" and host_arch == "x64" and (target_arch == "arm" or target_arch == "ia32") or (_toolset == "target" and target_arch == "ia32")', {
+                 'sources': [
+                   '<(V8_ROOT)/src/heap/base/asm/ia32/push_registers_asm.cc',
+                 ],
+@@ -2196,6 +2210,46 @@
+       },
+     },  # postmortem-metadata
+ 
++    # nodejs-mobile patch: this whole target
++    {
++      'target_name': 'ndk_sources',
++      'type': 'none',
++      'conditions': [
++        ['OS=="android"', {
++          'copies': [{
++            'files': [
++              '<(android_ndk_path)/sources/android/cpufeatures/cpu-features.c',
++            ],
++            'destination': '<(SHARED_INTERMEDIATE_DIR)/ndk-sources/',
++          }],
++        }]
++      ]
++    },
++
++    # nodejs-mobile patch: this whole target
++    {
++      'target_name': 'ndk_cpufeatures',
++      'type': 'static_library',
++      'toolsets': ['target'],
++      'conditions': [
++        ['OS=="android" and _toolset=="target"', {
++          'dependencies': ['ndk_sources'],
++          'include_dirs': [
++            '<(android_ndk_path)/sources/android/cpufeatures',
++            '<(android_ndk_sysroot)/usr/include', # cpu-features.c needs sys/system_properties.h
++          ],
++          'sources': [
++            '<(SHARED_INTERMEDIATE_DIR)/ndk-sources/cpu-features.c',
++          ],
++          'direct_dependent_settings': {
++            'include_dirs': [
++              '<(android_ndk_path)/sources/android/cpufeatures',
++            ],
++          },
++        }],
++      ],
++    },
++
+     {
+       'target_name': 'v8_zlib',
+       'type': 'static_library',
+@@ -2209,6 +2263,10 @@
+               'defines': ['X86_WINDOWS']
+             }]
+           ]
++        }],
++        # nodejs-mobile patch:
++        ['OS=="android" and _toolset=="target"', {
++          'dependencies': ['ndk_cpufeatures'],
+         }],
+       ],
+       'direct_dependent_settings': {

@@ -8,6 +8,11 @@ app/src/main/jniLibs/x86_64/libnode.so filter=lfs diff=lfs merge=lfs -text
 /app/src/main/assets/nodejs/node-capability-catalog.json text eol=lf
 /app/src/main/assets/nodejs/node-plugin-runtime-kit.json text eol=lf
 /tools/nodejs/runtime-build/runtime-build.lock.json text eol=lf
+/tools/nodejs/runtime-build/*.py text eol=lf
+/tools/nodejs/runtime-build/container/Dockerfile.source text eol=lf
+/tools/nodejs/runtime-build/container/build-source.sh text eol=lf
+# Unified diff context uses a single space for an empty source line.
+/tools/nodejs/runtime-build/patches/*.patch text eol=lf whitespace=-blank-at-eol
 /releases/nodejs-capability-catalog/** text eol=lf
 /releases/nodejs-plugin-runtime-kit/** text eol=lf
 /.github/**/*.sh text eol=lf
