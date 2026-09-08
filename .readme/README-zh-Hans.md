@@ -120,6 +120,7 @@ console.log("AutoJs6 Node.js runtime");
 * `新增` 全局 fetch, Request, Response, Headers, FormData 与 WebSocket 默认使用 Node 原生 Web API; autojs6:fetch 与 autojs6:websocket 显式模块继续提供宿主网络栈
 * `新增` 新增带文件边界检查的原生 node:sqlite, 支持 CRUD, 事务与备份; 提供原生 node:test 报告器和可运行测试样例, 离线 npm corpus 扩展 zod, cheerio, date-fns, mqtt 与 ws
 * `新增` process.stdin / readline 接收控制台输入, autojs6:host 接收执行级 JSON 消息, v3 postMessage 事务兼容旧宿主
+* `新增` Node.js 截屏会话接入 Android 授权和既有前台服务, 支持图片句柄, PNG/JPEG/WebP 保存及停止或脚本退出时清理
 * `修复` 修复长驻脚本的桥会话持续累积请求与响应记录的问题, 清理已完成请求, 仅保留最近 32 条响应并限制诊断体积
 * `修复` 原生异步任务完成前提前生成成功结果, 导致异步错误与后续退出码丢失的问题; 终态改为跟随 Node 事件循环最终退出
 * `优化` 实时桥默认使用 JNI/Binder 直通并经 Node 事件循环返回响应, 降低调用延迟, 保留可选文件回退与待处理调用上限

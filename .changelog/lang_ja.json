@@ -22,7 +22,8 @@
         "Node.js ランタイムに任意の idleExitMs によるアイドル終了と次のスクリプトの再接続を追加, idleForMs 診断を提供し既定では常駐を維持",
         "グローバル fetch, Request, Response, Headers, FormData, WebSocket に Node ネイティブ Web API を使用; autojs6:fetch と autojs6:websocket はホストのネットワークスタックを提供",
         "ファイル境界を検査するネイティブ node:sqlite を追加し、CRUD・トランザクション・バックアップに対応。node:test のネイティブレポーターと実行可能なサンプルを提供し、オフライン npm corpus に zod、cheerio、date-fns、mqtt、ws を追加",
-        "process.stdin / readline がコンソール入力に対応し, autojs6:host が実行ごとの JSON メッセージを受信; v3 postMessage は旧ホストと互換"
+        "process.stdin / readline がコンソール入力に対応し, autojs6:host が実行ごとの JSON メッセージを受信; v3 postMessage は旧ホストと互換",
+        "Node.js の画面キャプチャに Android の許可と既存のフォアグラウンドサービスを使用し, 画像ハンドル, PNG/JPEG/WebP 保存, 停止時およびスクリプト終了時の解放に対応"
       ]
     },
     "v1.2.0": {

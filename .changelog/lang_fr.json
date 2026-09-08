@@ -22,7 +22,8 @@
         "Option idleExitMs pour arrêter le processus Node.js inactif et reconnecter le script suivant, avec diagnostic idleForMs et maintien en mémoire par défaut",
         "Les objets globaux fetch, Request, Response, Headers, FormData et WebSocket utilisent les API Web natives de Node; autojs6:fetch et autojs6:websocket conservent la pile réseau hôte",
         "Ajout de node:sqlite natif avec contrôle des chemins, CRUD, transactions et sauvegardes; reporters natifs node:test et exemple exécutable, avec zod, cheerio, date-fns, mqtt et ws dans le corpus npm hors ligne",
-        "Entrée console native avec process.stdin / readline et messages JSON par exécution via autojs6:host; transaction postMessage v3 compatible avec les anciens hôtes"
+        "Entrée console native avec process.stdin / readline et messages JSON par exécution via autojs6:host; transaction postMessage v3 compatible avec les anciens hôtes",
+        "Les sessions de capture Node.js utilisent le consentement Android et le service de premier plan existant, avec des handles d’image, la sauvegarde PNG/JPEG/WebP et la libération à l’arrêt ou à la fin du script"
       ]
     },
     "v1.2.0": {

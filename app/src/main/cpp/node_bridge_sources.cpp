@@ -19675,6 +19675,9 @@ std::string buildEmbeddedScriptExecutionSource(
         "media_projection",
         "requestScreenCapture",
         [{
+          width: bridgeOptions.width,
+          height: bridgeOptions.height,
+          requireExistingPermission: bridgeOptions.requireExistingPermission === true,
           orientation: bridgeOptions.orientation === "portrait" || bridgeOptions.orientation === "landscape"
             ? bridgeOptions.orientation
             : "auto"
@@ -19973,6 +19976,8 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const moduleValue = Object.freeze({
       captureScreen,
+      requestScreenCapture: __autojs6_rhino_compat_request_screen_capture,
+      stopScreenCapture: __autojs6_rhino_compat_stop_screen_capture,
       readImage,
       saveImage,
       clip,
