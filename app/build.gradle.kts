@@ -1,6 +1,8 @@
 import com.android.build.api.variant.FilterConfiguration
+import com.android.apksig.ApkVerifier
 import org.gradle.api.provider.Property
 import java.security.MessageDigest
+import java.util.zip.ZipFile
 
 plugins {
     id("org.autojs.build.utils")
@@ -29,6 +31,7 @@ val commonPluginApiAar = rootProject.file("libs/common-plugin-api.aar").also { a
 android {
     namespace = globalApplicationId
     compileSdk = versions.sdkVersionCompile
+    testBuildType = providers.gradleProperty("nodeAndroidTestBuildType").orElse("debug").get()
 
     defaultConfig {
         applicationId = globalApplicationId
@@ -159,6 +162,17 @@ androidComponents {
     }
 }
 
+val releaseTestKotlinRuntime = configurations.create("releaseTestKotlinRuntime") {
+    isCanBeConsumed = false
+    isTransitive = false
+}
+val releaseTestKotlinJar = layout.buildDirectory.file("intermediates/release_test_runtime/kotlin-stdlib.jar")
+val prepareReleaseTestKotlinRuntime = tasks.register<Copy>("prepareReleaseTestKotlinRuntime") {
+    from(releaseTestKotlinRuntime)
+    into(releaseTestKotlinJar.map { it.asFile.parentFile })
+    rename { "kotlin-stdlib.jar" }
+}
+
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.21")
     implementation("org.jetbrains:annotations:26.0.2")
@@ -167,6 +181,14 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation(libs.test.ext.junit)
     androidTestImplementation(libs.test.runner)
+    // AndroidX's optional annotations are needed when R8 processes release tests.
+    androidTestCompileOnly("com.google.errorprone:error_prone_annotations:2.36.0")
+    if (android.testBuildType == buildTypeRelease) {
+        add(releaseTestKotlinRuntime.name, "org.jetbrains.kotlin:kotlin-stdlib:2.2.21")
+        // AGP subtracts app dependencies from androidTest before R8 strips the app.
+        // A distinct file avoids that subtraction by both component ID and file path.
+        androidTestImplementation(files(releaseTestKotlinJar).builtBy(prepareReleaseTestKotlinRuntime))
+    }
 }
 
 tasks {
@@ -174,28 +196,56 @@ tasks {
         options.encoding = "UTF-8"
     }
 
-    register<Copy>("appendDigestToReleasedFiles") {
-        description = "Appends CRC32 digest to released APK files"
+    register("appendDigestToReleasedFiles") {
+        group = "distribution"
+        description = "Builds and verifies four signed release APKs, then appends their CRC32 digests"
+        dependsOn("assembleRelease")
 
-        val src = "release"
-        val dst = "${src}s"
-        val ext = utils.FILE_EXTENSION_APK
-
-        if (!file(src).isDirectory) {
-            return@register
-        }
-
-        from(src); into(dst); include("*.$ext")
-
-        rename { name ->
-            val abi = name.replace(Regex("^(?:.+?)-v${versions.appVersionName}-(.+?)(\\.$ext)$"), "$1")
-            val releasedFileNamePrefix = "${rootProject.name}-v${versions.appVersionName}-$abi"
-            utils.digestCRC32(file("${src}/$name")).let { digest ->
-                "$releasedFileNamePrefix-$digest.$ext"
+        doLast {
+            check(signs.isValid) { "Release collection requires a valid local signing configuration." }
+            val abis = listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+            val prefix = "${rootProject.name}-v${versions.appVersionName}"
+            val expected = (abis + "universal").associateBy { "$prefix-$it.apk" }
+            val source = layout.buildDirectory.dir("outputs/apk/release").get().asFile
+            val apks = source.listFiles { candidate -> candidate.extension == "apk" }.orEmpty()
+            check(apks.map { it.name }.toSet() == expected.keys) {
+                "Expected exactly ${expected.keys} in $source; found ${apks.map { it.name }}"
             }
+            val collected = apks.sortedBy { it.name }.associateWith { apk ->
+                val verification = ApkVerifier.Builder(apk).build().verify()
+                check(verification.isVerified) { "Invalid or unsigned release APK: ${apk.name}: ${verification.errors}" }
+                val abi = expected.getValue(apk.name)
+                val packagedAbis = if (abi == "universal") abis else listOf(abi)
+                ZipFile(apk).use { zip ->
+                    val nativeLibraries = zip.entries().asSequence()
+                        .filter { it.name.startsWith("lib/") && it.name.endsWith(".so") }
+                        .map { it.name }.toSet()
+                    val expectedLibraries = packagedAbis.flatMap { packagedAbi ->
+                        listOf("libnode.so", "libautojs6-node.so", "libc++_shared.so")
+                            .map { "lib/$packagedAbi/$it" }
+                    }.toSet()
+                    check(nativeLibraries == expectedLibraries) { "Unexpected native library set in ${apk.name}: $nativeLibraries" }
+                    for (name in expectedLibraries) {
+                        zip.getInputStream(zip.getEntry(name)).use { stream ->
+                            check(stream.readNBytes(4).contentEquals(byteArrayOf(0x7f, 0x45, 0x4c, 0x46))) {
+                                "Expected ELF bytes in ${apk.name}:$name; Git LFS pointers must be materialized."
+                            }
+                        }
+                    }
+                }
+                "$prefix-$abi-${utils.digestCRC32(apk)}.apk"
+            }
+            val destination = file("releases/${versions.appVersionName}")
+            check(destination.isDirectory || destination.mkdirs()) { "Cannot create $destination" }
+            collected.forEach { (apk, name) -> apk.copyTo(destination.resolve(name), overwrite = true) }
+            // Only retire superseded artifacts for this exact version after all inputs verify.
+            destination.listFiles { file -> file.name.startsWith("$prefix-") && file.extension == "apk" }
+                .orEmpty().filter { it.name !in collected.values }.forEach { stale ->
+                    check(stale.delete()) { "Cannot remove superseded artifact: $stale" }
+                }
+            println("Destination: $destination")
+            collected.values.forEach { println(it) }
         }
-
-        doLast { println("Destination: ${file(dst)}") }
     }
 }
 

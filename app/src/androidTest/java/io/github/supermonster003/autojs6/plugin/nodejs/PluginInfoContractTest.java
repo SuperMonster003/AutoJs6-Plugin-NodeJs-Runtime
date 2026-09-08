@@ -56,8 +56,12 @@ public final class PluginInfoContractTest {
             PackageInfo installed = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
             assertEquals(installed.versionName, info.getVersionName());
             assertEquals(installed.versionCode, info.getVersionCode());
-            assertEquals(context.getString(R.string.app_name), info.getName());
-            assertEquals(context.getString(R.string.plugin_description), info.getDescription());
+            assertEquals(installed.applicationInfo.loadLabel(context.getPackageManager()).toString(), info.getName());
+            // Use the installed resource contract; R classes can be removed by release R8.
+            int description = context.getResources().getIdentifier(
+                    "plugin_description", "string", context.getPackageName());
+            assertTrue("plugin_description resource is missing", description != 0);
+            assertEquals(context.getString(description), info.getDescription());
             assertEquals("@raw/plugin_instruction", info.getInstruction());
             assertEquals("nodejs", info.getId());
             assertEquals("nodejs", info.getEngine());

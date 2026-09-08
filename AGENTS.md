@@ -73,6 +73,14 @@ C++ 先用当前 `.cxx` 的 compile_commands.json 中 NDK clang 命令离线做 
 
 使用 `adb -s <serial> shell am instrument -w -e class <逗号分隔全类名> io.github.supermonster003.autojs6.plugin.nodejs.test/androidx.test.runner.AndroidJUnitRunner` 聚焦执行, 检查最终 `OK (...)`、断言失败与进程崩溃, 不仅依赖 adb 退出码。发布前至少做 arm64 真机与 x86_64 模拟器 SimpleRunSmokeTest; 16 KB 支持需先读设备 PAGE_SIZE 再跑实机用例。
 
+验证混淆后的 Release 必须使用配套的测试 APK:
+
+```powershell
+.\gradlew.bat --offline -PnodeAndroidTestBuildType=release :app:appendDigestToReleasedFiles :app:assembleReleaseAndroidTest
+```
+
+安装 `app/build/outputs/apk/androidTest/release/` 的测试包, 正式 APK 在 `app/releases/<version>/`。Debug 测试包假定被测应用保留未混淆依赖, 不可直接用于 Release; 否则测试运行器可能在脚本执行前报 ClassNotFoundException。
+
 触碰 builtin facade 或 require 链必须跑 NpmEcosystemSmokeTest 和 NodeRuntimePluginAndroidConformanceTest 全类。取消重启兜底、冷启动测量和 InspectorDebugSmokeTest 按改动单独执行。Manifest/PluginInfo 变更执行各自契约测试。样例/类型改动分别执行 verifyNodePluginExamples、typeCheckNodeTypescriptSmoke。
 
 ## 红线
