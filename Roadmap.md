@@ -352,12 +352,13 @@ M13 Release 验证补记 (2026-09-08): build 116 的签名 arm64-v8a / x86_64 �
 - [ ] **M17.1 自建 libnode 管线**: 事实: 24.5.0 (2025-07) 之后 24.x 已有多个安全发布, M10.1 因上游无 Android 产物而停摆; `tools/nodejs/runtime-build/` 已有容器脚本但 `sourceBuild: bootstrap_only`; 兄弟仓 Bun Runtime 已做到 patched runtime 可复现构建 (提交 1944595)。动作: 钉容器 digest (Ubuntu LTS + NDK r28/r29 + Python/ninja), 提取 degaso/nodejs-mobile 相对官方 tag 的 Android 补丁集为 `tools/nodejs/runtime-build/patches/*.patch`, 构建 3 ABI (`-z max-page-size=16384`), 校验 `libnode.exports.map` 全部符号存在, lock 记录 sha256/buildId/补丁集哈希。Check: 本机或手动 CI job 完整构建一次, 产物替换后冒烟组 12 用例 + conformance 全绿; 同输入两次构建 sha256 一致, 或记录不一致来源。
 - [ ] **M17.2 晋级 24.x 最新 LTS**: 动作: 用 M17.1 产物; `node_runtime_adapter_24_5.cpp` (1,023 行) / `node_runtime_api_v1.h` 按符号与 ABI 差异适配 (新增 adapter 文件而非改旧文件, 运行时按版本选择); 全量 androidTest + 3 台真机; runtime-kit / catalog 发新版本 (本地发布物)。Check: `getRuntimeInfo` 报新版本; runtime-kit `releaseReady: true`; CHANGELOG `dependency` 条目 "升级 Node.js 24.5.0 → 24.x"。
 - [ ] **M17.3 体积与安装占用评估**: 事实: libnode 104~112 MB/ABI, `jniLibs.useLegacyPackaging = true` (`app/build.gradle.kts:114`) → APK 26 MB 下载 + 抽取 ~110 MB 安装占用。动作: 评估三项 — ① `useLegacyPackaging=false` + `System.loadLibrary` 替代 dlopen 路径 (下载 ×4, 安装 -110 MB); ② `--with-intl=small-icu` (约 -20 MB); ③ release 构建裁掉 inspector 后端 (`--without-inspector`, 需与 M10.2 debug 档位分产物)。出结论表 (下载体积 / 安装占用 / 冷启动 / 风险) 记录于此。Check: 结论入档; 若采纳任一项则接入 M17.1 管线开关并以冒烟组回归。
-- [ ] **M17.4 月度安全复查制度化**: 动作: 每月首个工作日 (手动, 唯一联网步骤) 核对 nodejs.org 24.x 安全发布与 OpenSSL 公告, 记录 "影响 / 不影响 / 已晋级" 于下表; 有影响 → 触发 M17.1/M17.2。Check: 本文件下方表格每月一行。
+- [x] **M17.4 月度安全复查制度化**: 2026-09-08 首次手动复查完成。每月首个维护工作日由维护者检查 [Node 24.x 发布](https://nodejs.org/en/blog/release)、[Node 安全公告](https://nodejs.org/en/blog/vulnerability) 与 [OpenSSL 3.5 公告](https://openssl-library.org/news/vulnerabilities-3.5/), 在下表追加当月一行, 保留检查日期、实际嵌入版本、影响判断与动作; 有影响即推进 M17.1/M17.2, 未产出并验收前不标“已晋级”。复查按月手动执行, 不加入 APK/PR 默认构建或设备网络流程; 下次为 2026-10 首个维护工作日。
 
 | 复查日期 | 上游最新 24.x | 本插件版本 | 结论 |
 |---|---|---|---|
 | 2026-08-25 | 24.17.0 | 24.5.0 | 上游 Android 产物缺失, 阻塞 (M10.1) |
 | 2026-09-04 | (待 M17.4 首次复查) | 24.5.0 | 立项 M17.1 自建管线解除阻塞 |
+| 2026-09-08 | **影响, 尚未晋级**。Node [6 月安全发布](https://nodejs.org/en/blog/vulnerability/june-2026-security-releases) 与 [7 月安全发布](https://nodejs.org/en/blog/vulnerability/july-2026-security-releases) 修复 TLS/HTTP2/DNS/crypto 等原生入口问题; 24.5.0 早于修复版本 24.17.0/24.18.1, 本插件已开放相关模块, 不能用桥权限代替修复。 | 当前 24.5.0; 本次源码目标为 [24.20.0 LTS, 2026-08-26](https://nodejs.org/en/blog/release/v24.20.0) | M17.1 三 ABI 源码构建与 M17.2 设备晋级处理中。OpenSSL [2026-08-25 公告](https://openssl-library.org/news/secadv/20260825.txt) 的修复版本为 3.5.8; 24.20.0 官方源码 VERSION.dat 仍为 3.5.7, 因此不能将 Node 升级等同于全部 OpenSSL 公告已修复。该组涉及 OpenSSL QUIC/CMS/CMP/DTLS/RPK/EVP_Cipher 特定入口, 本次未单独证明插件可达性, 保留依赖版本受影响判断并跟踪上游集成。 |
 
 ## 五. 明确不做的事
 
