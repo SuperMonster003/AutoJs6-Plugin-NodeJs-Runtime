@@ -3508,6 +3508,7 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_limited_input_observer_cache = null;
   let __autojs6_limited_clipboard_cache = null;
   let __autojs6_limited_device_cache = null;
+  let __autojs6_host_events_cache = null;
   let __autojs6_limited_shell_cache = null;
   let __autojs6_limited_fetch_cache = null;
   let __autojs6_limited_undici_cache = null;
@@ -5882,6 +5883,10 @@ std::string buildEmbeddedScriptExecutionSource(
       return ["input_observer", "input_observer.keys"];
     }
     if (moduleName === "clipboard") return ["clipboard"];
+    if (moduleName === "events") {
+      const capability = {observeNotification: "events.notification", observeToast: "events.toast", observeKey: "events.key"}[methodName];
+      return capability ? ["events", capability] : ["events"];
+    }
     if (moduleName === "pinyin" || moduleName === "pinyin4j" || moduleName === "console") return [moduleName];
     if (moduleName === "files") {
       if (["write", "mkdir", "rename"].includes(methodName)) return ["files", "files.write"];
@@ -5915,6 +5920,11 @@ std::string buildEmbeddedScriptExecutionSource(
       required === "shell.shizuku" ||
       required === "notifications.settings" ||
       required === "device.power" ||
+      required === "events.notification" ||
+      required === "events.toast" ||
+      required === "events.key" ||
+      required === "files.write" ||
+      required === "files.delete" ||
       required === "media.audio" ||
       required === "media.metadata" ||
       required === "media.recording" ||
@@ -11148,6 +11158,72 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
     return Math.min(10000, Math.trunc(duration));
+  }
+  function __autojs6_host_events() {
+    if (__autojs6_host_events_cache) return __autojs6_host_events_cache;
+    const emitter = new (__autojs6_events_module().EventEmitter)();
+    const subscriptions = new Map();
+    function call(method, args, options) {
+      return __autojs6_call_autojs("events", method, args, options);
+    }
+    function observe(method, options) {
+      if (subscriptions.has(method)) return subscriptions.get(method);
+      const pending = call(method, [], options).then(function(record) {
+        let closed = false;
+        const forget = function() {
+          closed = true;
+          if (subscriptions.get(method) === pending) subscriptions.delete(method);
+        };
+        const drainEvents = function(options) {
+          return closed ? Promise.resolve([]) : call("drainEvents", [record.id], options);
+        };
+        const observer = __autojs6_bridge_observer(record, drainEvents, () => closed,
+          event => Object.freeze(Object.assign({source: record.source}, event)), forget);
+        observer.methods.on("event", function(event) {
+          emitter.emit("event", event);
+          emitter.emit(event.type, event);
+        });
+        observer.methods.on("error", function(error) { emitter.emit("error", error); });
+        return Object.freeze({
+          ...observer.methods,
+          id: record.id,
+          source: record.source,
+          get closed() { return closed; },
+          drainEvents,
+          close(options) {
+            if (closed) return Promise.resolve(false);
+            return call("close", [record.id], options).then(Boolean).finally(function() { forget(); observer.stop(); });
+          }
+        });
+      }).catch(function(error) {
+        if (subscriptions.get(method) === pending) subscriptions.delete(method);
+        throw error;
+      });
+      subscriptions.set(method, pending);
+      return pending;
+    }
+    function startBroadcasts(event) {
+      if (["screen_on", "screen_off", "battery_changed"].includes(event)) {
+        observe("observeBroadcasts").catch(error => emitter.emit("error", error));
+      }
+    }
+    const api = {
+      observeNotification(options) { return observe("observeNotification", options); },
+      observeToast(options) { return observe("observeToast", options); },
+      observeKey(options) { return observe("observeKey", options); },
+      observeBroadcasts(options) { return observe("observeBroadcasts", options); },
+      on(event, listener) { emitter.on(event, listener); startBroadcasts(event); return api; },
+      once(event, listener) { emitter.once(event, listener); startBroadcasts(event); return api; },
+      off(event, listener) { emitter.off(event, listener); return api; },
+      async close(options) {
+        const results = await Promise.allSettled(Array.from(subscriptions.values(), pending => pending.then(sub => sub.close(options))));
+        emitter.removeAllListeners();
+        const failed = results.find(result => result.status === "rejected");
+        if (failed) throw failed.reason;
+      }
+    };
+    __autojs6_host_events_cache = Object.freeze(api);
+    return __autojs6_host_events_cache;
   }
   function __autojs6_limited_device() {
     if (__autojs6_limited_device_cache) {
@@ -21731,7 +21807,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const eventMethod = { sensors: "subscribe", websocket: "connect", ui: "showLayout", "ui.overlay": "show", input_observer: "observeKeys" };
     if ((moduleValue === "image" || moduleValue === "images") && methodValue === "toBytes") request.binary = true;
     const liveConfig = __autojs6_bridge_live_config();
-    if (eventMethod[moduleValue] === methodValue && liveConfig && liveConfig.transport === "jni" &&
+    if ((eventMethod[moduleValue] === methodValue || (moduleValue === "events" && methodValue.startsWith("observe"))) && liveConfig && liveConfig.transport === "jni" &&
         !__autojs6_bridge_native_unavailable && typeof globalThis.__autojs6_bridge_native_subscription === "function") {
       request.events = true;
     }
@@ -39391,6 +39467,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "fetch" || name === "autojs6:fetch") {
       return "fetch";
     }
+    if (name === "autojs6:events") return "autojs6:events";
     if (name === "axios") {
       return "axios";
     }
@@ -39773,6 +39850,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "fetch" || name === "autojs6:fetch") {
       return __autojs6_limited_fetch();
     }
+    if (name === "autojs6:events") return __autojs6_host_events();
     if (name === "undici") {
       return __autojs6_limited_undici();
     }

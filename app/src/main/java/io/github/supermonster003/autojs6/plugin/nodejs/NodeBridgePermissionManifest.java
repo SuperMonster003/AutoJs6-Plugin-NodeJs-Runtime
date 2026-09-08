@@ -74,6 +74,10 @@ public final class NodeBridgePermissionManifest {
     private static final String FILES_WRITE = "files.write";
     private static final String FILES_DELETE = "files.delete";
     private static final String CONSOLE = "console";
+    private static final String EVENTS = "events";
+    private static final String EVENTS_NOTIFICATION = "events.notification";
+    private static final String EVENTS_TOAST = "events.toast";
+    private static final String EVENTS_KEY = "events.key";
 
     private static final String ANDROID_PERMISSION_INTERNET = "android.permission.INTERNET";
     private static final String ANDROID_PERMISSION_FOREGROUND_SERVICE = "android.permission.FOREGROUND_SERVICE";
@@ -144,7 +148,11 @@ public final class NodeBridgePermissionManifest {
             FILES,
             FILES_WRITE,
             FILES_DELETE,
-            CONSOLE
+            CONSOLE,
+            EVENTS,
+            EVENTS_NOTIFICATION,
+            EVENTS_TOAST,
+            EVENTS_KEY
     );
     private static final Set<String> DEFINED_CAPABILITY_SET =
             Collections.unmodifiableSet(new HashSet<>(DEFINED_CAPABILITIES));

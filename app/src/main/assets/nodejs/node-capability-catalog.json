@@ -669,6 +669,11 @@
         "providerOwner": "host_capability_provider"
       },
       {
+        "id": "events",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
         "id": "fetch",
         "aliases": [],
         "providerOwner": "host_capability_provider"
@@ -1226,6 +1231,51 @@
         "method": "stopSelf",
         "requiredCapabilities": [
           "engines"
+        ]
+      },
+      {
+        "module": "events",
+        "method": "close",
+        "requiredCapabilities": [
+          "events"
+        ]
+      },
+      {
+        "module": "events",
+        "method": "drainEvents",
+        "requiredCapabilities": [
+          "events"
+        ]
+      },
+      {
+        "module": "events",
+        "method": "observeBroadcasts",
+        "requiredCapabilities": [
+          "events"
+        ]
+      },
+      {
+        "module": "events",
+        "method": "observeKey",
+        "requiredCapabilities": [
+          "events",
+          "events.key"
+        ]
+      },
+      {
+        "module": "events",
+        "method": "observeNotification",
+        "requiredCapabilities": [
+          "events",
+          "events.notification"
+        ]
+      },
+      {
+        "module": "events",
+        "method": "observeToast",
+        "requiredCapabilities": [
+          "events",
+          "events.toast"
         ]
       },
       {
@@ -2131,6 +2181,26 @@
           "engine.exec",
           "engines:exec"
         ],
+        "androidPermissions": []
+      },
+      {
+        "id": "events",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "events.key",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "events.notification",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "events.toast",
+        "aliases": [],
         "androidPermissions": []
       },
       {

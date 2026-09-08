@@ -3,6 +3,7 @@ import app = require("app");
 import dialogs = require("dialogs");
 import clipboard = require("clipboard");
 import device = require("device");
+import hostEvents = require("autojs6:events");
 import shell = require("shell");
 import engines = require("engines");
 import accessibility = require("accessibility");
@@ -122,6 +123,9 @@ async function smoke(): Promise<void> {
   const screenWidth: number = device.width;
   const density: number = device.density;
   const screenOn: boolean = await device.isScreenOn({ timeoutMs: 1000 });
+  const observeNotification: () => Promise<hostEvents.Subscription> = hostEvents.observeNotification;
+  const notificationListener: (event: hostEvents.NotificationEvent) => void = event => { const id: number = event.id; void id; };
+  void [observeNotification, notificationListener];
   const deviceInfo: device.DeviceInfo = await device.info();
   const availableMemory: number = await device.getAvailMem();
   const charging: boolean = await device.isCharging();

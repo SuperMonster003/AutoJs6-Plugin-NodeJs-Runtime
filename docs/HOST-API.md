@@ -59,6 +59,7 @@
 | `sensors` | getAvailableSensors, once, subscribe, unsubscribe, drainEvents | 真 SensorManager |
 | `ui` | showLayout, update, batchUpdate, close, drainEvents | Activity-owned 声明式 UI |
 | `work_manager` | scheduleOnce, schedulePeriodic, cancel, list | WorkManager 真调度 |
+| `autojs6:events` | observeNotification, observeToast, observeKey, observeBroadcasts, on/once/off, close | events 根声明仅授权屏幕/电池广播; 通知/Toast/按键各需显式子能力和 Android 对应权限 |
 | `autojs6:lifecycle` | checkpoint, readCheckpoint, clearCheckpoint | 注意: 宿主 getBrokerInfo 能力清单里不含它 (由 policy 层单独补), 以本清单为准 |
 
 ## 二. 部分可用 (bridged-partial)
@@ -72,7 +73,7 @@
 | `mediainfo` | read, get, capabilities (作用域内相对路径; 缺省保持 Node v1, 插件明确宣告后可显式请求插件 v1/v2) | — |
 | `ui.overlay` | show, update, drainEvents, close, closeAll, hasPermission, openPermissionSettings | 需 SYSTEM_ALERT_WINDOW; POC 级 |
 | `package_manager` (`npm` 为其别名) | list, verify, prune, planInstall/Update/Remove, install, update, remove (app 私有本地库) | npm CLI / registry 下载 / 生命周期脚本 |
-| `input_observer` | observeKeys, drainEvents, close, getAvailableSources (fake 源) | accessibility 实源在 scheduled/background 启动面拒绝 |
+| `input_observer` | observeKeys, drainEvents, close, getAvailableSources (fake/accessibility) | 实源需可运行的无障碍服务; 不拦截按键, touch/intercept 仍拒绝 |
 
 截屏需声明 `screen_capture` 与 `image`。`await images.requestScreenCapture()` 打开宿主既有 Android 授权流程, 授权后才启动 mediaProjection 前台服务; `captureScreen` / `media_projection.nextImage` 返回宿主图片句柄。`saveImage(handle, relativePath, {format, quality})` 在项目工作目录中保存 PNG/JPEG/WebP, 默认 PNG, quality 为 0..100。`images.stopScreenCapture()` / capturer.stop、系统撤销和脚本结束释放会话; 未授权捕获返回 `permission-denied`。图片延续每次执行默认 32 个活跃句柄的既有限制, recycle 或执行结束释放。M14.1 已验证未授权及图片保存路径, 正常授权的真机验收等待人工确认系统对话框, 进度见 Roadmap。
 
@@ -166,6 +167,22 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 两条通道共享 `autojs6:bridge-limits.maxPendingBridgeCalls` (默认 32, 硬上限 128)。JNI 响应队列仅接受当前通道的待处理请求, 重复响应与超时/取消后迟到的响应不再交付。超时会解除原生事件循环引用; 脚本结束时清理 V8 回调、请求队列和 JNI 通道, 下一次执行使用独立通道编号。
 
 ### 订阅事件推送
+
+`require("autojs6:events")` 提供 Android 观察者, `require("events")` / `require("node:events")` 继续返回原生 Node EventEmitter。声明 `events` 后, `on/once("screen_on" | "screen_off" | "battery_changed", listener)` 自动启动系统广播订阅, 也可显式 `await observeBroadcasts()`。初始电池状态与后续变化采用同一事件结构。
+
+`await observeNotification()` 另需 `events.notification` 和 [Android NotificationListenerService 通知读取授权](https://developer.android.com/reference/android/service/notification/NotificationListenerService), 回调包含系统通知 id/key/packageName/title/text/postTime; 不通过自行调用脚本监听器模拟通知。`observeToast()` 另需 `events.toast` 与无障碍, 沿用宿主对外部应用 Toast 的观察范围。`observeKey()` 另需 `events.key` 与无障碍, 复用 input_observer 的真实按键来源, 事件只观察、不消费。三个子能力均须显式声明, 不由 events 根能力隐含授予; 缺少 Android 授权返回 permission-denied, 已授权但系统服务未连接返回 unavailable。
+
+每种来源每个脚本保留一个订阅, 重复 observe 返回相同订阅; close 后可重新订阅。返回对象和模块支持 on/once/off, 返回对象可 close/drainEvents。JNI 使用 M12 的现有推送通道, file 兼容模式以 drainEvents 工作。脚本结束释放监听器和广播接收器, 通知/无障碍服务断开会关闭对应订阅。`await events.close()` 关闭全部来源并清除模块监听器。真机物理按键与 MediaProjection 授权仍按 Roadmap 的人工验收要求记录。
+
+```javascript
+const events = require("autojs6:events");
+try {
+  const battery = await new Promise(resolve => events.once("battery_changed", resolve));
+  console.log(battery.percent, battery.isCharging);
+} finally {
+  await events.close();
+}
+```
 
 `sensors.subscribe`, `websocket.connect`, `ui.showLayout`, `ui.overlay.show` 与 `input_observer.observeKeys` 在 JNI 通道上协商事件推送。建立订阅的请求带可选 `events=true`; 支持推送的宿主在原成功结果中增加 `subscriptionId`。此后同一个 `INodeJsHostCapabilityCallback.onResponse` 可多次收到 `event=true` 的 Bundle, `KEY_BRIDGE_RESPONSE_JSON` 对应如下信封:
 
