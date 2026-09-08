@@ -351,7 +351,20 @@ M13 Release 验证补记 (2026-09-08): build 116 的签名 arm64-v8a / x86_64 �
 
 - [ ] **M17.1 自建 libnode 管线**: 事实: 24.5.0 (2025-07) 之后 24.x 已有多个安全发布, M10.1 因上游无 Android 产物而停摆; `tools/nodejs/runtime-build/` 已有容器脚本但 `sourceBuild: bootstrap_only`; 兄弟仓 Bun Runtime 已做到 patched runtime 可复现构建 (提交 1944595)。动作: 钉容器 digest (Ubuntu LTS + NDK r28/r29 + Python/ninja), 提取 degaso/nodejs-mobile 相对官方 tag 的 Android 补丁集为 `tools/nodejs/runtime-build/patches/*.patch`, 构建 3 ABI (`-z max-page-size=16384`), 校验 `libnode.exports.map` 全部符号存在, lock 记录 sha256/buildId/补丁集哈希。Check: 本机或手动 CI job 完整构建一次, 产物替换后冒烟组 12 用例 + conformance 全绿; 同输入两次构建 sha256 一致, 或记录不一致来源。
 - [ ] **M17.2 晋级 24.x 最新 LTS**: 动作: 用 M17.1 产物; `node_runtime_adapter_24_5.cpp` (1,023 行) / `node_runtime_api_v1.h` 按符号与 ABI 差异适配 (新增 adapter 文件而非改旧文件, 运行时按版本选择); 全量 androidTest + 3 台真机; runtime-kit / catalog 发新版本 (本地发布物)。Check: `getRuntimeInfo` 报新版本; runtime-kit `releaseReady: true`; CHANGELOG `dependency` 条目 "升级 Node.js 24.5.0 → 24.x"。
-- [ ] **M17.3 体积与安装占用评估**: 事实: libnode 104~112 MB/ABI, `jniLibs.useLegacyPackaging = true` (`app/build.gradle.kts:114`) → APK 26 MB 下载 + 抽取 ~110 MB 安装占用。动作: 评估三项 — ① `useLegacyPackaging=false` + `System.loadLibrary` 替代 dlopen 路径 (下载 ×4, 安装 -110 MB); ② `--with-intl=small-icu` (约 -20 MB); ③ release 构建裁掉 inspector 后端 (`--without-inspector`, 需与 M10.2 debug 档位分产物)。出结论表 (下载体积 / 安装占用 / 冷启动 / 风险) 记录于此。Check: 结论入档; 若采纳任一项则接入 M17.1 管线开关并以冒烟组回归。
+- [x] **M17.3 体积与安装占用评估**: 2026-09-08 完成下表评估, 保留压缩打包、`--with-intl=none` 和 inspector 后端。原计划的“安装 -110 MB”“small-icu -20 MB”不适用于当前实际产物: AGP 已 strip native 库, 未压缩 APK 自身也占安装空间, 当前运行时没有 ICU/Intl。Java 加载入口已是 `System.loadLibrary`, C++ `dlopen("libnode.so")` 可复用已加载库, 无需修改加载实现; Gradle 旧注释已校正。未采纳新的瘦身开关。
+  - 同一 M16.3 Debug 代码构建压缩/未压缩两组, 三 ABI 的原生 ZIP 条目分别为 DEFLATED/STORED; 每组每设备 force-stop 后测 1 次冷执行 + 20 次同进程新 isolate, 计时包含进程绑定、首次 readiness/prewarm 与首脚本。三个 Node 源码构建容器在两组测量期间暂停, 之后恢复; AVD 仍受主机调度影响。压缩测量三端各 **1/1**, 未压缩测量 + SimpleRun 三端各 **2/2**; 测后已恢复三端原压缩 APK。单次冷样本用于本轮取舍, 不构成稳定加速结论。
+  - 以下下载为实际 Debug APK MiB, 安装为 `du -sk` 测得 `/data/app/...` 代码目录 MiB (含 APK/抽取库/当时已有 oat 等, 不含应用数据与测试 APK), 冷启动为 ms; 箭头表示压缩 → 未压缩。
+
+| 方案 / 设备 | 下载体积 | 安装代码占用 | 冷启动 / 暖执行中位数 | 风险与决定 |
+|---|---:|---:|---:|---|
+| APK 直接映射 / Xiaomi arm64, API 35 | 29.01 → 85.43 MiB | 113.46 → 85.51 MiB | 747 → 699 / 181 → 179 ms | 下载增加 56.42 MiB, 安装节省 27.95 MiB; 保留压缩 |
+| APK 直接映射 / Sony armv7, API 28 | 27.91 → 77.42 MiB | 104.28 → 77.46 MiB | 990 → 1011 / 471 → 472 ms | 下载增加 49.52 MiB, 安装节省 26.82 MiB; 保留压缩 |
+| APK 直接映射 / x86_64 AVD, API 36, 16 KB | 31.19 → 90.92 MiB | 121.04 → 90.92 MiB | 2961 → 2401 / 473 → 362 ms | 16 KB 直接映射可执行; 下载增加 59.73 MiB, 安装节省 30.11 MiB; 保留压缩 |
+| `--with-intl=small-icu` | 未另行构建测量; 相对当前 none 会新增 ICU | 无现成 ICU 可裁减 | 未测 | 三端 `process.versions.icu` 均缺失且 `typeof Intl === 'undefined'`; 保持 none, 需要 Intl 时另按功能需求评估 |
+| Release `--without-inspector` | 未另行构建测量 | 未测, 不宣称节省数值 | 未测 | M10.2 Debug 调试需要后端, 裁减需维护 Debug/Release 两套三 ABI 库; 当前不采用。默认脚本 `process.features.inspector === false` 是公开能力档位, 不能据此判断后端未编译 |
+
+测量日志位于本机 `build/m17/packaging-{compressed,uncompressed}-<serial>.txt`, 代码目录占用与 APK ZIP 明细同目录留存; 它们是此次维护记录, 不挂默认构建门禁。后续 Node 24.20.0 的最终 Release 体积以实际构建产物为准。
+
 - [x] **M17.4 月度安全复查制度化**: 2026-09-08 首次手动复查完成。每月首个维护工作日由维护者检查 [Node 24.x 发布](https://nodejs.org/en/blog/release)、[Node 安全公告](https://nodejs.org/en/blog/vulnerability) 与 [OpenSSL 3.5 公告](https://openssl-library.org/news/vulnerabilities-3.5/), 在下表追加当月一行, 保留检查日期、实际嵌入版本、影响判断与动作; 有影响即推进 M17.1/M17.2, 未产出并验收前不标“已晋级”。复查按月手动执行, 不加入 APK/PR 默认构建或设备网络流程; 下次为 2026-10 首个维护工作日。
 
 | 复查日期 | 上游最新 24.x | 本插件版本 | 结论 |
