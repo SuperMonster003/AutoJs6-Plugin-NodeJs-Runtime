@@ -6527,6 +6527,9 @@ std::string buildEmbeddedScriptExecutionSource(
       } catch (_) {}
     }
     __autojs6_bridge_pending.delete(record.id);
+    if (typeof globalThis.__autojs6_bridge_native_cancel === "function") {
+      globalThis.__autojs6_bridge_native_cancel(record.id);
+    }
     __autojs6_bridge_publish_diagnostics(record, "error", error);
     record.reject(error);
   }
@@ -6541,6 +6544,9 @@ std::string buildEmbeddedScriptExecutionSource(
       } catch (_) {}
     }
     __autojs6_bridge_pending.delete(record.id);
+    if (typeof globalThis.__autojs6_bridge_native_cancel === "function") {
+      globalThis.__autojs6_bridge_native_cancel(record.id);
+    }
     __autojs6_bridge_publish_diagnostics(record, "end", null);
     record.resolve(value);
   }
@@ -6566,6 +6572,10 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_bridge_reject_pending(record, __autojs6_bridge_response_error(response.error, record.request));
     return true;
   }
+  if (typeof globalThis.__autojs6_bridge_native_listen === "function") {
+    globalThis.__autojs6_bridge_native_listen(__autojs6_bridge_receive_message);
+  }
+  let __autojs6_bridge_native_unavailable = false;
   function __autojs6_bridge_destroy(reason) {
     __autojs6_bridge_destroyed = true;
     __autojs6_destroy_all_zlib_streams("bridge destroy");
@@ -6804,6 +6814,7 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       const pollIntervalMs = __autojs6_bridge_timeout_ms(parsed.pollIntervalMs || 10);
       __autojs6_bridge_live_config_cache = Object.freeze({
+        transport: parsed.transport === "file" ? "file" : "jni",
         requestDir,
         responseDir,
         pollIntervalMs: Math.max(5, Math.min(pollIntervalMs, 250))
@@ -6866,6 +6877,16 @@ std::string buildEmbeddedScriptExecutionSource(
     const config = __autojs6_bridge_live_config();
     if (!config || !request || !request.id) {
       return false;
+    }
+    if (config.transport === "jni" && !__autojs6_bridge_native_unavailable) {
+      if (typeof globalThis.__autojs6_bridge_native_post === "function" &&
+          globalThis.__autojs6_bridge_native_post(typeof message === "string" ? message : JSON.stringify(message))) {
+        return true;
+      }
+      __autojs6_bridge_native_unavailable = true;
+      if (typeof globalThis.__autojs6_bridge_native_file_fallback === "function") {
+        globalThis.__autojs6_bridge_native_file_fallback();
+      }
     }
     const fs = __autojs6_fs_module();
     if (

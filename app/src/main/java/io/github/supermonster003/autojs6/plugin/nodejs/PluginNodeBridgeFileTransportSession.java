@@ -1,9 +1,11 @@
 package io.github.supermonster003.autojs6.plugin.nodejs;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
 
+import org.autojs.autojs.engine.NativeNodeEmbeddedRuntimeBridge;
 import org.autojs.plugin.nodejs.api.INodeJsHostCapabilityBroker;
 import org.autojs.plugin.nodejs.api.INodeJsHostCapabilityCallback;
 import org.autojs.plugin.nodejs.api.NodeJsRuntimeContract;
@@ -22,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-final class PluginNodeBridgeFileTransportSession {
+final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRuntimeBridge.BridgeSink {
 
     static final String RUNTIME_MODULE_NAME = "autojs6:bridge-live-config";
     static final String BRIDGE_LIMITS_RUNTIME_MODULE_NAME = "autojs6:bridge-limits";
@@ -56,6 +58,8 @@ final class PluginNodeBridgeFileTransportSession {
     private final long startedAtEpochMs = System.currentTimeMillis();
     private final BridgeSessionHistory history = new BridgeSessionHistory();
     private final Thread thread;
+    private volatile String transport;
+    private boolean nativeInstalled;
 
     PluginNodeBridgeFileTransportSession(
             File cacheDir,
@@ -63,6 +67,14 @@ final class PluginNodeBridgeFileTransportSession {
             INodeJsHostCapabilityBroker hostBroker,
             int maxPendingBridgeCalls
     ) {
+        this(cacheDir, executionId, hostBroker, maxPendingBridgeCalls, "file");
+    }
+
+    PluginNodeBridgeFileTransportSession(
+            File cacheDir, String executionId, INodeJsHostCapabilityBroker hostBroker,
+            int maxPendingBridgeCalls, String transport
+    ) {
+        this.transport = transport;
         this.root = new File(
                 new File(cacheDir, "nodejs-bridge-live"),
                 safeFileName(nonBlank(executionId, "execution-" + System.nanoTime()))
@@ -78,9 +90,6 @@ final class PluginNodeBridgeFileTransportSession {
         this.thread = new Thread(this::loop);
         this.thread.setName("AutoJs6PluginNodeBridgeFileTransport-" + root.getName());
         this.thread.setDaemon(true);
-        deleteRecursively(root);
-        requestDir.mkdirs();
-        responseDir.mkdirs();
     }
 
     static int maxPendingBridgeCallsFromRuntimeModule(Map<String, String> runtimeModuleSources) {
@@ -99,11 +108,20 @@ final class PluginNodeBridgeFileTransportSession {
         }
     }
 
+    static String transportFromRuntimeModule(Map<String, String> sources) {
+        try {
+            String json = sources.get(RUNTIME_MODULE_NAME);
+            if (json != null && "file".equals(new JSONObject(json).optString("transport"))) return "file";
+        } catch (Exception ignored) { }
+        return "jni";
+    }
+
     String configJson() {
         try {
             return new JSONObject()
                     .put("enabled", true)
                     .put("version", 1)
+                    .put("transport", transport)
                     .put("requestDir", requestDir.getAbsolutePath())
                     .put("responseDir", responseDir.getAbsolutePath())
                     .put("pollIntervalMs", POLL_INTERVAL_MS)
@@ -113,14 +131,53 @@ final class PluginNodeBridgeFileTransportSession {
         }
     }
 
+    void start(Context context) {
+        if ("jni".equals(transport)) {
+            try {
+                NativeNodeEmbeddedRuntimeBridge.setBridgeSink(context, this, maxPendingBridgeCalls);
+                nativeInstalled = true;
+                return;
+            } catch (LinkageError | RuntimeException error) {
+                Log.w(TAG, "JNI bridge unavailable; using file transport.", error);
+            }
+        }
+        useFileTransport();
+    }
+
     void start() {
-        if (running.compareAndSet(false, true)) {
+        useFileTransport();
+    }
+
+    @Override
+    public synchronized void useFileTransport() {
+        if (!stopped.get() && running.compareAndSet(false, true)) {
+            transport = "file";
+            deleteRecursively(root);
+            requestDir.mkdirs();
+            responseDir.mkdirs();
             thread.start();
         }
     }
 
+    @Override
+    public boolean post(long channelId, byte[] requestJson) {
+        if (stopped.get()) return false;
+        String requestText = new String(requestJson, StandardCharsets.UTF_8);
+        BridgeRequestIdentity identity = bridgeRequestIdentity(requestText, "invalid");
+        dispatchRequest(requestText, identity, response -> {
+            recordResponse(response);
+            if (!stopped.get()) {
+                NativeNodeEmbeddedRuntimeBridge.receiveBridgeResponse(channelId,
+                        identity.id.getBytes(StandardCharsets.UTF_8), response.getBytes(StandardCharsets.UTF_8));
+            }
+        });
+        // Once dispatch is accepted, even a broker error is a response; never replay it.
+        return true;
+    }
+
     void stop() {
         if (stopped.compareAndSet(false, true)) {
+            if (nativeInstalled) NativeNodeEmbeddedRuntimeBridge.clearBridgeSink();
             if (running.compareAndSet(true, false)) {
                 // No request is outstanding on the common path. Wake the
                 // polling thread immediately instead of paying up to one full
@@ -146,6 +203,7 @@ final class PluginNodeBridgeFileTransportSession {
     String[] nativePayload() {
         LinkedHashMap<String, String> values = new LinkedHashMap<>();
         values.put("embedded_script.bridge_live_enabled", "true");
+        values.put("embedded_script.bridge_live_transport", transport);
         values.put("embedded_script.bridge_live_request_count", Integer.toString(requestCount.get()));
         values.put("embedded_script.bridge_live_dispatch_count", Integer.toString(completed.get()));
         values.put("embedded_script.bridge_live_dispatch_failed_count", Integer.toString(failed.get()));
@@ -212,7 +270,7 @@ final class PluginNodeBridgeFileTransportSession {
             requestText = readText(file);
         } catch (Throwable error) {
             BridgeRequestIdentity identity = new BridgeRequestIdentity(fileId(file), "", "");
-            recordResponse(
+            recordFileResponse(
                     bridgeFailureResponseJson(
                             identity,
                             "AutoJs6 live bridge request could not be read: " + messageOf(error),
@@ -224,27 +282,32 @@ final class PluginNodeBridgeFileTransportSession {
             return;
         }
         BridgeRequestIdentity identity = bridgeRequestIdentity(requestText, fileId(file));
+        dispatchRequest(requestText, identity, response -> {
+            recordFileResponse(response, identity);
+            deleteRequestFile(file);
+        });
+    }
+
+    private interface ResponseDelivery {
+        void deliver(String responseJson);
+    }
+
+    private void dispatchRequest(String requestText, BridgeRequestIdentity identity, ResponseDelivery delivery) {
         requestCount.incrementAndGet();
         lastRequestAtEpochMs.set(System.currentTimeMillis());
-        if (pending.get() >= maxPendingBridgeCalls) {
+        if (pending.incrementAndGet() > maxPendingBridgeCalls) {
+            pending.decrementAndGet();
             resourceLimited.incrementAndGet();
-            recordResponse(
-                    bridgeFailureResponseJson(
-                            identity,
-                            "AutoJs6 live bridge exceeded " + maxPendingBridgeCalls + " pending calls.",
-                            BRIDGE_RESOURCE_LIMIT
-                    ),
-                    identity
-            );
-            deleteRequestFile(file);
+            delivery.deliver(bridgeFailureResponseJson(identity,
+                    "AutoJs6 live bridge exceeded " + maxPendingBridgeCalls + " pending calls.",
+                    BRIDGE_RESOURCE_LIMIT));
             return;
         }
-        pending.incrementAndGet();
         AtomicBoolean responded = new AtomicBoolean(false);
         INodeJsHostCapabilityCallback callback = new INodeJsHostCapabilityCallback.Stub() {
             @Override
             public void onResponse(Bundle response) {
-                completeResponse(file, identity, responded, responseJsonFromBundle(response, identity));
+                completeResponse(responded, delivery, responseJsonFromBundle(response, identity));
             }
         };
         try {
@@ -252,27 +315,17 @@ final class PluginNodeBridgeFileTransportSession {
             brokerRequest.putString(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_JSON, requestText);
             hostBroker.dispatch(brokerRequest, callback);
         } catch (Throwable error) {
-            completeResponse(
-                    file,
-                    identity,
-                    responded,
-                    bridgeFailureResponseJson(identity, messageOf(error), BRIDGE_PROVIDER_FAILED)
-            );
+            completeResponse(responded, delivery,
+                    bridgeFailureResponseJson(identity, messageOf(error), BRIDGE_PROVIDER_FAILED));
         }
     }
 
-    private void completeResponse(
-            File requestFile,
-            BridgeRequestIdentity identity,
-            AtomicBoolean responded,
-            String responseJson
-    ) {
-        if (!responded.compareAndSet(false, true)) {
-            return;
+    private void completeResponse(AtomicBoolean responded, ResponseDelivery delivery, String responseJson) {
+        if (responded.compareAndSet(false, true)) {
+            // Retire the Java slot before waking Node, which may immediately post again.
+            pending.decrementAndGet();
+            delivery.deliver(responseJson);
         }
-        recordResponse(responseJson, identity);
-        pending.decrementAndGet();
-        deleteRequestFile(requestFile);
     }
 
     private void deleteRequestFile(File file) {
@@ -306,7 +359,12 @@ final class PluginNodeBridgeFileTransportSession {
         );
     }
 
-    private void recordResponse(String responseJson, BridgeRequestIdentity fallbackIdentity) {
+    private void recordFileResponse(String responseJson, BridgeRequestIdentity identity) {
+        recordResponse(responseJson);
+        writeResponse(responseJson, identity);
+    }
+
+    private void recordResponse(String responseJson) {
         boolean ok = false;
         String diagnosticJson = "null";
         try {
@@ -322,7 +380,6 @@ final class PluginNodeBridgeFileTransportSession {
         if (!ok) {
             failed.incrementAndGet();
         }
-        writeResponse(responseJson, fallbackIdentity);
     }
 
     private void writeResponse(String responseJson, BridgeRequestIdentity fallbackIdentity) {

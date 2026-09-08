@@ -1,4 +1,5 @@
 #include "node_bridge_internal.h"
+#include "node_bridge_native_transport.h"
 
 namespace autojs6::node_bridge::internal {
 
@@ -1309,6 +1310,7 @@ void runEmbeddedScriptNodeLifecycle(
                 "autojs6-embedded-environment-probe"
         };
         std::vector<std::string> environmentExecArgs;
+        std::shared_ptr<NativeBridgeChannel> bridgeChannel;
         v8::Local<v8::Context> context;
         v8::Context* contextRaw = nullptr;
         bool isolateEntered = false;
@@ -1373,6 +1375,7 @@ void runEmbeddedScriptNodeLifecycle(
                     __android_log_print(ANDROID_LOG_WARN, kLogTag, "environment.create.failed elapsed=%lldms result=null", elapsedMs(environmentCreateStartedAt));
                 } else {
                     if (scriptExecution) {
+                        bridgeChannel = createNativeBridgeChannel(isolate, context, eventLoop.get());
                         // Publish for cooperative cancellation; a stop that
                         // arrived before the environment existed fires now.
                         const bool notPreCancelled = registerActiveScriptEnvironment(handle, environment);
@@ -1703,6 +1706,8 @@ void runEmbeddedScriptNodeLifecycle(
             }
         }
 
+        closeNativeBridgeChannel(bridgeChannel);
+        bridgeChannel.reset();
         if (environment != nullptr) {
             if (scriptExecution) {
                 // Failure paths can reach teardown without ever spinning the
