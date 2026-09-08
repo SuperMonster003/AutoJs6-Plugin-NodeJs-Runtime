@@ -1,19 +1,22 @@
 "nodejs";
 
-function codeOf(error) {
-  return String(error && (error.code || error.autojs6Code || error.name || "ERROR"));
-}
-
 (async function main() {
   let capture = null;
   try {
     const image = require("image");
     const ocr = require("ocr");
-    capture = await image.captureScreen({ requireExistingPermission: true, timeoutMs: 3000 });
-    const text = await ocr.recognizeText(capture, { timeoutMs: 5000 });
+    await image.requestScreenCapture({ timeoutMs: 120000 });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    capture = await image.captureScreen();
+    const text = await ocr.recognizeText(capture, { timeoutMs: 30000 });
     console.log("sample.pro-parity-suite.screenshot-ocr.text=" + String(text).slice(0, 32));
+    console.log("sample.pro-parity-suite.screenshot-ocr=PASS");
   } catch (error) {
-    console.log("sample.pro-parity-suite.screenshot-ocr.skipped=" + codeOf(error));
+    if (error && ["permission-denied", "unavailable"].includes(error.category)) {
+      console.log("sample.pro-parity-suite.screenshot-ocr.skipped=" + error.message);
+    } else {
+      throw error;
+    }
   } finally {
     if (capture) {
       try {
@@ -22,8 +25,8 @@ function codeOf(error) {
         // Ignore cleanup failure in example skip paths.
       }
     }
+    await require("image").stopScreenCapture();
   }
-  console.log("sample.pro-parity-suite.screenshot-ocr=PASS");
 })().catch((error) => {
   console.error(error && (error.stack || error.message) || error);
   process.exitCode = 1;

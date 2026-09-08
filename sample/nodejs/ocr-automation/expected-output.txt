@@ -1,3 +1,5 @@
-sample.ocr-automation.modules=object/function
-sample.ocr-automation.text=<available or unavailable marker>
+sample.ocr-automation.text=<recognized screen text, up to 160 characters>
 sample.ocr-automation=PASS
+
+When capture is denied or the OCR plugin is unavailable:
+sample.ocr-automation.skipped=<readable error>
