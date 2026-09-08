@@ -7,7 +7,6 @@ import android.util.Log;
 import org.autojs.plugin.nodejs.api.INodeJsHostCapabilityBroker;
 import org.autojs.plugin.nodejs.api.INodeJsHostCapabilityCallback;
 import org.autojs.plugin.nodejs.api.NodeJsRuntimeContract;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -15,12 +14,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -58,8 +54,7 @@ final class PluginNodeBridgeFileTransportSession {
     private final AtomicLong lastRequestAtEpochMs = new AtomicLong(0L);
     private final AtomicLong lastResponseAtEpochMs = new AtomicLong(0L);
     private final long startedAtEpochMs = System.currentTimeMillis();
-    private final List<String> seen = Collections.synchronizedList(new ArrayList<>());
-    private final List<String> responseJsonValues = Collections.synchronizedList(new ArrayList<>());
+    private final BridgeSessionHistory history = new BridgeSessionHistory();
     private final Thread thread;
 
     PluginNodeBridgeFileTransportSession(
@@ -163,7 +158,9 @@ final class PluginNodeBridgeFileTransportSession {
         values.put("embedded_script.bridge_live_dispatch_last_request_at_epoch_ms", Long.toString(lastRequestAtEpochMs.get()));
         values.put("embedded_script.bridge_live_dispatch_last_response_at_epoch_ms", Long.toString(lastResponseAtEpochMs.get()));
         values.put("embedded_script.bridge_live_dispatch_status", pending.get() <= 0 ? "done" : "pending");
-        values.put("embedded_script.bridge_live_responses_json", bridgeResponsesJsonSnapshot());
+        values.put("embedded_script.bridge_live_responses_json", history.responsesJson());
+        values.put("embedded_script.bridge_live_retained_request_count", Integer.toString(history.requestCount()));
+        values.put("embedded_script.bridge_live_retained_response_count", Integer.toString(history.responseCount()));
         values.put("embedded_script.runtime_plugin.host_broker.live_dispatch_count", Integer.toString(completed.get()));
         values.put("embedded_script.runtime_plugin.host_broker.live_dispatch_failed_count", Integer.toString(failed.get()));
         values.put("embedded_script.runtime_plugin.host_broker.live_dispatch_pending_count", Integer.toString(Math.max(0, pending.get())));
@@ -203,11 +200,12 @@ final class PluginNodeBridgeFileTransportSession {
     }
 
     private void dispatchRequestFile(File file) {
-        synchronized (seen) {
-            if (seen.contains(file.getName())) {
+        synchronized (history) {
+            // A callback may delete a file after listFiles() captured it. Check
+            // existence under the same lock as deletion and request retirement.
+            if (!file.isFile() || !history.beginRequest(file.getName())) {
                 return;
             }
-            seen.add(file.getName());
         }
         String requestText;
         try {
@@ -222,7 +220,7 @@ final class PluginNodeBridgeFileTransportSession {
                     ),
                     identity
             );
-            file.delete();
+            deleteRequestFile(file);
             return;
         }
         BridgeRequestIdentity identity = bridgeRequestIdentity(requestText, fileId(file));
@@ -238,7 +236,7 @@ final class PluginNodeBridgeFileTransportSession {
                     ),
                     identity
             );
-            file.delete();
+            deleteRequestFile(file);
             return;
         }
         pending.incrementAndGet();
@@ -274,7 +272,16 @@ final class PluginNodeBridgeFileTransportSession {
         }
         recordResponse(responseJson, identity);
         pending.decrementAndGet();
-        requestFile.delete();
+        deleteRequestFile(requestFile);
+    }
+
+    private void deleteRequestFile(File file) {
+        synchronized (history) {
+            // If deletion fails, retain the name so a side effect is not replayed.
+            if (file.delete() || !file.exists()) {
+                history.forgetRequest(file.getName());
+            }
+        }
     }
 
     private String responseJsonFromBundle(Bundle response, BridgeRequestIdentity identity) {
@@ -300,10 +307,19 @@ final class PluginNodeBridgeFileTransportSession {
     }
 
     private void recordResponse(String responseJson, BridgeRequestIdentity fallbackIdentity) {
-        responseJsonValues.add(responseJson);
+        boolean ok = false;
+        String diagnosticJson = "null";
+        try {
+            JSONObject response = new JSONObject(responseJson);
+            ok = response.optBoolean("ok", false);
+            diagnosticJson = response.toString();
+        } catch (Throwable ignored) {
+            // Preserve the old null entry for malformed broker responses.
+        }
+        history.recordResponse(diagnosticJson);
         lastResponseAtEpochMs.set(System.currentTimeMillis());
         completed.incrementAndGet();
-        if (!bridgeResponseOk(responseJson)) {
+        if (!ok) {
             failed.incrementAndGet();
         }
         writeResponse(responseJson, fallbackIdentity);
@@ -324,20 +340,6 @@ final class PluginNodeBridgeFileTransportSession {
             temp.delete();
             Log.w(TAG, "Live bridge response write failed.", error);
         }
-    }
-
-    private String bridgeResponsesJsonSnapshot() {
-        JSONArray responses = new JSONArray();
-        synchronized (responseJsonValues) {
-            for (String responseJson : responseJsonValues) {
-                try {
-                    responses.put(new JSONObject(responseJson));
-                } catch (Throwable ignored) {
-                    responses.put(JSONObject.NULL);
-                }
-            }
-        }
-        return responses.toString();
     }
 
     private static BridgeRequestIdentity bridgeRequestIdentity(String requestJson, String fallbackId) {
@@ -382,14 +384,6 @@ final class PluginNodeBridgeFileTransportSession {
             return "resource-limit";
         }
         return "provider-failed";
-    }
-
-    private static boolean bridgeResponseOk(String responseJson) {
-        try {
-            return new JSONObject(responseJson).optBoolean("ok", false);
-        } catch (Throwable ignored) {
-            return false;
-        }
     }
 
     private static String responseId(String responseJson, String fallbackId) {

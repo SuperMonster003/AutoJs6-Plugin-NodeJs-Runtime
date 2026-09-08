@@ -5,6 +5,12 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.3.0": {
+      "released_date": "尚未发布",
+      "fix": [
+        "修复长驻脚本的桥会话持续累积请求与响应记录的问题, 清理已完成请求, 仅保留最近 32 条响应并限制诊断体积"
+      ]
+    },
     "v1.2.0": {
       "released_date": "2026/08/29",
       "feature": [
