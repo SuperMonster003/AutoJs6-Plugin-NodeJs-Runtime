@@ -5845,12 +5845,13 @@ std::string buildEmbeddedScriptExecutionSource(
     if (moduleName === "app") {
       if (methodName === "launchPackage" || methodName === "launchApp") return ["app.launch"];
       if (methodName === "openAppSetting") return ["app.settings"];
-      if (methodName === "startActivity") return ["app.activity"];
+      if (["startActivity", "startService", "sendBroadcast"].includes(methodName)) return ["app.activity"];
       if (methodName === "viewFile" || methodName === "editFile") return ["app.activity"];
-      if (methodName === "getPackageName" || methodName === "getAppName" || methodName === "isInstalled") return ["app.query"];
+      if (["getPackageName", "getAppName", "isInstalled", "getInstalledApps", "getPackageInfo"].includes(methodName)) return ["app.query"];
       return ["app"];
     }
     if (moduleName === "dialogs") return ["dialogs"];
+    if (moduleName === "keys") return ["keys"];
     if (moduleName === "engines") {
       if (methodName === "execScript" || methodName === "execScriptFile") return ["engines", "engines.exec"];
       return ["engines"];
@@ -17405,14 +17406,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return parts.join(" ");
   }
-  function __autojs6_app_send_broadcast_unavailable_error() {
-    return __autojs6_bridge_error(
-      "app.sendBroadcast is not available in the Node.js engine yet; P13-23 keeps broadcast send APIs blocked until receiver authority, manifest policy, and root/Shizuku separation are complete.",
-      "ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED",
-      "app",
-      "sendBroadcast"
-    );
-  }
   function __autojs6_app_raw_uri_unavailable_error(methodName) {
     return __autojs6_bridge_error(
       "app." + methodName + " is not available in the Node.js engine yet; P13-23 keeps raw Android Uri and FileProvider handles out of Node. Use app.parseUri() for JSON-safe URI inspection or app.viewFile()/app.editFile() for scoped file activity routing.",
@@ -17651,8 +17644,19 @@ std::string buildEmbeddedScriptExecutionSource(
     function startDualActivity(options, callOptions) {
       return Promise.reject(__autojs6_app_privileged_unavailable_error("startDualActivity"));
     }
-    function sendBroadcast(options, callOptions) {
-      return Promise.reject(__autojs6_app_send_broadcast_unavailable_error());
+    function dispatchIntent(method, options, callOptions) {
+      let descriptor;
+      try { descriptor = __autojs6_app_normalize_intent_descriptor(typeof options === "string" ? {action: options} : options, method); }
+      catch (error) { return Promise.reject(error); }
+      return __autojs6_call_autojs("app", method, [descriptor], __autojs6_app_bridge_options(callOptions, 10000));
+    }
+    function sendBroadcast(options, callOptions) { return dispatchIntent("sendBroadcast", options, callOptions); }
+    function startService(options, callOptions) { return dispatchIntent("startService", options, callOptions); }
+    function getInstalledApps(options, callOptions) {
+      return __autojs6_call_autojs("app", "getInstalledApps", [options || {}], __autojs6_app_bridge_options(callOptions, 10000));
+    }
+    function getPackageInfo(packageName, options) {
+      return __autojs6_call_autojs("app", "getPackageInfo", [String(packageName || "")], __autojs6_app_bridge_options(options, 10000));
     }
     function openDualUrl(url, options) {
       return Promise.reject(__autojs6_app_privileged_unavailable_error("openDualUrl"));
@@ -17714,6 +17718,9 @@ std::string buildEmbeddedScriptExecutionSource(
       startActivity,
       startDualActivity,
       sendBroadcast,
+      startService,
+      getInstalledApps,
+      getPackageInfo,
       kill,
       killDual
     });
@@ -17992,6 +17999,13 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_dialogs_string(value) {
     return value === undefined || value === null ? "" : String(value);
   }
+  function __autojs6_dialogs_presentation_options(options) {
+    const result = {};
+    for (const key of ["positive", "negative", "neutral"]) {
+      if (options && options[key] !== undefined) result[key] = String(options[key]);
+    }
+    return result;
+  }
   function __autojs6_dialogs_options(args, index) {
     const value = args[index];
     return value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -18025,7 +18039,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_call_autojs(
         "dialogs",
         "alert",
-        [__autojs6_dialogs_string(title), normalized.message],
+        [__autojs6_dialogs_string(title), normalized.message, __autojs6_dialogs_presentation_options(normalized.options)],
         __autojs6_dialogs_bridge_options(normalized.options, 30000)
       ).then(function() {
         return undefined;
@@ -18036,7 +18050,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_call_autojs(
         "dialogs",
         "confirm",
-        [__autojs6_dialogs_string(title), normalized.message],
+        [__autojs6_dialogs_string(title), normalized.message, __autojs6_dialogs_presentation_options(normalized.options)],
         __autojs6_dialogs_bridge_options(normalized.options, 30000)
       ).then(function(result) {
         return result === true;
@@ -18052,7 +18066,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_call_autojs(
         "dialogs",
         "input",
-        [__autojs6_dialogs_string(title), __autojs6_dialogs_string(value)],
+        [__autojs6_dialogs_string(title), __autojs6_dialogs_string(value), __autojs6_dialogs_presentation_options(bridgeOptions)],
         __autojs6_dialogs_bridge_options(bridgeOptions, 30000)
       ).then(function(result) {
         return result === undefined || result === null ? null : String(result);
@@ -18068,21 +18082,56 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_call_autojs(
         "dialogs",
         "select",
-        [__autojs6_dialogs_string(title), items.map(__autojs6_dialogs_string)],
+        [__autojs6_dialogs_string(title), items.map(__autojs6_dialogs_string), __autojs6_dialogs_presentation_options(options)],
         __autojs6_dialogs_bridge_options(__autojs6_dialogs_options(arguments, 2), 30000)
       ).then(function(result) {
         const index = Number(result);
         return Number.isFinite(index) ? index : -1;
       });
     }
+    function rawInput(title, prefill, options) {
+      return __autojs6_call_autojs("dialogs", "rawInput", [String(title || ""), String(prefill === undefined ? "" : prefill), __autojs6_dialogs_presentation_options(options)],
+        __autojs6_dialogs_bridge_options(options, 30000));
+    }
+    function choose(method, title, items, selected, options) {
+      if (!Array.isArray(items)) return Promise.reject(__autojs6_dialogs_invalid_argument_error(method, "Dialog choices must be an array."));
+      return __autojs6_call_autojs("dialogs", method, [String(title || ""), items.map(String), selected, __autojs6_dialogs_presentation_options(options)],
+        __autojs6_dialogs_bridge_options(options, 30000));
+    }
+    const progress = Object.freeze({
+      async show(descriptor, options) {
+        const record = await __autojs6_call_autojs("dialogs", "progressShow", [descriptor || {}], __autojs6_dialogs_bridge_options(options, 10000));
+        return Object.freeze(Object.assign({}, record, {
+          update(patch, options) { return progress.update(record.id, patch, options); },
+          dismiss(options) { return progress.dismiss(record.id, options); }
+        }));
+      },
+      update(id, patch, options) { return __autojs6_call_autojs("dialogs", "progressUpdate", [id, patch], __autojs6_dialogs_bridge_options(options, 5000)); },
+      dismiss(id, options) { return __autojs6_call_autojs("dialogs", "progressDismiss", [id], __autojs6_dialogs_bridge_options(options, 5000)); }
+    });
     __autojs6_limited_dialogs_cache = Object.freeze({
       alert,
       confirm,
       input,
       prompt: input,
-      select
+      select,
+      rawInput,
+      singleChoice(title, items, selected, options) { return choose("singleChoice", title, items, selected === undefined ? -1 : selected, options); },
+      multiChoice(title, items, selected, options) { return choose("multiChoice", title, items, selected || [], options); },
+      progress
     });
     return __autojs6_limited_dialogs_cache;
+  }
+  let __autojs6_keys_cache;
+  function __autojs6_keys() {
+    if (!__autojs6_keys_cache) {
+      const api = {};
+      for (const method of ["notifications", "quickSettings", "lockScreen", "takeScreenshot", "splitScreen", "powerDialog"]) {
+        api[method] = options => __autojs6_call_autojs("keys", method, [], options).then(Boolean);
+      }
+      __autojs6_keys_cache = Object.freeze(api);
+    }
+    return __autojs6_keys_cache;
   }
   function __autojs6_ui_options(value) {
     return value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -39468,6 +39517,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return "fetch";
     }
     if (name === "autojs6:events") return "autojs6:events";
+    if (name === "keys") return "keys";
     if (name === "axios") {
       return "axios";
     }
@@ -39851,6 +39901,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_limited_fetch();
     }
     if (name === "autojs6:events") return __autojs6_host_events();
+    if (name === "keys") return __autojs6_keys();
     if (name === "undici") {
       return __autojs6_limited_undici();
     }

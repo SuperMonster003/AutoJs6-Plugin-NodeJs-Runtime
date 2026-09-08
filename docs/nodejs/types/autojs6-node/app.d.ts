@@ -57,6 +57,17 @@ declare module "app" {
 
     export type EmailAddressList = string | readonly string[];
 
+    export interface PackageInfo {
+      readonly packageName: string;
+      readonly appName: string;
+      readonly versionName: string;
+      readonly versionCode: number;
+      readonly system: boolean;
+      readonly enabled: boolean;
+      readonly firstInstallTime: number;
+      readonly lastUpdateTime: number;
+    }
+
     export interface SendEmailRequest {
       readonly to?: EmailAddressList;
       readonly email?: EmailAddressList;
@@ -112,7 +123,13 @@ declare module "app" {
       startActivity(request: IntentRequest, options?: AutoJs6Node.BridgeCallOptions): Promise<void>;
       startActivity(url: string, options?: AutoJs6Node.BridgeCallOptions): Promise<void>;
       startDualActivity(request: IntentRequest | string, options?: AutoJs6Node.BridgeCallOptions): Promise<never>;
-      sendBroadcast(request: IntentRequest | string, options?: AutoJs6Node.BridgeCallOptions): Promise<never>;
+      /** Sends through Android as the host app; a string is an action name. */
+      sendBroadcast(request: IntentRequest | string, options?: AutoJs6Node.BridgeCallOptions): Promise<void>;
+      /** Starts a regular Android service, subject to Android background-start restrictions. */
+      startService(request: IntentRequest, options?: AutoJs6Node.BridgeCallOptions): Promise<string | null>;
+      /** Returns packages visible to Android's package manager. */
+      getInstalledApps(filter?: { readonly includeSystem?: boolean }, options?: AutoJs6Node.BridgeCallOptions): Promise<readonly PackageInfo[]>;
+      getPackageInfo(packageName: string, options?: AutoJs6Node.BridgeCallOptions): Promise<PackageInfo | null>;
       kill(packageName: string, options?: AutoJs6Node.BridgeCallOptions): Promise<never>;
       killDual(packageName: string, options?: AutoJs6Node.BridgeCallOptions): Promise<never>;
     }
