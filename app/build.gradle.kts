@@ -120,8 +120,8 @@ android {
 
     @Suppress("DEPRECATION")
     packagingOptions {
-        // The host app loads libnode.so from this plugin with System.load(absPath).
-        // Keep native libraries extracted under applicationInfo.nativeLibraryDir.
+        // M17.3: keep compressed downloads; direct APK mapping saves about 27-30 MiB
+        // of installed code but increases each ABI download by about 50-60 MiB.
         jniLibs.useLegacyPackaging = true
 
         listOf(

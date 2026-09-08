@@ -43,10 +43,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Roadmap M10.3 measurement harness.
+ * Roadmap M10.3/M17.3 measurement harness.
  *
  * <p>Run this class after force-stopping the package. The bind wall time then
- * includes dedicated-process creation plus the service's synchronous Node/V8
+ * includes process creation and the first readiness query waiting for Node/V8
  * prewarm. Every script execution still creates a fresh isolate/environment,
  * so the first run and twenty process-warm runs expose the part a startup
  * snapshot could plausibly improve.</p>
@@ -66,8 +66,9 @@ public final class RuntimeColdStartMeasurementTest {
 
         long bindStartedAt = SystemClock.elapsedRealtime();
         try (BoundRuntime bound = BoundRuntime.bind(context)) {
-            long bindAndPrewarmWallMs = SystemClock.elapsedRealtime() - bindStartedAt;
             Bundle runtimeInfo = bound.runtime.getRuntimeInfo();
+            // The dispatcher binds workers asynchronously; include the readiness query in cold startup.
+            long bindAndPrewarmWallMs = SystemClock.elapsedRealtime() - bindStartedAt;
             assertNotNull("getRuntimeInfo returned null", runtimeInfo);
             assertTrue(
                     runtimeInfo.getString("runtimeReadinessDetail", "runtime not ready"),
@@ -123,6 +124,7 @@ public final class RuntimeColdStartMeasurementTest {
             runtime.put("persistentProcessRuntime", runtimeInfo.getBoolean("persistentProcessRuntime"));
             runtime.put("isolatePerExecution", runtimeInfo.getBoolean("isolatePerExecution"));
             runtime.put("servicePrewarmMs", longValue(readiness, "timing.runtime_plugin_prewarm.ms"));
+            runtime.put("buildConfiguration", first.buildConfiguration);
             report.put("runtime", runtime);
 
             JSONObject summary = new JSONObject();
@@ -153,7 +155,7 @@ public final class RuntimeColdStartMeasurementTest {
             report.put(
                     "method",
                     "Force-stop the package before instrumentation; bind includes dedicated-process " +
-                            "startup and synchronous service prewarm; run 0 is the first fresh isolate; " +
+                            "startup and the first readiness query waiting for prewarm; run 0 is the first fresh isolate; " +
                             "runs 1-" + (EXECUTION_COUNT - 1) +
                             " are fresh isolates in the same persistent process."
             );
@@ -171,6 +173,7 @@ public final class RuntimeColdStartMeasurementTest {
             status.putString(
                     "stream",
                     "M10_COLD_START_RESULT=" + summary + "\n" +
+                            "M17_BUILD_CONFIGURATION=" + first.buildConfiguration + "\n" +
                             "M10_COLD_START_FILE=" + output.getAbsolutePath() + "\n"
             );
             InstrumentationRegistry.getInstrumentation().sendStatus(2, status);
@@ -195,7 +198,9 @@ public final class RuntimeColdStartMeasurementTest {
         request.putString(
                 NodeJsRuntimeContract.KEY_SOURCE,
                 "'use strict'; if (1 + 1 !== 2) throw new Error('arithmetic'); " +
-                        "console.log('m10.cold-start=' + process.pid);\n"
+                        "console.log('m10.cold-start=' + process.pid);\n" +
+                        "console.log('m17.config=' + JSON.stringify({node:process.versions.node,openssl:process.versions.openssl," +
+                        "icu:process.versions.icu || null,intl:typeof Intl,inspector:process.features && process.features.inspector}));\n"
         );
 
         long startedAt = SystemClock.elapsedRealtime();
@@ -317,6 +322,7 @@ public final class RuntimeColdStartMeasurementTest {
         final long bootstrapMs;
         final long scriptExecutionMs;
         final long teardownMs;
+        final String buildConfiguration;
 
         Measurement(
                 int index,
@@ -333,6 +339,8 @@ public final class RuntimeColdStartMeasurementTest {
             this.bootstrapMs = longValue(nativePayload, "timing.bootstrap.ms");
             this.scriptExecutionMs = longValue(nativePayload, "timing.script_execution.ms");
             this.teardownMs = longValue(nativePayload, "timing.teardown.ms");
+            this.buildConfiguration = Arrays.stream(result.getString(NodeJsRuntimeContract.KEY_STDOUT, "").split("\\n"))
+                    .filter(line -> line.startsWith("m17.config=")).map(line -> line.substring(11)).findFirst().orElse("");
         }
 
         JSONObject toJson() throws Exception {
