@@ -75,10 +75,10 @@
 |---|---|---|
 | `image` / `images` | requestScreenCapture, stopScreenCapture, captureScreen, readImage, saveImage, toBytes, clip, resize, grayscale, threshold, findImage, matchTemplate, findColor, findMultiColors, recycle | 图像分析需宿主 OpenCV 插件 |
 | `media_projection` | requestScreenCapture, nextImage, stop | 需用户确认 Android 录屏授权 |
-| `recorder` | getStatus | start, stop |
+| `recorder` | getStatus, start, stop | 需 media + media.recording 及 Android RECORD_AUDIO; 真机录音 Check 待补 |
 | `media` | getAudioStreamVolume/MaxVolume/Info, setAudioStreamVolume | 需 media + media.audio; 遵循 Android 音量/DND 策略 |
 | `mediainfo` | read, get, capabilities (作用域内相对路径; 缺省保持 Node v1, 插件明确宣告后可显式请求插件 v1/v2) | — |
-| `ui.overlay` | show, update, drainEvents, close, closeAll, hasPermission, openPermissionSettings | 需 SYSTEM_ALERT_WINDOW; POC 级 |
+| `ui.overlay` | show, update, drainEvents, close, closeAll, hasPermission, openPermissionSettings | 需 SYSTEM_ALERT_WINDOW; 真实窗口、属性更新、拖动、推送与退出清理 |
 | `package_manager` (`npm` 为其别名) | list, verify, prune, planInstall/Update/Remove, install, update, remove (app 私有本地库) | npm CLI / registry 下载 / 生命周期脚本 |
 | `input_observer` | observeKeys, drainEvents, close, getAvailableSources (fake/accessibility) | 实源需可运行的无障碍服务; 不拦截按键, touch/intercept 仍拒绝 |
 
@@ -89,6 +89,10 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 `await image.toBytes(handle, {format: "png" | "rgba"})` 返回原生 Node Buffer, 也可把格式直接作为第二个参数。PNG 为默认值; RGBA 为紧密排列的 sRGB RGBA8, 使用直通 alpha, 长度为 width × height × 4。图片句柄回收后 Buffer 仍有效。宿主在私有临时文件中编码, 回调 Bundle 通过 `bridgeBinaryPfd` / `bridgeBinaryByteCount` 携带描述符及长度; JSON 仅含元数据。插件直接 mmap 文件并由 V8 BackingStore 持有, `Buffer.from(ArrayBuffer)` 不复制像素。文件目录项及 FD 及时关闭, 映射在 Buffer 回收或 isolate 结束时解除。JNI 与文件桥接均支持, 请求 `binary=true` 为 additive, 未声明该字段的旧客户端不会收到 PFD。`readImage(path)` 继续返回宿主图片句柄, 大图也通过随后调用 toBytes 取回像素, 无 base64 或 `/proc` / `/dev` 文件读取入口。PNG 解码已使用真实 [pngjs](https://github.com/pngjs/pngjs) 包在设备测试中验证。
 
 `ocr.recognizeText(handle)` 与 `barcode.detect(handle, {formats: ["QR_CODE"]})` 可直接使用同一图片句柄, 分别需声明 `image` + `ocr` / `barcode`。OCR 选项支持 `engineId` / `engine` / `variant`; 找不到已启用的兼容识别插件时错误 category 为 `unavailable`, 实际识别失败仍返回 provider 错误。OCR 与截图 OCR 样例申请 Android 截屏授权后执行真实识别, 在 finally 中回收图片并停止截屏; 只有权限拒绝或插件不可用才输出可读 skip。M14.4 已在小米与 x86_64 上识别宿主显示的 ROADMAP 2026 和二维码, 测试输入由 UiAutomation 截屏落盘后 readImage 取得; MediaProjection 人工授权链尚待验收, 因此涉及该链的样例仍为 partial。
+
+`recorder.start({path:"record.m4a", maxDurationMs:3000})` 在宿主项目目录内通过 PFD 写入 AAC/MPEG-4 单声道文件, 返回录音 id/path; 默认时长 60 s, 可设 1..300 s。开始前检查 Android 麦克风权限, 并先建立带停止按钮的 microphone 前台通知; Android 后台启动限制仍适用。sampleRate 默认 44100 (8000..192000), bitRate 默认 128000 (16000..320000), 设备不支持的编码组合返回 provider-failed。stop 返回 path/byteCount/durationMs/reason 或尚未录音时的 null, 重复 stop 返回上一结果。时长到达、通知停止按钮和脚本退出均关闭 MediaRecorder/PFD 并移除通知。getStatus 包含 microphonePermissionGranted、recording、starting、active 和 lastRecording。权限拒绝返回 permission-denied; MediaInfo 插件未安装返回 unavailable。M15.4 的权限与窗口自动化回归已通过, 真机 3 s 麦克风录音及解析验收仍待现场操作。
+
+`ui.overlay.update()` 可更新选定 id (默认根节点) 的 text/textSize/textColor/backgroundColor/padding/width/height/enabled/visible/type/children; content 替换整棵树。window 可更新位置、尺寸、touchable/focusable/draggable 与 alpha (0.2..1), disclosure 替换时需同时提供 title/text。尺寸和坐标输入为 dp, 返回 bounds 为 px; wrap_content 可在更新时恢复。JNI 上 click/move/update/close 走推送, file 传输保留 drainEvents; move 事件含实际 x/y。窗口随脚本结束自动移除, close 幂等, handle.closed 实时更新; 未获悬浮窗权限时拒绝创建。
 
 ## 三. 稳定能力与外部依赖 (bridged-policy)
 

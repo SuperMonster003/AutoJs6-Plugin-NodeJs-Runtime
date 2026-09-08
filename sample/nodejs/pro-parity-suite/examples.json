@@ -42,13 +42,14 @@
     },
     {
       "id": "overlay-floaty",
+      "status": "stable",
       "title": "floaty-style overlay migration",
       "file": "snippets/overlay-floaty.cjs",
       "targetProfile": "pro_compat_opt_in",
       "requiredCapabilities": ["ui.overlay", "ui.overlay.permission"],
       "expectedOutput": "sample.pro-parity-suite.overlay-floaty=PASS",
-      "packagedBehavior": "requires reviewed disclosure, overlay permission, and foreground notification ownership",
-      "skipReason": "overlay permission or promoted overlay provider may be unavailable"
+      "packagedBehavior": "requires SYSTEM_ALERT_WINDOW; shows, updates and closes a visible declarative window with push events and script cleanup",
+      "skipReason": "overlay permission or Android window provider may be unavailable"
     },
     {
       "id": "tasks-work-manager",
@@ -72,13 +73,14 @@
     },
     {
       "id": "media-recorder",
+      "status": "partial",
       "title": "Media, mediainfo, and recorder migration",
       "file": "snippets/media-recorder.cjs",
       "targetProfile": "pro_compat_opt_in",
       "requiredCapabilities": ["media", "media.audio", "media.metadata", "media.recording"],
       "expectedOutput": "sample.pro-parity-suite.media-recorder=PASS",
-      "packagedBehavior": "read-only media status and recorder denial are covered; real recording requires privacy-reviewed foreground disclosure",
-      "skipReason": "media, mediainfo, recorder, or scoped media fixture may be unavailable"
+      "packagedBehavior": "records 3 seconds of AAC to the workspace with microphone permission and foreground disclosure; physical recording acceptance is pending",
+      "skipReason": "microphone permission or MediaInfo plugin may be unavailable"
     },
     {
       "id": "screenshot-ocr",

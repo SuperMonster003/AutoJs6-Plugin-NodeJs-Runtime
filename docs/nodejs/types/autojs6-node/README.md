@@ -337,11 +337,13 @@ MediaInfo plugin advertises it through `mediainfo.capabilities()`. The v2
 envelope exposes dynamic, JSON-safe track fields and short engine metadata
 without treating upstream MediaInfoLib fields as a fixed declaration surface. Exact
 `media.audio`, `media.metadata`, and `media.recording` capabilities are
-required for the promoted helpers; playback, real recorder sessions, MediaStore,
-foreground microphone disclosure/cleanup, and broader corpus evidence remain
-future work. Packaged bundled-asset lookup, recorder status, recorder start
-denial, exact-denial smoke, recorder privacy copy, and the `media-recorder` Pro
-migration example are covered.
+required for these helpers. Recorder start/stop now expose AAC recording through
+a scoped output PFD, with Android microphone permission, a foreground stop
+notification, a 1..300 second limit and script cleanup. The default limit is
+60 seconds. Stop returns the last completed RecordingResult (or null before the
+first recording); getStatus exposes live permission and session state. Physical
+3-second recording acceptance remains pending in Roadmap M15.4. Playback and
+MediaStore remain future work.
 
 P13-27 records the partial utility-heavy Rhino modules gate. `jsox.mathx`,
 `jsox.arrayx`, and `jsox.numberx` are typed as pure JavaScript facades through

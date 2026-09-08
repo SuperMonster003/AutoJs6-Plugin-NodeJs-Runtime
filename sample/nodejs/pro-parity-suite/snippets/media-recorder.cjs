@@ -1,50 +1,39 @@
 "nodejs";
 
-function codeOf(error) {
-  return String(error && (error.code || error.autojs6Code || error.name || "ERROR"));
-}
-
 (async function main() {
+  const recorder = require("recorder");
+  let recording = false;
   try {
-    const media = require("media");
-    const info = await media.getAudioStreamInfo("music", { timeoutMs: 1000 });
-    console.log("sample.pro-parity-suite.media-recorder.audioStream=" + info.stream);
-  } catch (error) {
-    console.log("sample.pro-parity-suite.media-recorder.skipped=media:" + codeOf(error));
-  }
-
-  try {
-    const mediainfo = require("mediainfo");
-    const capabilities = await mediainfo.capabilities({ timeoutMs: 1000 });
-    const v2 = "autojs6-plugin-mediainfo-snapshot-v2";
-    const supportsV2 = capabilities.snapshotSchemas.includes(v2);
-    const snapshot = await mediainfo.read("sample.mp3", {
-      ...(supportsV2 ? { schema: v2 } : {}),
-      includeInform: false,
-      timeoutMs: 1000
-    });
-    const fileName = snapshot.schema === v2 ? snapshot.file.name : snapshot.fileName;
-    console.log("sample.pro-parity-suite.media-recorder.mediainfo=" + fileName);
-  } catch (error) {
-    console.log("sample.pro-parity-suite.media-recorder.skipped=mediainfo:" + codeOf(error));
-  }
-
-  try {
-    const recorder = require("recorder");
-    const status = await recorder.getStatus({ timeoutMs: 1000 });
-    console.log("sample.pro-parity-suite.media-recorder.recorderStatus=" + status.reason);
-    try {
-      await recorder.start({ path: "record.m4a", timeoutMs: 1000 });
-      console.log("sample.pro-parity-suite.media-recorder.recorderStartDenied=unexpected-start");
-    } catch (error) {
-      console.log("sample.pro-parity-suite.media-recorder.recorderStartDenied=" + codeOf(error));
+    const status = await recorder.getStatus();
+    if (!status.microphonePermissionGranted) {
+      console.log("sample.pro-parity-suite.media-recorder.skipped=Grant AutoJs6 microphone permission in Android settings, then run this 3-second recording example again.");
+      return;
     }
+    const media = require("media");
+    const mediainfo = require("mediainfo");
+    await mediainfo.capabilities();
+    const stream = await media.getAudioStreamInfo("music");
+    console.log("sample.pro-parity-suite.media-recorder.audioStream=" + stream.stream);
+    await recorder.start({ path: "record.m4a", maxDurationMs: 3000 });
+    recording = true;
+    await new Promise(resolve => setTimeout(resolve, 3600));
+    const result = await recorder.stop();
+    recording = false;
+    if (!result || result.byteCount <= 0) throw new Error("The recording contains no audio data.");
+    const snapshot = await mediainfo.read(result.path, { includeInform: false });
+    if (!snapshot.sections.audio.length) throw new Error("MediaInfo found no audio track.");
+    console.log("sample.pro-parity-suite.media-recorder.bytes=" + result.byteCount);
+    console.log("sample.pro-parity-suite.media-recorder=PASS");
   } catch (error) {
-    console.log("sample.pro-parity-suite.media-recorder.skipped=recorder:" + codeOf(error));
+    if (error && ["permission-denied", "unavailable"].includes(error.category)) {
+      console.log("sample.pro-parity-suite.media-recorder.skipped=" + error.message);
+    } else {
+      throw error;
+    }
+  } finally {
+    if (recording) await recorder.stop();
   }
-
-  console.log("sample.pro-parity-suite.media-recorder=PASS");
-})().catch((error) => {
+})().catch(error => {
   console.error(error && (error.stack || error.message) || error);
   process.exitCode = 1;
 });
