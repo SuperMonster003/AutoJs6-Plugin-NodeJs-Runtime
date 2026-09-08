@@ -23,7 +23,6 @@ private val nodePluginExampleKnownTags = setOf(
     "security",
     "disabled-features",
     "typescript",
-    "phase7",
     "esm",
     "dynamic-import",
     "network",
@@ -38,7 +37,6 @@ private val nodePluginExampleKnownTags = setOf(
     "database",
     "plugin",
     "ui",
-    "phase8",
     "tsx",
     "require-esm",
     "http",
@@ -49,7 +47,6 @@ private val nodePluginExampleKnownTags = setOf(
     "profiler",
     "hardened-sandbox",
     "design-gated",
-    "phase9",
     "runtime-info",
     "snapshot",
     "heap-snapshot",
@@ -59,7 +56,6 @@ private val nodePluginExampleKnownTags = setOf(
     "wasi",
     "wasm-worker",
     "wasm-plugin",
-    "phase10",
     "storage",
     "notifications",
     "sensors",
@@ -70,7 +66,6 @@ private val nodePluginExampleKnownTags = setOf(
     "adapter",
     "debug",
     "queue",
-    "phase13",
     "pro-parity",
     "desktop-parity",
 )
@@ -194,24 +189,24 @@ tasks.register("verifyNodePluginExamples") {
             if (!mainFile.isFile) {
                 throw GradleException("Node plugin example '$name' is missing declared main entry: ${mainFile.relativeTo(dir)}")
             }
-            if ("phase7" in tags) {
+            if (projectJson.containsKey("example")) {
                 val exampleMetadata = projectJson["example"] as? Map<*, *>
-                    ?: throw GradleException("Phase 7 Node plugin example '$name' must declare project.json example metadata.")
+                    ?: throw GradleException("Node plugin example '$name' must declare valid project.json example metadata.")
                 val capabilities = nodePluginExampleList(exampleMetadata["capabilities"])
                 val limitations = nodePluginExampleList(exampleMetadata["securityLimitations"])
                 val expectedProvider = exampleMetadata["expectedProvider"]?.toString().orEmpty()
                 val packagedSupport = exampleMetadata["packagedSupport"]?.toString().orEmpty()
                 if (capabilities.isEmpty()) {
-                    throw GradleException("Phase 7 Node plugin example '$name' must declare example.capabilities.")
+                    throw GradleException("Node plugin example '$name' must declare example.capabilities.")
                 }
                 if (expectedProvider.isBlank()) {
-                    throw GradleException("Phase 7 Node plugin example '$name' must declare example.expectedProvider.")
+                    throw GradleException("Node plugin example '$name' must declare example.expectedProvider.")
                 }
                 if (packagedSupport.isBlank()) {
-                    throw GradleException("Phase 7 Node plugin example '$name' must declare example.packagedSupport.")
+                    throw GradleException("Node plugin example '$name' must declare example.packagedSupport.")
                 }
                 if (limitations.isEmpty()) {
-                    throw GradleException("Phase 7 Node plugin example '$name' must declare example.securityLimitations.")
+                    throw GradleException("Node plugin example '$name' must declare example.securityLimitations.")
                 }
             }
             val packageJson = nodePluginExampleReadJsonObject(dir.resolve("package.json"))

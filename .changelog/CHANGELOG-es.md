@@ -24,6 +24,7 @@
 * `Mejora` Se centralizaron en el repositorio del plugin los ejemplos de Node.js, las declaraciones de TypeScript, el asistente de proyectos, los valores predeterminados del runtime y las comprobaciones de alineación con el host, eliminando los conmutadores Gradle y los recursos de desarrollo duplicados del host
 * `Mejora` Se amplió la cobertura npm verificada a 15 paquetes, incorporando axios, express y los paquetes ESM-only nanoid, p-limit y yocto-queue
 * `Mejora` El campo de solicitud `executionMode` pasa a determinar el modo del ciclo de vida y el campo sin efecto `runtimeAdapter` queda obsoleto
+* `Mejora` Se eliminaron diez ejemplos históricos que solo imprimían estados fijos y se indicó en los tipos la ausencia de proveedores del anfitrión para captura de pantalla, análisis de imágenes y grabación
 
 # v1.1.0
 

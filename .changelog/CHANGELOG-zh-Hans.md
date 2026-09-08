@@ -24,6 +24,7 @@
 * `优化` 将 Node.js 样例, TypeScript 类型声明, 项目向导, 运行时默认值及宿主对齐校验统一归属插件仓库, 移除宿主侧 Gradle 开关与重复开发资产
 * `优化` 实测 npm 生态扩展到 15 包, 新增 axios、express 及 ESM-only 包 nanoid、p-limit、yocto-queue
 * `优化` 以 `executionMode` 请求字段作为生命周期模式的权威来源, 将无实际作用的 `runtimeAdapter` 标记为废弃
+* `优化` 移除十个仅打印固定状态的历史样例, 并在类型声明中标明截图、图像分析和录音尚未提供宿主 provider
 
 # v1.1.0
 

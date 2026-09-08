@@ -1,3 +1,4 @@
+/** @remarks getStatus 可用; start/stop 尚未提供宿主 provider。参见 docs/HOST-API.md。 */
 declare module "recorder" {
   namespace recorder {
     export interface RecorderStatus {
@@ -19,7 +20,9 @@ declare module "recorder" {
 
     export interface RecorderModule {
       getStatus(options?: AutoJs6Node.BridgeCallOptions): Promise<RecorderStatus>;
+      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       start(options?: RecorderStartOptions): Promise<never>;
+      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       stop(options?: AutoJs6Node.BridgeCallOptions): Promise<never>;
     }
   }
