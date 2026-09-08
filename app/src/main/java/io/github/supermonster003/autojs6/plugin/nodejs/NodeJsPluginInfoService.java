@@ -2,6 +2,8 @@ package io.github.supermonster003.autojs6.plugin.nodejs;
 
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -21,6 +23,12 @@ public class NodeJsPluginInfoService extends Service {
     private final IPluginInfoProvider.Stub binder = new IPluginInfoProvider.Stub() {
         @Override
         public PluginInfo getInfo() throws RemoteException {
+            PackageInfo installedPackage;
+            try {
+                installedPackage = getPackageManager().getPackageInfo(getPackageName(), 0);
+            } catch (PackageManager.NameNotFoundException e) {
+                throw new IllegalStateException("Installed plugin package is unavailable", e);
+            }
             Bundle capabilities = new Bundle();
             capabilities.putInt(PluginCapabilityKeys.REQUIRES_HOST_VERSION, 3923);
             capabilities.putString(NodeJsPluginCapabilityKeys.NODE_VERSION, "24.5.0");
@@ -41,12 +49,12 @@ public class NodeJsPluginInfoService extends Service {
 
             return new PluginInfo(
                     getString(R.string.app_name),
-                    null,
-                    null,
+                    getString(R.string.plugin_description),
+                    "@raw/plugin_instruction",
                     "SuperMonster003",
                     null,
-                    BuildConfig.VERSION_NAME,
-                    BuildConfig.VERSION_CODE,
+                    installedPackage.versionName,
+                    installedPackage.versionCode,
                     BuildConfig.VERSION_DATE,
                     NodeJsPluginIds.ID,
                     NodeJsPluginIds.ENGINE,
