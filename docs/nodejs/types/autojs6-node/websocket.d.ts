@@ -24,6 +24,7 @@
     }
 
     export interface Connection {
+      readonly subscriptionId?: string;
       readonly id: string;
       readonly url: string;
       readonly readyState: ReadyState;
@@ -36,6 +37,10 @@
       on(event: "message", listener: (message: Message) => void): this;
       on(event: "close", listener: (event: CloseEvent) => void): this;
       on(event: "error", listener: (error: Error) => void): this;
+      once(event: "open", listener: () => void): this;
+      once(event: "message", listener: (message: Message) => void): this;
+      once(event: "close", listener: (event: CloseEvent) => void): this;
+      once(event: "error", listener: (error: Error) => void): this;
       off(event: "open", listener: () => void): this;
       off(event: "message", listener: (message: Message) => void): this;
       off(event: "close", listener: (event: CloseEvent) => void): this;

@@ -33,6 +33,13 @@ declare module "input_observer" {
   }
 
   export interface InputObserverSubscription {
+    readonly subscriptionId?: string;
+    on(event: "key", listener: (event: InputObserverKeyEvent) => void): this;
+    once(event: "key", listener: (event: InputObserverKeyEvent) => void): this;
+    off(event: "key", listener: (event: InputObserverKeyEvent) => void): this;
+    on(event: "event" | "close" | "error", listener: (event: InputObserverKeyEvent | {type: "close"} | Error) => void): this;
+    once(event: "event" | "close" | "error", listener: (event: InputObserverKeyEvent | {type: "close"} | Error) => void): this;
+    off(event: "event" | "close" | "error", listener: (event: InputObserverKeyEvent | {type: "close"} | Error) => void): this;
     readonly id: string;
     readonly type: "key";
     readonly source: InputObserverSourceId;

@@ -77,6 +77,10 @@ declare module "ui.overlay" {
   }
 
   export interface OverlayHandle {
+    readonly subscriptionId?: string;
+    on(event: string, listener: (event: OverlayEvent) => void): this;
+    once(event: string, listener: (event: OverlayEvent) => void): this;
+    off(event: string, listener: (event: OverlayEvent) => void): this;
     readonly id: string;
     readonly type: "overlay";
     readonly closed: boolean;

@@ -12,6 +12,9 @@
       ],
       "improvement": [
         "Se redujo la latencia del puente con transporte JNI/Binder predeterminado y respuestas mediante el bucle de eventos de Node, conservando la alternativa por archivos y los límites de llamadas pendientes"
+      ],
+      "feature": [
+        "Las suscripciones del puente Node.js envían eventos de sensores, WebSocket, interfaz, ventanas flotantes y entrada mediante callbacks existentes, con on/once/off, colas limitadas y compatibilidad con drainEvents"
       ]
     },
     "v1.2.0": {

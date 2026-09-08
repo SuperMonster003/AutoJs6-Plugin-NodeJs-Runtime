@@ -383,6 +383,13 @@ async function smoke(): Promise<void> {
     const values: readonly number[] = event.values;
     void values;
   }, { samplingIntervalMs: 250, drainIntervalMs: 100, timeoutMs: 1000 });
+  const sensorListener = (event: sensors.SensorEvent): void => { void event.values; };
+  sensorSub.on("event", sensorListener).once("event", sensorListener).off("event", sensorListener);
+  const pushedSensorSub = sensors.subscribe("accelerometer");
+  pushedSensorSub.once("event", sensorListener);
+  const sensorSubscriptionId: string | undefined = pushedSensorSub.subscriptionId;
+  void sensorSubscriptionId;
+  await pushedSensorSub.close();
   await sensorSub.ready;
   await sensorSub.close({ timeoutMs: 1000 });
 
@@ -398,6 +405,10 @@ async function smoke(): Promise<void> {
     void eventId;
   }, { drainIntervalMs: 50, timeoutMs: 1000 });
   await uiHandle.update({ id: "title", text: "Updated" }, { timeoutMs: 1000 });
+  const uiListener = (event: ui.UiEvent): void => { void event.type; };
+  const unsubscribeUiOnce: () => void = uiHandle.once("click", uiListener);
+  uiHandle.off("click", uiListener);
+  unsubscribeUiOnce();
   unsubscribeUi();
   await uiHandle.close({ timeoutMs: 1000 });
 
@@ -429,9 +440,11 @@ async function smoke(): Promise<void> {
     window: { width: "wrap_content", height: "wrap_content", touchable: true, focusable: false, visible: true },
     disclosure: { title: "AutoJs6 overlay", text: "Script overlay is visible" }
   }, { timeoutMs: 1000 });
-  const overlayHandlePromise: Promise<readonly overlay.OverlayEvent[]> = overlayShow.then((handle) =>
-    handle.drainEvents({ maxEvents: overlay.policy.defaultDrainBatchSize, timeoutMs: 1000 }),
-  );
+  const overlayHandlePromise: Promise<readonly overlay.OverlayEvent[]> = overlayShow.then((handle) => {
+    const listener = (event: overlay.OverlayEvent): void => { void event.type; };
+    handle.on("event", listener).once("event", listener).off("event", listener);
+    return handle.drainEvents({ maxEvents: overlay.policy.defaultDrainBatchSize, timeoutMs: 1000 });
+  });
 
   await rhinoCompat.images.recycle(compatTemplate, { timeoutMs: 1000 });
   await rhinoCompat.images.recycle(compatClip, { timeoutMs: 1000 });
