@@ -10,6 +10,9 @@
   "features": [
     "提供 `nodejs` 插件服務, 插件 ID 為 `nodejs`, 引擎為 `nodejs`.",
     "通過 `org.autojs.plugin.nodejs.RUNTIME` 為宿主提供同步腳本執行和運行時預熱.",
+    "支援涵蓋排隊與執行全程的腳本逾時, 逾時回傳 `ERR_AUTOJS6_SCRIPT_TIMEOUT`; 未指定逾時時仍可無限執行",
+    "預設啟用 `dgram` (UDP) 與 `http2`, 並對 `trace_events` 回傳明確的停用錯誤",
+    "支援 Debug 建置明確開啟本機 `inspector` 偵錯, 僅監聽 localhost 並透過 `adb forward` 連線",
     "支援 CommonJS/ESM 源碼, 模組源碼, 工作目錄, 沙盒根目錄, 環境變數, stdout/stderr 結果回傳.",
     "ESM 入口與 dynamic `import()` 使用 V8 native linker, 支援循環依賴、可變匯出與 re-export live binding; CommonJS `require(esm)` 保留同步互操作邊界.",
     "提供由插件本身 Android 權限約束的桌面式檔案系統存取; `/proc`、`/sys`、`/dev` 一律由運行時拒絕.",

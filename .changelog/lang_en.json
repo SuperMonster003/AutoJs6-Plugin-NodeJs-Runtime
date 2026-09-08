@@ -11,7 +11,10 @@
         "Added `capabilities()` to the `mediainfo` facade and explicit plugin snapshot v1/v2 selection to its callable entry and `read()`; omitting schema continues to return the existing host-owned Node v1 snapshot",
         "Added module-source provider v3 for on-demand compilation of runtime-created `.ts/.mts/.cts` through byte- and SHA-256-bound PFDs, with an independent 30 s compilation budget, stable path/symlink/ambiguity rejection, and host TypeScript diagnostics plus Source Map stack mapping",
         "Enabled desktop-like filesystem access within Android app permissions while keeping `/proc`, `/sys`, and `/dev` denied",
-        "Added `accessibility.swipe` and `accessibility.gesture` behind the dedicated `accessibility.gesture` capability"
+        "Added `accessibility.swipe` and `accessibility.gesture` behind the dedicated `accessibility.gesture` capability",
+        "Added script timeouts covering queueing and execution, returning `ERR_AUTOJS6_SCRIPT_TIMEOUT`; scripts without a timeout can still run indefinitely",
+        "Enabled `dgram` (UDP) and `http2` by default, with an explicit disabled error for `trace_events`",
+        "Added explicitly enabled local `inspector` debugging in Debug builds, listening only on localhost and connecting through `adb forward`"
       ],
       "fix": [
         "Made raw TypeScript fail closed unless the host supplies compiler output, mapped snapshot dynamic imports, and normalized generated/imported stack frames",
@@ -21,7 +24,9 @@
       "improvement": [
         "Removed the legacy regex-based TypeScript erasure fallback and its request switch; raw `.ts/.mts/.cts` now always require host compiler output",
         "Aligned the v2 host/plugin contract, capability manifests, and plugin-only runtime responsibility boundary",
-        "Centralized Node.js examples, TypeScript declarations, the project wizard, runtime defaults, and host-alignment checks in the plugin repository, removing host-side Gradle switches and duplicate development assets"
+        "Centralized Node.js examples, TypeScript declarations, the project wizard, runtime defaults, and host-alignment checks in the plugin repository, removing host-side Gradle switches and duplicate development assets",
+        "Expanded verified npm coverage to 15 packages, adding axios, express, and the ESM-only packages nanoid, p-limit, and yocto-queue",
+        "Made the `executionMode` request field authoritative for lifecycle mode and deprecated the no-op `runtimeAdapter` field"
       ]
     },
     "v1.1.0": {
