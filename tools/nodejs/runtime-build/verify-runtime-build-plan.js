@@ -66,11 +66,15 @@ function main() {
   if (!lock.promotionDecision || !lock.promotionDecision.defaultRuntimeSlot) {
     issues.push("missing runtime promotion decision");
   }
-  if (lock.promotionDecision && lock.promotionDecision.defaultRuntimeSlot !== "node24_5") {
-    issues.push("default runtime slot must remain node24_5 until promotion requirements are satisfied");
+  const promoted = lock.promotionDecision && lock.promotionDecision.targetPromotion === "promoted";
+  if (lock.promotionDecision && lock.promotionDecision.defaultRuntimeVersion !== lock.node.currentVersion) {
+    issues.push("promotion decision must describe the currently embedded Node version");
   }
-  if (lock.promotionDecision && lock.promotionDecision.node2417Promotion !== "deferred") {
-    issues.push("Node 24.17 promotion must remain deferred until Android artifacts are available");
+  if (promoted && lock.node.currentVersion !== lock.node.targetVersion) {
+    issues.push("a promoted target must be the currently embedded version");
+  }
+  if (!promoted && lock.promotionDecision && lock.promotionDecision.defaultRuntimeSlot !== "node24_5") {
+    issues.push("the default runtime slot must remain node24_5 until target promotion");
   }
   if (lock.androidFork && lock.androidFork.androidArtifact) {
     if (!/^[0-9a-f]{64}$/i.test(lock.androidFork.androidArtifact.sha256 || "")) {
@@ -101,11 +105,30 @@ function main() {
       lock.reproducibility.artifactMaterialization.classification !== "pinned_upstream_binary") {
     issues.push("artifact materialization must be classified as ready pinned_upstream_binary");
   }
-  if (!lock.reproducibility || lock.reproducibility.sourceBuild.status !== "bootstrap_only" ||
-      lock.reproducibility.sourceBuild.classification !== "not_source_reproducible" ||
-      !Array.isArray(lock.reproducibility.sourceBuild.blockedReasons) ||
-      lock.reproducibility.sourceBuild.blockedReasons.length === 0) {
-    issues.push("source build must remain explicit bootstrap_only with blocked reasons");
+  const sourceBuild = lock.reproducibility && lock.reproducibility.sourceBuild;
+  if (!sourceBuild || !["bootstrap_only", "building", "ready"].includes(sourceBuild.status)) {
+    issues.push("source build must state bootstrap_only, building or ready");
+  } else if (sourceBuild.status !== "ready" &&
+      (!Array.isArray(sourceBuild.blockedReasons) || sourceBuild.blockedReasons.length === 0)) {
+    issues.push("incomplete source builds must explain the outstanding work");
+  }
+  if (promoted && (!sourceBuild || sourceBuild.status !== "ready")) {
+    issues.push("source build and device validation must complete before promotion");
+  }
+  if (sourceBuild && sourceBuild.status !== "bootstrap_only") {
+    if (!/^sha256:[0-9a-f]{64}$/.test(lock.toolchain && lock.toolchain.containerImageId || "")) {
+      issues.push("source builds must identify the exact Docker image content ID");
+    }
+    const patches = lock.node && lock.node.patchFiles;
+    if (!patches || Object.keys(patches).length === 0) {
+      issues.push("source builds must record the Android patch files");
+    }
+    for (const [name, expected] of Object.entries(patches || {})) {
+      const file = path.join(runtimeBuildDir, "patches", name);
+      if (!fs.existsSync(file) || crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex") !== expected) {
+        issues.push("Android patch differs from the build plan: " + name);
+      }
+    }
   }
   if (!lock.toolchain || !lock.toolchain.ndkVersion) {
     issues.push("missing toolchain.ndkVersion");
@@ -131,17 +154,22 @@ function main() {
       if (entry && (!Array.isArray(entry.cflags) || !Array.isArray(entry.ldflags))) {
         issues.push("ABI build lock entry must include cflags and ldflags arrays: " + abi);
       }
-      if (entry && entry.expectedLibnodeSha256 !== null) {
-        issues.push("deferred Node 24.17 expectedLibnodeSha256 must remain null until produced: " + abi);
+      if (entry && (entry.expectedLibnodeSha256 !== null || sourceBuild && sourceBuild.status === "ready") &&
+          !/^[0-9a-f]{64}$/.test(entry.expectedLibnodeSha256 || "")) {
+        issues.push("produced libnode.so must have a SHA-256: " + abi);
       }
-      if (entry && entry.expectedBuildId !== null) {
-        issues.push("deferred Node 24.17 expectedBuildId must remain null until produced: " + abi);
+      if (entry && (entry.expectedBuildId !== null || sourceBuild && sourceBuild.status === "ready") &&
+          !/^[0-9a-f]{40}$/.test(entry.expectedBuildId || "")) {
+        issues.push("produced libnode.so must have a SHA-1 ELF Build ID: " + abi);
       }
     }
   }
   const checkedInArtifacts = inspectRuntimeLibraries(
     path.join(repoRoot, "app/src/main/jniLibs"),
-    lock.androidFork && lock.androidFork.androidArtifact && lock.androidFork.androidArtifact.entries,
+    promoted ? Object.fromEntries(REQUIRED_ABIS.map(abi => [abi, {
+      size: lock.abis[abi].size,
+      sha256: lock.abis[abi].expectedLibnodeSha256,
+    }])) : lock.androidFork && lock.androidFork.androidArtifact && lock.androidFork.androidArtifact.entries,
     issues,
     "checked-in"
   );
@@ -174,7 +202,10 @@ function main() {
   const requiredScripts = [
     "build-node-runtime.ps1",
     "build-node-runtime.sh",
-    "container/Dockerfile",
+    "build-node-from-source.py",
+    "container/Dockerfile.source",
+    "container/build-source.sh",
+    "verify-source-runtime.py",
   ];
   for (const script of requiredScripts) {
     const scriptPath = path.join(runtimeBuildDir, script);
@@ -183,9 +214,9 @@ function main() {
     }
   }
   const decision = {
-    status: issues.length === 0 ? "prebuilt_ready_source_build_bootstrap_only" : "blocked",
+    status: issues.length === 0 ? "prebuilt_ready_source_build_" + sourceBuild.status : "blocked",
     artifactMaterializationStatus: issues.length === 0 ? "ready" : "blocked",
-    sourceBuildStatus: "bootstrap_only",
+    sourceBuildStatus: sourceBuild && sourceBuild.status || "missing",
     blockers: issues,
     warnings,
   };
@@ -207,7 +238,7 @@ function main() {
       androidArtifact: lock.androidFork && lock.androidFork.androidArtifact && lock.androidFork.androidArtifact.name,
       androidArtifactSha256: lock.androidFork && lock.androidFork.androidArtifact && lock.androidFork.androidArtifact.sha256,
       defaultRuntimeSlot: lock.promotionDecision && lock.promotionDecision.defaultRuntimeSlot,
-      node2417Promotion: lock.promotionDecision && lock.promotionDecision.node2417Promotion,
+      targetPromotion: lock.promotionDecision && lock.promotionDecision.targetPromotion,
       ndkVersion: lock.toolchain && lock.toolchain.ndkVersion,
       clangVersion: lock.toolchain && lock.toolchain.clangVersion,
       pythonVersion: lock.toolchain && lock.toolchain.pythonVersion,
@@ -297,7 +328,7 @@ function inspectRuntimeLibraries(root, expectedEntries, issues, label) {
       artifact.sha256 = crypto.createHash("sha256").update(bytes).digest("hex");
       artifact.matchesLock = !!expected && artifact.size === expected.size && artifact.sha256 === expected.sha256;
       if (!artifact.matchesLock) {
-        issues.push(`${label} libnode.so does not match the pinned archive entry: ${abi}`);
+        issues.push(`${label} libnode.so does not match the recorded runtime artifact: ${abi}`);
       }
     }
     artifacts.push(artifact);
@@ -356,7 +387,7 @@ function renderMarkdown(report) {
   lines.push(`- Android artifact: ${report.lockSummary.androidArtifact || "missing"}`);
   lines.push(`- Android artifact SHA-256: ${report.lockSummary.androidArtifactSha256 || "missing"}`);
   lines.push(`- default runtime slot: ${report.lockSummary.defaultRuntimeSlot || "missing"}`);
-  lines.push(`- Node 24.17 promotion: ${report.lockSummary.node2417Promotion || "missing"}`);
+  lines.push(`- Target promotion: ${report.lockSummary.targetPromotion || "missing"}`);
   lines.push(`- NDK: ${report.lockSummary.ndkVersion || "missing"}`);
   lines.push(`- Clang: ${report.lockSummary.clangVersion || "missing"}`);
   lines.push(`- Python: ${report.lockSummary.pythonVersion || "missing"}`);
