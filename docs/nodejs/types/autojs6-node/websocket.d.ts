@@ -88,3 +88,8 @@
   const websocket: websocket.WebSocketModule;
   export = websocket;
 }
+
+declare module "autojs6:websocket" {
+  import bridge = require("websocket");
+  export = bridge;
+}

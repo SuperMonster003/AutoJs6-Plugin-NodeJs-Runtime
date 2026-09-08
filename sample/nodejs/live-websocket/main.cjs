@@ -5,7 +5,7 @@ function codeOf(error) {
 }
 
 (async function main() {
-  const websocket = require("websocket");
+  const websocket = require("autojs6:websocket");
   console.log("sample.live-websocket.provider=controlled-websocket");
   console.log("sample.live-websocket.limit=" + websocket.policy.defaultMaxMessageBytes);
 

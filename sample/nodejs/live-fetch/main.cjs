@@ -5,7 +5,7 @@ function codeOf(error) {
 }
 
 (async function main() {
-  const fetch = require("fetch");
+  const fetch = require("autojs6:fetch");
   console.log("sample.live-fetch.provider=controlled-fetch");
   console.log("sample.live-fetch.limit=" + fetch.policy.defaultMaxResponseBytes);
 
