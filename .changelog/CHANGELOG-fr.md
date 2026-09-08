@@ -24,6 +24,7 @@
 * `Amelioration` Centralisation dans le dépôt du plugin des exemples Node.js, des déclarations TypeScript, de l'assistant de projet, des valeurs par défaut du runtime et des contrôles d'alignement avec l'hôte, avec suppression des options Gradle et des ressources de développement dupliquées côté hôte
 * `Amelioration` Extension des tests npm à 15 paquets, avec axios, express et les paquets ESM-only nanoid, p-limit et yocto-queue
 * `Amelioration` Le champ de requête `executionMode` fait désormais autorité pour le mode de cycle de vie; le champ sans effet `runtimeAdapter` est obsolète
+* `Amelioration` Suppression de dix anciens exemples affichant uniquement des états fixes et indication dans les types de l’absence de fournisseurs hôtes pour la capture d’écran, l’analyse d’images et l’enregistrement audio
 
 # v1.1.0
 

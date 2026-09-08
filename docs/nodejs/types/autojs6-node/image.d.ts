@@ -1,4 +1,5 @@
-﻿declare module "image" {
+﻿/** @remarks readImage/recycle 与本地 getSize 可用; 捕获、写盘和分析方法尚未提供宿主 provider。参见 docs/HOST-API.md。 */
+declare module "image" {
   namespace image {
     export type ColorInput = number | string;
     export type MultiColorPointInput = readonly [number, number, ColorInput] | MultiColorPoint;
@@ -50,17 +51,28 @@
     }
 
     export interface ImageModule {
+      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       captureScreen(options?: CaptureScreenOptions): Promise<AutoJs6Node.ImageHandle>;
       readImage(path: string, options?: AutoJs6Node.BridgeCallOptions): Promise<AutoJs6Node.ImageHandle>;
+      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       saveImage(image: AutoJs6Node.ImageHandleLike, path: string, options?: SaveImageOptions): Promise<void>;
+      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       saveImage(image: AutoJs6Node.ImageHandleLike, path: string, format: SaveImageOptions["format"], options?: AutoJs6Node.BridgeCallOptions): Promise<void>;
+      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       clip(image: AutoJs6Node.ImageHandleLike, x: number, y: number, width: number, height: number, options?: AutoJs6Node.BridgeCallOptions): Promise<AutoJs6Node.ImageHandle>;
+      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       resize(image: AutoJs6Node.ImageHandleLike, width: number, height: number, options?: AutoJs6Node.BridgeCallOptions): Promise<AutoJs6Node.ImageHandle>;
+      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       grayscale(image: AutoJs6Node.ImageHandleLike, options?: AutoJs6Node.BridgeCallOptions): Promise<AutoJs6Node.ImageHandle>;
+      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       threshold(image: AutoJs6Node.ImageHandleLike, options?: ThresholdOptions): Promise<AutoJs6Node.ImageHandle>;
+      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       findImage(image: AutoJs6Node.ImageHandleLike, template: AutoJs6Node.ImageHandleLike, options?: FindImageOptions): Promise<AutoJs6Node.Point | null>;
+      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       matchTemplate(image: AutoJs6Node.ImageHandleLike, template: AutoJs6Node.ImageHandleLike, options?: MatchTemplateOptions): Promise<readonly ImageMatch[]>;
+      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       findColor(image: AutoJs6Node.ImageHandleLike, color: ColorInput, options?: FindColorOptions): Promise<AutoJs6Node.Point | null>;
+      /** @deprecated 尚未提供宿主 provider; 当前返回 capabilityProviderMissing。 */
       findMultiColors(image: AutoJs6Node.ImageHandleLike, color: ColorInput, points: readonly MultiColorPointInput[], options?: FindColorOptions): Promise<AutoJs6Node.Point | null>;
       getSize(image: AutoJs6Node.ImageHandleLike): ImageSize;
       recycle(image: AutoJs6Node.ImageHandleLike, options?: AutoJs6Node.BridgeCallOptions): Promise<void>;

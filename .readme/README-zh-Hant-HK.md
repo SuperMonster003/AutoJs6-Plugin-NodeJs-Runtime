@@ -131,6 +131,7 @@ console.log("AutoJs6 Node.js runtime");
 * `優化` 將 Node.js 示例, TypeScript 類型聲明, 項目嚮導, 運行時默認值及宿主對齊校驗統一歸屬插件倉庫, 移除宿主側 Gradle 開關與重複開發資產
 * `優化` 實測 npm 生態擴展至 15 個套件, 新增 axios、express 及 ESM-only 套件 nanoid、p-limit、yocto-queue
 * `優化` 以 `executionMode` 請求欄位作為生命週期模式的權威來源, 將沒有實際作用的 `runtimeAdapter` 標記為已棄用
+* `優化` 移除十個僅列印固定狀態的歷史範例, 並在型別宣告中標明截圖、影像分析和錄音尚未提供宿主 provider
 
 # v1.1.0
 
