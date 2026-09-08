@@ -17,6 +17,64 @@ import static org.junit.Assert.assertTrue;
 public class NodeRuntimeExecutionGateTest {
 
     @Test
+    public void idleExitStartsAfterReleaseAndAtomicallyClosesAdmission() {
+        AtomicLong clock = new AtomicLong(100L);
+        NodeRuntimeExecutionGate gate = new NodeRuntimeExecutionGate(clock::get);
+        assertEquals(-1L, gate.idleExitDelayMs());
+        NodeRuntimeExecutionGate.Lease lease = gate.tryAcquire("active");
+        gate.setIdleExitMs(lease, 3000L);
+        clock.set(10_000L);
+        assertEquals(0L, gate.idleForMs());
+        assertFalse(gate.closeIfIdleExpired());
+        gate.release(lease);
+        clock.set(12_999L);
+        assertEquals(2999L, gate.idleForMs());
+        assertEquals(1L, gate.idleExitDelayMs());
+        assertFalse(gate.closeIfIdleExpired());
+        clock.incrementAndGet();
+        assertTrue(gate.closeIfIdleExpired());
+        assertNull(gate.tryAcquire("too-late"));
+        assertEquals(NodeRuntimeExecutionGate.AdmissionOutcome.CLOSED, gate.acquire("queued-too-late", 1L).outcome);
+    }
+
+    @Test
+    public void admittedDefaultRequestDisablesAnEarlierIdleDeadline() {
+        AtomicLong clock = new AtomicLong(0L);
+        NodeRuntimeExecutionGate gate = new NodeRuntimeExecutionGate(clock::get);
+        NodeRuntimeExecutionGate.Lease first = gate.tryAcquire("first");
+        gate.setIdleExitMs(first, 3000L);
+        gate.release(first);
+        NodeRuntimeExecutionGate.Lease second = gate.tryAcquire("second");
+        gate.setIdleExitMs(second, 0L);
+        gate.setIdleExitMs(first, 1L); // A stale completion cannot replace the current policy.
+        gate.release(second);
+        clock.set(60_000L);
+        assertEquals(0L, gate.idleExitMs());
+        assertFalse(gate.closeIfIdleExpired());
+    }
+
+    @Test
+    public void queueHandoffNeverCreatesAnIdleExitWindow() throws Exception {
+        AtomicLong clock = new AtomicLong(0L);
+        NodeRuntimeExecutionGate gate = new NodeRuntimeExecutionGate(clock::get);
+        NodeRuntimeExecutionGate.Lease first = gate.tryAcquire("first");
+        gate.setIdleExitMs(first, 3000L);
+        java.util.concurrent.atomic.AtomicReference<NodeRuntimeExecutionGate.Admission> second = new java.util.concurrent.atomic.AtomicReference<>();
+        Thread waiter = new Thread(() -> second.set(gate.acquire("second", 60_000L)));
+        waiter.start();
+        waitForQueueSize(gate, 1);
+        clock.set(10_000L);
+        assertFalse(gate.closeIfIdleExpired());
+        gate.release(first);
+        waiter.join(5000L);
+        assertNotNull(second.get());
+        assertFalse(gate.closeIfIdleExpired());
+        gate.setIdleExitMs(second.get().lease, 3000L);
+        gate.release(second.get().lease);
+        assertEquals(3000L, gate.idleExitDelayMs());
+    }
+
+    @Test
     public void prewarmTryAcquireIsRejectedWhileBusyWithoutQueueing() {
         AtomicLong clock = new AtomicLong(100L);
         NodeRuntimeExecutionGate gate = new NodeRuntimeExecutionGate(clock::get);

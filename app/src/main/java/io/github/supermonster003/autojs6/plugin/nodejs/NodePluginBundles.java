@@ -54,6 +54,8 @@ final class NodePluginBundles {
         info.putInt("maxConcurrentExecutions", 1);
         info.putInt("queueCapacity", NodeRuntimeExecutionGate.QUEUE_CAPACITY);
         info.putInt("queuedExecutions", service.executionGate.queuedCount());
+        info.putLong(NodeJsRuntimeContract.KEY_IDLE_FOR_MS, service.executionGate.idleForMs());
+        info.putLong(NodeJsRuntimeContract.KEY_IDLE_EXIT_MS, service.executionGate.idleExitMs());
         info.putBoolean("persistentProcessRuntime", true);
         info.putBoolean("dedicatedRuntimeProcess", service.isDedicatedRuntimeProcess());
         info.putBoolean("isolatePerExecution", true);

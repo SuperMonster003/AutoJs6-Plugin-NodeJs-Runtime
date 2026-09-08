@@ -101,6 +101,10 @@
 
 M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在 3 秒预算后均得到规范化超时, 且后继脚本 6/6 复用同一 PID; 队列预算、无 timeout 长驻与人工取消也均通过。
 
+`runScript` / `prewarmRuntime` 可以携带 `idleExitMs` (Long)。缺失或非正数为 0, 保持常驻; 正数表示最后一个执行完成且队列为空后, 空闲这么多毫秒便退出专用运行时进程。只有实际获准执行的请求会更新策略, 后续未带此字段的请求会恢复默认常驻; 队列等待、执行与预热期间不计为空闲。`getRuntimeInfo` 返回当前 `idleExitMs` 和 `idleForMs` (忙碌时为 0), 查询本身不重置计时。AutoJs6 的 `NodePluginScriptRequest.idleExitMs` 会透传正数, 旧宿主无需变更。
+
+例如 `idleExitMs=3000` 会在执行完成后空闲约 3 秒时退出。退出前在同一准入锁内再次确认无执行、无排队并关闭准入, 防止定时器误杀新任务。Android 在客户端仍绑定时不会仅因 `stopSelf()` 就销毁服务, 因此这里先停止服务再退出专用 PID; 客户端须使用重新连接后的 Binder, 新脚本会建立新的运行时。该策略不限制长驻脚本的执行时长, Android 调度或设备休眠也可能使实际退出晚于设定时间。参见 [Android 服务生命周期](https://developer.android.com/develop/background-work/services)。
+
 `executionMode` 是 lifecycle config 的请求级权威来源。缺失时仅为兼容旧 contract-v2 调用方而回退宿主 `engine-info`, 两处都缺失则为 `one_shot`; 不带 `engine-info` 的显式 `interactive_long_running` 请求按 `interactive_session` 生成配置并开启 checkpoint 门。checkpoint 只用于脚本主动保存/读取 JSON 进度, `automaticRestart=false` 与 `restartPolicy=never` 不变; 真正的宿主 lifecycle bridge 仍会独立校验 execution mode 与 launch surface。
 
 `runtimeAdapter` 是保留字面值的 deprecated no-op 键: 运行时槽位由已绑定插件服务的 runtime info 决定, 单次请求不能覆盖。当前 AutoJs6 宿主不再建模或发送该键; 旧调用方继续发送时会被宽容忽略。native payload 中的 `embedded_script.runtime_adapter.*` 是插件内部 C++ adapter 诊断, 与这个废弃请求键无关。

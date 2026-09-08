@@ -145,9 +145,12 @@ final class NodeRuntimeExecutionGate {
     private final ArrayDeque<Waiter> queue = new ArrayDeque<>();
     private Lease active;
     private boolean closed;
+    private long idleSinceMs;
+    private long idleExitMs;
 
     NodeRuntimeExecutionGate(ElapsedClock clock) {
         this.clock = Objects.requireNonNull(clock, "clock");
+        idleSinceMs = clock.nowMs();
     }
 
     /**
@@ -248,6 +251,41 @@ final class NodeRuntimeExecutionGate {
                     active = next.admittedLease;
                 }
             }
+            if (active == null) idleSinceMs = clock.nowMs();
+            monitor.notifyAll();
+            return true;
+        }
+    }
+
+    /** Only an admitted request can replace the process's next idle policy. */
+    void setIdleExitMs(Lease lease, long value) {
+        synchronized (monitor) {
+            if (active == lease && lease != null) idleExitMs = Math.max(0L, value);
+        }
+    }
+
+    long idleExitMs() {
+        synchronized (monitor) { return idleExitMs; }
+    }
+
+    long idleForMs() {
+        synchronized (monitor) {
+            return active == null ? Math.max(0L, clock.nowMs() - idleSinceMs) : 0L;
+        }
+    }
+
+    long idleExitDelayMs() {
+        synchronized (monitor) {
+            if (closed || active != null || !queue.isEmpty() || idleExitMs == 0L) return -1L;
+            return Math.max(0L, idleExitMs - Math.max(0L, clock.nowMs() - idleSinceMs));
+        }
+    }
+
+    /** Claim process exit atomically with admission, so a new execution cannot be killed. */
+    boolean closeIfIdleExpired() {
+        synchronized (monitor) {
+            if (idleExitDelayMs() != 0L) return false;
+            closed = true;
             monitor.notifyAll();
             return true;
         }
