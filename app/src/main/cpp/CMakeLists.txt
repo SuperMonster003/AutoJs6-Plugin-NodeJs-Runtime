@@ -11,8 +11,18 @@ set(AUTOJS6_NODE_RUNTIME_SLOT "node24_5" CACHE STRING "Build-only Embedded Node 
 set(AUTOJS6_NODE_INCLUDE_DIR "" CACHE PATH "Build-selected Node include/node directory")
 set(AUTOJS6_NODE_LIBRARY_ROOT "" CACHE PATH "Build-selected Node jniLibs root")
 
+if (AUTOJS6_NODE_RUNTIME_SLOT STREQUAL "node24_20")
+    set(NODE_HEADER_VERSION "24.20.0")
+    set(NODE_ADAPTER_SOURCE "node_runtime_adapter_24_20.cpp")
+elseif (AUTOJS6_NODE_RUNTIME_SLOT STREQUAL "node24_5")
+    set(NODE_HEADER_VERSION "24.5.0")
+    set(NODE_ADAPTER_SOURCE "node_runtime_adapter_24_5.cpp")
+else ()
+    message(FATAL_ERROR "Unsupported Node runtime slot: ${AUTOJS6_NODE_RUNTIME_SLOT}")
+endif ()
+
 if ("${AUTOJS6_NODE_INCLUDE_DIR}" STREQUAL "")
-    set(NODE_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/node-v24.5.0/include/node")
+    set(NODE_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/node-v${NODE_HEADER_VERSION}/include/node")
 else ()
     set(NODE_INCLUDE_DIR "${AUTOJS6_NODE_INCLUDE_DIR}")
 endif ()
@@ -45,7 +55,7 @@ add_library(
         node_bridge_lifecycle.cpp
         node_bridge_native_transport.cpp
         node_bridge_jni.cpp
-        node_runtime_adapter_24_5.cpp
+        "${NODE_ADAPTER_SOURCE}"
         node_bridge/payload_utils.cpp
 )
 
