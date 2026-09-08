@@ -1,0 +1,5 @@
+org.autojs.plugin.nodejs.api.INodeJsHostCapabilityBroker|getBrokerInfo=1,dispatch=2,getNativeDiagnostics=3,destroy=4
+org.autojs.plugin.nodejs.api.INodeJsHostCapabilityCallback|onResponse=1
+org.autojs.plugin.nodejs.api.INodeJsModuleSourceProvider|resolveModuleSource=1,getNativeDiagnostics=2,cancel=3
+org.autojs.plugin.nodejs.api.INodeJsRuntimeCallback|onEvent=1
+org.autojs.plugin.nodejs.api.INodeJsRuntimePlugin|getRuntimeInfo=1,runScript=2,cancelScript=3,prewarmRuntime=4,postMessage=5,startScript=6

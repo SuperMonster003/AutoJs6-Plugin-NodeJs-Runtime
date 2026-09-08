@@ -16,7 +16,7 @@ plugins {
 }
 
 group = "org.autojs.plugin.nodejs"
-version = "1.3.0"
+version = "1.4.0"
 
 android {
     namespace = "org.autojs.plugin.nodejs.api"
@@ -51,8 +51,9 @@ val nodeJsApiPublicationDirectory = rootProject.layout.projectDirectory
 val nodeJsApiPublishedAar = nodeJsApiPublicationDirectory.file(nodeJsApiArtifactName)
 val nodeJsApiPublicationLock = nodeJsApiPublicationDirectory.file("nodejs-api.lock")
 val nodeJsApiPreviousPublicationLock = rootProject.layout.projectDirectory
-    .file("releases/nodejs-api/1.2.0/nodejs-api.lock")
-val nodeJsApiAidlSnapshot = layout.projectDirectory.file("compat/v1/aidl-transactions.txt")
+    .file("releases/nodejs-api/1.3.0/nodejs-api.lock")
+val nodeJsApiAidlSnapshot = layout.projectDirectory.file("compat/v3/aidl-transactions.txt")
+val nodeJsApiPreviousAidlSnapshot = layout.projectDirectory.file("compat/v1/aidl-transactions.txt")
 val nodeJsApiReportDirectory = rootProject.layout.buildDirectory.dir("reports/nodejs")
 
 fun ByteArray.nodeJsApiSha256(): String =
@@ -183,6 +184,25 @@ fun nodeJsApiLoadLock(file: File): Properties = Properties().apply {
     file.inputStream().use(::load)
 }
 
+fun verifyNodeJsApiAppendOnlyTransactions(current: String) {
+    val previous = nodeJsApiPreviousAidlSnapshot.asFile.readText(StandardCharsets.UTF_8)
+        .replace("\r\n", "\n").replace('\r', '\n')
+    val previousLock = nodeJsApiLoadLock(nodeJsApiPreviousPublicationLock.asFile)
+    check(previousLock.getProperty("aidl.transactions.sha256") == previous.toByteArray(StandardCharsets.UTF_8).nodeJsApiSha256()) {
+        "The historical AIDL snapshot must match published API 1.3.0"
+    }
+    val currentInterfaces = current.lineSequence().filter(String::isNotBlank).associate { line ->
+        line.substringBefore('|') to line.substringAfter('|').split(',')
+    }
+    previous.lineSequence().filter(String::isNotBlank).forEach { line ->
+        val descriptor = line.substringBefore('|')
+        val methods = line.substringAfter('|').split(',')
+        check(currentInterfaces[descriptor]?.take(methods.size) == methods) {
+            "Existing AIDL descriptors and transaction numbers must remain unchanged: $descriptor"
+        }
+    }
+}
+
 fun nodeJsApiGit(vararg arguments: String): String? = runCatching {
     val process = ProcessBuilder(listOf("git") + arguments)
         .directory(rootProject.projectDir)
@@ -242,6 +262,7 @@ val verifyNodeJsApiPublication = tasks.register("verifyNodeJsApiPublication") {
         nodeJsApiPublishedAar,
         nodeJsApiPreviousPublicationLock,
         nodeJsApiAidlSnapshot,
+        nodeJsApiPreviousAidlSnapshot,
     )
     inputs.files(nodeJsApiSourceFiles())
     inputs.file(nodeJsApiReleaseAar)
@@ -266,7 +287,7 @@ val verifyNodeJsApiPublication = tasks.register("verifyNodeJsApiPublication") {
         }
         check(lock.getProperty("contract.version") == "2") { "Node.js API contract version drift" }
         check(lock.getProperty("contract.min") == "2") { "Node.js API minimum contract drift" }
-        check(lock.getProperty("contract.max") == "2") { "Node.js API maximum contract drift" }
+        check(lock.getProperty("contract.max") == "3") { "Node.js API maximum contract drift" }
         check(lock.getProperty("module.source.provider.contract.version") == "2") {
             "Node.js API module-source provider contract version drift"
         }
@@ -337,10 +358,7 @@ val verifyNodeJsApiPublication = tasks.register("verifyNodeJsApiPublication") {
         val aidlTransactionsSha256 = aidlTransactions
             .toByteArray(StandardCharsets.UTF_8)
             .nodeJsApiSha256()
-        val previousLock = nodeJsApiLoadLock(nodeJsApiPreviousPublicationLock.asFile)
-        check(previousLock.getProperty("aidl.transactions.sha256") == aidlTransactionsSha256) {
-            "Node.js API 1.3.0 must preserve the immutable 1.2.0 AIDL transaction identity"
-        }
+        verifyNodeJsApiAppendOnlyTransactions(aidlTransactions)
         val classesJarSha256 = currentClassesJar.nodeJsApiSha256()
 
         mapOf(
@@ -382,7 +400,7 @@ val verifyNodeJsApiPublication = tasks.register("verifyNodeJsApiPublication") {
               |  "apiClassCount": ${nodeEntries.size},
               |  "contractVersion": 2,
               |  "minContractVersion": 2,
-              |  "maxContractVersion": 2,
+              |  "maxContractVersion": 3,
               |  "moduleSourceProviderContractVersion": 2,
               |  "aidlCompatibleWith": "1.0.0",
               |  "sourceOwner": "AutoJs6-Plugin-NodeJs-Runtime",
@@ -424,10 +442,7 @@ tasks.register("stageNodeJsApiPublication") {
         val aidlTransactionsSha256 = aidlTransactions
             .toByteArray(StandardCharsets.UTF_8)
             .nodeJsApiSha256()
-        val previousLock = nodeJsApiLoadLock(nodeJsApiPreviousPublicationLock.asFile)
-        check(previousLock.getProperty("aidl.transactions.sha256") == aidlTransactionsSha256) {
-            "Refusing to stage Node.js API 1.3.0 with AIDL transaction drift from 1.2.0"
-        }
+        verifyNodeJsApiAppendOnlyTransactions(aidlTransactions)
 
         publishedAar.parentFile.mkdirs()
         currentAar.copyTo(publishedAar)
@@ -446,7 +461,7 @@ tasks.register("stageNodeJsApiPublication") {
               |aidl.transactions.sha256=${aidlTransactions.toByteArray(StandardCharsets.UTF_8).nodeJsApiSha256()}
               |contract.version=2
               |contract.min=2
-              |contract.max=2
+              |contract.max=3
               |module.source.provider.contract.version=2
               |source.owner=AutoJs6-Plugin-NodeJs-Runtime
               |source.repository=AutoJs6-Plugin-NodeJs-Runtime
