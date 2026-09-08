@@ -20,7 +20,9 @@ import org.autojs.plugin.nodejs.api.INodeJsRuntimePlugin;
 import org.autojs.plugin.nodejs.api.NodeJsRuntimeContract;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.json.JSONArray;
 
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -77,6 +79,7 @@ public final class LongRunningLifecycleSmokeTest {
 
             AtomicInteger tickCount = new AtomicInteger(0);
             CountDownLatch enoughTicks = new CountDownLatch(TICKS_BEFORE_STOP);
+            CountDownLatch bridgeCallsReady = new CountDownLatch(1);
             INodeJsRuntimeCallback.Stub callback = new INodeJsRuntimeCallback.Stub() {
                 @Override
                 public void onEvent(Bundle event) {
@@ -86,6 +89,9 @@ public final class LongRunningLifecycleSmokeTest {
                         tickCount.incrementAndGet();
                         enoughTicks.countDown();
                     }
+                    if (NodeJsRuntimeContract.EVENT_STDOUT.equals(type) && text.contains("m12.bridge.ready")) {
+                        bridgeCallsReady.countDown();
+                    }
                 }
             };
 
@@ -93,9 +99,19 @@ public final class LongRunningLifecycleSmokeTest {
             // callers to invent a giant number.
             Bundle request = new Bundle();
             request.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, EXECUTION_ID);
+            request.putBinder(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_BROKER, new ScreenStateTestBroker());
+            request.putStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCE_NAMES,
+                    new String[]{"autojs6:bridge-permissions"});
+            request.putStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCES,
+                    new String[]{"{\"version\":1,\"enforced\":true,\"permissions\":[\"device\"]}"});
             request.putString(
                     NodeJsRuntimeContract.KEY_SOURCE,
-                    "let n = 0;\n" +
+                    "(async () => { const device = require('device');\n" +
+                            "  for (let i = 0; i < 96; ++i) {\n" +
+                            "    if (!(await device.isScreenOn())) throw new Error('bridge response mismatch');\n" +
+                            "  } console.log('m12.bridge.ready');\n" +
+                            "})().catch(error => console.error(error.stack));\n" +
+                            "let n = 0;\n" +
                             "setInterval(() => { console.log('m2.resident.tick=' + (++n)); }, 250);\n"
             );
             Future<Bundle> pendingResult = executor.submit(() -> runtime.runScript(request, callback));
@@ -106,6 +122,8 @@ public final class LongRunningLifecycleSmokeTest {
                     "resident script stopped ticking early (implicit timeout?); ticks=" + tickCount.get(),
                     enoughTicks.await(RUN_RETURN_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             );
+            assertTrue("resident bridge calls did not complete",
+                    bridgeCallsReady.await(RUN_RETURN_TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
             // While running, the runtime reports the execution as active.
             Bundle info = runtime.getRuntimeInfo();
@@ -134,6 +152,12 @@ public final class LongRunningLifecycleSmokeTest {
             );
             assertTrue("resident script ticked fewer than expected", tickCount.get() >= TICKS_BEFORE_STOP);
             int residentPid = stopped.getInt(NodeJsRuntimeContract.KEY_PID, -1);
+            String recentResponses = payloadValue(stopped, "embedded_script.bridge_live_responses_json");
+            assertEquals(32, new JSONArray(recentResponses).length());
+            assertTrue("resident terminal diagnostics exceeded 64 KiB",
+                    recentResponses.getBytes(StandardCharsets.UTF_8).length < 64 * 1024);
+            assertEquals("96", payloadValue(stopped, "embedded_script.bridge_live_dispatch_count"));
+            assertEquals("0", payloadValue(stopped, "embedded_script.bridge_live_retained_request_count"));
 
             // The runtime survives for the next script.
             Bundle followUp = new Bundle();
@@ -161,8 +185,20 @@ public final class LongRunningLifecycleSmokeTest {
                     reuse.getInt(NodeJsRuntimeContract.KEY_PID, -2)
             );
         } finally {
+            if (binder.get() != null) {
+                INodeJsRuntimePlugin.Stub.asInterface(binder.get()).cancelScript(EXECUTION_ID);
+            }
             executor.shutdownNow();
             context.unbindService(connection);
         }
+    }
+
+    private static String payloadValue(Bundle result, String key) {
+        String[] payload = result.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD);
+        assertNotNull("native diagnostics missing", payload);
+        for (String entry : payload) {
+            if (entry.startsWith(key + "=")) return entry.substring(key.length() + 1);
+        }
+        throw new AssertionError("missing native diagnostic: " + key);
     }
 }

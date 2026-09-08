@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.3.0": {
+      "released_date": "Unreleased",
+      "fix": [
+        "Fixed growing live-bridge request and response history in resident scripts by retiring completed requests and bounding diagnostics to the latest 32 responses with a size limit"
+      ]
+    },
     "v1.2.0": {
       "released_date": "2026/08/29",
       "feature": [

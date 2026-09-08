@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.3.0": {
+      "released_date": "尚未發佈",
+      "fix": [
+        "修復常駐指令碼的橋接工作階段持續累積請求與回應記錄的問題, 清理已完成請求, 僅保留最近 32 筆回應並限制診斷大小"
+      ]
+    },
     "v1.2.0": {
       "released_date": "2026/08/29",
       "feature": [

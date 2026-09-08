@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Amelioration",
   "changelog_label_dependency": "Dependance",
   "$data": {
+    "v1.3.0": {
+      "released_date": "Non publié",
+      "fix": [
+        "Correction de l’accumulation des requêtes et réponses du pont dans les scripts résidents : suppression des requêtes terminées et conservation des 32 dernières réponses avec une taille de diagnostic limitée"
+      ]
+    },
     "v1.2.0": {
       "released_date": "2026/08/29",
       "feature": [

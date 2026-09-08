@@ -107,6 +107,12 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 
 人工取消或执行超时若遇到同步原生调用无法响应 `node::Stop`, 插件会在 3 秒宽限后只杀死独立 runtime 进程。由于被杀的 Binder 事务不可能返回结果 Bundle, 直接 AIDL 调用方看到 transport loss; AutoJs6 宿主将已派发后的丢失规范化为 `ERR_AUTOJS6_NODE_PLUGIN_EXECUTION_LOST` 且禁止自动回退重放, 随后的新会话可拉起新 PID 继续服务。
 
+### 长驻桥会话诊断
+
+`embedded_script.bridge_live_responses_json` 是最近 32 条响应的诊断摘要, 不再保存整段会话的所有响应。每条诊断最多 1536 UTF-8 字节; 大响应的诊断副本替换为带 `diagnosticTruncated=true` 与 `responseCharacters` 的记录, 实际交付给脚本的响应保持完整。响应数组最多 49185 字节, 调用总计数与失败计数继续累计。
+
+请求文件完成删除后立即释放内存中的去重记录。`embedded_script.bridge_live_retained_request_count` 与 `embedded_script.bridge_live_retained_response_count` 报告当前保留数量, 用于区分仍待处理的请求和有界的历史响应。
+
 ### Debug-only 本地 inspector
 
 `inspectorEnabled` 是默认 false 的请求级实验键, 只有 **debug 宿主 + debug 插件 + 显式 true** 同时成立才有效。插件 Java 层与 native 编译产物各自复核构建类型; release 产物即使收到伪造请求也保留 `kNoCreateInspector` 并拒绝 `require("inspector")`。
