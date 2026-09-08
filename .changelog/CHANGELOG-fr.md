@@ -15,6 +15,7 @@
 * `Ajout` Ajout d’un délai maximal couvrant l’attente et l’exécution des scripts, avec l’erreur `ERR_AUTOJS6_SCRIPT_TIMEOUT`; sans délai défini, les scripts peuvent toujours s’exécuter indéfiniment
 * `Ajout` Activation par défaut de `dgram` (UDP) et `http2`, avec une erreur explicite de désactivation pour `trace_events`
 * `Ajout` Ajout du débogage local `inspector`, activé explicitement dans les versions Debug, avec écoute uniquement sur localhost et connexion via `adb forward`
+* `Ajout` Ajout d’une activation sans interface protégée par la permission du plugin hôte, des descriptions du centre de plugins et désactivation de la sauvegarde des données
 * `Correction` Échec fermé du TypeScript brut sans sortie de compilation fournie par l'hôte, mappage des imports dynamiques de snapshot et normalisation des piles générées/importées
 * `Correction` Remplacement de l'adaptateur ESM partiel basé sur des snapshots par le linker natif V8, corrigeant les exports mutables non mis à jour dans les réexports cycliques
 * `Correction` Correction des imports ESM des façades de compatibilité AutoJs6 et de la détection de suffixes TypeScript inexistants, tout en préservant la priorité des paquets npm installés

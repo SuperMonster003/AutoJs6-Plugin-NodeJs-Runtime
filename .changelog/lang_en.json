@@ -14,7 +14,8 @@
         "Added `accessibility.swipe` and `accessibility.gesture` behind the dedicated `accessibility.gesture` capability",
         "Added script timeouts covering queueing and execution, returning `ERR_AUTOJS6_SCRIPT_TIMEOUT`; scripts without a timeout can still run indefinitely",
         "Enabled `dgram` (UDP) and `http2` by default, with an explicit disabled error for `trace_events`",
-        "Added explicitly enabled local `inspector` debugging in Debug builds, listening only on localhost and connecting through `adb forward`"
+        "Added explicitly enabled local `inspector` debugging in Debug builds, listening only on localhost and connecting through `adb forward`",
+        "Added a host-permission-protected activation entry without a UI, completed plugin-center descriptions, and disabled application data backup"
       ],
       "fix": [
         "Made raw TypeScript fail closed unless the host supplies compiler output, mapped snapshot dynamic imports, and normalized generated/imported stack frames",
