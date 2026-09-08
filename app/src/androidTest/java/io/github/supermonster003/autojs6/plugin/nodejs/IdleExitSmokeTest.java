@@ -32,8 +32,11 @@ public final class IdleExitSmokeTest {
             Bundle idle = runtime.getRuntimeInfo();
             assertEquals(3000L, idle.getLong(NodeJsRuntimeContract.KEY_IDLE_EXIT_MS));
             assertTrue(idle.getLong(NodeJsRuntimeContract.KEY_IDLE_FOR_MS) >= 600L);
-            assertTrue("idle runtime did not exit", died.await(10, TimeUnit.SECONDS));
-            INodeJsRuntimePlugin replacement = binding.next();
+            long exitDeadline = SystemClock.elapsedRealtime() + 10_000;
+            while (runtime.getRuntimeInfo().getInt(NodeJsRuntimeContract.KEY_PID) == originalPid && SystemClock.elapsedRealtime() < exitDeadline) SystemClock.sleep(100);
+            assertNotEquals("idle worker did not exit", originalPid, runtime.getRuntimeInfo().getInt(NodeJsRuntimeContract.KEY_PID));
+            assertEquals("idle worker exit killed the dispatcher", 1L, died.getCount());
+            INodeJsRuntimePlugin replacement = runtime;
             Bundle second = run(replacement, "console.log('idle.after')", 0L, null);
             assertNotEquals(originalPid, pid(second));
             SystemClock.sleep(3500L);
@@ -53,13 +56,17 @@ public final class IdleExitSmokeTest {
         SystemClock.sleep(300L);
         try (Binding binding = new Binding()) {
             INodeJsRuntimePlugin runtime = binding.next();
-            ExecutorService executor = Executors.newFixedThreadPool(2);
+            ExecutorService executor = Executors.newFixedThreadPool(3);
             CountDownLatch started = new CountDownLatch(1);
             try {
                 Future<Bundle> active = executor.submit(() -> run(runtime,
                         "console.log('idle.running'); setTimeout(() => console.log('idle.done'), 3500)",
                         3000L, started));
                 assertTrue(started.await(20, TimeUnit.SECONDS));
+                CountDownLatch otherReady = new CountDownLatch(1);
+                Future<Bundle> other = executor.submit(() -> runtime.runScript(ConcurrentExecutionSmokeTest.request("idle-other-slot",
+                        "console.log('other-ready'); setInterval(() => {}, 1000);"), ConcurrentExecutionSmokeTest.output(otherReady)));
+                assertTrue(otherReady.await(20, TimeUnit.SECONDS));
                 Future<Bundle> queued = executor.submit(() -> run(runtime, "console.log('idle.queued')", 0L, null));
                 long deadline = SystemClock.elapsedRealtime() + 2000L;
                 while (runtime.getRuntimeInfo().getInt("queuedExecutions") == 0 && SystemClock.elapsedRealtime() < deadline) {
@@ -69,9 +76,12 @@ public final class IdleExitSmokeTest {
                 assertEquals(0L, runtime.getRuntimeInfo().getLong(NodeJsRuntimeContract.KEY_IDLE_FOR_MS));
                 assertEquals(originalPid, pid(active.get(30, TimeUnit.SECONDS)));
                 assertEquals(originalPid, pid(queued.get(30, TimeUnit.SECONDS)));
+                assertTrue(runtime.cancelScript("idle-other-slot"));
+                other.get(15, TimeUnit.SECONDS);
                 SystemClock.sleep(3300L);
                 assertEquals(originalPid, runtime.getRuntimeInfo().getInt(NodeJsRuntimeContract.KEY_PID));
             } finally {
+                runtime.cancelScript("idle-other-slot");
                 executor.shutdownNow();
             }
         }

@@ -142,7 +142,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         assertNotEquals("runtime Binder unexpectedly stayed in the instrumentation process",
                 Process.myPid(), runtimePid);
         assertEquals(
-                targetContext.getPackageName() + RUNTIME_PROCESS_SUFFIX,
+                targetContext.getPackageName() + RUNTIME_PROCESS_SUFFIX + "0",
                 runtimeInfo.getString(NodeJsRuntimeContract.KEY_PROCESS_NAME)
         );
 
@@ -867,7 +867,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                             runtimePid,
                             exactProviderActions
                     );
-            RecordingCallback callback = new RecordingCallback(runtimePid);
+            // Output is forwarded by the dispatcher; module providers are called directly by the worker.
+            RecordingCallback callback = new RecordingCallback(boundRuntime.runtime.getRuntimeInfo().getInt("dispatcherPid", runtimePid));
             Bundle request = runtimeRequest(
                     executionId,
                     new File(sandboxRoot, entryName),
@@ -1087,7 +1088,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         assertTrue(
                 result.getString(NodeJsRuntimeContract.KEY_PROCESS_NAME, ""),
                 result.getString(NodeJsRuntimeContract.KEY_PROCESS_NAME, "")
-                        .endsWith(RUNTIME_PROCESS_SUFFIX)
+                        .matches(".*:nodejs_runtime[01]")
         );
         assertNativeValue(result, "process_runtime.healthy", "true");
         assertNativeValue(result, "execution.teardown_clean", "true");

@@ -153,7 +153,7 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 
 - 正数预算从插件 Binder 入口开始计时, 包含契约检查、串行队列等待、工作区/模块准备和原生 Node 执行。队列阶段耗尽同样返回脚本超时, 不再伪装成 `BUSY`。
 - 超时结果固定为 `timedOut=true`、`errorCode=ERR_AUTOJS6_SCRIPT_TIMEOUT`, 并回显 `timeoutMs`。诊断 payload 记录超时发生在 `queue_wait`、`pre_*` 或 `execution` 阶段。
-- 执行阶段超时复用协作取消链: watchdog 先请求 `node::Stop`; 若 3 秒内仍未释放唯一执行槽, 再关闭队列并重启独立 runtime 进程。能协作停止时进程保持不变, 下一脚本可复用同一 PID。
+- 执行阶段超时复用协作取消链: watchdog 先请求 `node::Stop`; 若 3 秒内仍未释放目标工作槽, 则只重启该工作进程。另一个工作槽及全局等待队列保持可用; 能协作停止时下一脚本可复用同一 PID。
 - 请求缺少 `timeoutMs` 或传 `<=0` 时, **脚本执行本身不设时限**, 保持长驻服务语义; 无显式预算的队列等待仍有插件内部 10 分钟安全上限。宿主或项目配置若主动填入正数, 该值就是总预算; 有意长驻的调用应传 `0`。
 - AutoJs6 宿主另保留 `timeoutMs + 5s` 的 Binder 响应兜底; 插件异常未返回时, 宿主会先发 `cancelScript` 再向调用方返回同一规范化超时码。
 
@@ -161,13 +161,15 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 
 `runScript` / `prewarmRuntime` 可以携带 `idleExitMs` (Long)。缺失或非正数为 0, 保持常驻; 正数表示最后一个执行完成且队列为空后, 空闲这么多毫秒便退出专用运行时进程。只有实际获准执行的请求会更新策略, 后续未带此字段的请求会恢复默认常驻; 队列等待、执行与预热期间不计为空闲。`getRuntimeInfo` 返回当前 `idleExitMs` 和 `idleForMs` (忙碌时为 0), 查询本身不重置计时。AutoJs6 的 `NodePluginScriptRequest.idleExitMs` 会透传正数, 旧宿主无需变更。
 
-例如 `idleExitMs=3000` 会在执行完成后空闲约 3 秒时退出。退出前在同一准入锁内再次确认无执行、无排队并关闭准入, 防止定时器误杀新任务。Android 在客户端仍绑定时不会仅因 `stopSelf()` 就销毁服务, 因此这里先停止服务再退出专用 PID; 客户端须使用重新连接后的 Binder, 新脚本会建立新的运行时。该策略不限制长驻脚本的执行时长, Android 调度或设备休眠也可能使实际退出晚于设定时间。参见 [Android 服务生命周期](https://developer.android.com/develop/background-work/services)。
+例如 `idleExitMs=3000` 会在目标工作槽执行完成后空闲约 3 秒时退出。退出前在同一准入锁内再次确认无执行并关闭准入, 防止定时器误杀新任务。Android 在客户端仍绑定时不会仅因 `stopSelf()` 就销毁服务, 因此这里先停止服务再退出工作 PID; 调度器负责重连, 宿主继续使用原公开 Binder。该策略不限制长驻脚本的执行时长, Android 调度或设备休眠也可能使实际退出晚于设定时间。参见 [Android 服务生命周期](https://developer.android.com/develop/background-work/services)。
 
 `executionMode` 是 lifecycle config 的请求级权威来源。缺失时仅为兼容旧 contract-v2 调用方而回退宿主 `engine-info`, 两处都缺失则为 `one_shot`; 不带 `engine-info` 的显式 `interactive_long_running` 请求按 `interactive_session` 生成配置并开启 checkpoint 门。checkpoint 只用于脚本主动保存/读取 JSON 进度, `automaticRestart=false` 与 `restartPolicy=never` 不变; 真正的宿主 lifecycle bridge 仍会独立校验 execution mode 与 launch surface。
 
 `runtimeAdapter` 是保留字面值的 deprecated no-op 键: 运行时槽位由已绑定插件服务的 runtime info 决定, 单次请求不能覆盖。当前 AutoJs6 宿主不再建模或发送该键; 旧调用方继续发送时会被宽容忽略。native payload 中的 `embedded_script.runtime_adapter.*` 是插件内部 C++ adapter 诊断, 与这个废弃请求键无关。
 
-人工取消或执行超时若遇到同步原生调用无法响应 `node::Stop`, 插件会在 3 秒宽限后只杀死独立 runtime 进程。由于被杀的 Binder 事务不可能返回结果 Bundle, 直接 AIDL 调用方看到 transport loss; AutoJs6 宿主将已派发后的丢失规范化为 `ERR_AUTOJS6_NODE_PLUGIN_EXECUTION_LOST` 且禁止自动回退重放, 随后的新会话可拉起新 PID 继续服务。
+M16 的公开 RUNTIME 服务在 `:nodejs_runtime` 中调度, 默认有两个不导出的工作服务, 分别运行于 `:nodejs_runtime0` 和 `:nodejs_runtime1`。空闲槽优先, 两槽全忙时进入容量 3 的全局 FIFO; 满载再提交返回 BUSY。每工作进程仍保持一个 Node Environment, 脚本内 worker_threads 的既有预算独立计算。prewarmRuntime 预热空闲槽, 不打断运行中的脚本。getRuntimeInfo 增加 processModel=process_pool、maxConcurrentExecutions=2、dispatcherPid 与 slots 数组; 每槽含 slotId/pid/active (executionId 或空串)/queued/rss (bytes)/ready。等待任务属于全局队列, 因此每槽 queued 为 0, 总数位于 queuedExecutions。顶层 pid/processName 兼容表示第 0 槽, activeExecutionId 表示当前第一个活跃槽; 精确状态使用 slots。结果和回调增加 slotId (排队前失败为 -1), 输出回调经调度器转发, 工作区和宿主 broker Binder 继续直接在执行进程调用。
+
+cancelScript 和 postMessage 按 executionId 路由, 取消排队脚本不会执行其源码。同步原生调用无法响应 node::Stop 时, 3 s 兜底只重启目标槽, 调度器将已请求的取消/超时返回对应终态; 其他进程死亡返回 unavailable, 不重放脚本。调度器自身死亡时仍由宿主既有 execution-lost 逻辑处理。M16.2 已验证第二槽 stdin、FIFO/队列满载/取消、超时、空闲重连与强制重启后另一槽持续运行。
 
 ### 实时桥传输
 

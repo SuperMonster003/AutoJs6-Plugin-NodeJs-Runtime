@@ -37,6 +37,59 @@ import java.util.concurrent.atomic.AtomicReference;
 @RunWith(AndroidJUnit4.class)
 public final class SerialQueueSmokeTest {
 
+    @Test public void occupiedSlotsPreserveFifoCapacityAndQueuedCancellation() throws Exception {
+        try (ConcurrentExecutionSmokeTest.Binding binding = new ConcurrentExecutionSmokeTest.Binding()) {
+            INodeJsRuntimePlugin runtime = binding.runtime;
+            ConcurrentExecutionSmokeTest.assertSucceeded(runtime.prewarmRuntime(new Bundle()));
+            ExecutorService executor = Executors.newFixedThreadPool(5);
+            List<String> starts = java.util.Collections.synchronizedList(new ArrayList<>());
+            CountDownLatch blockersReady = new CountDownLatch(2);
+            try {
+                List<Future<Bundle>> blockers = new ArrayList<>();
+                for (int index = 0; index < 2; index++) {
+                    String id = "m16-blocker-" + index;
+                    blockers.add(executor.submit(() -> runtime.runScript(ConcurrentExecutionSmokeTest.request(id,
+                            "console.log('ready'); setInterval(() => {}, 1000);"), ConcurrentExecutionSmokeTest.output(blockersReady))));
+                }
+                assertTrue(blockersReady.await(20, TimeUnit.SECONDS));
+                List<Future<Bundle>> pending = new ArrayList<>();
+                for (int index = 0; index < 3; index++) {
+                    String id = "m16-fifo-" + index;
+                    pending.add(executor.submit(() -> runtime.runScript(ConcurrentExecutionSmokeTest.request(id,
+                            "console.log('queued-start');"), new INodeJsRuntimeCallback.Stub() {
+                        @Override public void onEvent(Bundle event) {
+                            if (NodeJsRuntimeContract.EVENT_STDOUT.equals(event.getString(NodeJsRuntimeContract.KEY_EVENT_TYPE))) starts.add(id);
+                        }
+                    })));
+                    long deadline = android.os.SystemClock.elapsedRealtime() + 5000;
+                    while (runtime.getRuntimeInfo().getInt("queuedExecutions") != index + 1 && android.os.SystemClock.elapsedRealtime() < deadline) Thread.sleep(10);
+                    assertEquals(index + 1, runtime.getRuntimeInfo().getInt("queuedExecutions"));
+                }
+                Bundle overflow = runtime.runScript(ConcurrentExecutionSmokeTest.request("m16-overflow", "throw Error('must not run')"), null);
+                assertEquals(NodeJsRuntimePluginService.ERROR_BUSY, overflow.getString(NodeJsRuntimeContract.KEY_ERROR_CODE));
+                assertTrue(runtime.cancelScript("m16-fifo-1"));
+                assertEquals(NodeJsRuntimePluginService.ERROR_SCRIPT_CANCELLED,
+                        pending.get(1).get(10, TimeUnit.SECONDS).getString(NodeJsRuntimeContract.KEY_ERROR_CODE));
+                assertTrue(runtime.cancelScript("m16-blocker-0"));
+                Bundle stopped = blockers.get(0).get(15, TimeUnit.SECONDS);
+                Bundle first = pending.get(0).get(15, TimeUnit.SECONDS), third = pending.get(2).get(15, TimeUnit.SECONDS);
+                ConcurrentExecutionSmokeTest.assertSucceeded(first);
+                ConcurrentExecutionSmokeTest.assertSucceeded(third);
+                assertEquals(java.util.Arrays.asList("m16-fifo-0", "m16-fifo-2"), starts);
+                assertEquals(stopped.getInt(NodeJsRuntimeContract.KEY_PID), first.getInt(NodeJsRuntimeContract.KEY_PID));
+                assertEquals(first.getInt(NodeJsRuntimeContract.KEY_PID), third.getInt(NodeJsRuntimeContract.KEY_PID));
+                assertTrue(!blockers.get(1).isDone());
+                assertTrue(runtime.cancelScript("m16-blocker-1"));
+                blockers.get(1).get(15, TimeUnit.SECONDS);
+                assertEquals(0, runtime.getRuntimeInfo().getInt("queuedExecutions"));
+            } finally {
+                for (int i = 0; i < 2; i++) runtime.cancelScript("m16-blocker-" + i);
+                for (int i = 0; i < 3; i++) runtime.cancelScript("m16-fifo-" + i);
+                executor.shutdownNow();
+            }
+        }
+    }
+
     private static final long BIND_TIMEOUT_MS = 30_000L;
     private static final int CONCURRENT_SCRIPTS = 3;
     private static final long ALL_RESULTS_TIMEOUT_MS = 120_000L;
@@ -112,8 +165,7 @@ public final class SerialQueueSmokeTest {
                 );
             }
 
-            // All three finished through one runtime process: serial queue,
-            // not restarts.
+            // All submissions complete; the pool retains three global waiting positions.
             Bundle info = runtime.getRuntimeInfo();
             assertEquals(
                     "queue capacity not advertised",

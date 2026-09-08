@@ -47,6 +47,8 @@ final class NodePluginBundles {
         info.putString(NodeJsRuntimePluginService.KEY_NODE_RUNTIME_KIT_ID, BuildConfig.NODE_PLUGIN_RUNTIME_KIT_ID);
         info.putString(NodeJsRuntimeContract.KEY_PROCESS_NAME, currentProcessName());
         info.putInt(NodeJsRuntimeContract.KEY_PID, Process.myPid());
+        info.putInt(NodeJsRuntimeContract.KEY_SLOT_ID, service.runtimeSlotId());
+        info.putLong("rssBytes", 1024L * longValue(parseNativePayload(runtimeProcessDiagnosticsPayload()), "runtime_process.rss_kb", 0L));
         info.putBoolean("runtimeReady", readiness.ready);
         info.putString("runtimeReadinessDetail", readiness.detail);
         info.putString("processAbi", processAbi());

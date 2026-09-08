@@ -51,6 +51,11 @@ public final class PluginManifestContractTest {
 
         assertService(pm, packageName, "org.autojs.plugin.INFO", "NodeJsPluginInfoService");
         assertService(pm, packageName, "org.autojs.plugin.nodejs.RUNTIME", "NodeJsRuntimePluginService");
+        for (int slot = 0; slot < 2; slot++) {
+            ServiceInfo worker = pm.getServiceInfo(new ComponentName(packageName, packageName + ".NodeJsRuntimeSlot" + slot + "Service"), 0);
+            assertEquals(packageName + ":nodejs_runtime" + slot, worker.processName);
+            assertEquals(false, worker.exported);
+        }
     }
 
     private static void assertService(PackageManager pm, String packageName, String action, String name) {

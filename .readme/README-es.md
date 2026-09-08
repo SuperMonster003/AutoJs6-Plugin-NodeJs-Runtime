@@ -127,6 +127,7 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 * `Nuevo` autojs6:events observa notificaciones Android, Toast externos, teclas de accesibilidad y eventos de pantalla o batería mediante callbacks, con permisos explícitos y limpieza automática; events nativo de Node mantiene su compatibilidad
 * `Nuevo` Node app admite servicios Android, broadcasts y consultas de aplicaciones instaladas; dialogs ofrece entrada de texto, selección y ventanas de progreso que se cierran al terminar el script, y keys incorpora acciones del sistema de accesibilidad
 * `Nuevo` Node recorder admite grabación AAC con permiso de micrófono, notificación, límite de duración y limpieza al terminar el script; ui.overlay admite cambios de propiedades, arrastre y envío de eventos
+* `Nuevo` Los scripts Node pueden ejecutarse en dos procesos independientes con una cola FIFO compartida y cancelación y entrada dirigidas a cada ejecución
 * `Correccion` Corregida la acumulación de solicitudes y respuestas del puente en scripts residentes: se eliminan las solicitudes completadas y se conservan las últimas 32 respuestas con un límite de tamaño para los diagnósticos
 * `Correccion` Corregidos los resultados exitosos prematuros que perdían errores asíncronos nativos y códigos de salida tardíos; la finalización sigue la salida final del bucle Node
 * `Mejora` Se redujo la latencia del puente con transporte JNI/Binder predeterminado y respuestas mediante el bucle de eventos de Node, conservando la alternativa por archivos y los límites de llamadas pendientes
