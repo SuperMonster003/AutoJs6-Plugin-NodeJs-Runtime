@@ -19,6 +19,7 @@ import storage = require("storage");
 import storages = require("storages");
 import database = require("database");
 import sqlite = require("sqlite");
+import { DatabaseSync } from "node:sqlite";
 import consoleModule = require("console");
 import timers = require("timers");
 import files = require("files");
@@ -64,6 +65,10 @@ interface TypeSmokePlugin {
 }
 
 async function smoke(): Promise<void> {
+  const nativeDatabase = new DatabaseSync(":memory:");
+  nativeDatabase.exec("CREATE TABLE sample (value INTEGER)");
+  nativeDatabase.prepare("INSERT INTO sample VALUES (?)").run(42);
+  nativeDatabase.close();
   await toast.showToast("hello", { duration: "short", log: true, timeoutMs: 1000 });
   await toast.toast("alias", { timeoutMs: 1000 });
 

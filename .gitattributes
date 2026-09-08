@@ -14,3 +14,9 @@ app/src/main/jniLibs/x86_64/libnode.so filter=lfs diff=lfs merge=lfs -text
 /app/src/main/assets/licenses/** text eol=lf
 # Preserve the fixed upstream license's original mixed indentation.
 /app/src/main/assets/licenses/nodejs-mobile-LICENSE.txt whitespace=-space-before-tab
+
+# Keep vendored npm sources byte-identical, including upstream line endings and indentation.
+/app/src/androidTest/assets/npm_ecosystem_corpus/node_modules/** -text -whitespace
+# These two upstream Setext headings contain exactly seven '=' characters.
+/app/src/androidTest/assets/npm_ecosystem_corpus/node_modules/commist/README.md conflict-marker-size=8
+/app/src/androidTest/assets/npm_ecosystem_corpus/node_modules/help-me/README.md conflict-marker-size=8

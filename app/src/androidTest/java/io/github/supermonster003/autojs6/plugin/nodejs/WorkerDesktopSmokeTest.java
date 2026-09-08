@@ -138,9 +138,14 @@ public final class WorkerDesktopSmokeTest {
                   const fs = require('node:fs');
                   assert.throws(() => fs.readFileSync('/proc/self/status'), e => e.code === 'ERR_AUTOJS6_FS_PATH_ESCAPE');
                   assert.strictEqual(fs.readFileSync(workerData.outside,'utf8'),'outside');
-                  for (const name of ['autojs6:fetch','autojs6:websocket','ui','inspector','node:inspector']) {
+                  for (const name of ['autojs6:fetch','autojs6:websocket','sqlite','ui','inspector','node:inspector']) {
                     assert.throws(() => require(name), e => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED');
                   }
+                  const {DatabaseSync}=require('node:sqlite');
+                  const db=new DatabaseSync(':memory:');
+                  try { assert.strictEqual(db.prepare('SELECT 42 AS value').get().value,42); assert.strictEqual(db.isOpen,true); }
+                  finally { db.close(); }
+                  assert.throws(()=>new DatabaseSync('/proc/self/status'),e=>e.code==='ERR_AUTOJS6_FS_PATH_ESCAPE');
                   const http = require('node:http');
                   const server = http.createServer((req,res)=>res.end('worker-native'));
                   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -155,7 +160,8 @@ public final class WorkerDesktopSmokeTest {
         String output = run("main.cjs", """
                 (async () => {
                   const assert=require('node:assert/strict'), wt=require('node:worker_threads');
-                  assert.strictEqual(wt.policy.maxWorkers,Math.min(8,require('os').availableParallelism()));
+                  // Android may change CPU affinity between bootstrap and this assertion.
+                  assert.ok(Number.isInteger(wt.policy.maxWorkers) && wt.policy.maxWorkers>=1 && wt.policy.maxWorkers<=8);
                   assert.strictEqual(wt.policy.workerPool.taskTimeoutMs,0);
                   const builtins = require('node:module').builtinModules.filter(name=>name!=='inspector');
                   const workers = Array.from({length:4},()=>new wt.Worker(__dirname+'/worker.cjs',{

@@ -42,7 +42,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Roadmap M2.4/M9.2: fifteen real npm packages run inside the plugin runtime.
+ * Roadmap M2.4/M9.2/M13.4: twenty real npm packages run inside the plugin runtime.
  * The original high-frequency CommonJS corpus is extended with axios and
  * Express loopback probes plus three ESM-only packages (nanoid, p-limit and
  * yocto-queue). The genuine npm-install tree is shipped as androidTest assets
@@ -60,7 +60,8 @@ public final class NpmEcosystemSmokeTest {
     private static final List<String> PACKAGES = List.of(
             "lodash", "dayjs", "ms", "semver", "uuid",
             "debug", "mime", "qs", "js-yaml", "ajv",
-            "axios", "express", "nanoid", "p-limit", "yocto-queue"
+            "axios", "express", "nanoid", "p-limit", "yocto-queue",
+            "zod", "cheerio", "date-fns", "mqtt", "ws"
     );
 
     @Test
@@ -143,7 +144,7 @@ public final class NpmEcosystemSmokeTest {
                     NodeJsRuntimeContract.WORKSPACE_ARCHIVE_TRANSPORT_CONTRACT_VERSION
             );
             request.putString(NodeJsRuntimeContract.KEY_WORKSPACE_RELATIVE_WORKING_DIRECTORY, "");
-            request.putInt(NodeJsRuntimeContract.KEY_WORKSPACE_ARCHIVE_MAX_FILES, 4096);
+            request.putInt(NodeJsRuntimeContract.KEY_WORKSPACE_ARCHIVE_MAX_FILES, 16_384);
             request.putLong(NodeJsRuntimeContract.KEY_WORKSPACE_ARCHIVE_MAX_BYTES, 64L * 1024L * 1024L);
 
             ParcelFileDescriptor inputDescriptor = ParcelFileDescriptor.open(

@@ -3699,7 +3699,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (!limitNames.includes(name) || !Number.isFinite(suppliedLimits[name]) || suppliedLimits[name] <= 0) throw new RangeError("Invalid autojs6:worker-policy.resourceLimits." + name);
       resourceLimits[name] = suppliedLimits[name];
     }
-    const builtins = __autojs6_limited_builtin_module_names.concat(["node:test", "worker_threads"]);
+    const builtins = __autojs6_limited_builtin_module_names.concat(["node:test", "node:test/reporters", "node:sqlite", "worker_threads"]);
     if (__autojs6_raw_node_network_modules_enabled) builtins.push("dgram", "http2");
     if (__autojs6_child_process_enabled) builtins.push("child_process");
     return Object.freeze({
@@ -4388,8 +4388,7 @@ std::string buildEmbeddedScriptExecutionSource(
         androidDifferences: "documented_stable",
         androidUnsupported: Object.freeze([
           "terminal_input_without_stdin",
-          "zlib/promises",
-          "node:test/reporters"
+          "zlib/promises"
         ]),
         resourceLimits: "node_runtime_and_android_process_limits",
         npmCorpus: "real_npm_phase13_60_fixture_corpus",
@@ -9107,6 +9106,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return "\"use strict\";\n" +
       "(function() {\n" +
       "  const __descriptor = " + descriptorLiteral + ";\n" +
+      "  const __createSqliteFacade = " + __autojs6_create_sqlite_facade.toString() + ";\n" +
       String.raw`
   const __nativeRequire = require;
   const __workerThreads = __nativeRequire("worker_threads");
@@ -9179,6 +9179,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   const __allowed = Object.freeze(Object.fromEntries(__descriptor.policy.allowedBuiltins.map(name => [name.replace(/^node:/, ""), name])));
   const __networkBuiltins = new Set(["net", "http", "https", "tls", "dns", "dns/promises", "dgram", "http2"]);
+  let __sqliteCache = null;
   const __messagePolicy = Object.freeze({
     maxMessageBytes: (__descriptor.policy && __descriptor.policy.maxMessageBytes) || 65536,
     maxQueuedMessages: (__descriptor.policy && __descriptor.policy.maxQueuedMessages) || 32
@@ -9329,6 +9330,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __builtinAllowed(request) {
     const name = __normalBuiltinName(request);
+    if ((name === "sqlite" || name === "test" || name === "test/reporters") && !String(request).startsWith("node:")) return false;
     return name === "worker_threads" || Object.prototype.hasOwnProperty.call(__allowed, name);
   }
   function __loadBuiltin(request) {
@@ -9338,6 +9340,13 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "fs") return __limitedFsModule();
     if (name === "fs/promises") return __limitedFsPromisesModule();
     if (__networkBuiltins.has(name) && !__descriptor.policy.rawNetwork) throw __error("Raw Node networking is disabled for this execution.", "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED");
+    if (name === "sqlite") {
+      if (!__sqliteCache) __sqliteCache = __createSqliteFacade(__nativeRequire("node:sqlite"), (path, readOnly) => {
+        if (path instanceof URL) path = __nativeRequire("url").fileURLToPath(path);
+        return readOnly ? __workerFsReadablePath(path, "sqlite") : __workerFsWritablePath(path, "sqlite");
+      });
+      return __sqliteCache;
+    }
     if (name === "module") return __limitedModule;
     if (name === "process") return process;
     if (Object.prototype.hasOwnProperty.call(__allowed, name)) return __nativeRequire(__allowed[name]);
@@ -35450,9 +35459,115 @@ std::string buildEmbeddedScriptExecutionSource(
     parentModule.require = __autojs6_create_module_require(parentModule);
     return parentModule.require;
   }
+  function __autojs6_create_sqlite_facade(native, validatePath) {
+    const records = new WeakMap();
+    function error(message, code) { const value = new Error(message); value.code = code; return value; }
+    function extensionDenied() { throw error("Native SQLite extensions are disabled in AutoJs6.", "ERR_AUTOJS6_NATIVE_ADDON_DISABLED"); }
+    function databasePath(value, readOnly) {
+      if (ArrayBuffer.isView(value)) value = Buffer.from(value.buffer, value.byteOffset, value.byteLength).toString("utf8");
+      if (value === ":memory:") return value;
+      if (typeof value === "string" && (!value || value.startsWith("file:"))) {
+        throw error("SQLite URI strings and empty temporary paths are unsupported; use a file path, file URL object or :memory:.", "ERR_AUTOJS6_SQLITE_PATH_UNSUPPORTED");
+      }
+      return validatePath(value, readOnly);
+    }
+    // Node 24.5 exposes no SQLite authorizer. Keep SQL from opening additional files
+    // outside the validated constructor/backup paths, including parameterized ATTACH.
+    function checkSql(sql) {
+      if (typeof sql !== "string") return;
+      let tokens = [];
+      function checkStatement() {
+        const command = tokens[0];
+        if (command === "ATTACH" || (command === "VACUUM" && tokens.includes("INTO")) ||
+            (command === "PRAGMA" && tokens.slice(1, 4).some(x => x === "TEMP_STORE_DIRECTORY" || x === "DATA_STORE_DIRECTORY"))) {
+          throw error("SQLite SQL file operations are unsupported; open a validated DatabaseSync or use sqlite.backup().", "ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED");
+        }
+        tokens = [];
+      }
+      for (let i = 0; i < sql.length;) {
+        const ch = sql[i], next = sql[i + 1];
+        if (ch === "-" && next === "-") { while (i < sql.length && sql[i] !== "\n" && sql[i] !== "\r") i++; continue; }
+        if (ch === "/" && next === "*") { i += 2; while (i < sql.length && !(sql[i] === "*" && sql[i + 1] === "/")) i++; i += 2; continue; }
+        if (ch === ";") { checkStatement(); i++; continue; }
+        if (ch === "'" || ch === '"' || ch === "`" || ch === "[") {
+          const end = ch === "[" ? "]" : ch;
+          let text = ""; i++;
+          while (i < sql.length) {
+            if (sql[i] === end) {
+              if (ch !== "[" && sql[i + 1] === end) { text += end; i += 2; continue; }
+              i++; break;
+            }
+            text += sql[i++];
+          }
+          tokens.push(text.toUpperCase());
+          continue;
+        }
+        if (/[A-Za-z_]/.test(ch)) {
+          const start = i++;
+          while (i < sql.length && /[A-Za-z0-9_$]/.test(sql[i])) i++;
+          tokens.push(sql.slice(start, i).toUpperCase());
+        } else i++;
+      }
+      checkStatement();
+    }
+    function DatabaseSync(path, options) {
+      if (!new.target) throw new TypeError("DatabaseSync requires new.");
+      if (options && options.allowExtension) extensionDenied();
+      const normalized = databasePath(path, options && options.readOnly);
+      const db = new native.DatabaseSync(normalized, { ...options, allowExtension: false });
+      records.set(this, { db, path: normalized, readOnly: options && options.readOnly });
+      // Node installs these accessors on each instance, not on its prototype.
+      for (const name of ["isOpen", "isTransaction"]) {
+        Object.defineProperty(this, name, { enumerable: true, get: () => db[name] });
+      }
+    }
+    function record(value) {
+      const entry = records.get(value);
+      if (!entry) throw new TypeError("Expected an AutoJs6 DatabaseSync instance.");
+      return entry;
+    }
+    for (const key of Reflect.ownKeys(native.DatabaseSync.prototype)) {
+      if (key === "constructor") continue;
+      const descriptor = Object.getOwnPropertyDescriptor(native.DatabaseSync.prototype, key);
+      if (typeof descriptor.value === "function") {
+        Object.defineProperty(DatabaseSync.prototype, key, {
+          configurable: true, writable: true, enumerable: descriptor.enumerable,
+          value: function(...args) {
+            const entry = record(this);
+            if (key === "exec" || key === "prepare") checkSql(args[0]);
+            if (key === "loadExtension" || (key === "enableLoadExtension" && args[0])) extensionDenied();
+            if (key === "open") databasePath(entry.path, entry.readOnly);
+            const value = descriptor.value.apply(entry.db, args);
+            return value === entry.db ? this : value;
+          }
+        });
+      } else if (descriptor.get) {
+        Object.defineProperty(DatabaseSync.prototype, key, {
+          configurable: true, enumerable: descriptor.enumerable,
+          get: function() { return descriptor.get.call(record(this).db); }
+        });
+      }
+    }
+    return Object.freeze({
+      ...native, DatabaseSync,
+      backup: function(db, path, options) {
+        const source = record(db).db, target = databasePath(path, false);
+        return options === undefined ? native.backup(source, target) : native.backup(source, target, options);
+      }
+    });
+  }
+  let __autojs6_sqlite_cache = null;
+  function __autojs6_sqlite_module() {
+    if (!__autojs6_sqlite_cache) {
+      __autojs6_sqlite_cache = __autojs6_create_sqlite_facade(__autojs6_get_builtin_module("node:sqlite"),
+        (path, readOnly) => __autojs6_validate_fs_path(path, "sqlite", { checkParent: true, mustExist: !!readOnly }));
+    }
+    return __autojs6_sqlite_cache;
+  }
+
   function __autojs6_limited_module_is_builtin(name) {
     const key = name === undefined ? "" : String(name);
-    if (key === "node:test") {
+    if (key === "node:test" || key === "node:test/reporters" || key === "node:sqlite") {
       return true;
     }
     if (key === "node:worker_threads") {
@@ -35495,7 +35610,7 @@ std::string buildEmbeddedScriptExecutionSource(
       builtinModules: {
         value: Object.freeze((function() {
           const names = __autojs6_limited_builtin_module_names.slice();
-          names.push("node:test");
+          names.push("node:test", "node:test/reporters", "node:sqlite");
           if (__autojs6_worker_threads_enabled) {
             names.push("worker_threads");
           }
@@ -37204,7 +37319,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return lines;
   }
   function __autojs6_esm_builtin_specifier(name) {
-    return name === "node:test" ||
+    return name === "node:test" || name === "node:test/reporters" || name === "node:sqlite" ||
       ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_enabled) ||
       name === "rhino" ||
       __autojs6_has_own(__autojs6_require_builtin_allowlist, name) ||
@@ -37943,8 +38058,8 @@ std::string buildEmbeddedScriptExecutionSource(
     return url && typeof url.href === "string" ? url.href : String(url);
   }
   function __autojs6_import_meta_builtin_url(name) {
-    if (name === "node:test") {
-      return "node:test";
+    if (name === "node:test" || name === "node:test/reporters" || name === "node:sqlite") {
+      return name;
     }
     if (name === "node:worker_threads") {
       return "node:worker_threads";
@@ -39291,8 +39406,8 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       return "inspector";
     }
-    if (name === "node:test") {
-      return "node:test";
+    if (name === "node:test" || name === "node:test/reporters" || name === "node:sqlite") {
+      return name;
     }
     if (name === "fs" || name === "node:fs") {
       return "fs";
@@ -39667,8 +39782,9 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "inspector" || name === "node:inspector") {
       return __autojs6_limited_inspector();
     }
-    if (name === "node:test") {
-      return __autojs6_get_builtin_module("node:test");
+    if (name === "node:sqlite") return __autojs6_sqlite_module();
+    if (name === "node:test" || name === "node:test/reporters") {
+      return __autojs6_get_builtin_module(name);
     }
     if (name === "fs" || name === "node:fs") {
       return __autojs6_scoped_fs();

@@ -19,7 +19,8 @@
       "feature": [
         "Node.js ブリッジの購読でセンサー, WebSocket, UI, オーバーレイ, 入力イベントを既存のコールバック経由で配信し, on/once/off, 有界キュー, drainEvents 互換性を提供",
         "Node.js ランタイムに任意の idleExitMs によるアイドル終了と次のスクリプトの再接続を追加, idleForMs 診断を提供し既定では常駐を維持",
-        "グローバル fetch, Request, Response, Headers, FormData, WebSocket に Node ネイティブ Web API を使用; autojs6:fetch と autojs6:websocket はホストのネットワークスタックを提供"
+        "グローバル fetch, Request, Response, Headers, FormData, WebSocket に Node ネイティブ Web API を使用; autojs6:fetch と autojs6:websocket はホストのネットワークスタックを提供",
+        "ファイル境界を検査するネイティブ node:sqlite を追加し、CRUD・トランザクション・バックアップに対応。node:test のネイティブレポーターと実行可能なサンプルを提供し、オフライン npm corpus に zod、cheerio、date-fns、mqtt、ws を追加"
       ]
     },
     "v1.2.0": {
