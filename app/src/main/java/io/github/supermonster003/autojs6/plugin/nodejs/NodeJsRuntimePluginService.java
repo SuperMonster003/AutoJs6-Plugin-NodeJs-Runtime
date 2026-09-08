@@ -116,10 +116,18 @@ public class NodeJsRuntimePluginService extends Service {
     };
 
     private final Object runtimeLifecycleLock = new Object();
-    final NodeRuntimeExecutionGate executionGate =
-            new NodeRuntimeExecutionGate(SystemClock::elapsedRealtime);
-    final AtomicBoolean processRestartScheduled = new AtomicBoolean(false);
-    private final Handler processHandler = new Handler(Looper.getMainLooper());
+    // Android can destroy/recreate an unbound Service while keeping its process.
+    // Admission and idle deadlines must have the same lifetime as the native runtime.
+    private static final class RuntimeProcessState {
+        static final NodeRuntimeExecutionGate gate = new NodeRuntimeExecutionGate(SystemClock::elapsedRealtime);
+        static final AtomicBoolean restarting = new AtomicBoolean(false);
+        static final Handler handler = new Handler(Looper.getMainLooper());
+        static Runnable idleExitCheck;
+    }
+
+    final NodeRuntimeExecutionGate executionGate = RuntimeProcessState.gate;
+    final AtomicBoolean processRestartScheduled = RuntimeProcessState.restarting;
+    private final Handler processHandler = RuntimeProcessState.handler;
     volatile RuntimeReadiness lastRuntimeReadiness = RuntimeReadiness.notStarted();
     final NodeRuntimeModuleInjector moduleInjector = new NodeRuntimeModuleInjector(this);
     final NodePluginBundles bundles = new NodePluginBundles(this);
@@ -134,6 +142,7 @@ public class NodeJsRuntimePluginService extends Service {
         public Bundle runScript(Bundle request, INodeJsRuntimeCallback callback) {
             long startedAt = SystemClock.elapsedRealtime();
             Bundle normalizedRequest = request == null ? new Bundle() : new Bundle(request);
+            NodeRuntimeExecutionGate.Lease acquiredLease = null;
             try {
                 Bundle contractFailure = validateRequestContract(normalizedRequest, startedAt);
                 if (contractFailure != null) {
@@ -172,6 +181,8 @@ public class NodeJsRuntimePluginService extends Service {
                     );
                 }
                 NodeRuntimeExecutionGate.Lease lease = admission.lease;
+                acquiredLease = lease;
+                executionGate.setIdleExitMs(lease, normalizedRequest.getLong(NodeJsRuntimeContract.KEY_IDLE_EXIT_MS, 0L));
                 Runnable timeoutWatchdog = null;
                 boolean stopScopeOpened = false;
                 try {
@@ -242,10 +253,16 @@ public class NodeJsRuntimePluginService extends Service {
                     if (stopScopeOpened) {
                         NativeNodeEmbeddedRuntimeBridge.endScriptStopScope(NodeJsRuntimePluginService.this);
                     }
-                    executionGate.release(lease);
                 }
             } finally {
-                closeWorkspaceDescriptors(normalizedRequest);
+                try {
+                    closeWorkspaceDescriptors(normalizedRequest);
+                } finally {
+                    if (acquiredLease != null) {
+                        executionGate.release(acquiredLease);
+                        scheduleIdleExitCheck();
+                    }
+                }
             }
         }
 
@@ -306,10 +323,12 @@ public class NodeJsRuntimePluginService extends Service {
                     busy.putString("reason", "active_execution");
                     return busy;
                 }
+                executionGate.setIdleExitMs(lease, normalizedRequest.getLong(NodeJsRuntimeContract.KEY_IDLE_EXIT_MS, 0L));
                 try {
                     return bundles.prewarmRuntimeBundle(ensurePersistentRuntimeReady(), startedAt);
                 } finally {
                     executionGate.release(lease);
+                    scheduleIdleExitCheck();
                 }
             } finally {
                 closeWorkspaceDescriptors(normalizedRequest);
@@ -324,11 +343,33 @@ public class NodeJsRuntimePluginService extends Service {
         if (!readiness.ready) {
             Log.e(TAG, "Dedicated Node.js runtime process failed to become ready: " + readiness.detail);
         }
+        scheduleIdleExitCheck();
     }
 
     @Override
     public IBinder onBind(android.content.Intent intent) {
         return binder;
+    }
+
+    private void scheduleIdleExitCheck() {
+        processHandler.post(() -> {
+            if (RuntimeProcessState.idleExitCheck != null) {
+                processHandler.removeCallbacks(RuntimeProcessState.idleExitCheck);
+                RuntimeProcessState.idleExitCheck = null;
+            }
+            long delayMs = executionGate.idleExitDelayMs();
+            if (delayMs < 0L) return;
+            RuntimeProcessState.idleExitCheck = () -> {
+                RuntimeProcessState.idleExitCheck = null;
+                if (!isDedicatedRuntimeProcess() || !executionGate.closeIfIdleExpired()) return;
+                processRestartScheduled.set(true);
+                Log.i(TAG, "Exiting idle Node.js runtime process after " + executionGate.idleForMs() + " ms");
+                // stopSelf alone cannot release a process with bound clients.
+                stopSelf();
+                Process.killProcess(Process.myPid());
+            };
+            processHandler.postDelayed(RuntimeProcessState.idleExitCheck, delayMs);
+        });
     }
 
     // Kept as a delegate: unit tests reference this via the service class.
