@@ -68,6 +68,12 @@ public final class NodeBridgePermissionManifest {
     private static final String INPUT_OBSERVER_INTERCEPT = "input_observer.intercept";
     private static final String FLOATY_RAW = "floaty.raw";
     private static final String FLOATY_TOUCH = "floaty.touch";
+    private static final String PINYIN = "pinyin";
+    private static final String PINYIN4J = "pinyin4j";
+    private static final String FILES = "files";
+    private static final String FILES_WRITE = "files.write";
+    private static final String FILES_DELETE = "files.delete";
+    private static final String CONSOLE = "console";
 
     private static final String ANDROID_PERMISSION_INTERNET = "android.permission.INTERNET";
     private static final String ANDROID_PERMISSION_FOREGROUND_SERVICE = "android.permission.FOREGROUND_SERVICE";
@@ -132,7 +138,13 @@ public final class NodeBridgePermissionManifest {
             INPUT_OBSERVER_TOUCH,
             INPUT_OBSERVER_INTERCEPT,
             FLOATY_RAW,
-            FLOATY_TOUCH
+            FLOATY_TOUCH,
+            PINYIN,
+            PINYIN4J,
+            FILES,
+            FILES_WRITE,
+            FILES_DELETE,
+            CONSOLE
     );
     private static final Set<String> DEFINED_CAPABILITY_SET =
             Collections.unmodifiableSet(new HashSet<>(DEFINED_CAPABILITIES));

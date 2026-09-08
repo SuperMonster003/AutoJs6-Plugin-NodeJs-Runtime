@@ -26,7 +26,8 @@
         "process.stdin / readline 接收控制台输入, autojs6:host 接收执行级 JSON 消息, v3 postMessage 事务兼容旧宿主",
         "Node.js 截屏会话接入 Android 授权和既有前台服务, 支持图片句柄, PNG/JPEG/WebP 保存及停止或脚本退出时清理",
         "Node.js 图片句柄支持裁剪, 缩放, 灰度, 阈值, 找图及找色, 复用宿主图像后端, 返回独立图片并在执行结束时清理",
-        "Node.js image.toBytes 通过文件描述符将 PNG 或 RGBA 像素传入原生 Buffer, 支持 JNI 与文件桥接, 在使用后, 超时或执行结束时回收附件"
+        "Node.js image.toBytes 通过文件描述符将 PNG 或 RGBA 像素传入原生 Buffer, 支持 JNI 与文件桥接, 在使用后, 超时或执行结束时回收附件",
+        "Node device 接口提供实时构建, 屏幕, 电池和内存信息, 亮度控制及定时保持亮屏; media 支持设置音频流音量, 遵循 Android 权限"
       ]
     },
     "v1.2.0": {

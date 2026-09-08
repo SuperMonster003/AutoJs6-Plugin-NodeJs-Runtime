@@ -49,7 +49,7 @@
 | `app` | launchPackage, launchApp, openAppSetting, startActivity, getPackageName, getAppName, isInstalled, viewFile, editFile | 真启动 |
 | `accessibility` | isEnabled, ensureEnabled, click, back, home, recentApps, findByText, clickText, findOne, findAll, longClick, setText, scrollForward, scrollBackward, **swipe, gesture** (M3.2) | 真无障碍; 有每秒限速; 服务未启用时返回 capabilityProviderMissing。swipe/gesture 需显式声明 `accessibility.gesture` 权限 (不被 `accessibility` 隐含), 时长上限 10s |
 | `clipboard` | getText, setText, hasText | 真剪贴板 |
-| `device` | isScreenOn, wakeUp, vibrate, isIgnoringBatteryOptimizations, openBatteryOptimizationSettings | 硬件标识符 (imei/androidId/serial/mac) 明确 blocked |
+| `device` | info, getWidth/Height/Density/DensityDpi, getBrightness/Mode, getBattery/isCharging, getSdkInt/Release/Model/Brand/Product/Board/Bootloader/Hardware/Fingerprint/BuildId, getTotalMem/AvailMem, isScreenOn, wakeUp, vibrate, setBrightness/Mode, keepScreenOn, cancelKeepingAwake, isIgnoringBatteryOptimizations, openBatteryOptimizationSettings | 控制需 device.power; 亮度写入另需 Android 修改系统设置权限; 硬件标识符 (imei/androidId/serial/mac) 仍 blocked |
 | `shell` | exec | 真 ProcessBuilder; execRoot 需 `shell.root` 权限; execShizuku 拒绝 |
 | `dialogs` | alert, confirm, input, select | 宿主对话框 |
 | `engines` | myEngine, all, stopAll, stopSelf, execScript, execScriptFile | 宿主脚本引擎 |
@@ -68,7 +68,7 @@
 | `image` / `images` | requestScreenCapture, stopScreenCapture, captureScreen, readImage, saveImage, toBytes, clip, resize, grayscale, threshold, findImage, matchTemplate, findColor, findMultiColors, recycle | 图像分析需宿主 OpenCV 插件 |
 | `media_projection` | requestScreenCapture, nextImage, stop | 需用户确认 Android 录屏授权 |
 | `recorder` | getStatus | start, stop |
-| `media` | getAudioStreamVolume/MaxVolume/Info (只读) | — |
+| `media` | getAudioStreamVolume/MaxVolume/Info, setAudioStreamVolume | 需 media + media.audio; 遵循 Android 音量/DND 策略 |
 | `mediainfo` | read, get, capabilities (作用域内相对路径; 缺省保持 Node v1, 插件明确宣告后可显式请求插件 v1/v2) | — |
 | `ui.overlay` | show, update, drainEvents, close, closeAll, hasPermission, openPermissionSettings | 需 SYSTEM_ALERT_WINDOW; POC 级 |
 | `package_manager` (`npm` 为其别名) | list, verify, prune, planInstall/Update/Remove, install, update, remove (app 私有本地库) | npm CLI / registry 下载 / 生命周期脚本 |
@@ -102,6 +102,12 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 ## 四. 插件内本地实现 (local-shim, 不出进程)
 
 `files` (Node fs 便捷封装), `base64`, `colors`, `formatter`/`fmt`, `converter`/`cvt`, `s13n`, `mime`, `nanoid`, `opencc`, `pinyin`, `pinyin4j`, `jsox` (+.mathx/.arrayx/.numberx), `plugins` (本地 ./plugins 目录扫描)。
+
+宿主还提供显式桥调用 `files.list/stat/read/write/mkdir/rename/delete`, `console.tail` 与 `pinyin` / `pinyin4j` 方法, 用于宿主工作区和控制台等能力。它们分别使用 `files` (+ 写入时 `files.write`, 删除时 `files.delete`), `console`, `pinyin` / `pinyin4j` 声明; 原生 Node console/fs 及本地便捷模块维持原有行为。
+
+`await device.info()` 返回现有 `autojs6-bridge-device-info-v1` 结构的实时快照, 追加 screen 的 density/brightness/brightnessMode/canWriteSettings, battery.isCharging, memory.totalMem/availMem 和 build.bootloader/fingerprint。异步 `get*` 方法从该快照读取对应值; 同步的 device.width/height/density/sdkInt 及 Build 字符串属性为脚本启动时的设备信息。内存单位 bytes, 电量为百分比, 不支持的亮度设置值为 -1。系统构建 fingerprint 是固件构建信息, 不包含硬件唯一标识。
+
+`setBrightness(0..255)` / `setBrightnessMode(0|1)` 需 `device.power` 和宿主的 [Android 修改系统设置权限](https://developer.android.com/reference/android/provider/Settings.System#canWrite(android.content.Context)); 未授权时返回 permission-denied, 不自动跳转设置页。`keepScreenOn(timeoutMs)` 要求正整数, 持有当前脚本独立的定时屏幕 WakeLock, 超时、cancelKeepingAwake 或脚本退出释放。`media.setAudioStreamVolume(stream, volume)` 接受该流 minVolume..maxVolume 的整数且不播放提示音; device 的 get/setMusicVolume, NotificationVolume, AlarmVolume 便捷方法委托该桥。设置同一流音量仍受 Android DND 权限限制。
 
 注意 (M2.4 语义): 工作区 node_modules 里安装了同名 npm 包时, **npm 包优先于 shim** (桌面 Node 语义); 未安装时 shim 照常回答。
 
@@ -209,6 +215,7 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 | 路径 | 用例 | 状态 |
 |---|---|---|
 | `device.isScreenOn` | 宿主 `pluginRuntimeUsesLiveHostBridgeForDeviceCall` | ✅ M1.1 |
+| device 信息 / 亮屏 / 音量 | 宿主 NodeDeviceControlsInstrumentationTest, 三 ABI 各 2/2; 逐项类型、正值/非空、权限拒绝和 5 s 亮屏窗口 | ✅ M15.1 |
 | `toast` + `clipboard` + `storage` + `shell.exec` + `app.getAppName` | 宿主 `pluginRuntimeDrivesCommonAutomationApisThroughLiveBridge` | ✅ M3.1 |
 | 加密模块 provider (v1) | 宿主 `pluginRuntimeDecryptsEncryptedModuleThroughHostV1Provider` | ✅ M1.3 |
 | TypeScript provider (v3) | 宿主 `compilesRuntimeCreatedTypeScriptAndKeepsSnapshotErrorsStable`、`runtimeCreatedTypeScriptTypeErrorsReturnReadableDiagnostics`、`mapsRuntimeCreatedTypeScriptFailureBackToDynamicSource` | ✅ T5-1, API 35 Xiaomi 23046RP50C |
@@ -248,11 +255,11 @@ M3.2 原定 "补齐 toast / app.launch / click / swipe / text 查找 / 剪贴板
 
 桥能力采用双侧预检: 插件在脚本进入 Binder 前做快速拒绝, 宿主在真实派发前按自身权限和 provider 状态再次校验。两份预检服务于不同的进程边界, 不应合并为单份实现。
 
-新增或修改能力时按以下顺序登记, 并在提交前运行宿主手动任务 `:app:verifyNodeCapabilityManifestAlignment`:
+新增或修改能力时按以下顺序登记, 并在提交前运行本插件的手动任务 `verifyNodeHostIntegration` (含 verifyNodeHostCapabilityManifestAlignment 和 verifyNodeHostApiMirror):
 
 1. 插件 `node_bridge_sources.cpp`: 声明脚本侧所需能力并完成本地预检。
 2. 插件 `NodeBridgePermissionManifest.java`: 加入插件已知能力清单。
 3. 宿主 `NodeBridgePermissionManifest.kt`: 加入宿主能力常量、清单和方法映射。
 4. 插件 capability catalog: 在新 catalog 版本的 `bridge.permissionCapabilities` 与相关 `bridge.operations` 中登记。
 
-发布快照 `nodejs-capability-catalog/1.3.0` 记录 48 个能力, 包括 `accessibility.gesture`。M14.3 的本地 catalog 1.4.0 在相同能力集合中增加 image.toBytes 操作, 尚未对外发布, 历史快照保持不变。当前开发宿主另有 console / files / files.write / files.delete / pinyin / pinyin4j 六项未同步到插件, `verifyNodeHostCapabilityManifestAlignment` 会明确报告该差异, 待 M15 对齐; `verifyNodeHostApiMirror` 的 10 个公共 API 文件已通过。
+发布快照 `nodejs-capability-catalog/1.3.0` 保持原有 48 个能力。M14/M15 的本地 catalog 1.4.0 增加 image.toBytes、device/media 方法和宿主已有的 console / files / files.write / files.delete / pinyin / pinyin4j 六项能力, 尚未对外发布。verifyNodeHostCapabilityManifestAlignment 已验证 host=54 / plugin=54 / catalog=54; verifyNodeHostApiMirror 的 10 个公共 API 文件通过。契约支持上限同步为 3, 旧同步执行契约仍为 2。
