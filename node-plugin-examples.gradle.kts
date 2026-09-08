@@ -141,6 +141,8 @@ tasks.register("verifyNodePluginExamples") {
             throw GradleException("Duplicate Node plugin example manifest entries: ${duplicateNames.joinToString()}")
         }
         val directoryNames = examplesRoot.listFiles(File::isDirectory).orEmpty()
+            // Git does not track empty directories left after removing an example's files.
+            .filter { it.listFiles().orEmpty().isNotEmpty() }
             .map(File::getName)
             .filterNot(nodePluginExampleIgnoredDirectories::contains)
             .sorted()

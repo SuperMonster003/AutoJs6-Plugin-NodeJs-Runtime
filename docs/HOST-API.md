@@ -184,11 +184,14 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 
 | 项 | 原因 |
 |---|---|
+| `wasi` / `node:wasi` | 继续禁用: 原生 WASI 文件调用绕过 JS fs 路径检查, 单独限制 preopens 不能落实 `/proc`、`/sys`、`/dev` 边界; 普通 WebAssembly 与 WASM worker 可用 |
 | `media_projection` (requestScreenCapture/nextImage/stop) | 宿主侧 UNAVAILABLE |
 | accessibility 的 powerDialog / waitFor / rawNode | 宿主 blockedMethods (swipe/gesture 已于 M3.2 放开, 见第一节) |
 | `image.captureScreen` 及全部图像分析方法 | 同 media_projection 链路 |
 | 硬件标识符 (imei 等) | 隐私 fail-closed |
 | 非白名单 Node builtin | `ERR_AUTOJS6_BUILTIN_DISABLED` |
+
+2026-09-08 WASI 决策: [Node.js 24.5 官方 WASI 文档](https://nodejs.org/download/release/v24.5.0/docs/api/wasi.html#security) 说明其能力参数不构成安全隔离, 文件系统范围可被绕过。由此, 若仅在适配器中检查 preopens 根目录, 仍不足以覆盖运行中的全部文件调用, 本版继续拒绝原生 WASI, 不引入新的隔离层。已删除仅打印禁用状态的 controlled-wasi / wasi-scoped-fs 样例; wasm-basic 与 wasm-worker 继续展示可执行能力。
 
 ## 九. 真机验证矩阵
 
