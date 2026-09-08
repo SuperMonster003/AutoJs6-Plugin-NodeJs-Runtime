@@ -19,6 +19,9 @@ app/src/main/jniLibs/x86_64/libnode.so filter=lfs diff=lfs merge=lfs -text
 /app/src/main/assets/licenses/** text eol=lf
 # Preserve the fixed upstream license's original mixed indentation.
 /app/src/main/assets/licenses/nodejs-mobile-LICENSE.txt whitespace=-space-before-tab
+# Preserve the official Node header archive and its upstream license text.
+/app/src/main/cpp/node-v24.20.0/** text eol=lf
+/app/src/main/cpp/node-v24.20.0/LICENSE whitespace=-space-before-tab
 
 # Keep vendored npm sources byte-identical, including upstream line endings and indentation.
 /app/src/androidTest/assets/npm_ecosystem_corpus/node_modules/** -text -whitespace

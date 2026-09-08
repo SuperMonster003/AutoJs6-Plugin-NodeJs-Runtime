@@ -30,7 +30,7 @@ Binary provenance is recorded in [runtime-build.lock.json](tools/nodejs/runtime-
 | armeabi-v7a | `ee50698e264ce78a12d450de6781bdd4b7df4e7a7546e93d1b96bac2b62cab63` |
 | x86_64 | `a62031b38a467027dd5f98db8e91cdc8c31521380ee2dd8c70cd8afbaedc8e2b` |
 
-The lock also describes a future Node 24.17.0 build plan. That plan is not the source or version of the currently shipped binaries.
+The lock also describes the pending Node 24.20.0 Android source build. That plan is not the source or version of the currently shipped binaries. The separate [24.20.0 bridge headers](app/src/main/cpp/node-v24.20.0/README.md) come from the official Node.js header archive, with its complete [upstream license](app/src/main/cpp/node-v24.20.0/LICENSE) preserved alongside them.
 
 ## Android C++ runtime
 

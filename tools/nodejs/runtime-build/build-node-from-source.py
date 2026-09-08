@@ -59,7 +59,8 @@ def main():
             workspace.mkdir(parents=True)
             input_file.write_text(json.dumps(inputs, indent=2) + '\n', encoding='utf-8')
         command = [
-            'docker', 'run', '--rm', f'--memory={args.memory}', f'--cpus={args.jobs}',
+            'docker', 'run', '--rm', '--name', f'autojs6-node-{version}-{abi}-{args.run_id}',
+            f'--memory={args.memory}', f'--cpus={args.jobs}',
             '-e', f'JOBS={args.jobs}',
             '-v', f'{workspace}:/work', '-v', f'{source_dir}:/sources:ro', '-v', f'{root}:/repo:ro',
             image, 'bash', '/repo/tools/nodejs/runtime-build/container/build-source.sh', version, abi,
