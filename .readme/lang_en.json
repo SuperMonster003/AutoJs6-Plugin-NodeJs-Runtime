@@ -10,6 +10,9 @@
   "features": [
     "Provides the `nodejs` plugin service with plugin ID `nodejs` and engine `nodejs`.",
     "Exposes synchronous script execution and runtime prewarm to the host through `org.autojs.plugin.nodejs.RUNTIME`.",
+    "Added script timeouts covering queueing and execution, returning `ERR_AUTOJS6_SCRIPT_TIMEOUT`; scripts without a timeout can still run indefinitely",
+    "Enabled `dgram` (UDP) and `http2` by default, with an explicit disabled error for `trace_events`",
+    "Added explicitly enabled local `inspector` debugging in Debug builds, listening only on localhost and connecting through `adb forward`",
     "Supports CommonJS/ESM source, module sources, working directory, sandbox root, environment variables, and stdout/stderr result payloads.",
     "Uses the V8 native linker for ESM entries and dynamic `import()`, preserving cyclic dependencies, mutable exports, and re-export live bindings; CommonJS `require(esm)` retains its synchronous interop boundary.",
     "Provides desktop-like filesystem access bounded by the plugin app's Android permissions; `/proc`, `/sys`, and `/dev` are always denied by the runtime.",

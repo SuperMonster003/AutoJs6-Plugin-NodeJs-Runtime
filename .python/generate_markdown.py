@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+import argparse
 import json
 import re
+import sys
 from pathlib import Path
 
 
@@ -143,40 +145,62 @@ def write_text(path: Path, text: str):
 
 
 def generate_readmes(languages, changelogs):
+    outputs = {}
     template = (README_DIR / "template_readme.md").read_text(encoding="utf-8")
     for code in LANGUAGE_CODES:
         output = render_template(template, build_readme_values(code, languages, changelogs))
         path = README_DIR / f"README-{code}.md"
-        write_text(path, output)
+        outputs[path] = output
         if code == LANGUAGE_CODE_DEFAULT:
-            write_text(ROOT / "README.md", output)
+            outputs[ROOT / "README.md"] = output
         if code in README_COMPAT_ROOT_LANGUAGES:
-            write_text(ROOT / f"README-{code}.md", output)
+            outputs[ROOT / f"README-{code}.md"] = output
+    return outputs
 
 
 def generate_changelogs(languages, changelogs):
+    outputs = {}
     template = (CHANGELOG_DIR / "template_changelog.md").read_text(encoding="utf-8")
     for code in LANGUAGE_CODES:
         values = dict(languages[code])
         values["placeholder_release_history"] = format_changelog_items(changelogs[code]).rstrip()
         output = render_template(template, values)
-        write_text(CHANGELOG_DIR / f"CHANGELOG-{code}.md", output)
+        outputs[CHANGELOG_DIR / f"CHANGELOG-{code}.md"] = output
 
         latest_only = format_changelog_items(changelogs[code], limit=1)
         names = ANDROID_CHANGELOG_ALIASES.get(code, [code])
         for name in names:
-            write_text(ANDROID_CHANGELOG_DIR / f"CHANGELOG-{name}.md", latest_only)
+            outputs[ANDROID_CHANGELOG_DIR / f"CHANGELOG-{name}.md"] = latest_only
         if code == LANGUAGE_CODE_DEFAULT:
-            write_text(ANDROID_CHANGELOG_DIR / "CHANGELOG.md", latest_only)
+            outputs[ANDROID_CHANGELOG_DIR / "CHANGELOG.md"] = latest_only
+    return outputs
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Generate localized README and CHANGELOG files.")
+    parser.add_argument("--check", action="store_true", help="Report missing or stale output without writing files.")
+    args = parser.parse_args()
     if LANGUAGE_CODE_DEFAULT not in LANGUAGE_CODES:
         raise ValueError(f"Default language code {LANGUAGE_CODE_DEFAULT!r} is not in LANGUAGE_CODES")
     languages, changelogs = load_languages()
-    generate_changelogs(languages, changelogs)
-    generate_readmes(languages, changelogs)
+    outputs = {**generate_changelogs(languages, changelogs), **generate_readmes(languages, changelogs)}
+    drift = []
+    for path, output in outputs.items():
+        if args.check:
+            # Universal newlines allow Git's Windows CRLF checkout without masking content drift.
+            if not path.is_file() or path.read_text(encoding="utf-8") != output:
+                drift.append(path.relative_to(ROOT))
+        else:
+            write_text(path, output)
+    if drift:
+        for path in drift:
+            print(f"Out of date: {path}", file=sys.stderr)
+        print("Run: py .python/generate_markdown.py", file=sys.stderr)
+        return 1
+    if args.check:
+        print(f"Checked {len(outputs)} generated files: no drift.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
