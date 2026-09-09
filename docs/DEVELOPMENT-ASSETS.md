@@ -1,10 +1,12 @@
 # Node.js Development Asset Ownership
 
-Last reviewed: 2026-08-26.
+Last reviewed: 2026-09-10.
 
 This repository is the single owner of Node.js runtime-facing development assets:
 
 - `sample/nodejs`: runnable examples and `examples.json` metadata.
+- `docs/nodejs`: runtime usage, compatibility, project wizard and manual acceptance guides.
+- `docs/nodejs/history`: archived host runtime plans and acceptance records, with their original source context.
 - `docs/nodejs/types/autojs6-node`: script-facing TypeScript declarations.
 - `tools/nodejs/project/autojs6-node-project.js`: project templates and validator.
 - `node-plugin-examples.gradle.kts`: example catalog verification.
