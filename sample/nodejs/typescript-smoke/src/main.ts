@@ -188,6 +188,12 @@ async function smoke(): Promise<void> {
   });
   const mediaInfoCapabilities: mediainfo.Capabilities = await mediainfo.capabilities({ timeoutMs: 1000 });
   const mediaInfoFormat: string = await mediainfo.get("sample.mp3", "general", "Format", { timeoutMs: 1000 });
+  const mediaInfoAudioCount: number = await mediainfo.countGet("sample.mka", "audio", { timeoutMs: 1000 });
+  const mediaInfoSecondAudioUnit: string = await mediainfo.get("sample.mka", "audio", "SamplingRate", {
+    streamNumber: 1, infoKind: "measure", timeoutMs: 1000
+  });
+  const compatMediaInfoCount: number = await rhinoCompat.mediainfo.countGet("sample.mka", "audio");
+  void [mediaInfoAudioCount, mediaInfoSecondAudioUnit, compatMediaInfoCount];
   const compatMediaInfoSnapshot: mediainfo.Snapshot = await rhinoCompat.mediainfo.read("sample.mp3", { timeoutMs: 1000 });
   const recorderStatus: recorder.RecorderStatus = await recorder.getStatus({ timeoutMs: 1000 });
   const compatRecorderStatus: recorder.RecorderStatus = await rhinoCompat.recorder.getStatus({ timeoutMs: 1000 });

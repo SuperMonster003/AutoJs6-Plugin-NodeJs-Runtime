@@ -113,8 +113,9 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 # v1.4.0
 
-###### Unreleased
+###### 2026/09/10
 
+* `Feature` MediaInfo queries support zero-based streamNumber, countGet stream counts, and infoKind for units, descriptions and readable names; Rhino and Node preserve default first-stream TEXT queries and negotiate extended plugin capabilities
 * `Improvement` Added standalone Android event and three-second audio recording projects, with project declarations and manual steps for screen capture, OCR, physical keys and MediaInfo
 
 # v1.3.0

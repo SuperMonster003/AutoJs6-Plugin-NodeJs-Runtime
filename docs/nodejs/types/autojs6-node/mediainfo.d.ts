@@ -1,6 +1,13 @@
 declare module "mediainfo" {
   namespace mediainfo {
     export type StreamKind = "general" | "video" | "audio" | "text" | "other" | "image" | "menu";
+    export type InfoKind = "NAME" | "TEXT" | "MEASURE" | "OPTIONS" | "NAME_TEXT" | "MEASURE_TEXT" | "INFO" | "HOWTO" | "DOMAIN";
+    export interface QueryOptions extends AutoJs6Node.BridgeCallOptions {
+      /** Zero-based stream index; defaults to 0. */
+      readonly streamNumber?: number;
+      /** Defaults to TEXT; other kinds require an advertising MediaInfo plugin. */
+      readonly infoKind?: InfoKind | Lowercase<InfoKind>;
+    }
     export type PluginSnapshotSchema =
       | "autojs6-plugin-mediainfo-snapshot-v1"
       | "autojs6-plugin-mediainfo-snapshot-v2";
@@ -70,6 +77,9 @@ declare module "mediainfo" {
       readonly snapshotSchemas: readonly PluginSnapshotSchema[];
       readonly defaultSnapshotSchema: PluginSnapshotSchema;
       readonly engineVersion?: string;
+      readonly streamCount?: boolean;
+      readonly streamNumber?: boolean;
+      readonly infoKinds?: readonly InfoKind[];
     }
 
     export type PluginSnapshot = PluginSnapshotV1 | PluginSnapshotV2;
@@ -84,7 +94,8 @@ declare module "mediainfo" {
       read(path: string, options: ReadOptions & { readonly schema: "autojs6-plugin-mediainfo-snapshot-v2" }): Promise<PluginSnapshotV2>;
       read(path: string, options?: DefaultReadOptions): Promise<Snapshot>;
       read(path: string, options: ReadOptions): Promise<ReadResult>;
-      get(path: string, streamKind: StreamKind, parameter?: string, options?: AutoJs6Node.BridgeCallOptions): Promise<string>;
+      get(path: string, streamKind: StreamKind, parameter?: string, options?: QueryOptions): Promise<string>;
+      countGet(path: string, streamKind: StreamKind, options?: AutoJs6Node.BridgeCallOptions): Promise<number>;
       capabilities(options?: AutoJs6Node.BridgeCallOptions): Promise<Capabilities>;
     }
   }
