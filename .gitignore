@@ -35,6 +35,8 @@ __pycache__/
 /build/
 /app/.cxx/
 /app/**/build/
+# npm package build directories contain the published JavaScript test fixtures.
+!/app/src/androidTest/assets/npm_ecosystem_corpus/node_modules/**/build/
 /build-logic/build/
 /build-logic/*/build/
 /build-logic/**/.kotlin/
