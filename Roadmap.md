@@ -421,7 +421,8 @@ M13 Release 验证补记 (2026-09-08): build 116 的签名 arm64-v8a / x86_64 �
 
 ### M18 — 实验能力正式化与可运行验收
 
-- [ ] **M18.1 修正人工测试入口**: 提供完整 project.json、await 及独立截屏/事件/录音脚本, 明确 Android 授权步骤、项目运行与远程单文件的区别、输出文件路径与成功条件。Check: 样例/类型/脚本语法检查通过; 用户可从设备项目入口直接运行, 人工截屏/按键/录音回执分别补到 M14/M15。
+- [x] **M18.1 修正人工测试入口**: 提供完整 project.json、await 及独立截屏/事件/录音脚本, 明确 Android 授权步骤、项目运行与远程单文件的区别、输出文件路径与成功条件。Check: 样例/类型/脚本语法检查通过; 用户可从设备项目入口直接运行, 人工截屏/按键/录音回执分别补到 M14/M15。
+  2026-09-10 交付完成: docs/nodejs/MANUAL-ACCEPTANCE.md 解释当前项目声明、Promise/await、原生 events 与 autojs6:events 的区别, 以及实际文件名/扩展名和系统整屏授权。新增 host-events 与 audio-recording 独立项目, 复用现有 screenshot-find-image / ocr-automation, 已在 QV770340J7 的 /sdcard/Scripts/nodejs-roadmap-acceptance-20260910 提供四项目包。49 个样例、38 个声明模块、TypeScript 和新脚本语法检查通过。实体按键 PASS 只在 keyCode=24/action=down 到达后打印, 录音 PASS 只在非空文件且 MediaInfo 音轨解析成功后打印; 两样例保持 partial、mainAppSmoke=false。尚未自动启动录音或代替用户点击系统授权, M14/M15 的人工结果仍待用户回报。v1.3.0 的两次 Markdown workflow 与两次 Android workflow (master/tag) 已全部 success。
 - [ ] **M18.2 清点并逐项晋级实验能力**: 核对当前 catalog、runtimeInfo、样例、HOST-API、类型和宿主 provider 中 partial/experimental/metadata-only 标记。已有稳定实现且 Check 通过的逐项转正; 缺 provider、结构性不支持或只存在历史档案的条目分别写明事实。Node 上游 API 的稳定性级别不能由插件擅自宣称升级。Check: 一项能力从项目运行到结果可用, 状态与实测一致; 新 catalog/kit 独立版本, 已发布快照不变。
 - [ ] **M18.3 清理误导性的 profile 提示**: `pro_compat_opt_in` 目前只是诊断元数据, 不能代替 node.permissions 或授予 Android 权限。核对缺省运行、显式项目声明和旧宿主行为; 已正式化能力的报错与使用文档应直接指出实际缺失条件。Check: 用户本轮两类报错有可执行的修复步骤, 不再把修改无效 profile 当成授权。
 

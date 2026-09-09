@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.4.0": {
+      "released_date": "尚未發佈",
+      "improvement": [
+        "提供 Android 事件與 3 秒錄音獨立專案, 補齊螢幕擷取, OCR, 實體按鍵和 MediaInfo 的專案宣告及人工驗收步驟"
+      ]
+    },
     "v1.3.0": {
       "released_date": "2026/09/09",
       "fix": [

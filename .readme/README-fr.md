@@ -111,6 +111,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.4.0
+
+###### Non publié
+
+* `Amelioration` Projets autonomes pour les événements Android et un enregistrement audio de trois secondes, avec déclarations et étapes de validation manuelle pour la capture, l'OCR, les touches physiques et MediaInfo
+
 # v1.3.0
 
 ###### 2026/09/09
@@ -160,15 +166,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 * `Amelioration` Extension des tests npm à 15 paquets, avec axios, express et les paquets ESM-only nanoid, p-limit et yocto-queue
 * `Amelioration` Le champ de requête `executionMode` fait désormais autorité pour le mode de cycle de vie; le champ sans effet `runtimeAdapter` est obsolète
 * `Amelioration` Suppression de dix anciens exemples affichant uniquement des états fixes et indication dans les types de l’absence de fournisseurs hôtes pour la capture d’écran, l’analyse d’images et l’enregistrement audio
-
-# v1.1.0
-
-###### 2026/08/18
-
-* `Ajout` Ajout du flux stdout/stderr en direct et de l'annulation coopérative via `node::Stop`
-* `Ajout` Remplacement du rejet BUSY par une file série bornée à trois attentes et ajout du cycle de vie des scripts résidents de longue durée
-* `Ajout` Activation par défaut des modules réseau Node natifs, de `worker_threads` et de `child_process`, avec validation de dix paquets npm JavaScript purs courants
-* `Amelioration` Ajout des espaces de travail direct-run et de la négociation tolérante v1..v2 du provider de sources, avec codes d'erreur concis et piles JavaScript
 
 ##### Pour plus d'historique des versions
 

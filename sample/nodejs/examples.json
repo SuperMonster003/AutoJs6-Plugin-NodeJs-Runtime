@@ -558,6 +558,31 @@
       ],
       "mainAppSmoke": false,
       "packagedCompatible": false
+    },
+    {
+      "name": "host-events",
+      "status": "partial",
+      "reason": "Requires a physical volume-up press and Android accessibility; notification and toast sources have separate permissions.",
+      "tags": [
+        "main-app",
+        "bridge",
+        "notifications",
+        "requires-accessibility"
+      ],
+      "mainAppSmoke": false,
+      "packagedCompatible": false
+    },
+    {
+      "name": "audio-recording",
+      "status": "partial",
+      "reason": "Requires explicit microphone permission and a manual three-second recording parsed by MediaInfo.",
+      "tags": [
+        "main-app",
+        "bridge",
+        "permission-optional"
+      ],
+      "mainAppSmoke": false,
+      "packagedCompatible": false
     }
   ]
 }

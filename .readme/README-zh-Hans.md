@@ -111,6 +111,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.4.0
+
+###### 尚未发布
+
+* `优化` 提供 Android 事件与 3 秒录音独立项目, 补齐截屏, OCR, 实体按键和 MediaInfo 的项目声明及人工验收步骤
+
 # v1.3.0
 
 ###### 2026/09/09
@@ -160,15 +166,6 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` 实测 npm 生态扩展到 15 包, 新增 axios、express 及 ESM-only 包 nanoid、p-limit、yocto-queue
 * `优化` 以 `executionMode` 请求字段作为生命周期模式的权威来源, 将无实际作用的 `runtimeAdapter` 标记为废弃
 * `优化` 移除十个仅打印固定状态的历史样例, 并在类型声明中标明截图、图像分析和录音尚未提供宿主 provider
-
-# v1.1.0
-
-###### 2026/08/18
-
-* `新增` 支持 stdout/stderr 实时流式输出与基于 `node::Stop` 的协作式取消
-* `新增` 以最多 3 个等待者的有界串行队列取代 BUSY 直接拒绝, 并支持常驻长运行脚本生命周期
-* `新增` 默认启用 Node 原生网络内建模块、`worker_threads` 与 `child_process`, 并实测 10 个常用纯 JavaScript npm 包
-* `优化` 支持无需工作区归档的 direct-run 与 v1..v2 模块源码 provider 宽容协商, 错误输出收敛为简明错误码与 JavaScript 栈
 
 ##### 更多发行历史可参阅
 

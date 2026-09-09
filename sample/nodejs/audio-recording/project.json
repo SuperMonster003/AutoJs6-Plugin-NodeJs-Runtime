@@ -1,0 +1,9 @@
+{
+  "name": "audio-recording",
+  "type": "node",
+  "main": "main.cjs",
+  "node": {
+    "timeoutMs": 30000,
+    "permissions": ["media", "media.metadata", "media.recording"]
+  }
+}

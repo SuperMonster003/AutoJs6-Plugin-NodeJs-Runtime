@@ -111,6 +111,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.4.0
+
+###### Unreleased
+
+* `Improvement` Added standalone Android event and three-second audio recording projects, with project declarations and manual steps for screen capture, OCR, physical keys and MediaInfo
+
 # v1.3.0
 
 ###### 2026/09/09
@@ -160,15 +166,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 * `Improvement` Expanded verified npm coverage to 15 packages, adding axios, express, and the ESM-only packages nanoid, p-limit, and yocto-queue
 * `Improvement` Made the `executionMode` request field authoritative for lifecycle mode and deprecated the no-op `runtimeAdapter` field
 * `Improvement` Removed ten historical examples that only printed fixed status values and marked screen capture, image analysis, and recording declarations as lacking host providers
-
-# v1.1.0
-
-###### 2026/08/18
-
-* `Feature` Added live stdout/stderr streaming and cooperative cancellation through `node::Stop`
-* `Feature` Replaced BUSY rejection with a bounded serial queue of three waiters and added resident long-running script lifecycle support
-* `Feature` Enabled raw Node network builtins, `worker_threads`, and `child_process` by default, and verified ten popular pure-JavaScript npm packages
-* `Improvement` Added direct-run workspaces and tolerant v1..v2 module-source-provider negotiation with concise error codes and JavaScript stacks
 
 ##### For more release history
 
