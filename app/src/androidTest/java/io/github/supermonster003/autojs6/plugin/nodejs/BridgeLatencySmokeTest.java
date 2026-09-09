@@ -52,8 +52,9 @@ public final class BridgeLatencySmokeTest {
             }
             @Override public void onServiceDisconnected(ComponentName name) { }
         };
+        // Channel reuse and FD baselines must observe consecutive executions in the same worker.
         assertTrue(context.bindService(new Intent().setComponent(new ComponentName(context.getPackageName(),
-                context.getPackageName() + ".NodeJsRuntimePluginService")), connection, Context.BIND_AUTO_CREATE));
+                context.getPackageName() + ".NodeJsRuntimeSlot0Service")), connection, Context.BIND_AUTO_CREATE));
         assertTrue("bind timed out", connected.await(30, TimeUnit.SECONDS));
         runtime = INodeJsRuntimePlugin.Stub.asInterface(binder.get());
         assertNotNull(runtime);
