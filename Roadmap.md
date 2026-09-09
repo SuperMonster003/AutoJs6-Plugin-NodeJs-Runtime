@@ -378,6 +378,9 @@ M13 Release 验证补记 (2026-09-08): build 116 的签名 arm64-v8a / x86_64 �
   v1.3.0 / **versionCode 145** 四份正式签名候选 APK 与配套 Release 测试包已离线收集。四包逐一通过 apksigner、zipalign、CRC32、版本/ABI、完整许可证、所有实际 ELF 的 SHA-256/Build ID/LOAD 对齐、嵌入 kit/catalog 字节与 kit BuildConfig 摘要检查; native payload 与完整回归时相同。最终收集包在小米 arm64、Sony G8441 armv7、x86_64 AVD 与小米 universal 各通过 SimpleRun/NpmEcosystem/Info/Manifest **4/4**, 合计 **16/16**, 无跳过。75 JVM、47 样例、TypeScript、59=59=59 能力对齐、10 文件 API mirror、API publication、35 生成文档和 Python 2/2 均通过。构建任务曾因 Release 测试变体不含 Debug 单测、根级任务误加 :app 前缀而在任务选择时失败, 已分开按正确任务路径执行通过, 不计作编译或设备失败。
   16 KB 覆盖明确为 x86_64 AVD 的用户空间模拟: getconf PAGE_SIZE=16384, /proc/self/smaps KernelPageSize=4 kB。arm64 真机均为 4 KB; 未验证 16 KB arm64 实体设备。全部源码容器已完成退出, 临时 AVD 已关闭, Sony 临时 All Files appop 已恢复 default。完整日志与工件核验表在本机 `build/m17/node2421-*`, 正式候选在 `app/releases/1.3.0/`; 本次尚未 push/tag/创建 GitHub Release 或对外发布新 catalog/runtime-kit, 这些动作仍按通用约定第 2 条等待当次确认。M14/M15 人工验收与 M13.1 原行数指标不因运行时晋级而自动完成。
 
+
+  2026-09-10 对外发布完成: 用户明确批准 v1.3.0, 并要求发布前运行 `.python/generate_markdown.bat`; 已实际运行该 Windows 交互入口, 生成 35 份多语言 README/CHANGELOG, 随后 check_markdown 零漂移, 内容与候选提交一致。插件 master 的 39 个提交与三份 LFS 对象已推送, 注释标签 v1.3.0 指向 `bb2ca4a839e0cbece3f2fa6331a7edfc47db5e1d` (build145)。[GitHub Release v1.3.0](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/releases/tag/v1.3.0) 于 2026-09-10 02:24 CST 正式公开并设为 latest; 四附件大小与 GitHub SHA-256 均逐一等于已验收本地文件, CRC32 仍为 0A8FBC51 / D69F0A04 / 53FCD1DA / 57085A26。catalog 1.4.0 / Runtime Kit 1.4.0 / nodejs-api 1.5.0 随源码和 APK 对外提供, 从此作为已发布快照保持不可变。宿主配套代码留在其独立提交, 本次未推送宿主的无关待发布历史。用户当日构建生成的真实 BUILD_TIME 保留在后续本地提交, 不修改 v1.3.0 标签或已发布 APK。
+
 - [x] **M17.3 体积与安装占用评估**: 2026-09-08 完成下表评估, 保留压缩打包、`--with-intl=none` 和 inspector 后端。原计划的“安装 -110 MB”“small-icu -20 MB”不适用于当前实际产物: AGP 已 strip native 库, 未压缩 APK 自身也占安装空间, 当前运行时没有 ICU/Intl。Java 加载入口已是 `System.loadLibrary`, C++ `dlopen("libnode.so")` 可复用已加载库, 无需修改加载实现; Gradle 旧注释已校正。未采纳新的瘦身开关。
   - 同一 M16.3 Debug 代码构建压缩/未压缩两组, 三 ABI 的原生 ZIP 条目分别为 DEFLATED/STORED; 每组每设备 force-stop 后测 1 次冷执行 + 20 次同进程新 isolate, 计时包含进程绑定、首次 readiness/prewarm 与首脚本。三个 Node 源码构建容器在两组测量期间暂停, 之后恢复; AVD 仍受主机调度影响。压缩测量三端各 **1/1**, 未压缩测量 + SimpleRun 三端各 **2/2**; 测后已恢复三端原压缩 APK。单次冷样本用于本轮取舍, 不构成稳定加速结论。
   - 以下下载为实际 Debug APK MiB, 安装为 `du -sk` 测得 `/data/app/...` 代码目录 MiB (含 APK/抽取库/当时已有 oat 等, 不含应用数据与测试 APK), 冷启动为 ms; 箭头表示压缩 → 未压缩。
@@ -409,6 +412,29 @@ M13 Release 验证补记 (2026-09-08): build 116 的签名 arm64-v8a / x86_64 �
 | 2026-09-04 | (待 M17.4 首次复查) | 24.5.0 | 立项 M17.1 自建管线解除阻塞 |
 | 2026-09-08 | **影响, 尚未晋级**。Node [6 月安全发布](https://nodejs.org/en/blog/vulnerability/june-2026-security-releases) 与 [7 月安全发布](https://nodejs.org/en/blog/vulnerability/july-2026-security-releases) 修复 TLS/HTTP2/DNS/crypto 等原生入口问题; 24.5.0 早于修复版本 24.17.0/24.18.1, 本插件已开放相关模块, 不能用桥权限代替修复。 | 当前 24.5.0; 本次源码目标为 [24.20.0 LTS, 2026-08-26](https://nodejs.org/en/blog/release/v24.20.0) | M17.1 三 ABI 源码构建与 M17.2 设备晋级处理中。OpenSSL [2026-08-25 公告](https://openssl-library.org/news/secadv/20260825.txt) 的修复版本为 3.5.8; 24.20.0 官方源码 VERSION.dat 仍为 3.5.7, 因此不能将 Node 升级等同于全部 OpenSSL 公告已修复。该组涉及 OpenSSL QUIC/CMS/CMP/DTLS/RPK/EVP_Cipher 特定入口, 本次未单独证明插件可达性, 保留依赖版本受影响判断并跟踪上游集成。 |
 | 2026-09-09 | [24.21.0 LTS](https://github.com/nodejs/node/releases/tag/v24.21.0), 含 OpenSSL 3.5.8 / Undici 7.29.1 | **已本地晋级 24.21.0 / OpenSSL 3.5.8** | M17.1/M17.2 三 ABI 源码与独立复建比较、三台真机 + x86_64 AVD 及最终四包验收完成, 解除旧 Android 产物阻塞。嵌入 OpenSSL 已达到上一行公告的修复版本; 本地额外修复实证 STORE 密钥 URL 绕过文件边界。该结论针对本次已核对版本与回归, 不声明所有漏洞或所有路径均已穷尽; 对外发布待用户当次确认, 下次月度复查仍为 2026-10。 |
+
+## 四补. 2026-09-10 用户反馈与后续执行
+
+用户反馈设备 QV770340J7: `$remote/Untitled-253.js` 的截屏和 mediainfo 调用在声明检查处失败; `require('events')` 返回 Node 原生 EventEmitter, 没有 Android observeNotification/observeToast。此次错误尚未进入 MediaProjection/MediaInfo provider, 不作为人工设备验收通过。正确桥调用使用项目 `node.permissions`、`await` 和 `require('autojs6:events')`; 以可直接运行的项目与手工步骤补齐。
+
+用户要求实验功能逐步正式化、进一步减轻宿主、普通文件权限尽量交给 Android。本轮后续代码进入下一开发版本, 不改写刚发布的 v1.3.0、catalog/kit 1.4.0。按各项实际 Check 推进, 不以批量改状态代替功能验收。用户已授权这些本地实现、测试和提交; 后续新版本对外发布仍按通用约定第 2 条执行。
+
+### M18 — 实验能力正式化与可运行验收
+
+- [ ] **M18.1 修正人工测试入口**: 提供完整 project.json、await 及独立截屏/事件/录音脚本, 明确 Android 授权步骤、项目运行与远程单文件的区别、输出文件路径与成功条件。Check: 样例/类型/脚本语法检查通过; 用户可从设备项目入口直接运行, 人工截屏/按键/录音回执分别补到 M14/M15。
+- [ ] **M18.2 清点并逐项晋级实验能力**: 核对当前 catalog、runtimeInfo、样例、HOST-API、类型和宿主 provider 中 partial/experimental/metadata-only 标记。已有稳定实现且 Check 通过的逐项转正; 缺 provider、结构性不支持或只存在历史档案的条目分别写明事实。Node 上游 API 的稳定性级别不能由插件擅自宣称升级。Check: 一项能力从项目运行到结果可用, 状态与实测一致; 新 catalog/kit 独立版本, 已发布快照不变。
+- [ ] **M18.3 清理误导性的 profile 提示**: `pro_compat_opt_in` 目前只是诊断元数据, 不能代替 node.permissions 或授予 Android 权限。核对缺省运行、显式项目声明和旧宿主行为; 已正式化能力的报错与使用文档应直接指出实际缺失条件。Check: 用户本轮两类报错有可执行的修复步骤, 不再把修改无效 profile 当成授权。
+
+### M19 — 宿主减重第二轮
+
+- [ ] **M19.1 文件与消费者审计**: 按实际引用清点宿主 Node 代码、32 份 docs/nodejs 文档、公共 API 镜像、Gradle 与测试。区分插件运行时资产、宿主 Android/Binder/工作区/Compiler 职责、MCP 等其他调用方共用资产。Check: 记录路径、用途、消费者、迁移判断及可核验的前后量, 不按 Node 文件名前缀盲目移动。
+- [ ] **M19.2 迁移插件使用说明与历史档案**: 优先迁移项目向导、运行时使用/兼容性说明和旧内嵌运行时历史材料到本仓; 宿主只保留集成入口和必要跳转, 修复活跃链接。Check: 无重复权威说明, 插件端文档可单独阅读, 宿主构建不消费已迁走资产, 双仓独立提交并记录提交号。
+- [ ] **M19.3 精简仍在宿主的运行时策略/元数据**: 审计 NodeProfileSelectionDiagnostics、NodeProjectRuntimeCompatibilityDescriptor、API 镜像和 provider 元数据的真实消费者, 将属于插件的默认值与稳定性判断移到插件已有接口。共享 Android provider、MCP grant 边界、Binder 鉴权、工作区传输和 TypeScript 编译路由保留在实际所有者处。Check: 旧宿主/新宿主运行和启动、取消、文件回传回归通过, 公共契约维持兼容。
+
+### M20 — 按 Android 权限放宽文件与运行限制
+
+- [ ] **M20.1 普通媒体/图像文件路径**: 移除 mediainfo 插件端“只能是作用域内相对路径”的检查, 并同步核对宿主 mediainfo、image.readImage/saveImage、recorder 的同类解析器; 支持普通绝对路径、父目录及合法文件名, 文件访问由 Android 打开文件时决定。保留无效参数处理, 不把 URI 冒充文件路径。Check: 跨工作目录实际 WAV/图片读取与写入成功, 路径包含 `..` 的普通文件名不误拒, Android 拒绝仍返回可读错误; 原相对路径、MediaInfo schema v1/v2、录音权限负例和完整 npm/conformance 通过。
+- [ ] **M20.2 其余策略逐步放宽**: 清点 fs、子进程、worker、Java/宿主能力、profile/node.permissions 与资源配额中的拦截, 按用户“交给原生 Android”要求逐项替换应用自设限制。显式调用者选择的限制、协议尺寸/超时、远程调用方 grant 和项目传输路径校验分别核对, 避免改变其他插件/MCP 的授权对象。对历史 `/proc`、`/sys`、`/dev`、WASI、native addon、Inspector 等限制分别验证真实 Android 行为与兼容性后调整, 不预先把未验证的路径标成开放。Check: 每次移除有实际正向用例和 Android 拒绝结果, 用户脚本不再遇到已移除的 Node 策略错误; 原生执行/取消/多进程/宿主联调通过。
 
 ## 五. 明确不做的事
 
