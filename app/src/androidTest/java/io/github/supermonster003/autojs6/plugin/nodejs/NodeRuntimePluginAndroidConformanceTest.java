@@ -200,6 +200,57 @@ public final class NodeRuntimePluginAndroidConformanceTest {
     }
 
     @Test
+    public void m18_missingCapabilitiesExplainDeclarationsWithoutRequiringAProfile() throws Exception {
+        String[] projects = {
+                null,
+                "{\"node\":{\"profile\":\"pro_compat_opt_in\",\"permissions\":[]}}",
+                "{\"node\":{\"permissions\":[\"screen_capture\",\"media\",\"media.metadata\"]}}"
+        };
+        for (int index = 0; index < projects.length; index++) {
+            Bundle request = new Bundle();
+            request.putString(NodeJsRuntimeContract.KEY_SOURCE, """
+                    (async () => {
+                      const bridge = require('autojs6:bridge');
+                      let dispatched = 0;
+                      bridge.__test.setTransport({postMessage(message) {
+                        const request = JSON.parse(message); ++dispatched;
+                        const result = request.module === 'media_projection'
+                          ? {__autojs6ScreenCapturerHandle: 'fixture', width: 1, height: 1}
+                          : {schema: 'autojs6-node-mediainfo-snapshot-v1', sections: {audio: []}};
+                        setImmediate(() => bridge.__test.receiveMessage(JSON.stringify({id: request.id, ok: true, result})));
+                      }});
+                      const allowed = CASE_INDEX === 2;
+                      for (const [call, capability] of [
+                        [() => require('images').requestScreenCapture(), 'screen_capture'],
+                        [() => require('mediainfo').read('sample.wav'), 'media.metadata']
+                      ]) {
+                        let error;
+                        try { await call(); } catch (caught) { error = caught; }
+                        if (allowed) {
+                          if (error) throw error;
+                        } else {
+                          if (!error || error.code !== 'ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED') throw new Error('Missing capability error: ' + error);
+                          if (!error.message.includes('declare node.permissions:') || !error.message.includes(capability)) throw error;
+                          if (error.message.includes('required profile:') || error.profileSelectionHint.profileSelectionRequired) throw error;
+                        }
+                      }
+                      if (dispatched !== (allowed ? 2 : 0)) throw new Error('Unexpected dispatch count: ' + dispatched);
+                      console.log('m18.declaration-hint=PASS');
+                    })().catch(error => { console.error(error.stack); process.exitCode = 1; });
+                    """.replace("CASE_INDEX", Integer.toString(index)));
+            if (projects[index] != null) {
+                request.putStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCE_NAMES,
+                        new String[]{NodeBridgePermissionManifest.RUNTIME_MODULE_NAME});
+                request.putStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCES,
+                        new String[]{NodeBridgePermissionManifest.INSTANCE.runtimeModuleSourceForMetadata(
+                                projects[index], null, null, null, false)});
+            }
+            Bundle result = boundRuntime.runtime.runScript(request, new RecordingCallback(requireRemoteRuntimePid()));
+            assertSucceeded(result, "m18.declaration-hint=PASS");
+        }
+    }
+
+    @Test
     public void x3d_03_importedCommonJsStackRemovesFunctionWrapperOffset() throws Exception {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();
         files.put("main.cjs", "require('./fail.cjs').fail();\n");

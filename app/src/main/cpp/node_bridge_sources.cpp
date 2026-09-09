@@ -5613,11 +5613,9 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_profile_missing_capability_message(moduleName, methodName, missingCapabilities) {
     const missing = Object.freeze(missingCapabilities.slice());
-    const requiredProfiles = __autojs6_profile_required_profiles_for_capabilities(missing);
     const androidPermissions = __autojs6_profile_android_permissions_for_capabilities(missing);
     let message = "AutoJs6 bridge capability is not declared for " +
       moduleName + "." + methodName + ": " + missing.join(", ") +
-      "; required profile: " + (requiredProfiles.length > 0 ? requiredProfiles.join(", ") : "safe_default") +
       "; declare node.permissions: " + missing.join(", ");
     if (androidPermissions.length > 0) {
       message += "; required Android permissions: " + androidPermissions.join(", ");
@@ -5654,7 +5652,7 @@ std::string buildEmbeddedScriptExecutionSource(
       requiredProfiles,
       requiredNodePermissions: missing,
       requiredAndroidPermissions: androidPermissions,
-      profileSelectionRequired: requiredProfiles.some(function(profile) { return profile !== "safe_default"; }),
+      profileSelectionRequired: false,
       message: __autojs6_profile_missing_capability_message(moduleName, methodName, missing),
       declarationHint: "Declare node.permissions/project autojs6.node.permissions for the missing capabilities; profile metadata is diagnostic-only until promotion is implemented.",
       declarationExamples: __autojs6_profile_declaration_examples(missing)

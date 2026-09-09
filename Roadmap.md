@@ -424,7 +424,20 @@ M13 Release 验证补记 (2026-09-08): build 116 的签名 arm64-v8a / x86_64 �
 - [x] **M18.1 修正人工测试入口**: 提供完整 project.json、await 及独立截屏/事件/录音脚本, 明确 Android 授权步骤、项目运行与远程单文件的区别、输出文件路径与成功条件。Check: 样例/类型/脚本语法检查通过; 用户可从设备项目入口直接运行, 人工截屏/按键/录音回执分别补到 M14/M15。
   2026-09-10 交付完成: docs/nodejs/MANUAL-ACCEPTANCE.md 解释当前项目声明、Promise/await、原生 events 与 autojs6:events 的区别, 以及实际文件名/扩展名和系统整屏授权。新增 host-events 与 audio-recording 独立项目, 复用现有 screenshot-find-image / ocr-automation, 已在 QV770340J7 的 /sdcard/Scripts/nodejs-roadmap-acceptance-20260910 提供四项目包。49 个样例、38 个声明模块、TypeScript 和新脚本语法检查通过。实体按键 PASS 只在 keyCode=24/action=down 到达后打印, 录音 PASS 只在非空文件且 MediaInfo 音轨解析成功后打印; 两样例保持 partial、mainAppSmoke=false。尚未自动启动录音或代替用户点击系统授权, M14/M15 的人工结果仍待用户回报。v1.3.0 的两次 Markdown workflow 与两次 Android workflow (master/tag) 已全部 success。
 - [ ] **M18.2 清点并逐项晋级实验能力**: 核对当前 catalog、runtimeInfo、样例、HOST-API、类型和宿主 provider 中 partial/experimental/metadata-only 标记。已有稳定实现且 Check 通过的逐项转正; 缺 provider、结构性不支持或只存在历史档案的条目分别写明事实。Node 上游 API 的稳定性级别不能由插件擅自宣称升级。Check: 一项能力从项目运行到结果可用, 状态与实测一致; 新 catalog/kit 独立版本, 已发布快照不变。
-- [ ] **M18.3 清理误导性的 profile 提示**: `pro_compat_opt_in` 目前只是诊断元数据, 不能代替 node.permissions 或授予 Android 权限。核对缺省运行、显式项目声明和旧宿主行为; 已正式化能力的报错与使用文档应直接指出实际缺失条件。Check: 用户本轮两类报错有可执行的修复步骤, 不再把修改无效 profile 当成授权。
+- [x] **M18.3 清理误导性的 profile 提示**: `pro_compat_opt_in` 目前只是诊断元数据, 不能代替 node.permissions 或授予 Android 权限。核对缺省运行、显式项目声明和旧宿主行为; 已正式化能力的报错与使用文档应直接指出实际缺失条件。Check: 用户本轮两类报错有可执行的修复步骤, 不再把修改无效 profile 当成授权。
+
+2026-09-10 M18.3 完成: 缺失能力错误直接提示 node.permissions 和实际 Android 权限, 删除无效的 required profile 文本; 兼容结构保留 requiredProfiles 历史诊断字段, profileSelectionRequired 固定为 false。新增实际插件 Binder 回归涵盖无项目声明、仅指定 pro_compat_opt_in、正确声明权限三种情况, 前两者在 dispatch 前拒绝, 第三者可发出截屏与 MediaInfo 调用。测试使用假 Android transport, 不代替系统授权验收。三 ABI 语法检查 30/30, Debug/Release 四包构建和类型检查通过。arm64/x86_64 的完整 npm/conformance 各 13/13; Sony API 28 conformance 12/12, npm 首次因系统 ADB-JDWP Connec/libart SIGSEGV 断连, 单独重跑 1/1。保留 crash buffer 和首次失败, 不计作首次全绿; 该设备旧宿主也有相同线程与故障地址记录, 本轮未宣称修复系统调试连接问题。开发 kit 1.5.0 payload 已更新, 四个 Release APK 内容一致, releaseReady=false。
+
+M18.2 首轮清点 (2026-09-10): 当前 catalog 有 15 个顶层 feature, 9 stable、4 partial、1 disabled、1 unsupported; 49 个样例为 31 stable、18 partial。运行时动态元数据、桥 provider 和样例的状态不能相互代替。按以下顺序继续, 每批单独完成使用场景与元数据同步后再晋级。
+
+| 后续批次 | 当前事实 | 正式化所需的具体工作 |
+|---|---|---|
+| fs_streams / zlib_streams / vm | 默认启用, catalog 与 runtimeInfo 仍标 partial | 核对实际 native/facade API, 完成文件流管道、压缩往返、VM 上下文与取消场景, 再同步 catalog、runtimeInfo、类型与样例 |
+| TypeScript | Compiler 路由可用, 原始 TS 不能交给 Node stripping; 顶层仍 partial | 区分可正式使用的宿主编译路由与不支持的原始语法, 清除 legacy stripping 和打包元数据误导; 保留动态编译/诊断回映回归 |
+| 生命周期和模块互操作 | one_shot available; interactive/scheduled partial; sandboxed design_gated、worker_computation reserved; 部分 data URL/process 诊断仍带旧 partial 文案 | 对照现有执行、取消、定时和 linker 实绩清理旧标记, 去除未支持的 packaged_long_running 宣告, 不将保留名称当作可运行模式 |
+| 截屏 / OCR / Android events / recorder | 具有真实 provider, 授权/实体输入/麦克风正向结果仍待用户回报 | 从 MANUAL-ACCEPTANCE 的项目运行, 分别取得系统授权后像素结果、实体键/通知/Toast 与非空录音音轨; 再晋级相关样例和 provider |
+| 18 个 partial 样例 | 截屏/OCR/事件/录音、packaged-esm/dynamic-import、js-plugin-ui、require-esm/compile-cache、Inspector/CPU/heap、runtime-info、WASM、package-install、pro/desktop parity | 逐项核对当前可运行目的, 已废弃的打包/profile 假设改为明确不支持或移入历史; Inspector 保持显式 Debug, 上游 API 的稳定性不由插件擅自升级 |
+| 缺实现的桥能力 | media playback/MediaStore 等仍无完整 provider, profile 名称只作诊断 | 先实现 Android 生命周期与可用结果, 再谈正式化; 不批量把 partial/blocked 字段改成 stable |
 
 ### M19 — 宿主减重第二轮
 
