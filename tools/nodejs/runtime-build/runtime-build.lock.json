@@ -148,8 +148,9 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": null,
-      "expectedBuildId": null
+      "expectedLibnodeSha256": "e24ab30584c597ab3019bd694fba75ee5d538390730633818e4fb5de7e2084f7",
+      "expectedBuildId": "dd24e120ec22d44ea864fd763f96399eb4746eb7",
+      "size": 70578608
     },
     "armeabi-v7a": {
       "targetCpu": "arm",
@@ -178,8 +179,9 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": null,
-      "expectedBuildId": null
+      "expectedLibnodeSha256": "3f7f93a791e9bb99969be3a7c799b9444c2dad893dbad1d48a815c6c096352bf",
+      "expectedBuildId": "d72fe5626d2bb25871e3b7adb9797c802dcb117f",
+      "size": 75379272
     }
   },
   "linker": {

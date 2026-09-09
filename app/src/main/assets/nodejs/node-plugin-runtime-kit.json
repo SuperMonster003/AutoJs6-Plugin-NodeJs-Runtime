@@ -57,7 +57,7 @@
     "sourceGitBase": "3f1b3b1e80eaaa43dbebc6cd403cdf62a1022e7a",
     "runtimeBuildPlan": {
       "lockFile": "tools/nodejs/runtime-build/runtime-build.lock.json",
-      "lockSha256": "0891c13833d955eb7b1d7680770a6409abb738a4d0e25c3be5accfcca32bc9ce",
+      "lockSha256": "72f895dc88aedf7422dfdc2d5a224a1997cf11f4bb189e1a9379ca8b6605a06e",
       "powershellMaterializer": "tools/nodejs/runtime-build/build-node-runtime.ps1",
       "powershellMaterializerSha256": "f8776f851ead6dade26fcef4d20f864a74b0bade8e4c633f368c49a72af0f067",
       "shellMaterializer": "tools/nodejs/runtime-build/build-node-runtime.sh",

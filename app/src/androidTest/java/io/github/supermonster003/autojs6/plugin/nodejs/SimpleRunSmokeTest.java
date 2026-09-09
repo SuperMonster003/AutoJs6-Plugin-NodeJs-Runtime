@@ -67,11 +67,16 @@ public final class SimpleRunSmokeTest {
             );
             INodeJsRuntimePlugin runtime = INodeJsRuntimePlugin.Stub.asInterface(binder.get());
             assertNotNull("runtime proxy unavailable", runtime);
+            Bundle runtimeInfo = runtime.getRuntimeInfo();
+            assertNotNull("getRuntimeInfo returned null", runtimeInfo);
+            String advertisedNodeVersion = runtimeInfo.getString(NodeJsRuntimeContract.KEY_NODE_VERSION, "");
+            assertTrue("runtime did not advertise its Node version", !advertisedNodeVersion.isEmpty());
 
             Bundle request = new Bundle();
             request.putString(
                     NodeJsRuntimeContract.KEY_SOURCE,
-                    "console.log('m0.smoke=' + (2 + 40));\n"
+                    "console.log('m0.smoke=' + (2 + 40));\n" +
+                            "console.log('m17.node.version=' + process.versions.node);\n"
             );
             Bundle result = runtime.runScript(request, new INodeJsRuntimeCallback.Stub() {
                 @Override
@@ -87,6 +92,10 @@ public final class SimpleRunSmokeTest {
                     result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED)
             );
             assertTrue("stdout missing marker: " + stdout, stdout.contains("m0.smoke=42"));
+            assertTrue(
+                    "getRuntimeInfo version does not match the loaded Node library: " + advertisedNodeVersion + " / " + stdout,
+                    stdout.contains("m17.node.version=" + advertisedNodeVersion + "\n")
+            );
 
             // Published v1 hosts attach a provider binder without any version
             // field, and their provider answers with version 1 and no
