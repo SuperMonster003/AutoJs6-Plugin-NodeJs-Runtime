@@ -1,0 +1,4 @@
+native EventEmitter=function
+Android observers=function,function,function
+READY: press the physical VOLUME_UP key within 45 seconds.
+sample.host-events=PASS

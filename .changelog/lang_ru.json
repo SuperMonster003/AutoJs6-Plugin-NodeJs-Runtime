@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.4.0": {
+      "released_date": "Не выпущено",
+      "improvement": [
+        "Отдельные проекты событий Android и трехсекундной записи звука, объявления проекта и ручная проверка захвата экрана, OCR, физических клавиш и MediaInfo"
+      ]
+    },
     "v1.3.0": {
       "released_date": "2026/09/09",
       "fix": [

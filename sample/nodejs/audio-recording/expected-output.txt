@@ -1,0 +1,2 @@
+Recording microphone audio for 3 seconds. Speak a short sentence now.
+sample.audio-recording=PASS

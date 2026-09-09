@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Amelioration",
   "changelog_label_dependency": "Dependance",
   "$data": {
+    "v1.4.0": {
+      "released_date": "Non publié",
+      "improvement": [
+        "Projets autonomes pour les événements Android et un enregistrement audio de trois secondes, avec déclarations et étapes de validation manuelle pour la capture, l'OCR, les touches physiques et MediaInfo"
+      ]
+    },
     "v1.3.0": {
       "released_date": "2026/09/09",
       "fix": [

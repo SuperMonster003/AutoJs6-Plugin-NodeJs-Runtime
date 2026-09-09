@@ -1,0 +1,9 @@
+{
+  "name": "host-events",
+  "type": "node",
+  "main": "main.cjs",
+  "node": {
+    "timeoutMs": 65000,
+    "permissions": ["events", "events.key", "events.notification", "events.toast"]
+  }
+}
