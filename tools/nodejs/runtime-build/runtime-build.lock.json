@@ -18,10 +18,11 @@
     "sourceSha256": "2732fc3f588dd335cd6779c06864f7cd424bb1b5ff9a1743059a66c54f9ca4a1",
     "headersSha256": "cb5420ff135b64fdcb3d050223146ecc3e257c413abe915604d48e589498ae47",
     "nodejsMobileForkCommit": "116bad1dc919702d4a701d49df26d960403ee4a4",
-    "patchSeries": "patches/0001-nodejs-mobile-android.patch",
-    "patchSet": "node24.20-android-from-degaso-v24.5.0-r1",
+    "patchSeries": "patches/*.patch",
+    "patchSet": "node24.20-android-from-degaso-v24.5.0-r1-with-linux-host-fix",
     "patchFiles": {
-      "0001-nodejs-mobile-android.patch": "2933143f3280dc40c32de05df2a5a9f3dd9c6b8f5586a3e599cf699cdcd330c7"
+      "0001-nodejs-mobile-android.patch": "2933143f3280dc40c32de05df2a5a9f3dd9c6b8f5586a3e599cf699cdcd330c7",
+      "0002-linux-host-trap-handlers.patch": "abf7fa4764c3cfbd0b90e2368a0568b1f75d024aa8ad13e59be5b83354ffd870"
     }
   },
   "androidFork": {

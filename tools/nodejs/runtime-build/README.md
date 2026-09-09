@@ -65,7 +65,11 @@ The Android patch is extracted from degaso/nodejs-mobile commit
 and applied to official 24.20.0. It retains Android/host toolchain, 32-bit,
 libuv/OpenSSL/zlib and V8 build fixes. iOS changes, mobile product branding
 and the fork's blanket V8 trap-handler disable are excluded; upstream already
-handles Android trap-handler support. The patch file digest is in the lock.
+handles Android trap-handler support. A separate local patch adds the POSIX
+trap-handler sources needed by Linux `mksnapshot` when GYP's `OS` is Android
+for the cross build. This fixes the observed host linker errors without
+changing the Android target's trap-handler policy. Both patch file digests
+are recorded in the lock.
 
 `verify-source-runtime.py` checks architecture, 16 KB LOAD alignment, Build ID
 and the Node/V8/libuv symbols dynamically consumed by the current bridge.

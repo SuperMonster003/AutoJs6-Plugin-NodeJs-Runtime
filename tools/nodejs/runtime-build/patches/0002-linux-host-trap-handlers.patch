@@ -1,0 +1,24 @@
+--- a/tools/v8_gypfiles/v8.gyp
++++ b/tools/v8_gypfiles/v8.gyp
+@@ -1265,6 +1265,21 @@
+                     '<(V8_ROOT)/src/trap-handler/handler-outside-simulator.cc',
+                   ],
+                 }],
++              ],
++            }],
++          ],
++        }],
++        # Linux mksnapshot uses the host's trap handlers even when OS is Android.
++        # Keep the Android target's upstream trap-handler policy unchanged.
++        ['OS=="android" and _toolset=="host" and host_os=="linux" and v8_enable_webassembly==1 and v8_target_arch in ["x64", "arm64"]', {
++          'sources': [
++            '<(V8_ROOT)/src/trap-handler/handler-inside-posix.cc',
++            '<(V8_ROOT)/src/trap-handler/handler-outside-posix.cc',
++          ],
++          'conditions': [
++            ['v8_target_arch=="arm64" and host_arch=="x64"', {
++              'sources': [
++                '<(V8_ROOT)/src/trap-handler/handler-outside-simulator.cc',
+               ],
+             }],
+           ],
