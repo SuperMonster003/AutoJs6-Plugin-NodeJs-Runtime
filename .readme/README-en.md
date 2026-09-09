@@ -5,7 +5,7 @@
     <img src="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/app/src/main/res/mipmap/ic_launcher.png?raw=true" alt="autojs6-plugin-nodejs-runtime-ic-launcher" border="0" width="128" />
   </p>
 
-  <p>Node.js 24.5.0 native runtime plugin for AutoJs6</p>
+  <p>Node.js 24.21.0 native runtime plugin for AutoJs6</p>
 
   <p>
     <a href="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/releases"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime?label=Release"/></a>
@@ -43,7 +43,7 @@ The current README.md supports the following languages:
 
 ******
 
-The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.5.0 native runtime for AutoJs6 scripts and plugin runtime tasks.
+The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.21.0 native runtime for AutoJs6 scripts and plugin runtime tasks.
 
 ******
 
@@ -95,7 +95,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
-- Runtime slot: `node24_5`.
+- Runtime slot: `node24_21`.
 - Plugin ID: `nodejs`, engine: `nodejs`.
 - Runtime service action: `org.autojs.plugin.nodejs.RUNTIME`.
 - Native runtime libraries: `libnode.so` and `libautojs6-node.so`.
@@ -113,7 +113,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 # v1.3.0
 
-###### Unreleased
+###### 2026/09/09
 
 * `Feature` Node.js bridge subscriptions push sensor, WebSocket, UI, overlay and input events through existing callbacks, with on/once/off listeners, bounded queues and compatible drainEvents
 * `Feature` Optional idleExitMs releases an idle Node.js runtime process and reconnects for the next script, with idleForMs diagnostics and resident behavior preserved by default
@@ -130,12 +130,14 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 * `Feature` Node scripts can run concurrently in two independent runtime processes, with a shared FIFO queue and execution-specific cancellation and input routing
 * `Fix` Fixed growing live-bridge request and response history in resident scripts by retiring completed requests and bounding diagnostics to the latest 32 responses with a size limit
 * `Fix` Fixed prematurely successful results losing native async errors and late exit codes; completion now follows the final Node event-loop exit
+* `Fix` OpenSSL STORE key URLs bypassing filesystem restrictions (read key bytes through node:fs instead)
 * `Improvement` Reduced live bridge latency with a default JNI/Binder transport and Node event-loop responses, preserving selectable file fallback and pending-call limits
 * `Improvement` Restored native Node.js builtin exports for streams, crypto, timers, utilities, node:test and related modules while preserving filesystem boundaries and host directory policy
 * `Improvement` Native workers now default to CPU parallelism (up to eight), inherit execution network/filesystem switches, accept request resource caps and have no default pool task deadline; CPU and WASM examples run real workers
 * `Improvement` Kept raw WASI disabled to preserve filesystem boundaries and removed the two disabled WASI examples; ordinary WebAssembly and WASM workers remain available
 * `Improvement` Screen OCR examples request Android capture consent and recognize real image handles; unavailable OCR or barcode plugins return readable unavailable errors, while recognition failures remain errors
 * `Improvement` Node scripts support negotiated asynchronous startup, releasing Binder threads during long-running execution and returning workspace changes after terminal completion, with legacy synchronous host compatibility
+* `Dependency` Upgraded Node.js 24.5.0 → 24.21.0 using source-built Android libraries for all three ABIs
 
 # v1.2.0
 

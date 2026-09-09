@@ -1,8 +1,8 @@
 {
   "schema": "autojs6-node-plugin-runtime-kit-v1",
   "schemaVersion": 1,
-  "kitId": "autojs6-node-plugin-runtime-kit-v1.3.0-node24_5",
-  "kitVersion": "1.3.0",
+  "kitId": "autojs6-node-plugin-runtime-kit-v1.4.0-node24_21",
+  "kitVersion": "1.4.0",
   "owner": {
     "pluginId": "nodejs",
     "applicationId": "io.github.supermonster003.autojs6.plugin.nodejs",
@@ -10,8 +10,8 @@
   },
   "runtime": {
     "engine": "nodejs",
-    "runtimeSlot": "node24_5",
-    "nodeVersion": "24.5.0",
+    "runtimeSlot": "node24_21",
+    "nodeVersion": "24.21.0",
     "bridgeApiVersion": 1,
     "nativeLibraryName": "node",
     "bridgeNativeLibraryName": "autojs6-node",
@@ -27,58 +27,72 @@
   },
   "contract": {
     "min": 2,
-    "max": 2,
+    "max": 3,
     "moduleSourceProvider": 2
   },
   "nodeJsApi": {
-    "coordinate": "org.autojs.plugin.nodejs:nodejs-api:1.3.0",
-    "version": "1.3.0",
-    "sha256": "88d154e2dc80abbb3779d7fce85cf2ca2f0c802736d60a622d08e093310e8f03",
-    "aidlTransactionsSha256": "74c886570e635704bb10f9735ebba7838dd6e0a8df79641f4478320deb723084"
+    "coordinate": "org.autojs.plugin.nodejs:nodejs-api:1.5.0",
+    "version": "1.5.0",
+    "sha256": "8d85844e82466e9beed955d894852b6191dd414d8189bca40d09c6b163601464",
+    "aidlTransactionsSha256": "c781e229418850724100564332b83141e461259b1356bae5b100a01481ca7323"
   },
   "capabilityCatalog": {
     "schema": "autojs6-node-capability-catalog-v1",
-    "version": "1.3.0",
-    "sha256": "78e573627e8a19e7dc511a4c8e527a564ecf7277d6389e08194963a597f1d0ab"
+    "version": "1.4.0",
+    "sha256": "aad9903877f19cc5e87347e3226e44d30e4d2775d2f8600e9956095f4e80171b"
   },
   "reproducibility": {
-    "artifactMaterialization": "pinned_upstream_binary",
+    "artifactMaterialization": "source_build",
     "artifactMaterializationStatus": "ready",
     "sourceBuild": "source_build_with_independent_maintenance_rebuilds",
     "sourceBuildStatus": "ready",
     "kitUsable": true,
-    "releaseReady": false,
-    "blockedReasons": [
-      "Node 24.21 default selection and new runtime kit belong to the pending M17.2 promotion."
-    ]
+    "releaseReady": true,
+    "blockedReasons": []
   },
   "buildProvenance": {
     "sourceRepository": "AutoJs6-Plugin-NodeJs-Runtime",
-    "sourceGitBase": "3f1b3b1e80eaaa43dbebc6cd403cdf62a1022e7a",
+    "sourceGitBase": "6c7cf7ee104d3ea57012d93ee3c812d5f8d32dca",
     "runtimeBuildPlan": {
       "lockFile": "tools/nodejs/runtime-build/runtime-build.lock.json",
-      "lockSha256": "e3b17c561a0f73cee5b078f9d324c9adad590d40a5a1f1a7d3b0ef3898768144",
-      "powershellMaterializer": "tools/nodejs/runtime-build/build-node-runtime.ps1",
-      "powershellMaterializerSha256": "f8776f851ead6dade26fcef4d20f864a74b0bade8e4c633f368c49a72af0f067",
-      "shellMaterializer": "tools/nodejs/runtime-build/build-node-runtime.sh",
-      "shellMaterializerSha256": "125200a43b855c1b525bae71cafea8ef200a231fe408dbc0dcbaaec8745d8b11"
+      "lockSha256": "17d486717851e06fad1210e0ce47ac89ad34c92f2d7482873c629113cbd21d6b",
+      "sourceBuilder": "tools/nodejs/runtime-build/build-node-from-source.py",
+      "sourceBuilderSha256": "aef1c3a170514c4a3dfbb7f6b77281896ca43076eea1b7a2497b705e33a48f41",
+      "containerBuildScript": "tools/nodejs/runtime-build/container/build-source.sh",
+      "containerBuildScriptSha256": "634c5792ae689a05fb7191f198dbc89c5a75c7ac799c3d90c96ec787301baa2e",
+      "dockerfile": "tools/nodejs/runtime-build/container/Dockerfile.source",
+      "dockerfileSha256": "f6781c3cdeff2b3ba8fbeb95dcf2c5fbd91ecff5e4851fd0eef948e016293463"
     },
     "upstreamArtifact": {
-      "classification": "pinned_upstream_binary",
-      "repository": "https://github.com/degaso/nodejs-mobile",
-      "tag": "v24.5.0-r1",
-      "commit": "116bad1dc919702d4a701d49df26d960403ee4a4",
-      "url": "https://github.com/degaso/nodejs-mobile/releases/download/v24.5.0-r1/nodejs-mobile-24.05-android.zip",
-      "fileName": "nodejs-mobile-24.05-android.zip",
-      "size": 90705528,
-      "sha256": "02e541cc42e7b61bc4d514e4ef2354abb1d46bcf024dd58ce4fbf6b4cdc3a128"
+      "classification": "official_source_with_android_patches",
+      "repository": "https://github.com/nodejs/node",
+      "tag": "v24.21.0",
+      "commit": "955266bfdd854cd280dffd47548673914484e4c0",
+      "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0.tar.xz",
+      "fileName": "node-v24.21.0.tar.xz",
+      "sha256": "a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc",
+      "patchFiles": {
+        "0001-nodejs-mobile-android.patch": "2933143f3280dc40c32de05df2a5a9f3dd9c6b8f5586a3e599cf699cdcd330c7",
+        "0002-linux-host-trap-handlers.patch": "abf7fa4764c3cfbd0b90e2368a0568b1f75d024aa8ad13e59be5b83354ffd870",
+        "0003-disable-android-openssl-store.patch": "6cd5c1ea30d3bbe8222af862c41101aa6ba8b43d78ba02bf5292fd297ec5c0fa"
+      }
     },
     "bridgeBuild": {
       "variant": "release_universal",
       "gradleTask": ":app:assembleRelease",
       "cmakeFile": "app/src/main/cpp/CMakeLists.txt",
-      "cmakeSha256": "6806127b60497fe29081a900de8668f94cf290b5d4d07a12b037d874dd61d13d",
-      "runtimeSlotArgument": "node24_5"
+      "cmakeSha256": "609c1ce5112fb6cb54d6afb3014d066655fa81fa7a9d7b43507b4731c1d1c52a",
+      "runtimeSlotArgument": "node24_21"
+    },
+    "sourceBuildEnvironment": {
+      "containerImageId": "sha256:aab5d6b491066aad55da3890e88e97429b4dbb7da2b5697287b7d2b95566d046",
+      "baseImage": "ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517",
+      "ndkVersion": "28.2.13676358",
+      "clangVersion": "19.0.1",
+      "hostClangVersion": "18.1.3",
+      "pythonVersion": "3.12.3",
+      "ninjaVersion": "1.11.1",
+      "sourceDateEpoch": 1754006400
     }
   },
   "payloads": [
@@ -92,8 +106,8 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "source_tree",
       "required": true,
-      "size": 63092,
-      "sha256": "78e573627e8a19e7dc511a4c8e527a564ecf7277d6389e08194963a597f1d0ab",
+      "size": 72089,
+      "sha256": "aad9903877f19cc5e87347e3226e44d30e4d2775d2f8600e9956095f4e80171b",
       "buildId": null
     },
     {
@@ -106,9 +120,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 2332880,
-      "sha256": "fd3218535f01c54c1fbc59599763523f6439c4c4ba0cf934d910cd23d769c44f",
-      "buildId": "08856a8570da01717c93cc2c3b8126dc8f4481fe"
+      "size": 2540600,
+      "sha256": "bedbe7449b8d2a8bc77dc009909cca3b531bb26d09859ef92ee6780349d73d91",
+      "buildId": "9d0cf71ddc41d6a15e8d01ce3b447c13781bb6c8"
     },
     {
       "id": "libautojs6-node-armeabi-v7a",
@@ -120,9 +134,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 2121956,
-      "sha256": "c1d7f07c0e83c5d8ef6546e33b3d2e514cf5b514b27a1847129032956bad91e1",
-      "buildId": "ea172db666e6264d6ef70f19014816264c484938"
+      "size": 2206732,
+      "sha256": "3b8273e0ea2c108c65ba6ce422ee7aee131dbfba5d5d3d522cc0628f75b9cb1b",
+      "buildId": "cf707baf84c278cfaf90e4a841da0d3c3625d5d5"
     },
     {
       "id": "libautojs6-node-x86_64",
@@ -134,9 +148,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 2355672,
-      "sha256": "c69463d40acd642ea1d492295840b9a4bde8cbabce26420411cd748e7dd8f579",
-      "buildId": "fffd571e821a7b47eff74937e2e928f5a8c39b91"
+      "size": 2567600,
+      "sha256": "b048581651839629c8fab93118ba4fda0a99269cde3aeca26f75fd40a32916c9",
+      "buildId": "e33e6d2fa031911b5728eff24f2839e9771c8f35"
     },
     {
       "id": "libc++_shared-arm64-v8a",
@@ -190,9 +204,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 84619560,
-      "sha256": "edf81883fad5cb2e5756ac603cf2d1140e252599caf01eefaf218b5ad16aa34f",
-      "buildId": null
+      "size": 70742448,
+      "sha256": "c48da9b772635e8e76ce0a06de09e71dbd70efe602903f1f5c9042672e629b2d",
+      "buildId": "57a6724e267609b141642cfddf2f52b6412cdd0a"
     },
     {
       "id": "libnode-armeabi-v7a",
@@ -204,9 +218,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 76971188,
-      "sha256": "137686e5381497e6682121c4a3739c06db638d6c493ccc82a84762fcada992cc",
-      "buildId": null
+      "size": 64814352,
+      "sha256": "8e9f6c326ac3fdaac114cc37323e2d12dba96894fb306423c1426c1a7cd8c99d",
+      "buildId": "3878143e7b4e66d1da8590efc0273de55d79b0a9"
     },
     {
       "id": "libnode-x86_64",
@@ -218,9 +232,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 90370504,
-      "sha256": "20f73bb7d7814860bfc680d6b1e45141a0cb489324d77efbf43be34562f09fc3",
-      "buildId": null
+      "size": 75526728,
+      "sha256": "ef576b2958de84b6cd641c18f684f42d00f4e97da09c4be3ebfb8bff4dd722b5",
+      "buildId": "a15f0c4bb06df5885cbf5ae1cb5752e8d6f5da4a"
     }
   ],
   "diagnostics": {

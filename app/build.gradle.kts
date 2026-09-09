@@ -66,7 +66,7 @@ android {
                 arguments += "-DANDROID_STL=c++_shared"
                 arguments += "-DAUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE=OFF"
                 arguments += "-DAUTOJS6_NODE_ENABLE_EMBEDDED_SCRIPT_EXECUTION=ON"
-                arguments += "-DAUTOJS6_NODE_RUNTIME_SLOT=node24_5"
+                arguments += "-DAUTOJS6_NODE_RUNTIME_SLOT=node24_21"
                 cppFlags += "-std=c++20"
             }
         }

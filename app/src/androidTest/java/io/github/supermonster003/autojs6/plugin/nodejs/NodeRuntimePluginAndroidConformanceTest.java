@@ -1046,7 +1046,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 runtimeInfo.getInt(NodeJsRuntimeContract.KEY_CONTRACT_VERSION, -1)
         );
         assertEquals(
-                NodeJsPluginIds.VARIANT_NODE_24_5,
+                NodeJsPluginIds.VARIANT_NODE_24_21,
                 runtimeInfo.getString(NodeJsRuntimeContract.KEY_RUNTIME_SLOT)
         );
         assertTrue("Node version is blank",

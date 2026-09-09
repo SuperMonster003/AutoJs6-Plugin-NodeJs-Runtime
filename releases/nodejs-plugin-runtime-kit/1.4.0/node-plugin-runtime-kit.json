@@ -1,0 +1,249 @@
+{
+  "schema": "autojs6-node-plugin-runtime-kit-v1",
+  "schemaVersion": 1,
+  "kitId": "autojs6-node-plugin-runtime-kit-v1.4.0-node24_21",
+  "kitVersion": "1.4.0",
+  "owner": {
+    "pluginId": "nodejs",
+    "applicationId": "io.github.supermonster003.autojs6.plugin.nodejs",
+    "repository": "AutoJs6-Plugin-NodeJs-Runtime"
+  },
+  "runtime": {
+    "engine": "nodejs",
+    "runtimeSlot": "node24_21",
+    "nodeVersion": "24.21.0",
+    "bridgeApiVersion": 1,
+    "nativeLibraryName": "node",
+    "bridgeNativeLibraryName": "autojs6-node",
+    "libraryLoadOrder": [
+      "node",
+      "autojs6-node"
+    ],
+    "supportedAbis": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ]
+  },
+  "contract": {
+    "min": 2,
+    "max": 3,
+    "moduleSourceProvider": 2
+  },
+  "nodeJsApi": {
+    "coordinate": "org.autojs.plugin.nodejs:nodejs-api:1.5.0",
+    "version": "1.5.0",
+    "sha256": "8d85844e82466e9beed955d894852b6191dd414d8189bca40d09c6b163601464",
+    "aidlTransactionsSha256": "c781e229418850724100564332b83141e461259b1356bae5b100a01481ca7323"
+  },
+  "capabilityCatalog": {
+    "schema": "autojs6-node-capability-catalog-v1",
+    "version": "1.4.0",
+    "sha256": "aad9903877f19cc5e87347e3226e44d30e4d2775d2f8600e9956095f4e80171b"
+  },
+  "reproducibility": {
+    "artifactMaterialization": "source_build",
+    "artifactMaterializationStatus": "ready",
+    "sourceBuild": "source_build_with_independent_maintenance_rebuilds",
+    "sourceBuildStatus": "ready",
+    "kitUsable": true,
+    "releaseReady": true,
+    "blockedReasons": []
+  },
+  "buildProvenance": {
+    "sourceRepository": "AutoJs6-Plugin-NodeJs-Runtime",
+    "sourceGitBase": "6c7cf7ee104d3ea57012d93ee3c812d5f8d32dca",
+    "runtimeBuildPlan": {
+      "lockFile": "tools/nodejs/runtime-build/runtime-build.lock.json",
+      "lockSha256": "17d486717851e06fad1210e0ce47ac89ad34c92f2d7482873c629113cbd21d6b",
+      "sourceBuilder": "tools/nodejs/runtime-build/build-node-from-source.py",
+      "sourceBuilderSha256": "aef1c3a170514c4a3dfbb7f6b77281896ca43076eea1b7a2497b705e33a48f41",
+      "containerBuildScript": "tools/nodejs/runtime-build/container/build-source.sh",
+      "containerBuildScriptSha256": "634c5792ae689a05fb7191f198dbc89c5a75c7ac799c3d90c96ec787301baa2e",
+      "dockerfile": "tools/nodejs/runtime-build/container/Dockerfile.source",
+      "dockerfileSha256": "f6781c3cdeff2b3ba8fbeb95dcf2c5fbd91ecff5e4851fd0eef948e016293463"
+    },
+    "upstreamArtifact": {
+      "classification": "official_source_with_android_patches",
+      "repository": "https://github.com/nodejs/node",
+      "tag": "v24.21.0",
+      "commit": "955266bfdd854cd280dffd47548673914484e4c0",
+      "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0.tar.xz",
+      "fileName": "node-v24.21.0.tar.xz",
+      "sha256": "a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc",
+      "patchFiles": {
+        "0001-nodejs-mobile-android.patch": "2933143f3280dc40c32de05df2a5a9f3dd9c6b8f5586a3e599cf699cdcd330c7",
+        "0002-linux-host-trap-handlers.patch": "abf7fa4764c3cfbd0b90e2368a0568b1f75d024aa8ad13e59be5b83354ffd870",
+        "0003-disable-android-openssl-store.patch": "6cd5c1ea30d3bbe8222af862c41101aa6ba8b43d78ba02bf5292fd297ec5c0fa"
+      }
+    },
+    "bridgeBuild": {
+      "variant": "release_universal",
+      "gradleTask": ":app:assembleRelease",
+      "cmakeFile": "app/src/main/cpp/CMakeLists.txt",
+      "cmakeSha256": "609c1ce5112fb6cb54d6afb3014d066655fa81fa7a9d7b43507b4731c1d1c52a",
+      "runtimeSlotArgument": "node24_21"
+    },
+    "sourceBuildEnvironment": {
+      "containerImageId": "sha256:aab5d6b491066aad55da3890e88e97429b4dbb7da2b5697287b7d2b95566d046",
+      "baseImage": "ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517",
+      "ndkVersion": "28.2.13676358",
+      "clangVersion": "19.0.1",
+      "hostClangVersion": "18.1.3",
+      "pythonVersion": "3.12.3",
+      "ninjaVersion": "1.11.1",
+      "sourceDateEpoch": 1754006400
+    }
+  },
+  "payloads": [
+    {
+      "id": "capability-catalog",
+      "role": "metadata",
+      "fileName": "node-capability-catalog.json",
+      "sourcePath": "app/src/main/assets/nodejs/node-capability-catalog.json",
+      "packagedPath": "assets/nodejs/node-capability-catalog.json",
+      "abi": "universal",
+      "payloadProfile": "embedded_runtime",
+      "delivery": "source_tree",
+      "required": true,
+      "size": 72089,
+      "sha256": "aad9903877f19cc5e87347e3226e44d30e4d2775d2f8600e9956095f4e80171b",
+      "buildId": null
+    },
+    {
+      "id": "libautojs6-node-arm64-v8a",
+      "role": "native_bridge",
+      "fileName": "libautojs6-node.so",
+      "sourcePath": "app/build/intermediates/stripped_native_libs/release/stripReleaseDebugSymbols/out/lib/arm64-v8a/libautojs6-node.so",
+      "packagedPath": "lib/arm64-v8a/libautojs6-node.so",
+      "abi": "arm64-v8a",
+      "payloadProfile": "embedded_runtime",
+      "delivery": "plugin_apk_release_entry",
+      "required": true,
+      "size": 2540600,
+      "sha256": "bedbe7449b8d2a8bc77dc009909cca3b531bb26d09859ef92ee6780349d73d91",
+      "buildId": "9d0cf71ddc41d6a15e8d01ce3b447c13781bb6c8"
+    },
+    {
+      "id": "libautojs6-node-armeabi-v7a",
+      "role": "native_bridge",
+      "fileName": "libautojs6-node.so",
+      "sourcePath": "app/build/intermediates/stripped_native_libs/release/stripReleaseDebugSymbols/out/lib/armeabi-v7a/libautojs6-node.so",
+      "packagedPath": "lib/armeabi-v7a/libautojs6-node.so",
+      "abi": "armeabi-v7a",
+      "payloadProfile": "embedded_runtime",
+      "delivery": "plugin_apk_release_entry",
+      "required": true,
+      "size": 2206732,
+      "sha256": "3b8273e0ea2c108c65ba6ce422ee7aee131dbfba5d5d3d522cc0628f75b9cb1b",
+      "buildId": "cf707baf84c278cfaf90e4a841da0d3c3625d5d5"
+    },
+    {
+      "id": "libautojs6-node-x86_64",
+      "role": "native_bridge",
+      "fileName": "libautojs6-node.so",
+      "sourcePath": "app/build/intermediates/stripped_native_libs/release/stripReleaseDebugSymbols/out/lib/x86_64/libautojs6-node.so",
+      "packagedPath": "lib/x86_64/libautojs6-node.so",
+      "abi": "x86_64",
+      "payloadProfile": "embedded_runtime",
+      "delivery": "plugin_apk_release_entry",
+      "required": true,
+      "size": 2567600,
+      "sha256": "b048581651839629c8fab93118ba4fda0a99269cde3aeca26f75fd40a32916c9",
+      "buildId": "e33e6d2fa031911b5728eff24f2839e9771c8f35"
+    },
+    {
+      "id": "libc++_shared-arm64-v8a",
+      "role": "native_dependency",
+      "fileName": "libc++_shared.so",
+      "sourcePath": "app/build/intermediates/stripped_native_libs/release/stripReleaseDebugSymbols/out/lib/arm64-v8a/libc++_shared.so",
+      "packagedPath": "lib/arm64-v8a/libc++_shared.so",
+      "abi": "arm64-v8a",
+      "payloadProfile": "embedded_runtime",
+      "delivery": "plugin_apk_release_entry",
+      "required": true,
+      "size": 1253544,
+      "sha256": "cd61762848882a16c8244c964a6f396c0caa0b440588a210ce9cc4ab0e6d9f0c",
+      "buildId": "7befe631535aa853c4f4ac1293e49dcea34c9b6e"
+    },
+    {
+      "id": "libc++_shared-armeabi-v7a",
+      "role": "native_dependency",
+      "fileName": "libc++_shared.so",
+      "sourcePath": "app/build/intermediates/stripped_native_libs/release/stripReleaseDebugSymbols/out/lib/armeabi-v7a/libc++_shared.so",
+      "packagedPath": "lib/armeabi-v7a/libc++_shared.so",
+      "abi": "armeabi-v7a",
+      "payloadProfile": "embedded_runtime",
+      "delivery": "plugin_apk_release_entry",
+      "required": true,
+      "size": 850380,
+      "sha256": "e7e20f6e0f3f181e853cea50373ecee2ccfe95c668dce72d0999b2469c92d0e1",
+      "buildId": "8e97299dcad91f08b141d2c086167c461c289a3f"
+    },
+    {
+      "id": "libc++_shared-x86_64",
+      "role": "native_dependency",
+      "fileName": "libc++_shared.so",
+      "sourcePath": "app/build/intermediates/stripped_native_libs/release/stripReleaseDebugSymbols/out/lib/x86_64/libc++_shared.so",
+      "packagedPath": "lib/x86_64/libc++_shared.so",
+      "abi": "x86_64",
+      "payloadProfile": "embedded_runtime",
+      "delivery": "plugin_apk_release_entry",
+      "required": true,
+      "size": 1229808,
+      "sha256": "2e855857f80819737d25a663109fedf816a5e996a85423166806014a06593256",
+      "buildId": "0f8f9b5a33c8898dc08ae1688f9b1d3d10ff68ab"
+    },
+    {
+      "id": "libnode-arm64-v8a",
+      "role": "native_runtime",
+      "fileName": "libnode.so",
+      "sourcePath": "app/build/intermediates/stripped_native_libs/release/stripReleaseDebugSymbols/out/lib/arm64-v8a/libnode.so",
+      "packagedPath": "lib/arm64-v8a/libnode.so",
+      "abi": "arm64-v8a",
+      "payloadProfile": "embedded_runtime",
+      "delivery": "plugin_apk_release_entry",
+      "required": true,
+      "size": 70742448,
+      "sha256": "c48da9b772635e8e76ce0a06de09e71dbd70efe602903f1f5c9042672e629b2d",
+      "buildId": "57a6724e267609b141642cfddf2f52b6412cdd0a"
+    },
+    {
+      "id": "libnode-armeabi-v7a",
+      "role": "native_runtime",
+      "fileName": "libnode.so",
+      "sourcePath": "app/build/intermediates/stripped_native_libs/release/stripReleaseDebugSymbols/out/lib/armeabi-v7a/libnode.so",
+      "packagedPath": "lib/armeabi-v7a/libnode.so",
+      "abi": "armeabi-v7a",
+      "payloadProfile": "embedded_runtime",
+      "delivery": "plugin_apk_release_entry",
+      "required": true,
+      "size": 64814352,
+      "sha256": "8e9f6c326ac3fdaac114cc37323e2d12dba96894fb306423c1426c1a7cd8c99d",
+      "buildId": "3878143e7b4e66d1da8590efc0273de55d79b0a9"
+    },
+    {
+      "id": "libnode-x86_64",
+      "role": "native_runtime",
+      "fileName": "libnode.so",
+      "sourcePath": "app/build/intermediates/stripped_native_libs/release/stripReleaseDebugSymbols/out/lib/x86_64/libnode.so",
+      "packagedPath": "lib/x86_64/libnode.so",
+      "abi": "x86_64",
+      "payloadProfile": "embedded_runtime",
+      "delivery": "plugin_apk_release_entry",
+      "required": true,
+      "size": 75526728,
+      "sha256": "ef576b2958de84b6cd641c18f684f42d00f4e97da09c4be3ebfb8bff4dd722b5",
+      "buildId": "a15f0c4bb06df5885cbf5ae1cb5752e8d6f5da4a"
+    }
+  ],
+  "diagnostics": {
+    "installedApkEntry": "assets/nodejs/node-plugin-runtime-kit.json",
+    "bundleKeys": {
+      "schema": "nodeRuntimeKitSchema",
+      "version": "nodeRuntimeKitVersion",
+      "sha256": "nodeRuntimeKitSha256",
+      "id": "nodeRuntimeKitId"
+    }
+  }
+}

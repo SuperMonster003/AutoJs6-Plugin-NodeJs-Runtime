@@ -5,7 +5,7 @@
     <img src="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/app/src/main/res/mipmap/ic_launcher.png?raw=true" alt="autojs6-plugin-nodejs-runtime-ic-launcher" border="0" width="128" />
   </p>
 
-  <p>AutoJs6 向け Node.js 24.5.0 ネイティブランタイムプラグイン</p>
+  <p>AutoJs6 向け Node.js 24.21.0 ネイティブランタイムプラグイン</p>
 
   <p>
     <a href="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/releases"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime?label=Release"/></a>
@@ -43,7 +43,7 @@
 
 ******
 
-AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 24.5.0 ネイティブランタイムを提供し, Node.js スクリプトとプラグインランタイムタスクを実行します.
+AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 24.21.0 ネイティブランタイムを提供し, Node.js スクリプトとプラグインランタイムタスクを実行します.
 
 ******
 
@@ -95,7 +95,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 
 ******
 
-- ランタイムスロット: `node24_5`.
+- ランタイムスロット: `node24_21`.
 - プラグイン ID: `nodejs`, エンジン: `nodejs`.
 - ランタイムサービスアクション: `org.autojs.plugin.nodejs.RUNTIME`.
 - ネイティブランタイムライブラリ: `libnode.so` と `libautojs6-node.so`.
@@ -113,7 +113,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 
 # v1.3.0
 
-###### 未リリース
+###### 2026/09/09
 
 * `追加` Node.js ブリッジの購読でセンサー, WebSocket, UI, オーバーレイ, 入力イベントを既存のコールバック経由で配信し, on/once/off, 有界キュー, drainEvents 互換性を提供
 * `追加` Node.js ランタイムに任意の idleExitMs によるアイドル終了と次のスクリプトの再接続を追加, idleForMs 診断を提供し既定では常駐を維持
@@ -130,12 +130,14 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `追加` Node スクリプトが 2 つの独立したランタイムプロセスで並行実行可能になり, FIFO キューの共有と実行単位のキャンセルおよび入力転送に対応
 * `修正` 常駐スクリプトのブリッジでリクエストと応答の履歴が増え続ける問題を修正し, 完了したリクエストを削除して直近 32 件の応答のみをサイズ上限付きで診断に保持
 * `修正` ネイティブ非同期処理の完了前に成功と判定してエラーや終了コードが失われる問題を修正; Node イベントループの最終終了時に結果を確定
+* `修正` OpenSSL STORE の鍵 URL がファイルシステム制限を回避する問題 (node:fs で鍵データを読み込んで使用)
 * `改善` ライブブリッジを既定の JNI/Binder 転送と Node イベントループ応答に変更して遅延を削減し、ファイル転送への切り替えと保留中の呼び出し数制限を維持
 * `改善` Node.js の stream, crypto, timers, util, node:test などのネイティブエクスポートを復元, ファイルシステム境界とホストディレクトリポリシーを維持
 * `改善` ネイティブ worker の既定数を CPU 並列度 (最大 8) に変更し、実行のネットワークとファイル設定、リクエスト単位のリソース上限に対応。プールタスクの既定タイムアウトを撤廃し、CPU/WASM サンプルを実際の worker 実行に更新
 * `改善` ファイルシステム境界を維持するため raw WASI の無効化を継続し, 無効な WASI サンプル 2 件を削除; 通常の WebAssembly と WASM worker は引き続き利用可能
 * `改善` 画面 OCR サンプルが Android のキャプチャ許可を要求して実際の画像ハンドルを認識し, OCR またはバーコードプラグインが利用不可なら読みやすい unavailable エラーを返し, 認識失敗はエラーとして処理
 * `改善` Node スクリプトはネゴシエーションによる非同期起動に対応し, 長時間実行中の Binder スレッドを解放, 終了後にワークスペースの変更を返却し, 従来の同期ホストとも互換
+* `依存関係` Node.js 24.5.0 → 24.21.0 に更新し, 3 つの ABI すべてで Android 向けにソースからビルドしたライブラリを使用
 
 # v1.2.0
 

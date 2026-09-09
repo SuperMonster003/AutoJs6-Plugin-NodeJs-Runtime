@@ -1,7 +1,7 @@
 {
   "schema": "autojs6-node-runtime-build-lock-v1",
   "node": {
-    "currentVersion": "24.5.0",
+    "currentVersion": "24.21.0",
     "targetVersion": "24.21.0",
     "upstreamRepository": "https://github.com/nodejs/node",
     "upstreamTag": "v24.21.0",
@@ -66,19 +66,17 @@
     "targetPortStatus": "node24.21-source-build-validated"
   },
   "promotionDecision": {
-    "defaultRuntimeSlot": "node24_5",
-    "defaultRuntimeVersion": "24.5.0",
-    "reason": "The Node 24.21 source pipeline and candidate are validated; M17.2 will select the default runtime and finalize Runtime Kit 1.4.0.",
-    "requiredBeforePromotion": [
-      "select Node 24.21 as the default runtime and finalize the local runtime kit and four signed APKs"
-    ],
-    "targetPromotion": "deferred"
+    "defaultRuntimeSlot": "node24_21",
+    "defaultRuntimeVersion": "24.21.0",
+    "reason": "Node 24.21 source libraries passed independent rebuild comparisons, embedding checks, three physical devices and the x86_64 16 KB userspace emulator.",
+    "requiredBeforePromotion": [],
+    "targetPromotion": "promoted"
   },
   "reproducibility": {
     "artifactMaterialization": {
       "status": "ready",
-      "classification": "pinned_upstream_binary",
-      "description": "The current Node 24.5 runtime remains reconstructible from the historical pinned archive until the separate M17.2 promotion."
+      "classification": "source_build",
+      "description": "The current Android runtime is built from the official Node 24.21 source with the three recorded Android patches."
     },
     "sourceBuild": {
       "status": "ready",

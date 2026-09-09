@@ -1,11 +1,11 @@
 {
   "$name": "한국어",
   "text_current_lowercase": "현재",
-  "text_plugin_synopsis": "AutoJs6 용 Node.js 24.5.0 네이티브 런타임 플러그인",
+  "text_plugin_synopsis": "AutoJs6 용 Node.js 24.21.0 네이티브 런타임 플러그인",
   "h3_languages_with_ascii": "언어 (Languages)",
   "p_languages_all_supported_for_readme": "현재 README.md 는 다음 언어를 지원합니다",
   "h3_introduction": "소개",
-  "p_introduction": "AutoJs6 Node.js Runtime 플러그인은 AutoJs6 에 내장 Node.js 24.5.0 네이티브 런타임을 제공하여 Node.js 스크립트와 플러그인 런타임 작업을 실행합니다.",
+  "p_introduction": "AutoJs6 Node.js Runtime 플러그인은 AutoJs6 에 내장 Node.js 24.21.0 네이티브 런타임을 제공하여 Node.js 스크립트와 플러그인 런타임 작업을 실행합니다.",
   "h3_functions": "기능",
   "features": [
     "`nodejs` 플러그인 서비스를 제공하며 플러그인 ID 는 `nodejs`, 엔진은 `nodejs` 입니다.",
@@ -32,7 +32,7 @@
   "quick_start_debug": "스크립트 실패 시 콘솔에 JS 스택과 한 줄 오류 코드 (예: `ERR_AUTOJS6_NODE_SCRIPT_CANCELLED`) 가 표시됩니다. 자세한 내용은 `adb logcat -s AutoJs6NodeBridge NodeJsRuntimePlugin` 으로 플러그인 프로세스 로그를 확인하세요. 호스트 API 가용성은 `docs/HOST-API.md` 를 참조하세요.",
   "h3_runtime_profile": "런타임 프로필",
   "runtime_capabilities": [
-    "런타임 슬롯: `node24_5`.",
+    "런타임 슬롯: `node24_21`.",
     "플러그인 ID: `nodejs`, 엔진: `nodejs`.",
     "런타임 서비스 액션: `org.autojs.plugin.nodejs.RUNTIME`.",
     "네이티브 런타임 라이브러리: `libnode.so` 및 `libautojs6-node.so`.",

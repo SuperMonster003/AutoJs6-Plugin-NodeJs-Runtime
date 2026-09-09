@@ -65,7 +65,7 @@ public final class PluginInfoContractTest {
             assertEquals("@raw/plugin_instruction", info.getInstruction());
             assertEquals("nodejs", info.getId());
             assertEquals("nodejs", info.getEngine());
-            assertEquals("node24_5", info.getVariant());
+            assertEquals("node24_21", info.getVariant());
             assertArrayEquals(new String[]{"arm64-v8a", "armeabi-v7a", "x86_64"}, info.getSupportedAbis());
             assertNotNull(info.getCapabilities());
             assertEquals(3923, info.getCapabilities().getInt(PluginCapabilityKeys.REQUIRES_HOST_VERSION));

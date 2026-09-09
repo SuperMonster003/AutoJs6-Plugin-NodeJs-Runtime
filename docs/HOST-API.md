@@ -16,15 +16,17 @@
 
 ## Node.js 内建模块
 
-以下模块直接返回 Node.js 24.5 的原生导出, 普通名称与 `node:` 前缀名称共享同一模块对象: `buffer`, `events`, `path` (含 posix/win32), `util` (含 types), `url`, `querystring`, `string_decoder`, `assert` (含 strict), `punycode`, `stream` (含 promises/web/consumers), `zlib`, `timers` (含 promises), `perf_hooks`, `async_hooks`, `diagnostics_channel`, `v8`, `vm`, `tty`, `readline` (含 promises), `crypto`, `constants`。异步 crypto、完整 EventEmitter/AsyncLocalStorage、流与序列化遵循对应 Node API, 不再受原子集包装器的方法或输入大小限制。`node:test` 与 `node:test/reporters` 使用原生实现; 普通脚本中的 `test()` 会由默认 spec reporter 输出到 stdout, 失败测试使执行退出码为 1, `node-test-project` 提供可运行样例。
+以下模块直接返回 Node.js 24.21 的原生导出, 普通名称与 `node:` 前缀名称共享同一模块对象: `buffer`, `events`, `path` (含 posix/win32), `util` (含 types), `url`, `querystring`, `string_decoder`, `assert` (含 strict), `punycode`, `stream` (含 promises/web/consumers), `zlib`, `timers` (含 promises), `perf_hooks`, `async_hooks`, `diagnostics_channel`, `v8`, `vm`, `tty`, `readline` (含 promises), `crypto`, `constants`。异步 crypto、完整 EventEmitter/AsyncLocalStorage、流与序列化遵循对应 Node API, 不再受原子集包装器的方法或输入大小限制。`node:test` 与 `node:test/reporters` 使用原生实现; 普通脚本中的 `test()` 会由默认 spec reporter 输出到 stdout, 失败测试使执行退出码为 1, `node-test-project` 提供可运行样例。
+
+文件中的密钥请先使用 `node:fs` 读取字节, 再交给 `crypto.createPrivateKey` 或签名 API。Node 24.21 新增的 OpenSSL STORE 密钥 URL 在 Android 构建中返回 `ERR_ACCESS_DENIED`: 该加载器能绕过既有文件路径检查, 真机已复现通过 `/proc/self/fd` 读取测试密钥。当前保留原有文件系统边界, 不开放 STORE URL; PEM/DER/JWK/KeyObject 等已有密钥输入继续使用 Node 原生实现。
 
 `os` 通过 Proxy 保留应用工作目录形式的 `tmpdir` / `homedir` 及既有 `userInfo` 身份策略, 其余导出 (含 CPU、内存、constants) 来自原生 Node。`fs` / `fs/promises` 的 `/proc`、`/sys`、`/dev` 边界仍在实际文件操作时检查; `url.fileURLToPath` 本身仅作路径转换。`process`、`module`、子进程、worker、网络和 inspector 的请求级策略见对应章节。
 
 成功结果在 Node 事件循环完成、触发最终 `exit` 时生成, 因此原生异步工作及 `beforeExit` 中追加的任务均可完成, 最终 stdout/stderr 与 `process.exitCode` 会正确回传。
 
-`node:sqlite` 提供 Node 原生同步 SQLite 引擎, 支持 `DatabaseSync`、预编译语句、CRUD、事务、函数与备份, 主线程和 worker 均可使用。普通名 `sqlite` 继续表示宿主异步数据库桥。数据库构造、重新打开和 `backup` 目标经过既有 fs 路径及符号链接检查; 支持字符串/Buffer 文件路径、file URL 对象及 `:memory:`。Node 24.5 的 SQLite API 仍标为 experimental, 其原生警告予以保留。
+`node:sqlite` 提供 Node 原生同步 SQLite 引擎, 支持 `DatabaseSync`、预编译语句、CRUD、事务、函数与备份, 主线程和 worker 均可使用。普通名 `sqlite` 继续表示宿主异步数据库桥。数据库构造、重新打开和 `backup` 目标经过既有 fs 路径及符号链接检查; 支持字符串/Buffer 文件路径、file URL 对象及 `:memory:`。Node 24.21 的 SQLite API 标为 release candidate; 原生 API 的稳定性级别和警告行为跟随该 Node 版本。
 
-此版本不接受 SQLite `file:` URI 字符串和空临时路径, 原生扩展加载仍拒绝。Node 24.5 未提供 authorizer, 因此 SQL 中的 `ATTACH`、`VACUUM INTO`、`PRAGMA temp_store_directory/data_store_directory` 返回 `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED`, 避免绕过文件路径检查; 使用另一个 `DatabaseSync` 或 `sqlite.backup()` 完成文件操作。普通 `VACUUM`、事务和包含这些单词的查询数据仍可用。
+此版本不接受 SQLite `file:` URI 字符串和空临时路径, 原生扩展加载仍拒绝。延续原 24.5 适配器的文件路径检查策略, SQL 中的 `ATTACH`、`VACUUM INTO`、`PRAGMA temp_store_directory/data_store_directory` 返回 `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED`, 避免绕过文件路径检查; 使用另一个 `DatabaseSync` 或 `sqlite.backup()` 完成文件操作。普通 `VACUUM`、事务和包含这些单词的查询数据仍可用。
 
 ## 标准输入与宿主消息
 
@@ -304,4 +306,4 @@ M3.2 原定 "补齐 toast / app.launch / click / swipe / text 查找 / 剪贴板
 3. 宿主 `NodeBridgePermissionManifest.kt`: 加入宿主能力常量、清单和方法映射。
 4. 插件 capability catalog: 在新 catalog 版本的 `bridge.permissionCapabilities` 与相关 `bridge.operations` 中登记。
 
-发布快照 `nodejs-capability-catalog/1.3.0` 保持原有 48 个能力。M14/M15 的本地 catalog 1.4.0 增加 image.toBytes、device/media 方法和宿主已有的 console / files / files.write / files.delete / pinyin / pinyin4j 六项能力, 尚未对外发布。verifyNodeHostCapabilityManifestAlignment 已验证 host=54 / plugin=54 / catalog=54; verifyNodeHostApiMirror 的 10 个公共 API 文件通过。契约支持上限同步为 3, 旧同步执行契约仍为 2。
+发布快照 `nodejs-capability-catalog/1.3.0` 保持原有 48 个能力。M14/M15 的本地 catalog 1.4.0 增加图像、device/media、事件观察者和 app 方法, 同步宿主已有的 console / files / files.write / files.delete / pinyin / pinyin4j 能力, 尚未对外发布。当前 verifyNodeHostCapabilityManifestAlignment 已验证 host=59 / plugin=59 / catalog=59; verifyNodeHostApiMirror 的 10 个公共 API 文件通过。契约支持上限同步为 3, 旧同步执行契约仍为 2。

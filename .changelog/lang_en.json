@@ -6,10 +6,11 @@
   "changelog_label_dependency": "Dependency",
   "$data": {
     "v1.3.0": {
-      "released_date": "Unreleased",
+      "released_date": "2026/09/09",
       "fix": [
         "Fixed growing live-bridge request and response history in resident scripts by retiring completed requests and bounding diagnostics to the latest 32 responses with a size limit",
-        "Fixed prematurely successful results losing native async errors and late exit codes; completion now follows the final Node event-loop exit"
+        "Fixed prematurely successful results losing native async errors and late exit codes; completion now follows the final Node event-loop exit",
+        "OpenSSL STORE key URLs bypassing filesystem restrictions (read key bytes through node:fs instead)"
       ],
       "improvement": [
         "Reduced live bridge latency with a default JNI/Binder transport and Node event-loop responses, preserving selectable file fallback and pending-call limits",
@@ -33,6 +34,9 @@
         "Node app supports Android service starts, broadcasts and installed package queries; dialogs supports text input, choices and progress windows with script cleanup, and keys provides accessibility system actions",
         "Node recorder supports AAC recording with microphone permission, foreground disclosure, duration limits and script cleanup; ui.overlay supports declarative property updates, dragging and pushed events",
         "Node scripts can run concurrently in two independent runtime processes, with a shared FIFO queue and execution-specific cancellation and input routing"
+      ],
+      "dependency": [
+        "Upgraded Node.js 24.5.0 → 24.21.0 using source-built Android libraries for all three ABIs"
       ]
     },
     "v1.2.0": {

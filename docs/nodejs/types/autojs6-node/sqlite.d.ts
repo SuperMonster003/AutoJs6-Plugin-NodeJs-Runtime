@@ -15,7 +15,7 @@ declare module "sqlite" {
   export = sqlite;
 }
 
-/** Node 24.5 SQLite; file paths follow the execution's filesystem policy. */
+/** Native Node SQLite; file paths follow the execution's filesystem policy. */
 declare module "node:sqlite" {
   export type SQLInputValue = null | number | bigint | string | Uint8Array;
   export type SQLOutputValue = null | number | bigint | string | Uint8Array;

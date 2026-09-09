@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class NodeJsRuntimePluginService extends Service {
 
     private static final String TAG = "NodeJsRuntimePlugin";
-    static final String NODE_VERSION = "24.5.0";
+    static final String NODE_VERSION = "24.21.0";
     static final String NATIVE_LIBRARY_NAME = "node";
     static final String BRIDGE_LIBRARY_NAME = "autojs6-node";
     static final String DEFAULT_SOURCE_NAME = "<plugin-node-script.js>";
@@ -77,7 +77,7 @@ public class NodeJsRuntimePluginService extends Service {
     static final String NODE_CAPABILITY_CATALOG_SCHEMA = "autojs6-node-capability-catalog-v1";
     static final String NODE_CAPABILITY_CATALOG_VERSION = "1.4.0";
     static final String NODE_CAPABILITY_CATALOG_SHA256 =
-            "9c356babf84641e52411429757b15e55b5d74dcd3efdedcfe4e317aec2730cbc";
+            "aad9903877f19cc5e87347e3226e44d30e4d2775d2f8600e9956095f4e80171b";
     static final String KEY_NODE_CAPABILITY_CATALOG_SCHEMA = "nodeCapabilityCatalogSchema";
     static final String KEY_NODE_CAPABILITY_CATALOG_VERSION = "nodeCapabilityCatalogVersion";
     static final String KEY_NODE_CAPABILITY_CATALOG_SHA256 = "nodeCapabilityCatalogSha256";
