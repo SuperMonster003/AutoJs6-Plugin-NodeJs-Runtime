@@ -2,27 +2,28 @@
   "schema": "autojs6-node-runtime-build-lock-v1",
   "node": {
     "currentVersion": "24.5.0",
-    "targetVersion": "24.20.0",
+    "targetVersion": "24.21.0",
     "upstreamRepository": "https://github.com/nodejs/node",
-    "upstreamTag": "v24.20.0",
-    "upstreamTagUrl": "https://github.com/nodejs/node/tree/v24.20.0",
-    "upstreamReleaseUrl": "https://github.com/nodejs/node/releases/tag/v24.20.0",
-    "upstreamCommitUrl": "https://github.com/nodejs/node/commit/71b8b174857e25106d39b61a9e6f30d927da8b01",
-    "upstreamTagObject": "8392e555cbdef2145d2cd2a2a7d29204d88d4e15",
+    "upstreamTag": "v24.21.0",
+    "upstreamTagUrl": "https://github.com/nodejs/node/tree/v24.21.0",
+    "upstreamReleaseUrl": "https://github.com/nodejs/node/releases/tag/v24.21.0",
+    "upstreamCommitUrl": "https://github.com/nodejs/node/commit/955266bfdd854cd280dffd47548673914484e4c0",
+    "upstreamTagObject": "f37d7da830134b5314a14ced553273786a2bb4cd",
     "ltsCodename": "Krypton",
     "releaseKind": "lts",
-    "publishedAt": "2026-08-26T13:57:28Z",
-    "sourceUrl": "https://nodejs.org/dist/v24.20.0/node-v24.20.0.tar.xz",
-    "headersUrl": "https://nodejs.org/dist/v24.20.0/node-v24.20.0-headers.tar.xz",
-    "sourceCommit": "71b8b174857e25106d39b61a9e6f30d927da8b01",
-    "sourceSha256": "2732fc3f588dd335cd6779c06864f7cd424bb1b5ff9a1743059a66c54f9ca4a1",
-    "headersSha256": "cb5420ff135b64fdcb3d050223146ecc3e257c413abe915604d48e589498ae47",
+    "publishedAt": "2026-09-08T21:51:09Z",
+    "sourceUrl": "https://nodejs.org/dist/v24.21.0/node-v24.21.0.tar.xz",
+    "headersUrl": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-headers.tar.xz",
+    "sourceCommit": "955266bfdd854cd280dffd47548673914484e4c0",
+    "sourceSha256": "a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc",
+    "headersSha256": "7497abc2fac1d332fae580046b6b39d0de283dfaf267207a32b59753739c1517",
     "nodejsMobileForkCommit": "116bad1dc919702d4a701d49df26d960403ee4a4",
     "patchSeries": "patches/*.patch",
-    "patchSet": "node24.20-android-from-degaso-v24.5.0-r1-with-linux-host-fix",
+    "patchSet": "node24.21-android-linux-host-and-openssl-store-policy",
     "patchFiles": {
       "0001-nodejs-mobile-android.patch": "2933143f3280dc40c32de05df2a5a9f3dd9c6b8f5586a3e599cf699cdcd330c7",
-      "0002-linux-host-trap-handlers.patch": "abf7fa4764c3cfbd0b90e2368a0568b1f75d024aa8ad13e59be5b83354ffd870"
+      "0002-linux-host-trap-handlers.patch": "abf7fa4764c3cfbd0b90e2368a0568b1f75d024aa8ad13e59be5b83354ffd870",
+      "0003-disable-android-openssl-store.patch": "6cd5c1ea30d3bbe8222af862c41101aa6ba8b43d78ba02bf5292fd297ec5c0fa"
     }
   },
   "androidFork": {
@@ -59,20 +60,17 @@
           "sha256": "a62031b38a467027dd5f98db8e91cdc8c31521380ee2dd8c70cd8afbaedc8e2b",
           "buildId": null
         }
-      }
+      },
+      "description": "Historical Node 24.5 binary archive; retained for reconstruction of that version."
     },
-    "targetPortStatus": "node24.20-source-build-in-progress"
+    "targetPortStatus": "node24.21-source-build-validated"
   },
   "promotionDecision": {
     "defaultRuntimeSlot": "node24_5",
     "defaultRuntimeVersion": "24.5.0",
-    "reason": "Node 24.20 source builds are in progress; Android artifacts have not passed device validation.",
+    "reason": "The Node 24.21 source pipeline and candidate are validated; M17.2 will select the default runtime and finalize Runtime Kit 1.4.0.",
     "requiredBeforePromotion": [
-      "build and record Node 24.20 libnode.so with SHA-256 and Build ID for all three Android ABIs",
-      "validate raw Node/V8/libuv embedding symbols and the bridge adapter export map",
-      "run the twelve smoke classes and complete Android conformance against the new artifacts",
-      "compare two clean builds with identical inputs and record equality or actual differences",
-      "run all Android tests and three physical devices before changing the default runtime"
+      "select Node 24.21 as the default runtime and finalize the local runtime kit and four signed APKs"
     ],
     "targetPromotion": "deferred"
   },
@@ -80,14 +78,94 @@
     "artifactMaterialization": {
       "status": "ready",
       "classification": "pinned_upstream_binary",
-      "description": "The current Node 24.5 Android runtime can be reconstructed from the pinned release archive without using the checked-in libnode.so files."
+      "description": "The current Node 24.5 runtime remains reconstructible from the historical pinned archive until the separate M17.2 promotion."
     },
     "sourceBuild": {
-      "status": "building",
-      "classification": "source_build_verification_pending",
-      "blockedReasons": [
-        "three ABI builds, clean repeat comparison and device validation are not complete"
-      ]
+      "status": "ready",
+      "classification": "source_build_with_independent_maintenance_rebuilds",
+      "blockedReasons": [],
+      "verifiedOn": "2026-09-09",
+      "baseline": {
+        "nodeVersion": "24.20.0",
+        "sourceSha256": "2732fc3f588dd335cd6779c06864f7cd424bb1b5ff9a1743059a66c54f9ca4a1",
+        "patchFiles": {
+          "0001-nodejs-mobile-android.patch": "2933143f3280dc40c32de05df2a5a9f3dd9c6b8f5586a3e599cf699cdcd330c7",
+          "0002-linux-host-trap-handlers.patch": "abf7fa4764c3cfbd0b90e2368a0568b1f75d024aa8ad13e59be5b83354ffd870"
+        },
+        "method": "First source build resumed after the Linux host-tool fix, compared with an independent clean build using the corrected inputs.",
+        "comparisons": {
+          "arm64-v8a": {
+            "firstSha256": "e24ab30584c597ab3019bd694fba75ee5d538390730633818e4fb5de7e2084f7",
+            "repeatSha256": "e24ab30584c597ab3019bd694fba75ee5d538390730633818e4fb5de7e2084f7",
+            "firstBuildId": "dd24e120ec22d44ea864fd763f96399eb4746eb7",
+            "repeatBuildId": "dd24e120ec22d44ea864fd763f96399eb4746eb7",
+            "size": 70578608,
+            "identical": true
+          },
+          "armeabi-v7a": {
+            "firstSha256": "5cac05ffe646e442506aaa7ae1b57cc9def44221889e942c8edd91405ae2fe78",
+            "repeatSha256": "5cac05ffe646e442506aaa7ae1b57cc9def44221889e942c8edd91405ae2fe78",
+            "firstBuildId": "39d1b99ce1fecd4735edea13ba2238ec9e2b899b",
+            "repeatBuildId": "39d1b99ce1fecd4735edea13ba2238ec9e2b899b",
+            "size": 64658704,
+            "identical": true
+          },
+          "x86_64": {
+            "firstSha256": "3f7f93a791e9bb99969be3a7c799b9444c2dad893dbad1d48a815c6c096352bf",
+            "repeatSha256": "3f7f93a791e9bb99969be3a7c799b9444c2dad893dbad1d48a815c6c096352bf",
+            "firstBuildId": "d72fe5626d2bb25871e3b7adb9797c802dcb117f",
+            "repeatBuildId": "d72fe5626d2bb25871e3b7adb9797c802dcb117f",
+            "size": 75379272,
+            "identical": true
+          }
+        }
+      },
+      "maintenanceUpdate": {
+        "nodeVersion": "24.21.0",
+        "baseVersion": "24.20.0",
+        "method": "Two independent source maintenance rebuilds, each using its corresponding baseline object tree; no objects copied between first and repeat. These are not clean Node 24.21 builds.",
+        "changedSourceFileCount": 1155,
+        "removedSourceFileCount": 4,
+        "buildScriptSha256": "634c5792ae689a05fb7191f198dbc89c5a75c7ac799c3d90c96ec787301baa2e",
+        "comparisons": {
+          "arm64-v8a": {
+            "firstSha256": "c48da9b772635e8e76ce0a06de09e71dbd70efe602903f1f5c9042672e629b2d",
+            "repeatSha256": "c48da9b772635e8e76ce0a06de09e71dbd70efe602903f1f5c9042672e629b2d",
+            "firstBuildId": "57a6724e267609b141642cfddf2f52b6412cdd0a",
+            "repeatBuildId": "57a6724e267609b141642cfddf2f52b6412cdd0a",
+            "size": 70742448,
+            "identical": true
+          },
+          "armeabi-v7a": {
+            "firstSha256": "8e9f6c326ac3fdaac114cc37323e2d12dba96894fb306423c1426c1a7cd8c99d",
+            "repeatSha256": "8e9f6c326ac3fdaac114cc37323e2d12dba96894fb306423c1426c1a7cd8c99d",
+            "firstBuildId": "3878143e7b4e66d1da8590efc0273de55d79b0a9",
+            "repeatBuildId": "3878143e7b4e66d1da8590efc0273de55d79b0a9",
+            "size": 64814352,
+            "identical": true
+          },
+          "x86_64": {
+            "firstSha256": "ef576b2958de84b6cd641c18f684f42d00f4e97da09c4be3ebfb8bff4dd722b5",
+            "repeatSha256": "ef576b2958de84b6cd641c18f684f42d00f4e97da09c4be3ebfb8bff4dd722b5",
+            "firstBuildId": "a15f0c4bb06df5885cbf5ae1cb5752e8d6f5da4a",
+            "repeatBuildId": "a15f0c4bb06df5885cbf5ae1cb5752e8d6f5da4a",
+            "size": 75526728,
+            "identical": true
+          }
+        }
+      },
+      "validation": {
+        "dynamicEmbeddingSymbolsPerAbi": 36,
+        "directBridgeImportsPerAbi": 36,
+        "adapterExports": [
+          "autojs_node_get_runtime_api_v1"
+        ],
+        "debugAndReleaseSuite": "52 reported tests on Xiaomi API 35, Sony XQ-AT72 API 31, Sony G8441 API 28 and x86_64 API 36 emulator; API 28 includes one existing SDK>=30 assumption skip.",
+        "debugAdditionalChecks": "Inspector and cold start passed on all four devices; raw CLI crypto/SQLite/worker/fetch passed for all three ABIs.",
+        "hostIntegration": "6 live async workspace and bridge tests passed on Xiaomi API 35.",
+        "pageSizeCoverage": "Physical arm64/armv7 devices use 4 KB pages. x86_64 emulator getconf PAGE_SIZE=16384 simulates 16 KB userspace on a 4 KB kernel. No 16 KB arm64 physical device was tested.",
+        "opensslStore": "Android STORE private-key URLs reject ERR_ACCESS_DENIED after a reproduced /proc/self/fd bypass; file bytes through node:fs remain supported."
+      }
     }
   },
   "toolchain": {
@@ -148,9 +226,9 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": "e24ab30584c597ab3019bd694fba75ee5d538390730633818e4fb5de7e2084f7",
-      "expectedBuildId": "dd24e120ec22d44ea864fd763f96399eb4746eb7",
-      "size": 70578608
+      "expectedLibnodeSha256": "c48da9b772635e8e76ce0a06de09e71dbd70efe602903f1f5c9042672e629b2d",
+      "expectedBuildId": "57a6724e267609b141642cfddf2f52b6412cdd0a",
+      "size": 70742448
     },
     "armeabi-v7a": {
       "targetCpu": "arm",
@@ -164,8 +242,9 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": null,
-      "expectedBuildId": null
+      "expectedLibnodeSha256": "8e9f6c326ac3fdaac114cc37323e2d12dba96894fb306423c1426c1a7cd8c99d",
+      "expectedBuildId": "3878143e7b4e66d1da8590efc0273de55d79b0a9",
+      "size": 64814352
     },
     "x86_64": {
       "targetCpu": "x64",
@@ -179,9 +258,9 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": "3f7f93a791e9bb99969be3a7c799b9444c2dad893dbad1d48a815c6c096352bf",
-      "expectedBuildId": "d72fe5626d2bb25871e3b7adb9797c802dcb117f",
-      "size": 75379272
+      "expectedLibnodeSha256": "ef576b2958de84b6cd641c18f684f42d00f4e97da09c4be3ebfb8bff4dd722b5",
+      "expectedBuildId": "a15f0c4bb06df5885cbf5ae1cb5752e8d6f5da4a",
+      "size": 75526728
     }
   },
   "linker": {
@@ -193,6 +272,6 @@
   "outputs": {
     "manifest": "output/runtime-artifact.json",
     "libraryName": "libnode.so",
-    "headerArchive": "node-v24.20.0-headers.tar.xz"
+    "headerArchive": "node-v24.21.0-headers.tar.xz"
   }
 }

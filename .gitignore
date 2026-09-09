@@ -8,6 +8,7 @@
 *.log
 *.ffs_db
 *.patch
+!/tools/nodejs/runtime-build/patches/*.patch
 *.hprof
 
 .DS_Store

@@ -101,9 +101,10 @@ function main() {
       }
     }
   }
+  const artifactClassification = promoted ? "source_build" : "pinned_upstream_binary";
   if (!lock.reproducibility || lock.reproducibility.artifactMaterialization.status !== "ready" ||
-      lock.reproducibility.artifactMaterialization.classification !== "pinned_upstream_binary") {
-    issues.push("artifact materialization must be classified as ready pinned_upstream_binary");
+      lock.reproducibility.artifactMaterialization.classification !== artifactClassification) {
+    issues.push("artifact materialization must be classified as ready " + artifactClassification);
   }
   const sourceBuild = lock.reproducibility && lock.reproducibility.sourceBuild;
   if (!sourceBuild || !["bootstrap_only", "building", "ready"].includes(sourceBuild.status)) {
@@ -214,7 +215,7 @@ function main() {
     }
   }
   const decision = {
-    status: issues.length === 0 ? "prebuilt_ready_source_build_" + sourceBuild.status : "blocked",
+    status: issues.length === 0 ? (promoted ? "source_runtime_ready" : "prebuilt_ready_source_build_" + sourceBuild.status) : "blocked",
     artifactMaterializationStatus: issues.length === 0 ? "ready" : "blocked",
     sourceBuildStatus: sourceBuild && sourceBuild.status || "missing",
     blockers: issues,

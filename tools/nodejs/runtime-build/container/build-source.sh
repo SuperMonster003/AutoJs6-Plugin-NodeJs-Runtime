@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-version="${1:-24.20.0}"
+version="${1:-24.21.0}"
 abi="${2:-arm64-v8a}"
 case "$version" in
   24.20.0) source_sha=2732fc3f588dd335cd6779c06864f7cd424bb1b5ff9a1743059a66c54f9ca4a1 ;;
+  24.21.0) source_sha=a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc ;;
   *) echo "Unpinned Node source version: $version" >&2; exit 2 ;;
 esac
 case "$abi" in
