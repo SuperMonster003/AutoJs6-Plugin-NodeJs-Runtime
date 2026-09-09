@@ -1,0 +1,19 @@
+diff --git a/src/crypto/crypto_keys.cc b/src/crypto/crypto_keys.cc
+--- a/src/crypto/crypto_keys.cc
++++ b/src/crypto/crypto_keys.cc
+@@ -780,6 +780,15 @@ KeyObjectData KeyObjectData::GetPrivateKeyFromJs(
+       static_cast<EVPKeyPointer::PKFormatType>(
+           args[*offset + 1].As<Int32>()->Value()) ==
+           EVPKeyPointer::PKFormatType::STORE) {
++#if defined(__ANDROID__)
++    // STORE loaders bypass the embedder's filesystem checks, including /proc.
++    // Keep key bytes on the existing node:fs path until a loader can honor it.
++    THROW_ERR_ACCESS_DENIED(
++        env,
++        "OpenSSL STORE key URLs are unavailable in this Android runtime. "
++        "Read the key bytes with node:fs first.");
++    return {};
++#endif
+     Local<Object> store = args[*offset].As<Object>();
+     Local<Value> uri_value;
+     if (!store

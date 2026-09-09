@@ -44,12 +44,12 @@
   "reproducibility": {
     "artifactMaterialization": "pinned_upstream_binary",
     "artifactMaterializationStatus": "ready",
-    "sourceBuild": "source_build_verification_pending",
-    "sourceBuildStatus": "building",
+    "sourceBuild": "source_build_with_independent_maintenance_rebuilds",
+    "sourceBuildStatus": "ready",
     "kitUsable": true,
     "releaseReady": false,
     "blockedReasons": [
-      "three ABI builds, clean repeat comparison and device validation are not complete"
+      "Node 24.21 default selection and new runtime kit belong to the pending M17.2 promotion."
     ]
   },
   "buildProvenance": {
@@ -57,7 +57,7 @@
     "sourceGitBase": "3f1b3b1e80eaaa43dbebc6cd403cdf62a1022e7a",
     "runtimeBuildPlan": {
       "lockFile": "tools/nodejs/runtime-build/runtime-build.lock.json",
-      "lockSha256": "72f895dc88aedf7422dfdc2d5a224a1997cf11f4bb189e1a9379ca8b6605a06e",
+      "lockSha256": "e3b17c561a0f73cee5b078f9d324c9adad590d40a5a1f1a7d3b0ef3898768144",
       "powershellMaterializer": "tools/nodejs/runtime-build/build-node-runtime.ps1",
       "powershellMaterializerSha256": "f8776f851ead6dade26fcef4d20f864a74b0bade8e4c633f368c49a72af0f067",
       "shellMaterializer": "tools/nodejs/runtime-build/build-node-runtime.sh",

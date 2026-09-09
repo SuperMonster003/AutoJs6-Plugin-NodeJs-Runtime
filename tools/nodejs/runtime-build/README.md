@@ -4,12 +4,14 @@ This directory contains the Android Node source build and the original pinned
 Node 24.5 binary materializer. Both are manual maintenance tools; neither runs
 in the default APK or PR build.
 
-Current status: Node 24.20 source builds are in progress. The checked-in runtime
-remains Node 24.5 until the new libraries pass Android validation. The current
-plan records the source archive, Android patch, NDK r28c and exact local Docker
-image ID. No new Android runtime has been promoted by preparing this pipeline.
+Current status: the Node 24.21 source pipeline and all three Android ABI
+candidates have passed embedding and device validation. Independent rebuild
+results and the exact Docker image, NDK and three patch hashes are recorded in
+[runtime-build.lock.json](runtime-build.lock.json). The default runtime remains
+Node 24.5 until the separate M17.2 promotion selects the validated libraries
+and prepares the new local runtime kit.
 
-## Build Node 24.20 from source
+## Build Node 24.21 from source
 
 Run on Linux x86_64 with Docker, or inside WSL2. Put build directories on the
 Linux filesystem; compiling V8 through `/mnt/c` or `/mnt/d` is much slower.
@@ -37,8 +39,8 @@ source build itself offline:
 
 ```sh
 mkdir -p /var/tmp/autojs6-node/sources
-curl -fL --retry 2 -o /var/tmp/autojs6-node/sources/node-v24.20.0.tar.xz \
-  https://nodejs.org/dist/v24.20.0/node-v24.20.0.tar.xz
+curl -fL --retry 2 -o /var/tmp/autojs6-node/sources/node-v24.21.0.tar.xz \
+  https://nodejs.org/dist/v24.21.0/node-v24.21.0.tar.xz
 python3 tools/nodejs/runtime-build/build-node-from-source.py \
   --source-dir /var/tmp/autojs6-node/sources \
   --work-root /var/tmp/autojs6-node/builds --run-id first --jobs 6
@@ -54,22 +56,34 @@ clean builds, use a fresh `--run-id repeat` with identical inputs and compare
 each ABI's `output/libnode.so` SHA-256. Record actual differences if unequal;
 an incremental no-op rebuild is not a clean repeat.
 
+The recorded maintenance run first built Node 24.20 from source, resumed after
+the Linux host-tool fix, and compared it with an independent clean build using
+the corrected inputs. Node 24.21 was then rebuilt separately from each of those
+two workspaces, overlaying the verified new source and applying the STORE fix.
+No objects were copied between first and repeat builds. All three ABI outputs
+have identical SHA-256 and Build IDs at both stages. These Node 24.21 checks
+are independent maintenance rebuilds, not two fresh clean builds. The launcher
+above also supports fresh source builds for future maintenance.
+
 Artifacts and ELF reports are under
-`<work-root>/24.20.0-<abi>-<run-id>/output/`. The build uses Android API 24,
+`<work-root>/24.21.0-<abi>-<run-id>/output/`. The build uses Android API 24,
 16 KB LOAD alignment, SHA-1 ELF Build IDs, fixed source paths/timestamp, no
 ICU, no Node startup snapshot, and keeps the inspector backend for Debug use.
 See Roadmap M17.3 for the packaging/ICU/inspector decision.
 
 The Android patch is extracted from degaso/nodejs-mobile commit
 `116bad1dc919702d4a701d49df26d960403ee4a4` relative to official Node 24.5.0,
-and applied to official 24.20.0. It retains Android/host toolchain, 32-bit,
+and applied to official 24.21.0. It retains Android/host toolchain, 32-bit,
 libuv/OpenSSL/zlib and V8 build fixes. iOS changes, mobile product branding
 and the fork's blanket V8 trap-handler disable are excluded; upstream already
 handles Android trap-handler support. A separate local patch adds the POSIX
 trap-handler sources needed by Linux `mksnapshot` when GYP's `OS` is Android
 for the cross build. This fixes the observed host linker errors without
-changing the Android target's trap-handler policy. Both patch file digests
-are recorded in the lock.
+changing the Android target's trap-handler policy. The third patch rejects
+OpenSSL STORE private-key URLs on Android after an actual `file:///proc/self/fd`
+bypass was reproduced. Read key files through `node:fs` and pass their bytes to
+`crypto.createPrivateKey` or signing APIs. PEM/DER/JWK and KeyObject inputs
+continue to work. All three patch digests are recorded in the lock.
 
 `verify-source-runtime.py` checks architecture, 16 KB LOAD alignment, Build ID
 and the Node/V8/libuv symbols dynamically consumed by the current bridge.
@@ -85,8 +99,9 @@ Debug inspector and device validation required by Roadmap M17.1/M17.2.
 The checked-in lock records the exact upstream Node 24.5 Android archive and
 each ABI entry's path, size, and SHA-256. The executable materializer downloads
 or accepts that archive, verifies it before extraction, and verifies every
-output. This provides a second reconstruction route for the checked-in
-`libnode.so` files. It is a pinned upstream binary pipeline, not a source build.
+output. This reconstructs the historical Node 24.5 libraries. Use the source
+build above for Node 24.21. The legacy route consumes a pinned upstream binary
+archive and does not rebuild that version from source.
 
 Validate or inspect the pinned plan without materializing artifacts:
 
