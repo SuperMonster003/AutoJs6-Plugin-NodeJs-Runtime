@@ -29,8 +29,7 @@ selection metadata cannot replace either declaration or Android consent. See
 Execution cancellation and resource cleanup remain necessary for usable lifecycle
 behavior. Remaining custom restrictions include sensitive fs roots (`/proc`, `/sys`,
 `/dev`), some process/worker/Java APIs and resource quotas. Their gradual reduction,
-along with capability defaults and the desktop validator's outdated absolute-path
-warning, is tracked by [M18-M20](../../Roadmap.md). No claim is made that all custom
+along with capability defaults, is tracked by [M18-M20](../../Roadmap.md). No claim is made that all custom
 restrictions have already been removed.
 
 Plugin discovery, caller trust, Binder ownership and grants to remote MCP callers

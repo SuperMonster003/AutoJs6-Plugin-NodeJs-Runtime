@@ -135,7 +135,6 @@ Common actionable error codes:
 - `DEPENDENCY_BIN_ENTRY_UNSUPPORTED`
 - `DEPENDENCY_BUNDLE_TOO_LARGE`
 - `CAPABILITY_DECLARATION_MISSING`
-- `FS_OUTSIDE_SCOPE`
 - `UNSUPPORTED_PACKAGE_MANAGER_LAYOUT`
 
 ## Verification
@@ -155,11 +154,11 @@ Reports are written to:
 - `build/reports/nodejs/project-wizard.json`
 - `build/reports/nodejs/project-wizard.md`
 
-## Current validator limitation
+## Ordinary file paths
 
-The desktop validator still reports `FS_OUTSIDE_SCOPE` for absolute fs literals,
-although the current runtime fs allows Android-accessible absolute paths. Its
-legacy packaging classifications do not grant or describe Android file access.
-This mismatch is tracked in [Roadmap M20.2](../../Roadmap.md); it must not be
-interpreted as a new runtime restriction. TypeScript templates require the host
-Compiler; runtime regex stripping is unavailable.
+The validator accepts ordinary absolute and parent-directory fs paths. Actual file
+access is determined by Android under the runtime plugin's UID. The validator does
+not open these files or grant Android storage permissions. Project entry and archive
+paths remain relative because they identify files to transfer between applications.
+Remaining runtime-specific limits are tracked in [Roadmap M20.2](../../Roadmap.md).
+TypeScript templates require the host Compiler; runtime regex stripping is unavailable.

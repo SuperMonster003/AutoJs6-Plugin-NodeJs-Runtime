@@ -287,33 +287,32 @@ val verifyNodeProjectWizard = tasks.register("verifyNodeProjectWizard") {
             throw GradleException("Unsupported source fixture should report unsupported compatibility: $unsupportedCompatibility")
         }
 
-        val unsafeFsSource = workRoot.resolve("invalid/unsafe-fs-source")
+        val androidFsSource = workRoot.resolve("valid/android-fs-paths")
         nodeProjectWizardJson(
             tool,
             listOf(
                 "create",
                 "--template", "commonjs-app",
-                "--out", unsafeFsSource.absolutePath,
-                "--name", "unsafe-fs-source",
+                "--out", androidFsSource.absolutePath,
+                "--name", "android-fs-paths",
                 "--force",
             ),
         )
-        unsafeFsSource.resolve("main.cjs").appendText(
+        androidFsSource.resolve("main.cjs").appendText(
             """
             const fs = require("fs");
             fs.readFileSync("../outside.txt", "utf8");
+            fs.readFileSync("/sdcard/Documents/input.txt", "utf8");
             """.trimIndent() + "\n",
         )
-        val unsafeFsSourceReport = nodeProjectWizardJson(
+        val androidFsSourceReport = nodeProjectWizardJson(
             tool,
-            listOf("validate", unsafeFsSource.absolutePath),
-            expectSuccess = false,
+            listOf("validate", androidFsSource.absolutePath),
         )
-        assertNodeProjectWizardIssueCodes(unsafeFsSourceReport, "FS_OUTSIDE_SCOPE")
-        val unsafeFsCompatibility = unsafeFsSourceReport["compatibility"] as? Map<*, *>
-            ?: throw GradleException("Unsafe fs fixture did not include compatibility analysis.")
-        if (unsafeFsCompatibility["status"] != "unsafe") {
-            throw GradleException("Unsafe fs fixture should report unsafe compatibility: $unsafeFsCompatibility")
+        val androidFsCompatibility = androidFsSourceReport["compatibility"] as? Map<*, *>
+            ?: throw GradleException("Android fs fixture did not include compatibility analysis.")
+        if (androidFsCompatibility["status"] != "compatible") {
+            throw GradleException("Ordinary Android file paths should be compatible: $androidFsCompatibility")
         }
 
         val unsupportedTsxEntry = workRoot.resolve("invalid/unsupported-tsx-entry")
@@ -345,13 +344,15 @@ val verifyNodeProjectWizard = tasks.register("verifyNodeProjectWizard") {
             "toolsRoot" to nodeProjectWizardDisplayPath(toolsRoot),
             "templateCount" to rows.size,
             "templates" to rows,
+            "validFixtures" to listOf(
+                linkedMapOf("name" to "android-fs-paths", "status" to androidFsCompatibility["status"]),
+            ),
             "invalidFixtures" to listOf(
                 linkedMapOf("name" to "missing-entry", "issueCodes" to missingEntryReport.nodeProjectWizardIssueCodes().sorted()),
                 linkedMapOf("name" to "unknown-permission", "issueCodes" to unknownPermissionReport.nodeProjectWizardIssueCodes().sorted()),
                 linkedMapOf("name" to "invalid-package-name", "issueCodes" to invalidPackageNameReport.nodeProjectWizardIssueCodes().sorted()),
                 linkedMapOf("name" to "unsafe-dependency", "issueCodes" to unsafeDependencyReport.nodeProjectWizardIssueCodes().sorted()),
                 linkedMapOf("name" to "unsupported-source", "issueCodes" to unsupportedSourceReport.nodeProjectWizardIssueCodes().sorted()),
-                linkedMapOf("name" to "unsafe-fs-source", "issueCodes" to unsafeFsSourceReport.nodeProjectWizardIssueCodes().sorted()),
                 linkedMapOf("name" to "unsupported-tsx-entry", "issueCodes" to unsupportedTsxReport.nodeProjectWizardIssueCodes().sorted()),
             ),
         )

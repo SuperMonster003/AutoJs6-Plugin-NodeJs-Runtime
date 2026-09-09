@@ -29,7 +29,7 @@
 provider, 也没有引入第二套跨仓清单或默认构建门禁。
 
 审计还发现桌面项目向导的 `FS_OUTSIDE_SCOPE` 静态提示与当前 Android 文件访问行为不符,
-已记入 [PROJECT_WIZARD](nodejs/PROJECT_WIZARD.md) 和 M20.2。进一步精简 profile/兼容性
+已在后续 M20.2a 修正, 见 [PROJECT_WIZARD](nodejs/PROJECT_WIZARD.md)。进一步精简 profile/兼容性
 描述符、权限默认值和资源策略分别留在 M18.2、M19.3、M20.2, 按真实调用和兼容性回归推进。
 
 验证: 18 份宿主跳转都对应本仓正文; 7 份活跃指南的本地 Markdown 链接可解析; 历史档案

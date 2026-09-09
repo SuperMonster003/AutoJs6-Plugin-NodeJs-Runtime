@@ -428,6 +428,8 @@ M13 Release 验证补记 (2026-09-08): build 116 的签名 arm64-v8a / x86_64 �
 
 2026-09-10 M18.3 完成: 缺失能力错误直接提示 node.permissions 和实际 Android 权限, 删除无效的 required profile 文本; 兼容结构保留 requiredProfiles 历史诊断字段, profileSelectionRequired 固定为 false。新增实际插件 Binder 回归涵盖无项目声明、仅指定 pro_compat_opt_in、正确声明权限三种情况, 前两者在 dispatch 前拒绝, 第三者可发出截屏与 MediaInfo 调用。测试使用假 Android transport, 不代替系统授权验收。三 ABI 语法检查 30/30, Debug/Release 四包构建和类型检查通过。arm64/x86_64 的完整 npm/conformance 各 13/13; Sony API 28 conformance 12/12, npm 首次因系统 ADB-JDWP Connec/libart SIGSEGV 断连, 单独重跑 1/1。保留 crash buffer 和首次失败, 不计作首次全绿; 该设备旧宿主也有相同线程与故障地址记录, 本轮未宣称修复系统调试连接问题。开发 kit 1.5.0 payload 已更新, 四个 Release APK 内容一致, releaseReady=false。
 
+M18.3 Release 补记: 配套 Release AndroidTest 初次暴露测试直接引用的内部 singleton 字段被 R8 移除; 已将回归改为通过真实 project.json + 公开 Binder 工作区契约输入, Debug 定向 1/1 与 Sony armeabi-v7a 完整 Release npm/conformance 13/13 通过。此次补测未出现前述 JDWP 崩溃; 保留首次失败证据, 不宣称系统问题已修复。本次启动的 emulator-5560 (16 KB AVD) 已关闭。
+
 M18.2 首轮清点 (2026-09-10): 当前 catalog 有 15 个顶层 feature, 9 stable、4 partial、1 disabled、1 unsupported; 49 个样例为 31 stable、18 partial。运行时动态元数据、桥 provider 和样例的状态不能相互代替。按以下顺序继续, 每批单独完成使用场景与元数据同步后再晋级。
 
 | 后续批次 | 当前事实 | 正式化所需的具体工作 |
@@ -451,6 +453,8 @@ M18.2 首轮清点 (2026-09-10): 当前 catalog 有 15 个顶层 feature, 9 stab
 - [x] **M20.1 普通媒体/图像文件路径**: 移除 mediainfo 插件端“只能是作用域内相对路径”的检查, 并同步核对宿主 mediainfo、image.readImage/saveImage、recorder 的同类解析器; 支持普通绝对路径、父目录及合法文件名, 文件访问由 Android 打开文件时决定。保留无效参数处理, 不把 URI 冒充文件路径。Check: 跨工作目录实际 WAV/图片读取与写入成功, 路径包含 `..` 的普通文件名不误拒, Android 拒绝仍返回可读错误; 原相对路径、MediaInfo schema v1/v2、录音权限负例和完整 npm/conformance 通过。
   2026-09-10 完成: 插件 facade 与宿主普通媒体文件解析器同步开放绝对路径、父目录和符号链接, 保留合法文件名原文。宿主独立提交 `11e718c3a`。Xiaomi 968e9f18 先复现可读绝对 WAV 被 scoped policy 拒绝, 修复后完整 MediaBridge + ImageOperations 7/7: Node 脚本与实际 Android provider 均通过 WAV 元数据、图片读写与 mode-000 文件的 Android Permission denied 回归; MediaInfo v1/v2、原相对路径与麦克风权限负例通过。三 ABI 当前 NDK 命令语法检查 30/30; 插件 Debug/Release 四包构建、JVM 75、Python 2、样例 49、声明模块 38 与 TypeScript 通过。arm64 Xiaomi、armeabi-v7a Sony BH900ASK9E 和 x86_64 AVD 的完整 npm/conformance 各 12/12; AVD PAGE_SIZE=16384。PluginInfo/Manifest 2/2。catalog/kit 开发版推进至 1.5.0, 四个 Release APK 内 payload 与实际构建元数据一致, releaseReady=false, 已发布 1.4.0 快照未动。宿主全量 AndroidTest 编译被两个既有 Console 测试文件阻塞, 以本机临时 init script 仅排除这两个文件完成联调, 未修改它们。录音输出复用同一解析器, 实体麦克风正向验收仍属 M15/M18 人工待办; 普通 Node fs、模块/归档传输及 MCP files 不在此次解析器调整中。
 - [ ] **M20.2 其余策略逐步放宽**: 清点 fs、子进程、worker、Java/宿主能力、profile/node.permissions 与资源配额中的拦截, 按用户“交给原生 Android”要求逐项替换应用自设限制。显式调用者选择的限制、协议尺寸/超时、远程调用方 grant 和项目传输路径校验分别核对, 避免改变其他插件/MCP 的授权对象。对历史 `/proc`、`/sys`、`/dev`、WASI、native addon、Inspector 等限制分别验证真实 Android 行为与兼容性后调整, 不预先把未验证的路径标成开放。Check: 每次移除有实际正向用例和 Android 拒绝结果, 用户脚本不再遇到已移除的 Node 策略错误; 原生执行/取消/多进程/宿主联调通过。
+
+- [x] **M20.2a 修正桌面向导的文件范围误判**: 移除普通 fs 绝对路径/父目录字面量的 FS_OUTSIDE_SCOPE 静态拒绝, 文件访问留给 Android。原项目入口、归档与依赖传输校验仍按对应协议处理。Check: JS 语法与 verifyNodeProjectWizard 通过, 11 个模板及新增普通绝对/父目录路径项目报告 compatible, 原无效入口/依赖用例仍通过; Xiaomi 的 UnrestrictedFsSmokeTest 1/1 通过。更新使用指南与十语言变更日志。M20.2 的敏感根、进程/worker/Java、权限默认值和资源限制仍按后续实际场景处理。
 
 ## 五. 明确不做的事
 

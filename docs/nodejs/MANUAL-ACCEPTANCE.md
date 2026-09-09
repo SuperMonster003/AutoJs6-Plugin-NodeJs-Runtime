@@ -100,7 +100,8 @@ PASS 代替其余来源的检查。
 `typeof mediainfo === "function"` 是正常的, 它是可调用的模块对象, 同时有 read/get。
 文件名必须与实际文件完全一致; 扩展名不是 API 的必选条件, 但漏写实际存在的 .m4a
 会指向另一个路径。v1.3.0 的 mediainfo 只接受项目内相对路径, 跨目录/绝对路径的
-放宽在 M20.1 中实施。不要把 `console.log(mediainfo.read(...))` 打印出的 Promise
+放宽已在本地 v1.4.0 开发版的 M20.1 中完成, 需要同时升级插件与配套宿主。
+不要把 `console.log(mediainfo.read(...))` 打印出的 Promise
 当作解析结果。
 
 ## 回报内容
