@@ -1,6 +1,6 @@
 {
   "schema": "autojs6-node-capability-catalog-v1",
-  "catalogVersion": "1.4.0",
+  "catalogVersion": "1.5.0",
   "runtime": {
     "pluginId": "nodejs",
     "engine": "nodejs",
@@ -2633,7 +2633,21 @@
         "aliases": [],
         "androidPermissions": []
       }
-    ]
+    ],
+    "filePaths": {
+      "methods": [
+        "mediainfo.read",
+        "mediainfo.get",
+        "image.readImage",
+        "image.saveImage",
+        "recorder.start"
+      ],
+      "absolutePaths": "android_file_access",
+      "relativePaths": "working_directory_base",
+      "parentComponentsAndSymlinks": "resolved_by_android",
+      "uriSupport": false,
+      "hostRequirement": "host_with_android_media_file_resolver"
+    }
   },
   "errors": {
     "constants": [

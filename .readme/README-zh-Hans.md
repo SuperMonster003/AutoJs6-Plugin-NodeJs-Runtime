@@ -115,6 +115,7 @@ console.log("AutoJs6 Node.js runtime");
 
 ###### 尚未发布
 
+* `修复` MediaInfo 与图片文件路径支持绝对路径, 父目录和合法文件名; 录音输出同步交由更新后的宿主按 Android 文件权限处理
 * `优化` 提供 Android 事件与 3 秒录音独立项目, 补齐截屏, OCR, 实体按键和 MediaInfo 的项目声明及人工验收步骤
 
 # v1.3.0

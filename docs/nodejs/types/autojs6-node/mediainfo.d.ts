@@ -75,6 +75,7 @@ declare module "mediainfo" {
     export type PluginSnapshot = PluginSnapshotV1 | PluginSnapshotV2;
     export type ReadResult = Snapshot | PluginSnapshot;
 
+    /** File paths may be absolute or relative to the host working directory; Android file access applies. Requires the updated host. */
     export interface MediainfoModule {
       (path: string, options: ReadOptions & { readonly schema: "autojs6-plugin-mediainfo-snapshot-v1" }): Promise<PluginSnapshotV1>;
       (path: string, options: ReadOptions & { readonly schema: "autojs6-plugin-mediainfo-snapshot-v2" }): Promise<PluginSnapshotV2>;

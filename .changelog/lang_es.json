@@ -9,6 +9,9 @@
       "released_date": "Sin publicar",
       "improvement": [
         "Proyectos independientes de eventos Android y grabación de audio de tres segundos, con declaraciones y pasos manuales para captura, OCR, teclas físicas y MediaInfo"
+      ],
+      "fix": [
+        "Las rutas de MediaInfo e imágenes admiten rutas absolutas, directorios superiores y nombres válidos; las grabaciones siguen las mismas reglas de acceso de Android con el anfitrión actualizado"
       ]
     },
     "v1.3.0": {
