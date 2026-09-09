@@ -207,8 +207,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 "{\"node\":{\"permissions\":[\"screen_capture\",\"media\",\"media.metadata\"]}}"
         };
         for (int index = 0; index < projects.length; index++) {
-            Bundle request = new Bundle();
-            request.putString(NodeJsRuntimeContract.KEY_SOURCE, """
+            String source = """
                     (async () => {
                       const bridge = require('autojs6:bridge');
                       let dispatched = 0;
@@ -237,16 +236,15 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                       if (dispatched !== (allowed ? 2 : 0)) throw new Error('Unexpected dispatch count: ' + dispatched);
                       console.log('m18.declaration-hint=PASS');
                     })().catch(error => { console.error(error.stack); process.exitCode = 1; });
-                    """.replace("CASE_INDEX", Integer.toString(index)));
+                    """.replace("CASE_INDEX", Integer.toString(index));
+            LinkedHashMap<String, String> files = new LinkedHashMap<>();
+            files.put("main.cjs", source);
             if (projects[index] != null) {
-                request.putStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCE_NAMES,
-                        new String[]{NodeBridgePermissionManifest.RUNTIME_MODULE_NAME});
-                request.putStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCES,
-                        new String[]{NodeBridgePermissionManifest.INSTANCE.runtimeModuleSourceForMetadata(
-                                projects[index], null, null, null, false)});
+                files.put("project.json", projects[index]);
             }
-            Bundle result = boundRuntime.runtime.runScript(request, new RecordingCallback(requireRemoteRuntimePid()));
-            assertSucceeded(result, "m18.declaration-hint=PASS");
+            try (WorkspaceInvocation invocation = execute("capability-hint-" + index, "main.cjs", files, false)) {
+                assertSucceeded(invocation.result, "m18.declaration-hint=PASS");
+            }
         }
     }
 
