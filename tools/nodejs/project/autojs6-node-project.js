@@ -1024,10 +1024,6 @@ function analyzeSourceText(text, relative, requiredBuiltins, capabilityRequireme
   if (/\.node["']/.test(text)) {
     signal(signals, "native-addon", "unsafe", "NATIVE_ADDON_DISABLED", relative, "Source references a native .node addon.");
   }
-  const fsOutsideScopePattern = /(?:\b(?:fs|fsp)\s*|require\s*\(\s*["'](?:node:)?fs(?:\/promises)?["']\s*\))\.\s*(?:readFile|readFileSync|writeFile|writeFileSync|open|openSync|mkdir|mkdirSync|readdir|readdirSync|stat|statSync)\s*\(\s*["'](?:\/|\\|[A-Za-z]:|\.\.\/|\.\.\\)/;
-  if (fsOutsideScopePattern.test(text)) {
-    signal(signals, "fs-scope", "unsafe", "FS_OUTSIDE_SCOPE", relative, "Source contains a direct fs call with an absolute or escaping literal path.");
-  }
 }
 
 function addCompatibilityValidationIssues(compatibility, issues) {
