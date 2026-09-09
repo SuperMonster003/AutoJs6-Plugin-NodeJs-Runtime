@@ -434,7 +434,8 @@ M13 Release 验证补记 (2026-09-08): build 116 的签名 arm64-v8a / x86_64 �
 
 ### M20 — 按 Android 权限放宽文件与运行限制
 
-- [ ] **M20.1 普通媒体/图像文件路径**: 移除 mediainfo 插件端“只能是作用域内相对路径”的检查, 并同步核对宿主 mediainfo、image.readImage/saveImage、recorder 的同类解析器; 支持普通绝对路径、父目录及合法文件名, 文件访问由 Android 打开文件时决定。保留无效参数处理, 不把 URI 冒充文件路径。Check: 跨工作目录实际 WAV/图片读取与写入成功, 路径包含 `..` 的普通文件名不误拒, Android 拒绝仍返回可读错误; 原相对路径、MediaInfo schema v1/v2、录音权限负例和完整 npm/conformance 通过。
+- [x] **M20.1 普通媒体/图像文件路径**: 移除 mediainfo 插件端“只能是作用域内相对路径”的检查, 并同步核对宿主 mediainfo、image.readImage/saveImage、recorder 的同类解析器; 支持普通绝对路径、父目录及合法文件名, 文件访问由 Android 打开文件时决定。保留无效参数处理, 不把 URI 冒充文件路径。Check: 跨工作目录实际 WAV/图片读取与写入成功, 路径包含 `..` 的普通文件名不误拒, Android 拒绝仍返回可读错误; 原相对路径、MediaInfo schema v1/v2、录音权限负例和完整 npm/conformance 通过。
+  2026-09-10 完成: 插件 facade 与宿主普通媒体文件解析器同步开放绝对路径、父目录和符号链接, 保留合法文件名原文。宿主独立提交 `11e718c3a`。Xiaomi 968e9f18 先复现可读绝对 WAV 被 scoped policy 拒绝, 修复后完整 MediaBridge + ImageOperations 7/7: Node 脚本与实际 Android provider 均通过 WAV 元数据、图片读写与 mode-000 文件的 Android Permission denied 回归; MediaInfo v1/v2、原相对路径与麦克风权限负例通过。三 ABI 当前 NDK 命令语法检查 30/30; 插件 Debug/Release 四包构建、JVM 75、Python 2、样例 49、声明模块 38 与 TypeScript 通过。arm64 Xiaomi、armeabi-v7a Sony BH900ASK9E 和 x86_64 AVD 的完整 npm/conformance 各 12/12; AVD PAGE_SIZE=16384。PluginInfo/Manifest 2/2。catalog/kit 开发版推进至 1.5.0, 四个 Release APK 内 payload 与实际构建元数据一致, releaseReady=false, 已发布 1.4.0 快照未动。宿主全量 AndroidTest 编译被两个既有 Console 测试文件阻塞, 以本机临时 init script 仅排除这两个文件完成联调, 未修改它们。录音输出复用同一解析器, 实体麦克风正向验收仍属 M15/M18 人工待办; 普通 Node fs、模块/归档传输及 MCP files 不在此次解析器调整中。
 - [ ] **M20.2 其余策略逐步放宽**: 清点 fs、子进程、worker、Java/宿主能力、profile/node.permissions 与资源配额中的拦截, 按用户“交给原生 Android”要求逐项替换应用自设限制。显式调用者选择的限制、协议尺寸/超时、远程调用方 grant 和项目传输路径校验分别核对, 避免改变其他插件/MCP 的授权对象。对历史 `/proc`、`/sys`、`/dev`、WASI、native addon、Inspector 等限制分别验证真实 Android 行为与兼容性后调整, 不预先把未验证的路径标成开放。Check: 每次移除有实际正向用例和 Android 拒绝结果, 用户脚本不再遇到已移除的 Node 策略错误; 原生执行/取消/多进程/宿主联调通过。
 
 ## 五. 明确不做的事

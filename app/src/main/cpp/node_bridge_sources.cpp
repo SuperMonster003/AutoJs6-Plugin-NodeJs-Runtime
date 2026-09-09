@@ -19577,7 +19577,7 @@ std::string buildEmbeddedScriptExecutionSource(
       methodName
     );
   }
-  function __autojs6_image_relative_text(moduleName, methodName, fieldName, value, allowEmpty) {
+  function __autojs6_image_file_path(moduleName, methodName, fieldName, value, allowEmpty) {
     const text = value === undefined || value === null ? "" : String(value);
     if (!allowEmpty && text.length === 0) {
       throw __autojs6_image_invalid_argument_error(
@@ -19591,21 +19591,6 @@ std::string buildEmbeddedScriptExecutionSource(
         moduleName,
         methodName,
         moduleName + "." + methodName + " " + fieldName + " must not contain NUL bytes."
-      );
-    }
-    if (text.charAt(0) === "/" || /^[A-Za-z]:[\\/]/.test(text)) {
-      throw __autojs6_image_invalid_argument_error(
-        moduleName,
-        methodName,
-        moduleName + "." + methodName + " " + fieldName + " must be relative to the scoped working directory."
-      );
-    }
-    const parts = text.split(/[\\/]+/);
-    if (parts.some(function(part) { return part === ".."; })) {
-      throw __autojs6_image_invalid_argument_error(
-        moduleName,
-        methodName,
-        moduleName + "." + methodName + " " + fieldName + " must not escape the scoped working directory."
       );
     }
     return allowEmpty && text.length === 0 ? "." : text;
@@ -19917,7 +19902,7 @@ std::string buildEmbeddedScriptExecutionSource(
     function readImage(path, options) {
       let target;
       try {
-        target = __autojs6_image_relative_text(bridgeModuleName, "readImage", "path", path, false);
+        target = __autojs6_image_file_path(bridgeModuleName, "readImage", "path", path, false);
       } catch (error) {
         return Promise.reject(error);
       }
@@ -19941,7 +19926,7 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       let target;
       try {
-        target = __autojs6_image_relative_text(bridgeModuleName, "saveImage", "path", path, false);
+        target = __autojs6_image_file_path(bridgeModuleName, "saveImage", "path", path, false);
       } catch (error) {
         return Promise.reject(error);
       }
@@ -20480,7 +20465,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (typeof image === "string") {
         let target;
         try {
-          target = __autojs6_image_relative_text("barcode", methodName, "path", image, false);
+          target = __autojs6_image_file_path("barcode", methodName, "path", image, false);
         } catch (error) {
           return Promise.reject(error);
         }
@@ -20499,7 +20484,7 @@ std::string buildEmbeddedScriptExecutionSource(
         if (type === "path") {
           let target;
           try {
-            target = __autojs6_image_relative_text("barcode", methodName, "path", image.path, false);
+            target = __autojs6_image_file_path("barcode", methodName, "path", image.path, false);
           } catch (error) {
             return Promise.reject(error);
           }
@@ -20666,12 +20651,12 @@ std::string buildEmbeddedScriptExecutionSource(
     return __autojs6_limited_media_cache;
   }
   function __autojs6_mediainfo_path(value, methodName) {
-    const text = value === undefined || value === null ? "" : String(value).trim();
-    if (!text || text.indexOf("\u0000") !== -1 || text.indexOf(":") !== -1 || text.charAt(0) === "/" || text.indexOf("..") !== -1) {
+    const text = value === undefined || value === null ? "" : String(value);
+    if (!text || text.indexOf("\u0000") !== -1) {
       throw __autojs6_media_invalid_argument_error(
         "mediainfo",
         methodName,
-        "mediainfo." + methodName + " path must be a relative file path inside the scoped working directory."
+        "mediainfo." + methodName + " path must be a non-empty file path without NUL bytes."
       );
     }
     return text;

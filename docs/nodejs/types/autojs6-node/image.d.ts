@@ -61,6 +61,7 @@ declare module "image" {
       requestScreenCapture(options?: CaptureScreenOptions & { width?: number; height?: number }): Promise<boolean>;
       stopScreenCapture(): Promise<void>;
       captureScreen(options?: CaptureScreenOptions): Promise<AutoJs6Node.ImageHandle>;
+      /** Absolute or working-directory-relative file path; Android file access applies with the updated host. */
       readImage(path: string, options?: AutoJs6Node.BridgeCallOptions): Promise<AutoJs6Node.ImageHandle>;
       /** Returns a native Buffer mapped from a PFD; it remains valid after the image handle is recycled. */
       toBytes(image: AutoJs6Node.ImageHandleLike, options?: ImageBytesOptions | ImageBytesOptions["format"]): Promise<ImageBytes>;

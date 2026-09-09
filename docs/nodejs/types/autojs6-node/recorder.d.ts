@@ -30,6 +30,7 @@ declare module "recorder" {
     }
 
     export interface RecorderStartOptions extends AutoJs6Node.BridgeCallOptions {
+      /** Absolute or working-directory-relative output file path; Android file access applies with the updated host. */
       readonly path?: string;
       readonly sampleRate?: number;
       readonly bitRate?: number;

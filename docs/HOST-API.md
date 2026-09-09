@@ -79,12 +79,12 @@
 | `media_projection` | requestScreenCapture, nextImage, stop | 需用户确认 Android 录屏授权 |
 | `recorder` | getStatus, start, stop | 需 media + media.recording 及 Android RECORD_AUDIO; 真机录音 Check 待补 |
 | `media` | getAudioStreamVolume/MaxVolume/Info, setAudioStreamVolume | 需 media + media.audio; 遵循 Android 音量/DND 策略 |
-| `mediainfo` | read, get, capabilities (作用域内相对路径; 缺省保持 Node v1, 插件明确宣告后可显式请求插件 v1/v2) | — |
+| `mediainfo` | read, get, capabilities (Android 可访问的文件路径; 缺省保持 Node v1, 插件明确宣告后可显式请求插件 v1/v2) | — |
 | `ui.overlay` | show, update, drainEvents, close, closeAll, hasPermission, openPermissionSettings | 需 SYSTEM_ALERT_WINDOW; 真实窗口、属性更新、拖动、推送与退出清理 |
 | `package_manager` (`npm` 为其别名) | list, verify, prune, planInstall/Update/Remove, install, update, remove (app 私有本地库) | npm CLI / registry 下载 / 生命周期脚本 |
 | `input_observer` | observeKeys, drainEvents, close, getAvailableSources (fake/accessibility) | 实源需可运行的无障碍服务; 不拦截按键, touch/intercept 仍拒绝 |
 
-截屏需声明 `screen_capture` 与 `image`。`await images.requestScreenCapture()` 打开宿主既有 Android 授权流程, 授权后才启动 mediaProjection 前台服务; `captureScreen` / `media_projection.nextImage` 返回宿主图片句柄。`saveImage(handle, relativePath, {format, quality})` 在项目工作目录中保存 PNG/JPEG/WebP, 默认 PNG, quality 为 0..100。`images.stopScreenCapture()` / capturer.stop、系统撤销和脚本结束释放会话; 未授权捕获返回 `permission-denied`。图片延续每次执行默认 32 个活跃句柄的既有限制, recycle 或执行结束释放。M14.1 已验证未授权及图片保存路径, 正常授权的真机验收等待人工确认系统对话框, 进度见 Roadmap。
+截屏需声明 `screen_capture` 与 `image`。`await images.requestScreenCapture()` 打开宿主既有 Android 授权流程, 授权后才启动 mediaProjection 前台服务; `captureScreen` / `media_projection.nextImage` 返回宿主图片句柄。`saveImage(handle, path, {format, quality})` 保存 PNG/JPEG/WebP, 默认 PNG, quality 为 0..100。`images.stopScreenCapture()` / capturer.stop、系统撤销和脚本结束释放会话; 未授权捕获返回 `permission-denied`。图片延续每次执行默认 32 个活跃句柄的既有限制, recycle 或执行结束释放。M14.1 已验证未授权及图片保存路径, 正常授权的真机验收等待人工确认系统对话框, 进度见 Roadmap。
 
 M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返回独立的新句柄。找图使用宿主 Rhino Images 同用的 TemplateMatching, 找色使用 ColorFinder, 图像变换调用同一 OpenCV 后端; clip 与编码使用 Android Bitmap。模板阈值默认 0.9, 范围 0..1; matchTemplate 的 limit/max 默认 5, 范围 1..1000。找色阈值默认 4, 范围 0..255; region 为 `[x,y,width,height]`, 返回坐标位于输入图片中, 不做屏幕比例缩放。多点找色偏移可为负, 匹配点须在原图范围内。grayscale 使用 RGBA→GRAY, threshold 对灰度执行指定二值化类型。未安装可用 OpenCV 插件时, 捕获、读取、保存、裁剪和回收仍可调用, 依赖 OpenCV 的操作返回宿主插件错误。
 
@@ -307,3 +307,9 @@ M3.2 原定 "补齐 toast / app.launch / click / swipe / text 查找 / 剪贴板
 4. 插件 capability catalog: 在新 catalog 版本的 `bridge.permissionCapabilities` 与相关 `bridge.operations` 中登记。
 
 发布快照 `nodejs-capability-catalog/1.3.0` 保持原有 48 个能力。M14/M15 的本地 catalog 1.4.0 增加图像、device/media、事件观察者和 app 方法, 同步宿主已有的 console / files / files.write / files.delete / pinyin / pinyin4j 能力, 尚未对外发布。当前 verifyNodeHostCapabilityManifestAlignment 已验证 host=59 / plugin=59 / catalog=59; verifyNodeHostApiMirror 的 10 个公共 API 文件通过。契约支持上限同步为 3, 旧同步执行契约仍为 2。
+
+### 普通媒体和图片路径 (v1.4.0 开发版)
+
+`mediainfo.read/get`、`image.readImage/saveImage` 与 `recorder.start({path})` 接受绝对文件路径, 或以宿主执行工作目录为基准的相对路径。父目录与符号链接由 Android 文件 API 解析; 文件名中的 `..`、冒号和空格保留, 只拒绝空路径和 NUL。访问身份为执行该能力的宿主应用, Android 的权限、应用私有目录和存储访问规则仍然生效。文件 URI / content URI 不是这些方法的输入类型。
+
+此行为需要同时升级插件和包含 Android 文件解析器修复的宿主; v1.3.0 发布包与旧宿主仍有原来的媒体路径限制。工作区归档、模块传输和 MCP files 授权是其他调用接口, 不由这次文件 API 调整改变。
