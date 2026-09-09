@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Runtime 插件 — 开发路线图 (Roadmap)
 
-> 修订日期: 2026-09-09
+> 修订日期: 2026-09-10
 >
 > 本路线图取代此前所有里程碑编号 (X3d/X3e/X3f/X3g/X3i/X3j 等)。旧编号只保留在 `tools/nodejs/ownership/evidence/` 的历史证据文件中, 不再继续演进。
 >
@@ -428,8 +428,9 @@ M13 Release 验证补记 (2026-09-08): build 116 的签名 arm64-v8a / x86_64 �
 
 ### M19 — 宿主减重第二轮
 
-- [ ] **M19.1 文件与消费者审计**: 按实际引用清点宿主 Node 代码、32 份 docs/nodejs 文档、公共 API 镜像、Gradle 与测试。区分插件运行时资产、宿主 Android/Binder/工作区/Compiler 职责、MCP 等其他调用方共用资产。Check: 记录路径、用途、消费者、迁移判断及可核验的前后量, 不按 Node 文件名前缀盲目移动。
-- [ ] **M19.2 迁移插件使用说明与历史档案**: 优先迁移项目向导、运行时使用/兼容性说明和旧内嵌运行时历史材料到本仓; 宿主只保留集成入口和必要跳转, 修复活跃链接。Check: 无重复权威说明, 插件端文档可单独阅读, 宿主构建不消费已迁走资产, 双仓独立提交并记录提交号。
+- [x] **M19.1 文件与消费者审计**: 按实际引用清点宿主 Node 代码、32 份 docs/nodejs 文档、公共 API 镜像、Gradle 与测试。区分插件运行时资产、宿主 Android/Binder/工作区/Compiler 职责、MCP 等其他调用方共用资产。Check: 记录路径、用途、消费者、迁移判断及可核验的前后量, 不按 Node 文件名前缀盲目移动。
+- [x] **M19.2 迁移插件使用说明与历史档案**: 优先迁移项目向导、运行时使用/兼容性说明和旧内嵌运行时历史材料到本仓; 宿主只保留集成入口和必要跳转, 修复活跃链接。Check: 无重复权威说明, 插件端文档可单独阅读, 宿主构建不消费已迁走资产, 双仓独立提交并记录提交号。
+  2026-09-10 完成 M19.1/M19.2: 审计见 `docs/HOST-MIGRATION-REVIEW.md`; 7 份使用指南与 11 份历史档案迁入插件, 宿主原链接保留跳转。宿主 32 份文档总量由 302,415 降至 29,715 字节 (-90.2%), 属于仓库文档减重, 不宣称 APK 变小。18 个跳转、7 份活跃指南本地链接与宿主 Gradle 无文档输入引用检查通过; 旧 TypeScript stripping、Node 版本、events 和文件范围说明已更新。宿主迁移提交 `a37bbd2ae`, Node 前缀主 Kotlin 文件 79 个与 API 镜像 12 个文件按消费者保留。明确识别 MCP 共享 files/样例接口及 profile/兼容描述符消费者, 后两者和向导 `FS_OUTSIDE_SCOPE` 遗留判断分别交 M19.3/M20.2。
 - [ ] **M19.3 精简仍在宿主的运行时策略/元数据**: 审计 NodeProfileSelectionDiagnostics、NodeProjectRuntimeCompatibilityDescriptor、API 镜像和 provider 元数据的真实消费者, 将属于插件的默认值与稳定性判断移到插件已有接口。共享 Android provider、MCP grant 边界、Binder 鉴权、工作区传输和 TypeScript 编译路由保留在实际所有者处。Check: 旧宿主/新宿主运行和启动、取消、文件回传回归通过, 公共契约维持兼容。
 
 ### M20 — 按 Android 权限放宽文件与运行限制
