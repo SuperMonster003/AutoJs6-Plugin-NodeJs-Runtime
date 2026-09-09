@@ -319,6 +319,7 @@ declare namespace AutoJs6Node {
     readonly requiredProfiles: readonly string[];
     readonly requiredNodePermissions: readonly string[];
     readonly requiredAndroidPermissions: readonly string[];
+    /** False in the current runtime: profile labels are diagnostic metadata and cannot grant capabilities. */
     readonly profileSelectionRequired: boolean;
     readonly message: string;
     readonly declarationHint: string;
