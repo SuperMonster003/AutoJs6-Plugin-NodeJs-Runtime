@@ -1,11 +1,11 @@
 {
   "$name": "日本語",
   "text_current_lowercase": "現在",
-  "text_plugin_synopsis": "AutoJs6 向け Node.js 24.5.0 ネイティブランタイムプラグイン",
+  "text_plugin_synopsis": "AutoJs6 向け Node.js 24.21.0 ネイティブランタイムプラグイン",
   "h3_languages_with_ascii": "言語 (Languages)",
   "p_languages_all_supported_for_readme": "現在の README.md は次の言語に対応しています",
   "h3_introduction": "概要",
-  "p_introduction": "AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 24.5.0 ネイティブランタイムを提供し, Node.js スクリプトとプラグインランタイムタスクを実行します.",
+  "p_introduction": "AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 24.21.0 ネイティブランタイムを提供し, Node.js スクリプトとプラグインランタイムタスクを実行します.",
   "h3_functions": "機能",
   "features": [
     "`nodejs` プラグインサービスを提供し, プラグイン ID は `nodejs`, エンジンは `nodejs` です.",
@@ -32,7 +32,7 @@
   "quick_start_debug": "スクリプトの失敗時はコンソールに JS スタックと 1 行のエラーコード (例: `ERR_AUTOJS6_NODE_SCRIPT_CANCELLED`) が表示されます. 詳細は `adb logcat -s AutoJs6NodeBridge NodeJsRuntimePlugin` でプラグインプロセスのログを確認してください. ホスト API の可用性は `docs/HOST-API.md` を参照してください.",
   "h3_runtime_profile": "ランタイムプロファイル",
   "runtime_capabilities": [
-    "ランタイムスロット: `node24_5`.",
+    "ランタイムスロット: `node24_21`.",
     "プラグイン ID: `nodejs`, エンジン: `nodejs`.",
     "ランタイムサービスアクション: `org.autojs.plugin.nodejs.RUNTIME`.",
     "ネイティブランタイムライブラリ: `libnode.so` と `libautojs6-node.so`.",

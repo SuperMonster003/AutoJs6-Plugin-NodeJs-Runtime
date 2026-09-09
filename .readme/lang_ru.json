@@ -1,11 +1,11 @@
 {
   "$name": "Русский",
   "text_current_lowercase": "текущий",
-  "text_plugin_synopsis": "Плагин нативной среды выполнения Node.js 24.5.0 для AutoJs6",
+  "text_plugin_synopsis": "Плагин нативной среды выполнения Node.js 24.21.0 для AutoJs6",
   "h3_languages_with_ascii": "Языки",
   "p_languages_all_supported_for_readme": "Текущий README.md поддерживает следующие языки",
   "h3_introduction": "Введение",
-  "p_introduction": "Плагин AutoJs6 Node.js Runtime предоставляет AutoJs6 встроенную нативную среду выполнения Node.js 24.5.0 для скриптов Node.js и задач среды выполнения плагинов.",
+  "p_introduction": "Плагин AutoJs6 Node.js Runtime предоставляет AutoJs6 встроенную нативную среду выполнения Node.js 24.21.0 для скриптов Node.js и задач среды выполнения плагинов.",
   "h3_functions": "Возможности",
   "features": [
     "Предоставляет сервис плагина `nodejs` с ID плагина `nodejs` и движком `nodejs`.",
@@ -32,7 +32,7 @@
   "quick_start_debug": "При сбое скрипта в консоль выводится стек JS и однострочный код ошибки (например `ERR_AUTOJS6_NODE_SCRIPT_CANCELLED`); подробности смотрите в логе процесса плагина: `adb logcat -s AutoJs6NodeBridge NodeJsRuntimePlugin`. Доступность API хоста описана в `docs/HOST-API.md`.",
   "h3_runtime_profile": "Профиль Среды Выполнения",
   "runtime_capabilities": [
-    "Слот среды выполнения: `node24_5`.",
+    "Слот среды выполнения: `node24_21`.",
     "ID плагина: `nodejs`, движок: `nodejs`.",
     "Действие сервиса среды выполнения: `org.autojs.plugin.nodejs.RUNTIME`.",
     "Нативные библиотеки среды выполнения: `libnode.so` и `libautojs6-node.so`.",

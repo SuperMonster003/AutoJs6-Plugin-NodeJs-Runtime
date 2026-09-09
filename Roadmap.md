@@ -364,13 +364,19 @@ M13 Release 验证补记 (2026-09-08): build 116 的签名 arm64-v8a / x86_64 �
 
   2026-09-09 管线验收完成: 三 ABI 的 Node 24.20 首份源码构建 (Linux host 链接修复后续建) 与独立干净复建, SHA-256/Build ID 全部一致。随后分别从各自的 24.20 工作目录维护构建 24.21, 更新 1,155 个源码文件、移除上游删除的 4 文件并加入 STORE 修复, 未在 first/repeat 间复制目标文件; 三 ABI 的 24.21 SHA-256/Build ID 也全部一致。此处是两份独立维护构建, 不声称两次全新干净的 24.21 构建。完整比较、源码/headers、三份补丁、NDK 与 Docker image ID 已回填 runtime-build.lock.json, sourceBuild=ready; 36 个动态嵌入符号、36 个直接导入及 adapter map 导出全部通过。24.21 候选在三台真机和 x86_64 AVD 的 Debug 52 项、Inspector/冷启动各 1 项与配套混淆 Release 52 项均通过; Sony API28 的 52 项报告含 1 个既有 SDK>=30 跳过。独立检出工作区对本次管线变更运行 verify-runtime-build-plan --fail-on-bootstrap-only 通过, 保留提交树的默认 Node 24.5, 后续由 M17.2 独立切换与收集发布物。全部源码容器已完成并退出, 临时 AVD 已关闭。
 
-- [ ] **M17.2 晋级 24.x 最新 LTS**: 动作: 用 M17.1 产物; `node_runtime_adapter_24_5.cpp` (1,023 行) / `node_runtime_api_v1.h` 按符号与 ABI 差异适配 (新增 adapter 文件而非改旧文件, 运行时按版本选择); 全量 androidTest + 3 台真机; runtime-kit / catalog 发新版本 (本地发布物)。Check: `getRuntimeInfo` 报新版本; runtime-kit `releaseReady: true`; CHANGELOG `dependency` 条目 "升级 Node.js 24.5.0 → 24.x"。
+- [x] **M17.2 晋级 24.x 最新 LTS**: 动作: 用 M17.1 产物; `node_runtime_adapter_24_5.cpp` (1,023 行) / `node_runtime_api_v1.h` 按符号与 ABI 差异适配 (新增 adapter 文件而非改旧文件, 运行时按版本选择); 全量 androidTest + 3 台真机; runtime-kit / catalog 发新版本 (本地发布物)。Check: `getRuntimeInfo` 报新版本; runtime-kit `releaseReady: true`; CHANGELOG `dependency` 条目 "升级 Node.js 24.5.0 → 24.x"。
   2026-09-09 发布准备: 本地 `nodejs-api:1.4.0` AAR 已产出并通过手动 publication 验证、契约 JVM **9/9** 与 API mirror **10 文件** 校验。保留已发布 1.3.0 / compat-v1 四事务快照, 新 compat-v3 快照明确追加 `postMessage=5`、`startScript=6`; 校验原描述符及事务号保持前缀不变, 基础 contract=2、max=3。增加 `node24_20` 常量供新版使用, 宿主镜像提交 `637a1603f`; 当前默认运行时仍为 24.5.0, 新 runtime-kit 与实际 Node 晋级等待 M17.1 产物验收。
   2026-09-09 适配准备: 新增独立 node_runtime_adapter_24_20.cpp 与官方 24.20.0 的 122 份 Node/V8/libuv 头文件, 保留原 24.5 adapter 与默认 slot。CMake 按 slot 同时选择 adapter/头目录; 三个 ABI 的当前 compile_commands 参数下, 新头文件和 adapter 的离线 -fsyntax-only 共 30/30 通过。头文件逐字节等于已核对 SHA-256 的官方 archive, 完整上游 LICENSE 随源码保留。当前默认 24.5 的 签名 Release 构建与设备基线通过; 24.20 的真实链接、嵌入符号与设备验收仍等待源码产物, 不以语法检查代替晋级。手动源码入口同时为每个 ABI/run-id 设置 Docker 容器名, 便于设备计时测试期间暂停与恢复。
 
   2026-09-09 两 ABI 候选验收: arm64/x86_64 自建 libnode 已产出 (70,578,608 / 75,379,272 字节), SHA-256/Build ID 入 lock; 每份均有 36 个动态嵌入符号, 与新头文件链接的桥接库 36 个直接导入全部可解析, adapter C ABI 导出与 16 KB LOAD 通过。原生 CLI 在小米 arm64 和 16 KB x86_64 AVD 实跑 crypto/SQLite/worker/本地 fetch; 独立检出工作区的 Node 24.20 Debug 候选在小米 API 35、Sony XQ-AT72 API 31 与 x86_64 API 36/PAGE_SIZE=16384 完整 26 类各 **52/52**, Inspector 与冷启动各 **1/1** (每端合计 54/54)。SimpleRun 新增实际 process.versions.node 与 getRuntimeInfo 版本一致断言, 三端均回报 24.20.0/node24_20; npm 21 包通过, 夹具检出问题的修正另见 M13.4。冷启动暖执行 P95 分别 200/231/463 ms, 不据单次样本承诺加速。已关闭临时 AVD、恢复源码编译, Sony XQ-AT72 的 All Files appop 恢复原 default。主工作区仍使用 24.5, 两 ABI APK 仅用于开发验证; armv7、独立源码复建比较、最终三 ABI Release/runtime-kit 仍待完成, M17.1/M17.2 保持未勾选。
 
   2026-09-09 上游增量: 官方 [发布索引](https://nodejs.org/dist/index.json) 已列出 24.21.0 LTS (索引日期 2026-09-07), [GitHub Release](https://github.com/nodejs/node/releases/tag/v24.21.0) 实际 publishedAt=2026-09-08T21:51:09Z, 提交 955266bfdd854cd280dffd47548673914484e4c0。该版本已集成 OpenSSL 3.5.8 和 Undici 7.29.1, 因而本次最终晋级目标调整为 24.21.0; 已完成的 24.20 三 ABI 设备回归与正在完成的独立复建保留为管线基线, 不冒充 24.21 验收。官方源码/headers tar.xz 已分别通过发布校验值, 既有两份 Android/host 补丁在新源码上无 fuzz 应用成功。新增 node24_21 公共常量, 保留之前的槽位常量; 已暂存为新的不可变本地 nodejs-api:1.5.0 (不覆盖 1.4.0), publication、契约 JVM 9/9 与 API mirror 10 文件通过, AIDL 事务摘要不变。宿主常量镜像独立提交 0757cb296; 未修改宿主执行行为或对外发布。
+
+  2026-09-09 最终晋级完成: 默认 slot 切为 `node24_21`, 使用三 ABI 自建 Node **24.21.0 / OpenSSL 3.5.8**, 新增独立 `node_runtime_adapter_24_21.cpp` 及官方 122 份头文件, 保留旧 adapter。实际 process.versions.node、getRuntimeInfo、PluginInfo、catalog、资源和十语言 README/CHANGELOG 一致。新本地 Runtime Kit **1.4.0** 为 `releaseReady: true`, 引用 catalog **1.4.0** 与 nodejs-api **1.5.0**; 原已发布 1.3.0 快照和先前本地 API 1.4.0 快照保持不变。源码管线消除了 M10.1 等待第三方 Android 二进制的阻塞, 其历史记录保留。
+  Node 24.21 新增的 OpenSSL STORE 密钥 URL 曾在小米实证绕过 `/proc` 边界; 三 ABI 源码加入 Android 专用最小拒绝补丁, `crypto.createPrivateKey` / `crypto.sign` 的 URL 输入返回 `ERR_ACCESS_DENIED`, 通过 node:fs 读取的密钥字节和已有 KeyObject 签名/验签继续成功。保留复现失败及修复日志, 回归纳入 BuiltinPassthroughSmokeTest。三 ABI 的 Debug/Release 桥各通过 36 个动态嵌入符号、36 个直接导入和 adapter C ABI 导出检查。
+  三台真机 (小米 API35、Sony XQ-AT72 API31、Sony G8441 API28) 与 x86_64 API36 AVD 均完成 Debug 26 类 **OK (52 tests)**、Inspector/冷启动各 **1/1** 和配套混淆 Release **OK (52 tests)**; Sony API28 每组包含 1 个既有 SDK>=30 Assume 跳过, 实际执行 51 项。三 ABI 原生 CLI crypto/SQLite/worker/本地 fetch 通过; 小米宿主异步工作区 + 完整 bridge conformance **6/6**, 宿主最终提交 `0757cb296`。冷启动组暖执行 P95 为小米 182 / Sony XQ-AT72 234 / Sony G8441 531 / AVD 190 ms, 不将单次测量当作性能保证。
+  v1.3.0 / **versionCode 145** 四份正式签名候选 APK 与配套 Release 测试包已离线收集。四包逐一通过 apksigner、zipalign、CRC32、版本/ABI、完整许可证、所有实际 ELF 的 SHA-256/Build ID/LOAD 对齐、嵌入 kit/catalog 字节与 kit BuildConfig 摘要检查; native payload 与完整回归时相同。最终收集包在小米 arm64、Sony G8441 armv7、x86_64 AVD 与小米 universal 各通过 SimpleRun/NpmEcosystem/Info/Manifest **4/4**, 合计 **16/16**, 无跳过。75 JVM、47 样例、TypeScript、59=59=59 能力对齐、10 文件 API mirror、API publication、35 生成文档和 Python 2/2 均通过。构建任务曾因 Release 测试变体不含 Debug 单测、根级任务误加 :app 前缀而在任务选择时失败, 已分开按正确任务路径执行通过, 不计作编译或设备失败。
+  16 KB 覆盖明确为 x86_64 AVD 的用户空间模拟: getconf PAGE_SIZE=16384, /proc/self/smaps KernelPageSize=4 kB。arm64 真机均为 4 KB; 未验证 16 KB arm64 实体设备。全部源码容器已完成退出, 临时 AVD 已关闭, Sony 临时 All Files appop 已恢复 default。完整日志与工件核验表在本机 `build/m17/node2421-*`, 正式候选在 `app/releases/1.3.0/`; 本次尚未 push/tag/创建 GitHub Release 或对外发布新 catalog/runtime-kit, 这些动作仍按通用约定第 2 条等待当次确认。M14/M15 人工验收与 M13.1 原行数指标不因运行时晋级而自动完成。
 
 - [x] **M17.3 体积与安装占用评估**: 2026-09-08 完成下表评估, 保留压缩打包、`--with-intl=none` 和 inspector 后端。原计划的“安装 -110 MB”“small-icu -20 MB”不适用于当前实际产物: AGP 已 strip native 库, 未压缩 APK 自身也占安装空间, 当前运行时没有 ICU/Intl。Java 加载入口已是 `System.loadLibrary`, C++ `dlopen("libnode.so")` 可复用已加载库, 无需修改加载实现; Gradle 旧注释已校正。未采纳新的瘦身开关。
   - 同一 M16.3 Debug 代码构建压缩/未压缩两组, 三 ABI 的原生 ZIP 条目分别为 DEFLATED/STORED; 每组每设备 force-stop 后测 1 次冷执行 + 20 次同进程新 isolate, 计时包含进程绑定、首次 readiness/prewarm 与首脚本。三个 Node 源码构建容器在两组测量期间暂停, 之后恢复; AVD 仍受主机调度影响。压缩测量三端各 **1/1**, 未压缩测量 + SimpleRun 三端各 **2/2**; 测后已恢复三端原压缩 APK。单次冷样本用于本轮取舍, 不构成稳定加速结论。
@@ -384,7 +390,16 @@ M13 Release 验证补记 (2026-09-08): build 116 的签名 arm64-v8a / x86_64 �
 | `--with-intl=small-icu` | 未另行构建测量; 相对当前 none 会新增 ICU | 无现成 ICU 可裁减 | 未测 | 三端 `process.versions.icu` 均缺失且 `typeof Intl === 'undefined'`; 保持 none, 需要 Intl 时另按功能需求评估 |
 | Release `--without-inspector` | 未另行构建测量 | 未测, 不宣称节省数值 | 未测 | M10.2 Debug 调试需要后端, 裁减需维护 Debug/Release 两套三 ABI 库; 当前不采用。默认脚本 `process.features.inspector === false` 是公开能力档位, 不能据此判断后端未编译 |
 
-测量日志位于本机 `build/m17/packaging-{compressed,uncompressed}-<serial>.txt`, 代码目录占用与 APK ZIP 明细同目录留存; 它们是此次维护记录, 不挂默认构建门禁。后续 Node 24.20.0 的最终 Release 体积以实际构建产物为准。
+测量日志位于本机 `build/m17/packaging-{compressed,uncompressed}-<serial>.txt`, 代码目录占用与 APK ZIP 明细同目录留存; 它们是此次维护记录, 不挂默认构建门禁。Node 24.21 的最终 Release 测量补充如下。
+
+2026-09-09 Node 24.21 最终签名候选 (v1.3.0 / build 145) 的实际下载体积如下; 仍为压缩 native 打包, 不据此推算安装占用或与上表 Debug 数据直接比较。
+
+| APK | 实际字节 | MiB | CRC32 |
+|---|---:|---:|---|
+| arm64-v8a | 24,576,793 | 23.44 | `0A8FBC51` |
+| armeabi-v7a | 23,760,115 | 22.66 | `D69F0A04` |
+| universal | 74,046,090 | 70.62 | `57085A26` |
+| x86_64 | 26,123,832 | 24.91 | `53FCD1DA` |
 
 - [x] **M17.4 月度安全复查制度化**: 2026-09-08 首次手动复查完成。每月首个维护工作日由维护者检查 [Node 24.x 发布](https://nodejs.org/en/blog/release)、[Node 安全公告](https://nodejs.org/en/blog/vulnerability) 与 [OpenSSL 3.5 公告](https://openssl-library.org/news/vulnerabilities-3.5/), 在下表追加当月一行, 保留检查日期、实际嵌入版本、影响判断与动作; 有影响即推进 M17.1/M17.2, 未产出并验收前不标“已晋级”。复查按月手动执行, 不加入 APK/PR 默认构建或设备网络流程; 下次为 2026-10 首个维护工作日。
 
@@ -393,6 +408,7 @@ M13 Release 验证补记 (2026-09-08): build 116 的签名 arm64-v8a / x86_64 �
 | 2026-08-25 | 24.17.0 | 24.5.0 | 上游 Android 产物缺失, 阻塞 (M10.1) |
 | 2026-09-04 | (待 M17.4 首次复查) | 24.5.0 | 立项 M17.1 自建管线解除阻塞 |
 | 2026-09-08 | **影响, 尚未晋级**。Node [6 月安全发布](https://nodejs.org/en/blog/vulnerability/june-2026-security-releases) 与 [7 月安全发布](https://nodejs.org/en/blog/vulnerability/july-2026-security-releases) 修复 TLS/HTTP2/DNS/crypto 等原生入口问题; 24.5.0 早于修复版本 24.17.0/24.18.1, 本插件已开放相关模块, 不能用桥权限代替修复。 | 当前 24.5.0; 本次源码目标为 [24.20.0 LTS, 2026-08-26](https://nodejs.org/en/blog/release/v24.20.0) | M17.1 三 ABI 源码构建与 M17.2 设备晋级处理中。OpenSSL [2026-08-25 公告](https://openssl-library.org/news/secadv/20260825.txt) 的修复版本为 3.5.8; 24.20.0 官方源码 VERSION.dat 仍为 3.5.7, 因此不能将 Node 升级等同于全部 OpenSSL 公告已修复。该组涉及 OpenSSL QUIC/CMS/CMP/DTLS/RPK/EVP_Cipher 特定入口, 本次未单独证明插件可达性, 保留依赖版本受影响判断并跟踪上游集成。 |
+| 2026-09-09 | [24.21.0 LTS](https://github.com/nodejs/node/releases/tag/v24.21.0), 含 OpenSSL 3.5.8 / Undici 7.29.1 | **已本地晋级 24.21.0 / OpenSSL 3.5.8** | M17.1/M17.2 三 ABI 源码与独立复建比较、三台真机 + x86_64 AVD 及最终四包验收完成, 解除旧 Android 产物阻塞。嵌入 OpenSSL 已达到上一行公告的修复版本; 本地额外修复实证 STORE 密钥 URL 绕过文件边界。该结论针对本次已核对版本与回归, 不声明所有漏洞或所有路径均已穷尽; 对外发布待用户当次确认, 下次月度复查仍为 2026-10。 |
 
 ## 五. 明确不做的事
 

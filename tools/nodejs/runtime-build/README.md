@@ -4,12 +4,12 @@ This directory contains the Android Node source build and the original pinned
 Node 24.5 binary materializer. Both are manual maintenance tools; neither runs
 in the default APK or PR build.
 
-Current status: the Node 24.21 source pipeline and all three Android ABI
-candidates have passed embedding and device validation. Independent rebuild
-results and the exact Docker image, NDK and three patch hashes are recorded in
-[runtime-build.lock.json](runtime-build.lock.json). The default runtime remains
-Node 24.5 until the separate M17.2 promotion selects the validated libraries
-and prepares the new local runtime kit.
+Current status: the default Android runtime is Node 24.21.0, built from official
+Node sources with three Android patches. All three ABIs passed embedding and
+device validation. Independent rebuild results and the exact Docker image,
+NDK and patch hashes are recorded in
+[runtime-build.lock.json](runtime-build.lock.json). Runtime Kit 1.4.0 and the
+four signed APKs are local release artifacts; external publication is separate.
 
 ## Build Node 24.21 from source
 

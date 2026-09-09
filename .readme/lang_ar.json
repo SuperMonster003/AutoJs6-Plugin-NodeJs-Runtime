@@ -1,11 +1,11 @@
 {
   "$name": "العربية",
   "text_current_lowercase": "الحالي",
-  "text_plugin_synopsis": "ملحق تشغيل Node.js 24.5.0 الاصلي ل AutoJs6",
+  "text_plugin_synopsis": "ملحق تشغيل Node.js 24.21.0 الاصلي ل AutoJs6",
   "h3_languages_with_ascii": "اللغات",
   "p_languages_all_supported_for_readme": "يدعم README.md الحالي اللغات التالية",
   "h3_introduction": "مقدمة",
-  "p_introduction": "يوفر ملحق AutoJs6 Node.js Runtime بيئة تشغيل Node.js 24.5.0 اصلية مدمجة ل AutoJs6 من اجل سكربتات Node.js ومهام تشغيل الملحقات.",
+  "p_introduction": "يوفر ملحق AutoJs6 Node.js Runtime بيئة تشغيل Node.js 24.21.0 اصلية مدمجة ل AutoJs6 من اجل سكربتات Node.js ومهام تشغيل الملحقات.",
   "h3_functions": "الميزات",
   "features": [
     "يوفر خدمة الملحق `nodejs` مع معرف الملحق `nodejs` والمحرك `nodejs`.",
@@ -32,7 +32,7 @@
   "quick_start_debug": "عند فشل السكربت تعرض وحدة التحكم مكدس JS مع رمز خطأ من سطر واحد (مثل `ERR_AUTOJS6_NODE_SCRIPT_CANCELLED`); لمزيد من التفاصيل راجع سجل عملية الإضافة عبر `adb logcat -s AutoJs6NodeBridge NodeJsRuntimePlugin`. تُوثَّق قدرات API المضيف في `docs/HOST-API.md`.",
   "h3_runtime_profile": "ملف بيئة التشغيل",
   "runtime_capabilities": [
-    "فتحة بيئة التشغيل: `node24_5`.",
+    "فتحة بيئة التشغيل: `node24_21`.",
     "معرف الملحق: `nodejs`, المحرك: `nodejs`.",
     "اجراء خدمة بيئة التشغيل: `org.autojs.plugin.nodejs.RUNTIME`.",
     "مكتبات بيئة التشغيل الاصلية: `libnode.so` و `libautojs6-node.so`.",

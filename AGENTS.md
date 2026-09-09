@@ -10,8 +10,8 @@
 | applicationId / namespace | `io.github.supermonster003.autojs6.plugin.nodejs` |
 | app_name | `AutoJs6 Node.js Runtime`, 不翻译 |
 | plugin ID / engine / category | `nodejs` |
-| variant / runtime slot | `node24_5` |
-| Node.js | `24.5.0` |
+| variant / runtime slot | `node24_21` |
+| Node.js | `24.21.0` |
 | INFO action / service | `org.autojs.plugin.INFO` / `NodeJsPluginInfoService` |
 | RUNTIME action / service | `org.autojs.plugin.nodejs.RUNTIME` / `NodeJsRuntimePluginService` |
 | 最低宿主 versionCode | `3923` |

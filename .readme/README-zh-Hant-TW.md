@@ -5,7 +5,7 @@
     <img src="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/app/src/main/res/mipmap/ic_launcher.png?raw=true" alt="autojs6-plugin-nodejs-runtime-ic-launcher" border="0" width="128" />
   </p>
 
-  <p>用於 AutoJs6 的 Node.js 24.5.0 原生執行階段插件</p>
+  <p>用於 AutoJs6 的 Node.js 24.21.0 原生執行階段插件</p>
 
   <p>
     <a href="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/releases"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime?label=Release"/></a>
@@ -43,7 +43,7 @@
 
 ******
 
-AutoJs6 Node.js Runtime 插件為 AutoJs6 提供內嵌 Node.js 24.5.0 原生執行階段, 用於執行 Node.js 腳本和插件化執行階段任務.
+AutoJs6 Node.js Runtime 插件為 AutoJs6 提供內嵌 Node.js 24.21.0 原生執行階段, 用於執行 Node.js 腳本和插件化執行階段任務.
 
 ******
 
@@ -95,7 +95,7 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
-- 執行階段槽位: `node24_5`.
+- 執行階段槽位: `node24_21`.
 - 插件 ID: `nodejs`, 引擎: `nodejs`.
 - 執行階段服務動作: `org.autojs.plugin.nodejs.RUNTIME`.
 - 原生執行庫: `libnode.so` 和 `libautojs6-node.so`.
@@ -113,7 +113,7 @@ console.log("AutoJs6 Node.js runtime");
 
 # v1.3.0
 
-###### 尚未發佈
+###### 2026/09/09
 
 * `新增` Node.js 橋訂閱透過既有回呼推送感測器, WebSocket, UI, 懸浮窗與輸入事件, 提供 on/once/off 監聽, 有界事件佇列及 drainEvents 相容
 * `新增` Node.js 執行階段支援可選 idleExitMs 閒置退出與後續指令碼重新連線, 提供 idleForMs 診斷, 預設保持常駐
@@ -130,12 +130,14 @@ console.log("AutoJs6 Node.js runtime");
 * `新增` Node 腳本可在兩個獨立執行階段處理程序中並行執行, 共用 FIFO 佇列並按執行工作路由取消和輸入
 * `修復` 修復常駐指令碼的橋接工作階段持續累積請求與回應記錄的問題, 清理已完成請求, 僅保留最近 32 筆回應並限制診斷大小
 * `修復` 原生非同步任務完成前提前產生成功結果, 導致非同步錯誤與後續退出碼遺失的問題; 終態改為跟隨 Node 事件迴圈最終退出
+* `修復` OpenSSL STORE 金鑰 URL 繞過檔案系統限制的問題 (請透過 node:fs 讀取金鑰位元組)
 * `優化` 即時橋預設使用 JNI/Binder 直通並經 Node 事件迴圈返回回應, 降低呼叫延遲, 保留可選檔案回退與待處理呼叫上限
 * `優化` Node.js stream, crypto, timers, util, node:test 等內建模組恢復原生匯出, 保留檔案系統邊界與宿主目錄策略
 * `優化` 原生 worker 預設依 CPU 平行度執行 (最多 8 個), 繼承執行的網路與檔案開關, 支援請求層級資源上限且池任務預設不設逾時; CPU 與 WASM 範例改為實際多執行緒執行
 * `優化` 維持原生 WASI 停用以保留檔案系統邊界, 移除兩個 disabled WASI 範例; 一般 WebAssembly 與 WASM worker 繼續可用
 * `優化` 螢幕 OCR 範例申請 Android 擷取授權並辨識真實圖片控制代碼; OCR 或條碼插件不可用時傳回可讀 unavailable 錯誤, 辨識失敗仍按錯誤處理
 * `優化` Node 腳本支援協商式非同步啟動, 長駐執行釋放 Binder 執行緒, 終態回呼完成後回傳工作區, 相容舊同步宿主
+* `依賴` 升級 Node.js 24.5.0 → 24.21.0, 三個 ABI 均使用自建 Android 原始碼產物
 
 # v1.2.0
 

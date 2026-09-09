@@ -6,10 +6,11 @@
   "changelog_label_dependency": "Dependance",
   "$data": {
     "v1.3.0": {
-      "released_date": "Non publié",
+      "released_date": "2026/09/09",
       "fix": [
         "Correction de l’accumulation des requêtes et réponses du pont dans les scripts résidents : suppression des requêtes terminées et conservation des 32 dernières réponses avec une taille de diagnostic limitée",
-        "Correction des résultats de succès prématurés perdant les erreurs asynchrones natives et les codes de sortie tardifs; fin alignée sur la sortie finale de la boucle Node"
+        "Correction des résultats de succès prématurés perdant les erreurs asynchrones natives et les codes de sortie tardifs; fin alignée sur la sortie finale de la boucle Node",
+        "Les URL de clés OpenSSL STORE contournaient les restrictions du système de fichiers (lire les octets de la clé avec node:fs)"
       ],
       "improvement": [
         "Réduction de la latence du pont grâce au transport JNI/Binder par défaut et aux réponses via la boucle événementielle Node, avec repli sur fichiers et limites des appels en attente",
@@ -33,6 +34,9 @@
         "Node app prend en charge les services Android, les broadcasts et la recherche des applications installées; dialogs propose la saisie, les choix et les fenêtres de progression fermées avec le script, et keys expose les actions système d’accessibilité",
         "Node recorder prend en charge l’enregistrement AAC avec autorisation du microphone, notification, limite de durée et arrêt avec le script; ui.overlay permet la mise à jour des propriétés, le déplacement et les événements transmis",
         "Les scripts Node peuvent s’exécuter dans deux processus indépendants avec une file FIFO partagée et un routage des annulations et des entrées par exécution"
+      ],
+      "dependency": [
+        "Mise à jour de Node.js 24.5.0 → 24.21.0 avec des bibliothèques Android compilées depuis les sources pour les trois ABI"
       ]
     },
     "v1.2.0": {

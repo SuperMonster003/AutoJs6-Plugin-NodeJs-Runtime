@@ -9,6 +9,5 @@ upstream bytes and copyright notices; the complete upstream license is in
 [LICENSE](LICENSE).
 
 CMake selects this directory together with `node_runtime_adapter_24_20.cpp`
-when `AUTOJS6_NODE_RUNTIME_SLOT=node24_20`. The default remains `node24_5`
-until the three source-built Android libraries pass the Roadmap M17 checks.
-Adding these headers does not change the embedded runtime version.
+when `AUTOJS6_NODE_RUNTIME_SLOT=node24_20`, retained for the validated 24.20 baseline.
+The original 24.5 adapter and headers remain available through `node24_5`.

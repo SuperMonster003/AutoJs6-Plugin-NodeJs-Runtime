@@ -1,11 +1,11 @@
 {
   "$name": "Español",
   "text_current_lowercase": "actual",
-  "text_plugin_synopsis": "Plugin de runtime nativo Node.js 24.5.0 para AutoJs6",
+  "text_plugin_synopsis": "Plugin de runtime nativo Node.js 24.21.0 para AutoJs6",
   "h3_languages_with_ascii": "Idiomas",
   "p_languages_all_supported_for_readme": "El README.md actual admite los siguientes idiomas",
   "h3_introduction": "Introduccion",
-  "p_introduction": "El plugin AutoJs6 Node.js Runtime proporciona a AutoJs6 un runtime nativo integrado de Node.js 24.5.0 para scripts Node.js y tareas de runtime de plugins.",
+  "p_introduction": "El plugin AutoJs6 Node.js Runtime proporciona a AutoJs6 un runtime nativo integrado de Node.js 24.21.0 para scripts Node.js y tareas de runtime de plugins.",
   "h3_functions": "Funciones",
   "features": [
     "Proporciona el servicio de plugin `nodejs` con ID de plugin `nodejs` y motor `nodejs`.",
@@ -32,7 +32,7 @@
   "quick_start_debug": "Los fallos del script imprimen la pila JS más un código de error de una línea (como `ERR_AUTOJS6_NODE_SCRIPT_CANCELLED`) en la consola; para más detalles inspeccione el registro del proceso del plugin con `adb logcat -s AutoJs6NodeBridge NodeJsRuntimePlugin`. La disponibilidad de las API del host está documentada en `docs/HOST-API.md`.",
   "h3_runtime_profile": "Perfil Del Runtime",
   "runtime_capabilities": [
-    "Slot de runtime: `node24_5`.",
+    "Slot de runtime: `node24_21`.",
     "ID de plugin: `nodejs`, motor: `nodejs`.",
     "Accion del servicio runtime: `org.autojs.plugin.nodejs.RUNTIME`.",
     "Bibliotecas nativas de runtime: `libnode.so` y `libautojs6-node.so`.",

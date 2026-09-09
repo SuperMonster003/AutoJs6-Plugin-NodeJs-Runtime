@@ -99,6 +99,33 @@ public final class BuiltinPassthroughSmokeTest {
                       assert.strictEqual(require('os').homedir(), process.cwd());
                       assert.throws(() => require('fs').readFileSync('/proc/self/status'),
                         error => (error.autojs6Code || error.code) === 'ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED');
+                      if (Number(process.versions.node.split('.')[1]) >= 21) {
+                        const fs = require('node:fs');
+                        const path = require('node:path');
+                        const keyDir = fs.mkdtempSync(path.join(process.cwd(), 'm17-store-'));
+                        const keyPath = path.join(keyDir, 'key.pem');
+                        const privateKey = crypto.generateKeyPairSync('ed25519').privateKey;
+                        const pem = privateKey.export({format: 'pem', type: 'pkcs8'});
+                        let fd;
+                        try {
+                          fs.writeFileSync(keyPath, pem);
+                          fd = fs.openSync(keyPath, 'r');
+                          const denied = error => error.code === 'ERR_ACCESS_DENIED';
+                          for (const keyUrl of [new URL('file:///proc/self/fd/' + fd), require('node:url').pathToFileURL(keyPath)]) {
+                            assert.throws(() => crypto.createPrivateKey(keyUrl), denied);
+                            assert.throws(() => crypto.sign(null, Buffer.from('test'), {key: keyUrl}), denied);
+                          }
+                          assert.deepStrictEqual(crypto.createPrivateKey(pem).export({format: 'der', type: 'pkcs8'}),
+                            privateKey.export({format: 'der', type: 'pkcs8'}));
+                          const data = Buffer.from('store-policy');
+                          const signature = crypto.sign(null, data, crypto.createPrivateKey(fs.readFileSync(keyPath)));
+                          assert.ok(crypto.verify(null, data, crypto.createPublicKey(privateKey), signature));
+                        } finally {
+                          if (fd !== undefined) fs.closeSync(fd);
+                          fs.rmSync(keyPath, {force: true});
+                          fs.rmdirSync(keyDir);
+                        }
+                      }
                       const test = require('node:test');
                       await test('m13 native test runner', t => {
                         assert.strictEqual(typeof t.mock.method, 'function');

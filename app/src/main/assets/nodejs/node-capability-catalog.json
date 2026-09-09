@@ -4,8 +4,8 @@
   "runtime": {
     "pluginId": "nodejs",
     "engine": "nodejs",
-    "runtimeSlot": "node24_5",
-    "nodeVersion": "24.5.0",
+    "runtimeSlot": "node24_21",
+    "nodeVersion": "24.21.0",
     "profileName": "AutoJs6 Safe Node Profile",
     "profileVersion": "autojs6-node-profile-v1.3",
     "nativeLibraryName": "node",

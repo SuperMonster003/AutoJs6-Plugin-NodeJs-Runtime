@@ -32,7 +32,7 @@ final class NodePluginBundles {
         Bundle info = new Bundle();
         info.putInt(NodeJsRuntimeContract.KEY_CONTRACT_VERSION, NodeJsRuntimeContract.CONTRACT_VERSION);
         info.putInt(NodeJsRuntimeContract.KEY_MAX_CONTRACT_VERSION, NodeJsRuntimeContract.MAX_CONTRACT_VERSION);
-        info.putString(NodeJsRuntimeContract.KEY_RUNTIME_SLOT, NodeJsPluginIds.VARIANT_NODE_24_5);
+        info.putString(NodeJsRuntimeContract.KEY_RUNTIME_SLOT, NodeJsPluginIds.VARIANT_NODE_24_21);
         info.putString(NodeJsRuntimeContract.KEY_NODE_VERSION, NodeJsRuntimePluginService.NODE_VERSION);
         info.putString(NodeJsRuntimeContract.KEY_NATIVE_LIBRARY_NAME, NodeJsRuntimePluginService.NATIVE_LIBRARY_NAME);
         info.putString(NodeJsRuntimeContract.KEY_BRIDGE_LIBRARY_NAME, NodeJsRuntimePluginService.BRIDGE_LIBRARY_NAME);
@@ -327,7 +327,7 @@ final class NodePluginBundles {
         values.put("embedded_script.runtime_plugin.package_name", service.getPackageName());
         values.put("embedded_script.runtime_plugin.service_name", service.getClass().getName());
         values.put("embedded_script.runtime_plugin.package_version_code", Long.toString(service.packageVersionCode()));
-        values.put("embedded_script.runtime_plugin.runtime_slot", NodeJsPluginIds.VARIANT_NODE_24_5);
+        values.put("embedded_script.runtime_plugin.runtime_slot", NodeJsPluginIds.VARIANT_NODE_24_21);
         values.put("embedded_script.runtime_plugin.node_version", NodeJsRuntimePluginService.NODE_VERSION);
         values.put(NodeJsRuntimePluginService.DIAGNOSTIC_NODE_CAPABILITY_CATALOG_SCHEMA, NodeJsRuntimePluginService.NODE_CAPABILITY_CATALOG_SCHEMA);
         values.put(NodeJsRuntimePluginService.DIAGNOSTIC_NODE_CAPABILITY_CATALOG_VERSION, NodeJsRuntimePluginService.NODE_CAPABILITY_CATALOG_VERSION);

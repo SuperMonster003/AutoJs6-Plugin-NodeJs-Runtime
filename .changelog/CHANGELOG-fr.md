@@ -6,7 +6,7 @@
 
 # v1.3.0
 
-###### Non publié
+###### 2026/09/09
 
 * `Ajout` Les abonnements du pont Node.js transmettent les événements des capteurs, WebSocket, interfaces, fenêtres flottantes et entrées via les callbacks existants, avec on/once/off, files bornées et compatibilité drainEvents
 * `Ajout` Option idleExitMs pour arrêter le processus Node.js inactif et reconnecter le script suivant, avec diagnostic idleForMs et maintien en mémoire par défaut
@@ -23,12 +23,14 @@
 * `Ajout` Les scripts Node peuvent s’exécuter dans deux processus indépendants avec une file FIFO partagée et un routage des annulations et des entrées par exécution
 * `Correction` Correction de l’accumulation des requêtes et réponses du pont dans les scripts résidents : suppression des requêtes terminées et conservation des 32 dernières réponses avec une taille de diagnostic limitée
 * `Correction` Correction des résultats de succès prématurés perdant les erreurs asynchrones natives et les codes de sortie tardifs; fin alignée sur la sortie finale de la boucle Node
+* `Correction` Les URL de clés OpenSSL STORE contournaient les restrictions du système de fichiers (lire les octets de la clé avec node:fs)
 * `Amelioration` Réduction de la latence du pont grâce au transport JNI/Binder par défaut et aux réponses via la boucle événementielle Node, avec repli sur fichiers et limites des appels en attente
 * `Amelioration` Restauration des exports natifs Node.js pour stream, crypto, timers, util, node:test et les modules associés, avec maintien des limites du système de fichiers et des répertoires hôtes
 * `Amelioration` Les workers natifs suivent le parallélisme CPU (huit maximum), les réglages réseau et fichiers de chaque exécution et les plafonds de ressources par requête; aucun délai de tâche de pool par défaut, avec de vrais exemples CPU et WASM
 * `Amelioration` WASI natif reste désactivé pour préserver les limites du système de fichiers; suppression des deux exemples WASI désactivés, avec WebAssembly et les workers WASM toujours disponibles
 * `Amelioration` Les exemples OCR demandent le consentement Android et reconnaissent de vraies images; les plugins OCR ou codes-barres indisponibles renvoient une erreur unavailable lisible, et les échecs de reconnaissance restent des erreurs
 * `Amelioration` Les scripts Node prennent en charge un démarrage asynchrone négocié, libèrent les threads Binder pendant les longues exécutions et renvoient les modifications de l’espace de travail à la fin, avec compatibilité des anciens hôtes synchrones
+* `Dependance` Mise à jour de Node.js 24.5.0 → 24.21.0 avec des bibliothèques Android compilées depuis les sources pour les trois ABI
 
 # v1.2.0
 

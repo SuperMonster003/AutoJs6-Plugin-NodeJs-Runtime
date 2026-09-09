@@ -1,11 +1,11 @@
 {
   "$name": "简体中文",
   "text_current_lowercase": "当前",
-  "text_plugin_synopsis": "用于 AutoJs6 的 Node.js 24.5.0 原生运行时插件",
+  "text_plugin_synopsis": "用于 AutoJs6 的 Node.js 24.21.0 原生运行时插件",
   "h3_languages_with_ascii": "语言 (Languages)",
   "p_languages_all_supported_for_readme": "当前 README.md 支持以下语言",
   "h3_introduction": "简介",
-  "p_introduction": "AutoJs6 Node.js Runtime 插件为 AutoJs6 提供内嵌 Node.js 24.5.0 原生运行时, 用于执行 Node.js 脚本和插件化运行时任务.",
+  "p_introduction": "AutoJs6 Node.js Runtime 插件为 AutoJs6 提供内嵌 Node.js 24.21.0 原生运行时, 用于执行 Node.js 脚本和插件化运行时任务.",
   "h3_functions": "功能",
   "features": [
     "提供 `nodejs` 插件服务, 插件 ID 为 `nodejs`, 引擎为 `nodejs`.",
@@ -32,7 +32,7 @@
   "quick_start_debug": "脚本报错时控制台显示 JS 栈与一行错误码 (如 `ERR_AUTOJS6_NODE_SCRIPT_CANCELLED`); 更多细节用 `adb logcat -s AutoJs6NodeBridge NodeJsRuntimePlugin` 查看插件进程日志. 宿主 API 可用性以 `docs/HOST-API.md` 为准.",
   "h3_runtime_profile": "运行时资料",
   "runtime_capabilities": [
-    "运行时槽位: `node24_5`.",
+    "运行时槽位: `node24_21`.",
     "插件 ID: `nodejs`, 引擎: `nodejs`.",
     "运行时服务动作: `org.autojs.plugin.nodejs.RUNTIME`.",
     "原生运行库: `libnode.so` 和 `libautojs6-node.so`.",
