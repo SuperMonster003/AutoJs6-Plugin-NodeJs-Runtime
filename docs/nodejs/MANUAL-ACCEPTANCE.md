@@ -73,8 +73,20 @@ await events.observeToast();
 
 三项分别需要 `events + events.key`、`events + events.notification` 和
 `events + events.toast`。host-events 样例已声明这些能力并处理独立来源的权限错误。
-先启用 AutoJs6 无障碍, 日志出现 READY 后按设备实体音量加键, 应看到
-keyCode=24、action=down 和 `sample.host-events=PASS`。脚本不会吞掉按键。
+按以下步骤检查实体按键:
+
+1. 启用 AutoJs6 无障碍, 并在 AutoJs6 设置的 "脚本运行" 中暂时关闭 "使用音量加键控制脚本运行"。
+   该设置开启时, 音量加键会先触发宿主停止脚本, 结果可能是 `ERR_AUTOJS6_NODE_QUEUE_CANCELLED`。
+2. 从 host-events 项目入口运行, 日志出现 READY 后在 45 秒内按设备实体音量加键。
+   应看到 keyCode=24、action=down 和 `sample.host-events=PASS`。脚本不会吞掉按键。
+3. 测试结束后恢复原来的音量键控制设置。不要直接改用音量减键, 它可能绑定了宿主录制功能。
+
+项目中的 `node.timeoutMs: 65000` 是正确配置。2026-09-10 修复前的宿主项目启动路径
+没有读取此字段, 导致等待约 5 秒就超时, 错误中的 4998 ms 是扣除派发耗时后的剩余预算。
+需要安装包含宿主提交 `36d1e8c52` (`NodeProjectRunner` 超时修复) 的版本;
+仅升级 Node 插件不能修复此入口。原 Node 1.3.0 插件可配合修复后的宿主继续使用。
+修复后超时优先级为启动请求显式覆盖值、project.json 的正数 node.timeoutMs、既有的 5000 ms 默认值。
+
 通知使用权在系统特殊应用访问设置中单独启用; 开启观察后可从另一应用发通知。
 Toast 观察同样可在等待期间从其他应用触发。保留各来源的实际日志, 不把某一源的
 PASS 代替其余来源的检查。

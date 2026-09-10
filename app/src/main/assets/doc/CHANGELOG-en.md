@@ -8,3 +8,4 @@
 * `Fix` The project validator no longer rejects absolute fs paths or parent directories as FS_OUTSIDE_SCOPE; Android determines actual file access
 * `Improvement` Added standalone Android event and three-second audio recording projects, with project declarations and manual steps for screen capture, OCR, physical keys and MediaInfo
 * `Improvement` Screen capture matching, screen OCR and three-second AAC recording passed manual device acceptance; the corresponding examples and Pro parity snippets using the same calls are now stable
+* `Improvement` The event acceptance example explains temporarily disabling the host volume-up stop shortcut; the updated host reads project.json node.timeoutMs so longer waits no longer time out after about five seconds

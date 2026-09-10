@@ -8,3 +8,4 @@
 * `Correccion` El validador de proyectos deja de rechazar rutas fs absolutas o directorios superiores con FS_OUTSIDE_SCOPE; Android determina el acceso real
 * `Mejora` Proyectos independientes de eventos Android y grabación de audio de tres segundos, con declaraciones y pasos manuales para captura, OCR, teclas físicas y MediaInfo
 * `Mejora` La búsqueda en capturas, el OCR y la grabación AAC de tres segundos superaron la validación manual en un dispositivo; sus ejemplos y fragmentos de paridad Pro con las mismas llamadas son estables
+* `Mejora` El ejemplo de validación de eventos indica cómo desactivar temporalmente el atajo de parada con subir volumen; el host actualizado lee node.timeoutMs de project.json para permitir esperas de más de cinco segundos
