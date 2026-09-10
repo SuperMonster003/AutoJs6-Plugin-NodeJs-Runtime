@@ -44,7 +44,7 @@ Kotlin standard library and JetBrains annotations use Apache License 2.0. Androi
 
 ELF segment alignment, APK ZIP alignment and execution on a device with 16 KB pages are separate checks. This plugin uses `jniLibs.useLegacyPackaging = true`, so native libraries are compressed in the APK and extracted on installation. Direct memory mapping of uncompressed ZIP entries does not apply; ELF alignment still matters after extraction. Release APKs must nevertheless pass `zipalign -c -P 16 -v 4` for their actual entries.
 
-Use the selected NDK's `llvm-readelf -lW <library.so>` for each ABI's `libnode.so`, `libautojs6-node.so` and `libc++_shared.so`, and inspect every `LOAD` segment's alignment. Runtime validation must first confirm `adb -s <serial> shell getconf PAGE_SIZE` returns `16384`, then run SimpleRunSmokeTest and NpmEcosystemSmokeTest. Current source-runtime validation is recorded in Roadmap M17.1/M17.2; the historical Node 24.5 checks below are from M11.6; ELF checks alone do not establish coverage of all 16 KB devices.
+Use the selected NDK's `llvm-readelf -lW <library.so>` for each ABI's `libnode.so`, `libautojs6-node.so` and `libc++_shared.so`, and inspect every `LOAD` segment's alignment. Runtime validation must first confirm `adb -s <serial> shell getconf PAGE_SIZE` returns `16384`, and check `KernelPageSize`/`MMUPageSize` in `/proc/self/smaps` to distinguish native 16 KB pages from userspace simulation, then run SimpleRunSmokeTest and NpmEcosystemSmokeTest. Current source-runtime validation is recorded in Roadmap M17.1/M17.2/M17.2a; the historical Node 24.5 checks below are from M11.6; ELF checks alone do not establish coverage of all 16 KB devices.
 
 On 2026-09-08 the Node 24.5 Debug build was checked with NDK r28c `llvm-readelf -lW`:
 
@@ -56,7 +56,7 @@ On 2026-09-08 the Node 24.5 Debug build was checked with NDK r28c `llvm-readelf 
 
 This corrects the earlier Roadmap assumption that every library across all three ABIs had 0x4000 alignment. The [Android 16 KB guidance](https://developer.android.com/guide/practices/page-sizes#elf-alignment) identifies arm64-v8a and x86_64 as the ABIs to check for 16 KB alignment. The 32-bit artifacts are retained with their actual values, without a 16 KB support claim.
 
-The API 36 x86_64 AVD reported PAGE_SIZE=16384 and passed 25/25 instrumentation cases, including SimpleRunSmokeTest, the 15-package NpmEcosystemSmokeTest and all 11 conformance cases. A Xiaomi 23046RP50C on API 35 reported PAGE_SIZE=4096 and passed the same 25/25 cases. These results establish tested x86_64 16 KB behavior and arm64 4 KB behavior; arm64 execution on a 16 KB device has not been tested.
+The API 36 x86_64 AVD reported PAGE_SIZE=16384 and passed 25/25 instrumentation cases, including SimpleRunSmokeTest, the 15-package NpmEcosystemSmokeTest and all 11 conformance cases. A Xiaomi 23046RP50C on API 35 reported PAGE_SIZE=4096 and passed the same 25/25 cases. These results establish tested x86_64 userspace 16 KB behavior and arm64 4 KB behavior; arm64 execution on a 16 KB device had not been tested at that point.
 
 The signed Release APKs (versionCode 105) were subsequently checked with `apksigner verify --verbose` and `zipalign -c -P 16 -v 4`, all four passing. The extracted Release ELF libraries have the same alignment values shown above, and all native ZIP entries are compressed. The arm64 APK on the Xiaomi device, armeabi-v7a APK on a Sony G8441 (API 28), x86_64 APK on the 16 KB AVD, and universal APK on the Xiaomi device each passed SimpleRunSmokeTest, NpmEcosystemSmokeTest, PluginInfoContractTest and PluginManifestContractTest: 16/16 Release cases in total. Both complete notice files were also verified byte-for-byte inside every Release APK.
 
@@ -75,4 +75,26 @@ The x86_64 AVD reports `getconf PAGE_SIZE=16384` but
 16 KB **userspace simulation on a 4 KB kernel**, as described by the
 [AOSP page-size test helpers](https://android.googlesource.com/platform/external/ltp/+/1833505658bf5e3fae06bad5b6f914f790f6703a/include/pgsize_helpers.h).
 It does not establish coverage on a physical arm64 device with a 16 KB kernel;
-that environment remains untested. The temporary AVD was closed after testing.
+that environment remained untested in the 2026-09-09 run. The temporary AVD was
+closed after testing.
+
+On 2026-09-10 the current 1.4.0 development build completed validation on a
+physical Samsung SM-A566B, Android 16 / API 36, arm64-v8a, through the
+user-provided RDB connection. `getconf PAGE_SIZE=16384` and both shell and actual
+Node worker native-library mappings reported `KernelPageSize: 16 kB` and
+`MMUPageSize: 16 kB`. Debug build152 passed 53 regular cases plus separate
+Inspector and cold-start cases; paired, minified Release build153 passed the
+same 53 regular cases. Host media/image integration passed 9 cases with each
+Node build, including 1080p RGBA Buffer transfers over JNI and file transports.
+The universal Release APK passed four installation/runtime/contract cases on
+the same device. These final groups total 130 passing cases with no skips.
+
+Initial host integration had three dependency-configuration failures: OpenCV
+was absent and MediaInfo 2.0 did not advertise snapshot v2. Installing OpenCV
+1.1.0 and the existing MediaInfo 2.1.0 development APK resolved these failures;
+the first run remains recorded. All four collected Release APKs passed signature
+and ZIP-alignment checks; every LOAD in the arm64 Debug/Release Node, bridge and
+C++ runtime libraries has `0x4000` alignment. This adds native arm64 16 KB
+execution evidence for the tested device and artifacts. Details, APK hashes,
+scope and remaining manual acceptance are in the
+[Samsung acceptance record](docs/ARM64-16KB-ACCEPTANCE-20260910.md).
