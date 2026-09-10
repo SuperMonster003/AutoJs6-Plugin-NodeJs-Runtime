@@ -8,7 +8,8 @@
     "v1.4.0": {
       "released_date": "2026/09/10",
       "improvement": [
-        "Proyectos independientes de eventos Android y grabación de audio de tres segundos, con declaraciones y pasos manuales para captura, OCR, teclas físicas y MediaInfo"
+        "Proyectos independientes de eventos Android y grabación de audio de tres segundos, con declaraciones y pasos manuales para captura, OCR, teclas físicas y MediaInfo",
+        "La búsqueda en capturas, el OCR y la grabación AAC de tres segundos superaron la validación manual en un dispositivo; sus ejemplos y fragmentos de paridad Pro con las mismas llamadas son estables"
       ],
       "fix": [
         "Las rutas de MediaInfo e imágenes admiten rutas absolutas, directorios superiores y nombres válidos; las grabaciones siguen las mismas reglas de acceso de Android con el anfitrión actualizado",

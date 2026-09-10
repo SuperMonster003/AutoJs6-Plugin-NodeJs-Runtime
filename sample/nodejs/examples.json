@@ -80,8 +80,8 @@
     },
     {
       "name": "screenshot-find-image",
-      "status": "partial",
-      "reason": "Requests Android capture consent and uses the host OpenCV plugin; image fixture tests pass, while the manual screenshot acceptance check is pending.",
+      "status": "stable",
+      "reason": "Physical-device capture consent, full-screen PNG and saved-template matching passed; Android capture permission and the host OpenCV plugin are required.",
       "tags": [
         "main-app",
         "bridge",
@@ -174,8 +174,8 @@
     },
     {
       "name": "ocr-automation",
-      "status": "partial",
-      "reason": "Real ML Kit OCR and QR recognition on host UI screenshots passes device tests; the MediaProjection consent acceptance check remains pending.",
+      "status": "stable",
+      "reason": "Physical-device MediaProjection capture and recognition of the host UI passed; Android capture permission and an enabled OCR plugin are required.",
       "tags": [
         "main-app",
         "bridge",
@@ -574,8 +574,8 @@
     },
     {
       "name": "audio-recording",
-      "status": "partial",
-      "reason": "Requires explicit microphone permission and a manual three-second recording parsed by MediaInfo.",
+      "status": "stable",
+      "reason": "A physical three-second microphone recording produced nonempty AAC audio parsed by MediaInfo; Android microphone permission and MediaInfo are required.",
       "tags": [
         "main-app",
         "bridge",

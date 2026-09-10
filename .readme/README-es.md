@@ -120,6 +120,7 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 * `Correccion` Los errores de capacidades del puente indican las declaraciones node.permissions que faltan sin exigir el perfil pro_compat_opt_in, usado solo para diagnóstico
 * `Correccion` El validador de proyectos deja de rechazar rutas fs absolutas o directorios superiores con FS_OUTSIDE_SCOPE; Android determina el acceso real
 * `Mejora` Proyectos independientes de eventos Android y grabación de audio de tres segundos, con declaraciones y pasos manuales para captura, OCR, teclas físicas y MediaInfo
+* `Mejora` La búsqueda en capturas, el OCR y la grabación AAC de tres segundos superaron la validación manual en un dispositivo; sus ejemplos y fragmentos de paridad Pro con las mismas llamadas son estables
 
 # v1.3.0
 
