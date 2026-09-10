@@ -5,6 +5,7 @@
   const nativeEvents = require("node:events");
   console.log("native EventEmitter=" + typeof nativeEvents);
   console.log("Android observers=" + [typeof events.observeNotification, typeof events.observeToast, typeof events.observeKey].join(","));
+  console.log('Before testing, turn off AutoJs6 Settings > Script running > Use "Volume Up" key to control the script running. Restore it after testing.');
   let timer;
   let finish;
   const received = new Promise(resolve => { finish = resolve; });
@@ -24,7 +25,7 @@
     }
     console.log("READY: press the physical VOLUME_UP key within 45 seconds.");
     timer = setTimeout(() => finish(null), 45000);
-    if (!await received) throw new Error("No physical VOLUME_UP event arrived. Check AutoJs6 accessibility access and rerun.");
+    if (!await received) throw new Error("No physical VOLUME_UP event arrived. Check AutoJs6 accessibility access and the volume-key stop setting, then rerun.");
     console.log("sample.host-events=PASS");
   } finally {
     clearTimeout(timer);

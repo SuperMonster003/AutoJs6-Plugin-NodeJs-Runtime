@@ -562,7 +562,7 @@
     {
       "name": "host-events",
       "status": "partial",
-      "reason": "Requires a physical volume-up press and Android accessibility; notification and toast sources have separate permissions.",
+      "reason": "Requires a physical volume-up press, Android accessibility and temporarily disabling the host volume-up stop shortcut; notification and toast sources have separate permissions. The host must honor project.json node.timeoutMs.",
       "tags": [
         "main-app",
         "bridge",

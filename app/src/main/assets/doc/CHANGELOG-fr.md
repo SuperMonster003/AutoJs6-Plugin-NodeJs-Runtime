@@ -8,3 +8,4 @@
 * `Correction` Le validateur ne rejette plus les chemins fs absolus ou les dossiers parents avec FS_OUTSIDE_SCOPE; Android détermine l’accès réel aux fichiers
 * `Amelioration` Projets autonomes pour les événements Android et un enregistrement audio de trois secondes, avec déclarations et étapes de validation manuelle pour la capture, l'OCR, les touches physiques et MediaInfo
 * `Amelioration` La recherche dans les captures, l'OCR et l'enregistrement AAC de trois secondes ont passé la validation manuelle sur appareil; les exemples et extraits de parité Pro utilisant les mêmes appels sont stables
+* `Amelioration` L’exemple de validation des événements indique de désactiver temporairement le raccourci d’arrêt par volume haut; l’hôte mis à jour lit node.timeoutMs dans project.json pour permettre les attentes supérieures à cinq secondes

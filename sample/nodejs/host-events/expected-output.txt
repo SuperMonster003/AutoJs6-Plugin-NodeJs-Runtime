@@ -1,4 +1,5 @@
 native EventEmitter=function
 Android observers=function,function,function
+Before testing, turn off AutoJs6 Settings > Script running > Use "Volume Up" key to control the script running. Restore it after testing.
 READY: press the physical VOLUME_UP key within 45 seconds.
 sample.host-events=PASS

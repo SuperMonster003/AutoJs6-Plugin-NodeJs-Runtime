@@ -206,7 +206,9 @@ cancelScript 和 postMessage 按 executionId 路由, 取消排队脚本不会执
 
 `await observeNotification()` 另需 `events.notification` 和 [Android NotificationListenerService 通知读取授权](https://developer.android.com/reference/android/service/notification/NotificationListenerService), 回调包含系统通知 id/key/packageName/title/text/postTime; 不通过自行调用脚本监听器模拟通知。`observeToast()` 另需 `events.toast` 与无障碍, 沿用宿主对外部应用 Toast 的观察范围。`observeKey()` 另需 `events.key` 与无障碍, 复用 input_observer 的真实按键来源, 事件只观察、不消费。三个子能力均须显式声明, 不由 events 根能力隐含授予; 缺少 Android 授权返回 permission-denied, 已授权但系统服务未连接返回 unavailable。
 
-每种来源每个脚本保留一个订阅, 重复 observe 返回相同订阅; close 后可重新订阅。返回对象和模块支持 on/once/off, 返回对象可 close/drainEvents。JNI 使用 M12 的现有推送通道, file 兼容模式以 drainEvents 工作。脚本结束释放监听器和广播接收器, 通知/无障碍服务断开会关闭对应订阅。`await events.close()` 关闭全部来源并清除模块监听器。真机物理按键与 MediaProjection 授权仍按 Roadmap 的人工验收要求记录。
+每种来源每个脚本保留一个订阅, 重复 observe 返回相同订阅; close 后可重新订阅。返回对象和模块支持 on/once/off, 返回对象可 close/drainEvents。JNI 使用 M12 的现有推送通道, file 兼容模式以 drainEvents 工作。脚本结束释放监听器和广播接收器, 通知/无障碍服务断开会关闭对应订阅。`await events.close()` 关闭全部来源并清除模块监听器。真机物理按键仍按 Roadmap 的人工验收要求记录。
+
+`host-events` 人工样例等待 45 秒, 项目配置 `node.timeoutMs: 65000`。宿主提交 `36d1e8c52` 修正项目启动忽略该字段的问题, 超时优先级为启动参数显式覆盖值、项目的正数配置、既有 5000 ms 默认值; 原有 Node 1.3.0 可使用此修复。测试音量加键前须暂时关闭宿主 "使用音量加键控制脚本运行", 否则全局停止快捷键会取消脚本。测试后恢复设置; 通知读取授权与 Toast 无障碍权限分别检查。完整步骤见 [人工验收指南](nodejs/MANUAL-ACCEPTANCE.md)。
 
 ```javascript
 const events = require("autojs6:events");
