@@ -39,7 +39,10 @@ or accessibility authority examples.
 to show a draggable window for three seconds; its text and alpha change, events
 are logged, and the window closes. `media-recorder` requires explicit Android
 microphone permission before it records three seconds to `record.m4a` in the
-workspace. The foreground notification offers a stop action. Its physical
-recording acceptance remains pending, so the snippet is still partial. Neither
+workspace. The foreground notification offers a stop action. The shared recording
+and MediaInfo flow passed physical-device acceptance on 2026-09-10, so this snippet
+is stable. The same receipt promotes `screenshot-ocr` after MediaProjection capture
+and recognition of the host UI. See the [manual acceptance record](../../../docs/nodejs/MANUAL-ACCEPTANCE-20260910.md).
+Neither
 snippet prints PASS for a skipped permission or missing provider. Playback and
 MediaStore remain outside this recording example.

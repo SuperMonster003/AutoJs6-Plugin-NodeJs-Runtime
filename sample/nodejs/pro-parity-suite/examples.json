@@ -73,17 +73,18 @@
     },
     {
       "id": "media-recorder",
-      "status": "partial",
+      "status": "stable",
       "title": "Media, mediainfo, and recorder migration",
       "file": "snippets/media-recorder.cjs",
       "targetProfile": "pro_compat_opt_in",
       "requiredCapabilities": ["media", "media.audio", "media.metadata", "media.recording"],
       "expectedOutput": "sample.pro-parity-suite.media-recorder=PASS",
-      "packagedBehavior": "records 3 seconds of AAC to the workspace with microphone permission and foreground disclosure; physical recording acceptance is pending",
+      "packagedBehavior": "records 3 seconds of AAC with microphone permission and foreground disclosure; the shared recording and MediaInfo flow passed physical-device acceptance",
       "skipReason": "microphone permission or MediaInfo plugin may be unavailable"
     },
     {
       "id": "screenshot-ocr",
+      "status": "stable",
       "title": "screenshot plus OCR migration",
       "file": "snippets/screenshot-ocr.cjs",
       "targetProfile": "pro_compat_opt_in",

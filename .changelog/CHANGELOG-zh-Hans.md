@@ -13,6 +13,7 @@
 * `修复` 桥能力未声明错误直接提示缺少的 node.permissions, 不再要求仅作诊断且不授予权限的 pro_compat_opt_in profile
 * `修复` 项目向导不再将普通 fs 绝对路径和父目录路径误报为 FS_OUTSIDE_SCOPE, 实际文件访问交由 Android 判断
 * `优化` 提供 Android 事件与 3 秒录音独立项目, 补齐截屏, OCR, 实体按键和 MediaInfo 的项目声明及人工验收步骤
+* `优化` 截屏找图, 屏幕 OCR 与 3 秒 AAC 录音完成真机人工验收, 对应样例及复用相同调用链的 Pro 对齐片段转为稳定状态
 
 # v1.3.0
 
