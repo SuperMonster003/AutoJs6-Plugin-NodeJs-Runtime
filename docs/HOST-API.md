@@ -28,6 +28,16 @@
 
 此版本不接受 SQLite `file:` URI 字符串和空临时路径, 原生扩展加载仍拒绝。延续原 24.5 适配器的文件路径检查策略, SQL 中的 `ATTACH`、`VACUUM INTO`、`PRAGMA temp_store_directory/data_store_directory` 返回 `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED`, 避免绕过文件路径检查; 使用另一个 `DatabaseSync` 或 `sqlite.backup()` 完成文件操作。普通 `VACUUM`、事务和包含这些单词的查询数据仍可用。
 
+## MediaInfo 多流查询
+
+`require('mediainfo')` 和 compat facade 的 `mediainfo` 均提供异步查询. `get(path, streamKind, parameter, options?)` 的 `options.streamNumber` 是从 0 开始的整数, 缺省为 0; `options.infoKind` 缺省为 `TEXT`, 支持 `NAME`, `TEXT`, `MEASURE`, `OPTIONS`, `NAME_TEXT`, `MEASURE_TEXT`, `INFO`, `HOWTO`, `DOMAIN`, 忽略大小写. 例如 `await mi.get('sample.mka', 'audio', 'SamplingRate', {streamNumber: 1, infoKind: 'MEASURE'})` 查询第 2 条音轨的采样率单位.
+
+`await mi.countGet(path, streamKind)` 返回同类流数量, 类型不存在时为 0, 原生文件打开失败时为 -1. `capabilities()` 返回的 `streamNumber`, `streamCount` 和 `infoKinds` 表示索引查询, 流计数及详细字段能力. 非缺省索引或 infoKind 查询会先协商宿主能力; 不支持时抛出包含 `MEDIAINFO_QUERY_UNSUPPORTED` 的错误, 防止旧宿主忽略选项后返回第 1 条流. 负数, 小数, 数字字符串及未知 infoKind 均拒绝. 原有不带选项的 get 调用保持兼容.
+
+报告的 `Complete name` 与 `get(path, 'general', 'CompleteName')` 使用宿主解析后的原始路径. 插件私有缓存路径只用于内部解析; snapshot 的 `fileName` (v1) 和 `file.name` (v2) 继续为显示文件名. `Info_Parameters` 尚未开放.
+
+配套宿主接入提交为 AutoJs6 `b3b3b29dc`; 宿主与本插件均已整合至主分支, 并在 ARM64 16 KB 三星设备验证真实 MediaInfo 调用.
+
 ## 标准输入与宿主消息
 
 `process.stdin` 是 Node 原生 `Readable`, 支持 `readline` / `readline/promises`、`data` 事件、编码、管道及异步迭代。读取输入会保持脚本存活; 暂停、关闭 readline、EOF 或取消执行会释放相应等待。`stdin.unref()` 可取消它对事件循环的保活, `ref()` 恢复。`host-input` 样例连续询问两行, 使用支持输入的新宿主时控制台自动显示输入框。
@@ -79,7 +89,7 @@
 | `media_projection` | requestScreenCapture, nextImage, stop | 需用户确认 Android 录屏授权 |
 | `recorder` | getStatus, start, stop | 需 media + media.recording 及 Android RECORD_AUDIO; 真机录音 Check 待补 |
 | `media` | getAudioStreamVolume/MaxVolume/Info, setAudioStreamVolume | 需 media + media.audio; 遵循 Android 音量/DND 策略 |
-| `mediainfo` | read, get, capabilities (Android 可访问的文件路径; 缺省保持 Node v1, 插件明确宣告后可显式请求插件 v1/v2) | — |
+| `mediainfo` | read, get, countGet, capabilities (Android 可访问的文件路径; 缺省保持 Node v1, 插件明确宣告后可显式请求插件 v1/v2) | — |
 | `ui.overlay` | show, update, drainEvents, close, closeAll, hasPermission, openPermissionSettings | 需 SYSTEM_ALERT_WINDOW; 真实窗口、属性更新、拖动、推送与退出清理 |
 | `package_manager` (`npm` 为其别名) | list, verify, prune, planInstall/Update/Remove, install, update, remove (app 私有本地库) | npm CLI / registry 下载 / 生命周期脚本 |
 | `input_observer` | observeKeys, drainEvents, close, getAvailableSources (fake/accessibility) | 实源需可运行的无障碍服务; 不拦截按键, touch/intercept 仍拒绝 |

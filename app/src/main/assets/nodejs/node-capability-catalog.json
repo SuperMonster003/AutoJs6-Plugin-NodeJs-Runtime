@@ -1735,6 +1735,14 @@
       },
       {
         "module": "mediainfo",
+        "method": "countGet",
+        "requiredCapabilities": [
+          "media",
+          "media.metadata"
+        ]
+      },
+      {
+        "module": "mediainfo",
         "method": "get",
         "requiredCapabilities": [
           "media",

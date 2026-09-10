@@ -20691,19 +20691,58 @@ std::string buildEmbeddedScriptExecutionSource(
     function get(path, streamKind, parameter, options) {
       let target;
       let kind;
+      let query;
       try {
         target = __autojs6_mediainfo_path(path, "get");
         kind = __autojs6_mediainfo_stream_kind(streamKind, "get");
+        const input = __autojs6_media_options(options);
+        if (input.streamNumber !== undefined || input.infoKind !== undefined) {
+          const streamNumber = input.streamNumber === undefined ? 0 : input.streamNumber;
+          if (!Number.isInteger(streamNumber) || streamNumber < 0 || streamNumber > 2147483647) {
+            throw new TypeError("MediaInfo streamNumber must be a non-negative integer no greater than 2147483647.");
+          }
+          if (input.infoKind !== undefined && typeof input.infoKind !== "string") {
+            throw new TypeError("MediaInfo infoKind must be a string.");
+          }
+          const infoKind = input.infoKind === undefined ? "TEXT" : input.infoKind.trim().toUpperCase();
+          if (!["NAME", "TEXT", "MEASURE", "OPTIONS", "NAME_TEXT", "MEASURE_TEXT", "INFO", "HOWTO", "DOMAIN"].includes(infoKind)) {
+            throw new TypeError("Unsupported MediaInfo infoKind: " + input.infoKind);
+          }
+          query = { streamNumber, infoKind };
+        }
       } catch (error) {
         return Promise.reject(error);
       }
-      return __autojs6_call_autojs(
+      const args = [target, kind, parameter === undefined || parameter === null ? "" : String(parameter)];
+      if (query) args.push(query);
+      const ready = query && (query.streamNumber !== 0 || query.infoKind !== "TEXT")
+        ? capabilities(options).then(function(value) {
+          if (!value || value.streamNumber !== true || !Array.isArray(value.infoKinds) || !value.infoKinds.includes(query.infoKind)) {
+            throw new Error("MEDIAINFO_QUERY_UNSUPPORTED: host or plugin does not support the requested query options.");
+          }
+        }) : Promise.resolve();
+      return ready.then(function() { return __autojs6_call_autojs(
         "mediainfo",
         "get",
-        [target, kind, parameter === undefined || parameter === null ? "" : String(parameter)],
+        args,
         __autojs6_media_bridge_options("mediainfo", "get", options, 10000)
-      ).then(function(value) {
+      ); }).then(function(value) {
         return value === undefined || value === null ? "" : String(value);
+      });
+    }
+    function countGet(path, streamKind, options) {
+      let target;
+      let kind;
+      try {
+        target = __autojs6_mediainfo_path(path, "countGet");
+        kind = __autojs6_mediainfo_stream_kind(streamKind, "countGet");
+      } catch (error) { return Promise.reject(error); }
+      return capabilities(options).then(function(value) {
+        if (!value || value.streamCount !== true) {
+          throw new Error("MEDIAINFO_QUERY_UNSUPPORTED: host or plugin does not support stream counting.");
+        }
+        return __autojs6_call_autojs("mediainfo", "countGet", [target, kind],
+          __autojs6_media_bridge_options("mediainfo", "countGet", options, 10000));
       });
     }
     function capabilities(options) {
@@ -20720,6 +20759,7 @@ std::string buildEmbeddedScriptExecutionSource(
     Object.defineProperties(facade, {
       read: { value: read, enumerable: true },
       get: { value: get, enumerable: true },
+      countGet: { value: countGet, enumerable: true },
       capabilities: { value: capabilities, enumerable: true }
     });
     __autojs6_limited_mediainfo_cache = Object.freeze(facade);

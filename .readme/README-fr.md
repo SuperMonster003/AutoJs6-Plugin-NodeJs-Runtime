@@ -113,8 +113,9 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 # v1.4.0
 
-###### Non publié
+###### 2026/09/10
 
+* `Ajout` Les requêtes MediaInfo prennent en charge streamNumber à partir de 0, countGet et infoKind pour les unités, descriptions et noms lisibles; Rhino et Node conservent TEXT sur le premier flux par défaut et négocient les capacités du plugin
 * `Correction` Les chemins MediaInfo et image acceptent les chemins absolus, les dossiers parents et les noms valides; les enregistrements suivent les mêmes droits Android avec un hôte mis à jour
 * `Correction` Les erreurs de capacité du pont indiquent les déclarations node.permissions manquantes sans exiger le profil pro_compat_opt_in réservé au diagnostic
 * `Correction` Le validateur ne rejette plus les chemins fs absolus ou les dossiers parents avec FS_OUTSIDE_SCOPE; Android détermine l’accès réel aux fichiers
