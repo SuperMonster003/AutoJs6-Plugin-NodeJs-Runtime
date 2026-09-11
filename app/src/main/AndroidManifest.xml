@@ -30,6 +30,10 @@
         android:hasCode="true">
 
         <meta-data
+            android:name="org.autojs.plugin.contract.NATIVE_PAGE_ALIGNMENT"
+            android:value="16384" />
+
+        <meta-data
             android:name="org.autojs.plugin.WAKE_ACTIVITY"
             android:value=".WakeActivity" />
 
