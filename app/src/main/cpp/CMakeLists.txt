@@ -89,3 +89,9 @@ target_link_libraries(
         log
         dl
 )
+
+# Keep 16 KB alignment explicit when changing toolchains.
+target_link_options(autojs6-node PRIVATE
+    "-Wl,-z,max-page-size=16384"
+    "-Wl,-z,common-page-size=16384"
+)

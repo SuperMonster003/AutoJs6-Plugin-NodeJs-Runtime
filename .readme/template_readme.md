@@ -133,3 +133,6 @@ app/src/main/assets/doc/CHANGELOG-*.md
 - {{ text_link_autojs6_docs }}: {{ docs_autojs6_url }}
 - {{ text_link_nodejs_official }}: {{ nodejs_official_url }}
 - {{ text_link_runtime_build_plan }}: {{ runtime_build_plan_path }}
+
+
+[16 KB page alignment and build verification](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/docs/16kb.md)
