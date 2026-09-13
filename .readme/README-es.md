@@ -109,6 +109,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.4.2
+
+###### 2026/09/13
+
+* `Correccion` Informar solo de las ABI nativas presentes en el APK instalado
+
 # v1.4.1
 
 ###### 2026/09/13
@@ -127,34 +133,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 * `Mejora` Proyectos independientes de eventos Android y grabación de audio de tres segundos, con declaraciones y pasos manuales para captura, OCR, teclas físicas y MediaInfo
 * `Mejora` La búsqueda en capturas, el OCR y la grabación AAC de tres segundos superaron la validación manual en un dispositivo; sus ejemplos y fragmentos de paridad Pro con las mismas llamadas son estables
 * `Mejora` El ejemplo de validación de eventos indica cómo desactivar temporalmente el atajo de parada con subir volumen; el host actualizado lee node.timeoutMs de project.json para permitir esperas de más de cinco segundos
-
-# v1.3.0
-
-###### 2026/09/09
-
-* `Nuevo` Las suscripciones del puente Node.js envían eventos de sensores, WebSocket, interfaz, ventanas flotantes y entrada mediante callbacks existentes, con on/once/off, colas limitadas y compatibilidad con drainEvents
-* `Nuevo` Opción idleExitMs para cerrar el proceso Node.js inactivo y reconectar el siguiente script, con diagnóstico idleForMs y permanencia en memoria por defecto
-* `Nuevo` Los objetos globales fetch, Request, Response, Headers, FormData y WebSocket usan las API web nativas de Node; autojs6:fetch y autojs6:websocket mantienen la pila de red del host
-* `Nuevo` Añadido node:sqlite nativo con control de rutas, CRUD, transacciones y copias; reporteros nativos node:test y ejemplo ejecutable, con zod, cheerio, date-fns, mqtt y ws en el corpus npm sin conexión
-* `Nuevo` Entrada de consola con process.stdin / readline y mensajes JSON por ejecución mediante autojs6:host; postMessage v3 compatible con anfitriones anteriores
-* `Nuevo` Las sesiones de captura de Node.js usan el consentimiento de Android y el servicio en primer plano existente, con identificadores de imagen, guardado PNG/JPEG/WebP y limpieza al detenerse o terminar el script
-* `Nuevo` Los identificadores de imagen de Node.js admiten recorte, redimensionado, escala de grises, umbralización y búsqueda de plantillas o colores mediante el motor anfitrión, con imágenes independientes y limpieza al terminar
-* `Nuevo` Node.js image.toBytes transfiere píxeles PNG o RGBA mediante descriptores de archivo a Buffer nativos, por JNI o el puente de archivos, y libera los adjuntos tras su uso, al vencer el plazo o al terminar
-* `Nuevo` Las API Node device ofrecen información actual del sistema, pantalla, batería y memoria, control de brillo y pantalla encendida por tiempo limitado; media permite ajustar el volumen según los permisos de Android
-* `Nuevo` autojs6:events observa notificaciones Android, Toast externos, teclas de accesibilidad y eventos de pantalla o batería mediante callbacks, con permisos explícitos y limpieza automática; events nativo de Node mantiene su compatibilidad
-* `Nuevo` Node app admite servicios Android, broadcasts y consultas de aplicaciones instaladas; dialogs ofrece entrada de texto, selección y ventanas de progreso que se cierran al terminar el script, y keys incorpora acciones del sistema de accesibilidad
-* `Nuevo` Node recorder admite grabación AAC con permiso de micrófono, notificación, límite de duración y limpieza al terminar el script; ui.overlay admite cambios de propiedades, arrastre y envío de eventos
-* `Nuevo` Los scripts Node pueden ejecutarse en dos procesos independientes con una cola FIFO compartida y cancelación y entrada dirigidas a cada ejecución
-* `Correccion` Corregida la acumulación de solicitudes y respuestas del puente en scripts residentes: se eliminan las solicitudes completadas y se conservan las últimas 32 respuestas con un límite de tamaño para los diagnósticos
-* `Correccion` Corregidos los resultados exitosos prematuros que perdían errores asíncronos nativos y códigos de salida tardíos; la finalización sigue la salida final del bucle Node
-* `Correccion` Las URL de claves OpenSSL STORE eludían las restricciones del sistema de archivos (leer los bytes de la clave mediante node:fs)
-* `Mejora` Se redujo la latencia del puente con transporte JNI/Binder predeterminado y respuestas mediante el bucle de eventos de Node, conservando la alternativa por archivos y los límites de llamadas pendientes
-* `Mejora` Restauradas las exportaciones nativas Node.js de stream, crypto, timers, util, node:test y módulos relacionados, manteniendo los límites del sistema de archivos y los directorios del host
-* `Mejora` Los workers nativos usan el paralelismo de CPU (hasta ocho), heredan los ajustes de red y archivos y admiten límites por solicitud; las tareas del pool no tienen plazo predeterminado y los ejemplos CPU y WASM ejecutan workers reales
-* `Mejora` WASI nativo sigue desactivado para conservar los límites del sistema de archivos; se eliminan los dos ejemplos WASI desactivados y se mantienen WebAssembly y los workers WASM
-* `Mejora` Los ejemplos OCR solicitan el consentimiento de Android y reconocen imágenes reales; los plugins OCR o de códigos de barras no disponibles devuelven un error unavailable legible, y los fallos de reconocimiento siguen siendo errores
-* `Mejora` Los scripts de Node admiten inicio asíncrono negociado, liberan los hilos Binder durante ejecuciones prolongadas y devuelven los cambios del espacio de trabajo al finalizar, con compatibilidad para hosts síncronos anteriores
-* `Dependencia` Actualización de Node.js 24.5.0 → 24.21.0 con bibliotecas Android compiladas desde el código fuente para las tres ABI
 
 ##### Para mas historial de versiones
 

@@ -4,6 +4,12 @@
 
 ******
 
+# v1.4.2
+
+###### 2026/09/13
+
+* `Fix` Report only the native ABIs present in the installed APK
+
 # v1.4.1
 
 ###### 2026/09/13

@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.4.2": {
+      "released_date": "2026/09/13",
+      "fix": [
+        "Метаданные сообщают только о нативных ABI установленного APK"
+      ]
+    },
     "v1.4.1": {
       "released_date": "2026/09/13",
       "improvement": [

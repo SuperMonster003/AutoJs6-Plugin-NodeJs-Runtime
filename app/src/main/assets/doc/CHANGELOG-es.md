@@ -4,6 +4,12 @@
 
 ******
 
+# v1.4.2
+
+###### 2026/09/13
+
+* `Correccion` Informar solo de las ABI nativas presentes en el APK instalado
+
 # v1.4.1
 
 ###### 2026/09/13
