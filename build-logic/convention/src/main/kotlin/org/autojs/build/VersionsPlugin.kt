@@ -29,8 +29,6 @@ import org.gradle.api.Project
  * versions.sdkVersionCompile
  * versions.sdkVersionMin
  * versions.sdkVersionTarget
- * versions.sdkVersionTargetInrt
- * versions.vscodeExtRequiredVersion
  * ```
  */
 class VersionsPlugin : Plugin<Project> {
