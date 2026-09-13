@@ -8,7 +8,8 @@
     "v1.4.2": {
       "released_date": "2026/09/13",
       "fix": [
-        "Report only the native ABIs present in the installed APK"
+        "Report only the native ABIs present in the installed APK",
+        "Use English build dates in plugin metadata regardless of the build machine locale"
       ]
     },
     "v1.4.1": {

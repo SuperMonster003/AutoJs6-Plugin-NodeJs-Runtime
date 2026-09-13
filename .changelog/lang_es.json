@@ -8,7 +8,8 @@
     "v1.4.2": {
       "released_date": "2026/09/13",
       "fix": [
-        "Informar solo de las ABI nativas presentes en el APK instalado"
+        "Informar solo de las ABI nativas presentes en el APK instalado",
+        "Usar fechas de compilación en inglés independientemente del idioma de la máquina"
       ]
     },
     "v1.4.1": {

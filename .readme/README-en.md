@@ -114,6 +114,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/09/13
 
 * `Fix` Report only the native ABIs present in the installed APK
+* `Fix` Use English build dates in plugin metadata regardless of the build machine locale
 
 # v1.4.1
 
