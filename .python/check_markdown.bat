@@ -1,3 +1,4 @@
-@ECHO OFF
-py "%~dp0generate_markdown.py" --check
-EXIT /B %ERRORLEVEL%
+@echo off
+cd /d "%~dp0.."
+py .python/generate_markdown.py --check
+exit /b %errorlevel%

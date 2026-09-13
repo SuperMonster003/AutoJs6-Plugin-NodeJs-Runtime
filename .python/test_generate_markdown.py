@@ -34,7 +34,7 @@ class MarkdownCheckTest(unittest.TestCase):
         before = self.snapshot()
         result = self.run_generator("--check")
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn("Checked 35 generated files", result.stdout)
+        self.assertIn("Checked 25 generated files", result.stdout)
         self.assertEqual(before, self.snapshot())
 
     def test_missing_and_stale_outputs_fail_without_repairing_files(self):
