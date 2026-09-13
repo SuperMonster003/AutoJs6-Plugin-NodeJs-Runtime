@@ -10,6 +10,8 @@
 
 * `Fix` Report only the native ABIs present in the installed APK
 * `Fix` Use English build dates in plugin metadata regardless of the build machine locale
+* `Fix` Consistent version metadata in release packages and archives
+* `Fix` Workspace file compatibility on Android 7 while preserving file descriptor isolation
 
 # v1.4.1
 
