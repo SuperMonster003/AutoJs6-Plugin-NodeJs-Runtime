@@ -9,7 +9,9 @@
       "released_date": "2026/09/13",
       "fix": [
         "Report only the native ABIs present in the installed APK",
-        "Use English build dates in plugin metadata regardless of the build machine locale"
+        "Use English build dates in plugin metadata regardless of the build machine locale",
+        "Consistent version metadata in release packages and archives",
+        "Workspace file compatibility on Android 7 while preserving file descriptor isolation"
       ]
     },
     "v1.4.1": {

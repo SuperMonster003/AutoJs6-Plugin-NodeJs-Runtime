@@ -10,6 +10,8 @@
 
 * `Correction` Indiquer uniquement les ABI natives présentes dans l’APK installé
 * `Correction` Utiliser des dates de compilation en anglais indépendamment de la langue de la machine
+* `Correction` Métadonnées de version cohérentes dans les paquets et les archives de publication
+* `Correction` Compatibilité des fichiers de travail sous Android 7 en conservant l'isolation des descripteurs
 
 # v1.4.1
 

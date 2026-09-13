@@ -26,6 +26,13 @@ class Versions @JvmOverloads constructor(
     private val javaVersionInt: Int = System.getProperty("gradle.java.version.select").toInt()
     private val javaVersionInfoSuffix: String = System.getProperty("gradle.java.version.suffix", "")
 
+    private val buildNumberAutoIncrementEnabled = project.providers
+        .gradleProperty("autojs.gradle.build.number.auto.increment.enabled")
+        .map(String::toBoolean).getOrElse(false)
+    private val buildTimeUpdateEnabled = project.providers
+        .gradleProperty("autojs.gradle.build.time.update.enabled")
+        .map(String::toBoolean).getOrElse(false)
+
     private var isBuildNumberAutoIncremented = false
     private val minBuildTimeGap = Utils.hours2Millis(0.75)
 
@@ -101,12 +108,13 @@ class Versions @JvmOverloads constructor(
     }
 
     private fun updateProperties() {
+        if (!buildNumberAutoIncrementEnabled && !buildTimeUpdateEnabled) return
         val propsPath = bp.path
         val props = Properties().apply {
             FileInputStream(propsPath).use { load(it) }
         }
 
-        if (isBuildGapEnough) {
+        if (buildNumberAutoIncrementEnabled && isBuildGapEnough) {
             val isBuildAppRelease = gradle.startParameter.taskNames.any {
                 it.contains(Regex("^(:?app:)?assemble(app|inrt)release", IGNORE_CASE))
             }
@@ -115,7 +123,7 @@ class Versions @JvmOverloads constructor(
                 isBuildNumberAutoIncremented = true
             }
         }
-        props["BUILD_TIME"] = "${Date().time}"
+        if (buildTimeUpdateEnabled) props["BUILD_TIME"] = "${Date().time}"
 
         FileOutputStream(propsPath).use { out ->
             props.store(out, null)

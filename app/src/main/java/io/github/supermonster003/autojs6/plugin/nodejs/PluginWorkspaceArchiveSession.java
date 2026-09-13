@@ -54,6 +54,10 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
     static final int HARD_MAX_FILES = 65_536;
     static final long HARD_MAX_BYTES = 256L * 1024L * 1024L;
 
+    // Android Linux UAPI O_CLOEXEC (NDK asm-generic/fcntl.h: 02000000).
+    // The flag works at minSdk 24, but its OsConstants Java field was added in API 27.
+    // Pass it to open atomically so spawned processes never inherit a temporary descriptor.
+    private static final int OPEN_CLOSE_ON_EXEC = 0x80000;
     private static final int COPY_BUFFER_BYTES = 32 * 1024;
     private static final int PROVIDER_TARGET_PRIVATE_MODE = 0600;
     private static final ProviderMaterializationClock SYSTEM_PROVIDER_MATERIALIZATION_CLOCK =
@@ -405,7 +409,7 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
         try {
             descriptor = Os.open(
                     target.getAbsolutePath(),
-                    OsConstants.O_RDONLY | OsConstants.O_CLOEXEC | OsConstants.O_NOFOLLOW,
+                    OsConstants.O_RDONLY | OPEN_CLOSE_ON_EXEC | OsConstants.O_NOFOLLOW,
                     0
             );
         } catch (ErrnoException error) {
@@ -553,7 +557,7 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
             boolean existedBeforeExclusiveOpen =
                     providerTargetExistsNoFollowForDiagnostics(target);
             int outputFlags = OsConstants.O_WRONLY | OsConstants.O_CREAT | OsConstants.O_EXCL |
-                    OsConstants.O_CLOEXEC | OsConstants.O_NOFOLLOW;
+                    OPEN_CLOSE_ON_EXEC | OsConstants.O_NOFOLLOW;
             java.io.FileDescriptor outputDescriptor;
             try {
                 outputDescriptor = Os.open(target.getAbsolutePath(), outputFlags, 0000);
@@ -1243,7 +1247,7 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
         try {
             descriptor = Os.open(
                     privateSource.getAbsolutePath(),
-                    OsConstants.O_RDONLY | OsConstants.O_CLOEXEC | OsConstants.O_NOFOLLOW,
+                    OsConstants.O_RDONLY | OPEN_CLOSE_ON_EXEC | OsConstants.O_NOFOLLOW,
                     0
             );
         } catch (ErrnoException error) {

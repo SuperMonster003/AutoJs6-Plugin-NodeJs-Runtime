@@ -9,7 +9,9 @@
       "released_date": "2026/09/13",
       "fix": [
         "Indiquer uniquement les ABI natives présentes dans l’APK installé",
-        "Utiliser des dates de compilation en anglais indépendamment de la langue de la machine"
+        "Utiliser des dates de compilation en anglais indépendamment de la langue de la machine",
+        "Métadonnées de version cohérentes dans les paquets et les archives de publication",
+        "Compatibilité des fichiers de travail sous Android 7 en conservant l'isolation des descripteurs"
       ]
     },
     "v1.4.1": {

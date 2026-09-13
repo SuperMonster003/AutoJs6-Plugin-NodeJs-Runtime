@@ -10,6 +10,8 @@
 
 * `Correccion` Informar solo de las ABI nativas presentes en el APK instalado
 * `Correccion` Usar fechas de compilación en inglés independientemente del idioma de la máquina
+* `Correccion` Metadatos de versión coherentes en los paquetes y archivos de publicación
+* `Correccion` Compatibilidad de archivos del espacio de trabajo en Android 7 con aislamiento de descriptores
 
 # v1.4.1
 
