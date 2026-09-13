@@ -114,6 +114,7 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 ###### 2026/09/13
 
 * `Correccion` Informar solo de las ABI nativas presentes en el APK instalado
+* `Correccion` Usar fechas de compilación en inglés independientemente del idioma de la máquina
 
 # v1.4.1
 

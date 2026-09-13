@@ -114,6 +114,7 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 ###### 2026/09/13
 
 * `Correction` Indiquer uniquement les ABI natives présentes dans l’APK installé
+* `Correction` Utiliser des dates de compilation en anglais indépendamment de la langue de la machine
 
 # v1.4.1
 
