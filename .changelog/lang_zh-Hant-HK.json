@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.4.2": {
+      "released_date": "2026/09/13",
+      "fix": [
+        "插件資訊只報告目前安裝包內實際存在的原生 ABI"
+      ]
+    },
     "v1.4.1": {
       "released_date": "2026/09/13",
       "improvement": [

@@ -4,6 +4,12 @@
 
 ******
 
+# v1.4.2
+
+###### 2026/09/13
+
+* `Correction` Indiquer uniquement les ABI natives présentes dans l’APK installé
+
 # v1.4.1
 
 ###### 2026/09/13

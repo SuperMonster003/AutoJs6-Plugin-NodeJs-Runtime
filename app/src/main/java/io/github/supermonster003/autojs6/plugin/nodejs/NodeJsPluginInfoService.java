@@ -16,6 +16,12 @@ import org.autojs.plugin.nodejs.api.NodeJsPluginActions;
 import org.autojs.plugin.nodejs.api.NodeJsPluginIds;
 import org.autojs.plugin.nodejs.api.NodeJsRuntimeContract;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.zip.ZipFile;
+
 public class NodeJsPluginInfoService extends Service {
 
     private static final String[] SUPPORTED_ABIS = {"arm64-v8a", "armeabi-v7a", "x86_64"};
@@ -59,7 +65,7 @@ public class NodeJsPluginInfoService extends Service {
                     NodeJsPluginIds.ID,
                     NodeJsPluginIds.ENGINE,
                     NodeJsPluginIds.VARIANT_NODE_24_21,
-                    SUPPORTED_ABIS,
+                    installedRuntimeAbis(),
                     capabilities
             );
         }
@@ -68,5 +74,31 @@ public class NodeJsPluginInfoService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return binder;
+    }
+
+    private String[] installedRuntimeAbis() {
+        List<String> packages = new ArrayList<>();
+        packages.add(getApplicationInfo().sourceDir);
+        if (getApplicationInfo().splitSourceDirs != null) {
+            packages.addAll(Arrays.asList(getApplicationInfo().splitSourceDirs));
+        }
+        List<String> packaged = new ArrayList<>();
+        try {
+            for (String path : packages) {
+                try (ZipFile apk = new ZipFile(path)) {
+                    for (String abi : SUPPORTED_ABIS) {
+                        if (apk.getEntry("lib/" + abi + "/libnode.so") != null && !packaged.contains(abi)) {
+                            packaged.add(abi);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Installed Node.js runtime package cannot be read", e);
+        }
+        if (packaged.isEmpty()) {
+            throw new IllegalStateException("Installed Node.js runtime libraries are missing");
+        }
+        return packaged.toArray(new String[0]);
     }
 }

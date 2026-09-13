@@ -1,6 +1,5 @@
 package io.github.supermonster003.autojs6.plugin.nodejs;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -66,7 +65,23 @@ public final class PluginInfoContractTest {
             assertEquals("nodejs", info.getId());
             assertEquals("nodejs", info.getEngine());
             assertEquals("node24_21", info.getVariant());
-            assertArrayEquals(new String[]{"arm64-v8a", "armeabi-v7a", "x86_64"}, info.getSupportedAbis());
+            assertTrue(info.getSupportedAbis().length > 0);
+            java.util.List<String> installedPaths = new java.util.ArrayList<>();
+            installedPaths.add(context.getApplicationInfo().sourceDir);
+            if (context.getApplicationInfo().splitSourceDirs != null) {
+                installedPaths.addAll(java.util.Arrays.asList(context.getApplicationInfo().splitSourceDirs));
+            }
+            for (String abi : info.getSupportedAbis()) {
+                boolean packaged = false;
+                for (String path : installedPaths) {
+                    try (java.util.zip.ZipFile apk = new java.util.zip.ZipFile(path)) {
+                        packaged |= apk.getEntry("lib/" + abi + "/libnode.so") != null;
+                    }
+                }
+                assertTrue("Advertised ABI is not packaged: " + abi, packaged);
+            }
+            assertTrue(java.util.Arrays.stream(android.os.Build.SUPPORTED_ABIS)
+                    .anyMatch(java.util.Arrays.asList(info.getSupportedAbis())::contains));
             assertNotNull(info.getCapabilities());
             assertEquals(3923, info.getCapabilities().getInt(PluginCapabilityKeys.REQUIRES_HOST_VERSION));
             assertEquals(NodeJsRuntimeContract.CONTRACT_VERSION,

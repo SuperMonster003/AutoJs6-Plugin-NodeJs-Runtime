@@ -5,6 +5,12 @@
   "changelog_label_improvement": "개선",
   "changelog_label_dependency": "의존성",
   "$data": {
+    "v1.4.2": {
+      "released_date": "2026/09/13",
+      "fix": [
+        "설치된 APK에 실제 포함된 네이티브 ABI만 보고"
+      ]
+    },
     "v1.4.1": {
       "released_date": "2026/09/13",
       "improvement": [
