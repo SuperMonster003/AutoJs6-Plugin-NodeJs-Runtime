@@ -30,7 +30,7 @@
 
 ## 构建与文档
 
-- Settings 使用公共 `io.github.supermonster003.autojs6-platform-versions:1.7.4`; 不使用本地 Maven、消费端兼容表或本地平台插件源码覆盖。平台选择日志只允许一段。
+- Settings 使用公共 `io.github.supermonster003.autojs6-platform-versions:1.8.1`; 不使用本地 Maven、消费端兼容表或本地平台插件源码覆盖。平台选择日志只允许一段。
 - 本地 Gradle 验证优先 `--offline`, 用既有依赖缓存。CI 初次获取公开构建依赖与手动 LFS 物化需要网络, 不把它描述为离线验证。
 - 保留签名约定。`sign.properties`、keystore、本地路径与密码不可提交或打印。Release 收集任务必须依赖 assembleRelease、要求有效签名、核对四个 ABI 包并追加 CRC32。
 - `.so` 使用 Git LFS; 不将 LFS 指针当作实际库打包。常规 push/PR 只做 JVM 检查, APK job 手动或 tag 触发并按真实 LFS oid 缓存对象。
@@ -91,3 +91,17 @@ C++ 先用当前 `.cxx` 的 compile_commands.json 中 NDK clang 命令离线做 
 - 不实现设备端 npm registry 下载、native addon 加载、远程 inspector 监听或未经重新评估的 V8 startup snapshot。
 - raw TypeScript 必须经宿主 Compiler 产出 JavaScript, 不恢复 regex stripping fallback。
 - 不改写已发布 catalog/runtime-kit 快照, 不将未产出的 Node 24.x Android 版本标成已晋级。
+
+
+## Shared engineering baseline (2026-09-13)
+
+- Apply the workspace AutoJs6 plugin conventions to code, resources, builds and tests. Preserve existing owner decisions and historical release evidence; a milestone or RC is not silently promoted to stable.
+- Inspect status, branch, recent history and scoped diffs before editing. Preserve pre-existing work. Use Conventional Commits; before each commit set VERSION_BUILD to the next reachable Git commit count. The final count must match HEAD. Do not push or publish without the user's instruction.
+- Root settings alone applies the public platform-versions 1.8.1 plugin before build-logic. Native alignment uses the same published version where applicable. Never use mavenLocal, sibling binary dependencies, gradle/data overrides or temporary migration backups.
+- Keep signing resolution and the appendDigestToReleasedFiles task. It depends on assembleRelease and rejects incomplete signing, unexpected APK sets and unsigned APKs. Signing secrets and generated APKs remain ignored.
+- All contract entry points use org.autojs.permission.PLUGIN. Preserve the no-display Wake Activity, its metadata, WAKE action and DEFAULT category, and test discovery and explicit Binder binding. OEM first-install activation must be reported separately from a manifest test.
+- PluginInfo uses installed package versions, localized descriptions and accurate capabilities. Pure JVM providers explicitly return empty supportedAbis; native providers describe actual packaged ABIs.
+- The app title is English and non-translatable. Maintain all ten languages, matching default/explicit English, sorted resource names and ASCII punctuation. Keep the real mipmap/ic_launcher.png.
+- Edit JSON/templates rather than generated README/changelog. Keep the root README in Simplified Chinese, use the centered header, and omit IDE version badges. Changelog source stays in .changelog; generated language assets stay in app/src/main/assets/doc.
+- Run py .python/generate_markdown.py and its read-only --check after document edits. Run relevant Python and JVM tests, debug and androidTest assembly, lint, and signed release collection. Platform changes additionally require the Temurin vendor simulation from the workspace conventions. Use actual application variant task names if the repository differs.
+- Preserve native source/license locks, ABI inventory and 16 KB alignment checks. Existing device evidence is historical; never claim a new install, Binder or OEM test that was not executed.

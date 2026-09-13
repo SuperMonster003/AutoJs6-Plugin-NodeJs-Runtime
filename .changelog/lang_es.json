@@ -6,9 +6,10 @@
   "changelog_label_dependency": "Dependencia",
   "$data": {
     "v1.4.1": {
-      "released_date": "2026/09/11",
+      "released_date": "2026/09/13",
       "improvement": [
-        "Verificación de compilación de la alineación de páginas de 16 KB en bibliotecas nativas de 64 bits, con controles del contrato manifest e informes JSON"
+        "Verificación de compilación de la alineación de páginas de 16 KB en bibliotecas nativas de 64 bits, con controles del contrato manifest e informes JSON",
+        "Activación del host, metadatos, documentación traducida y recopilación de APK firmados conforme a las convenciones comunes"
       ]
     },
     "v1.4.0": {

@@ -133,7 +133,7 @@ def build_readme_values(code, languages, changelogs):
     content["placeholder_latest_release_history"] = format_changelog_items(changelogs[code], limit=3).rstrip()
     content["placeholder_read_more_in_changelog_md"] = markdown_link(
         "CHANGELOG.md",
-        f"{content['repo_url']}/blob/master/.changelog/CHANGELOG-{code}.md",
+        f"{content['repo_url']}/blob/master/app/src/main/assets/doc/CHANGELOG-{code}.md",
     )
     return content
 
@@ -165,14 +165,12 @@ def generate_changelogs(languages, changelogs):
         values = dict(languages[code])
         values["placeholder_release_history"] = format_changelog_items(changelogs[code]).rstrip()
         output = render_template(template, values)
-        outputs[CHANGELOG_DIR / f"CHANGELOG-{code}.md"] = output
 
-        latest_only = format_changelog_items(changelogs[code], limit=1)
         names = ANDROID_CHANGELOG_ALIASES.get(code, [code])
         for name in names:
-            outputs[ANDROID_CHANGELOG_DIR / f"CHANGELOG-{name}.md"] = latest_only
+            outputs[ANDROID_CHANGELOG_DIR / f"CHANGELOG-{name}.md"] = output
         if code == LANGUAGE_CODE_DEFAULT:
-            outputs[ANDROID_CHANGELOG_DIR / "CHANGELOG.md"] = latest_only
+            outputs[ANDROID_CHANGELOG_DIR / "CHANGELOG.md"] = output
     return outputs
 
 

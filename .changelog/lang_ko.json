@@ -6,9 +6,10 @@
   "changelog_label_dependency": "의존성",
   "$data": {
     "v1.4.1": {
-      "released_date": "2026/09/11",
+      "released_date": "2026/09/13",
       "improvement": [
-        "64비트 네이티브 라이브러리의 16 KB 페이지 정렬을 빌드 시 검증, manifest 계약 검사 및 JSON 보고서 지원"
+        "64비트 네이티브 라이브러리의 16 KB 페이지 정렬을 빌드 시 검증, manifest 계약 검사 및 JSON 보고서 지원",
+        "호스트 활성화, 메타데이터, 다국어 문서 및 서명된 APK 수집을 공통 규칙에 맞게 정리"
       ]
     },
     "v1.4.0": {
