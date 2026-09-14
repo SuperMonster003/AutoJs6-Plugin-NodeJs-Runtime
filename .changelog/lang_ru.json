@@ -5,6 +5,15 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.5.1": {
+      "released_date": "2026/09/15",
+      "improvement": [
+        "`libnode.so` пересобран с `--with-intl=small-icu`: доступны `Intl` и экранирование свойств Unicode (`\\p{...}`) в регулярных выражениях с английскими данными локали (`NODE_ICU_DATA` принимает полный файл данных ICU), поэтому corepack может запускать pnpm 11 и Yarn Berry в терминале AutoJs6"
+      ],
+      "fix": [
+        "Текст фатальных ошибок и предупреждений Node на Android теперь пишется в настоящий stderr помимо logcat, поэтому терминал показывает необработанные исключения вместо молчаливого выхода"
+      ]
+    },
     "v1.5.0": {
       "released_date": "2026/09/14",
       "feature": [

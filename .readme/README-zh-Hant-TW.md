@@ -98,6 +98,7 @@ console.log("AutoJs6 Node.js runtime");
 - 插件 ID: `nodejs`, 引擎: `nodejs`.
 - 執行階段服務動作: `org.autojs.plugin.nodejs.RUNTIME`.
 - 原生執行庫: `libnode.so`, `libautojs6-node.so` 和 `libnodexe.so`.
+- Intl: ICU 78, 僅含英文區域資料 (`--with-intl=small-icu`); `Intl`, 正規表示式的 Unicode 屬性跳脫以及 Node 自身寫到 stderr 的錯誤輸出均可在 AutoJs6 終端機中使用, `NODE_ICU_DATA` 可指向完整的 ICU 資料檔.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.
 - 檔案系統: 可存取 Android 權限允許的裝置路徑; `/proc`、`/sys`、`/dev` 為硬邊界.
 - TypeScript: 接受主機產物並可透過 provider v3 按需編譯執行期間建立的專案檔案; direct raw TypeScript 回傳 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -109,6 +110,13 @@ console.log("AutoJs6 Node.js runtime");
 ### 發行歷史
 
 ******
+
+# v1.5.1
+
+###### 2026/09/15
+
+* `修復` Node 自身的致命錯誤與警告文字在 Android 上除 logcat 外同時寫入真實 stderr, 終端機可看到未捕捉的例外而非靜默結束
+* `優化` `libnode.so` 以 `--with-intl=small-icu` 重建: `Intl` 與正規表示式的 Unicode 屬性跳脫 (`\p{...}`) 可用 (僅英文區域資料, `NODE_ICU_DATA` 可載入完整 ICU 資料檔), corepack 因此可在 AutoJs6 終端機中執行 pnpm 11 與 Yarn Berry
 
 # v1.5.0
 
@@ -125,13 +133,6 @@ console.log("AutoJs6 Node.js runtime");
 * `修復` 外掛中繼資料的建置日期固定使用英文, 不受建置機器語言影響
 * `修復` 發行套件與封存檔的版本資訊保持一致
 * `修復` Android 7 工作目錄檔案相容性, 保留檔案描述符隔離
-
-# v1.4.1
-
-###### 2026/09/13
-
-* `優化` 建置階段校驗 64 位原生函式庫的 16 KB 頁面大小對齊, 檢查 manifest 契約並輸出 JSON 報告
-* `優化` 宿主啟用, 外掛中繼資料, 多語言文件與簽章發佈彙整遵循統一外掛規範
 
 ##### 更多發行歷史可參閱
 

@@ -5,6 +5,15 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.5.1": {
+      "released_date": "2026/09/15",
+      "improvement": [
+        "`libnode.so` 以 `--with-intl=small-icu` 重建: `Intl` 与正则表达式的 Unicode 属性转义 (`\\p{...}`) 可用 (仅英文区域数据, `NODE_ICU_DATA` 可加载完整 ICU 数据文件), corepack 因此可在 AutoJs6 终端中运行 pnpm 11 与 Yarn Berry"
+      ],
+      "fix": [
+        "Node 自身的致命错误与警告文本在 Android 上除 logcat 外同时写入真实 stderr, 终端可看到未捕获的异常而非静默退出"
+      ]
+    },
     "v1.5.0": {
       "released_date": "2026/09/14",
       "feature": [

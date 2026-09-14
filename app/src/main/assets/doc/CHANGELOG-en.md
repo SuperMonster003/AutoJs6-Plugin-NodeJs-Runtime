@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.1
+
+###### 2026/09/15
+
+* `Fix` Node's fatal-error and warning text is written to the real stderr on Android in addition to logcat, so a terminal shows uncaught exceptions instead of exiting silently
+* `Improvement` `libnode.so` rebuilt with `--with-intl=small-icu`: `Intl` and Unicode property escapes (`\p{...}`) in regular expressions are available with English-only locale data (`NODE_ICU_DATA` accepts a full ICU data file), so corepack can run pnpm 11 and Yarn Berry in the AutoJs6 terminal
+
 # v1.5.0
 
 ###### 2026/09/14

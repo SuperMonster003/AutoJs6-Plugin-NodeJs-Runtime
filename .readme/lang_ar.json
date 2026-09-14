@@ -37,6 +37,7 @@
     "معرف الملحق: `nodejs`, المحرك: `nodejs`.",
     "اجراء خدمة بيئة التشغيل: `org.autojs.plugin.nodejs.RUNTIME`.",
     "مكتبات بيئة التشغيل الاصلية: `libnode.so`, `libautojs6-node.so` و `libnodexe.so`.",
+    "Intl: ICU 78 ببيانات الإعدادات المحلية الإنجليزية فقط (`--with-intl=small-icu`); يعمل `Intl` وهروب خصائص Unicode في التعبيرات النمطية ومخرجات أخطاء Node الخاصة على stderr داخل طرفية AutoJs6, ويمكن أن يشير `NODE_ICU_DATA` إلى ملف بيانات ICU كامل.",
     "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, و `universal`.",
     "نظام الملفات: يمكن الوصول إلى مسارات الجهاز التي تسمح بها أذونات Android; وتعد `/proc` و `/sys` و `/dev` حدودا صارمة.",
     "TypeScript: يقبل ناتج المضيف ويمكنه طلب ترجمة ملفات المشروع المنشأة أثناء التشغيل عبر provider v3; ويعيد الإرسال الخام المباشر `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.",

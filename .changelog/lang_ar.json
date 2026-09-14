@@ -5,6 +5,15 @@
   "changelog_label_improvement": "تحسين",
   "changelog_label_dependency": "اعتماد",
   "$data": {
+    "v1.5.1": {
+      "released_date": "2026/09/15",
+      "improvement": [
+        "أعيد بناء `libnode.so` مع `--with-intl=small-icu`: يتوفر `Intl` وهروب خصائص Unicode (`\\p{...}`) في التعبيرات النمطية ببيانات إعدادات محلية إنجليزية فقط (يقبل `NODE_ICU_DATA` ملف بيانات ICU كاملا), وبذلك يستطيع corepack تشغيل pnpm 11 و Yarn Berry في طرفية AutoJs6"
+      ],
+      "fix": [
+        "يُكتب نص الأخطاء الفادحة والتحذيرات الخاص بـ Node على Android إلى stderr الحقيقي إضافة إلى logcat, فتعرض الطرفية الاستثناءات غير الملتقطة بدلا من الخروج بصمت"
+      ]
+    },
     "v1.5.0": {
       "released_date": "2026/09/14",
       "feature": [

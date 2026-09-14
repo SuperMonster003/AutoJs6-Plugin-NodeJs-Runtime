@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -70,6 +71,21 @@ public final class NodeCliLauncherSmokeTest {
         Result result = run(launcher, Arrays.asList("-e", "console.log(6 * 7, process.execPath === require('fs').realpathSync('/proc/self/exe'))"), null);
         assertEquals(result.describe(), 0, result.exitCode);
         assertEquals("42 true", result.stdout.trim());
+    }
+
+    @Test
+    public void runtimeProvidesIntlAndUnicodePropertyEscapes() throws Exception {
+        Result result = run(launcher, Arrays.asList("-p",
+                "typeof Intl + ' ' + /\\p{Lu}/u.test('A') + ' ' + process.versions.icu.split('.')[0]"), null);
+        assertEquals(result.describe(), 0, result.exitCode);
+        assertEquals("object true 78", result.stdout.trim());
+    }
+
+    @Test
+    public void fatalErrorsReachStderr() throws Exception {
+        Result result = run(launcher, Arrays.asList("-e", "throw new Error('stderr-marker-7f3a')"), null);
+        assertEquals(result.describe(), 1, result.exitCode);
+        assertTrue(result.describe(), result.stderr.contains("stderr-marker-7f3a"));
     }
 
     @Test
@@ -190,7 +206,14 @@ public final class NodeCliLauncherSmokeTest {
     private static Thread capture(InputStream stream, byte[][] into, int index) {
         Thread thread = new Thread(() -> {
             try (InputStream input = stream) {
-                into[index] = input.readAllBytes();
+                // InputStream#readAllBytes needs API 33; the plugin still runs on API 24+.
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = input.read(buffer)) != -1) {
+                    bytes.write(buffer, 0, read);
+                }
+                into[index] = bytes.toByteArray();
             } catch (IOException e) {
                 into[index] = e.toString().getBytes(StandardCharsets.UTF_8);
             }

@@ -5,6 +5,15 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v1.5.1": {
+      "released_date": "2026/09/15",
+      "improvement": [
+        "`libnode.so` を `--with-intl=small-icu` で再構築: `Intl` と正規表現の Unicode プロパティエスケープ (`\\p{...}`) が英語ロケールデータのみで利用可能に (`NODE_ICU_DATA` で完全な ICU データファイルを指定可能). これにより corepack が AutoJs6 ターミナルで pnpm 11 と Yarn Berry を実行できます"
+      ],
+      "fix": [
+        "Node 自身の致命的エラーと警告のテキストを Android で logcat に加えて実際の stderr にも書き出すようにし, ターミナルが無言で終了せず未捕捉の例外を表示するようにしました"
+      ]
+    },
     "v1.5.0": {
       "released_date": "2026/09/14",
       "feature": [

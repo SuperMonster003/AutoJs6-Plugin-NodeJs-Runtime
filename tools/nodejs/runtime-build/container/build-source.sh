@@ -36,7 +36,7 @@ export CXXFLAGS="$CFLAGS"
 export LDFLAGS='-Wl,-z,max-page-size=16384 -Wl,--build-id=sha1'
 if [ ! -f out/Release/build.ninja ]; then
   ./configure --dest-cpu="$cpu" --dest-os=android --cross-compiling --shared --ninja \
-    --without-node-snapshot --without-npm --without-corepack --openssl-no-asm --with-intl=none
+    --without-node-snapshot --without-npm --without-corepack --openssl-no-asm --with-intl=small-icu
 fi
 ninja -C out/Release -j "${JOBS:-6}" libnode
 library=$(find out/Release -name 'libnode.so*' -type f -print -quit)

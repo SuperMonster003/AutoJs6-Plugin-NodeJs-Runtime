@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.1
+
+###### 2026/09/15
+
+* `Correction` Le texte des erreurs fatales et des avertissements de Node est écrit sur le vrai stderr sous Android en plus de logcat, de sorte qu'un terminal affiche les exceptions non interceptées au lieu de se terminer silencieusement
+* `Amelioration` `libnode.so` reconstruit avec `--with-intl=small-icu` : `Intl` et les échappements de propriétés Unicode (`\p{...}`) dans les expressions régulières sont disponibles avec les seules données de locale anglaises (`NODE_ICU_DATA` accepte un fichier de données ICU complet), ce qui permet à corepack d'exécuter pnpm 11 et Yarn Berry dans le terminal AutoJs6
+
 # v1.5.0
 
 ###### 2026/09/14

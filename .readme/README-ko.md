@@ -98,6 +98,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 - 플러그인 ID: `nodejs`, 엔진: `nodejs`.
 - 런타임 서비스 액션: `org.autojs.plugin.nodejs.RUNTIME`.
 - 네이티브 런타임 라이브러리: `libnode.so`, `libautojs6-node.so` 및 `libnodexe.so`.
+- Intl: 영어 로케일 데이터만 포함한 ICU 78 (`--with-intl=small-icu`); `Intl`, 정규식의 유니코드 속성 이스케이프, Node 자체의 stderr 오류 출력이 AutoJs6 터미널에서 동작하며, `NODE_ICU_DATA` 로 전체 ICU 데이터 파일을 지정할 수 있습니다.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 그리고 `universal`.
 - 파일 시스템: Android 권한이 허용하는 기기 경로에 접근할 수 있고 `/proc`, `/sys`, `/dev` 는 엄격한 경계입니다.
 - TypeScript: host output을 허용하고 실행 중 생성된 project file에 provider-v3 compilation을 요청할 수 있습니다. direct raw TypeScript는 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`를 반환합니다.
@@ -109,6 +110,13 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 ### 릴리스 기록
 
 ******
+
+# v1.5.1
+
+###### 2026/09/15
+
+* `수정` Node 자체의 치명적 오류와 경고 텍스트를 Android 에서 logcat 외에 실제 stderr 에도 기록하여, 터미널이 조용히 종료되는 대신 처리되지 않은 예외를 표시합니다
+* `개선` `libnode.so` 를 `--with-intl=small-icu` 로 다시 빌드: 영어 로케일 데이터만으로 `Intl` 과 정규식의 유니코드 속성 이스케이프 (`\p{...}`) 를 사용할 수 있으며 (`NODE_ICU_DATA` 로 전체 ICU 데이터 파일 지정 가능), 이에 따라 corepack 이 AutoJs6 터미널에서 pnpm 11 과 Yarn Berry 를 실행할 수 있습니다
 
 # v1.5.0
 
@@ -125,13 +133,6 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `수정` 빌드 환경 언어와 관계없이 플러그인 메타데이터의 빌드 날짜를 영어로 통일
 * `수정` 릴리스 패키지와 보관 파일의 버전 정보 일치
 * `수정` 파일 디스크립터 격리를 유지하면서 Android 7 작업 파일 호환성 개선
-
-# v1.4.1
-
-###### 2026/09/13
-
-* `개선` 64비트 네이티브 라이브러리의 16 KB 페이지 정렬을 빌드 시 검증, manifest 계약 검사 및 JSON 보고서 지원
-* `개선` 호스트 활성화, 메타데이터, 다국어 문서 및 서명된 APK 수집을 공통 규칙에 맞게 정리
 
 ##### 더 많은 릴리스 기록
 

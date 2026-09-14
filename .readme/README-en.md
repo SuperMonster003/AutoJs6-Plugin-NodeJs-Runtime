@@ -98,6 +98,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 - Plugin ID: `nodejs`, engine: `nodejs`.
 - Runtime service action: `org.autojs.plugin.nodejs.RUNTIME`.
 - Native runtime libraries: `libnode.so`, `libautojs6-node.so` and `libnodexe.so`.
+- Intl: ICU 78 with English-only locale data (`--with-intl=small-icu`); `Intl`, Unicode property escapes in regular expressions and Node's own error output on stderr work in the AutoJs6 terminal, and `NODE_ICU_DATA` can point at a full ICU data file.
 - ABIs: `arm64-v8a`, `armeabi-v7a`, `x86_64`, and `universal`.
 - Filesystem: device paths allowed by Android permissions are reachable; `/proc`, `/sys`, and `/dev` are hard boundaries.
 - TypeScript: accepts host output and can request provider-v3 compilation for runtime-created project files; direct raw TypeScript returns `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -109,6 +110,13 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ### Release History
 
 ******
+
+# v1.5.1
+
+###### 2026/09/15
+
+* `Fix` Node's fatal-error and warning text is written to the real stderr on Android in addition to logcat, so a terminal shows uncaught exceptions instead of exiting silently
+* `Improvement` `libnode.so` rebuilt with `--with-intl=small-icu`: `Intl` and Unicode property escapes (`\p{...}`) in regular expressions are available with English-only locale data (`NODE_ICU_DATA` accepts a full ICU data file), so corepack can run pnpm 11 and Yarn Berry in the AutoJs6 terminal
 
 # v1.5.0
 
@@ -125,13 +133,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 * `Fix` Use English build dates in plugin metadata regardless of the build machine locale
 * `Fix` Consistent version metadata in release packages and archives
 * `Fix` Workspace file compatibility on Android 7 while preserving file descriptor isolation
-
-# v1.4.1
-
-###### 2026/09/13
-
-* `Improvement` Build verification of 16 KB page alignment for 64-bit native libraries, including manifest contract checks and JSON reports
-* `Improvement` Host activation, plugin metadata, localized documentation and signed release collection follow the common plugin conventions
 
 ##### For more release history
 

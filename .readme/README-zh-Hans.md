@@ -98,6 +98,7 @@ console.log("AutoJs6 Node.js runtime");
 - 插件 ID: `nodejs`, 引擎: `nodejs`.
 - 运行时服务动作: `org.autojs.plugin.nodejs.RUNTIME`.
 - 原生运行库: `libnode.so`, `libautojs6-node.so` 和 `libnodexe.so`.
+- Intl: ICU 78, 仅含英文区域数据 (`--with-intl=small-icu`); `Intl`, 正则表达式的 Unicode 属性转义以及 Node 自身写到 stderr 的错误输出均可在 AutoJs6 终端中使用, `NODE_ICU_DATA` 可指向完整的 ICU 数据文件.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.
 - 文件系统: Android 权限允许范围内可访问设备路径; `/proc`、`/sys`、`/dev` 为硬边界.
 - TypeScript: 接受宿主产物并可通过 provider v3 按需编译运行中创建的项目文件; direct raw TypeScript 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -109,6 +110,13 @@ console.log("AutoJs6 Node.js runtime");
 ### 发行历史
 
 ******
+
+# v1.5.1
+
+###### 2026/09/15
+
+* `修复` Node 自身的致命错误与警告文本在 Android 上除 logcat 外同时写入真实 stderr, 终端可看到未捕获的异常而非静默退出
+* `优化` `libnode.so` 以 `--with-intl=small-icu` 重建: `Intl` 与正则表达式的 Unicode 属性转义 (`\p{...}`) 可用 (仅英文区域数据, `NODE_ICU_DATA` 可加载完整 ICU 数据文件), corepack 因此可在 AutoJs6 终端中运行 pnpm 11 与 Yarn Berry
 
 # v1.5.0
 
@@ -125,13 +133,6 @@ console.log("AutoJs6 Node.js runtime");
 * `修复` 插件元数据的构建日期固定使用英文, 不受构建机器语言影响
 * `修复` 发行包与归档的版本信息保持一致
 * `修复` Android 7 工作目录文件兼容性, 保留文件描述符隔离
-
-# v1.4.1
-
-###### 2026/09/13
-
-* `优化` 构建阶段校验 64 位原生库的 16 KB 页大小对齐, 检查 manifest 契约并输出 JSON 报告
-* `优化` 宿主激活, 插件元数据, 多语言文档与签名发布归集遵循统一插件规范
 
 ##### 更多发行历史可参阅
 

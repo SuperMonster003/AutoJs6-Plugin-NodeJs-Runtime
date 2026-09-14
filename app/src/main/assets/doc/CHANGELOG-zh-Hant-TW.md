@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.1
+
+###### 2026/09/15
+
+* `修復` Node 自身的致命錯誤與警告文字在 Android 上除 logcat 外同時寫入真實 stderr, 終端機可看到未捕捉的例外而非靜默結束
+* `優化` `libnode.so` 以 `--with-intl=small-icu` 重建: `Intl` 與正規表示式的 Unicode 屬性跳脫 (`\p{...}`) 可用 (僅英文區域資料, `NODE_ICU_DATA` 可載入完整 ICU 資料檔), corepack 因此可在 AutoJs6 終端機中執行 pnpm 11 與 Yarn Berry
+
 # v1.5.0
 
 ###### 2026/09/14

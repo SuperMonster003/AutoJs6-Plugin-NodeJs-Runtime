@@ -37,6 +37,7 @@
     "Plugin ID: `nodejs`, engine: `nodejs`.",
     "Runtime service action: `org.autojs.plugin.nodejs.RUNTIME`.",
     "Native runtime libraries: `libnode.so`, `libautojs6-node.so` and `libnodexe.so`.",
+    "Intl: ICU 78 with English-only locale data (`--with-intl=small-icu`); `Intl`, Unicode property escapes in regular expressions and Node's own error output on stderr work in the AutoJs6 terminal, and `NODE_ICU_DATA` can point at a full ICU data file.",
     "ABIs: `arm64-v8a`, `armeabi-v7a`, `x86_64`, and `universal`.",
     "Filesystem: device paths allowed by Android permissions are reachable; `/proc`, `/sys`, and `/dev` are hard boundaries.",
     "TypeScript: accepts host output and can request provider-v3 compilation for runtime-created project files; direct raw TypeScript returns `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.",
