@@ -69,7 +69,7 @@
   "promotionDecision": {
     "defaultRuntimeSlot": "node24_21",
     "defaultRuntimeVersion": "24.21.0",
-    "reason": "Node 24.21 source libraries rebuilt with --with-intl=small-icu and the Android stderr passthrough patch so the AutoJs6 terminal can run pnpm 11 / Yarn Berry (Unicode property escapes need ICU); first-run digests, embedding checks and device validation on three ABIs recorded below; repeat-build comparison pending.",
+    "reason": "Node 24.21 source libraries rebuilt with --with-intl=small-icu and the Android stderr passthrough patch so the AutoJs6 terminal can run pnpm 11 / Yarn Berry (Unicode property escapes need ICU); first and repeat clean builds compared, embedding checks and device validation on three ABIs recorded below.",
     "requiredBeforePromotion": [],
     "targetPromotion": "promoted"
   },
@@ -169,32 +169,32 @@
         "nodeVersion": "24.21.0",
         "configureChange": "--with-intl=none -> --with-intl=small-icu",
         "addedPatch": "0004-android-stderr-passthrough.patch",
-        "method": "Clean source builds in the locked container image with the four patches and the small-icu configure flag; single clean build per ABI, repeat comparison pending.",
+        "method": "Clean source builds in the locked container image with the four patches and the small-icu configure flag; first and repeat runs used fresh workspaces and no shared objects.",
         "buildScriptSha256": "7d3aa367a5390fb3322855b0ae6fcab67b692cff30890a92e0561fd284bd098d",
         "comparisons": {
           "arm64-v8a": {
             "firstSha256": "bbcf7711df6d074440ca5560a7897672d18d7e0c03d9f57bb29e5c9301ec7a07",
-            "repeatSha256": null,
+            "repeatSha256": "bbcf7711df6d074440ca5560a7897672d18d7e0c03d9f57bb29e5c9301ec7a07",
             "firstBuildId": "18867d35421c2ff62cd51432e7178f359e71999f",
-            "repeatBuildId": null,
+            "repeatBuildId": "18867d35421c2ff62cd51432e7178f359e71999f",
             "size": 81180416,
-            "identical": null
+            "identical": true
           },
           "armeabi-v7a": {
             "firstSha256": "c37d42059cac42d7760a4598f06a280f2a12fc01f2414ba648b39e9b3c73243c",
-            "repeatSha256": null,
+            "repeatSha256": "c37d42059cac42d7760a4598f06a280f2a12fc01f2414ba648b39e9b3c73243c",
             "firstBuildId": "7f24e5b2c34cbe913fde69aa5cf7f49d19d33ab8",
-            "repeatBuildId": null,
+            "repeatBuildId": "7f24e5b2c34cbe913fde69aa5cf7f49d19d33ab8",
             "size": 74399704,
-            "identical": null
+            "identical": true
           },
           "x86_64": {
             "firstSha256": "6cc279f590f6cf2bd2f2b71faf456838fb2b576ff0b07a3ee0afd8e2c16b1434",
-            "repeatSha256": null,
+            "repeatSha256": "6cc279f590f6cf2bd2f2b71faf456838fb2b576ff0b07a3ee0afd8e2c16b1434",
             "firstBuildId": "9ce12dc223ba5b9f1c227e1b4123394c4cdae37a",
-            "repeatBuildId": null,
+            "repeatBuildId": "9ce12dc223ba5b9f1c227e1b4123394c4cdae37a",
             "size": 85981088,
-            "identical": null
+            "identical": true
           }
         }
       }
