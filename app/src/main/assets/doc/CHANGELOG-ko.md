@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.0
+
+###### 2026/09/14
+
+* `추가` 멀티콜 터미널 런처 `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) 를 모든 ABI에 포함, `DT_RUNPATH $ORIGIN` 및 16 KB 페이지 정렬 적용
+* `추가` 공식 Node.js 24.21.0 배포판에서 가져온 npm 11.19.0 및 corepack 0.36.0 자산, `NODE_CLI_*` manifest meta-data (schema 1) 로 선언하고 `nodeCli` 기능으로 runtimeInfo / PluginInfo에 미러링
+
 # v1.4.2
 
 ###### 2026/09/13

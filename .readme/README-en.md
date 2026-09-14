@@ -61,6 +61,7 @@ The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.21.0 native r
 - Provides host capability broker and live bridge support with runtime modules such as `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, and `autojs6:bridge-permissions`.
 - Includes `sample/nodejs` projects and the `docs/HOST-API.md` host API capability inventory.
 - Plugin metadata, usage instructions, README, and CHANGELOG are localized for Spanish, French, Russian, Arabic, Japanese, Korean, English, Simplified Chinese, Hong Kong Traditional Chinese, and Taiwan Traditional Chinese.
+- Ships the multi-call terminal launcher `libnodexe.so` and an npm / corepack asset archive declared through `NODE_CLI_*` manifest meta-data, so the AutoJs6 terminal (host 6.8.0+) can run `node`, `npm`, `npx`, `corepack`, `yarn` and `pnpm` in a shell of its own uid.
 
 ******
 
@@ -96,7 +97,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 - Runtime slot: `node24_21`.
 - Plugin ID: `nodejs`, engine: `nodejs`.
 - Runtime service action: `org.autojs.plugin.nodejs.RUNTIME`.
-- Native runtime libraries: `libnode.so` and `libautojs6-node.so`.
+- Native runtime libraries: `libnode.so`, `libautojs6-node.so` and `libnodexe.so`.
 - ABIs: `arm64-v8a`, `armeabi-v7a`, `x86_64`, and `universal`.
 - Filesystem: device paths allowed by Android permissions are reachable; `/proc`, `/sys`, and `/dev` are hard boundaries.
 - TypeScript: accepts host output and can request provider-v3 compilation for runtime-created project files; direct raw TypeScript returns `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -108,6 +109,13 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ### Release History
 
 ******
+
+# v1.5.0
+
+###### 2026/09/14
+
+* `Feature` Multi-call terminal launcher `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) packaged for every ABI with `DT_RUNPATH $ORIGIN` and 16 KB page alignment
+* `Feature` npm 11.19.0 and corepack 0.36.0 asset archive taken from the official Node.js 24.21.0 tarball, declared through `NODE_CLI_*` manifest meta-data (schema 1) and mirrored into runtimeInfo / PluginInfo as the `nodeCli` capability
 
 # v1.4.2
 
@@ -124,18 +132,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 * `Improvement` Build verification of 16 KB page alignment for 64-bit native libraries, including manifest contract checks and JSON reports
 * `Improvement` Host activation, plugin metadata, localized documentation and signed release collection follow the common plugin conventions
-
-# v1.4.0
-
-###### 2026/09/10
-
-* `Feature` MediaInfo queries support zero-based streamNumber, countGet stream counts, and infoKind for units, descriptions and readable names; Rhino and Node preserve default first-stream TEXT queries and negotiate extended plugin capabilities
-* `Fix` MediaInfo and image file paths now allow absolute paths, parent directories and valid filenames; recording outputs use the same Android file access rules with the updated host
-* `Fix` Bridge capability errors now identify missing node.permissions declarations without requiring the diagnostic-only pro_compat_opt_in profile
-* `Fix` The project validator no longer rejects absolute fs paths or parent directories as FS_OUTSIDE_SCOPE; Android determines actual file access
-* `Improvement` Added standalone Android event and three-second audio recording projects, with project declarations and manual steps for screen capture, OCR, physical keys and MediaInfo
-* `Improvement` Screen capture matching, screen OCR and three-second AAC recording passed manual device acceptance; the corresponding examples and Pro parity snippets using the same calls are now stable
-* `Improvement` The event acceptance example explains temporarily disabling the host volume-up stop shortcut; the updated host reads project.json node.timeoutMs so longer waits no longer time out after about five seconds
 
 ##### For more release history
 

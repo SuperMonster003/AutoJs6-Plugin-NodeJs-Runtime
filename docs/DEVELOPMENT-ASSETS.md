@@ -1,6 +1,6 @@
 # Node.js Development Asset Ownership
 
-Last reviewed: 2026-09-10.
+Last reviewed: 2026-09-14.
 
 This repository is the single owner of Node.js runtime-facing development assets:
 
@@ -9,6 +9,7 @@ This repository is the single owner of Node.js runtime-facing development assets
 - `docs/nodejs/history`: archived host runtime plans and acceptance records, with their original source context.
 - `docs/nodejs/types/autojs6-node`: script-facing TypeScript declarations.
 - `tools/nodejs/project/autojs6-node-project.js`: project templates and validator.
+- `tools/nodejs/cli/build-node-cli-archive.py` and `node-cli.lock.json`: the npm / corepack asset archive for the terminal launcher ([docs/nodejs/TERMINAL.md](nodejs/TERMINAL.md)).
 - `node-plugin-examples.gradle.kts`: example catalog verification.
 - `node-types.gradle.kts`: declaration verification and TypeScript smoke checking.
 - `node-project-wizard.gradle.kts`: project-template and validator verification.

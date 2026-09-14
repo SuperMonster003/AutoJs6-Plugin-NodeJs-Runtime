@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.0
+
+###### 2026/09/14
+
+* `新增` 多入口终端启动器 `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm), 各 ABI 均打包, 带 `DT_RUNPATH $ORIGIN` 与 16 KB 页对齐
+* `新增` 取自官方 Node.js 24.21.0 发行包的 npm 11.19.0 与 corepack 0.36.0 资产, 通过 `NODE_CLI_*` manifest meta-data (schema 1) 声明, 并以 `nodeCli` 能力镜像到 runtimeInfo / PluginInfo
+
 # v1.4.2
 
 ###### 2026/09/13

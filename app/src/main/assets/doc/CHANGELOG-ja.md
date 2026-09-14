@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.0
+
+###### 2026/09/14
+
+* `追加` マルチコール型ターミナルランチャー `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) を全 ABI に同梱, `DT_RUNPATH $ORIGIN` と 16 KB ページアライメント付き
+* `追加` 公式 Node.js 24.21.0 配布物から取得した npm 11.19.0 と corepack 0.36.0 のアセット, `NODE_CLI_*` manifest meta-data (schema 1) で宣言し, `nodeCli` 機能として runtimeInfo / PluginInfo にミラー
+
 # v1.4.2
 
 ###### 2026/09/13

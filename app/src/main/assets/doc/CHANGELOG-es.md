@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.0
+
+###### 2026/09/14
+
+* `Nuevo` Lanzador de terminal multi-llamada `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) empaquetado para cada ABI con `DT_RUNPATH $ORIGIN` y alineación de páginas de 16 KB
+* `Nuevo` Archivo de npm 11.19.0 y corepack 0.36.0 tomado de la distribución oficial de Node.js 24.21.0, declarado mediante los meta-data de manifest `NODE_CLI_*` (schema 1) y reflejado en runtimeInfo / PluginInfo como la capacidad `nodeCli`
+
 # v1.4.2
 
 ###### 2026/09/13

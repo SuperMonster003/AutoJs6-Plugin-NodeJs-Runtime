@@ -31,3 +31,7 @@ app/src/main/jniLibs/x86_64/libnode.so filter=lfs diff=lfs merge=lfs -text
 # These two upstream Setext headings contain exactly seven '=' characters.
 /app/src/androidTest/assets/npm_ecosystem_corpus/node_modules/commist/README.md conflict-marker-size=8
 /app/src/androidTest/assets/npm_ecosystem_corpus/node_modules/help-me/README.md conflict-marker-size=8
+
+# Terminal launcher archive facts participate in the host SHA-256 check; keep the lock byte-stable.
+/tools/nodejs/cli/node-cli.lock.json text eol=lf
+/app/src/main/assets/nodejs/cli/*.bin -text

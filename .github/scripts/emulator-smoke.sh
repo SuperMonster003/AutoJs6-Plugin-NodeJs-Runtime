@@ -5,7 +5,7 @@ test "$page_size" = "${EXPECTED_PAGE_SIZE:?Expected emulator page size is requir
 adb install -r apks/debug/*-x86_64.apk
 adb install -r apks/androidTest/debug/*-androidTest.apk
 prefix=io.github.supermonster003.autojs6.plugin.nodejs
-adb shell am instrument -w -e class "$prefix.SimpleRunSmokeTest,$prefix.StreamingOutputSmokeTest,$prefix.NodeRuntimePluginAndroidConformanceTest" "$prefix.test/androidx.test.runner.AndroidJUnitRunner" | tee smoke-results.txt
+adb shell am instrument -w -e class "$prefix.SimpleRunSmokeTest,$prefix.StreamingOutputSmokeTest,$prefix.NodeRuntimePluginAndroidConformanceTest,$prefix.PluginManifestContractTest,$prefix.NodeCliLauncherSmokeTest" "$prefix.test/androidx.test.runner.AndroidJUnitRunner" | tee smoke-results.txt
 if grep -Eq 'FAILURES|INSTRUMENTATION_FAILED|shortMsg=|Process crashed' smoke-results.txt; then
     exit 1
 fi

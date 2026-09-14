@@ -61,6 +61,7 @@ AutoJs6 Node.js Runtime 插件為 AutoJs6 提供內嵌 Node.js 24.21.0 原生運
 - 提供宿主能力代理與 live bridge, 可注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等運行時模組.
 - 附帶 `sample/nodejs` 示例項目與 `docs/HOST-API.md` 宿主 API 能力清單.
 - 插件資訊, 使用說明, README 與 CHANGELOG 均支援西班牙語/法語/俄語/阿拉伯語/日語/韓語/英語/簡體中文/香港繁體/台灣繁體.
+- 附帶多入口終端啟動器 `libnodexe.so` 與 npm / corepack 資產, 透過 `NODE_CLI_*` manifest meta-data 宣告, 使 AutoJs6 終端 (宿主 6.8.0+) 能在自身 uid 的 shell 中執行 `node`, `npm`, `npx`, `corepack`, `yarn` 與 `pnpm`.
 
 ******
 
@@ -96,7 +97,7 @@ console.log("AutoJs6 Node.js runtime");
 - 運行時槽位: `node24_21`.
 - 插件 ID: `nodejs`, 引擎: `nodejs`.
 - 運行時服務動作: `org.autojs.plugin.nodejs.RUNTIME`.
-- 原生運行庫: `libnode.so` 和 `libautojs6-node.so`.
+- 原生運行庫: `libnode.so`, `libautojs6-node.so` 和 `libnodexe.so`.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.
 - 檔案系統: 可存取 Android 權限容許的裝置路徑; `/proc`、`/sys`、`/dev` 為硬邊界.
 - TypeScript: 接受宿主產物並可透過 provider v3 按需編譯執行期間建立的項目檔案; direct raw TypeScript 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -108,6 +109,13 @@ console.log("AutoJs6 Node.js runtime");
 ### 發行歷史
 
 ******
+
+# v1.5.0
+
+###### 2026/09/14
+
+* `新增` 多入口終端啟動器 `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm), 各 ABI 均打包, 帶 `DT_RUNPATH $ORIGIN` 與 16 KB 頁對齊
+* `新增` 取自官方 Node.js 24.21.0 發行包的 npm 11.19.0 與 corepack 0.36.0 資產, 透過 `NODE_CLI_*` manifest meta-data (schema 1) 宣告, 並以 `nodeCli` 能力鏡像到 runtimeInfo / PluginInfo
 
 # v1.4.2
 
@@ -124,18 +132,6 @@ console.log("AutoJs6 Node.js runtime");
 
 * `優化` 建置階段校驗 64 位原生程式庫的 16 KB 頁面大小對齊, 檢查 manifest 契約並輸出 JSON 報告
 * `優化` 宿主啟用, 外掛中繼資料, 多語言文件與簽章發佈彙整遵循統一外掛規範
-
-# v1.4.0
-
-###### 2026/09/10
-
-* `新增` MediaInfo 查詢支援從 0 開始的 streamNumber, countGet 串流計數以及用於單位, 說明和可讀名稱的 infoKind; Rhino 和 Node 保持預設第 1 條串流的 TEXT 查詢, 並協商外掛擴充能力
-* `修復` MediaInfo 與圖片檔案路徑支援絕對路徑, 父目錄和合法檔名; 錄音輸出同步交由更新後的宿主依 Android 檔案權限處理
-* `修復` 橋接能力未宣告錯誤直接提示缺少的 node.permissions, 不再要求僅作診斷且不授予權限的 pro_compat_opt_in profile
-* `修復` 專案精靈不再將一般 fs 絕對路徑和父目錄路徑誤報為 FS_OUTSIDE_SCOPE, 實際檔案存取交由 Android 判斷
-* `優化` 提供 Android 事件與 3 秒錄音獨立專案, 補齊截屏, OCR, 實體按鍵和 MediaInfo 的專案宣告及人工驗收步驟
-* `優化` 截屏找圖, 屏幕 OCR 與 3 秒 AAC 錄音完成真機人工驗收, 對應範例及重用相同呼叫鏈的 Pro 對齊片段轉為穩定狀態
-* `優化` 事件驗收範例提示暫時關閉宿主音量加停止快捷鍵; 配套宿主讀取 project.json 的 node.timeoutMs, 避免較長等待腳本在約 5 秒後逾時
 
 ##### 更多發行歷史可參閱
 

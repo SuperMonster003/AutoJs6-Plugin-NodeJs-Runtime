@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.0
+
+###### 2026/09/14
+
+* `Новое` Многовходовый терминальный лаунчер `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) для всех ABI с `DT_RUNPATH $ORIGIN` и выравниванием страниц 16 KB
+* `Новое` Архив npm 11.19.0 и corepack 0.36.0 из официального дистрибутива Node.js 24.21.0, объявленный через manifest meta-data `NODE_CLI_*` (schema 1) и отражённый в runtimeInfo / PluginInfo как возможность `nodeCli`
+
 # v1.4.2
 
 ###### 2026/09/13

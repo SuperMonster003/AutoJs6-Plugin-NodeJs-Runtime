@@ -61,6 +61,7 @@ AutoJs6 Node.js Runtime 플러그인은 AutoJs6 에 내장 Node.js 24.21.0 네�
 - 호스트 기능 브로커와 live bridge 를 제공하며 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 같은 런타임 모듈을 주입할 수 있습니다.
 - `sample/nodejs` 프로젝트와 호스트 API 능력 목록 `docs/HOST-API.md` 를 포함합니다.
 - 플러그인 정보, 사용 설명, README, CHANGELOG 는 스페인어/프랑스어/러시아어/아랍어/일본어/한국어/영어/간체 중국어/홍콩 번체/대만 번체를 지원합니다.
+- 멀티콜 터미널 런처 `libnodexe.so`와 npm / corepack 자산을 포함하고 `NODE_CLI_*` manifest meta-data로 선언하여, AutoJs6 터미널 (호스트 6.8.0 이상) 이 자신의 uid shell에서 `node`, `npm`, `npx`, `corepack`, `yarn`, `pnpm`을 실행할 수 있습니다.
 
 ******
 
@@ -96,7 +97,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 - 런타임 슬롯: `node24_21`.
 - 플러그인 ID: `nodejs`, 엔진: `nodejs`.
 - 런타임 서비스 액션: `org.autojs.plugin.nodejs.RUNTIME`.
-- 네이티브 런타임 라이브러리: `libnode.so` 및 `libautojs6-node.so`.
+- 네이티브 런타임 라이브러리: `libnode.so`, `libautojs6-node.so` 및 `libnodexe.so`.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 그리고 `universal`.
 - 파일 시스템: Android 권한이 허용하는 기기 경로에 접근할 수 있고 `/proc`, `/sys`, `/dev` 는 엄격한 경계입니다.
 - TypeScript: host output을 허용하고 실행 중 생성된 project file에 provider-v3 compilation을 요청할 수 있습니다. direct raw TypeScript는 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`를 반환합니다.
@@ -108,6 +109,13 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 ### 릴리스 기록
 
 ******
+
+# v1.5.0
+
+###### 2026/09/14
+
+* `추가` 멀티콜 터미널 런처 `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) 를 모든 ABI에 포함, `DT_RUNPATH $ORIGIN` 및 16 KB 페이지 정렬 적용
+* `추가` 공식 Node.js 24.21.0 배포판에서 가져온 npm 11.19.0 및 corepack 0.36.0 자산, `NODE_CLI_*` manifest meta-data (schema 1) 로 선언하고 `nodeCli` 기능으로 runtimeInfo / PluginInfo에 미러링
 
 # v1.4.2
 
@@ -124,18 +132,6 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 
 * `개선` 64비트 네이티브 라이브러리의 16 KB 페이지 정렬을 빌드 시 검증, manifest 계약 검사 및 JSON 보고서 지원
 * `개선` 호스트 활성화, 메타데이터, 다국어 문서 및 서명된 APK 수집을 공통 규칙에 맞게 정리
-
-# v1.4.0
-
-###### 2026/09/10
-
-* `추가` MediaInfo 쿼리는 0부터 시작하는 streamNumber, countGet 스트림 수, 단위와 설명 및 표시 이름을 위한 infoKind를 지원; Rhino와 Node는 첫 스트림의 TEXT 기본 쿼리를 유지하고 플러그인 확장 기능을 확인
-* `수정` MediaInfo 및 이미지 파일 경로가 절대 경로, 상위 디렉터리 및 유효한 파일 이름을 지원; 녹음 출력도 업데이트된 호스트에서 동일한 Android 파일 접근 규칙 적용
-* `수정` 브리지 기능 오류가 누락된 node.permissions 선언을 안내하며 진단 전용 pro_compat_opt_in 프로필을 요구하지 않도록 수정
-* `수정` 프로젝트 검증기가 fs 절대 경로와 상위 디렉터리를 FS_OUTSIDE_SCOPE로 거부하지 않도록 수정; 실제 파일 접근은 Android에서 결정
-* `개선` Android 이벤트 및 3초 녹음 독립 프로젝트와 화면 캡처, OCR, 물리 키, MediaInfo의 프로젝트 선언 및 수동 검증 절차 제공
-* `개선` 스크린샷 이미지 검색, 화면 OCR 및 3초 AAC 녹음의 실제 기기 수동 검증을 완료하고 해당 예제와 동일한 호출을 사용하는 Pro 호환 코드 조각을 안정 상태로 전환
-* `개선` 이벤트 검증 예제에 호스트의 볼륨 높이기 중지 단축키를 잠시 끄는 절차를 추가; 업데이트된 호스트는 project.json의 node.timeoutMs를 읽어 긴 대기가 약 5초 후 종료되는 문제를 해결
 
 ##### 더 많은 릴리스 기록
 

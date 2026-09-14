@@ -5,6 +5,13 @@
   "changelog_label_improvement": "Amelioration",
   "changelog_label_dependency": "Dependance",
   "$data": {
+    "v1.5.0": {
+      "released_date": "2026/09/14",
+      "feature": [
+        "Lanceur de terminal multi-appel `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) empaqueté pour chaque ABI avec `DT_RUNPATH $ORIGIN` et un alignement de pages de 16 KB",
+        "Archive npm 11.19.0 et corepack 0.36.0 issue de la distribution officielle Node.js 24.21.0, déclarée via les meta-data manifest `NODE_CLI_*` (schema 1) et reflétée dans runtimeInfo / PluginInfo en tant que capacité `nodeCli`"
+      ]
+    },
     "v1.4.2": {
       "released_date": "2026/09/13",
       "fix": [

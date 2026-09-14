@@ -61,6 +61,7 @@ AutoJs6 Node.js Runtime 插件为 AutoJs6 提供内嵌 Node.js 24.21.0 原生运
 - 提供宿主能力代理与 live bridge, 可注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等运行时模块.
 - 附带 `sample/nodejs` 示例项目与 `docs/HOST-API.md` 宿主 API 能力清单.
 - 插件信息, 使用说明, README 与 CHANGELOG 均支持西班牙语/法语/俄语/阿拉伯语/日语/韩语/英语/简体中文/香港繁体/台湾繁体.
+- 附带多入口终端启动器 `libnodexe.so` 与 npm / corepack 资产, 通过 `NODE_CLI_*` manifest meta-data 声明, 使 AutoJs6 终端 (宿主 6.8.0+) 能在自身 uid 的 shell 中运行 `node`, `npm`, `npx`, `corepack`, `yarn` 与 `pnpm`.
 
 ******
 
@@ -96,7 +97,7 @@ console.log("AutoJs6 Node.js runtime");
 - 运行时槽位: `node24_21`.
 - 插件 ID: `nodejs`, 引擎: `nodejs`.
 - 运行时服务动作: `org.autojs.plugin.nodejs.RUNTIME`.
-- 原生运行库: `libnode.so` 和 `libautojs6-node.so`.
+- 原生运行库: `libnode.so`, `libautojs6-node.so` 和 `libnodexe.so`.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.
 - 文件系统: Android 权限允许范围内可访问设备路径; `/proc`、`/sys`、`/dev` 为硬边界.
 - TypeScript: 接受宿主产物并可通过 provider v3 按需编译运行中创建的项目文件; direct raw TypeScript 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -108,6 +109,13 @@ console.log("AutoJs6 Node.js runtime");
 ### 发行历史
 
 ******
+
+# v1.5.0
+
+###### 2026/09/14
+
+* `新增` 多入口终端启动器 `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm), 各 ABI 均打包, 带 `DT_RUNPATH $ORIGIN` 与 16 KB 页对齐
+* `新增` 取自官方 Node.js 24.21.0 发行包的 npm 11.19.0 与 corepack 0.36.0 资产, 通过 `NODE_CLI_*` manifest meta-data (schema 1) 声明, 并以 `nodeCli` 能力镜像到 runtimeInfo / PluginInfo
 
 # v1.4.2
 
@@ -124,18 +132,6 @@ console.log("AutoJs6 Node.js runtime");
 
 * `优化` 构建阶段校验 64 位原生库的 16 KB 页大小对齐, 检查 manifest 契约并输出 JSON 报告
 * `优化` 宿主激活, 插件元数据, 多语言文档与签名发布归集遵循统一插件规范
-
-# v1.4.0
-
-###### 2026/09/10
-
-* `新增` MediaInfo 查询支持从 0 开始的 streamNumber, countGet 流计数以及用于单位, 说明和可读名称的 infoKind; Rhino 和 Node 保持默认第 1 条流的 TEXT 查询, 并协商插件扩展能力
-* `修复` MediaInfo 与图片文件路径支持绝对路径, 父目录和合法文件名; 录音输出同步交由更新后的宿主按 Android 文件权限处理
-* `修复` 桥能力未声明错误直接提示缺少的 node.permissions, 不再要求仅作诊断且不授予权限的 pro_compat_opt_in profile
-* `修复` 项目向导不再将普通 fs 绝对路径和父目录路径误报为 FS_OUTSIDE_SCOPE, 实际文件访问交由 Android 判断
-* `优化` 提供 Android 事件与 3 秒录音独立项目, 补齐截屏, OCR, 实体按键和 MediaInfo 的项目声明及人工验收步骤
-* `优化` 截屏找图, 屏幕 OCR 与 3 秒 AAC 录音完成真机人工验收, 对应样例及复用相同调用链的 Pro 对齐片段转为稳定状态
-* `优化` 事件验收样例提示暂时关闭宿主音量加停止快捷键; 配套宿主读取 project.json 的 node.timeoutMs, 避免较长等待脚本在约 5 秒后超时
 
 ##### 更多发行历史可参阅
 

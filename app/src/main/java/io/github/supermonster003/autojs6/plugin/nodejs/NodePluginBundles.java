@@ -26,6 +26,23 @@ final class NodePluginBundles {
         this.service = service;
     }
 
+    /**
+     * Mirrors the terminal launcher manifest contract into a Bundle so the host Doctor report can
+     * show it without parsing the manifest. zh-CN: 把终端启动器的 manifest 契约镜像到 Bundle, 供宿主诊断报告直接展示.
+     */
+    static void putNodeCliFacts(Bundle target) {
+        target.putString(NodeJsRuntimeContract.KEY_NODE_CLI_SCHEMA, NodeJsRuntimeContract.NODE_CLI_SCHEMA_VERSION);
+        target.putString(NodeJsRuntimeContract.KEY_NODE_CLI_EXECUTABLE, BuildConfig.NODE_CLI_EXECUTABLE);
+        target.putString(NodeJsRuntimeContract.KEY_NODE_CLI_COMMANDS, BuildConfig.NODE_CLI_COMMANDS);
+        target.putString(NodeJsRuntimeContract.KEY_NODE_CLI_ARCHIVE, BuildConfig.NODE_CLI_ARCHIVE);
+        target.putString(NodeJsRuntimeContract.KEY_NODE_CLI_ARCHIVE_SHA256, BuildConfig.NODE_CLI_ARCHIVE_SHA256);
+        target.putString(NodeJsRuntimeContract.KEY_NODE_CLI_ARCHIVE_ROOT, BuildConfig.NODE_CLI_ARCHIVE_ROOT);
+        target.putInt(NodeJsRuntimeContract.KEY_NODE_CLI_ARCHIVE_ENTRY_COUNT, BuildConfig.NODE_CLI_ARCHIVE_ENTRY_COUNT);
+        target.putLong(NodeJsRuntimeContract.KEY_NODE_CLI_ARCHIVE_BYTES, BuildConfig.NODE_CLI_ARCHIVE_BYTES);
+        target.putString(NodeJsRuntimeContract.KEY_NODE_CLI_NPM_VERSION, BuildConfig.NODE_CLI_NPM_VERSION);
+        target.putString(NodeJsRuntimeContract.KEY_NODE_CLI_COREPACK_VERSION, BuildConfig.NODE_CLI_COREPACK_VERSION);
+    }
+
     Bundle runtimeInfoBundle() {
         NodeJsRuntimePluginService.RuntimeReadiness readiness = service.lastRuntimeReadiness;
         NodeRuntimeExecutionGate.Snapshot activeExecution = service.executionGate.snapshot();
@@ -38,6 +55,7 @@ final class NodePluginBundles {
         info.putString(NodeJsRuntimeContract.KEY_BRIDGE_LIBRARY_NAME, NodeJsRuntimePluginService.BRIDGE_LIBRARY_NAME);
         info.putInt(NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_VERSION, NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_CONTRACT_VERSION);
         info.putStringArray(NodeJsRuntimeContract.KEY_CAPABILITIES, NodeJsRuntimePluginService.CAPABILITIES.clone());
+        putNodeCliFacts(info);
         info.putString(NodeJsRuntimePluginService.KEY_NODE_CAPABILITY_CATALOG_SCHEMA, NodeJsRuntimePluginService.NODE_CAPABILITY_CATALOG_SCHEMA);
         info.putString(NodeJsRuntimePluginService.KEY_NODE_CAPABILITY_CATALOG_VERSION, NodeJsRuntimePluginService.NODE_CAPABILITY_CATALOG_VERSION);
         info.putString(NodeJsRuntimePluginService.KEY_NODE_CAPABILITY_CATALOG_SHA256, NodeJsRuntimePluginService.NODE_CAPABILITY_CATALOG_SHA256);

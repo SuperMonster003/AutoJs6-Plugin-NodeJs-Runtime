@@ -41,6 +41,12 @@ capability the script uses.
 
 Use [Example projects](EXAMPLES.md) as working templates.
 
+## Terminal
+
+The AutoJs6 terminal (host 6.8.0+) runs `node`, `npm`, `npx`, `corepack`, `yarn` and
+`pnpm` from this plugin's launcher; see [TERMINAL.md](TERMINAL.md) for the contract and
+the Android W^X limits.
+
 ## Troubleshooting
 
 - Generate a Node.js Doctor report from Developer options.
