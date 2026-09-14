@@ -54,10 +54,10 @@
   },
   "buildProvenance": {
     "sourceRepository": "AutoJs6-Plugin-NodeJs-Runtime",
-    "sourceGitBase": "6ef3595afa7f8774d25e98ab029bfd072ce15f00",
+    "sourceGitBase": "d0d1c44bb87598bf4661100a410ac1a03e50e2ef",
     "runtimeBuildPlan": {
       "lockFile": "tools/nodejs/runtime-build/runtime-build.lock.json",
-      "lockSha256": "380c3b231e7c1e720a55eb85fc9b6e766bd3bce8812d8a10796a84dcbed23967",
+      "lockSha256": "5e159976dc6157fb0b38bc5af175ec689c5a2a8589c0d82ba16b92d209d6d92a",
       "sourceBuilder": "tools/nodejs/runtime-build/build-node-from-source.py",
       "sourceBuilderSha256": "aef1c3a170514c4a3dfbb7f6b77281896ca43076eea1b7a2497b705e33a48f41",
       "containerBuildScript": "tools/nodejs/runtime-build/container/build-source.sh",
