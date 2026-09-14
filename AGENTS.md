@@ -16,6 +16,7 @@
 | RUNTIME action / service | `org.autojs.plugin.nodejs.RUNTIME` / `NodeJsRuntimePluginService` |
 | 最低宿主 versionCode | `3923` |
 | 支持 ABI | `arm64-v8a`, `armeabi-v7a`, `x86_64`; 另产出 universal APK |
+| 终端启动器 | `lib/<abi>/libnodexe.so` + `assets/nodejs/cli/node-cli-<version>.bin`, 契约见 `docs/nodejs/TERMINAL.md` |
 
 插件负责真实 Node/V8 运行时、解析器、执行生命周期、公共 `plugin-api/nodejs-api`、`sample/nodejs`、`docs/nodejs/types` 和项目向导。宿主负责入口、发现、Binder 客户端、工作区传输、Android 能力与 TypeScript 编译路由; 样例和类型仅在本仓维护。依赖必须在本仓自包含, 不引用兄弟仓二进制。
 
@@ -88,7 +89,7 @@ C++ 先用当前 `.cxx` 的 compile_commands.json 中 NDK clang 命令离线做 
 - 完成标准是一条可用能力, 不新增 probe、能力目录、所有权策略、哈希锁或重型默认门禁。
 - 不为未发生的异常预造处理; 针对复现问题做最小修复与必要回归。
 - 文件系统受 Android 权限约束, `/proc`、`/sys`、`/dev` 硬边界保留; 不新增 hardened sandbox。
-- 不实现设备端 npm registry 下载、native addon 加载、远程 inspector 监听或未经重新评估的 V8 startup snapshot。
+- 运行时 facade 不实现设备端 npm registry 下载 (宿主终端中由用户显式运行的 npm / corepack 不在此限, 见 `docs/nodejs/TERMINAL.md`); 不实现 native addon 加载、远程 inspector 监听或未经重新评估的 V8 startup snapshot。
 - raw TypeScript 必须经宿主 Compiler 产出 JavaScript, 不恢复 regex stripping fallback。
 - 不改写已发布 catalog/runtime-kit 快照, 不将未产出的 Node 24.x Android 版本标成已晋级。
 

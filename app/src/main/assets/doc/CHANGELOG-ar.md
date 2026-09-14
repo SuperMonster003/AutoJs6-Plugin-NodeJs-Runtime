@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.0
+
+###### 2026/09/14
+
+* `ميزة` مشغّل الطرفية متعدد الأوامر `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) مضمّن لكل ABI مع `DT_RUNPATH $ORIGIN` ومحاذاة صفحات 16 KB
+* `ميزة` أرشيف npm 11.19.0 و corepack 0.36.0 مأخوذ من توزيعة Node.js 24.21.0 الرسمية, معلن عبر meta-data في manifest باسم `NODE_CLI_*` (schema 1) ومنعكس في runtimeInfo / PluginInfo كقدرة `nodeCli`
+
 # v1.4.2
 
 ###### 2026/09/13

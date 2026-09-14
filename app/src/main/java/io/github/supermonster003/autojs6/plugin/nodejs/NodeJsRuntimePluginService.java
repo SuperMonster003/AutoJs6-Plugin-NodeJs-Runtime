@@ -117,6 +117,7 @@ public class NodeJsRuntimePluginService extends Service {
             CAPABILITY_SINGLE_ACTIVE_BACKPRESSURE,
             CAPABILITY_PROCESS_RESTART_CANCELLATION,
             NodeJsRuntimeContract.CAPABILITY_SCOPED_WORKSPACE_ARCHIVE_TRANSPORT,
+            NodeJsRuntimeContract.CAPABILITY_NODE_CLI,
     };
 
     private final Object runtimeLifecycleLock = new Object();

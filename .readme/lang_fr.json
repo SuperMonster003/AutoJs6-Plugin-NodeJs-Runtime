@@ -19,7 +19,8 @@
     "Exécute la sortie TypeScript fournie par l'hôte et peut demander une compilation provider-v3 pour les `.ts`/`.mts`/`.cts` de projet créés pendant l'exécution; l'envoi brut direct échoue toujours de façon fermée, sans fallback d'effacement ni commutateur de compatibilité.",
     "Fournit un agent de capacites hote et un live bridge avec des modules de runtime comme `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config` et `autojs6:bridge-permissions`.",
     "Inclut les projets `sample/nodejs` et l'inventaire des capacités API hôte `docs/HOST-API.md`.",
-    "Les metadonnees du plugin, les instructions d'utilisation, le README et le CHANGELOG sont localises en espagnol, francais, russe, arabe, japonais, coreen, anglais, chinois simplifie, chinois traditionnel de Hong Kong et chinois traditionnel de Taiwan."
+    "Les metadonnees du plugin, les instructions d'utilisation, le README et le CHANGELOG sont localises en espagnol, francais, russe, arabe, japonais, coreen, anglais, chinois simplifie, chinois traditionnel de Hong Kong et chinois traditionnel de Taiwan.",
+    "Fournit le lanceur de terminal multi-appel `libnodexe.so` et une archive npm / corepack déclarés via les meta-data manifest `NODE_CLI_*`, afin que le terminal AutoJs6 (hôte 6.8.0+) puisse exécuter `node`, `npm`, `npx`, `corepack`, `yarn` et `pnpm` dans un shell sous son propre uid."
   ],
   "h3_usage": "Utilisation",
   "p_usage_note": "Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez les scripts Node.js avec la directive `\"nodejs\";`. D'autres exemples sont disponibles dans `sample/nodejs`.",
@@ -35,7 +36,7 @@
     "Slot de runtime: `node24_21`.",
     "ID de plugin: `nodejs`, moteur: `nodejs`.",
     "Action du service runtime: `org.autojs.plugin.nodejs.RUNTIME`.",
-    "Bibliotheques natives de runtime: `libnode.so` et `libautojs6-node.so`.",
+    "Bibliotheques natives de runtime: `libnode.so`, `libautojs6-node.so` et `libnodexe.so`.",
     "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64` et `universal`.",
     "Système de fichiers: les chemins autorisés par Android sont accessibles; `/proc`, `/sys` et `/dev` sont des limites strictes.",
     "TypeScript: accepte la sortie de l'hôte et peut demander la compilation provider-v3 des fichiers créés pendant l'exécution; le TypeScript brut direct renvoie `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.",

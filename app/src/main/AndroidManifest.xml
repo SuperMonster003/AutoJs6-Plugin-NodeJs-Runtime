@@ -79,6 +79,41 @@
                 android:name="requiresHostVersion"
                 android:value="3923" />
 
+            <!-- Terminal launcher contract (schema 1) read by the AutoJs6 host from
+                 ServiceInfo.metaData without binding; see docs/nodejs/TERMINAL.md.
+                 Archive facts come from tools/nodejs/cli/node-cli.lock.json via
+                 manifest placeholders so they cannot drift from the packaged asset. -->
+            <meta-data
+                android:name="org.autojs.plugin.nodejs.NODE_CLI_SCHEMA"
+                android:value="1" />
+            <meta-data
+                android:name="org.autojs.plugin.nodejs.NODE_CLI_EXECUTABLE"
+                android:value="libnodexe.so" />
+            <meta-data
+                android:name="org.autojs.plugin.nodejs.NODE_CLI_COMMANDS"
+                android:value="node,npm,npx,corepack,yarn,yarnpkg,pnpm,pnpx" />
+            <meta-data
+                android:name="org.autojs.plugin.nodejs.NODE_CLI_ARCHIVE"
+                android:value="${nodeCliArchive}" />
+            <meta-data
+                android:name="org.autojs.plugin.nodejs.NODE_CLI_ARCHIVE_SHA256"
+                android:value="${nodeCliArchiveSha256}" />
+            <meta-data
+                android:name="org.autojs.plugin.nodejs.NODE_CLI_ARCHIVE_ROOT"
+                android:value="${nodeCliArchiveRoot}" />
+            <meta-data
+                android:name="org.autojs.plugin.nodejs.NODE_CLI_ARCHIVE_ENTRY_COUNT"
+                android:value="${nodeCliArchiveEntryCount}" />
+            <meta-data
+                android:name="org.autojs.plugin.nodejs.NODE_CLI_ARCHIVE_BYTES"
+                android:value="${nodeCliArchiveBytes}" />
+            <meta-data
+                android:name="org.autojs.plugin.nodejs.NODE_CLI_NPM_VERSION"
+                android:value="${nodeCliNpmVersion}" />
+            <meta-data
+                android:name="org.autojs.plugin.nodejs.NODE_CLI_COREPACK_VERSION"
+                android:value="${nodeCliCorepackVersion}" />
+
             <intent-filter>
                 <action android:name="org.autojs.plugin.nodejs.RUNTIME" />
                 <category android:name="nodejs" />

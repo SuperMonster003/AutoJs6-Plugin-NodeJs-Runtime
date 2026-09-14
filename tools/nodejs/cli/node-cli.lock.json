@@ -1,0 +1,38 @@
+{
+  "schema": "autojs6-node-cli-archive-v1",
+  "nodeVersion": "24.21.0",
+  "source": {
+    "fileName": "node-v24.21.0-linux-x64.tar.xz",
+    "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.xz",
+    "sha256": "fd8e59d5a511510f6a298afb548f18c7d2b1be404d8b4a27d94fbe49f56cb2d6",
+    "shasumsUrl": "https://nodejs.org/dist/v24.21.0/SHASUMS256.txt"
+  },
+  "archive": {
+    "assetPath": "nodejs/cli/node-cli-24.21.0.bin",
+    "sourcePath": "app/src/main/assets/nodejs/cli/node-cli-24.21.0.bin",
+    "root": "lib/node_modules",
+    "sha256": "ffc84169358de90653149de864563fddcca2c115859279a3c54ef0ab34d44bc3",
+    "entryCount": 1699,
+    "uncompressedBytes": 10068758,
+    "compressedBytes": 3356977
+  },
+  "packages": {
+    "npm": "11.19.0",
+    "corepack": "0.36.0"
+  },
+  "prunedDirectories": [
+    "npm/docs",
+    "npm/man"
+  ],
+  "requiredEntries": [
+    "npm/package.json",
+    "npm/bin/npm-cli.js",
+    "npm/bin/npx-cli.js",
+    "corepack/package.json",
+    "corepack/dist/corepack.js",
+    "corepack/dist/yarn.js",
+    "corepack/dist/yarnpkg.js",
+    "corepack/dist/pnpm.js",
+    "corepack/dist/pnpx.js"
+  ]
+}

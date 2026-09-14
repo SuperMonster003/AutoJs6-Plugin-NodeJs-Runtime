@@ -95,3 +95,41 @@ target_link_options(autojs6-node PRIVATE
     "-Wl,-z,max-page-size=16384"
     "-Wl,-z,common-page-size=16384"
 )
+
+# Multi-call terminal launcher (node / npm / npx / corepack / yarn / pnpm), see docs/nodejs/TERMINAL.md.
+# AGP only packages shared-library targets, so the PIE executable is written to a Gradle-owned
+# jniLibs directory under the `libnodexe.so` name and merged from there.
+set(AUTOJS6_NODE_CLI_OUTPUT_ROOT "" CACHE PATH "Directory receiving <abi>/libnodexe.so for jniLibs packaging")
+
+if (NOT "${AUTOJS6_NODE_CLI_OUTPUT_ROOT}" STREQUAL "")
+    # The Android platform module defines no runtime-path flag, so CMake's RPATH properties
+    # would be silent; target_link_options cannot be used because CMake 3.22 double-escapes
+    # `$ORIGIN` for Ninja (the ELF ends up with a literal `$$ORIGIN`).
+    set(CMAKE_EXECUTABLE_RUNTIME_CXX_FLAG "-Wl,-rpath,")
+    set(CMAKE_EXECUTABLE_RUNTIME_CXX_FLAG_SEP ":")
+
+    add_executable(nodexe node_cli_main.cpp)
+
+    target_include_directories(nodexe PRIVATE "${NODE_INCLUDE_DIR}")
+
+    target_link_libraries(nodexe PRIVATE node log)
+
+    set_target_properties(
+            nodexe
+            PROPERTIES
+            OUTPUT_NAME "libnodexe.so"
+            PREFIX ""
+            SUFFIX ""
+            RUNTIME_OUTPUT_DIRECTORY "${AUTOJS6_NODE_CLI_OUTPUT_ROOT}/${ANDROID_ABI}"
+            # libnode.so and libc++_shared.so sit next to the launcher in the installed lib dir.
+            SKIP_BUILD_RPATH TRUE
+            BUILD_WITH_INSTALL_RPATH TRUE
+            INSTALL_RPATH "$ORIGIN"
+    )
+
+    target_link_options(nodexe PRIVATE
+        "-Wl,--enable-new-dtags"
+        "-Wl,-z,max-page-size=16384"
+        "-Wl,-z,common-page-size=16384"
+    )
+endif ()

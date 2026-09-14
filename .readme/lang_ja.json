@@ -19,7 +19,8 @@
     "ホストが提供する TypeScript 出力を実行し, 実行中に作成された project `.ts`/`.mts`/`.cts` には provider-v3 compilation を要求できます. runtime 型消去 fallback と互換スイッチは削除され, direct raw dispatch は常に fail-closed です.",
     "ホスト能力ブローカーと live bridge を提供し, `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` などのランタイムモジュールを注入できます.",
     "`sample/nodejs` プロジェクトとホスト API 能力一覧 `docs/HOST-API.md` を含みます.",
-    "プラグイン情報, 使用説明, README, CHANGELOG はスペイン語/フランス語/ロシア語/アラビア語/日本語/韓国語/英語/簡体字中国語/香港繁体字/台湾繁体字に対応します."
+    "プラグイン情報, 使用説明, README, CHANGELOG はスペイン語/フランス語/ロシア語/アラビア語/日本語/韓国語/英語/簡体字中国語/香港繁体字/台湾繁体字に対応します.",
+    "マルチコール型ターミナルランチャー `libnodexe.so` と npm / corepack アセットを同梱し, `NODE_CLI_*` manifest meta-data で宣言することで, AutoJs6 ターミナル (ホスト 6.8.0 以降) が自身の uid の shell で `node`, `npm`, `npx`, `corepack`, `yarn`, `pnpm` を実行できます."
   ],
   "h3_usage": "使用例",
   "p_usage_note": "AutoJs6 プラグインセンターでプラグインをインストールして有効化し, `\"nodejs\";` ディレクティブで Node.js スクリプトを開始します. その他の例は `sample/nodejs` にあります.",
@@ -35,7 +36,7 @@
     "ランタイムスロット: `node24_21`.",
     "プラグイン ID: `nodejs`, エンジン: `nodejs`.",
     "ランタイムサービスアクション: `org.autojs.plugin.nodejs.RUNTIME`.",
-    "ネイティブランタイムライブラリ: `libnode.so` と `libautojs6-node.so`.",
+    "ネイティブランタイムライブラリ: `libnode.so`, `libautojs6-node.so` と `libnodexe.so`.",
     "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, および `universal`.",
     "ファイルシステム: Android 権限が許す端末パスへアクセスでき, `/proc`, `/sys`, `/dev` は厳格な境界です.",
     "TypeScript: host output を受け入れ, 実行中に作成された project file には provider-v3 compilation を要求できます. direct raw TypeScript は `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` を返します.",

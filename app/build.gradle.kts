@@ -1,5 +1,6 @@
 import com.android.build.api.variant.FilterConfiguration
 import com.android.apksig.ApkVerifier
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import java.security.MessageDigest
 import java.util.zip.ZipFile
@@ -28,6 +29,21 @@ val commonPluginApiAar = rootProject.file("libs/common-plugin-api.aar").also { a
         "Common plugin API AAR SHA-256 mismatch: expected $commonPluginApiSha256, actual $actual"
     }
 }
+
+// Terminal launcher (libnodexe.so) and the npm / corepack asset archive; see docs/nodejs/TERMINAL.md.
+// The lock is written by tools/nodejs/cli/build-node-cli-archive.py and re-checked before every build.
+val nodeCliLockFile = rootProject.file("tools/nodejs/cli/node-cli.lock.json")
+@Suppress("UNCHECKED_CAST")
+val nodeCliLock = groovy.json.JsonSlurper().parse(nodeCliLockFile) as Map<String, Any>
+@Suppress("UNCHECKED_CAST")
+val nodeCliArchiveFacts = nodeCliLock.getValue("archive") as Map<String, Any>
+@Suppress("UNCHECKED_CAST")
+val nodeCliPackageVersions = nodeCliLock.getValue("packages") as Map<String, String>
+val nodeCliArchiveFile = file("src/main/assets/${nodeCliArchiveFacts.getValue("assetPath")}")
+val nodeCliExecutableName = "libnodexe.so"
+val nodeCliCommands = "node,npm,npx,corepack,yarn,yarnpkg,pnpm,pnpx"
+val nodeCliCmakeOutputRoot = layout.buildDirectory.dir("generated/nodexe/cmake")
+val nativeLibraryNames = listOf("libnode.so", "libautojs6-node.so", "libc++_shared.so", nodeCliExecutableName)
 
 android {
     namespace = globalApplicationId
@@ -58,6 +74,27 @@ android {
 
         buildConfigField("String", "VERSION_DATE", "\"${utils.getDateString("MMM d, yyyy", "GMT+08:00")}\"")
 
+        // Manifest meta-data and BuildConfig share the lock so the declared archive facts,
+        // the packaged asset and the runtimeInfo mirror cannot disagree.
+        manifestPlaceholders += mapOf(
+            "nodeCliArchive" to nodeCliArchiveFacts.getValue("assetPath"),
+            "nodeCliArchiveSha256" to nodeCliArchiveFacts.getValue("sha256"),
+            "nodeCliArchiveRoot" to nodeCliArchiveFacts.getValue("root"),
+            "nodeCliArchiveEntryCount" to nodeCliArchiveFacts.getValue("entryCount"),
+            "nodeCliArchiveBytes" to nodeCliArchiveFacts.getValue("uncompressedBytes"),
+            "nodeCliNpmVersion" to nodeCliPackageVersions.getValue("npm"),
+            "nodeCliCorepackVersion" to nodeCliPackageVersions.getValue("corepack"),
+        )
+        buildConfigField("String", "NODE_CLI_EXECUTABLE", "\"$nodeCliExecutableName\"")
+        buildConfigField("String", "NODE_CLI_COMMANDS", "\"$nodeCliCommands\"")
+        buildConfigField("String", "NODE_CLI_ARCHIVE", "\"${nodeCliArchiveFacts.getValue("assetPath")}\"")
+        buildConfigField("String", "NODE_CLI_ARCHIVE_SHA256", "\"${nodeCliArchiveFacts.getValue("sha256")}\"")
+        buildConfigField("String", "NODE_CLI_ARCHIVE_ROOT", "\"${nodeCliArchiveFacts.getValue("root")}\"")
+        buildConfigField("int", "NODE_CLI_ARCHIVE_ENTRY_COUNT", "${nodeCliArchiveFacts.getValue("entryCount")}")
+        buildConfigField("long", "NODE_CLI_ARCHIVE_BYTES", "${nodeCliArchiveFacts.getValue("uncompressedBytes")}L")
+        buildConfigField("String", "NODE_CLI_NPM_VERSION", "\"${nodeCliPackageVersions.getValue("npm")}\"")
+        buildConfigField("String", "NODE_CLI_COREPACK_VERSION", "\"${nodeCliPackageVersions.getValue("corepack")}\"")
+
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }
@@ -68,6 +105,7 @@ android {
                 arguments += "-DAUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE=OFF"
                 arguments += "-DAUTOJS6_NODE_ENABLE_EMBEDDED_SCRIPT_EXECUTION=ON"
                 arguments += "-DAUTOJS6_NODE_RUNTIME_SLOT=node24_21"
+                arguments += "-DAUTOJS6_NODE_CLI_OUTPUT_ROOT=${nodeCliCmakeOutputRoot.get().asFile.invariantSeparatorsPath}"
                 cppFlags += "-std=c++20"
             }
         }
@@ -149,8 +187,51 @@ android {
     }
 }
 
+/**
+ * AGP packages only shared-library targets from CMake, so the PIE launcher written by the
+ * `nodexe` target is collected into a generated jniLibs directory per variant.
+ * zh-CN: AGP 只打包 CMake 的共享库目标, 因此把 `nodexe` 目标产出的 PIE 可执行文件按变体收集到生成的 jniLibs 目录.
+ */
+abstract class CollectNodeCliLauncher : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val launchers: ConfigurableFileCollection
+
+    @get:Input
+    abstract val abis: ListProperty<String>
+
+    @get:Input
+    abstract val executableName: Property<String>
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @TaskAction
+    fun collect() {
+        val destination = outputDirectory.get().asFile
+        destination.deleteRecursively()
+        val byAbi = launchers.files.associateBy { it.parentFile.name }
+        for (abi in abis.get()) {
+            val source = byAbi[abi]
+            check(source != null && source.isFile) { "CMake did not produce ${executableName.get()} for $abi" }
+            check(source.inputStream().use { it.readNBytes(4) }.contentEquals(byteArrayOf(0x7f, 0x45, 0x4c, 0x46))) {
+                "${source.absolutePath} is not an ELF file"
+            }
+            source.copyTo(destination.resolve(abi).resolve(executableName.get()), overwrite = true)
+        }
+    }
+}
+
 androidComponents {
     onVariants { variant ->
+        val capitalized = variant.name.replaceFirstChar { it.uppercase() }
+        val collectLauncher = tasks.register<CollectNodeCliLauncher>("collect${capitalized}NodeCliLauncher") {
+            dependsOn("externalNativeBuild$capitalized")
+            launchers.from(fileTree(nodeCliCmakeOutputRoot) { include("*/$nodeCliExecutableName") })
+            abis.set(android.defaultConfig.ndk.abiFilters.toList().sorted())
+            executableName.set(nodeCliExecutableName)
+        }
+        variant.sources.jniLibs?.addGeneratedSourceDirectory(collectLauncher, CollectNodeCliLauncher::outputDirectory)
         variant.outputs.forEach { output ->
             val architecture = output.filters.find {
                 it.filterType == FilterConfiguration.FilterType.ABI
@@ -205,6 +286,35 @@ tasks {
         options.encoding = "UTF-8"
     }
 
+    register("verifyNodeCliArchive") {
+        group = "verification"
+        description = "Checks the packaged npm / corepack archive against tools/nodejs/cli/node-cli.lock.json"
+        inputs.files(nodeCliLockFile, nodeCliArchiveFile)
+
+        doLast {
+            check(nodeCliArchiveFile.isFile) { "Missing terminal launcher archive: ${nodeCliArchiveFile.absolutePath}" }
+            val expected = nodeCliArchiveFacts.getValue("sha256").toString()
+            val actual = MessageDigest.getInstance("SHA-256").digest(nodeCliArchiveFile.readBytes())
+                .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+            check(actual == expected) {
+                "Terminal launcher archive SHA-256 mismatch for ${nodeCliArchiveFile.name}: lock $expected, actual $actual. " +
+                    "Re-run tools/nodejs/cli/build-node-cli-archive.py."
+            }
+            ZipFile(nodeCliArchiveFile).use { zip ->
+                val root = nodeCliArchiveFacts.getValue("root").toString() + "/"
+                val entries = zip.entries().asSequence().map { it.name }.toList()
+                check(entries.size == (nodeCliArchiveFacts.getValue("entryCount") as Number).toInt()) {
+                    "Terminal launcher archive entry count drifted from the lock: ${entries.size}"
+                }
+                check(entries.all { it.startsWith(root) && !it.contains("..") }) { "Terminal launcher archive contains entries outside $root" }
+            }
+        }
+    }
+
+    named("preBuild") {
+        dependsOn("verifyNodeCliArchive")
+    }
+
     register("appendDigestToReleasedFiles") {
         group = "distribution"
         description = "Builds and verifies four signed release APKs, then appends their CRC32 digests"
@@ -230,8 +340,7 @@ tasks {
                         .filter { it.name.startsWith("lib/") && it.name.endsWith(".so") }
                         .map { it.name }.toSet()
                     val expectedLibraries = packagedAbis.flatMap { packagedAbi ->
-                        listOf("libnode.so", "libautojs6-node.so", "libc++_shared.so")
-                            .map { "lib/$packagedAbi/$it" }
+                        nativeLibraryNames.map { "lib/$packagedAbi/$it" }
                     }.toSet()
                     check(nativeLibraries == expectedLibraries) { "Unexpected native library set in ${apk.name}: $nativeLibraries" }
                     for (name in expectedLibraries) {

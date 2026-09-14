@@ -61,6 +61,7 @@ El plugin AutoJs6 Node.js Runtime proporciona a AutoJs6 un runtime nativo integr
 - Proporciona broker de capacidades del host y live bridge con modulos de runtime como `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config` y `autojs6:bridge-permissions`.
 - Incluye proyectos `sample/nodejs` y el inventario de capacidades de API del host `docs/HOST-API.md`.
 - Los metadatos del plugin, las instrucciones de uso, el README y el CHANGELOG estan localizados en espanol, frances, ruso, arabe, japones, coreano, ingles, chino simplificado, chino tradicional de Hong Kong y chino tradicional de Taiwan.
+- Incluye el lanzador de terminal multi-llamada `libnodexe.so` y un archivo npm / corepack declarados mediante los meta-data de manifest `NODE_CLI_*`, para que el terminal de AutoJs6 (host 6.8.0+) pueda ejecutar `node`, `npm`, `npx`, `corepack`, `yarn` y `pnpm` en un shell con su propio uid.
 
 ******
 
@@ -96,7 +97,7 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 - Slot de runtime: `node24_21`.
 - ID de plugin: `nodejs`, motor: `nodejs`.
 - Accion del servicio runtime: `org.autojs.plugin.nodejs.RUNTIME`.
-- Bibliotecas nativas de runtime: `libnode.so` y `libautojs6-node.so`.
+- Bibliotecas nativas de runtime: `libnode.so`, `libautojs6-node.so` y `libnodexe.so`.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64` y `universal`.
 - Sistema de archivos: se puede acceder a las rutas permitidas por Android; `/proc`, `/sys` y `/dev` son límites estrictos.
 - TypeScript: acepta salida del host y puede solicitar compilación provider-v3 de archivos creados durante la ejecución; TypeScript raw directo devuelve `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -108,6 +109,13 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 ### Historial De Versiones
 
 ******
+
+# v1.5.0
+
+###### 2026/09/14
+
+* `Nuevo` Lanzador de terminal multi-llamada `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) empaquetado para cada ABI con `DT_RUNPATH $ORIGIN` y alineación de páginas de 16 KB
+* `Nuevo` Archivo de npm 11.19.0 y corepack 0.36.0 tomado de la distribución oficial de Node.js 24.21.0, declarado mediante los meta-data de manifest `NODE_CLI_*` (schema 1) y reflejado en runtimeInfo / PluginInfo como la capacidad `nodeCli`
 
 # v1.4.2
 
@@ -124,18 +132,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 * `Mejora` Verificación de compilación de la alineación de páginas de 16 KB en bibliotecas nativas de 64 bits, con controles del contrato manifest e informes JSON
 * `Mejora` Activación del host, metadatos, documentación traducida y recopilación de APK firmados conforme a las convenciones comunes
-
-# v1.4.0
-
-###### 2026/09/10
-
-* `Nuevo` Las consultas MediaInfo admiten streamNumber desde 0, countGet e infoKind para unidades, descripciones y nombres legibles; Rhino y Node mantienen TEXT del primer flujo por defecto y negocian las capacidades del plugin
-* `Correccion` Las rutas de MediaInfo e imágenes admiten rutas absolutas, directorios superiores y nombres válidos; las grabaciones siguen las mismas reglas de acceso de Android con el anfitrión actualizado
-* `Correccion` Los errores de capacidades del puente indican las declaraciones node.permissions que faltan sin exigir el perfil pro_compat_opt_in, usado solo para diagnóstico
-* `Correccion` El validador de proyectos deja de rechazar rutas fs absolutas o directorios superiores con FS_OUTSIDE_SCOPE; Android determina el acceso real
-* `Mejora` Proyectos independientes de eventos Android y grabación de audio de tres segundos, con declaraciones y pasos manuales para captura, OCR, teclas físicas y MediaInfo
-* `Mejora` La búsqueda en capturas, el OCR y la grabación AAC de tres segundos superaron la validación manual en un dispositivo; sus ejemplos y fragmentos de paridad Pro con las mismas llamadas son estables
-* `Mejora` El ejemplo de validación de eventos indica cómo desactivar temporalmente el atajo de parada con subir volumen; el host actualizado lee node.timeoutMs de project.json para permitir esperas de más de cinco segundos
 
 ##### Para mas historial de versiones
 

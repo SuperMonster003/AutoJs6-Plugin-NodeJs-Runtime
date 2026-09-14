@@ -61,6 +61,7 @@ AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 24.21
 - ホスト能力ブローカーと live bridge を提供し, `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` などのランタイムモジュールを注入できます.
 - `sample/nodejs` プロジェクトとホスト API 能力一覧 `docs/HOST-API.md` を含みます.
 - プラグイン情報, 使用説明, README, CHANGELOG はスペイン語/フランス語/ロシア語/アラビア語/日本語/韓国語/英語/簡体字中国語/香港繁体字/台湾繁体字に対応します.
+- マルチコール型ターミナルランチャー `libnodexe.so` と npm / corepack アセットを同梱し, `NODE_CLI_*` manifest meta-data で宣言することで, AutoJs6 ターミナル (ホスト 6.8.0 以降) が自身の uid の shell で `node`, `npm`, `npx`, `corepack`, `yarn`, `pnpm` を実行できます.
 
 ******
 
@@ -96,7 +97,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 - ランタイムスロット: `node24_21`.
 - プラグイン ID: `nodejs`, エンジン: `nodejs`.
 - ランタイムサービスアクション: `org.autojs.plugin.nodejs.RUNTIME`.
-- ネイティブランタイムライブラリ: `libnode.so` と `libautojs6-node.so`.
+- ネイティブランタイムライブラリ: `libnode.so`, `libautojs6-node.so` と `libnodexe.so`.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, および `universal`.
 - ファイルシステム: Android 権限が許す端末パスへアクセスでき, `/proc`, `/sys`, `/dev` は厳格な境界です.
 - TypeScript: host output を受け入れ, 実行中に作成された project file には provider-v3 compilation を要求できます. direct raw TypeScript は `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` を返します.
@@ -108,6 +109,13 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 ### リリース履歴
 
 ******
+
+# v1.5.0
+
+###### 2026/09/14
+
+* `追加` マルチコール型ターミナルランチャー `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) を全 ABI に同梱, `DT_RUNPATH $ORIGIN` と 16 KB ページアライメント付き
+* `追加` 公式 Node.js 24.21.0 配布物から取得した npm 11.19.0 と corepack 0.36.0 のアセット, `NODE_CLI_*` manifest meta-data (schema 1) で宣言し, `nodeCli` 機能として runtimeInfo / PluginInfo にミラー
 
 # v1.4.2
 
@@ -124,18 +132,6 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 
 * `改善` 64 ビットのネイティブライブラリの 16 KB ページアラインメントをビルド時に検証, manifest 契約の検査と JSON レポートに対応
 * `改善` ホストからの有効化, メタデータ, 多言語文書および署名済み APK の収集を共通規約に統一
-
-# v1.4.0
-
-###### 2026/09/10
-
-* `追加` MediaInfo クエリが 0 始まりの streamNumber, countGet によるストリーム数, 単位や説明や表示名を取得する infoKind に対応; Rhino と Node は既定の先頭ストリームの TEXT クエリを維持し, プラグインの拡張機能を確認
-* `修正` MediaInfo と画像のファイルパスで絶対パス, 親ディレクトリと有効なファイル名に対応; 録音出力も更新済みホストの Android ファイル権限に従って処理
-* `修正` ブリッジ権限エラーは不足する node.permissions 宣言を示し, 診断専用の pro_compat_opt_in プロファイルを要求しなくなった
-* `修正` プロジェクト検証で fs の絶対パスや親ディレクトリを FS_OUTSIDE_SCOPE として拒否しなくなった; 実際のファイルアクセスは Android が判断
-* `改善` Android イベントと 3 秒間の録音を試す独立プロジェクトを追加し, 画面キャプチャ, OCR, 物理キー, MediaInfo の宣言と手動検証手順を整備
-* `改善` スクリーンショットの画像検索, 画面 OCR, 3 秒間の AAC 録音が実機での手動検証に合格し, 対応するサンプルと同じ呼び出しを使う Pro 互換スニペットを安定版に変更
-* `改善` イベント検証サンプルに音量上キーによる宿主の停止ショートカットを一時的に無効にする手順を追加; 更新済み宿主は project.json の node.timeoutMs を読み取り, 長い待機が約 5 秒で終了する問題を解消
 
 ##### その他のリリース履歴
 

@@ -19,7 +19,8 @@
     "执行宿主提供的 TypeScript 编译产物, 并可通过 provider v3 请求按需编译运行中创建的项目 `.ts`/`.mts`/`.cts`; 运行时类型剥离 fallback 与兼容开关已删除, direct raw dispatch 始终 fail-closed.",
     "提供宿主能力代理与 live bridge, 可注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等运行时模块.",
     "附带 `sample/nodejs` 示例项目与 `docs/HOST-API.md` 宿主 API 能力清单.",
-    "插件信息, 使用说明, README 与 CHANGELOG 均支持西班牙语/法语/俄语/阿拉伯语/日语/韩语/英语/简体中文/香港繁体/台湾繁体."
+    "插件信息, 使用说明, README 与 CHANGELOG 均支持西班牙语/法语/俄语/阿拉伯语/日语/韩语/英语/简体中文/香港繁体/台湾繁体.",
+    "附带多入口终端启动器 `libnodexe.so` 与 npm / corepack 资产, 通过 `NODE_CLI_*` manifest meta-data 声明, 使 AutoJs6 终端 (宿主 6.8.0+) 能在自身 uid 的 shell 中运行 `node`, `npm`, `npx`, `corepack`, `yarn` 与 `pnpm`."
   ],
   "h3_usage": "使用示例",
   "p_usage_note": "将插件安装并在 AutoJs6 插件中心启用后, 以 `\"nodejs\";` 指令启动 Node.js 脚本. 更多示例位于 `sample/nodejs`.",
@@ -35,7 +36,7 @@
     "运行时槽位: `node24_21`.",
     "插件 ID: `nodejs`, 引擎: `nodejs`.",
     "运行时服务动作: `org.autojs.plugin.nodejs.RUNTIME`.",
-    "原生运行库: `libnode.so` 和 `libautojs6-node.so`.",
+    "原生运行库: `libnode.so`, `libautojs6-node.so` 和 `libnodexe.so`.",
     "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.",
     "文件系统: Android 权限允许范围内可访问设备路径; `/proc`、`/sys`、`/dev` 为硬边界.",
     "TypeScript: 接受宿主产物并可通过 provider v3 按需编译运行中创建的项目文件; direct raw TypeScript 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.",
