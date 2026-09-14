@@ -98,6 +98,7 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 - ID de plugin: `nodejs`, moteur: `nodejs`.
 - Action du service runtime: `org.autojs.plugin.nodejs.RUNTIME`.
 - Bibliotheques natives de runtime: `libnode.so`, `libautojs6-node.so` et `libnodexe.so`.
+- Intl : ICU 78 avec les seules données de locale anglaises (`--with-intl=small-icu`) ; `Intl`, les échappements de propriétés Unicode dans les expressions régulières et la sortie d'erreur propre de Node sur stderr fonctionnent dans le terminal AutoJs6, et `NODE_ICU_DATA` peut pointer vers un fichier de données ICU complet.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64` et `universal`.
 - Système de fichiers: les chemins autorisés par Android sont accessibles; `/proc`, `/sys` et `/dev` sont des limites strictes.
 - TypeScript: accepte la sortie de l'hôte et peut demander la compilation provider-v3 des fichiers créés pendant l'exécution; le TypeScript brut direct renvoie `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -109,6 +110,13 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 ### Historique Des Versions
 
 ******
+
+# v1.5.1
+
+###### 2026/09/15
+
+* `Correction` Le texte des erreurs fatales et des avertissements de Node est écrit sur le vrai stderr sous Android en plus de logcat, de sorte qu'un terminal affiche les exceptions non interceptées au lieu de se terminer silencieusement
+* `Amelioration` `libnode.so` reconstruit avec `--with-intl=small-icu` : `Intl` et les échappements de propriétés Unicode (`\p{...}`) dans les expressions régulières sont disponibles avec les seules données de locale anglaises (`NODE_ICU_DATA` accepte un fichier de données ICU complet), ce qui permet à corepack d'exécuter pnpm 11 et Yarn Berry dans le terminal AutoJs6
 
 # v1.5.0
 
@@ -125,13 +133,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 * `Correction` Utiliser des dates de compilation en anglais indépendamment de la langue de la machine
 * `Correction` Métadonnées de version cohérentes dans les paquets et les archives de publication
 * `Correction` Compatibilité des fichiers de travail sous Android 7 en conservant l'isolation des descripteurs
-
-# v1.4.1
-
-###### 2026/09/13
-
-* `Amelioration` Vérification à la compilation de l'alignement des pages de 16 KB des bibliothèques natives 64 bits, avec contrôle du contrat manifest et rapports JSON
-* `Amelioration` Harmonisation de l'activation, des métadonnées, de la documentation traduite et de la collecte des APK signés
 
 ##### Pour plus d'historique des versions
 

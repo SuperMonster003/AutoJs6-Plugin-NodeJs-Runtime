@@ -98,6 +98,7 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 - ID de plugin: `nodejs`, motor: `nodejs`.
 - Accion del servicio runtime: `org.autojs.plugin.nodejs.RUNTIME`.
 - Bibliotecas nativas de runtime: `libnode.so`, `libautojs6-node.so` y `libnodexe.so`.
+- Intl: ICU 78 solo con datos de configuración regional en inglés (`--with-intl=small-icu`); `Intl`, los escapes de propiedades Unicode en expresiones regulares y la salida de error propia de Node en stderr funcionan en el terminal de AutoJs6, y `NODE_ICU_DATA` puede apuntar a un archivo de datos ICU completo.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64` y `universal`.
 - Sistema de archivos: se puede acceder a las rutas permitidas por Android; `/proc`, `/sys` y `/dev` son límites estrictos.
 - TypeScript: acepta salida del host y puede solicitar compilación provider-v3 de archivos creados durante la ejecución; TypeScript raw directo devuelve `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -109,6 +110,13 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 ### Historial De Versiones
 
 ******
+
+# v1.5.1
+
+###### 2026/09/15
+
+* `Correccion` El texto de errores fatales y advertencias de Node se escribe en el stderr real en Android además de en logcat, de modo que un terminal muestra las excepciones no capturadas en lugar de salir en silencio
+* `Mejora` `libnode.so` recompilado con `--with-intl=small-icu`: `Intl` y los escapes de propiedades Unicode (`\p{...}`) en expresiones regulares están disponibles con datos de configuración regional solo en inglés (`NODE_ICU_DATA` acepta un archivo de datos ICU completo), por lo que corepack puede ejecutar pnpm 11 y Yarn Berry en el terminal de AutoJs6
 
 # v1.5.0
 
@@ -125,13 +133,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 * `Correccion` Usar fechas de compilación en inglés independientemente del idioma de la máquina
 * `Correccion` Metadatos de versión coherentes en los paquetes y archivos de publicación
 * `Correccion` Compatibilidad de archivos del espacio de trabajo en Android 7 con aislamiento de descriptores
-
-# v1.4.1
-
-###### 2026/09/13
-
-* `Mejora` Verificación de compilación de la alineación de páginas de 16 KB en bibliotecas nativas de 64 bits, con controles del contrato manifest e informes JSON
-* `Mejora` Activación del host, metadatos, documentación traducida y recopilación de APK firmados conforme a las convenciones comunes
 
 ##### Para mas historial de versiones
 

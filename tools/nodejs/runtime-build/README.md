@@ -5,7 +5,8 @@ Node 24.5 binary materializer. Both are manual maintenance tools; neither runs
 in the default APK or PR build.
 
 Current status: the default Android runtime is Node 24.21.0, built from official
-Node sources with three Android patches. All three ABIs passed embedding and
+Node sources with four Android patches and `--with-intl=small-icu` (ICU 78,
+English-only locale data; since plugin 1.5.1). All three ABIs passed embedding and
 device validation. Independent rebuild results and the exact Docker image,
 NDK and patch hashes are recorded in
 [runtime-build.lock.json](runtime-build.lock.json). Runtime Kit 1.4.0 and the
@@ -67,9 +68,11 @@ above also supports fresh source builds for future maintenance.
 
 Artifacts and ELF reports are under
 `<work-root>/24.21.0-<abi>-<run-id>/output/`. The build uses Android API 24,
-16 KB LOAD alignment, SHA-1 ELF Build IDs, fixed source paths/timestamp, no
-ICU, no Node startup snapshot, and keeps the inspector backend for Debug use.
-See Roadmap M17.3 for the packaging/ICU/inspector decision.
+16 KB LOAD alignment, SHA-1 ELF Build IDs, fixed source paths/timestamp, ICU 78
+with English-only data (`--with-intl=small-icu`), no Node startup snapshot, and keeps
+the inspector backend for Debug use. See Roadmap M17.3 / M21.2 for the
+packaging/ICU/inspector decision; the fourth patch keeps Node's fatal-error text on
+the real stderr in addition to logcat.
 
 The Android patch is extracted from degaso/nodejs-mobile commit
 `116bad1dc919702d4a701d49df26d960403ee4a4` relative to official Node 24.5.0,

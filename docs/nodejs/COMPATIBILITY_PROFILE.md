@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Compatibility Profile
 
-Last reviewed: 2026-09-10. Published plugin: v1.3.0; subsequent local work: v1.4.0.
+Last reviewed: 2026-09-15. Published plugin: v1.3.0; subsequent local work: v1.5.1.
 
 The external runtime plugin supplies Node.js 24.21.0 / V8 / libuv for arm64-v8a,
 armeabi-v7a and x86_64. The host contains no libnode or Node JNI implementation.
@@ -11,7 +11,10 @@ CommonJS, ESM, dynamic import and local pure JavaScript npm packages execute in
 real Node. TypeScript is compiled to JavaScript by the host Compiler, including
 supported on-demand module compilation. The runtime does not strip TypeScript.
 Native Node builtins retain their own names: `events` / `node:events` is EventEmitter;
-Android event observation is exposed as `autojs6:events`.
+Android event observation is exposed as `autojs6:events`. The runtime links ICU 78 with
+English-only locale data (`--with-intl=small-icu`, since v1.5.1): `Intl` exists and
+Unicode property escapes parse, while other locales fall back to English unless
+`NODE_ICU_DATA` supplies a full ICU data file.
 
 AutoJs6 capabilities use asynchronous host calls, declared in `node.permissions`.
 The host applies Android permissions and provider availability. A profile label

@@ -98,6 +98,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 - プラグイン ID: `nodejs`, エンジン: `nodejs`.
 - ランタイムサービスアクション: `org.autojs.plugin.nodejs.RUNTIME`.
 - ネイティブランタイムライブラリ: `libnode.so`, `libautojs6-node.so` と `libnodexe.so`.
+- Intl: 英語ロケールデータのみを含む ICU 78 (`--with-intl=small-icu`); `Intl`, 正規表現の Unicode プロパティエスケープ, Node 自身の stderr へのエラー出力が AutoJs6 ターミナルで利用でき, `NODE_ICU_DATA` で完全な ICU データファイルを指定できます.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, および `universal`.
 - ファイルシステム: Android 権限が許す端末パスへアクセスでき, `/proc`, `/sys`, `/dev` は厳格な境界です.
 - TypeScript: host output を受け入れ, 実行中に作成された project file には provider-v3 compilation を要求できます. direct raw TypeScript は `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` を返します.
@@ -109,6 +110,13 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 ### リリース履歴
 
 ******
+
+# v1.5.1
+
+###### 2026/09/15
+
+* `修正` Node 自身の致命的エラーと警告のテキストを Android で logcat に加えて実際の stderr にも書き出すようにし, ターミナルが無言で終了せず未捕捉の例外を表示するようにしました
+* `改善` `libnode.so` を `--with-intl=small-icu` で再構築: `Intl` と正規表現の Unicode プロパティエスケープ (`\p{...}`) が英語ロケールデータのみで利用可能に (`NODE_ICU_DATA` で完全な ICU データファイルを指定可能). これにより corepack が AutoJs6 ターミナルで pnpm 11 と Yarn Berry を実行できます
 
 # v1.5.0
 
@@ -125,13 +133,6 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `修正` ビルド環境の言語にかかわらずプラグインのビルド日付を英語に統一
 * `修正` リリースパッケージとアーカイブのバージョン情報を統一
 * `修正` ファイル記述子の分離を保ちながら Android 7 の作業ファイルに対応
-
-# v1.4.1
-
-###### 2026/09/13
-
-* `改善` 64 ビットのネイティブライブラリの 16 KB ページアラインメントをビルド時に検証, manifest 契約の検査と JSON レポートに対応
-* `改善` ホストからの有効化, メタデータ, 多言語文書および署名済み APK の収集を共通規約に統一
 
 ##### その他のリリース履歴
 

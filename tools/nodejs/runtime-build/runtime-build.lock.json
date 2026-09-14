@@ -19,11 +19,12 @@
     "headersSha256": "7497abc2fac1d332fae580046b6b39d0de283dfaf267207a32b59753739c1517",
     "nodejsMobileForkCommit": "116bad1dc919702d4a701d49df26d960403ee4a4",
     "patchSeries": "patches/*.patch",
-    "patchSet": "node24.21-android-linux-host-and-openssl-store-policy",
+    "patchSet": "node24.21-android-linux-host-openssl-store-policy-stderr-passthrough",
     "patchFiles": {
       "0001-nodejs-mobile-android.patch": "2933143f3280dc40c32de05df2a5a9f3dd9c6b8f5586a3e599cf699cdcd330c7",
       "0002-linux-host-trap-handlers.patch": "abf7fa4764c3cfbd0b90e2368a0568b1f75d024aa8ad13e59be5b83354ffd870",
-      "0003-disable-android-openssl-store.patch": "6cd5c1ea30d3bbe8222af862c41101aa6ba8b43d78ba02bf5292fd297ec5c0fa"
+      "0003-disable-android-openssl-store.patch": "6cd5c1ea30d3bbe8222af862c41101aa6ba8b43d78ba02bf5292fd297ec5c0fa",
+      "0004-android-stderr-passthrough.patch": "b141d17c799fbf8d7532d46f538151aba547af8ecaf4ec42b10c5e5bc371115e"
     }
   },
   "androidFork": {
@@ -68,7 +69,7 @@
   "promotionDecision": {
     "defaultRuntimeSlot": "node24_21",
     "defaultRuntimeVersion": "24.21.0",
-    "reason": "Node 24.21 source libraries passed independent rebuild comparisons, embedding checks, three physical devices and the x86_64 16 KB userspace emulator.",
+    "reason": "Node 24.21 source libraries rebuilt with --with-intl=small-icu and the Android stderr passthrough patch so the AutoJs6 terminal can run pnpm 11 / Yarn Berry (Unicode property escapes need ICU); first-run digests, embedding checks and device validation on three ABIs recorded below; repeat-build comparison pending.",
     "requiredBeforePromotion": [],
     "targetPromotion": "promoted"
   },
@@ -82,7 +83,7 @@
       "status": "ready",
       "classification": "source_build_with_independent_maintenance_rebuilds",
       "blockedReasons": [],
-      "verifiedOn": "2026-09-09",
+      "verifiedOn": "2026-09-15",
       "baseline": {
         "nodeVersion": "24.20.0",
         "sourceSha256": "2732fc3f588dd335cd6779c06864f7cd424bb1b5ff9a1743059a66c54f9ca4a1",
@@ -163,6 +164,39 @@
         "hostIntegration": "6 live async workspace and bridge tests passed on Xiaomi API 35.",
         "pageSizeCoverage": "Physical arm64/armv7 devices use 4 KB pages. x86_64 emulator getconf PAGE_SIZE=16384 simulates 16 KB userspace on a 4 KB kernel. No 16 KB arm64 physical device was tested.",
         "opensslStore": "Android STORE private-key URLs reject ERR_ACCESS_DENIED after a reproduced /proc/self/fd bypass; file bytes through node:fs remain supported."
+      },
+      "icuUpdate": {
+        "nodeVersion": "24.21.0",
+        "configureChange": "--with-intl=none -> --with-intl=small-icu",
+        "addedPatch": "0004-android-stderr-passthrough.patch",
+        "method": "Clean source builds in the locked container image with the four patches and the small-icu configure flag; single clean build per ABI, repeat comparison pending.",
+        "buildScriptSha256": "7d3aa367a5390fb3322855b0ae6fcab67b692cff30890a92e0561fd284bd098d",
+        "comparisons": {
+          "arm64-v8a": {
+            "firstSha256": "bbcf7711df6d074440ca5560a7897672d18d7e0c03d9f57bb29e5c9301ec7a07",
+            "repeatSha256": null,
+            "firstBuildId": "18867d35421c2ff62cd51432e7178f359e71999f",
+            "repeatBuildId": null,
+            "size": 81180416,
+            "identical": null
+          },
+          "armeabi-v7a": {
+            "firstSha256": "c37d42059cac42d7760a4598f06a280f2a12fc01f2414ba648b39e9b3c73243c",
+            "repeatSha256": null,
+            "firstBuildId": "7f24e5b2c34cbe913fde69aa5cf7f49d19d33ab8",
+            "repeatBuildId": null,
+            "size": 74399704,
+            "identical": null
+          },
+          "x86_64": {
+            "firstSha256": "6cc279f590f6cf2bd2f2b71faf456838fb2b576ff0b07a3ee0afd8e2c16b1434",
+            "repeatSha256": null,
+            "firstBuildId": "9ce12dc223ba5b9f1c227e1b4123394c4cdae37a",
+            "repeatBuildId": null,
+            "size": 85981088,
+            "identical": null
+          }
+        }
       }
     }
   },
@@ -191,7 +225,7 @@
     }
   },
   "runtimeConfig": {
-    "icu": "none",
+    "icu": "small-icu",
     "openssl": "bundled-node-openssl",
     "libuv": "bundled-node-libuv",
     "snapshot": "node-snapshot-disabled-v8-default",
@@ -209,7 +243,7 @@
     "--without-npm",
     "--without-corepack",
     "--openssl-no-asm",
-    "--with-intl=none"
+    "--with-intl=small-icu"
   ],
   "abis": {
     "arm64-v8a": {
@@ -224,9 +258,9 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": "c48da9b772635e8e76ce0a06de09e71dbd70efe602903f1f5c9042672e629b2d",
-      "expectedBuildId": "57a6724e267609b141642cfddf2f52b6412cdd0a",
-      "size": 70742448
+      "expectedLibnodeSha256": "bbcf7711df6d074440ca5560a7897672d18d7e0c03d9f57bb29e5c9301ec7a07",
+      "expectedBuildId": "18867d35421c2ff62cd51432e7178f359e71999f",
+      "size": 81180416
     },
     "armeabi-v7a": {
       "targetCpu": "arm",
@@ -240,9 +274,9 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": "8e9f6c326ac3fdaac114cc37323e2d12dba96894fb306423c1426c1a7cd8c99d",
-      "expectedBuildId": "3878143e7b4e66d1da8590efc0273de55d79b0a9",
-      "size": 64814352
+      "expectedLibnodeSha256": "c37d42059cac42d7760a4598f06a280f2a12fc01f2414ba648b39e9b3c73243c",
+      "expectedBuildId": "7f24e5b2c34cbe913fde69aa5cf7f49d19d33ab8",
+      "size": 74399704
     },
     "x86_64": {
       "targetCpu": "x64",
@@ -256,9 +290,9 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": "ef576b2958de84b6cd641c18f684f42d00f4e97da09c4be3ebfb8bff4dd722b5",
-      "expectedBuildId": "a15f0c4bb06df5885cbf5ae1cb5752e8d6f5da4a",
-      "size": 75526728
+      "expectedLibnodeSha256": "6cc279f590f6cf2bd2f2b71faf456838fb2b576ff0b07a3ee0afd8e2c16b1434",
+      "expectedBuildId": "9ce12dc223ba5b9f1c227e1b4123394c4cdae37a",
+      "size": 85981088
     }
   },
   "linker": {

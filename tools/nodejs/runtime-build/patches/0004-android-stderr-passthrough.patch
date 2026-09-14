@@ -1,0 +1,14 @@
+--- a/src/debug_utils.cc
++++ b/src/debug_utils.cc
+@@ -532,8 +532,10 @@
+   return;
+ #elif defined(__ANDROID__)
+   if (file == stderr) {
++    // AutoJs6: keep the logcat copy for embedded runtimes, but fall through to
++    // the real stderr as well so a terminal launcher shows fatal exceptions,
++    // warnings and --trace-* output.
+     __android_log_print(ANDROID_LOG_ERROR, "nodejs", "%s", str.data());
+-    return;
+   }
+ #endif
+   simple_fwrite();

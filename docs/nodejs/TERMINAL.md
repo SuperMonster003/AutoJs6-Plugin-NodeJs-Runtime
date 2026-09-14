@@ -92,9 +92,19 @@ CLI directory.
   `npm_config_bin_links=false`; run tools as `node node_modules/<pkg>/<entry>.js` or
   through `npx`.
 - Native addons (`.node`) are not loadable (unchanged runtime policy).
-- corepack downloads yarn / pnpm on first use; the registry and network are the user's
+- corepack downloads Yarn / pnpm on first use; the registry and network are the user's
   choice in the host terminal settings. The runtime facade still performs no registry
-  download (Roadmap M9.3 stays as decided).
+  download (Roadmap M9.3 stays as decided). pnpm 12 and later ship as native binaries
+  without an Android build, so the host pins corepack to its bundled defaults
+  (`COREPACK_DEFAULT_TO_LATEST=0`: pnpm 11.x, Yarn 1.x) unless a version is named.
+- Intl: since 1.5.1 `libnode.so` is built with `--with-intl=small-icu` (ICU 78 with
+  English-only locale data). `Intl`, `String.prototype.normalize` and Unicode property
+  escapes (`\p{...}`) work, which pnpm 11 and Yarn Berry require; other locales fall
+  back to English unless `NODE_ICU_DATA` points at a full `icudt78l.dat`. 1.5.0 had no
+  ICU at all, so those package managers exited without output there.
+- Node's own fatal-error and warning text (uncaught exceptions, `--trace-*`) reaches
+  the real stderr as well as logcat (tag `nodejs`) since 1.5.1 (patch
+  `0004-android-stderr-passthrough.patch`); 1.5.0 wrote it to logcat only.
 - Processes run under the host uid with the host's Android permissions, not the
   plugin's.
 
