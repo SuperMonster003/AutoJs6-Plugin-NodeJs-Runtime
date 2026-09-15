@@ -111,6 +111,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.5.2
+
+###### 2026/09/15
+
+* `Mejora` compileSdk sube a 37 (Android 17); targetSdk se mantiene en 36 hasta verificar el comportamiento que depende del objetivo
+
 # v1.5.1
 
 ###### 2026/09/15
@@ -124,15 +130,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 * `Nuevo` Lanzador de terminal multi-llamada `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) empaquetado para cada ABI con `DT_RUNPATH $ORIGIN` y alineación de páginas de 16 KB
 * `Nuevo` Archivo de npm 11.19.0 y corepack 0.36.0 tomado de la distribución oficial de Node.js 24.21.0, declarado mediante los meta-data de manifest `NODE_CLI_*` (schema 1) y reflejado en runtimeInfo / PluginInfo como la capacidad `nodeCli`
-
-# v1.4.2
-
-###### 2026/09/13
-
-* `Correccion` Informar solo de las ABI nativas presentes en el APK instalado
-* `Correccion` Usar fechas de compilación en inglés independientemente del idioma de la máquina
-* `Correccion` Metadatos de versión coherentes en los paquetes y archivos de publicación
-* `Correccion` Compatibilidad de archivos del espacio de trabajo en Android 7 con aislamiento de descriptores
 
 ##### Para mas historial de versiones
 

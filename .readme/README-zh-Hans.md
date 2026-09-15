@@ -111,6 +111,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.5.2
+
+###### 2026/09/15
+
+* `优化` 将 compileSdk 提升到 37 (Android 17), targetSdk 保持 36, 待依赖目标版本的行为验证后再提升
+
 # v1.5.1
 
 ###### 2026/09/15
@@ -124,15 +130,6 @@ console.log("AutoJs6 Node.js runtime");
 
 * `新增` 多入口终端启动器 `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm), 各 ABI 均打包, 带 `DT_RUNPATH $ORIGIN` 与 16 KB 页对齐
 * `新增` 取自官方 Node.js 24.21.0 发行包的 npm 11.19.0 与 corepack 0.36.0 资产, 通过 `NODE_CLI_*` manifest meta-data (schema 1) 声明, 并以 `nodeCli` 能力镜像到 runtimeInfo / PluginInfo
-
-# v1.4.2
-
-###### 2026/09/13
-
-* `修复` 插件信息只报告当前安装包内实际存在的原生 ABI
-* `修复` 插件元数据的构建日期固定使用英文, 不受构建机器语言影响
-* `修复` 发行包与归档的版本信息保持一致
-* `修复` Android 7 工作目录文件兼容性, 保留文件描述符隔离
 
 ##### 更多发行历史可参阅
 
