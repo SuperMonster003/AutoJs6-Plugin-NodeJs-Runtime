@@ -111,6 +111,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.5.2
+
+###### 2026/09/15
+
+* `Improvement` Raise compileSdk to 37 (Android 17); targetSdk stays at 36 until the behavior that depends on the target is verified
+
 # v1.5.1
 
 ###### 2026/09/15
@@ -124,15 +130,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 * `Feature` Multi-call terminal launcher `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) packaged for every ABI with `DT_RUNPATH $ORIGIN` and 16 KB page alignment
 * `Feature` npm 11.19.0 and corepack 0.36.0 asset archive taken from the official Node.js 24.21.0 tarball, declared through `NODE_CLI_*` manifest meta-data (schema 1) and mirrored into runtimeInfo / PluginInfo as the `nodeCli` capability
-
-# v1.4.2
-
-###### 2026/09/13
-
-* `Fix` Report only the native ABIs present in the installed APK
-* `Fix` Use English build dates in plugin metadata regardless of the build machine locale
-* `Fix` Consistent version metadata in release packages and archives
-* `Fix` Workspace file compatibility on Android 7 while preserving file descriptor isolation
 
 ##### For more release history
 

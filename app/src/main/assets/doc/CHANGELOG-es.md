@@ -4,6 +4,12 @@
 
 ******
 
+# v1.5.2
+
+###### 2026/09/15
+
+* `Mejora` compileSdk sube a 37 (Android 17); targetSdk se mantiene en 36 hasta verificar el comportamiento que depende del objetivo
+
 # v1.5.1
 
 ###### 2026/09/15
