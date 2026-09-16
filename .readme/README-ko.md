@@ -41,7 +41,7 @@
 
 ******
 
-AutoJs6 Node.js Runtime 플러그인은 AutoJs6 에 내장 Node.js 24.21.0 네이티브 런타임을 제공하여 Node.js 스크립트와 플러그인 런타임 작업을 실행합니다.
+AutoJs6 Node.js Runtime 플러그인은 AutoJs6 에 내장 Node.js 24.21.0 네이티브 런타임을 제공하여 Node.js 스크립트와 플러그인 런타임 작업을 실행합니다. Android 17 이상에서는 이 플러그인의 근처 기기 권한을 허용해야 로컬 네트워크 기기에 연결할 수 있습니다. AutoJs6 권한은 이 플러그인에 적용되지 않습니다. 공용 인터넷 및 루프백 연결에는 이 권한이 필요하지 않습니다.
 
 ******
 
@@ -111,6 +111,12 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 
 ******
 
+# v1.5.3
+
+###### 2026/09/16
+
+* `개선` Android 17 (SDK 37) 대응 및 플러그인별 로컬 네트워크 권한 설정과 복구 안내 제공
+
 # v1.5.2
 
 ###### 2026/09/15
@@ -123,13 +129,6 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 
 * `수정` Node 자체의 치명적 오류와 경고 텍스트를 Android 에서 logcat 외에 실제 stderr 에도 기록하여, 터미널이 조용히 종료되는 대신 처리되지 않은 예외를 표시합니다
 * `개선` `libnode.so` 를 `--with-intl=small-icu` 로 다시 빌드: 영어 로케일 데이터만으로 `Intl` 과 정규식의 유니코드 속성 이스케이프 (`\p{...}`) 를 사용할 수 있으며 (`NODE_ICU_DATA` 로 전체 ICU 데이터 파일 지정 가능), 이에 따라 corepack 이 AutoJs6 터미널에서 pnpm 11 과 Yarn Berry 를 실행할 수 있습니다
-
-# v1.5.0
-
-###### 2026/09/14
-
-* `추가` 멀티콜 터미널 런처 `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) 를 모든 ABI에 포함, `DT_RUNPATH $ORIGIN` 및 16 KB 페이지 정렬 적용
-* `추가` 공식 Node.js 24.21.0 배포판에서 가져온 npm 11.19.0 및 corepack 0.36.0 자산, `NODE_CLI_*` manifest meta-data (schema 1) 로 선언하고 `nodeCli` 기능으로 runtimeInfo / PluginInfo에 미러링
 
 ##### 더 많은 릴리스 기록
 

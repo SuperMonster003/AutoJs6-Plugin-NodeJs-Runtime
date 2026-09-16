@@ -4,6 +4,12 @@
 
 ******
 
+# v1.5.3
+
+###### 2026/09/16
+
+* `Amelioration` Cibler Android 17 (SDK 37) avec des autorisations réseau local propres au plugin et une aide à la récupération
+
 # v1.5.2
 
 ###### 2026/09/15

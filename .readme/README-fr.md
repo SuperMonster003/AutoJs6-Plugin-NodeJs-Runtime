@@ -41,7 +41,7 @@ Le README.md actuel prend en charge les langues suivantes:
 
 ******
 
-Le plugin AutoJs6 Node.js Runtime fournit a AutoJs6 un runtime natif Node.js 24.21.0 embarque pour les scripts Node.js et les taches de runtime de plugins.
+Le plugin AutoJs6 Node.js Runtime fournit a AutoJs6 un runtime natif Node.js 24.21.0 embarque pour les scripts Node.js et les taches de runtime de plugins. Sur Android 17 ou version ultérieure, autorisez les appareils à proximité pour ce plugin afin de contacter les appareils du réseau local. Les autorisations AutoJs6 ne sont pas partagées avec ce plugin. Internet public et les connexions en boucle locale ne nécessitent pas cette autorisation.
 
 ******
 
@@ -111,6 +111,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.5.3
+
+###### 2026/09/16
+
+* `Amelioration` Cibler Android 17 (SDK 37) avec des autorisations réseau local propres au plugin et une aide à la récupération
+
 # v1.5.2
 
 ###### 2026/09/15
@@ -123,13 +129,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 * `Correction` Le texte des erreurs fatales et des avertissements de Node est écrit sur le vrai stderr sous Android en plus de logcat, de sorte qu'un terminal affiche les exceptions non interceptées au lieu de se terminer silencieusement
 * `Amelioration` `libnode.so` reconstruit avec `--with-intl=small-icu` : `Intl` et les échappements de propriétés Unicode (`\p{...}`) dans les expressions régulières sont disponibles avec les seules données de locale anglaises (`NODE_ICU_DATA` accepte un fichier de données ICU complet), ce qui permet à corepack d'exécuter pnpm 11 et Yarn Berry dans le terminal AutoJs6
-
-# v1.5.0
-
-###### 2026/09/14
-
-* `Ajout` Lanceur de terminal multi-appel `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) empaqueté pour chaque ABI avec `DT_RUNPATH $ORIGIN` et un alignement de pages de 16 KB
-* `Ajout` Archive npm 11.19.0 et corepack 0.36.0 issue de la distribution officielle Node.js 24.21.0, déclarée via les meta-data manifest `NODE_CLI_*` (schema 1) et reflétée dans runtimeInfo / PluginInfo en tant que capacité `nodeCli`
 
 ##### Pour plus d'historique des versions
 

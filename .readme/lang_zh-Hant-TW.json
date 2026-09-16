@@ -5,7 +5,7 @@
   "h3_languages_with_ascii": "語言 (Languages)",
   "p_languages_all_supported_for_readme": "目前 README.md 支援以下語言",
   "h3_introduction": "簡介",
-  "p_introduction": "AutoJs6 Node.js Runtime 插件為 AutoJs6 提供內嵌 Node.js 24.21.0 原生執行階段, 用於執行 Node.js 腳本和插件化執行階段任務.",
+  "p_introduction": "AutoJs6 Node.js Runtime 插件為 AutoJs6 提供內嵌 Node.js 24.21.0 原生執行階段, 用於執行 Node.js 腳本和插件化執行階段任務. 在 Android 17 或更新版本上, 請為此外掛允許附近裝置權限, 以連線至區域網路裝置. AutoJs6 的授權不會授予此外掛權限. 公開網際網路及回送連線不需要此權限.",
   "h3_functions": "功能",
   "features": [
     "提供 `nodejs` 插件服務, 插件 ID 為 `nodejs`, 引擎為 `nodejs`.",

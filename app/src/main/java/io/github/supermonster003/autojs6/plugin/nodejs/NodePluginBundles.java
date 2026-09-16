@@ -421,9 +421,9 @@ final class NodePluginBundles {
         result.putString(NodeJsRuntimeContract.KEY_ERROR_NAME, emptyToNull(stringValue(nativeValues, "embedded_script.error_name")));
         result.putString(
                 NodeJsRuntimeContract.KEY_ERROR_MESSAGE,
-                emptyToNull(nativeFailure
+                LocalNetworkAccess.explainFailure(service, emptyToNull(nativeFailure
                         ? nonBlank(stringValue(nativeValues, "embedded_script.detail"), "Embedded script native lifecycle failed.")
-                        : stringValue(nativeValues, "embedded_script.error_message"))
+                        : stringValue(nativeValues, "embedded_script.error_message")))
         );
         result.putString(NodeJsRuntimeContract.KEY_ERROR_STACK, emptyToNull(stringValue(nativeValues, "embedded_script.error_stack")));
         result.putString(NodeJsRuntimeContract.KEY_ERROR_CODE, emptyToNull(stringValue(nativeValues, "embedded_script.error_code")));

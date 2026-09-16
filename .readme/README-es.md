@@ -41,7 +41,7 @@ El README.md actual admite los siguientes idiomas:
 
 ******
 
-El plugin AutoJs6 Node.js Runtime proporciona a AutoJs6 un runtime nativo integrado de Node.js 24.21.0 para scripts Node.js y tareas de runtime de plugins.
+El plugin AutoJs6 Node.js Runtime proporciona a AutoJs6 un runtime nativo integrado de Node.js 24.21.0 para scripts Node.js y tareas de runtime de plugins. En Android 17 o posterior, permite los dispositivos cercanos para este plugin para conectar con dispositivos de tu red local. El permiso de AutoJs6 no se comparte con este plugin. Internet público y las conexiones de bucle local no requieren este permiso.
 
 ******
 
@@ -111,6 +111,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.5.3
+
+###### 2026/09/16
+
+* `Mejora` Compatibilidad con Android 17 (SDK 37), controles de permiso de red local propios del plugin y ayuda para recuperar el acceso
+
 # v1.5.2
 
 ###### 2026/09/15
@@ -123,13 +129,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 * `Correccion` El texto de errores fatales y advertencias de Node se escribe en el stderr real en Android además de en logcat, de modo que un terminal muestra las excepciones no capturadas en lugar de salir en silencio
 * `Mejora` `libnode.so` recompilado con `--with-intl=small-icu`: `Intl` y los escapes de propiedades Unicode (`\p{...}`) en expresiones regulares están disponibles con datos de configuración regional solo en inglés (`NODE_ICU_DATA` acepta un archivo de datos ICU completo), por lo que corepack puede ejecutar pnpm 11 y Yarn Berry en el terminal de AutoJs6
-
-# v1.5.0
-
-###### 2026/09/14
-
-* `Nuevo` Lanzador de terminal multi-llamada `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) empaquetado para cada ABI con `DT_RUNPATH $ORIGIN` y alineación de páginas de 16 KB
-* `Nuevo` Archivo de npm 11.19.0 y corepack 0.36.0 tomado de la distribución oficial de Node.js 24.21.0, declarado mediante los meta-data de manifest `NODE_CLI_*` (schema 1) y reflejado en runtimeInfo / PluginInfo como la capacidad `nodeCli`
 
 ##### Para mas historial de versiones
 

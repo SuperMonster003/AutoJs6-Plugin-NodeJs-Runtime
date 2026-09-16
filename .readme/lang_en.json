@@ -5,7 +5,7 @@
   "h3_languages_with_ascii": "Languages",
   "p_languages_all_supported_for_readme": "The current README.md supports the following languages",
   "h3_introduction": "Introduction",
-  "p_introduction": "The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.21.0 native runtime for AutoJs6 scripts and plugin runtime tasks.",
+  "p_introduction": "The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.21.0 native runtime for AutoJs6 scripts and plugin runtime tasks. On Android 17 or later, allow Nearby devices for this plugin to connect to devices on your local network. AutoJs6 permission does not grant access to this plugin. Public internet and loopback connections do not require this permission.",
   "h3_functions": "Features",
   "features": [
     "Provides the `nodejs` plugin service with plugin ID `nodejs` and engine `nodejs`.",
