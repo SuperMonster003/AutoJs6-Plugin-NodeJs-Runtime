@@ -41,7 +41,7 @@ The current README.md supports the following languages:
 
 ******
 
-The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.21.0 native runtime for AutoJs6 scripts and plugin runtime tasks. On Android 17 or later, allow Nearby devices for this plugin to connect to devices on your local network. AutoJs6 permission does not grant access to this plugin. Public internet and loopback connections do not require this permission.
+The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.21.0 native runtime for AutoJs6 scripts and plugin runtime tasks. On Android 17 or later, allow Nearby devices before enabling this plugin in the AutoJs6 plugin center. You can also manage this permission from the Settings page for this plugin. Without permission, the plugin stays disabled and automatic startup is skipped silently. The grant belongs to this plugin, independently of AutoJs6.
 
 ******
 
@@ -115,6 +115,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ###### 2026/09/16
 
+* `Improvement` Android 17 local network authorization moves to plugin-center enablement and plugin settings, with no launcher permission page; missing permission keeps the plugin disabled and automatic startup silent
 * `Improvement` Target Android 17 (SDK 37) with separate local network permission controls and recovery guidance
 
 # v1.5.2

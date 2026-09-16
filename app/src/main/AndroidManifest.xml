@@ -40,14 +40,11 @@
             android:value=".WakeActivity" />
 
         <activity
-            android:name=".LocalNetworkSettingsActivity"
+            android:name=".LocalNetworkPermissionActivity"
+            android:excludeFromRecents="true"
             android:exported="true"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:permission="org.autojs.permission.PLUGIN"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <activity
             android:name=".WakeActivity"
