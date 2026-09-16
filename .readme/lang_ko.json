@@ -5,7 +5,7 @@
   "h3_languages_with_ascii": "언어 (Languages)",
   "p_languages_all_supported_for_readme": "현재 README.md 는 다음 언어를 지원합니다",
   "h3_introduction": "소개",
-  "p_introduction": "AutoJs6 Node.js Runtime 플러그인은 AutoJs6 에 내장 Node.js 24.21.0 네이티브 런타임을 제공하여 Node.js 스크립트와 플러그인 런타임 작업을 실행합니다.",
+  "p_introduction": "AutoJs6 Node.js Runtime 플러그인은 AutoJs6 에 내장 Node.js 24.21.0 네이티브 런타임을 제공하여 Node.js 스크립트와 플러그인 런타임 작업을 실행합니다. Android 17 이상에서는 이 플러그인의 근처 기기 권한을 허용해야 로컬 네트워크 기기에 연결할 수 있습니다. AutoJs6 권한은 이 플러그인에 적용되지 않습니다. 공용 인터넷 및 루프백 연결에는 이 권한이 필요하지 않습니다.",
   "h3_functions": "기능",
   "features": [
     "`nodejs` 플러그인 서비스를 제공하며 플러그인 ID 는 `nodejs`, 엔진은 `nodejs` 입니다.",

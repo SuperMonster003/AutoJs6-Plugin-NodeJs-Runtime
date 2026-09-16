@@ -41,7 +41,7 @@ The current README.md supports the following languages:
 
 ******
 
-The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.21.0 native runtime for AutoJs6 scripts and plugin runtime tasks.
+The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.21.0 native runtime for AutoJs6 scripts and plugin runtime tasks. On Android 17 or later, allow Nearby devices for this plugin to connect to devices on your local network. AutoJs6 permission does not grant access to this plugin. Public internet and loopback connections do not require this permission.
 
 ******
 
@@ -111,6 +111,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.5.3
+
+###### 2026/09/16
+
+* `Improvement` Target Android 17 (SDK 37) with separate local network permission controls and recovery guidance
+
 # v1.5.2
 
 ###### 2026/09/15
@@ -123,13 +129,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 * `Fix` Node's fatal-error and warning text is written to the real stderr on Android in addition to logcat, so a terminal shows uncaught exceptions instead of exiting silently
 * `Improvement` `libnode.so` rebuilt with `--with-intl=small-icu`: `Intl` and Unicode property escapes (`\p{...}`) in regular expressions are available with English-only locale data (`NODE_ICU_DATA` accepts a full ICU data file), so corepack can run pnpm 11 and Yarn Berry in the AutoJs6 terminal
-
-# v1.5.0
-
-###### 2026/09/14
-
-* `Feature` Multi-call terminal launcher `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm) packaged for every ABI with `DT_RUNPATH $ORIGIN` and 16 KB page alignment
-* `Feature` npm 11.19.0 and corepack 0.36.0 asset archive taken from the official Node.js 24.21.0 tarball, declared through `NODE_CLI_*` manifest meta-data (schema 1) and mirrored into runtimeInfo / PluginInfo as the `nodeCli` capability
 
 ##### For more release history
 

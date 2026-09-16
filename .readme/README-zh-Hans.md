@@ -41,7 +41,7 @@
 
 ******
 
-AutoJs6 Node.js Runtime 插件为 AutoJs6 提供内嵌 Node.js 24.21.0 原生运行时, 用于执行 Node.js 脚本和插件化运行时任务.
+AutoJs6 Node.js Runtime 插件为 AutoJs6 提供内嵌 Node.js 24.21.0 原生运行时, 用于执行 Node.js 脚本和插件化运行时任务. 在 Android 17 或更高版本上, 请为此插件允许附近的设备权限, 以连接局域网设备. AutoJs6 的授权不会授予此插件权限. 公网和回环连接不需要此权限.
 
 ******
 
@@ -111,6 +111,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.5.3
+
+###### 2026/09/16
+
+* `优化` 适配 Android 17 (SDK 37), 提供插件独立的本地网络权限控制及恢复引导
+
 # v1.5.2
 
 ###### 2026/09/15
@@ -123,13 +129,6 @@ console.log("AutoJs6 Node.js runtime");
 
 * `修复` Node 自身的致命错误与警告文本在 Android 上除 logcat 外同时写入真实 stderr, 终端可看到未捕获的异常而非静默退出
 * `优化` `libnode.so` 以 `--with-intl=small-icu` 重建: `Intl` 与正则表达式的 Unicode 属性转义 (`\p{...}`) 可用 (仅英文区域数据, `NODE_ICU_DATA` 可加载完整 ICU 数据文件), corepack 因此可在 AutoJs6 终端中运行 pnpm 11 与 Yarn Berry
-
-# v1.5.0
-
-###### 2026/09/14
-
-* `新增` 多入口终端启动器 `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm), 各 ABI 均打包, 带 `DT_RUNPATH $ORIGIN` 与 16 KB 页对齐
-* `新增` 取自官方 Node.js 24.21.0 发行包的 npm 11.19.0 与 corepack 0.36.0 资产, 通过 `NODE_CLI_*` manifest meta-data (schema 1) 声明, 并以 `nodeCli` 能力镜像到 runtimeInfo / PluginInfo
 
 ##### 更多发行历史可参阅
 
