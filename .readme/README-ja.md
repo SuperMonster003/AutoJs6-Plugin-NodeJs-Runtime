@@ -131,6 +131,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `改善` scheduled-node-task サンプルがライフサイクルポリシーを出力し、WorkManager の実行のためにタスクを保持可能に。scheduled 実行モードにプラグイン側の回帰テストを追加
 * `改善` ホストの WorkManager スケジュールランナーがプラグイン経由で実行できたため、scheduled 実行モードを能力カタログで available に昇格
 * `改善` media.play() はホストのスクリプト音楽サービスで再生するセッション (pause/resume/seekTo/stop/status) を返し、新しい media_store モジュールは media.playback / media.library / media.library.mutate 能力で保護された限定的な MediaStore の capabilities/query/get/insert/update/delete/scanFile/exportFile を提供; autojs6:compat.media に Rhino 風の playMusic 系エイリアスを追加; いずれも対応するホストビルドが必要
+* `改善` media-playback / media-library サンプルは、統合されたホストのメディア provider での手動受け入れを経て stable に昇格; 能力カタログのスナップショット 1.5.5 を releases/nodejs-capability-catalog に公開し、ホスト整合タスクはそれを参照
 
 # v1.5.4
 

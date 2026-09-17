@@ -354,7 +354,8 @@ with structured filters, whitelisted columns and JSON-only results behind
 `displayName` and `relativePath` are writable. `autojs6:compat.media` adds the
 Rhino `playMusic`/`pauseMusic`/`resumeMusic`/`stopMusic`/`musicSeekTo`/
 `isMusicPlaying`/`getMusicDuration`/`getMusicCurrentPosition`/`scanFile`
-aliases. Both modules need the host branch that ships the providers.
+aliases. Both modules need a host build that ships the providers (merged into
+the host master on 2026-09-17).
 
 P13-27 records the partial utility-heavy Rhino modules gate. `jsox.mathx`,
 `jsox.arrayx`, and `jsox.numberx` are typed as pure JavaScript facades through
