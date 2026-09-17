@@ -23,3 +23,8 @@ The previous dependencies are unchanged. The test captures the device display
 through instrumentation, adds its PNG and dimensions to the workspace archive,
 then asserts `PNG.sync.read` dimensions and RGBA size inside real Node. This
 tests PNG decoding independently of the manual MediaProjection consent check.
+
+M20.2 added `worker-packages.cjs`: the entry script starts one `worker_threads`
+Worker that requires lodash, dayjs, semver, zod and date-fns by bare name, checks
+`require.resolve` and a missing package, and posts one report line. The run enables
+worker threads for the corpus invocation; no package files changed.

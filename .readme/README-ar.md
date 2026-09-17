@@ -125,6 +125,7 @@ console.log("AutoJs6 Node.js runtime");
 * `تحسين` يتبع تحميل الوحدات وصول Android إلى الملفات كما في Node: يقبل require و import و Worker المسارات المطلقة وأهداف الدلائل الأعلى وعناوين file: (يبقى /proc و /sys و /dev مرفوضة)؛ ويظل البحث في node_modules مثبتا على مساحة العمل
 * `تحسين` تتبع رسائل Worker ومراقبو fs حدود Node الأصلية: أُزيلت حدود 64 كيلوبايت للرسالة و 32 في الطابور وحصص 16 مراقبا / 64 حدثا في الثانية؛ ولا يحدها سوى ذاكرة Android
 * `تحسين` داخل الـ worker ينهي process.exit() خيط الـ worker فقط كما في Node، ويتبع process.getBuiltinModule() قائمة builtin المسموحة للـ worker بدلا من تعطيله كليا
+* `تحسين` تحل خيوط الـ worker محددات الحزم المجردة عبر node_modules في مساحة العمل كما في Node (شروط exports و main و index والإشارة الذاتية) بدلا من رفضها
 
 # v1.5.4
 

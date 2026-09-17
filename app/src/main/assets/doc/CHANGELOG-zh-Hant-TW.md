@@ -16,6 +16,7 @@
 * `優化` 模組載入與 Node 一致地交給 Android 檔案存取: require、import 與 Worker 接受絕對路徑、上層目錄目標與 file: URL (/proc、/sys、/dev 仍拒絕); node_modules 查找仍錨定工作區
 * `優化` Worker 訊息與 fs 監視器按 Node 原生限制執行: 移除 64 KB 訊息與 32 條排隊上限, 以及 16 個監視器 / 每秒 64 事件配額; 僅受 Android 記憶體約束
 * `優化` worker 內 process.exit() 按 Node 語意只結束該 worker 執行緒, process.getBuiltinModule() 走 worker builtin 名單, 不再整體停用
+* `優化` worker 內 bare 套件名按 Node 語意經工作區 node_modules 解析 (exports 條件、main、index、套件自引用), 不再一律拒絕
 
 # v1.5.4
 

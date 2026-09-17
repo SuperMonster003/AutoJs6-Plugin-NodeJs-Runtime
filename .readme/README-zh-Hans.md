@@ -125,6 +125,7 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` 模块加载与 Node 一致地交给 Android 文件访问: require、import 与 Worker 接受绝对路径、上级目录目标与 file: URL (/proc、/sys、/dev 仍拒绝); node_modules 查找仍锚定工作区
 * `优化` Worker 消息与 fs 监视器按 Node 原生限制运行: 移除 64 KB 消息与 32 条排队上限, 以及 16 个监视器 / 每秒 64 事件配额; 仅受 Android 内存约束
 * `优化` worker 内 process.exit() 按 Node 语义只结束该 worker 线程, process.getBuiltinModule() 走 worker builtin 名单, 不再整体禁用
+* `优化` worker 内 bare 包名按 Node 语义经工作区 node_modules 解析 (exports 条件、main、index、包自引用), 不再一律拒绝
 
 # v1.5.4
 

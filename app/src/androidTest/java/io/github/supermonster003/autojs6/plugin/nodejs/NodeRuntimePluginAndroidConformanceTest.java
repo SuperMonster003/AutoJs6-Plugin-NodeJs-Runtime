@@ -727,6 +727,97 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         }
     }
 
+    /** M20.2: workers resolve bare package specifiers through the workspace node_modules as in Node. */
+    @Test
+    public void m20_workersResolveWorkspacePackages() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("node_modules/plain-cjs/package.json", "{\"name\":\"plain-cjs\",\"main\":\"lib/entry\"}");
+        files.put("node_modules/plain-cjs/lib/entry.js", "module.exports = { name: 'plain-cjs', dep: require('dep-nested') };");
+        files.put("node_modules/plain-cjs/node_modules/dep-nested/index.js", "module.exports = 'nested';");
+        files.put("node_modules/dep-nested/index.js", "module.exports = 'top';");
+        files.put("node_modules/@scope/cond/package.json",
+                "{\"name\":\"@scope/cond\",\"exports\":{\".\":{\"import\":\"./esm.mjs\",\"require\":\"./cjs.cjs\"},"
+                        + "\"./features/*\":\"./features/*.js\",\"./package.json\":\"./package.json\"}}");
+        files.put("node_modules/@scope/cond/esm.mjs", "export const flavor = 'esm';");
+        files.put("node_modules/@scope/cond/cjs.cjs", "module.exports = { flavor: 'cjs' };");
+        files.put("node_modules/@scope/cond/features/alpha.js", "module.exports = 'alpha';");
+        files.put("node_modules/type-module-pkg/package.json", "{\"name\":\"type-module-pkg\",\"type\":\"module\",\"exports\":\"./index.js\"}");
+        files.put("node_modules/type-module-pkg/index.js", "export const kind = 'esm-js';");
+        files.put("node_modules/index-only/index.js", "module.exports = 'index-only';");
+        files.put("node_modules/dir-main/package.json", "{\"name\":\"dir-main\",\"main\":\"lib\"}");
+        files.put("node_modules/dir-main/lib/index.js", "module.exports = 'dir-main';");
+        files.put("node_modules/self-ref/package.json", "{\"name\":\"self-ref\",\"exports\":{\".\":\"./main.cjs\",\"./util\":\"./util.cjs\"}}");
+        files.put("node_modules/self-ref/main.cjs", "module.exports = require('self-ref/util');");
+        files.put("node_modules/self-ref/util.cjs", "module.exports = 'self-util';");
+        files.put("worker.cjs", """
+                const assert = require('node:assert/strict');
+                const { parentPort } = require('node:worker_threads');
+                const plain = require('plain-cjs');
+                assert.equal(plain.name, 'plain-cjs');
+                assert.equal(plain.dep, 'nested');
+                assert.equal(require('dep-nested'), 'top');
+                assert.equal(require('@scope/cond').flavor, 'cjs');
+                assert.equal(require('@scope/cond/features/alpha'), 'alpha');
+                assert.equal(require('@scope/cond/package.json').name, '@scope/cond');
+                assert.equal(require('index-only'), 'index-only');
+                assert.equal(require('dir-main'), 'dir-main');
+                assert.equal(require('self-ref'), 'self-util');
+                assert.ok(require.resolve('plain-cjs').endsWith('/node_modules/plain-cjs/lib/entry.js'), require.resolve('plain-cjs'));
+                assert.throws(() => require('@scope/cond/hidden'), (e) => e.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED');
+                assert.throws(() => require('no-such-package'), (e) => e.code === 'MODULE_NOT_FOUND');
+                assert.throws(() => require('type-module-pkg'), (e) => e.code === 'ERR_AUTOJS6_REQUIRE_ESM_UNSUPPORTED');
+                for (const name of ['ui', 'sqlite', 'autojs6:fetch', 'node:inspector', 'inspector']) {
+                  assert.throws(() => require(name), (e) => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED', name);
+                }
+                parentPort.postMessage('cjs-ok');
+                """);
+        files.put("worker.mjs", """
+                import { flavor } from '@scope/cond';
+                import { kind } from 'type-module-pkg';
+                import plain from 'plain-cjs';
+                import { parentPort } from 'node:worker_threads';
+                parentPort.postMessage(flavor + '/' + kind + '/' + plain.name);
+                """);
+        files.put("main.cjs", """
+                const assert = require('node:assert/strict');
+                const path = require('node:path');
+                const { Worker } = require('node:worker_threads');
+                assert.equal(require('autojs6:profile').workerThreadsProfile.packageResolution, 'workspace_node_modules');
+                // The main thread resolves the same fixtures, so both loaders agree.
+                assert.equal(require('@scope/cond').flavor, 'cjs');
+                assert.equal(require('plain-cjs').dep, 'nested');
+                function runWorker(file) {
+                  return new Promise((resolve, reject) => {
+                    const worker = new Worker(path.join(__dirname, file));
+                    worker.once('message', resolve);
+                    worker.once('error', reject);
+                    worker.once('exit', (code) => { if (code !== 0) reject(new Error(file + ' exited with ' + code)); });
+                  });
+                }
+                (async () => {
+                  console.log('m20.worker.packages.cjs=' + await runWorker('worker.cjs'));
+                  console.log('m20.worker.packages.esm=' + await runWorker('worker.mjs'));
+                  console.log('m20.worker.packages=PASS');
+                })().catch((error) => { console.error(error && error.stack || error); process.exitCode = 1; });
+                """);
+        try (WorkspaceInvocation invocation = execute("m20-worker-packages", "main.cjs", files,
+                new LinkedHashMap<>(), false, null, null, SCRIPT_TIMEOUT_MS, false, Collections.emptyList(), true)) {
+            Bundle result = invocation.result;
+            String stdout = result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+            assertTrue("m20 worker packages failed: " + result.getString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, "")
+                            + " / " + result.getString(NodeJsRuntimeContract.KEY_STDERR, "") + " / " + stdout,
+                    result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            assertEquals("exit code", 0, result.getInt(NodeJsRuntimeContract.KEY_EXIT_CODE, -1));
+            for (String expected : new String[] {
+                    "m20.worker.packages.cjs=cjs-ok",
+                    "m20.worker.packages.esm=esm/esm-js/plain-cjs",
+                    "m20.worker.packages=PASS"
+            }) {
+                assertTrue("stdout is missing '" + expected + "': " + stdout, stdout.contains(expected));
+            }
+        }
+    }
+
     @Test
     public void x3d_03_importedCommonJsStackRemovesFunctionWrapperOffset() throws Exception {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();

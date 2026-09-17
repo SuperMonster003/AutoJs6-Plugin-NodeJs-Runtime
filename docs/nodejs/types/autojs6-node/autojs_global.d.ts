@@ -618,6 +618,8 @@ declare namespace AutoJs6Node {
     readonly rawNativeHandles: boolean;
     readonly packagedBehavior: "native_available_only" | "partial" | string;
     /** process APIs inside workers: exit ends the thread as in Node; abort/chdir are unavailable as in Node. */
+    /** Bare package specifiers resolve through the workspace node_modules as in Node. */
+    readonly packageResolution: "workspace_node_modules" | string;
     readonly processApis: WorkerThreadsProcessApis;
     readonly policy: WorkerThreadsPolicy;
   }
