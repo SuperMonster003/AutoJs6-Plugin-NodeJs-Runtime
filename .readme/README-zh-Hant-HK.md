@@ -127,6 +127,7 @@ console.log("AutoJs6 Node.js runtime");
 * `優化` worker 內 process.exit() 按 Node 語義只結束該 worker 執行緒, process.getBuiltinModule() 走 worker builtin 名單, 不再整體停用
 * `優化` worker 內 bare 套件名按 Node 語義經工作區 node_modules 解析 (exports 條件、main、index、套件自引用), 不再一律拒絕
 * `優化` worker 內動態 import() 經 worker 的 partial ESM 載入器執行 (相對/絕對路徑、file: URL、工作區套件、builtin 名單、with { type: "json" }), 不再拒絕
+* `優化` host-events 範例在實體按鍵與通知存取人工驗收通過後轉為 stable
 
 # v1.5.4
 

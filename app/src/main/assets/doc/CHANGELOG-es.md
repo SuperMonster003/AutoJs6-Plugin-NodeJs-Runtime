@@ -18,6 +18,7 @@
 * `Mejora` Dentro de los workers process.exit() termina solo el hilo del worker como en Node y process.getBuiltinModule() sigue la lista de builtins permitidos del worker en lugar de estar deshabilitado
 * `Mejora` Los workers resuelven especificadores de paquete sin ruta a través del node_modules del espacio de trabajo como en Node (condiciones exports, main, index, autorreferencia) en lugar de rechazarlos
 * `Mejora` El import() dinámico dentro de los workers pasa por el cargador ESM parcial del worker (rutas locales, URL file:, paquetes del espacio de trabajo, builtins permitidos, with { type: "json" }) en lugar de rechazarse
+* `Mejora` La muestra host-events pasa a stable tras superar la aceptación manual de tecla física y acceso a notificaciones
 
 # v1.5.4
 

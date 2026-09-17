@@ -91,6 +91,8 @@ await events.observeToast();
 Toast 观察同样可在等待期间从其他应用触发。保留各来源的实际日志, 不把某一源的
 PASS 代替其余来源的检查。
 
+2026-09-17 回执: 实体按键与通知访问授权检查已由用户按上述步骤完成, 结果 PASS; host-events 样例转为 stable。
+
 ## M15.4: 录音与 mediainfo
 
 运行 audio-recording 项目前, 确認现场可以录音, 手工授予 AutoJs6 麦克风权限,

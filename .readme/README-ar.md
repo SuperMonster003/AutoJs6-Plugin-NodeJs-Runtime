@@ -127,6 +127,7 @@ console.log("AutoJs6 Node.js runtime");
 * `تحسين` داخل الـ worker ينهي process.exit() خيط الـ worker فقط كما في Node، ويتبع process.getBuiltinModule() قائمة builtin المسموحة للـ worker بدلا من تعطيله كليا
 * `تحسين` تحل خيوط الـ worker محددات الحزم المجردة عبر node_modules في مساحة العمل كما في Node (شروط exports و main و index والإشارة الذاتية) بدلا من رفضها
 * `تحسين` يمر import() الديناميكي داخل الـ worker عبر محمل ESM الجزئي للـ worker (المسارات المحلية وعناوين file: وحزم مساحة العمل و builtin المسموحة و with { type: "json" }) بدلا من رفضه
+* `تحسين` ترقية عينة host-events إلى stable بعد اجتياز القبول اليدوي للمفتاح الفعلي والوصول إلى الإشعارات
 
 # v1.5.4
 

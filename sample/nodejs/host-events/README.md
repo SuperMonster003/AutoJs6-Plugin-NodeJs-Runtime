@@ -11,7 +11,7 @@ Android 通知观察另外需要系统的“通知使用权”; Toast 观察依�
 `require('events')` 和 `require('node:events')` 是 Node 原生 EventEmitter。
 Android 观察者使用 `require('autojs6:events')`, 注册函数需要 await。
 
-The sample remains partial until a physical key receipt is recorded. Notification
+The physical key acceptance was reported as PASS on 2026-09-17, so the sample is stable. Notification
 and Toast access are independent Android permissions. All subscriptions close on exit.
 
 完整步骤见 [人工验收说明](../../../docs/nodejs/MANUAL-ACCEPTANCE.md)。

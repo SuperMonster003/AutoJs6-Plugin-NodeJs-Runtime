@@ -127,6 +127,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `改善` worker 内の process.exit() は Node と同様にその worker スレッドのみを終了し、process.getBuiltinModule() は worker の builtin 許可リストに従う (一律無効化を廃止)
 * `改善` worker 内のベアなパッケージ指定子を Node と同様にワークスペースの node_modules から解決 (exports 条件、main、index、自己参照)。一律拒否を廃止
 * `改善` worker 内の動的 import() を worker の partial ESM ローダー経由で実行 (相対/絶対パス、file: URL、ワークスペースのパッケージ、許可された builtin、with { type: "json" })。拒否を廃止
+* `改善` 実機キーと通知アクセスの手動受け入れに合格し、host-events サンプルを stable に昇格
 
 # v1.5.4
 

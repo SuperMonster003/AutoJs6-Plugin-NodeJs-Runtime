@@ -18,6 +18,7 @@
 * `개선` worker 내 process.exit()가 Node처럼 해당 worker 스레드만 종료하고, process.getBuiltinModule()이 worker builtin 허용 목록을 따름 (일괄 비활성화 해제)
 * `개선` worker 내 bare 패키지 지정자를 Node처럼 워크스페이스 node_modules에서 해석 (exports 조건, main, index, 자기 참조). 일괄 거부 해제
 * `개선` worker 내 동적 import()를 worker의 partial ESM 로더로 처리 (상대/절대 경로, file: URL, 워크스페이스 패키지, 허용 builtin, with { type: "json" }). 거부 해제
+* `개선` 실물 키와 알림 접근 수동 검수 통과 후 host-events 샘플을 stable로 승격
 
 # v1.5.4
 
