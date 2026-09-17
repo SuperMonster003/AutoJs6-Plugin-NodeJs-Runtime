@@ -161,6 +161,8 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 - v3 只接受项目私有 workspace 内非声明形式的 lowercase `.ts/.mts/.cts`; 路径逃逸、符号链接、identity 变化、大小写/extensionless 歧义、Host 项目或生成目标碰撞都会 fail closed。单个 Host 编译输入最终受 8 MiB 上限约束; ordinary provider 操作仍最多 5 s, v3 compile transport 独立最多 30 s。
 - 编译器 source map 与宿主控制台中的 `.ts` 原始栈回映由宿主编译链负责。当前链路已覆盖入口、导入模块、dynamic import 与 v3 运行时源码; 插件负责归一化生成代码和导入 CommonJS 的栈位置, 但不会凭空生成 source map。动态类型错误使用 `ERR_AUTOJS6_TYPESCRIPT_COMPILATION_FAILED`, 并保留文件名与 TypeScript diagnostic。
 
+- 能力目录 (catalog 1.5.5 起) 把 `typescript` 标为 **stable**: 宿主编译路由 (预编译快照 + module-source provider v3 的 `compile_missing_typescript` 按需编译) 是正式能力, raw TypeScript 直派 fail-closed 属于设计而非未完成项; 目录中已退役的 `legacyStrippingRequestKey` / `typeScriptLegacyStrippingRequestKey` 字段一并删除, 运行时没有对应的请求键。
+
 普通 `.js` / `.cjs` / `.mjs` 与 npm 纯 JavaScript 包不受此限制。
 
 ## 七. 执行总预算与取消
@@ -179,7 +181,7 @@ M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在
 
 例如 `idleExitMs=3000` 会在目标工作槽执行完成后空闲约 3 秒时退出。退出前在同一准入锁内再次确认无执行并关闭准入, 防止定时器误杀新任务。Android 在客户端仍绑定时不会仅因 `stopSelf()` 就销毁服务, 因此这里先停止服务再退出工作 PID; 调度器负责重连, 宿主继续使用原公开 Binder。该策略不限制长驻脚本的执行时长, Android 调度或设备休眠也可能使实际退出晚于设定时间。参见 [Android 服务生命周期](https://developer.android.com/develop/background-work/services)。
 
-`executionMode` 是 lifecycle config 的请求级权威来源。缺失时仅为兼容旧 contract-v2 调用方而回退宿主 `engine-info`, 两处都缺失则为 `one_shot`; 不带 `engine-info` 的显式 `interactive_long_running` 请求按 `interactive_session` 生成配置并开启 checkpoint 门。checkpoint 只用于脚本主动保存/读取 JSON 进度, `automaticRestart=false` 与 `restartPolicy=never` 不变; 真正的宿主 lifecycle bridge 仍会独立校验 execution mode 与 launch surface。
+`executionMode` 是 lifecycle config 的请求级权威来源。缺失时仅为兼容旧 contract-v2 调用方而回退宿主 `engine-info`, 两处都缺失则为 `one_shot`; 不带 `engine-info` 的显式 `interactive_long_running` 请求按 `interactive_session` 生成配置并开启 checkpoint 门。checkpoint 只用于脚本主动保存/读取 JSON 进度, `automaticRestart=false` 与 `restartPolicy=never` 不变; 真正的宿主 lifecycle bridge 仍会独立校验 execution mode 与 launch surface。能力目录 1.5.5 起只列出可运行的执行模式: `one_shot` (script)、`interactive_long_running` (interactive_session, available) 与 `scheduled` (scheduled_runner, 仍为 partial); `packaged_long_running` 启动面与 `node_sandboxed` / `worker_computation` 保留名已移除, 插件不再把 `packaged_long_running` 视为开启 checkpoint 的启动面 (导出 APK 无法打包本运行时, 宿主也从未发送该启动面)。目录的 `lifecycle.admission` / `cancellation` / `transport.output` 现与 `getRuntimeInfo` 一致: 每进程单活 + 进程池 2 槽 + 全局 FIFO 3、协作取消 + 进程重启兜底、流式输出。
 
 `runtimeAdapter` 是保留字面值的 deprecated no-op 键: 运行时槽位由已绑定插件服务的 runtime info 决定, 单次请求不能覆盖。当前 AutoJs6 宿主不再建模或发送该键; 旧调用方继续发送时会被宽容忽略。native payload 中的 `embedded_script.runtime_adapter.*` 是插件内部 C++ adapter 诊断, 与这个废弃请求键无关。
 

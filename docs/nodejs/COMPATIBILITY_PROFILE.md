@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Compatibility Profile
 
-Last reviewed: 2026-09-17. Published plugin: v1.3.0; subsequent local work: v1.5.4.
+Last reviewed: 2026-09-17. Published plugin: v1.3.0; subsequent local work: v1.5.5.
 
 The external runtime plugin supplies Node.js 24.21.0 / V8 / libuv for arm64-v8a,
 armeabi-v7a and x86_64. The host contains no libnode or Node JNI implementation.
@@ -10,6 +10,12 @@ concern. Exported APKs currently cannot bundle or launch this runtime.
 CommonJS, ESM, dynamic import and local pure JavaScript npm packages execute in
 real Node. TypeScript is compiled to JavaScript by the host Compiler, including
 supported on-demand module compilation. The runtime does not strip TypeScript.
+The capability catalog marks `typescript` as stable: the host compile route
+(precompiled snapshots plus provider v3 on-demand compilation) is the formal
+capability, and direct raw TypeScript dispatch fails closed by design. The lifecycle
+catalog lists only runnable execution modes; the `packaged_long_running` surface and
+the `node_sandboxed` / `worker_computation` placeholder names are gone, and the
+catalog identity reported by runtimeInfo is derived from the runtime kit.
 Native Node builtins retain their own names: `events` / `node:events` is EventEmitter;
 Android event observation is exposed as `autojs6:events`. The runtime links ICU 78 with
 English-only locale data (`--with-intl=small-icu`, since v1.5.1): `Intl` exists and

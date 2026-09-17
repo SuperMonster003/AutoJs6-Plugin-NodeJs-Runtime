@@ -113,6 +113,13 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.5.5
+
+###### 2026/09/17
+
+* `Fix` The capability catalog version and digest reported by runtimeInfo are now derived from the runtime kit, correcting the stale 1.5.0 values still reported by 1.5.4
+* `Improvement` The host TypeScript compile route is a stable catalog capability and the retired legacy stripping metadata is removed; the lifecycle catalog lists only runnable execution modes, dropping the packaged_long_running surface and the node_sandboxed / worker_computation placeholders; transport, admission and cancellation metadata match the actual runtime
+
 # v1.5.4
 
 ###### 2026/09/17
@@ -126,12 +133,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 * `Improvement` Android 17 local network authorization moves to plugin-center enablement and plugin settings, with no launcher permission page; missing permission keeps the plugin disabled and automatic startup silent
 * `Improvement` Target Android 17 (SDK 37) with separate local network permission controls and recovery guidance
-
-# v1.5.2
-
-###### 2026/09/15
-
-* `Improvement` Raise compileSdk to 37 (Android 17); targetSdk stays at 36 until the behavior that depends on the target is verified
 
 ##### For more release history
 

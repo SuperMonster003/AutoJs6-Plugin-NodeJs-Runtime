@@ -113,6 +113,13 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.5.5
+
+###### 2026/09/17
+
+* `修复` runtimeInfo 报告的能力目录版本与摘要改由 runtime kit 派生, 修正 1.5.4 中仍为 1.5.0 的旧值
+* `优化` TypeScript 宿主编译路由在能力目录中转为 stable, 删除已退役的 legacy stripping 元数据; 生命周期目录只保留可运行的执行模式, 移除 packaged_long_running 启动面与 node_sandboxed / worker_computation 保留名; 传输、准入与取消元数据按实际运行时对齐
+
 # v1.5.4
 
 ###### 2026/09/17
@@ -126,12 +133,6 @@ console.log("AutoJs6 Node.js runtime");
 
 * `优化` Android 17 本地网络授权统一移至插件中心启用流程和插件设置, 不再提供启动器授权页面; 未获授权时保持关闭并静默跳过自动启动
 * `优化` 适配 Android 17 (SDK 37), 提供插件独立的本地网络权限控制及恢复引导
-
-# v1.5.2
-
-###### 2026/09/15
-
-* `优化` 将 compileSdk 提升到 37 (Android 17), targetSdk 保持 36, 待依赖目标版本的行为验证后再提升
 
 ##### 更多发行历史可参阅
 

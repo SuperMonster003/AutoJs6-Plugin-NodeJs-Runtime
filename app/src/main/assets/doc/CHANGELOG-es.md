@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.5
+
+###### 2026/09/17
+
+* `Correccion` La versión y el resumen del catálogo de capacidades que informa runtimeInfo ahora derivan del runtime kit, corrigiendo los valores obsoletos 1.5.0 que 1.5.4 seguía informando
+* `Mejora` La ruta de compilación TypeScript del host pasa a stable en el catálogo de capacidades y se eliminan los metadatos retirados de legacy stripping; el catálogo de ciclo de vida solo enumera modos de ejecución ejecutables, quitando la superficie packaged_long_running y los nombres reservados node_sandboxed / worker_computation; los metadatos de transporte, admisión y cancelación coinciden con el runtime real
+
 # v1.5.4
 
 ###### 2026/09/17

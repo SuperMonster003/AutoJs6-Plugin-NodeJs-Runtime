@@ -74,10 +74,11 @@ public class NodeJsRuntimePluginService extends Service {
     static final String ERROR_BUSY = "ERR_AUTOJS6_NODE_PLUGIN_BUSY";
     static final String ERROR_UNAVAILABLE = "ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE";
     static final String ERROR_CONTRACT_MISMATCH = "ERR_AUTOJS6_NODE_PLUGIN_CONTRACT_MISMATCH";
-    static final String NODE_CAPABILITY_CATALOG_SCHEMA = "autojs6-node-capability-catalog-v1";
-    static final String NODE_CAPABILITY_CATALOG_VERSION = "1.5.0";
-    static final String NODE_CAPABILITY_CATALOG_SHA256 =
-            "1a259aa9c6a0422b531eeebbcf4a3c6f97fcd4b84b88360195e0e84bbca11ada";
+    // Derived from node-plugin-runtime-kit.json at build time (NodeRuntimeKitPlugin), so the
+    // reported catalog identity always matches the catalog packaged with this build.
+    static final String NODE_CAPABILITY_CATALOG_SCHEMA = BuildConfig.NODE_CAPABILITY_CATALOG_SCHEMA;
+    static final String NODE_CAPABILITY_CATALOG_VERSION = BuildConfig.NODE_CAPABILITY_CATALOG_VERSION;
+    static final String NODE_CAPABILITY_CATALOG_SHA256 = BuildConfig.NODE_CAPABILITY_CATALOG_SHA256;
     static final String KEY_NODE_CAPABILITY_CATALOG_SCHEMA = "nodeCapabilityCatalogSchema";
     static final String KEY_NODE_CAPABILITY_CATALOG_VERSION = "nodeCapabilityCatalogVersion";
     static final String KEY_NODE_CAPABILITY_CATALOG_SHA256 = "nodeCapabilityCatalogSha256";

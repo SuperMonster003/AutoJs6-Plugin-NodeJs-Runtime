@@ -113,6 +113,13 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.5.5
+
+###### 2026/09/17
+
+* `Correction` La version et l'empreinte du catalogue de capacités rapportées par runtimeInfo dérivent désormais du runtime kit, corrigeant les anciennes valeurs 1.5.0 encore rapportées par 1.5.4
+* `Amelioration` La route de compilation TypeScript de l'hôte devient stable dans le catalogue de capacités et les métadonnées retirées de legacy stripping sont supprimées; le catalogue de cycle de vie ne liste que les modes d'exécution exécutables, en retirant la surface packaged_long_running et les noms réservés node_sandboxed / worker_computation; les métadonnées de transport, d'admission et d'annulation correspondent au runtime réel
+
 # v1.5.4
 
 ###### 2026/09/17
@@ -126,12 +133,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 * `Amelioration` Autorisation du réseau local sous Android 17 intégrée au parcours activation et aux paramètres du plugin, sans page du lanceur; sans autorisation, le plugin reste désactivé et le démarrage automatique est silencieux
 * `Amelioration` Cibler Android 17 (SDK 37) avec des autorisations réseau local propres au plugin et une aide à la récupération
-
-# v1.5.2
-
-###### 2026/09/15
-
-* `Amelioration` compileSdk passe à 37 (Android 17) ; targetSdk reste à 36 jusqu'à la vérification du comportement dépendant de la cible
 
 ##### Pour plus d'historique des versions
 

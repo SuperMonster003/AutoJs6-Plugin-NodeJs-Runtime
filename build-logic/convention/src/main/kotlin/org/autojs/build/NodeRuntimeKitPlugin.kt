@@ -29,11 +29,19 @@ class NodeRuntimeKitPlugin : Plugin<Project> {
 
         @Suppress("UNCHECKED_CAST")
         val manifest = JsonSlurper().parse(manifestFile) as Map<String, Any?>
+
+        // The capability catalog identity reported by runtimeInfo comes from the same
+        // manifest that pins the packaged catalog, so the two cannot drift apart.
+        @Suppress("UNCHECKED_CAST")
+        val capabilityCatalog = manifest.getValue("capabilityCatalog") as Map<String, Any?>
         val fields = linkedMapOf(
             "NODE_PLUGIN_RUNTIME_KIT_SCHEMA" to manifest.getValue("schema").toString(),
             "NODE_PLUGIN_RUNTIME_KIT_VERSION" to manifest.getValue("kitVersion").toString(),
             "NODE_PLUGIN_RUNTIME_KIT_SHA256" to sha256Of(manifestFile),
             "NODE_PLUGIN_RUNTIME_KIT_ID" to manifest.getValue("kitId").toString(),
+            "NODE_CAPABILITY_CATALOG_SCHEMA" to capabilityCatalog.getValue("schema").toString(),
+            "NODE_CAPABILITY_CATALOG_VERSION" to capabilityCatalog.getValue("version").toString(),
+            "NODE_CAPABILITY_CATALOG_SHA256" to capabilityCatalog.getValue("sha256").toString(),
         )
 
         val android = project.extensions.findByName("android")

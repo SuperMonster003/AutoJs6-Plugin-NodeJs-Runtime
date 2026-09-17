@@ -69,8 +69,6 @@ final class NodeRuntimeModuleInjector {
 
     private static final String LAUNCH_SURFACE_INTERACTIVE_SESSION = "interactive_session";
 
-    private static final String LAUNCH_SURFACE_PACKAGED_LONG_RUNNING = "packaged_long_running";
-
     private static final String LAUNCH_SURFACE_SCHEDULED_RUNNER = "scheduled_runner";
 
     RuntimeModuleInjection withPluginRuntimeModules(
@@ -291,7 +289,9 @@ final class NodeRuntimeModuleInjector {
      * host-broker metadata. A direct explicit long-running request has no
      * separate launch-surface key, so it is treated as an interactive session;
      * host-broker checkpoint dispatch still applies its own independent mode
-     * and launch-surface authorization.
+     * and launch-surface authorization. Exported/packaged APKs cannot launch
+     * this runtime, so the historical {@code packaged_long_running} surface is
+     * no longer recognised as a checkpoint-enabling surface.
      */
     static LifecycleRequestPolicy resolveLifecycleRequest(
             String requestExecutionMode,
@@ -312,8 +312,7 @@ final class NodeRuntimeModuleInjector {
         }
         String launchSurface = nonBlank(engineInfoLaunchSurface, defaultLaunchSurface).trim();
         boolean checkpointEnabled = EXECUTION_MODE_INTERACTIVE_LONG_RUNNING.equals(executionMode) &&
-                (LAUNCH_SURFACE_INTERACTIVE_SESSION.equals(launchSurface) ||
-                        LAUNCH_SURFACE_PACKAGED_LONG_RUNNING.equals(launchSurface));
+                LAUNCH_SURFACE_INTERACTIVE_SESSION.equals(launchSurface);
         return new LifecycleRequestPolicy(executionMode, launchSurface, checkpointEnabled);
     }
 
