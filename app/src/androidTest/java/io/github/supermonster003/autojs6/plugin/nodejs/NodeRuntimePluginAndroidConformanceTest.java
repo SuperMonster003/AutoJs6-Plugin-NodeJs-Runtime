@@ -669,6 +669,64 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         }
     }
 
+    /** M20.2: worker process.exit() ends the thread as in Node; getBuiltinModule follows the worker allowlist. */
+    @Test
+    public void m20_workerProcessExitAndGetBuiltinModuleFollowNode() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("worker.cjs", """
+                const assert = require('node:assert/strict');
+                const { parentPort } = require('node:worker_threads');
+                assert.strictEqual(process.getBuiltinModule('node:path'), require('node:path'));
+                assert.strictEqual(process.getBuiltinModule('fs'), require('fs'));
+                assert.strictEqual(process.getBuiltinModule('no-such-builtin'), undefined);
+                assert.throws(() => process.getBuiltinModule('node:inspector'), (e) => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED');
+                assert.throws(() => process.abort(), (e) => e.code === 'ERR_AUTOJS6_PROCESS_API_DISABLED');
+                assert.throws(() => process.kill(process.pid), (e) => e.code === 'ERR_AUTOJS6_PROCESS_API_DISABLED');
+                parentPort.postMessage('before-exit');
+                process.exit(3);
+                parentPort.postMessage('after-exit-must-not-run');
+                """);
+        files.put("main.cjs", """
+                const assert = require('node:assert/strict');
+                const path = require('node:path');
+                const { Worker } = require('node:worker_threads');
+                const profile = require('autojs6:profile').workerThreadsProfile.processApis;
+                assert.strictEqual(profile.exit, 'ends_worker_thread_as_node');
+                assert.strictEqual(profile.getBuiltinModule, 'allowlisted_builtins');
+                (async () => {
+                  const messages = [];
+                  const worker = new Worker(path.join(__dirname, 'worker.cjs'));
+                  const exitCode = await new Promise((resolve, reject) => {
+                    worker.on('message', (m) => messages.push(m));
+                    worker.on('error', reject);
+                    worker.on('exit', resolve);
+                  });
+                  console.log('m20.worker.exitCode=' + exitCode);
+                  console.log('m20.worker.messages=' + messages.join(','));
+                  // The main thread keeps running after the worker exited.
+                  await new Promise((resolve) => setTimeout(resolve, 10));
+                  console.log('m20.worker.process=PASS');
+                })().catch((error) => { console.error(error && error.stack || error); process.exitCode = 1; });
+                """);
+        try (WorkspaceInvocation invocation = execute("m20-worker-process", "main.cjs", files,
+                new LinkedHashMap<>(), false, null, null, SCRIPT_TIMEOUT_MS, false, Collections.emptyList(), true)) {
+            Bundle result = invocation.result;
+            String stdout = result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+            assertTrue("m20 worker process failed: " + result.getString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, "")
+                            + " / " + result.getString(NodeJsRuntimeContract.KEY_STDERR, "") + " / " + stdout,
+                    result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            assertEquals("exit code", 0, result.getInt(NodeJsRuntimeContract.KEY_EXIT_CODE, -1));
+            for (String expected : new String[] {
+                    "m20.worker.exitCode=3",
+                    "m20.worker.messages=before-exit",
+                    "m20.worker.process=PASS"
+            }) {
+                assertTrue("stdout is missing '" + expected + "': " + stdout, stdout.contains(expected));
+            }
+            assertFalse("worker code after process.exit ran: " + stdout, stdout.contains("after-exit-must-not-run"));
+        }
+    }
+
     @Test
     public void x3d_03_importedCommonJsStackRemovesFunctionWrapperOffset() throws Exception {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();

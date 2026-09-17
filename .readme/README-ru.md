@@ -124,6 +124,7 @@ console.log("AutoJs6 Node.js runtime");
 * `Улучшение` Ревизия примеров: packaged-esm, packaged-dynamic-import, require-esm, wasm-basic, wasm-plugin и desktop-parity-suite переведены в stable; обе parity-сборки реально выполняют свои сниппеты вместо печати текста каталога; compile-cache помечен как неприменимый, пример package-install (только метаданные) удалён
 * `Улучшение` Загрузка модулей следует доступу к файлам Android, как в Node: require, import и Worker принимают абсолютные пути, цели в родительских каталогах и URL file: (/proc, /sys и /dev по-прежнему запрещены); поиск node_modules остаётся привязанным к рабочей области
 * `Улучшение` Сообщения Worker и наблюдатели fs следуют нативным ограничениям Node: сняты лимиты 64 КБ на сообщение и 32 в очереди, а также квоты 16 наблюдателей / 64 события в секунду; ограничивает только память Android
+* `Улучшение` Внутри worker process.exit() завершает только поток worker, как в Node, а process.getBuiltinModule() следует списку разрешённых builtin worker вместо полного отключения
 
 # v1.5.4
 

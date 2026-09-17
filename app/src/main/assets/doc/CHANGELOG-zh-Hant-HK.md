@@ -15,6 +15,7 @@
 * `優化` 範例清點: packaged-esm、packaged-dynamic-import、require-esm、wasm-basic、wasm-plugin 與 desktop-parity-suite 轉為 stable; 兩個 parity 套件改為真正逐條執行片段而非列印目錄文案; compile-cache 標為不適用, 刪除只列印中繼資料的 package-install 範例
 * `優化` 模組載入與 Node 一致地交給 Android 檔案存取: require、import 與 Worker 接受絕對路徑、上層目錄目標與 file: URL (/proc、/sys、/dev 仍拒絕); node_modules 查找仍錨定工作區
 * `優化` Worker 訊息與 fs 監視器按 Node 原生限制執行: 移除 64 KB 訊息與 32 條排隊上限, 以及 16 個監視器 / 每秒 64 事件配額; 僅受 Android 記憶體約束
+* `優化` worker 內 process.exit() 按 Node 語義只結束該 worker 執行緒, process.getBuiltinModule() 走 worker builtin 名單, 不再整體停用
 
 # v1.5.4
 

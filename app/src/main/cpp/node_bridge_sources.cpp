@@ -4534,6 +4534,14 @@ std::string buildEmbeddedScriptExecutionSource(
         nestedWorkers: false,
         rawNativeHandles: false,
         packagedBehavior: "native_available_only",
+        processApis: Object.freeze({
+          exit: "ends_worker_thread_as_node",
+          getBuiltinModule: "allowlisted_builtins",
+          abort: "unavailable_as_node",
+          chdir: "unavailable_as_node",
+          kill: "denied_shared_runtime_process",
+          dlopen: "denied_native_addon"
+        }),
         policy: __autojs6_worker_threads_policy_snapshot()
       }),
       processWorkerReplacementProfile: Object.freeze({
@@ -9068,10 +9076,26 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   if (typeof process === "object" && process) {
     Object.defineProperty(process, "cwd", { value: () => __root, configurable: true });
-    ["binding", "_linkedBinding", "dlopen", "getBuiltinModule", "chdir", "exit", "abort", "kill"].forEach(function(name) {
+    // process.exit() keeps Node's worker semantics (ends this thread only). abort/chdir are
+    // unavailable in Node workers as well; kill would signal the shared runtime process and
+    // dlopen/binding stay denied with native addons.
+    ["binding", "_linkedBinding", "dlopen", "chdir", "abort", "kill"].forEach(function(name) {
       try { Object.defineProperty(process, name, { value: __disabledProcess(name), configurable: true, writable: false }); }
       catch (_) { try { process[name] = __disabledProcess(name); } catch (_) {} }
     });
+    // process.getBuiltinModule() answers through the same allowlist as require().
+    const workerGetBuiltinModule = function(id) {
+      if (typeof id !== "string") throw new TypeError("The \"id\" argument must be of type string.");
+      if (!id) return undefined;
+      if (__builtinAllowed(id)) return __loadBuiltin(id);
+      const bare = __normalBuiltinName(id);
+      if (__networkBuiltins.has(bare) || bare === "inspector" || bare === "child_process" || bare === "sqlite" || bare === "test" || bare === "test/reporters" || bare === "trace_events" || bare === "wasi") {
+        return __deny(id);
+      }
+      return undefined;
+    };
+    try { Object.defineProperty(process, "getBuiltinModule", { value: workerGetBuiltinModule, configurable: true, writable: false }); }
+    catch (_) { try { process.getBuiltinModule = workerGetBuiltinModule; } catch (_) {} }
   }
   const __allowed = Object.freeze(Object.fromEntries(__descriptor.policy.allowedBuiltins.map(name => [name.replace(/^node:/, ""), name])));
   const __networkBuiltins = new Set(["net", "http", "https", "tls", "dns", "dns/promises", "dgram", "http2"]);
