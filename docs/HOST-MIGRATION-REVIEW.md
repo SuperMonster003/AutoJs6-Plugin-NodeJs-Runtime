@@ -57,3 +57,18 @@ provider, 也没有引入第二套跨仓清单或默认构建门禁。
 的启动、取消、文件回传对照回归。宿主分支是否合并由用户决定。
 
 验证: 宿主 main 与 androidTest Kotlin 编译、app Debug 与 androidTest APK 构建通过; 宿主 engine 包离线 JVM 21 类 109 用例 0 失败 (1 skipped); 小米 968e9f18 (arm64, API 35, 插件 Debug 189) 安装以主检出同一签名密钥重签的宿主 Debug 与 androidTest 后, NodeExecutionModePolicy (4) + NodeWorkManagerBridge (9, 含 WorkManager 定时运行器经插件实跑) + NodeOverlayBridge (3) + NodeInputObserverBridge (6) + NodeCapabilityBrokerV2 (4) 共 **OK (26 tests)**; 首次用默认 debug 密钥安装被 INSTALL_FAILED_UPDATE_INCOMPATIBLE 拒绝 (未卸载任何包), 那一轮跑的是设备上的旧宿主与旧测试包, 其旧 `phase7StateMachineDefinesAllModePolicies` 在 master 上本就红 (文案断言过期), 不计入本批。
+
+## M19.3 第二批: 披露策略与宿主测试漂移 (2026-09-17)
+
+同一宿主分支追加提交 `cf64fb9f8` (H2) 与 `8114911e5` (H3), 仍未合并。
+
+| 宿主文件 | 实际消费者 | 本批结果 |
+|---|---|---|
+| `NodePrivacyDisclosurePolicy.kt` | `NodeDoctorReportGenerator` | schema v2 `host_consent_surfaces`: 只列 `node.permissions` 清单门与宿主操作的 9 个敏感能力的 Android 权限、同意面与设置 intent; 删除 profile 晋级门、无读取者的打包披露清单策略、未来自动化与 pending 列表, 以及 raw_network / filesystem_relaxation / child_process / native_addon / inspector / wasi 等插件运行时门禁的宿主描述 |
+| `NodeRuntimePluginBridgeInstrumentationTest.kt`、`NodeBridgeConformanceInstrumentationTest.kt` | 宿主 androidTest | 修正 3 处新旧宿主同样失败的过期断言: lifecycle 来源 `request_contract_with_bridge_context`、原始 TSX 的 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`、`package_manager.listApps` |
+| `NodeBridgeProviderRegistry.kt` 的 `packagedSupport` 文案 | 宿主 provider 注册表 | 描述宿主 provider 在打包 (inrt) 模式的事实, 保留 |
+| `NodeBridgePermissionManifest.kt` 默认值 | Node Host broker、MCP | 未动; 经既有契约归并仍待后续 |
+
+对照回归 (插件 Debug 191; 启动 / 取消 / 文件回传 / 超时 / 控制台输入 / 文件范围 / conformance 8 类 22 用例):
+新宿主 (分支, 小米 968e9f18) 8 类 22 用例 + NodeExecutionModePolicy 4 + NodeWorkManagerBridge 9 共 **OK (35 tests)** (H3 前同一 22 用例为 19 通过 / 3 处过期断言失败); 旧宿主 (a8171da64 基线, x86_64 模拟器) 22 用例 18 通过, 3 处同样的过期断言失败 + 1 处 TypeScript 管线环境失败 (模拟器无 TypeScript 插件); H3 修正后重跑涉及的 2 类 **OK (11 tests)**。
+两侧一致, 分支未引入行为差异。模拟器未安装 TypeScript 插件, 旧宿主的 TypeScript 管线用例属环境失败。
