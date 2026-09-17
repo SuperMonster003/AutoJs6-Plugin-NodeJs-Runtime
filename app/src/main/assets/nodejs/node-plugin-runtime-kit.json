@@ -1,8 +1,8 @@
 {
   "schema": "autojs6-node-plugin-runtime-kit-v1",
   "schemaVersion": 1,
-  "kitId": "autojs6-node-plugin-runtime-kit-v1.5.4-node24_21",
-  "kitVersion": "1.5.4",
+  "kitId": "autojs6-node-plugin-runtime-kit-v1.5.5-node24_21",
+  "kitVersion": "1.5.5",
   "owner": {
     "pluginId": "nodejs",
     "applicationId": "io.github.supermonster003.autojs6.plugin.nodejs",
@@ -38,8 +38,8 @@
   },
   "capabilityCatalog": {
     "schema": "autojs6-node-capability-catalog-v1",
-    "version": "1.5.4",
-    "sha256": "103b29aa80b5e831cf13340707627f4c6ce9907658eb3c19214045778786a240"
+    "version": "1.5.5",
+    "sha256": "780fe87bcde895272ef2e3903f644d320bd5a842c7d685bad861da5ae3d88283"
   },
   "reproducibility": {
     "artifactMaterialization": "source_build",
@@ -54,7 +54,7 @@
   },
   "buildProvenance": {
     "sourceRepository": "AutoJs6-Plugin-NodeJs-Runtime",
-    "sourceGitBase": "a03188e00629bd7c94d7ad76eed8c734284a68bf",
+    "sourceGitBase": "f1acf0866b20b54da188041b07ff036bacbade5c",
     "runtimeBuildPlan": {
       "lockFile": "tools/nodejs/runtime-build/runtime-build.lock.json",
       "lockSha256": "5e159976dc6157fb0b38bc5af175ec689c5a2a8589c0d82ba16b92d209d6d92a",
@@ -108,8 +108,8 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "source_tree",
       "required": true,
-      "size": 72685,
-      "sha256": "103b29aa80b5e831cf13340707627f4c6ce9907658eb3c19214045778786a240",
+      "size": 72673,
+      "sha256": "780fe87bcde895272ef2e3903f644d320bd5a842c7d685bad861da5ae3d88283",
       "buildId": null
     },
     {

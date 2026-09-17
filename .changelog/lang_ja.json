@@ -5,6 +5,15 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v1.5.5": {
+      "released_date": "2026/09/17",
+      "improvement": [
+        "ホストの TypeScript コンパイル経路を能力カタログで stable に変更し、退役済みの legacy stripping メタデータを削除; ライフサイクルカタログは実行可能なモードのみを列挙し、packaged_long_running 起動面と node_sandboxed / worker_computation の予約名を削除; 転送・受付・キャンセルのメタデータを実際のランタイムに合わせて整合"
+      ],
+      "fix": [
+        "runtimeInfo が報告する能力カタログのバージョンとダイジェストを runtime kit から導出し、1.5.4 で残っていた 1.5.0 の旧値を修正"
+      ]
+    },
     "v1.5.4": {
       "released_date": "2026/09/17",
       "improvement": [

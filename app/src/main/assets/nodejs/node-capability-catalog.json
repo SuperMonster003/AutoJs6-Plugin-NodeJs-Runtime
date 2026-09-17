@@ -1,6 +1,6 @@
 {
   "schema": "autojs6-node-capability-catalog-v1",
-  "catalogVersion": "1.5.4",
+  "catalogVersion": "1.5.5",
   "runtime": {
     "pluginId": "nodejs",
     "engine": "nodejs",
@@ -71,7 +71,6 @@
     ],
     "typeScriptDefaultPolicy": "compiler_output_required",
     "typeScriptCompilerBundled": false,
-    "typeScriptLegacyStrippingRequestKey": "legacyTypeScriptStrippingEnabled",
     "typeScriptPrecompiledSnapshotRequestKeys": [
       "typeScriptPrecompiledSnapshot",
       "typeScriptPrecompiledSourceNames"
@@ -248,7 +247,7 @@
       "property": null,
       "defaultEnabled": false,
       "securityLevel": "medium",
-      "status": "partial",
+      "status": "stable",
       "overrides": {
         "buildTime": false,
         "projectJson": false,
@@ -259,8 +258,14 @@
       "compilerBundled": false,
       "compilerOutputAccepted": true,
       "rawSourceFailureCode": "ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED",
-      "legacyStrippingRequestKey": "legacyTypeScriptStrippingEnabled",
-      "legacyStrippingDefaultEnabled": false,
+      "rawSourceAdmission": "fail_closed",
+      "precompiledSnapshotRequestKeys": [
+        "typeScriptPrecompiledSnapshot",
+        "typeScriptPrecompiledSourceNames"
+      ],
+      "onDemandCompilationOperation": "compile_missing_typescript",
+      "onDemandCompilationProviderVersion": 3,
+      "compilationFailureCode": "ERR_AUTOJS6_TYPESCRIPT_COMPILATION_FAILED",
       "sourceMapOwner": "host_compiler"
     },
     {
@@ -520,13 +525,17 @@
   },
   "transport": {
     "runtimeServiceCapabilities": [
+      "asyncScriptExecution",
       "bundleTransport",
       "hostCapabilityBroker",
       "hostCapabilityLiveBridge",
       "hostPlaintextModuleSourceMaterialization",
+      "hostTypeScriptOnDemandCompilation",
       "nativeEmbeddedRuntime",
+      "nodeCli",
       "onDemandModuleSourceProvider",
       "persistentProcessRuntime",
+      "processPoolExecution",
       "processRestartCancellation",
       "scopedWorkspaceArchiveTransport",
       "singleActiveBackpressure",
@@ -536,41 +545,34 @@
     "workspace": "scoped_archive_pfd",
     "moduleSource": "on_demand_pfd",
     "output": {
-      "mode": "buffered",
-      "streaming": false,
+      "mode": "streaming",
+      "streaming": true,
       "terminalEventCount": 1
     }
   },
   "lifecycle": {
-    "processModel": "persistent",
+    "processModel": "process_pool",
     "dedicatedProcess": true,
     "isolatePerExecution": true,
     "defaultExecutionMode": "one_shot",
     "admission": {
       "maxConcurrentExecutions": 1,
-      "queueCapacity": 0,
+      "processPoolMaxConcurrentExecutions": 2,
+      "queueCapacity": 3,
       "busyError": "ERR_AUTOJS6_NODE_PLUGIN_BUSY"
     },
     "cancellation": {
-      "mode": "process_restart",
+      "mode": "cooperative_stop_with_process_restart_fallback",
       "automaticRetryAfterDispatch": false
     },
     "executionModes": [
       {
         "id": "interactive_long_running",
-        "status": "partial",
+        "status": "available",
         "longRunning": true,
         "launchSurfaces": [
-          "interactive_session",
-          "packaged_long_running"
+          "interactive_session"
         ],
-        "restartPolicy": "never"
-      },
-      {
-        "id": "node_sandboxed",
-        "status": "design_gated",
-        "longRunning": false,
-        "launchSurfaces": [],
         "restartPolicy": "never"
       },
       {
@@ -590,13 +592,6 @@
           "scheduled_runner"
         ],
         "restartPolicy": "never_no_implicit_retry"
-      },
-      {
-        "id": "worker_computation",
-        "status": "reserved",
-        "longRunning": false,
-        "launchSurfaces": [],
-        "restartPolicy": "never"
       }
     ],
     "metadataAliases": [

@@ -5,6 +5,15 @@
   "changelog_label_improvement": "تحسين",
   "changelog_label_dependency": "اعتماد",
   "$data": {
+    "v1.5.5": {
+      "released_date": "2026/09/17",
+      "improvement": [
+        "أصبح مسار ترجمة TypeScript على المضيف قدرة مستقرة في فهرس القدرات مع إزالة بيانات legacy stripping المتقاعدة; يسرد فهرس دورة الحياة أوضاع التنفيذ القابلة للتشغيل فقط مع إزالة سطح packaged_long_running والأسماء المحجوزة node_sandboxed / worker_computation; وتتطابق بيانات النقل والقبول والإلغاء مع وقت التشغيل الفعلي"
+      ],
+      "fix": [
+        "أصبح إصدار فهرس القدرات وملخصه اللذان يبلغ عنهما runtimeInfo مشتقين من runtime kit, مما يصحح القيم القديمة 1.5.0 التي كان الإصدار 1.5.4 لا يزال يبلغ عنها"
+      ]
+    },
     "v1.5.4": {
       "released_date": "2026/09/17",
       "improvement": [

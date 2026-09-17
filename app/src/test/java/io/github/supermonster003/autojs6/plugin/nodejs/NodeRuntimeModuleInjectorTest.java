@@ -28,7 +28,7 @@ public final class NodeRuntimeModuleInjectorTest {
                 NodeRuntimeModuleInjector.resolveLifecycleRequest(
                         "one_shot",
                         "interactive_long_running",
-                        "packaged_long_running"
+                        "interactive_session"
                 );
 
         assertEquals("one_shot", policy.executionMode);
@@ -41,12 +41,26 @@ public final class NodeRuntimeModuleInjectorTest {
                 NodeRuntimeModuleInjector.resolveLifecycleRequest(
                         null,
                         "interactive_long_running",
+                        "interactive_session"
+                );
+
+        assertEquals("interactive_long_running", policy.executionMode);
+        assertEquals("interactive_session", policy.launchSurface);
+        assertTrue(policy.checkpointEnabled);
+    }
+
+    @Test
+    public void retiredPackagedLongRunningSurfaceNoLongerOpensCheckpoint() {
+        NodeRuntimeModuleInjector.LifecycleRequestPolicy policy =
+                NodeRuntimeModuleInjector.resolveLifecycleRequest(
+                        "interactive_long_running",
+                        "interactive_long_running",
                         "packaged_long_running"
                 );
 
         assertEquals("interactive_long_running", policy.executionMode);
         assertEquals("packaged_long_running", policy.launchSurface);
-        assertTrue(policy.checkpointEnabled);
+        assertFalse(policy.checkpointEnabled);
     }
 
     @Test
