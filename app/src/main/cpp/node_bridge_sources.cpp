@@ -4535,6 +4535,7 @@ std::string buildEmbeddedScriptExecutionSource(
         rawNativeHandles: false,
         packagedBehavior: "native_available_only",
         packageResolution: "workspace_node_modules",
+        dynamicImport: __autojs6_dynamic_import_enabled,
         processApis: Object.freeze({
           exit: "ends_worker_thread_as_node",
           getBuiltinModule: "allowlisted_builtins",
@@ -8847,13 +8848,6 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_assert_worker_source_supported(source, sourceName, entryKind) {
     const sourceText = String(source || "");
     const masked = __autojs6_mask_non_code(sourceText);
-    if (__autojs6_contains_dynamic_import(sourceText)) {
-      throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 worker_threads disables dynamic import in workers: " + sourceName,
-        "dynamic_import",
-        "ERR_AUTOJS6_DYNAMIC_IMPORT_UNSUPPORTED"
-      );
-    }
     if (entryKind === "esm") {
       return;
     }
@@ -9005,6 +8999,7 @@ std::string buildEmbeddedScriptExecutionSource(
         rawNetwork: __autojs6_raw_node_network_modules_enabled,
         unrestrictedFs: __autojs6_unrestricted_fs_access_enabled,
         facadeModules: __autojs6_rhino_compat_basic_module_names,
+        dynamicImport: __autojs6_dynamic_import_enabled,
         workerProfile: __autojs6_worker_threads_policy_snapshot().workerProfile
       },
       moduleSources: descriptor.moduleSources || Object.create(null)
@@ -9612,18 +9607,94 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return masked;
   }
-  function __containsDynamicImport(source) {
-    const masked = __maskNonCode(source);
+  // import() calls become __autojs6_dynamic_import(__filename, ...) so they go through the
+  // worker partial ESM loader (local paths, file: URLs, workspace packages, allowed builtins,
+  // with { type: "json" }) instead of Node's native loader, which would bypass the worker
+  // file boundary and the bridge/inspector denials.
+  function __transformDynamicImportCalls(source, filename) {
+    const sourceText = String(source || "");
+    if (sourceText.indexOf("import") < 0) return sourceText;
+    const masked = __maskNonCode(sourceText);
+    let output = "";
+    let cursor = 0;
     for (let index = 0; index < masked.length; index += 1) {
       if (!__isIdentifierTokenAt(masked, index, "import")) continue;
       const nextIndex = __skipWhitespace(masked, index + "import".length);
-      if (masked.charAt(nextIndex) === "(") return true;
+      if (masked.charAt(nextIndex) !== "(") continue;
+      if (!__descriptor.policy.dynamicImport) __dynamicImportUnsupported(filename);
+      output += sourceText.slice(cursor, index);
+      output += "__autojs6_dynamic_import(__filename, ";
+      cursor = nextIndex + 1;
     }
-    return false;
+    return output + sourceText.slice(cursor);
+  }
+  function __importAttributeError(message, legacyCode) {
+    return __error(message, "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED", legacyCode);
+  }
+  function __parseDynamicImportAttributes(options, parentFilename, specifier) {
+    if (options === undefined || options === null) return { type: "" };
+    if (typeof options !== "object") {
+      throw __importAttributeError(
+        "AutoJs6 worker dynamic import options must be an object for '" + specifier + "' from '" + parentFilename + "'.",
+        "ERR_INVALID_ARG_TYPE"
+      );
+    }
+    const optionKeys = Object.keys(options);
+    if (optionKeys.length === 0) return { type: "" };
+    if (optionKeys.length !== 1 || optionKeys[0] !== "with") {
+      throw __importAttributeError(
+        "Unsupported AutoJs6 worker dynamic import options for '" + specifier + "' from '" + parentFilename +
+          "'. Only { with: { type: \"json\" } } is supported.",
+        "ERR_IMPORT_ATTRIBUTE_UNSUPPORTED"
+      );
+    }
+    const withAttributes = options.with;
+    if (!withAttributes || typeof withAttributes !== "object" || Array.isArray(withAttributes)) {
+      throw __importAttributeError(
+        "AutoJs6 worker dynamic import attributes must use { with: { type: \"json\" } } for '" + specifier + "' from '" + parentFilename + "'.",
+        "ERR_INVALID_ARG_TYPE"
+      );
+    }
+    const attributeKeys = Object.keys(withAttributes);
+    if (attributeKeys.length === 0) return { type: "" };
+    if (attributeKeys.length !== 1 || attributeKeys[0] !== "type" || withAttributes.type !== "json") {
+      throw __importAttributeError(
+        "Unsupported AutoJs6 worker dynamic import attributes for '" + specifier + "' from '" + parentFilename +
+          "'. Only { with: { type: \"json\" } } is supported.",
+        "ERR_IMPORT_ATTRIBUTE_UNSUPPORTED"
+      );
+    }
+    return { type: "json" };
+  }
+  function __validateImportAttributes(resolved, attributes, specifier, parentFilename) {
+    if (!attributes) return;
+    const isJson = __normalizedExtension(resolved.resolved) === ".json";
+    if (attributes.type === "json" && !isJson) {
+      throw __importAttributeError(
+        "AutoJs6 worker dynamic import attribute type \"json\" does not match module '" + specifier + "' from '" + parentFilename + "'.",
+        "ERR_IMPORT_ATTRIBUTE_TYPE_INCOMPATIBLE"
+      );
+    }
+    if (attributes.type !== "json" && isJson) {
+      throw __importAttributeError(
+        "AutoJs6 worker dynamic import of JSON module '" + specifier + "' from '" + parentFilename + "' requires with { type: \"json\" }.",
+        "ERR_IMPORT_ATTRIBUTE_MISSING"
+      );
+    }
+  }
+  function __dynamicImport(parentFilename, specifier, options) {
+    return Promise.resolve().then(function() {
+      if (!__descriptor.policy.dynamicImport) __dynamicImportUnsupported(parentFilename);
+      const name = specifier === undefined || specifier === null ? "" : String(specifier);
+      if (name.indexOf("\u0000") >= 0) {
+        throw __error("AutoJs6 worker dynamic import rejects NUL byte in specifier: " + parentFilename, "ERR_AUTOJS6_FS_NUL_BYTE");
+      }
+      const attributes = __parseDynamicImportAttributes(options, parentFilename, name);
+      return __loadEsmModule(name, parentFilename, attributes);
+    });
   }
   function __assertCjsSourceSupported(source, filename) {
     const sourceText = String(source || "");
-    if (__containsDynamicImport(sourceText)) __dynamicImportUnsupported(filename);
     const masked = __maskNonCode(sourceText);
     if (/(^|[\r\n;{}])\s*import\b\s*(["'{*]|[A-Za-z_$])/.test(masked) ||
         /(^|[\r\n;{}])\s*export\b\s*([{*]|default\b|class\b|function\b|const\b|let\b|var\b|[A-Za-z_$])/.test(masked)) {
@@ -9979,9 +10050,10 @@ std::string buildEmbeddedScriptExecutionSource(
       "module",
       "__filename",
       "__dirname",
-      "\"use strict\";\n" + record.source + "\n//# sourceURL=" + sourceURL
+      "__autojs6_dynamic_import",
+      "\"use strict\";\n" + __transformDynamicImportCalls(record.source, filename) + "\n//# sourceURL=" + sourceURL
     );
-    run(workerRequire, module.exports, module, module.filename, module.dirname);
+    run(workerRequire, module.exports, module, module.filename, module.dirname, __dynamicImport);
     module.loaded = true;
     return module.exports;
   }
@@ -10071,7 +10143,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (!__isIdentifierTokenAt(masked, index, "import")) continue;
       const nextIndex = __skipWhitespace(masked, index + "import".length);
       const next = masked.charAt(nextIndex);
-      if (next === "(") __dynamicImportUnsupported(filename);
+      if (next === "(") continue;
       if (next === "." && masked.slice(nextIndex, nextIndex + 5) === ".meta") {
         __esmUnsupported("import.meta is disabled for AutoJs6 worker partial ESM module '" + filename + "'.");
       }
@@ -10115,9 +10187,17 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return Object.freeze(namespace);
   }
-  function __loadEsmModule(specifier, parentFilename) {
+  function __loadEsmModule(specifier, parentFilename, attributes) {
     const raw = String(specifier || "");
-    if (__builtinAllowed(raw)) return Promise.resolve(__namespaceFromCommonJs(__loadBuiltin(raw)));
+    if (__builtinAllowed(raw)) {
+      if (attributes && attributes.type) {
+        return Promise.reject(__importAttributeError(
+          "AutoJs6 worker dynamic import attributes are only supported for JSON modules: " + raw,
+          "ERR_IMPORT_ATTRIBUTE_UNSUPPORTED"
+        ));
+      }
+      return Promise.resolve(__namespaceFromCommonJs(__loadBuiltin(raw)));
+    }
     let localName = raw;
     if (/^file:/i.test(raw)) {
       try { localName = __nativeRequire("url").fileURLToPath(raw); } catch (error) { return Promise.reject(error); }
@@ -10125,6 +10205,7 @@ std::string buildEmbeddedScriptExecutionSource(
     let resolved;
     try {
       resolved = __resolveModule(localName, parentFilename, "esm");
+      __validateImportAttributes(resolved, attributes, raw, parentFilename);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -10143,7 +10224,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const cacheRecord = { namespace, promise: null };
     __esmModuleCache[filename] = cacheRecord;
     cacheRecord.promise = (async function() {
-      const transformed = __transformEsmSource(record.source, filename);
+      const transformed = __transformDynamicImportCalls(__transformEsmSource(record.source, filename), filename);
       const sourceURL = String(record.sourceURL || filename).replace(/[\r\n]/g, " ");
       const moduleFunction = __AsyncFunction(
         "__autojs6_load_esm_module",
@@ -10153,6 +10234,7 @@ std::string buildEmbeddedScriptExecutionSource(
         "module",
         "__filename",
         "__dirname",
+        "__autojs6_dynamic_import",
         "\"use strict\";\n" + transformed + "\n//# sourceURL=" + sourceURL
       );
       await moduleFunction.call(
@@ -10163,7 +10245,8 @@ std::string buildEmbeddedScriptExecutionSource(
         undefined,
         undefined,
         filename,
-        __path.dirname(filename)
+        __path.dirname(filename),
+        __dynamicImport
       );
       return Object.freeze(namespace);
     })();

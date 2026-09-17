@@ -14,7 +14,8 @@
         "Module loading follows Android file access like Node: require, import and Worker accept absolute paths, parent-directory targets and file: URLs (/proc, /sys and /dev stay denied); node_modules lookup stays anchored to the workspace",
         "Worker messages and fs watchers follow native Node limits: the 64 KB message and 32-queued caps and the 16-watcher / 64-events-per-second quotas are removed; only Android memory bounds them",
         "Inside workers process.exit() ends the worker thread as in Node and process.getBuiltinModule() follows the worker builtin allowlist instead of being disabled",
-        "Workers resolve bare package specifiers through the workspace node_modules as in Node (exports conditions, main, index, self-reference) instead of denying them"
+        "Workers resolve bare package specifiers through the workspace node_modules as in Node (exports conditions, main, index, self-reference) instead of denying them",
+        "Dynamic import() inside workers goes through the worker partial ESM loader (local paths, file: URLs, workspace packages, allowed builtins, with { type: \"json\" }) instead of being rejected"
       ],
       "fix": [
         "The capability catalog version and digest reported by runtimeInfo are now derived from the runtime kit, correcting the stale 1.5.0 values still reported by 1.5.4",

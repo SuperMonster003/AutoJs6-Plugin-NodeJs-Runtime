@@ -818,6 +818,98 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         }
     }
 
+    /** M20.2: dynamic import() inside workers goes through the worker partial ESM loader. */
+    @Test
+    public void m20_workerDynamicImportFollowsWorkerLoader() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("node_modules/dyn-pkg/package.json",
+                "{\"name\":\"dyn-pkg\",\"exports\":{\"import\":\"./esm.mjs\",\"require\":\"./cjs.cjs\"}}");
+        files.put("node_modules/dyn-pkg/esm.mjs", "export const flavor = 'esm';");
+        files.put("node_modules/dyn-pkg/cjs.cjs", "module.exports = { flavor: 'cjs' };");
+        files.put("dep.mjs", "export const value = 42;\nexport default 'dep-default';");
+        files.put("dep.cjs", "module.exports = { cjs: true };");
+        files.put("data.json", "{\"answer\": 42}");
+        files.put("worker.cjs", """
+                const assert = require('node:assert/strict');
+                const path = require('node:path');
+                const { pathToFileURL } = require('node:url');
+                const { parentPort } = require('node:worker_threads');
+                (async () => {
+                  const dep = await import('./dep.mjs');
+                  assert.equal(dep.value, 42);
+                  assert.equal(dep.default, 'dep-default');
+                  const cjs = await import('./dep.cjs');
+                  assert.equal(cjs.default.cjs, true);
+                  const pathNs = await import('node:path');
+                  assert.equal(typeof pathNs.join, 'function');
+                  const pkg = await import('dyn-pkg');
+                  assert.equal(pkg.flavor, 'esm');
+                  assert.equal(require('dyn-pkg').flavor, 'cjs');
+                  const viaUrl = await import(pathToFileURL(path.join(__dirname, 'dep.mjs')).href);
+                  assert.equal(viaUrl, dep);
+                  const viaAbsolute = await import(path.join(__dirname, 'dep.mjs'));
+                  assert.equal(viaAbsolute, dep);
+                  const json = await import('./data.json', { with: { type: 'json' } });
+                  assert.equal(json.default.answer, 42);
+                  await assert.rejects(import('./data.json'), (e) => e.code === 'ERR_IMPORT_ATTRIBUTE_MISSING');
+                  await assert.rejects(import('./dep.mjs', { with: { type: 'json' } }), (e) => e.code === 'ERR_IMPORT_ATTRIBUTE_TYPE_INCOMPATIBLE');
+                  await assert.rejects(import('./dep.mjs', { with: { type: 'css' } }), (e) => e.code === 'ERR_IMPORT_ATTRIBUTE_UNSUPPORTED');
+                  await assert.rejects(import('node:inspector'), (e) => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED');
+                  await assert.rejects(import('autojs6:fetch'), (e) => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED');
+                  await assert.rejects(import('./missing.mjs'), (e) => e.code === 'ERR_AUTOJS6_MODULE_NOT_FOUND');
+                  await assert.rejects(import('no-such-dyn-package'), (e) => e.code === 'MODULE_NOT_FOUND');
+                  await assert.rejects(import('/proc/self/status'), (e) => e.code === 'ERR_AUTOJS6_FS_PATH_ESCAPE');
+                  parentPort.postMessage('cjs-ok');
+                })().catch((error) => { parentPort.postMessage('cjs-fail:' + (error && (error.stack || error.message))); });
+                """);
+        files.put("worker.mjs", """
+                import { parentPort } from 'node:worker_threads';
+                const dep = await import('./dep.mjs');
+                const pkg = await import('dyn-pkg');
+                const json = await import('./data.json', { with: { type: 'json' } });
+                parentPort.postMessage(dep.value + '/' + pkg.flavor + '/' + json.default.answer);
+                """);
+        files.put("main.cjs", """
+                const assert = require('node:assert/strict');
+                const path = require('node:path');
+                const { Worker } = require('node:worker_threads');
+                assert.equal(require('autojs6:profile').workerThreadsProfile.dynamicImport, true);
+                function runWorker(target, options) {
+                  return new Promise((resolve, reject) => {
+                    const worker = new Worker(target, options);
+                    worker.once('message', resolve);
+                    worker.once('error', reject);
+                    worker.once('exit', (code) => { if (code !== 0) reject(new Error(String(target) + ' exited with ' + code)); });
+                  });
+                }
+                (async () => {
+                  console.log('m20.worker.dynamicImport.cjs=' + await runWorker(path.join(__dirname, 'worker.cjs')));
+                  console.log('m20.worker.dynamicImport.esm=' + await runWorker(path.join(__dirname, 'worker.mjs')));
+                  const evalSource = "const { parentPort } = require('node:worker_threads');"
+                    + " import('./dep.mjs').then((ns) => parentPort.postMessage('eval:' + ns.value));";
+                  console.log('m20.worker.dynamicImport.eval=' + await runWorker(evalSource, { eval: true }));
+                  console.log('m20.worker.dynamicImport=PASS');
+                })().catch((error) => { console.error(error && error.stack || error); process.exitCode = 1; });
+                """);
+        try (WorkspaceInvocation invocation = execute("m20-worker-dynamic-import", "main.cjs", files,
+                new LinkedHashMap<>(), false, null, null, SCRIPT_TIMEOUT_MS, false, Collections.emptyList(), true)) {
+            Bundle result = invocation.result;
+            String stdout = result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+            assertTrue("m20 worker dynamic import failed: " + result.getString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, "")
+                            + " / " + result.getString(NodeJsRuntimeContract.KEY_STDERR, "") + " / " + stdout,
+                    result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            assertEquals("exit code", 0, result.getInt(NodeJsRuntimeContract.KEY_EXIT_CODE, -1));
+            for (String expected : new String[] {
+                    "m20.worker.dynamicImport.cjs=cjs-ok",
+                    "m20.worker.dynamicImport.esm=42/esm/42",
+                    "m20.worker.dynamicImport.eval=eval:42",
+                    "m20.worker.dynamicImport=PASS"
+            }) {
+                assertTrue("stdout is missing '" + expected + "': " + stdout, stdout.contains(expected));
+            }
+        }
+    }
+
     @Test
     public void x3d_03_importedCommonJsStackRemovesFunctionWrapperOffset() throws Exception {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();

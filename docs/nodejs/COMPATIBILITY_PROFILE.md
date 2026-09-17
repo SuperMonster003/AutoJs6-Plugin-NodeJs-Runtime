@@ -69,8 +69,9 @@ arbitrary private bindings and unrestricted Java reflection remain unavailable.
 Inside workers `process.exit()` ends the thread as in Node and
 `process.getBuiltinModule()` follows the worker builtin allowlist, and bare package
 specifiers resolve through the workspace `node_modules` as in Node (exports conditions,
-main, index, self-reference); nested workers and dynamic import inside workers are
-still unsupported. Subprocesses and bridges retain documented execution limits.
+main, index, self-reference); dynamic `import()` inside workers goes through the worker
+partial ESM loader with `with { type: "json" }` support; nested workers are still
+unsupported. Subprocesses and bridges retain documented execution limits.
 Screen capture, OCR and recording have the manual acceptance recorded in
 [Roadmap](../../Roadmap.md); physical event receipts remain pending. Android consent
 is still required when using those capabilities. A callable facade is not evidence

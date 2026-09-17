@@ -126,6 +126,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `개선` Worker 메시지와 fs 감시자가 Node 네이티브 제한을 따름: 64 KB 메시지 / 32개 대기열 상한과 16개 감시자 / 초당 64 이벤트 할당량 제거. Android 메모리만이 한계
 * `개선` worker 내 process.exit()가 Node처럼 해당 worker 스레드만 종료하고, process.getBuiltinModule()이 worker builtin 허용 목록을 따름 (일괄 비활성화 해제)
 * `개선` worker 내 bare 패키지 지정자를 Node처럼 워크스페이스 node_modules에서 해석 (exports 조건, main, index, 자기 참조). 일괄 거부 해제
+* `개선` worker 내 동적 import()를 worker의 partial ESM 로더로 처리 (상대/절대 경로, file: URL, 워크스페이스 패키지, 허용 builtin, with { type: "json" }). 거부 해제
 
 # v1.5.4
 
