@@ -8,7 +8,8 @@
     "v1.5.5": {
       "released_date": "2026/09/17",
       "improvement": [
-        "호스트 TypeScript 컴파일 경로를 기능 카탈로그에서 stable로 전환하고 퇴역한 legacy stripping 메타데이터를 제거; 수명주기 카탈로그는 실행 가능한 모드만 나열하며 packaged_long_running 실행 표면과 node_sandboxed / worker_computation 예약 이름을 제거; 전송, 수락 및 취소 메타데이터를 실제 런타임에 맞게 정렬"
+        "호스트 TypeScript 컴파일 경로를 기능 카탈로그에서 stable로 전환하고 퇴역한 legacy stripping 메타데이터를 제거; 수명주기 카탈로그는 실행 가능한 모드만 나열하며 packaged_long_running 실행 표면과 node_sandboxed / worker_computation 예약 이름을 제거; 전송, 수락 및 취소 메타데이터를 실제 런타임에 맞게 정렬",
+        "autojs6:profile 진단 객체가 과거의 partial / reserved / deferred 표기 대신 실제 런타임을 설명: Android 권한에 따른 파일 접근, process 부분 집합, worker 채널, 프로세스 풀 및 WASI / native addon 결정"
       ],
       "fix": [
         "runtimeInfo가 보고하는 기능 카탈로그 버전과 다이제스트를 runtime kit에서 파생하도록 변경하여 1.5.4에 남아 있던 1.5.0 이전 값을 수정"
