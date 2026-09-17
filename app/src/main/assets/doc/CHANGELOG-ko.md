@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.4
+
+###### 2026/09/17
+
+* `수정` 내장 실행에서 ExperimentalWarning 출력을 중단하고 warning 이벤트, 일반 경고, 사용 중단 경고 및 오류를 유지; Node 상위 API 안정성과 터미널 기본 동작은 변경되지 않음
+* `개선` 파일 스트림, gzip/deflate/Brotli 스트림 및 기본 VM 실행을 정식 지원; 명시적으로 활성화한 Debug Inspector는 localhost 범위에서 정식 지원
+
 # v1.5.3
 
 ###### 2026/09/16

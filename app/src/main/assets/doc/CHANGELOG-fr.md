@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.4
+
+###### 2026/09/17
+
+* `Correction` L'exécution intégrée n'affiche plus les avis ExperimentalWarning; les événements warning, avertissements ordinaires, dépréciations et erreurs restent disponibles. La stabilité des API Node et les valeurs par défaut du terminal sont inchangées
+* `Amelioration` Les flux de fichiers, les flux gzip/deflate/Brotli et l'exécution VM de base sont stables; le Debug Inspector explicitement activé est stable dans son périmètre localhost
+
 # v1.5.3
 
 ###### 2026/09/16

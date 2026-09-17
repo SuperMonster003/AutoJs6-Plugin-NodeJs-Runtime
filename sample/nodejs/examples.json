@@ -372,8 +372,7 @@
     },
     {
       "name": "node-runtime-info",
-      "status": "partial",
-      "reason": "Reports the current runtime descriptor, while runtime selection remains build-controlled and the Node 24.17 promotion is deferred.",
+      "status": "stable",
       "tags": [
         "main-app",
         "runtime-info"
@@ -580,6 +579,27 @@
         "main-app",
         "bridge",
         "permission-optional"
+      ],
+      "mainAppSmoke": false,
+      "packagedCompatible": false
+    },
+    {
+      "name": "streams-compression",
+      "status": "stable",
+      "tags": [
+        "main-app",
+        "esm",
+        "scoped-fs"
+      ],
+      "mainAppSmoke": false,
+      "packagedCompatible": false
+    },
+    {
+      "name": "vm-context",
+      "status": "stable",
+      "tags": [
+        "main-app",
+        "esm"
       ],
       "mainAppSmoke": false,
       "packagedCompatible": false

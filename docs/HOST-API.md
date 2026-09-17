@@ -24,7 +24,11 @@
 
 成功结果在 Node 事件循环完成、触发最终 `exit` 时生成, 因此原生异步工作及 `beforeExit` 中追加的任务均可完成, 最终 stdout/stderr 与 `process.exitCode` 会正确回传。
 
-`node:sqlite` 提供 Node 原生同步 SQLite 引擎, 支持 `DatabaseSync`、预编译语句、CRUD、事务、函数与备份, 主线程和 worker 均可使用。普通名 `sqlite` 继续表示宿主异步数据库桥。数据库构造、重新打开和 `backup` 目标经过既有 fs 路径及符号链接检查; 支持字符串/Buffer 文件路径、file URL 对象及 `:memory:`。Node 24.21 的 SQLite API 标为 release candidate; 原生 API 的稳定性级别和警告行为跟随该 Node 版本。
+文件流、gzip/deflate/Brotli 压缩流和基础 VM 脚本/上下文能力已正式化; 显式启用的 Debug Inspector 在 localhost 范围内为 stable, Release 仍禁用。可运行项目见 `sample/nodejs/streams-compression` 和 `sample/nodejs/vm-context`。这里的 stable 表示插件对文档范围内能力的支持, 不改变 Node 上游 API 稳定性; VM Modules 仍属于上游实验 API。
+
+嵌入执行使用 `--disable-warning=ExperimentalWarning`, 因此正常 ESM 运行不会再把内部 VM Modules 提示输出到 stderr。`process.on('warning')` 事件、普通警告、弃用警告、异常和显式 stderr 输出均保留。宿主终端直接启动的 `node` 保持上游默认行为, 可由用户显式传入同一参数。清单中的 partial 或缺失 provider 不会因为关闭提示而自动晋级。
+
+`node:sqlite` 提供 Node 原生同步 SQLite 引擎, 支持 `DatabaseSync`、预编译语句、CRUD、事务、函数与备份, 主线程和 worker 均可使用。普通名 `sqlite` 继续表示宿主异步数据库桥。数据库构造、重新打开和 `backup` 目标经过既有 fs 路径及符号链接检查; 支持字符串/Buffer 文件路径、file URL 对象及 `:memory:`。Node 24.21 的 SQLite API 标为 release candidate; 原生 API 的稳定性级别跟随该 Node 版本, 嵌入执行的实验提示输出遵循上面的统一策略。
 
 此版本不接受 SQLite `file:` URI 字符串和空临时路径, 原生扩展加载仍拒绝。延续原 24.5 适配器的文件路径检查策略, SQL 中的 `ATTACH`、`VACUUM INTO`、`PRAGMA temp_store_directory/data_store_directory` 返回 `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED`, 避免绕过文件路径检查; 使用另一个 `DatabaseSync` 或 `sqlite.backup()` 完成文件操作。普通 `VACUUM`、事务和包含这些单词的查询数据仍可用。
 

@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.4
+
+###### 2026/09/17
+
+* `修復` 嵌入執行不再輸出 ExperimentalWarning 提示, 保留 warning 事件、一般警告、棄用警告和錯誤; Node 上游 API 穩定性與終端預設行為不變
+* `優化` 檔案串流、gzip/deflate/Brotli 壓縮串流和基本 VM 執行正式化; 明確啟用的 Debug Inspector 在 localhost 範圍內正式支援
+
 # v1.5.3
 
 ###### 2026/09/16

@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.4
+
+###### 2026/09/17
+
+* `Correccion` La ejecución integrada deja de imprimir avisos ExperimentalWarning; conserva los eventos warning, advertencias normales, avisos de obsolescencia y errores. La estabilidad de las API de Node y los valores predeterminados del terminal no cambian
+* `Mejora` Los flujos de archivos, gzip/deflate/Brotli y la ejecución básica de VM son estables; Debug Inspector, activado explícitamente, es estable dentro de localhost
+
 # v1.5.3
 
 ###### 2026/09/16

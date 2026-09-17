@@ -185,7 +185,10 @@ bool ensureUnlocked(std::vector<std::string>& payload) {
                         reinterpret_cast<NodeTearDownOncePerProcess>(teardownLookup.address);
                 const std::vector<std::string> args = {
                         "autojs6-embedded-process-runtime",
-                        "--experimental-vm-modules"
+                        "--experimental-vm-modules",
+                        // Match one-shot execution: retain warning events and all
+                        // other diagnostics while hiding experimental notices.
+                        "--disable-warning=ExperimentalWarning"
                 };
                 runtime.initializationResult = initializeOncePerProcess(
                         args,

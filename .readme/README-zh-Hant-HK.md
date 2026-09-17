@@ -104,12 +104,21 @@ console.log("AutoJs6 Node.js runtime");
 - TypeScript: 接受宿主產物並可透過 provider v3 按需編譯執行期間建立的項目檔案; direct raw TypeScript 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
 - ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, 原生 live binding 與循環依賴.
 - 能力: 同步腳本執行, bundle transport, 原生內嵌運行時, 宿主能力代理, host capability live bridge.
+- 檔案串流、gzip/deflate/Brotli 壓縮串流和基本 VM 執行正式化; 明確啟用的 Debug Inspector 在 localhost 範圍內正式支援.
+- 嵌入執行不再輸出 ExperimentalWarning 提示, 保留 warning 事件、一般警告、棄用警告和錯誤; Node 上游 API 穩定性與終端預設行為不變.
 
 ******
 
 ### 發行歷史
 
 ******
+
+# v1.5.4
+
+###### 2026/09/17
+
+* `修復` 嵌入執行不再輸出 ExperimentalWarning 提示, 保留 warning 事件、一般警告、棄用警告和錯誤; Node 上游 API 穩定性與終端預設行為不變
+* `優化` 檔案串流、gzip/deflate/Brotli 壓縮串流和基本 VM 執行正式化; 明確啟用的 Debug Inspector 在 localhost 範圍內正式支援
 
 # v1.5.3
 
@@ -123,13 +132,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/09/15
 
 * `優化` 將 compileSdk 提升到 37 (Android 17), targetSdk 保持 36, 待依賴目標版本的行為驗證後再提升
-
-# v1.5.1
-
-###### 2026/09/15
-
-* `修復` Node 自身的致命錯誤與警告文字在 Android 上除 logcat 外同時寫入真實 stderr, 終端可看到未捕獲的例外而非靜默退出
-* `優化` `libnode.so` 以 `--with-intl=small-icu` 重建: `Intl` 與正規表示式的 Unicode 屬性跳脫 (`\p{...}`) 可用 (僅英文區域資料, `NODE_ICU_DATA` 可載入完整 ICU 資料檔), corepack 因此可在 AutoJs6 終端中執行 pnpm 11 與 Yarn Berry
 
 ##### 更多發行歷史可參閱
 

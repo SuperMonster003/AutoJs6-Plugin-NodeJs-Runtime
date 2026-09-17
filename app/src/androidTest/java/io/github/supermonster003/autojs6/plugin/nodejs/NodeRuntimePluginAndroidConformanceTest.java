@@ -194,8 +194,160 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 false
         )) {
             assertSucceeded(invocation.result, "x3d.esm=42");
+            assertEquals("managed ESM should not print an internal VM Modules warning",
+                    "", invocation.result.getString(NodeJsRuntimeContract.KEY_STDERR, ""));
+            assertEquals("managed ESM should not stream an internal VM Modules warning",
+                    "", invocation.callback.stderr());
             invocation.callback.assertOneStartedAndOneTerminalEvent();
             invocation.assertWorkspaceOutputCommitted();
+        }
+    }
+
+    @Test
+    public void m18_experimentalNoticesKeepWarningEventsAndOtherDiagnostics() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.cjs", """
+                const assert = require('node:assert/strict');
+                const warnings = [];
+                process.on('warning', warning => warnings.push(warning));
+                process.emitWarning('m18.experimental.string', 'ExperimentalWarning');
+                const experimental = new Error('m18.experimental.error');
+                experimental.name = 'ExperimentalWarning';
+                process.emitWarning(experimental);
+                process.emitWarning('m18.visible.warning', {code: 'AUTOJS6_TEST_WARNING'});
+                process.emitWarning('m18.visible.deprecation', {
+                  type: 'DeprecationWarning', code: 'DEP_AUTOJS6_TEST'
+                });
+                console.error('m18.visible.stderr');
+                setImmediate(async () => {
+                  assert.deepEqual(warnings.map(warning => warning.name), [
+                    'ExperimentalWarning', 'ExperimentalWarning', 'Warning', 'DeprecationWarning'
+                  ]);
+                  assert.equal(warnings[0].message, 'm18.experimental.string');
+                  assert.equal(warnings[1], experimental);
+                  assert.equal(warnings[2].code, 'AUTOJS6_TEST_WARNING');
+                  const worker = new (require('node:worker_threads').Worker)('./warnings-worker.cjs');
+                  const workerWarnings = await new Promise((resolve, reject) => {
+                    worker.once('message', resolve);
+                    worker.once('error', reject);
+                  });
+                  assert.deepEqual(workerWarnings, ['ExperimentalWarning', 'Warning']);
+                  console.log('m18.warning.events=PASS');
+                });
+                """);
+        files.put("warnings-worker.cjs", """
+                const {parentPort} = require('node:worker_threads');
+                const warnings = [];
+                process.on('warning', warning => warnings.push(warning.name));
+                process.emitWarning('m18.experimental.worker', 'ExperimentalWarning');
+                process.emitWarning('m18.visible.worker');
+                setImmediate(() => parentPort.postMessage(warnings));
+                """);
+        // Exercise separate environments in the persistent process as well as
+        // both terminal aggregation and the live stderr callback.
+        for (int index = 0; index < 2; index++) {
+            try (WorkspaceInvocation invocation = execute(
+                    "warnings-" + index, "main.cjs", files, new LinkedHashMap<>(),
+                    false, null, null, SCRIPT_TIMEOUT_MS, false, Collections.emptyList(), true
+            )) {
+                assertSucceeded(invocation.result, "m18.warning.events=PASS");
+                for (String stderr : new String[]{
+                        invocation.result.getString(NodeJsRuntimeContract.KEY_STDERR, ""),
+                        invocation.callback.stderr()
+                }) {
+                    assertFalse(stderr, stderr.contains("m18.experimental."));
+                    assertTrue(stderr, stderr.contains("m18.visible.warning"));
+                    assertTrue(stderr, stderr.contains("m18.visible.deprecation"));
+                    assertTrue(stderr, stderr.contains("m18.visible.stderr"));
+                    assertTrue(stderr, stderr.contains("m18.visible.worker"));
+                }
+                invocation.callback.assertOneStartedAndOneTerminalEvent();
+            }
+        }
+    }
+
+    @Test
+    public void m18_fileAndCompressionStreamsRoundTripAndAbort() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.mjs", """
+                import assert from 'node:assert/strict';
+                import fs from 'node:fs';
+                import {pipeline} from 'node:stream/promises';
+                import {Readable} from 'node:stream';
+                import zlib from 'node:zlib';
+                import profile from './profile.cjs';
+                assert.equal(profile.featureFlags.fs_streams.status, 'stable');
+                assert.equal(profile.featureFlags.zlib_streams.status, 'stable');
+                const data = Buffer.alloc(128 * 1024);
+                for (let i = 0; i < data.length; ++i) data[i] = i * 31 % 251;
+                fs.writeFileSync('input.bin', data);
+                for (const [compress, decompress] of [
+                  [zlib.createGzip, zlib.createGunzip],
+                  [zlib.createDeflate, zlib.createInflate],
+                  [zlib.createBrotliCompress, zlib.createBrotliDecompress]
+                ]) {
+                  const input = fs.createReadStream('input.bin', {highWaterMark: 4093});
+                  const compressed = fs.createWriteStream('compressed.bin', {highWaterMark: 2048});
+                  await pipeline(input, compress(), compressed);
+                  assert.ok(input.destroyed && compressed.destroyed);
+                  await pipeline(fs.createReadStream('compressed.bin'), decompress(), fs.createWriteStream('output.bin'));
+                  assert.deepEqual(fs.readFileSync('output.bin'), data);
+                }
+                const controller = new AbortController();
+                const slow = Readable.from((async function* () {
+                  for (let i = 0; i < 100; ++i) {
+                    yield data.subarray(0, 4096);
+                    await new Promise(resolve => setTimeout(resolve, 5));
+                  }
+                })());
+                const destination = fs.createWriteStream('aborted.bin');
+                const abortTimer = setTimeout(() => controller.abort(), 15);
+                await assert.rejects(pipeline(slow, zlib.createGzip(), destination, {signal: controller.signal}),
+                  error => error.name === 'AbortError');
+                clearTimeout(abortTimer);
+                assert.ok(slow.destroyed && destination.destroyed);
+                // A cancelled pipeline must not prevent a subsequent file stream.
+                await pipeline(Readable.from([data]), fs.createWriteStream('recovered.bin'));
+                assert.deepEqual(fs.readFileSync('recovered.bin'), data);
+                console.log('m18.streams=PASS');
+                """);
+        files.put("profile.cjs", "module.exports = require('autojs6:profile');\n");
+        try (WorkspaceInvocation invocation = execute("streams", "main.mjs", files, false)) {
+            assertSucceeded(invocation.result, "m18.streams=PASS");
+            invocation.assertWorkspaceOutputCommitted();
+        }
+    }
+
+    @Test
+    public void m18_vmContextsModulesAndTimeoutRemainUsable() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.mjs", """
+                import assert from 'node:assert/strict';
+                import vm from 'node:vm';
+                import profile from './profile.cjs';
+                assert.equal(profile.featureFlags.vm.status, 'stable');
+                const context = vm.createContext({value: 40});
+                const script = new vm.Script('value += 2; value');
+                assert.equal(script.runInContext(context), 42);
+                assert.equal(context.value, 42);
+                assert.equal(vm.runInNewContext('typeof value'), 'undefined');
+                assert.equal(vm.compileFunction('return value + n', ['n'], {parsingContext: context})(1), 43);
+                assert.throws(() => vm.runInContext('while (true) {}', context, {timeout: 20}),
+                  error => error.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT');
+                assert.equal(vm.runInContext('value', context), 42);
+                const dependency = new vm.SyntheticModule(['value'], function() {
+                  this.setExport('value', 21);
+                }, {context});
+                const module = new vm.SourceTextModule('import {value} from "dependency"; export const answer = value * 2;', {context});
+                await module.link(name => { assert.equal(name, 'dependency'); return dependency; });
+                await module.evaluate({timeout: 1000});
+                assert.equal(module.namespace.answer, 42);
+                console.log('m18.vm=PASS');
+                """);
+        files.put("profile.cjs", "module.exports = require('autojs6:profile');\n");
+        try (WorkspaceInvocation invocation = execute("vm", "main.mjs", files, false)) {
+            assertSucceeded(invocation.result, "m18.vm=PASS");
+            invocation.callback.assertOneStartedAndOneTerminalEvent();
         }
     }
 
@@ -828,7 +980,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 null,
                 SCRIPT_TIMEOUT_MS,
                 true,
-                precompiledSourceNames
+                precompiledSourceNames,
+                false
         );
     }
 
@@ -852,7 +1005,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 exactProviderActions,
                 timeoutMs,
                 false,
-                Collections.emptyList()
+                Collections.emptyList(),
+                false
         );
     }
 
@@ -866,7 +1020,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
             LinkedHashMap<String, ProviderAction> exactProviderActions,
             long timeoutMs,
             boolean typeScriptPrecompiledSnapshot,
-            List<String> precompiledSourceNames
+            List<String> precompiledSourceNames,
+            boolean workerThreadsEnabled
     ) throws Exception {
         String executionId = "x3d-" + label + "-" + UUID.randomUUID();
         File invocationRoot = new File(
@@ -931,6 +1086,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                     NodeJsRuntimeContract.KEY_TYPESCRIPT_PRECOMPILED_SNAPSHOT,
                     typeScriptPrecompiledSnapshot
             );
+            request.putBoolean(NodeJsRuntimeContract.KEY_WORKER_THREADS_ENABLED, workerThreadsEnabled);
             String[] absolutePrecompiledSourceNames = new String[precompiledSourceNames.size()];
             for (int index = 0; index < precompiledSourceNames.size(); index++) {
                 absolutePrecompiledSourceNames[index] = containedFile(
@@ -1376,6 +1532,19 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         public void onEvent(Bundle event) {
             recordCallerPid("callback");
             events.add(event == null ? new Bundle() : new Bundle(event));
+        }
+
+        String stderr() {
+            StringBuilder text = new StringBuilder();
+            synchronized (events) {
+                for (Bundle event : events) {
+                    if (NodeJsRuntimeContract.EVENT_STDERR.equals(
+                            event.getString(NodeJsRuntimeContract.KEY_EVENT_TYPE))) {
+                        text.append(event.getString(NodeJsRuntimeContract.KEY_EVENT_TEXT, ""));
+                    }
+                }
+            }
+            return text.toString();
         }
 
         void assertOneStartedAndOneTerminalEvent() {

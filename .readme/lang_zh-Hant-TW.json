@@ -42,7 +42,9 @@
     "檔案系統: 可存取 Android 權限允許的裝置路徑; `/proc`、`/sys`、`/dev` 為硬邊界.",
     "TypeScript: 接受主機產物並可透過 provider v3 按需編譯執行期間建立的專案檔案; direct raw TypeScript 回傳 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.",
     "ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, 原生 live binding 與循環相依.",
-    "能力: 同步腳本執行, bundle transport, 原生內嵌執行階段, 宿主能力代理, host capability live bridge."
+    "能力: 同步腳本執行, bundle transport, 原生內嵌執行階段, 宿主能力代理, host capability live bridge.",
+    "檔案串流、gzip/deflate/Brotli 壓縮串流和基本 VM 執行正式化; 明確啟用的 Debug Inspector 在 localhost 範圍內正式支援.",
+    "嵌入執行不再輸出 ExperimentalWarning 提示, 保留 warning 事件、一般警告、淘汰警告和錯誤; Node 上游 API 穩定性與終端預設行為不變."
   ],
   "h3_release_history": "發行歷史",
   "h5_for_more_release_history": "更多發行歷史可參閱",

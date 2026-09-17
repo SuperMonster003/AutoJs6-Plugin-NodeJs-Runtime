@@ -172,6 +172,7 @@ public final class InspectorDebugSmokeTest {
                 "const fs = require('fs');\n" +
                 "const inspector = require('inspector');\n" +
                 "const profile = require('autojs6:profile');\n" +
+                "require('node:assert/strict').equal(profile.featureFlags.inspector.status, 'stable');\n" +
                 "let nonLoopbackDenied = false;\n" +
                 "let waitDenied = false;\n" +
                 "try { inspector.open(0, '0.0.0.0', false); } catch (error) { nonLoopbackDenied = error && error.code === 'ERR_INVALID_ARG_VALUE'; }\n" +

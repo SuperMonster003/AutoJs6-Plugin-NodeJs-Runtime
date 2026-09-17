@@ -828,7 +828,10 @@ void runEmbeddedScriptNodeLifecycle(
     const int buildConfiguration = v8BuildConfiguration();
     std::vector<std::string> args = {
             "autojs6-embedded-script",
-            "--experimental-vm-modules"
+            "--experimental-vm-modules",
+            // The managed ESM linker uses VM Modules internally. Keep warning
+            // events and other diagnostics, without printing experimental notices.
+            "--disable-warning=ExperimentalWarning"
     };
     const auto flags = embeddedNodeInitializationFlags(stdoutCapture);
     const char* flagsName = embeddedNodeInitializationFlagsName(stdoutCapture);
