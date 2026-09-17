@@ -617,9 +617,11 @@ declare namespace AutoJs6Node {
     readonly nestedWorkers: boolean;
     readonly rawNativeHandles: boolean;
     readonly packagedBehavior: "native_available_only" | "partial" | string;
-    /** process APIs inside workers: exit ends the thread as in Node; abort/chdir are unavailable as in Node. */
     /** Bare package specifiers resolve through the workspace node_modules as in Node. */
     readonly packageResolution: "workspace_node_modules" | string;
+    /** import() inside workers goes through the worker partial ESM loader when the execution enables dynamic import. */
+    readonly dynamicImport: boolean;
+    /** process APIs inside workers: exit ends the thread as in Node; abort/chdir are unavailable as in Node. */
     readonly processApis: WorkerThreadsProcessApis;
     readonly policy: WorkerThreadsPolicy;
   }
