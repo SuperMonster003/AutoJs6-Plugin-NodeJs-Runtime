@@ -519,7 +519,7 @@ declare namespace AutoJs6Node {
     readonly opendir: "native" | "partial" | "unsupported" | string;
     readonly watch: "native" | "partial" | "unsupported" | string;
     readonly realpath: "native" | "partial" | "unsupported" | string;
-    readonly recursiveWatch: "unsupported" | "partial" | string;
+    readonly recursiveWatch: "native" | "partial" | "unsupported" | string;
     readonly closeOnDestroy: "execution_owned" | "unsupported" | string;
     readonly packagedBehavior: "not_applicable_no_packaged_runtime" | "partial" | "unsupported" | string;
     readonly rawFd: boolean;

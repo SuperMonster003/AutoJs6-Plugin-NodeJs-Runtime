@@ -798,6 +798,124 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         }
     }
 
+    /** M20.2: the fs wrapper no longer rejects its own option restrictions; stream, watch, cp, glob and FileHandle options follow Node 24. */
+    @Test
+    public void m20_fsWrapperOptionsFollowNode() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.cjs", """
+                const assert = require('node:assert/strict');
+                const fs = require('node:fs');
+                const fsp = require('node:fs/promises');
+                const path = require('node:path');
+                const profile = require('autojs6:profile');
+                assert.equal(profile.filesystemProfile.advancedApis.recursiveWatch, 'native');
+                (async () => {
+                  const dir = fs.mkdtempSync(path.join(__dirname, 'fsopt-'));
+                  try {
+                    const file = path.join(dir, 'a.txt');
+                    fs.writeFileSync(file, 'hello');
+                    // Custom fs option, prototype-inherited fd option and non r/rs flags: the old wrapper threw ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION.
+                    let opened = 0;
+                    const custom = { open: (p, f, m, cb) => { opened += 1; fs.open(p, f, m, cb); }, read: fs.read, close: fs.close };
+                    let data = '';
+                    for await (const chunk of fs.createReadStream(file, { fs: custom, encoding: 'utf8' })) data += chunk;
+                    assert.equal(data, 'hello');
+                    assert.equal(opened, 1);
+                    const inherited = Object.create({ fd: fs.openSync(file, 'r'), encoding: 'utf8' });
+                    let viaFd = '';
+                    for await (const chunk of fs.createReadStream(null, inherited)) viaFd += chunk;
+                    assert.equal(viaFd, 'hello');
+                    let rw = '';
+                    for await (const chunk of fs.createReadStream(file, { flags: 'r+', encoding: 'utf8' })) rw += chunk;
+                    assert.equal(rw, 'hello');
+                    const logPath = path.join(dir, 'log.txt');
+                    const utf8 = new fs.Utf8Stream(Object.create({ dest: logPath, sync: true }));
+                    utf8.write('line');
+                    utf8.end();
+                    await new Promise((resolve) => utf8.once('close', resolve));
+                    assert.equal(fs.readFileSync(logPath, 'utf8'), 'line');
+                    console.log('m20.fs.options.streams=PASS');
+                    // Recursive watch: native on Linux since Node 20; the old wrapper rejected recursive=true.
+                    fs.mkdirSync(path.join(dir, 'nested'));
+                    const seen = [];
+                    const watcher = fs.watch(dir, { recursive: true }, (eventType, filename) => { seen.push(String(filename)); });
+                    let nestedEvent = false;
+                    for (let attempt = 0; attempt < 8 && !nestedEvent; attempt += 1) {
+                      await new Promise((resolve) => setTimeout(resolve, 250));
+                      fs.writeFileSync(path.join(dir, 'nested', 'inner-' + attempt + '.txt'), 'x');
+                      const deadline = Date.now() + 1000;
+                      while (!nestedEvent && Date.now() < deadline) {
+                        await new Promise((resolve) => setTimeout(resolve, 50));
+                        nestedEvent = seen.some((name) => name.startsWith('nested/') || name.startsWith('nested' + path.sep));
+                      }
+                    }
+                    watcher.close();
+                    assert.ok(nestedEvent, 'recursive watch events: ' + seen.join(','));
+                    console.log('m20.fs.options.watch=recursive');
+                    // Async cp filters: awaited by fs.cp / fs.promises.cp; cpSync keeps Node's ERR_INVALID_RETURN_VALUE.
+                    const src = path.join(dir, 'src');
+                    fs.mkdirSync(path.join(src, 'deep'), { recursive: true });
+                    fs.writeFileSync(path.join(src, 'keep.txt'), 'k');
+                    fs.writeFileSync(path.join(src, 'skip.txt'), 's');
+                    fs.writeFileSync(path.join(src, 'deep', 'd.txt'), 'd');
+                    const filtered = [];
+                    await fsp.cp(src, path.join(dir, 'dst'), { recursive: true, filter: async (source) => {
+                      await new Promise((resolve) => setTimeout(resolve, 1));
+                      filtered.push(path.basename(source));
+                      return !source.endsWith('skip.txt');
+                    } });
+                    assert.ok(fs.existsSync(path.join(dir, 'dst', 'keep.txt')));
+                    assert.ok(fs.existsSync(path.join(dir, 'dst', 'deep', 'd.txt')));
+                    assert.ok(!fs.existsSync(path.join(dir, 'dst', 'skip.txt')));
+                    assert.deepEqual(filtered.slice().sort(), ['d.txt', 'deep', 'keep.txt', 'skip.txt', 'src']);
+                    await new Promise((resolve, reject) => fs.cp(src, path.join(dir, 'dst2'), { recursive: true, filter: async (source) => !source.endsWith('skip.txt') }, (error) => error ? reject(error) : resolve()));
+                    assert.ok(fs.existsSync(path.join(dir, 'dst2', 'keep.txt')) && !fs.existsSync(path.join(dir, 'dst2', 'skip.txt')));
+                    assert.throws(() => fs.cpSync(src, path.join(dir, 'dst3'), { recursive: true, filter: async () => true }), { code: 'ERR_INVALID_RETURN_VALUE' });
+                    console.log('m20.fs.options.cp=PASS');
+                    // Glob: parent segments, absolute patterns, literal '!' and exclude arrays follow Node; the old wrapper threw EPERM / UNSUPPORTED_OPTION.
+                    assert.deepEqual(fs.globSync('../src/*.txt', { cwd: path.join(dir, 'dst') }).sort(), ['../src/keep.txt', '../src/skip.txt']);
+                    assert.deepEqual(fs.globSync(path.join(src, '*.txt')).sort(), [path.join(src, 'keep.txt'), path.join(src, 'skip.txt')]);
+                    assert.deepEqual(fs.globSync('!*.txt', { cwd: src }), []);
+                    assert.deepEqual(fs.globSync('**/*.txt', { cwd: src, exclude: ['skip.txt'], followSymlinks: true }).sort(), ['deep/d.txt', 'keep.txt']);
+                    const viaPromise = [];
+                    for await (const entry of fsp.glob('../src/deep/*.txt', { cwd: path.join(dir, 'dst') })) viaPromise.push(entry);
+                    assert.deepEqual(viaPromise, ['../src/deep/d.txt']);
+                    console.log('m20.fs.options.glob=PASS');
+                    // FileHandle web streams ignore type/encoding like Node; FileHandle streams always use the handle fd; Dir is Node's constructor.
+                    const handle = await fsp.open(file, 'r');
+                    const reader = handle.readableWebStream({ type: 'bytes', encoding: 'utf8' }).getReader();
+                    let bytes = 0;
+                    for (;;) { const { done, value } = await reader.read(); if (done) break; bytes += value.byteLength; }
+                    await handle.close();
+                    assert.equal(bytes, 5);
+                    const handle2 = await fsp.open(file, 'r');
+                    let viaHandle = '';
+                    for await (const chunk of handle2.createReadStream({ encoding: 'utf8', fd: 999 })) viaHandle += chunk;
+                    assert.equal(viaHandle, 'hello');
+                    assert.throws(() => new fs.Dir(), { code: 'ERR_MISSING_ARGS' });
+                    assert.equal(typeof fs.Stats, 'function');
+                    console.log('m20.fs.options.handles=PASS');
+                  } finally {
+                    fs.rmSync(dir, { recursive: true, force: true });
+                  }
+                  console.log('m20.fs.options=PASS');
+                })().catch((error) => { console.error(error && error.stack || error); process.exitCode = 1; });
+                """);
+        try (WorkspaceInvocation invocation = execute("m20-fs-options", "main.cjs", files, false)) {
+            assertSucceeded(invocation.result, "m20.fs.options=PASS");
+            String stdout = invocation.result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+            for (String expected : new String[] {
+                    "m20.fs.options.streams=PASS",
+                    "m20.fs.options.watch=recursive",
+                    "m20.fs.options.cp=PASS",
+                    "m20.fs.options.glob=PASS",
+                    "m20.fs.options.handles=PASS"
+            }) {
+                assertTrue("stdout is missing '" + expected + "': " + stdout, stdout.contains(expected));
+            }
+        }
+    }
+
     /** M20.2: worker process.exit() ends the thread as in Node; getBuiltinModule follows the worker allowlist. */
     @Test
     public void m20_workerProcessExitAndGetBuiltinModuleFollowNode() throws Exception {

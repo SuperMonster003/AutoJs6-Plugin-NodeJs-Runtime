@@ -132,6 +132,7 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 * `Amelioration` Le mode d'exécution scheduled passe à available dans le catalogue de capacités après une exécution réelle du runner planifié WorkManager de l'hôte via le plugin
 * `Amelioration` media.play() renvoie une session de lecture (pause/resume/seekTo/stop/status) via le service musical de scripts de l'hôte, et le nouveau module media_store expose un accès délimité à MediaStore (capabilities/query/get/insert/update/delete/scanFile/exportFile) protégé par les capacités media.playback / media.library / media.library.mutate ; autojs6:compat.media gagne les alias de style Rhino playMusic ; les deux nécessitent la version d'hôte correspondante
 * `Amelioration` Les exemples media-playback / media-library passent en stable après l'acceptation manuelle avec les fournisseurs média de l'hôte fusionnés ; l'instantané 1.5.5 du catalogue de capacités est publié sous releases/nodejs-capability-catalog et la tâche d'alignement avec l'hôte le référence désormais
+* `Amelioration` L'enveloppe fs abandonne ses propres restrictions d'options : les options fs / fd hérité / flags des flux, watch({ recursive: true }), les filtres cp asynchrones (cpSync conserve ERR_INVALID_RETURN_VALUE de Node), les motifs glob absolus / de répertoire parent / '!' littéral avec tableaux exclude, type / encoding de readableWebStream et les constructeurs Stats / Dirent / Dir suivent désormais Node 24 natif ; filesystemProfile.advancedApis.recursiveWatch signale native
 
 # v1.5.4
 

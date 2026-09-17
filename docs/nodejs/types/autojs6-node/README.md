@@ -118,7 +118,11 @@ future explicit filesystem root provider is promoted.
 P13-33 extends the `autojs6:profile.filesystemProfile` declaration with
 `advancedApis` and `limits`. These fields report scoped advanced fs state for
 streams, `FileHandle`, fd APIs, `opendir`, watchers, and `realpath`; they do
-not expose raw native fds or expanded filesystem roots.
+not expose raw native fds or expanded filesystem roots. Since M20.2 (2026-09-17)
+`advancedApis.recursiveWatch` reports `native`: the wrapper keeps only path
+validation and fd ownership tracking, so stream `fs` / inherited `fd` / `flags`
+options, recursive watchers, async `cp` filters and absolute or parent-directory
+glob patterns behave as in Node 24.
 
 P13-34 extends the `autojs6:profile` declaration with `workerThreadsProfile`.
 The field reports stable default enablement, request state, bounded worker

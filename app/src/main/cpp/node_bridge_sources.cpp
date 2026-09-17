@@ -4514,7 +4514,7 @@ std::string buildEmbeddedScriptExecutionSource(
           opendir: "native",
           watch: "native",
           realpath: "native",
-          recursiveWatch: "unsupported",
+          recursiveWatch: "native",
           closeOnDestroy: "execution_owned",
           packagedBehavior: "not_applicable_no_packaged_runtime",
           rawFd: false
@@ -28896,6 +28896,27 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     });
   }
+  function __autojs6_scoped_fs_callback_promise(operation, callback, action) {
+    const cb = __autojs6_require_callback(callback, operation);
+    __autojs6_schedule_scoped_fs_callback(cb, function () {
+      let pending;
+      try {
+        pending = Promise.resolve(action());
+      } catch (error) {
+        cb(__autojs6_callback_fs_error(error));
+        return;
+      }
+      pending.then(function(result) {
+        if (result === undefined) {
+          cb(null);
+        } else {
+          cb(null, result);
+        }
+      }, function(error) {
+        cb(__autojs6_callback_fs_error(error));
+      });
+    });
+  }
   function __autojs6_scoped_fs_promise(operation, action) {
     return new Promise(function(resolve, reject) {
       __autojs6_schedule_pending_callback("fs", function () {
@@ -28931,19 +28952,12 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return { options, listener };
   }
-  function __autojs6_reject_stream_fs_override(options, operation) {
-    if (
-      options &&
-      typeof options === "object" &&
-      options.fs !== undefined &&
-      options.fs !== null
-    ) {
-      throw __autojs6_fs_operation_error(
-        operation,
-        "fs option is unsupported because it can bypass scoped fs enforcement",
-        "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-      );
+  function __autojs6_copy_stream_options(options) {
+    const target = {};
+    for (const key in options) {
+      target[key] = options[key];
     }
+    return target;
   }
   function __autojs6_stream_fd_option_record(fdValue, operation) {
     if (__autojs6_is_limited_file_handle(fdValue)) {
@@ -28957,34 +28971,10 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_validate_fs_stream_options(operation, options, kind) {
     let fdRecord = null;
-    if (options && typeof options === "object") {
-      __autojs6_reject_stream_fs_override(options, operation);
-      const hasOwnFd = __autojs6_has_own(options, "fd");
-      if (!hasOwnFd && options.fd !== undefined && options.fd !== null) {
-        throw __autojs6_fs_operation_error(
-          operation,
-          "inherited fd option is unsupported because it bypasses explicit scoped fd ownership",
-          "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-        );
-      }
-      if (hasOwnFd && options.fd !== undefined && options.fd !== null) {
-        fdRecord = __autojs6_stream_fd_option_record(options.fd, operation + " fd option");
-        options = Object.assign({}, options, { fd: fdRecord.fd });
-      }
-      if (
-        kind === "read" &&
-        options.flags !== undefined &&
-        options.flags !== null
-      ) {
-        const flags = String(options.flags);
-        if (flags !== "r" && flags !== "rs") {
-          throw __autojs6_fs_operation_error(
-            operation,
-            "read stream flags must be r or rs",
-            "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-          );
-        }
-      }
+    if (options && typeof options === "object" && options.fd !== undefined && options.fd !== null) {
+      fdRecord = __autojs6_stream_fd_option_record(options.fd, operation + " fd option");
+      options = __autojs6_copy_stream_options(options);
+      options.fd = fdRecord.fd;
     }
     return { options, fdRecord };
   }
@@ -29006,30 +28996,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (!options || typeof options !== "object" || __autojs6_is_array_buffer_view(options)) {
       throw __autojs6_invalid_arg_type("Embedded Node scoped fs " + op + " options must be an object.");
     }
-    if (options.fs !== undefined || __autojs6_has_own(options, "fs")) {
-      throw __autojs6_fs_operation_error(
-        op,
-        "fs option is unsupported because it can bypass scoped fs enforcement",
-        "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-      );
-    }
-    const hasOwnFd = __autojs6_has_own(options, "fd");
-    const hasOwnDest = __autojs6_has_own(options, "dest");
-    if (!hasOwnFd && options.fd !== undefined && options.fd !== null) {
-      throw __autojs6_fs_operation_error(
-        op,
-        "inherited fd option is unsupported because it bypasses explicit scoped fd ownership",
-        "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-      );
-    }
-    if (!hasOwnDest && options.dest !== undefined && options.dest !== null) {
-      throw __autojs6_fs_operation_error(
-        op,
-        "inherited dest option is unsupported because it bypasses explicit scoped path ownership",
-        "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-      );
-    }
-    const streamOptions = Object.assign({}, options);
+    const streamOptions = __autojs6_copy_stream_options(options);
     const fdValue = streamOptions.fd;
     const destValue = streamOptions.dest;
     const useDest = fdValue === undefined || fdValue === null;
@@ -29552,13 +29519,6 @@ std::string buildEmbeddedScriptExecutionSource(
     });
   }
   function __autojs6_normalize_fs_watch_options(options) {
-    if (options && typeof options === "object" && options.recursive === true) {
-      throw __autojs6_fs_operation_error(
-        "watch",
-        "recursive option is unsupported in Embedded Node scoped fs",
-        "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-      );
-    }
     if (options === "buffer") {
       return { options: { encoding: "utf8" }, filenameEncoding: "buffer" };
     }
@@ -30029,34 +29989,16 @@ std::string buildEmbeddedScriptExecutionSource(
     if (options !== undefined && options !== null && typeof options !== "object" && typeof options !== "string") {
       throw __autojs6_invalid_arg_type("Embedded Node scoped fs " + operation + " options must be a string or object.");
     }
-    let fdRecord = record;
-    if (options && typeof options === "object") {
-      __autojs6_reject_stream_fs_override(options, operation);
-      const hasOwnFd = __autojs6_has_own(options, "fd");
-      if (!hasOwnFd && options.fd !== undefined && options.fd !== null) {
-        throw __autojs6_fs_operation_error(
-          operation,
-          "inherited fd option is unsupported because it bypasses explicit scoped fd ownership",
-          "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-        );
-      }
-      if (hasOwnFd && options.fd !== undefined && options.fd !== null) {
-        fdRecord = __autojs6_assert_scoped_fd_open(
-          __autojs6_stream_fd_option_record(options.fd, operation + " fd option"),
-          operation + " fd option"
-        );
-      }
-    }
     let streamOptions;
     if (typeof options === "string") {
       streamOptions = { encoding: options };
     } else if (options && typeof options === "object") {
-      streamOptions = Object.assign({}, options);
+      streamOptions = __autojs6_copy_stream_options(options);
     } else {
       streamOptions = {};
     }
-    streamOptions.fd = fdRecord.fd;
-    return { record: fdRecord, options: streamOptions };
+    streamOptions.fd = record.fd;
+    return { record, options: streamOptions };
   }
   function __autojs6_normalize_file_handle_web_stream_options(handleFd, options, operation, expectedRecordId) {
     const record = __autojs6_assert_scoped_fd_open(
@@ -30067,31 +30009,6 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_invalid_arg_type("Embedded Node scoped fs " + operation + " options must be an object.");
     }
     const input = options && typeof options === "object" ? options : {};
-    if (
-      __autojs6_has_own(input, "fd") ||
-      input.fd !== undefined ||
-      input.fd === null
-    ) {
-      throw __autojs6_fs_operation_error(
-        operation,
-        "fd option is unsupported because FileHandle streams always use the owning FileHandle fd",
-        "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-      );
-    }
-    if (input.type !== undefined || __autojs6_has_own(input, "type")) {
-      throw __autojs6_fs_operation_error(
-        operation,
-        "type option is unsupported because FileHandle readableWebStream is always byte-oriented",
-        "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-      );
-    }
-    if (input.encoding !== undefined || __autojs6_has_own(input, "encoding")) {
-      throw __autojs6_fs_operation_error(
-        operation,
-        "encoding option is unsupported because FileHandle readableWebStream is always byte-oriented",
-        "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-      );
-    }
     if (input.autoClose !== undefined && typeof input.autoClose !== "boolean") {
       throw __autojs6_invalid_arg_type("Embedded Node scoped fs " + operation + " autoClose option must be a boolean.");
     }
@@ -31711,8 +31628,8 @@ std::string buildEmbeddedScriptExecutionSource(
         operation,
         sourceDisplay,
         destinationDisplay,
-        "async filter option is unsupported in Embedded Node scoped fs cp",
-        "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
+        "Expected boolean to be returned from the 'filter' function but got a Promise; fs.cp and fs.promises.cp await async filters",
+        "ERR_INVALID_RETURN_VALUE"
       );
     }
     return Boolean(result);
@@ -32087,6 +32004,95 @@ std::string buildEmbeddedScriptExecutionSource(
       return;
     }
     throw __autojs6_cp_error(op, sourcePath, destinationPath, "unsupported source file type", "EPERM");
+  }
+  function __autojs6_cp_async_filter_walk_directory(nodeFs, path, source, destination, options, operation, decide) {
+    return (async function() {
+      const entries = nodeFs.readdirSync(source, { withFileTypes: true });
+      for (const entry of entries) {
+        const childSource = __autojs6_scoped_cp_validate_absolute(
+          path.join(source, entry.name),
+          operation + " source child",
+          { mustExist: true }
+        );
+        const childDestination = __autojs6_scoped_cp_validate_absolute(
+          path.join(destination, entry.name),
+          operation + " destination child",
+          { checkParent: true, rejectRoot: true }
+        );
+        if (!(await decide(childSource, childDestination))) {
+          continue;
+        }
+        let isDirectory = false;
+        if (entry && typeof entry.isSymbolicLink === "function" && entry.isSymbolicLink()) {
+          if (!options.dereference) {
+            continue;
+          }
+          const dereferencedStat = nodeFs.statSync(childSource);
+          isDirectory = Boolean(dereferencedStat && typeof dereferencedStat.isDirectory === "function" && dereferencedStat.isDirectory());
+        } else {
+          isDirectory = Boolean(entry && typeof entry.isDirectory === "function" && entry.isDirectory());
+        }
+        if (isDirectory) {
+          await __autojs6_cp_async_filter_walk_directory(nodeFs, path, childSource, childDestination, options, operation, decide);
+        }
+      }
+    })();
+  }
+  function __autojs6_scoped_cp_async(sourcePath, destinationPath, options, operation) {
+    const op = operation || "cp";
+    if (!options || typeof options !== "object" || typeof options.filter !== "function") {
+      return __autojs6_scoped_cp_sync(sourcePath, destinationPath, options, op);
+    }
+    const path = __autojs6_path_module();
+    const nodeFs = __autojs6_fs_module();
+    if (!path || !nodeFs) {
+      throw new Error("Embedded Node scoped fs " + op + " needs allowlisted path and fs modules.");
+    }
+    const normalizedOptions = __autojs6_normalize_cp_options(options, op, sourcePath, destinationPath);
+    const userFilter = normalizedOptions.filter;
+    const decisions = new Map();
+    function decide(source, destination) {
+      return Promise.resolve(userFilter(source, destination)).then(function(result) {
+        const allowed = Boolean(result);
+        let row = decisions.get(source);
+        if (!row) {
+          row = new Map();
+          decisions.set(source, row);
+        }
+        row.set(destination, allowed);
+        return allowed;
+      });
+    }
+    const source = __autojs6_validate_fs_path(sourcePath, op + " source", { mustExist: true });
+    const destination = __autojs6_validate_fs_path(destinationPath, op + " destination", {
+      checkParent: true,
+      rejectRoot: true
+    });
+    __autojs6_adjust_pending_callback("fs", 1);
+    return decide(source, destination).then(async function(allowed) {
+      if (allowed) {
+        const sourceLstat = nodeFs.lstatSync(source);
+        const isLink = Boolean(sourceLstat && typeof sourceLstat.isSymbolicLink === "function" && sourceLstat.isSymbolicLink());
+        if (!isLink || normalizedOptions.dereference) {
+          const sourceStat = nodeFs.statSync(source);
+          if (normalizedOptions.recursive && sourceStat && typeof sourceStat.isDirectory === "function" && sourceStat.isDirectory()) {
+            await __autojs6_cp_async_filter_walk_directory(nodeFs, path, source, destination, normalizedOptions, op, decide);
+          }
+        }
+      }
+      const resolvedOptions = __autojs6_copy_stream_options(options);
+      resolvedOptions.filter = function(candidateSource, candidateDestination) {
+        const row = decisions.get(candidateSource);
+        return row !== undefined && row.get(candidateDestination) === true;
+      };
+      return __autojs6_scoped_cp_sync(sourcePath, destinationPath, resolvedOptions, op);
+    }).then(function(result) {
+      __autojs6_adjust_pending_callback("fs", -1);
+      return result;
+    }, function(error) {
+      __autojs6_adjust_pending_callback("fs", -1);
+      throw error;
+    });
   }
   function __autojs6_fs_autojs6_error_code(reason) {
     return __autojs6_scoped_fs_autojs6_error_code(reason);
@@ -32573,26 +32579,9 @@ std::string buildEmbeddedScriptExecutionSource(
     });
   }
   function __autojs6_validate_glob_pattern_string(pattern, operation) {
-    const path = __autojs6_path_module();
     const text = String(pattern);
     if (text.indexOf("\u0000") >= 0) {
       throw __autojs6_invalid_arg_type("Embedded Node scoped fs " + operation + " pattern rejects NUL.");
-    }
-    if (text.charAt(0) === "!") {
-      throw __autojs6_fs_operation_error(operation, "negated glob patterns are unsupported: " + text, "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION");
-    }
-    if (path && typeof path.isAbsolute === "function" && path.isAbsolute(text)) {
-      throw __autojs6_fs_operation_error(operation, "absolute glob pattern is unsupported: " + text, "EPERM");
-    }
-    if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(text)) {
-      throw __autojs6_fs_operation_error(operation, "protocol glob pattern is unsupported: " + text, "EPERM");
-    }
-    const normalized = text.replace(/\\/g, "/");
-    const parts = normalized.split("/");
-    for (const part of parts) {
-      if (part === "..") {
-        throw __autojs6_fs_operation_error(operation, "glob pattern parent segment escapes working directory: " + text, "EPERM");
-      }
     }
     return text;
   }
@@ -32651,9 +32640,6 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_invalid_arg_type("Embedded Node scoped fs " + operation + " options must be an object.");
     }
     const input = options && typeof options === "object" ? options : {};
-    if (input.followSymlinks === true) {
-      throw __autojs6_fs_operation_error(operation, "followSymlinks option is unsupported in scoped glob", "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION");
-    }
     const cwdInput = input.cwd === undefined || input.cwd === null ? "." : input.cwd;
     const cwd = __autojs6_validate_fs_path(cwdInput, operation + " cwd", {
       allowAbsolute: true,
@@ -36646,7 +36632,9 @@ std::string buildEmbeddedScriptExecutionSource(
       cp: {
         value: function(sourcePath, destinationPath, options) {
           return __autojs6_scoped_fs_promise("cp", function () {
-            return scopedFs.cpSync(sourcePath, destinationPath, options);
+            return __autojs6_scoped_cp_async(sourcePath, destinationPath, options, "cp").catch(function(error) {
+              throw __autojs6_callback_fs_error(error);
+            });
           });
         },
         enumerable: true
@@ -36721,14 +36709,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const scopedFs = Object.create(null);
     function Stats() {
-      if (nodeFs.Stats && typeof nodeFs.Stats === "function") {
-        return Reflect.construct(nodeFs.Stats, Array.prototype.slice.call(arguments));
-      }
-      throw __autojs6_fs_operation_error(
-        "Stats",
-        "Stats constructor is unavailable in Embedded Node scoped fs",
-        "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-      );
+      return Reflect.construct(nodeFs.Stats, Array.prototype.slice.call(arguments));
     }
     if (nodeFs.Stats && nodeFs.Stats.prototype) {
       try {
@@ -36738,14 +36719,7 @@ std::string buildEmbeddedScriptExecutionSource(
       } catch (_) {}
     }
     function Dirent(name, type, pathValue) {
-      if (nodeFs.Dirent && typeof nodeFs.Dirent === "function") {
-        return Reflect.construct(nodeFs.Dirent, Array.prototype.slice.call(arguments));
-      }
-      throw __autojs6_fs_operation_error(
-        "Dirent",
-        "Dirent constructor is unavailable in Embedded Node scoped fs",
-        "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-      );
+      return Reflect.construct(nodeFs.Dirent, Array.prototype.slice.call(arguments));
     }
     if (nodeFs.Dirent && nodeFs.Dirent.prototype) {
       try {
@@ -36755,11 +36729,7 @@ std::string buildEmbeddedScriptExecutionSource(
       } catch (_) {}
     }
     function Dir() {
-      throw __autojs6_fs_operation_error(
-        "Dir",
-        "Dir constructor is unavailable because opendir must enforce scoped fs paths",
-        "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-      );
+      return Reflect.construct(nodeFs.Dir, Array.prototype.slice.call(arguments));
     }
     if (nodeFs.Dir && nodeFs.Dir.prototype) {
       try {
@@ -36811,53 +36781,10 @@ std::string buildEmbeddedScriptExecutionSource(
         throw new TypeError("Class constructor Utf8Stream cannot be invoked without 'new'");
       }
       const parsed = __autojs6_validate_utf8_stream_options(options, "Utf8Stream");
-      if (nodeFs.Utf8Stream && typeof nodeFs.Utf8Stream === "function") {
-        return __autojs6_track_utf8_stream_fd(
-          Reflect.construct(nodeFs.Utf8Stream, [parsed.options]),
-          parsed.fdRecord
-        );
-      }
-      if (!nodeFs.WriteStream || typeof nodeFs.createWriteStream !== "function") {
-        throw __autojs6_fs_operation_error(
-          "Utf8Stream",
-          "Utf8Stream constructor is unavailable in Embedded Node scoped fs",
-          "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-        );
-      }
-      const streamOptions = Object.assign({ encoding: "utf8" }, parsed.options || {});
-      let streamPath = streamOptions.dest;
-      delete streamOptions.dest;
-      if (streamPath === undefined && streamOptions.fd === undefined) {
-        throw __autojs6_invalid_arg_type("Embedded Node scoped fs Utf8Stream options must include dest or fd.");
-      }
-      const stream = __autojs6_track_utf8_stream_fd(
-        nodeFs.createWriteStream(streamPath, streamOptions),
+      return __autojs6_track_utf8_stream_fd(
+        Reflect.construct(nodeFs.Utf8Stream, [parsed.options]),
         parsed.fdRecord
       );
-      try {
-        Object.defineProperty(stream, "__autojs6ScopedUtf8Stream", {
-          value: true,
-          configurable: false,
-          enumerable: false,
-          writable: false
-        });
-      } catch (_) {}
-      if (typeof stream.reopen !== "function") {
-        Object.defineProperty(stream, "reopen", {
-          value: function(file) {
-            if (file) {
-              __autojs6_validate_fs_path(file, "Utf8Stream.reopen", { checkParent: true });
-            }
-            throw __autojs6_fs_operation_error(
-              "Utf8Stream.reopen",
-              "Utf8Stream reopen is unavailable in Embedded Node scoped fs fallback",
-              "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-            );
-          },
-          configurable: true
-        });
-      }
-      return stream;
     }
     if (nodeFs.Utf8Stream && nodeFs.Utf8Stream.prototype) {
       try {
@@ -36887,42 +36814,6 @@ std::string buildEmbeddedScriptExecutionSource(
           enumerable: false,
           writable: true
         });
-      } catch (_) {}
-    } else if (nodeFs.WriteStream && nodeFs.WriteStream.prototype) {
-      try {
-        const utf8StreamPrototype = Object.create(nodeFs.WriteStream.prototype);
-        Object.defineProperty(utf8StreamPrototype, "constructor", {
-          value: Utf8Stream,
-          configurable: true,
-          enumerable: false,
-          writable: true
-        });
-        Object.defineProperty(utf8StreamPrototype, "reopen", {
-          value: function(file) {
-            if (file) {
-              __autojs6_validate_fs_path(file, "Utf8Stream.reopen", { checkParent: true });
-            }
-            throw __autojs6_fs_operation_error(
-              "Utf8Stream.reopen",
-              "Utf8Stream reopen is unavailable in Embedded Node scoped fs fallback",
-              "ERR_AUTOJS6_EMBEDDED_NODE_UNSUPPORTED_OPTION"
-            );
-          },
-          configurable: true,
-          enumerable: false,
-          writable: true
-        });
-        Object.defineProperty(Utf8Stream, "prototype", {
-          value: utf8StreamPrototype
-        });
-        if (typeof Symbol === "function" && Symbol.hasInstance) {
-          Object.defineProperty(Utf8Stream, Symbol.hasInstance, {
-            value: function(value) {
-              return Boolean(value && value.__autojs6ScopedUtf8Stream === true);
-            },
-            configurable: true
-          });
-        }
       } catch (_) {}
     }
     Object.defineProperties(scopedFs, {
@@ -37394,8 +37285,8 @@ std::string buildEmbeddedScriptExecutionSource(
       cp: {
         value: function(sourcePath, destinationPath, options, callback) {
           const parsed = __autojs6_fs_options_callback("cp", options, callback);
-          return __autojs6_scoped_fs_callback("cp", parsed.callback, function () {
-            return scopedFs.cpSync(sourcePath, destinationPath, parsed.options);
+          return __autojs6_scoped_fs_callback_promise("cp", parsed.callback, function () {
+            return __autojs6_scoped_cp_async(sourcePath, destinationPath, parsed.options, "cp");
           });
         },
         enumerable: true
