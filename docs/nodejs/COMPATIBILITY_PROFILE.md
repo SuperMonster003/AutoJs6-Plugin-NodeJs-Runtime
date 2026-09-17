@@ -60,7 +60,9 @@ and the complete [manual projects](MANUAL-ACCEPTANCE.md).
 
 Node fs accepts ordinary absolute and relative paths within the plugin's Android
 file access. The v1.4.0 development media/image/recorder path update similarly uses
-Android file access in the host and requires both updated applications. Archive
+Android file access in the host and requires both updated applications; the M18.2
+media playback session and `media_store` methods follow the same host-side rules and
+need the host branch that ships those providers. Archive
 transfer and on-demand compiler inputs have separate project-path contracts.
 
 The debug Inspector supports explicit local debugging through localhost and adb

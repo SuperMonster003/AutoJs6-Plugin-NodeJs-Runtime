@@ -17,6 +17,7 @@ import ocr = require("ocr");
 import media = require("media");
 import mediainfo = require("mediainfo");
 import recorder = require("recorder");
+import mediaStore = require("media_store");
 import storage = require("storage");
 import storages = require("storages");
 import database = require("database");
@@ -175,6 +176,14 @@ async function smoke(): Promise<void> {
   const setStreamVolume: (stream: media.AudioStreamName, volume: number) => Promise<void> = media.setAudioStreamVolume;
   void [setMusicVolume, setStreamVolume];
   const compatAudioInfo: media.AudioStreamInfo = await rhinoCompat.media.getAudioStreamInfo("music", { timeoutMs: 1000 });
+  const playMusic: (path: string, options?: media.PlayOptions) => Promise<media.PlaybackSession> = media.play;
+  const playbackStatus: (options?: media.PlaybackControlOptions) => Promise<media.PlaybackStatus> = media.getPlaybackStatus;
+  const compatPlayMusic: (path: string, volume?: number, looping?: boolean) => Promise<media.PlaybackSession> = rhinoCompat.media.playMusic;
+  const compatMusicPlaying: () => Promise<boolean> = rhinoCompat.media.isMusicPlaying;
+  const libraryQuery: (collection: mediaStore.Collection, options?: mediaStore.QueryOptions) => Promise<mediaStore.QueryResult> = mediaStore.query;
+  const libraryInsert: (collection: mediaStore.Collection, options: mediaStore.InsertOptions) => Promise<mediaStore.Item> = mediaStore.insert;
+  const libraryExport: (collection: mediaStore.Collection, id: mediaStore.ItemRef, destination: string) => Promise<mediaStore.ExportResult> = mediaStore.exportFile;
+  void [playMusic, playbackStatus, compatPlayMusic, compatMusicPlaying, libraryQuery, libraryInsert, libraryExport];
   const mediaInfoSnapshot: mediainfo.Snapshot = await mediainfo.read("sample.mp3", {
     includeInform: false,
     includeSections: true,

@@ -42,6 +42,7 @@ private val autoJs6NodeTypeDeclarationModules = listOf(
     "websocket",
     "work_manager",
     "plugins",
+    "media_store",
 )
 
 private fun nodeTypesDisplayPath(file: File): String =

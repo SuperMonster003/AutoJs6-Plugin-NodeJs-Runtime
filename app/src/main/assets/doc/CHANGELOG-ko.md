@@ -21,6 +21,7 @@
 * `개선` 실물 키와 알림 접근 수동 검수 통과 후 host-events 샘플을 stable로 승격
 * `개선` scheduled-node-task 샘플이 수명주기 정책을 출력하고 WorkManager 실행을 위해 작업을 유지할 수 있음; scheduled 실행 모드에 플러그인 측 회귀 추가
 * `개선` 호스트 WorkManager 예약 러너가 플러그인을 통해 실제 실행된 후 scheduled 실행 모드를 기능 카탈로그에서 available로 승격
+* `개선` media.play()는 호스트 스크립트 음악 서비스로 재생하는 세션 객체 (pause/resume/seekTo/stop/status)를 반환하고, 새 media_store 모듈은 media.playback / media.library / media.library.mutate 권한으로 보호되는 제한된 MediaStore capabilities/query/get/insert/update/delete/scanFile/exportFile을 제공; autojs6:compat.media에 Rhino 스타일 playMusic 계열 별칭 추가; 모두 대응하는 호스트 빌드 필요
 
 # v1.5.4
 

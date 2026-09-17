@@ -92,8 +92,9 @@
 | `image` / `images` | requestScreenCapture, stopScreenCapture, captureScreen, readImage, saveImage, toBytes, clip, resize, grayscale, threshold, findImage, matchTemplate, findColor, findMultiColors, recycle | 图像分析需宿主 OpenCV 插件 |
 | `media_projection` | requestScreenCapture, nextImage, stop | 需用户确认 Android 录屏授权 |
 | `recorder` | getStatus, start, stop | 需 media + media.recording 及 Android RECORD_AUDIO; 真机录音 Check 待补 |
-| `media` | getAudioStreamVolume/MaxVolume/Info, setAudioStreamVolume | 需 media + media.audio; 遵循 Android 音量/DND 策略 |
+| `media` | getAudioStreamVolume/MaxVolume/Info, setAudioStreamVolume; play, pause, resume, stop, seekTo, getPlaybackStatus (会话播放) | 音量方法需 media + media.audio, 遵循 Android 音量/DND 策略; 播放方法需 media + media.playback, 经宿主 ScriptMusicService 前台媒体通知播放, 同一应用同一时刻只有一个脚本音乐会话; 需宿主分支 node-media-playback-mediastore |
 | `mediainfo` | read, get, countGet, capabilities (Android 可访问的文件路径; 缺省保持 Node v1, 插件明确宣告后可显式请求插件 v1/v2) | — |
+| `media_store` | capabilities, query, get, insert, update, delete, scanFile, exportFile | 读需 media + media.library (Android 13+ 为 READ_MEDIA_AUDIO/IMAGES/VIDEO, 更早为 READ_EXTERNAL_STORAGE); insert/update/delete 另需 media.library.mutate, Android 10+ 只能改本应用创建的记录, Android 9- 需 WRITE_EXTERNAL_STORAGE; 需宿主分支 node-media-playback-mediastore |
 | `ui.overlay` | show, update, drainEvents, close, closeAll, hasPermission, openPermissionSettings | 需 SYSTEM_ALERT_WINDOW; 真实窗口、属性更新、拖动、推送与退出清理 |
 | `package_manager` (`npm` 为其别名) | list, verify, prune, planInstall/Update/Remove, install, update, remove (app 私有本地库) | npm CLI / registry 下载 / 生命周期脚本 |
 | `input_observer` | observeKeys, drainEvents, close, getAvailableSources (fake/accessibility) | 实源需可运行的无障碍服务; 不拦截按键, touch/intercept 仍拒绝 |
@@ -324,10 +325,18 @@ M3.2 原定 "补齐 toast / app.launch / click / swipe / text 查找 / 剪贴板
 3. 宿主 `NodeBridgePermissionManifest.kt`: 加入宿主能力常量、清单和方法映射。
 4. 插件 capability catalog: 在新 catalog 版本的 `bridge.permissionCapabilities` 与相关 `bridge.operations` 中登记。
 
-发布快照 `nodejs-capability-catalog/1.3.0` 保持原有 48 个能力。M14/M15 的本地 catalog 1.4.0 增加图像、device/media、事件观察者和 app 方法, 同步宿主已有的 console / files / files.write / files.delete / pinyin / pinyin4j 能力, 尚未对外发布。当前 verifyNodeHostCapabilityManifestAlignment 已验证 host=59 / plugin=59 / catalog=59; verifyNodeHostApiMirror 的 10 个公共 API 文件通过。契约支持上限同步为 3, 旧同步执行契约仍为 2。
+发布快照 `nodejs-capability-catalog/1.3.0` 保持原有 48 个能力。M14/M15 的本地 catalog 1.4.0 增加图像、device/media、事件观察者和 app 方法, 同步宿主已有的 console / files / files.write / files.delete / pinyin / pinyin4j 能力, 尚未对外发布。当前 verifyNodeHostCapabilityManifestAlignment 已验证 host=59 / plugin=59 / catalog=59; verifyNodeHostApiMirror 的 10 个公共 API 文件通过。M18.2 第七批 (media.playback / media.library / media.library.mutate) 后本地插件清单为 62, 宿主分支 node-media-playback-mediastore 同为 62; 宿主 master 与发布快照 1.4.0 仍为 59, 在宿主分支合并并发布新目录快照前该任务报告 6 项差异 (catalog_missing ×3, plugin_only ×3), 属预期。契约支持上限同步为 3, 旧同步执行契约仍为 2。
 
 ### 普通媒体和图片路径 (v1.4.0 开发版)
 
-`mediainfo.read/get`、`image.readImage/saveImage` 与 `recorder.start({path})` 接受绝对文件路径, 或以宿主执行工作目录为基准的相对路径。父目录与符号链接由 Android 文件 API 解析; 文件名中的 `..`、冒号和空格保留, 只拒绝空路径和 NUL。访问身份为执行该能力的宿主应用, Android 的权限、应用私有目录和存储访问规则仍然生效。文件 URI / content URI 不是这些方法的输入类型。
+`mediainfo.read/get`、`image.readImage/saveImage`、`recorder.start({path})`、`media.play(path)`、`media_store.insert({source})`、`media_store.scanFile(path)` 与 `media_store.exportFile(..., destination)` 接受绝对文件路径, 或以宿主执行工作目录为基准的相对路径。父目录与符号链接由 Android 文件 API 解析; 文件名中的 `..`、冒号和空格保留, 只拒绝空路径和 NUL。访问身份为执行该能力的宿主应用, Android 的权限、应用私有目录和存储访问规则仍然生效。文件 URI / content URI 不是这些方法的输入类型。
 
 此行为需要同时升级插件和包含 Android 文件解析器修复的宿主; v1.3.0 发布包与旧宿主仍有原来的媒体路径限制。工作区归档、模块传输和 MCP files 授权是其他调用接口, 不由这次文件 API 调整改变。
+
+### 媒体播放会话与 MediaStore (M18.2 第七批, 宿主分支 node-media-playback-mediastore)
+
+`media.play(path, { volume, looping })` 经宿主 `ScriptMusicPlayer` 租约在 `ScriptMusicService` (Media3, 前台媒体通知) 中播放, 返回冻结的会话对象 `{ id, path, looping, volume, status(), pause(), resume(), seekTo(ms), stop() }`; 模块级 `media.pause/resume/stop/seekTo/getPlaybackStatus(options)` 默认作用于当前执行的会话, `options.session` 可传会话对象、状态对象或 id, 过期 id 得到 `active=false` 的快照而不是错误。每次调用都返回 `autojs6-node-media-playback-v1` 快照 `{ id, path, looping, volume, active, playing, ended, durationMs, positionMs }` (未激活时 `durationMs=0`, `positionMs=-1`)。`volume` 为 0..1, 超出范围在插件侧抛 TypeError; 同一应用同一时刻只有一个脚本音乐会话, 新的 play 会替换旧会话; 执行结束时宿主释放租约并撤下通知。Android 前台服务资格 (宿主需在前台或持有可见悬浮窗) 不满足时 play 以 provider 错误结束。
+
+`media_store` 只经 JSON 行交换数据: `capabilities()` 报告 `sdkInt`、`scopedStorage`、集合 (`audio`/`images`/`video`, Android 10+ 另有 `downloads`)、各集合可用列、读权限状态与 `queryPolicy`/`mutatePolicy`; `query(collection, { filter, sort, limit, offset, columns })` 的 filter 是结构化 JSON (标量 eq、null 为 IS NULL、数组为 IN, 运算符 eq/ne/gt/gte/lt/lte/like/contains/startsWith/endsWith/in/isNull, `ownedOnly` 在 Android 10+ 限定本应用创建的记录), 由宿主编译为参数化 selection, 脚本不能提交 SQL; `sort` 接受 `"-dateAdded"` / `"dateAdded desc"` 形式, `limit` 1..1000 (默认 100)。`get` 返回 `autojs6-node-media-store-item-v1` 记录或 `null`; `insert(collection, { displayName, mimeType, source, relativePath })` 把宿主可读文件复制为新记录 (Android 10+ 走 IS_PENDING, 更早版本写公共目录并需 WRITE_EXTERNAL_STORAGE); `update` 只接受 `displayName` 与 `relativePath` (TITLE 等元数据列由 MediaProvider 推导, 桥拒绝而不是假装写入); `delete`、`scanFile(path, { mimeType })` 与 `exportFile(collection, id, destination)` 同样只返回 JSON。游标、Uri、描述符、Context 等原生对象不跨桥 (rawObjectPolicy)。
+
+`autojs6:compat.media` 在 Node 媒体模块之上补充 Rhino 风格别名 `playMusic(path, volume, looping)`、`pauseMusic`、`resumeMusic`、`stopMusic`、`musicSeekTo`、`isMusicPlaying`、`getMusicDuration` (无会话时 0)、`getMusicCurrentPosition` (无会话时 -1) 与 `scanFile` (返回布尔)。这些方法在插件私有工作区副本中运行时, 相对路径按宿主的项目目录解析, 因此样例把 `tone.wav` 作为项目资产随目录一起复制; 宿主侧的隐私披露 `media_library` 面已登记, 插件侧的 `__autojs6_privacy_disclosure_policy_report` 未同步扩展。

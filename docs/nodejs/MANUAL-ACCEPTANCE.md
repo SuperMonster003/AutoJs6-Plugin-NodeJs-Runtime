@@ -142,3 +142,26 @@ WorkManager 定时运行器实际拉起 Node 项目:
 `NodeWorkManagerBridgeInstrumentationTest` 经真实 AndroidX WorkManager 与真实 Binder 以 `executionMode=scheduled` /
 `launchSurface=scheduled_runner` 拉起插件 Debug 189 执行打包项目入口与 ESM 入口、持久化运行记录并验证取消可阻止延迟执行
 (9/9 通过); 据此能力目录 `scheduled` 转为 available。上述样例手工步骤保留为可选复核, 未通过样例手工流程复核。
+
+## M18.2: 媒体播放会话与 MediaStore (media-playback / media-library)
+
+两个项目都需要携带项目自带的 `tone.wav` 一起复制到设备的 AutoJs6 工作目录, 并使用包含
+媒体 provider 的宿主构建 (分支 node-media-playback-mediastore); 旧宿主会以
+`ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED` (方法不受支持) 结束。
+
+1. media-playback: 保持 AutoJs6 在前台, 从项目入口运行。应听到两段各约 1.5 秒的 440 Hz 提示音,
+   通知栏出现媒体通知并在脚本结束后消失; 日志应依次出现 `playback.session=string|true|true`、
+   `playback.paused=true`、`playback.resumed=true|true`、`playback.ended=true`、`playback.stopped=true`、
+   `playback.stale=true`、`compat.music=true|true|true` 与 `sample.media-playback=PASS`。
+2. media-library: Android 13+ 在系统设置中允许 AutoJs6 访问音乐和音频 (Android 9 及以下为存储权限), 运行项目。
+   日志应出现 `library.capabilities=autojs6-node-media-store-capabilities-v1|true|app_owned_items_only`
+   (Android 9 及以下末段为 `write_external_storage_permission`)、`library.inserted=audio|true|number|true`、
+   `library.query=true|true`、`library.updated=true`、`library.exported=true|true`、`library.scanned=boolean`、
+   `library.deleted=true|true` 与 `sample.media-library=PASS`; 项目目录应多出 `exported-tone.wav`,
+   系统音乐库中不应残留 `autojs6-node-sample-*.wav`。
+3. 回报设备型号/API、宿主与插件版本、是否听到声音、媒体通知是否消失, 以及上述各行 (或完整错误)。
+
+2026-09-17 自动化回执: 宿主分支 instrumentation `NodeMediaBridgeInstrumentationTest` 在小米 968e9f18 (arm64, API 35, 插件 Debug 194)
+上以同一调用链验证了会话播放 (play/pause/seekTo/resume/过期 id/stop/looping, 通知随执行结束撤下) 与 MediaStore 往返
+(capabilities/insert/query/get/update/exportFile/scanFile/delete), 以及经真实 Binder 的插件脚本 (`media.session`/`media.store`/
+`media.mutate`/`media.compat` 四行) — 9/10 通过 (连续 4 次一致), 唯一失败 `realMediainfoQueriesPreservePathsAndSelectSecondAudioTrack` 为设备上 MediaInfo 插件 2.0.0 未宣告 streamCount 的环境限制, 与本批无关; 同机 `NodeBridgeProviderRegistryInstrumentationTest` 5/5、`NodeBridgeConformanceInstrumentationTest` 5/5、`NodeBridgePermissionManifestInstrumentationTest` 11/11。上述两个样例的人工可听/可见复核尚未进行, 因此保持 partial。

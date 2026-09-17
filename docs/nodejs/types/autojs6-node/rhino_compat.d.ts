@@ -14,6 +14,7 @@ declare module "autojs6:compat" {
   import barcodeModule = require("barcode");
   import mediaModule = require("media");
   import mediainfoModule = require("mediainfo");
+  import mediaStoreModule = require("media_store");
   import recorderModule = require("recorder");
   import ui = require("ui");
   import files = require("files");
@@ -211,6 +212,22 @@ declare module "autojs6:compat" {
       | "TOZERO"
       | "TOZERO_INV"
       | number;
+
+    /** Rhino media aliases over the Node media session API; the playMusic(path, volume, looping) shape is kept. */
+    export interface RhinoMediaCompatModule extends mediaModule.MediaModule {
+      playMusic(path: string, volume?: number, looping?: boolean, options?: mediaModule.PlayOptions): Promise<mediaModule.PlaybackSession>;
+      pauseMusic(options?: mediaModule.PlaybackControlOptions): Promise<void>;
+      resumeMusic(options?: mediaModule.PlaybackControlOptions): Promise<void>;
+      stopMusic(options?: mediaModule.PlaybackControlOptions): Promise<void>;
+      musicSeekTo(positionMs: number, options?: mediaModule.PlaybackControlOptions): Promise<void>;
+      isMusicPlaying(options?: mediaModule.PlaybackControlOptions): Promise<boolean>;
+      /** 0 when no session is active. */
+      getMusicDuration(options?: mediaModule.PlaybackControlOptions): Promise<number>;
+      /** -1 when no session is active. */
+      getMusicCurrentPosition(options?: mediaModule.PlaybackControlOptions): Promise<number>;
+      /** Resolves to media_store.scanFile().scanned (requires media.library). */
+      scanFile(path: string, options?: mediaStoreModule.ScanOptions): Promise<boolean>;
+    }
 
     export interface RhinoImagesCompatModule {
       requestScreenCapture(options?: ScreenCaptureRequestOptions): Promise<boolean>;
@@ -421,7 +438,7 @@ declare module "autojs6:compat" {
       readonly ocr: RhinoOcrCompatFunction;
       readonly barcode: RhinoBarcodeCompatFunction;
       readonly qrcode: RhinoBarcodeCompatFunction;
-      readonly media: mediaModule.MediaModule;
+      readonly media: RhinoMediaCompatModule;
       readonly mediainfo: mediainfoModule.MediainfoModule;
       readonly recorder: recorderModule.RecorderModule;
       readonly ui: RhinoUiCompatModule;

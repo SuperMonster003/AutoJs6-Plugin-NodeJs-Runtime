@@ -18,7 +18,8 @@
         "Dynamic import() inside workers goes through the worker partial ESM loader (local paths, file: URLs, workspace packages, allowed builtins, with { type: \"json\" }) instead of being rejected",
         "host-events sample promoted to stable after the physical key and notification access acceptance passed",
         "scheduled-node-task sample prints its lifecycle policy and can keep the scheduled task for a real WorkManager run; the scheduled execution mode gains plugin-side regression coverage",
-        "scheduled execution mode promoted to available in the capability catalog after a real host WorkManager scheduled-runner run through the plugin"
+        "scheduled execution mode promoted to available in the capability catalog after a real host WorkManager scheduled-runner run through the plugin",
+        "media.play() returns a playback session (pause/resume/seekTo/stop/status) over the host script music service, and the new media_store module exposes scoped MediaStore capabilities/query/get/insert/update/delete/scanFile/exportFile behind the media.playback / media.library / media.library.mutate capabilities; autojs6:compat.media gains the Rhino playMusic-style aliases; both require the matching host build"
       ],
       "fix": [
         "The capability catalog version and digest reported by runtimeInfo are now derived from the runtime kit, correcting the stale 1.5.0 values still reported by 1.5.4",

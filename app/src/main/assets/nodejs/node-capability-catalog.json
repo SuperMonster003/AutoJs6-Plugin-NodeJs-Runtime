@@ -613,7 +613,13 @@
       "android.permission.FOREGROUND_SERVICE",
       "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",
       "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
-      "android.permission.FOREGROUND_SERVICE_MICROPHONE"
+      "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+      "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+      "android.permission.READ_MEDIA_AUDIO",
+      "android.permission.READ_MEDIA_IMAGES",
+      "android.permission.READ_MEDIA_VIDEO",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE"
     ],
     "modules": [
       {
@@ -712,6 +718,11 @@
       },
       {
         "id": "media_projection",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "media_store",
         "aliases": [],
         "providerOwner": "host_capability_provider"
       },
@@ -1701,10 +1712,58 @@
       },
       {
         "module": "media",
+        "method": "getPlaybackStatus",
+        "requiredCapabilities": [
+          "media",
+          "media.playback"
+        ]
+      },
+      {
+        "module": "media",
+        "method": "pause",
+        "requiredCapabilities": [
+          "media",
+          "media.playback"
+        ]
+      },
+      {
+        "module": "media",
+        "method": "play",
+        "requiredCapabilities": [
+          "media",
+          "media.playback"
+        ]
+      },
+      {
+        "module": "media",
+        "method": "resume",
+        "requiredCapabilities": [
+          "media",
+          "media.playback"
+        ]
+      },
+      {
+        "module": "media",
+        "method": "seekTo",
+        "requiredCapabilities": [
+          "media",
+          "media.playback"
+        ]
+      },
+      {
+        "module": "media",
         "method": "setAudioStreamVolume",
         "requiredCapabilities": [
           "media",
           "media.audio"
+        ]
+      },
+      {
+        "module": "media",
+        "method": "stop",
+        "requiredCapabilities": [
+          "media",
+          "media.playback"
         ]
       },
       {
@@ -1726,6 +1785,73 @@
         "method": "stop",
         "requiredCapabilities": [
           "screen_capture"
+        ]
+      },
+      {
+        "module": "media_store",
+        "method": "capabilities",
+        "requiredCapabilities": [
+          "media",
+          "media.library"
+        ]
+      },
+      {
+        "module": "media_store",
+        "method": "delete",
+        "requiredCapabilities": [
+          "media",
+          "media.library",
+          "media.library.mutate"
+        ]
+      },
+      {
+        "module": "media_store",
+        "method": "exportFile",
+        "requiredCapabilities": [
+          "media",
+          "media.library"
+        ]
+      },
+      {
+        "module": "media_store",
+        "method": "get",
+        "requiredCapabilities": [
+          "media",
+          "media.library"
+        ]
+      },
+      {
+        "module": "media_store",
+        "method": "insert",
+        "requiredCapabilities": [
+          "media",
+          "media.library",
+          "media.library.mutate"
+        ]
+      },
+      {
+        "module": "media_store",
+        "method": "query",
+        "requiredCapabilities": [
+          "media",
+          "media.library"
+        ]
+      },
+      {
+        "module": "media_store",
+        "method": "scanFile",
+        "requiredCapabilities": [
+          "media",
+          "media.library"
+        ]
+      },
+      {
+        "module": "media_store",
+        "method": "update",
+        "requiredCapabilities": [
+          "media",
+          "media.library",
+          "media.library.mutate"
         ]
       },
       {
@@ -2435,6 +2561,35 @@
         "androidPermissions": []
       },
       {
+        "id": "media.library",
+        "aliases": [
+          "media-library",
+          "media-store",
+          "media:library",
+          "media_store",
+          "mediastore"
+        ],
+        "androidPermissions": [
+          "android.permission.READ_EXTERNAL_STORAGE",
+          "android.permission.READ_MEDIA_AUDIO",
+          "android.permission.READ_MEDIA_IMAGES",
+          "android.permission.READ_MEDIA_VIDEO"
+        ]
+      },
+      {
+        "id": "media.library.mutate",
+        "aliases": [
+          "media-library.mutate",
+          "media-store.mutate",
+          "media:library.mutate",
+          "media_store.mutate",
+          "mediastore.mutate"
+        ],
+        "androidPermissions": [
+          "android.permission.WRITE_EXTERNAL_STORAGE"
+        ]
+      },
+      {
         "id": "media.metadata",
         "aliases": [
           "media-info",
@@ -2444,6 +2599,19 @@
           "mediainfo"
         ],
         "androidPermissions": []
+      },
+      {
+        "id": "media.playback",
+        "aliases": [
+          "media-playback",
+          "media.play",
+          "media:playback",
+          "music"
+        ],
+        "androidPermissions": [
+          "android.permission.FOREGROUND_SERVICE",
+          "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+        ]
       },
       {
         "id": "media.recording",
@@ -2643,7 +2811,11 @@
         "mediainfo.get",
         "image.readImage",
         "image.saveImage",
-        "recorder.start"
+        "recorder.start",
+        "media.play",
+        "media_store.insert",
+        "media_store.scanFile",
+        "media_store.exportFile"
       ],
       "absolutePaths": "android_file_access",
       "relativePaths": "working_directory_base",

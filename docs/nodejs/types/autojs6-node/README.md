@@ -341,9 +341,20 @@ required for these helpers. Recorder start/stop now expose AAC recording through
 a scoped output PFD, with Android microphone permission, a foreground stop
 notification, a 1..300 second limit and script cleanup. The default limit is
 60 seconds. Stop returns the last completed RecordingResult (or null before the
-first recording); getStatus exposes live permission and session state. Physical
-3-second recording acceptance remains pending in Roadmap M15.4. Playback and
-MediaStore remain future work.
+first recording); getStatus exposes live permission and session state. The
+physical 3-second recording acceptance was recorded in Roadmap M15.4.
+`media.play(path, { volume, looping })` returns a frozen playback session
+(`status`/`pause`/`resume`/`seekTo`/`stop`, each resolving to the
+`autojs6-node-media-playback-v1` snapshot) over the host script music service
+and requires `media.playback`; module-level `pause`/`resume`/`stop`/`seekTo`/
+`getPlaybackStatus` accept `{ session }`. `require("media_store")` exposes
+`capabilities`/`query`/`get`/`insert`/`update`/`delete`/`scanFile`/`exportFile`
+with structured filters, whitelisted columns and JSON-only results behind
+`media.library`, plus `media.library.mutate` for insert/update/delete; only
+`displayName` and `relativePath` are writable. `autojs6:compat.media` adds the
+Rhino `playMusic`/`pauseMusic`/`resumeMusic`/`stopMusic`/`musicSeekTo`/
+`isMusicPlaying`/`getMusicDuration`/`getMusicCurrentPosition`/`scanFile`
+aliases. Both modules need the host branch that ships the providers.
 
 P13-27 records the partial utility-heavy Rhino modules gate. `jsox.mathx`,
 `jsox.arrayx`, and `jsox.numberx` are typed as pure JavaScript facades through

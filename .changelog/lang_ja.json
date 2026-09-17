@@ -18,7 +18,8 @@
         "worker 内の動的 import() を worker の partial ESM ローダー経由で実行 (相対/絶対パス、file: URL、ワークスペースのパッケージ、許可された builtin、with { type: \"json\" })。拒否を廃止",
         "実機キーと通知アクセスの手動受け入れに合格し、host-events サンプルを stable に昇格",
         "scheduled-node-task サンプルがライフサイクルポリシーを出力し、WorkManager の実行のためにタスクを保持可能に。scheduled 実行モードにプラグイン側の回帰テストを追加",
-        "ホストの WorkManager スケジュールランナーがプラグイン経由で実行できたため、scheduled 実行モードを能力カタログで available に昇格"
+        "ホストの WorkManager スケジュールランナーがプラグイン経由で実行できたため、scheduled 実行モードを能力カタログで available に昇格",
+        "media.play() はホストのスクリプト音楽サービスで再生するセッション (pause/resume/seekTo/stop/status) を返し、新しい media_store モジュールは media.playback / media.library / media.library.mutate 能力で保護された限定的な MediaStore の capabilities/query/get/insert/update/delete/scanFile/exportFile を提供; autojs6:compat.media に Rhino 風の playMusic 系エイリアスを追加; いずれも対応するホストビルドが必要"
       ],
       "fix": [
         "runtimeInfo が報告する能力カタログのバージョンとダイジェストを runtime kit から導出し、1.5.4 で残っていた 1.5.0 の旧値を修正",

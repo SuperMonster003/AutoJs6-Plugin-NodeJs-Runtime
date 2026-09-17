@@ -19,6 +19,7 @@
 /// <reference path="./barcode.d.ts" />
 /// <reference path="./media.d.ts" />
 /// <reference path="./mediainfo.d.ts" />
+/// <reference path="./media_store.d.ts" />
 /// <reference path="./recorder.d.ts" />
 /// <reference path="./storage.d.ts" />
 /// <reference path="./storages.d.ts" />

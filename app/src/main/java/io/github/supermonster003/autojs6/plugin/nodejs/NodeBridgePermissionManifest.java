@@ -39,6 +39,9 @@ public final class NodeBridgePermissionManifest {
     private static final String MEDIA_AUDIO = "media.audio";
     private static final String MEDIA_METADATA = "media.metadata";
     private static final String MEDIA_RECORDING = "media.recording";
+    private static final String MEDIA_PLAYBACK = "media.playback";
+    private static final String MEDIA_LIBRARY = "media.library";
+    private static final String MEDIA_LIBRARY_MUTATE = "media.library.mutate";
     private static final String STORAGE = "storage";
     private static final String DATABASE = "database";
     private static final String NOTIFICATIONS = "notifications";
@@ -90,6 +93,13 @@ public final class NodeBridgePermissionManifest {
             "android.permission.FOREGROUND_SERVICE_MICROPHONE";
     private static final String ANDROID_PERMISSION_POST_NOTIFICATIONS = "android.permission.POST_NOTIFICATIONS";
     private static final String ANDROID_PERMISSION_RECORD_AUDIO = "android.permission.RECORD_AUDIO";
+    private static final String ANDROID_PERMISSION_FOREGROUND_SERVICE_MEDIA_PLAYBACK =
+            "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK";
+    private static final String ANDROID_PERMISSION_READ_MEDIA_AUDIO = "android.permission.READ_MEDIA_AUDIO";
+    private static final String ANDROID_PERMISSION_READ_MEDIA_IMAGES = "android.permission.READ_MEDIA_IMAGES";
+    private static final String ANDROID_PERMISSION_READ_MEDIA_VIDEO = "android.permission.READ_MEDIA_VIDEO";
+    private static final String ANDROID_PERMISSION_READ_EXTERNAL_STORAGE = "android.permission.READ_EXTERNAL_STORAGE";
+    private static final String ANDROID_PERMISSION_WRITE_EXTERNAL_STORAGE = "android.permission.WRITE_EXTERNAL_STORAGE";
 
     private static final String PROJECT_JSON = "project.json";
     private static final String PACKAGE_JSON = "package.json";
@@ -115,6 +125,9 @@ public final class NodeBridgePermissionManifest {
             MEDIA_AUDIO,
             MEDIA_METADATA,
             MEDIA_RECORDING,
+            MEDIA_PLAYBACK,
+            MEDIA_LIBRARY,
+            MEDIA_LIBRARY_MUTATE,
             STORAGE,
             DATABASE,
             NOTIFICATIONS,
@@ -167,7 +180,13 @@ public final class NodeBridgePermissionManifest {
             ANDROID_PERMISSION_FOREGROUND_SERVICE,
             ANDROID_PERMISSION_FOREGROUND_SERVICE_MEDIA_PROJECTION,
             ANDROID_PERMISSION_FOREGROUND_SERVICE_SPECIAL_USE,
-            ANDROID_PERMISSION_FOREGROUND_SERVICE_MICROPHONE
+            ANDROID_PERMISSION_FOREGROUND_SERVICE_MICROPHONE,
+            ANDROID_PERMISSION_FOREGROUND_SERVICE_MEDIA_PLAYBACK,
+            ANDROID_PERMISSION_READ_MEDIA_AUDIO,
+            ANDROID_PERMISSION_READ_MEDIA_IMAGES,
+            ANDROID_PERMISSION_READ_MEDIA_VIDEO,
+            ANDROID_PERMISSION_READ_EXTERNAL_STORAGE,
+            ANDROID_PERMISSION_WRITE_EXTERNAL_STORAGE
     );
 
     private NodeBridgePermissionManifest() {
@@ -587,6 +606,20 @@ public final class NodeBridgePermissionManifest {
         map.put("media-recording", MEDIA_RECORDING);
         map.put("recorder", MEDIA_RECORDING);
         map.put("audio.recording", MEDIA_RECORDING);
+        map.put("media:playback", MEDIA_PLAYBACK);
+        map.put("media-playback", MEDIA_PLAYBACK);
+        map.put("media.play", MEDIA_PLAYBACK);
+        map.put("music", MEDIA_PLAYBACK);
+        map.put("media:library", MEDIA_LIBRARY);
+        map.put("media-library", MEDIA_LIBRARY);
+        map.put("media_store", MEDIA_LIBRARY);
+        map.put("media-store", MEDIA_LIBRARY);
+        map.put("mediastore", MEDIA_LIBRARY);
+        map.put("media:library.mutate", MEDIA_LIBRARY_MUTATE);
+        map.put("media-library.mutate", MEDIA_LIBRARY_MUTATE);
+        map.put("media_store.mutate", MEDIA_LIBRARY_MUTATE);
+        map.put("media-store.mutate", MEDIA_LIBRARY_MUTATE);
+        map.put("mediastore.mutate", MEDIA_LIBRARY_MUTATE);
         map.put("notification", NOTIFICATIONS);
         map.put("notification.settings", NOTIFICATIONS_SETTINGS);
         map.put("notifications:settings", NOTIFICATIONS_SETTINGS);
@@ -648,6 +681,17 @@ public final class NodeBridgePermissionManifest {
                 ANDROID_PERMISSION_FOREGROUND_SERVICE,
                 ANDROID_PERMISSION_FOREGROUND_SERVICE_MICROPHONE
         ));
+        map.put(MEDIA_PLAYBACK, immutableList(
+                ANDROID_PERMISSION_FOREGROUND_SERVICE,
+                ANDROID_PERMISSION_FOREGROUND_SERVICE_MEDIA_PLAYBACK
+        ));
+        map.put(MEDIA_LIBRARY, immutableList(
+                ANDROID_PERMISSION_READ_MEDIA_AUDIO,
+                ANDROID_PERMISSION_READ_MEDIA_IMAGES,
+                ANDROID_PERMISSION_READ_MEDIA_VIDEO,
+                ANDROID_PERMISSION_READ_EXTERNAL_STORAGE
+        ));
+        map.put(MEDIA_LIBRARY_MUTATE, immutableList(ANDROID_PERMISSION_WRITE_EXTERNAL_STORAGE));
         map.put(NETWORK, immutableList(ANDROID_PERMISSION_INTERNET));
         map.put(RAW_NETWORK, immutableList(ANDROID_PERMISSION_INTERNET));
         map.put(SCREEN_CAPTURE, immutableList(

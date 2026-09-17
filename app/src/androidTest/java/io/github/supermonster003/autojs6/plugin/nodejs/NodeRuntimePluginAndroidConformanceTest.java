@@ -497,6 +497,135 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         return files;
     }
 
+    /** M18.2: the media playback session facade and the media_store facade shape requests, permissions and results. */
+    @Test
+    public void m18_mediaPlaybackAndMediaStoreFacadesShapeBridgeRequests() throws Exception {
+        String[] projects = {
+                """
+                {"node":{"permissions":["media","media.playback","media.library","media.library.mutate"]}}""",
+                """
+                {"node":{"permissions":["media","media.audio","media.library"]}}"""
+        };
+        for (int index = 0; index < projects.length; index++) {
+            String source = """
+                    (async () => {
+                      const assert = require('node:assert/strict');
+                      const bridge = require('autojs6:bridge');
+                      const requests = [];
+                      let stopped = true;
+                      const item = {schema: 'autojs6-node-media-store-item-v1', collection: 'audio', id: 7, uri: 'content://media/external/audio/media/7', displayName: 'tone.wav'};
+                      bridge.__test.setTransport({postMessage(message) {
+                        const request = JSON.parse(message);
+                        requests.push(request);
+                        const target = request.args.find(arg => arg && typeof arg === 'object' && typeof arg.id === 'string');
+                        let result = null;
+                        if (request.module === 'media' && request.method === 'play') {
+                          stopped = false;
+                          result = {schema: 'autojs6-node-media-playback-v1', id: 'media-playback-1', path: '/host/' + request.args[0], active: true, playing: true, ended: false,
+                            looping: request.args[1].looping === true, volume: request.args[1].volume === undefined ? 1 : request.args[1].volume, durationMs: 1500, positionMs: 0};
+                        } else if (request.module === 'media') {
+                          if (request.method === 'stop') stopped = true;
+                          result = {schema: 'autojs6-node-media-playback-v1', id: target ? target.id : 'media-playback-1', path: '/host/tone.wav', active: !stopped,
+                            playing: request.method === 'resume', ended: false, looping: false, volume: 0.4, durationMs: 1500, positionMs: request.method === 'seekTo' ? request.args[0] : 10};
+                        } else if (request.method === 'capabilities') {
+                          result = {schema: 'autojs6-node-media-store-capabilities-v1', collections: ['audio', 'images', 'video', 'downloads']};
+                        } else if (request.method === 'query') {
+                          result = {schema: 'autojs6-node-media-store-query-v1', collection: request.args[0], count: 1, limit: request.args[1].limit, offset: 0, items: [item]};
+                        } else if (request.method === 'get') {
+                          result = request.args[1] === 7 ? item : null;
+                        } else if (request.method === 'delete') {
+                          result = {schema: 'autojs6-node-media-store-delete-v1', collection: request.args[0], id: request.args[1], deleted: true};
+                        } else if (request.method === 'scanFile') {
+                          result = {schema: 'autojs6-node-media-store-scan-v1', path: request.args[0], uri: null, scanned: false};
+                        }
+                        setImmediate(() => bridge.__test.receiveMessage(JSON.stringify({id: request.id, ok: true, result})));
+                      }});
+                      const media = require('media');
+                      const store = require('media_store');
+                      const compat = require('autojs6:compat');
+                      const last = () => requests[requests.length - 1];
+                      if (CASE_INDEX === 0) {
+                        const session = await media.play('tone.wav', {volume: 0.4, looping: false});
+                        assert.ok(Object.isFrozen(session) && Object.isFrozen(media) && Object.isFrozen(store));
+                        assert.deepEqual([session.id, session.path, session.volume, session.looping], ['media-playback-1', '/host/tone.wav', 0.4, false]);
+                        assert.deepEqual(last().args, ['tone.wav', {volume: 0.4, looping: false}]);
+                        const paused = await session.pause();
+                        assert.ok(Object.isFrozen(paused) && paused.active && !paused.playing);
+                        assert.deepEqual(last().args, [{id: 'media-playback-1'}]);
+                        assert.equal((await session.seekTo(500)).positionMs, 500);
+                        assert.deepEqual(last().args, [500, {id: 'media-playback-1'}]);
+                        assert.equal((await media.resume({session})).playing, true);
+                        assert.equal((await media.resume({session: 'media-playback-1'})).id, 'media-playback-1');
+                        assert.equal((await session.stop()).active, false);
+                        await media.getPlaybackStatus();
+                        assert.deepEqual(last().args, []);
+                        await assert.rejects(media.play(''), error => error.code === 'ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED');
+                        await assert.rejects(media.play('tone.wav', {volume: 2}), TypeError);
+                        await assert.rejects(media.seekTo(-1), TypeError);
+                        await assert.rejects(media.pause({session: 'bad id'}), TypeError);
+                        const compatSession = await compat.media.playMusic('tone.wav', 0.2, true);
+                        assert.equal(compatSession.id, 'media-playback-1');
+                        assert.deepEqual(last().args, ['tone.wav', {volume: 0.2, looping: true}]);
+                        assert.equal(await compat.media.isMusicPlaying(), false);
+                        assert.equal(await compat.media.getMusicDuration(), 1500);
+                        assert.equal(await compat.media.getMusicCurrentPosition(), 10);
+                        assert.equal(await compat.media.pauseMusic(), undefined);
+                        assert.equal(await compat.media.stopMusic(), undefined);
+                        assert.equal(await compat.media.getMusicDuration(), 0);
+                        assert.equal(await compat.media.getMusicCurrentPosition(), -1);
+                        assert.equal(await compat.media.scanFile('tone.wav'), false);
+                        const capabilities = await store.capabilities();
+                        assert.equal(capabilities.schema, 'autojs6-node-media-store-capabilities-v1');
+                        const query = await store.query('audio', {filter: {displayName: {startsWith: 'tone'}, ownedOnly: true}, sort: '-dateAdded', limit: 5, columns: ['displayName'], timeoutMs: 2000});
+                        assert.deepEqual(last().args, ['audio', {filter: {displayName: {startsWith: 'tone'}, ownedOnly: true}, sort: '-dateAdded', limit: 5, columns: ['displayName']}]);
+                        assert.equal(last().timeoutMs, 2000);
+                        assert.ok(Object.isFrozen(query) && Object.isFrozen(query.items[0]));
+                        assert.equal((await store.get('audio', query.items[0])).displayName, 'tone.wav');
+                        assert.deepEqual(last().args, ['audio', 7]);
+                        assert.equal(await store.get('audio', '8'), null);
+                        assert.equal((await store.delete('audio', query.items[0])).deleted, true);
+                        assert.equal((await store.remove('audio', 7)).id, 7);
+                        assert.equal((await store.scanFile('tone.wav', {mimeType: 'audio/wav'})).scanned, false);
+                        assert.deepEqual(last().args, ['tone.wav', {mimeType: 'audio/wav'}]);
+                        await assert.rejects(store.query('playlists'), TypeError);
+                        await assert.rejects(store.get('audio', -1), TypeError);
+                        await assert.rejects(store.exportFile('audio', 7, ''), error => error.code === 'ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED');
+                        const seen = requests.map(request => request.module + '.' + request.method + ':' + request.permissions.join('+'));
+                        for (const expected of [
+                          'media.play:media+media.playback',
+                          'media.pause:media+media.playback',
+                          'media.seekTo:media+media.playback',
+                          'media.getPlaybackStatus:media+media.playback',
+                          'media_store.capabilities:media+media.library',
+                          'media_store.query:media+media.library',
+                          'media_store.get:media+media.library',
+                          'media_store.delete:media+media.library+media.library.mutate',
+                          'media_store.scanFile:media+media.library'
+                        ]) {
+                          assert.ok(seen.includes(expected), expected + ' not in ' + seen.join(' '));
+                        }
+                        assert.ok(!seen.some(entry => entry.startsWith('media_store.exportFile')));
+                      } else {
+                        await assert.rejects(media.play('tone.wav'), error => error.code === 'ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED' && error.message.includes('media.playback'));
+                        await assert.rejects(compat.media.playMusic('tone.wav'), error => error.code === 'ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED');
+                        await assert.rejects(store.delete('audio', 7), error => error.code === 'ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED' && error.message.includes('media.library.mutate'));
+                        await assert.rejects(store.insert('audio', {displayName: 'a.wav', mimeType: 'audio/wav', source: 'tone.wav'}), error => error.code === 'ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED');
+                        assert.equal((await store.capabilities()).schema, 'autojs6-node-media-store-capabilities-v1');
+                        assert.equal(typeof media.getAudioStreamInfo, 'function');
+                        assert.equal(requests.length, 1);
+                      }
+                      console.log('m18.media-facade=PASS');
+                    })().catch(error => { console.error(error.stack); process.exitCode = 1; });
+                    """.replace("CASE_INDEX", Integer.toString(index));
+            LinkedHashMap<String, String> files = new LinkedHashMap<>();
+            files.put("main.cjs", source);
+            files.put("project.json", projects[index]);
+            try (WorkspaceInvocation invocation = execute("media-facade-" + index, "main.cjs", files, false)) {
+                assertSucceeded(invocation.result, "m18.media-facade=PASS");
+            }
+        }
+    }
+
     /** M20.2: module loading follows Android file access like Node; /proc, /sys and /dev stay denied. */
     @Test
     public void m20_loaderFollowsAndroidFileAccessForAbsolutePathsAndFileUrls() throws Exception {

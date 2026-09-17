@@ -21,6 +21,7 @@
 * `Amelioration` L'exemple host-events passe en stable après la validation manuelle de la touche physique et de l'accès aux notifications
 * `Amelioration` L'exemple scheduled-node-task affiche sa politique de cycle de vie et peut conserver la tâche planifiée pour une exécution réelle de WorkManager ; le mode scheduled obtient une régression côté plugin
 * `Amelioration` Le mode d'exécution scheduled passe à available dans le catalogue de capacités après une exécution réelle du runner planifié WorkManager de l'hôte via le plugin
+* `Amelioration` media.play() renvoie une session de lecture (pause/resume/seekTo/stop/status) via le service musical de scripts de l'hôte, et le nouveau module media_store expose un accès délimité à MediaStore (capabilities/query/get/insert/update/delete/scanFile/exportFile) protégé par les capacités media.playback / media.library / media.library.mutate ; autojs6:compat.media gagne les alias de style Rhino playMusic ; les deux nécessitent la version d'hôte correspondante
 
 # v1.5.4
 

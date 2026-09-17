@@ -18,7 +18,8 @@
         "worker 內動態 import() 經 worker 的 partial ESM 載入器執行 (相對/絕對路徑、file: URL、工作區套件、builtin 名單、with { type: \"json\" }), 不再拒絕",
         "host-events 範例在實體按鍵與通知存取人工驗收通過後轉為 stable",
         "scheduled-node-task 範例列印生命週期策略並可保留定時任務供 WorkManager 實跑; scheduled 執行模式補齊插件側回歸",
-        "scheduled 執行模式在宿主 WorkManager 定時執行器經插件實跑通過後, 能力目錄狀態轉為 available"
+        "scheduled 執行模式在宿主 WorkManager 定時執行器經插件實跑通過後, 能力目錄狀態轉為 available",
+        "media.play() 回傳經宿主腳本音樂服務播放的會話物件 (pause/resume/seekTo/stop/status), 新增 media_store 模組提供受限的 MediaStore capabilities/query/get/insert/update/delete/scanFile/exportFile, 分別由 media.playback / media.library / media.library.mutate 能力把關; autojs6:compat.media 補上 Rhino 風格的 playMusic 等別名; 均需配套宿主構建"
       ],
       "fix": [
         "runtimeInfo 回報的能力目錄版本與摘要改由 runtime kit 派生, 修正 1.5.4 中仍為 1.5.0 的舊值",
