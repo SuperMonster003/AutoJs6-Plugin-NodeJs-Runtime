@@ -33,7 +33,12 @@ The scoped fs wrapper also dropped its own option restrictions: stream `fs`, inh
 filters (`cpSync` keeps Node's `ERR_INVALID_RETURN_VALUE`), absolute, parent-directory
 and literal `!` glob patterns with `exclude` arrays, `readableWebStream` `type` /
 `encoding`, and the `Stats` / `Dirent` / `Dir` constructors follow native Node 24, so
-`filesystemProfile.advancedApis.recursiveWatch` reports `native`.
+`filesystemProfile.advancedApis.recursiveWatch` reports `native`. Recursive `readdir` /
+`opendir` are native as well (the 4096-entry cap and per-entry realpath checks are gone),
+`readlink` / `chmod` / `chown` / `utimes` accept absolute paths, and fs policy errors use
+three codes only: `ERR_AUTOJS6_FS_NUL_BYTE`, `ERR_AUTOJS6_FS_PATH_ESCAPE` for the
+`/proc` / `/sys` / `/dev` boundary, and `ERR_AUTOJS6_FS_SCOPED_PATH` for removing the
+reach root.
 Native Node builtins retain their own names: `events` / `node:events` is EventEmitter;
 Android event observation is exposed as `autojs6:events`. The runtime links ICU 78 with
 English-only locale data (`--with-intl=small-icu`, since v1.5.1): `Intl` exists and

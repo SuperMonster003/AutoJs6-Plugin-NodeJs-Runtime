@@ -99,15 +99,15 @@ public final class UnrestrictedFsSmokeTest {
             assertTrue("external write/read marker missing: " + stdout, stdout.contains("m6.fs.external=ok"));
             assertTrue(
                     "/proc denial marker missing: " + stdout,
-                    stdout.contains("m6.fs.denied.proc=ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED")
+                    stdout.contains("m6.fs.denied.proc=ERR_AUTOJS6_FS_PATH_ESCAPE")
             );
             assertTrue(
                     "/sys denial marker missing: " + stdout,
-                    stdout.contains("m6.fs.denied.sys=ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED")
+                    stdout.contains("m6.fs.denied.sys=ERR_AUTOJS6_FS_PATH_ESCAPE")
             );
             assertTrue(
                     "/dev denial marker missing: " + stdout,
-                    stdout.contains("m6.fs.denied.dev=ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED")
+                    stdout.contains("m6.fs.denied.dev=ERR_AUTOJS6_FS_PATH_ESCAPE")
             );
         } finally {
             context.unbindService(connection);
@@ -161,7 +161,7 @@ public final class UnrestrictedFsSmokeTest {
                 + "  try { fs.readFileSync(sensitivePath); } catch (error) { denial = error; }\n"
                 + "  if (!denial) throw new Error('sensitive path unexpectedly readable: ' + sensitivePath);\n"
                 + "  const code = String(denial.autojs6Code || denial.code || denial.name || '');\n"
-                + "  if (code !== 'ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED') {\n"
+                + "  if (code !== 'ERR_AUTOJS6_FS_PATH_ESCAPE') {\n"
                 + "    throw new Error('unexpected sensitive-path denial for ' + sensitivePath + ': ' + code);\n"
                 + "  }\n"
                 + "  console.log('m6.fs.denied.' + name + '=' + code);\n"

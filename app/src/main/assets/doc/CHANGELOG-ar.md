@@ -24,6 +24,7 @@
 * `تحسين` تعيد media.play() جلسة تشغيل (pause/resume/seekTo/stop/status) عبر خدمة موسيقى السكربتات في المضيف، وتوفر وحدة media_store الجديدة وصولاً محدوداً إلى MediaStore (capabilities/query/get/insert/update/delete/scanFile/exportFile) خلف قدرات media.playback / media.library / media.library.mutate؛ وتكتسب autojs6:compat.media أسماء بديلة بأسلوب Rhino مثل playMusic؛ وكلاهما يتطلب بنية المضيف المطابقة
 * `تحسين` تمت ترقية عينتَي media-playback / media-library إلى stable بعد القبول اليدوي مع موفري الوسائط المدمجين في المضيف؛ ونُشرت لقطة فهرس القدرات 1.5.5 تحت releases/nodejs-capability-catalog وتشير مهمة المحاذاة مع المضيف إليها الآن
 * `تحسين` يتخلى غلاف fs عن قيود الخيارات الخاصة به: خيارات fs / fd الموروث / flags للتدفقات، وwatch({ recursive: true })، ومرشحات cp غير المتزامنة (يحتفظ cpSync بـ ERR_INVALID_RETURN_VALUE من Node)، وأنماط glob المطلقة / الدليل الأب / '!' الحرفية مع مصفوفات exclude، وtype / encoding في readableWebStream، ومنشئات Stats / Dirent / Dir تتبع الآن سلوك Node 24 الأصلي؛ ويبلغ filesystemProfile.advancedApis.recursiveWatch عن native
+* `تحسين` أصبح readdir / opendir التكراري أصليًا (أُزيل الحد الأقصى 4096 مدخلًا وفحص realpath لكل مدخل؛ ويسرد readdir('/') أسماء proc/sys/dev كما في Node)، وتقبل readlink / chmod / chown / utimes المسارات المطلقة ويتبع chmod الروابط الرمزية، وتقلصت رموز أخطاء سياسة fs إلى ERR_AUTOJS6_FS_NUL_BYTE / ERR_AUTOJS6_FS_PATH_ESCAPE (الحد الصارم، مشترك مع المحمّل) / ERR_AUTOJS6_FS_SCOPED_PATH بينما تحتفظ إخفاقات fs العادية برمز Node فقط
 
 # v1.5.4
 

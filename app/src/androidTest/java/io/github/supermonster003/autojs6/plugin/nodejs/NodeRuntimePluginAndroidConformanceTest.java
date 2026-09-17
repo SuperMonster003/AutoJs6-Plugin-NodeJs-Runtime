@@ -916,6 +916,101 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         }
     }
 
+    /** M20.2: readdir/opendir recursion is native (no 4096-entry cap) and fs policy codes collapse to NUL / hard boundary / reach root. */
+    @Test
+    public void m20_readdirRecursionAndFsPolicyCodesFollowNode() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.cjs", """
+                const assert = require('node:assert/strict');
+                const fs = require('node:fs');
+                const fsp = require('node:fs/promises');
+                const path = require('node:path');
+                (async () => {
+                  const dir = fs.mkdtempSync(path.join(__dirname, 'readdir-'));
+                  try {
+                    const tree = path.join(dir, 'tree');
+                    fs.mkdirSync(path.join(tree, 'sub', 'deep'), { recursive: true });
+                    // 4200 files: the old wrapper walked the tree itself and threw ERR_OUT_OF_RANGE past 4096 entries.
+                    for (let index = 0; index < 4200; index += 1) fs.writeFileSync(path.join(tree, 'sub', 'f' + index + '.txt'), '');
+                    fs.writeFileSync(path.join(tree, 'sub', 'deep', 'leaf.txt'), 'leaf');
+                    fs.writeFileSync(path.join(tree, 'top.txt'), 'top');
+                    const names = fs.readdirSync(tree, { recursive: true });
+                    assert.equal(names.length, 4204);
+                    assert.ok(names.includes(path.join('sub', 'deep', 'leaf.txt')));
+                    const dirents = fs.readdirSync(tree, { recursive: true, withFileTypes: true });
+                    assert.equal(dirents.length, 4204);
+                    const leaf = dirents.find((entry) => entry.name === 'leaf.txt');
+                    assert.equal(leaf.parentPath, path.join(tree, 'sub', 'deep'));
+                    assert.ok(leaf.isFile() && dirents.find((entry) => entry.name === 'deep').isDirectory());
+                    const relativeTree = path.relative(process.cwd(), tree);
+                    const relativeLeaf = fs.readdirSync(relativeTree, { recursive: true, withFileTypes: true }).find((entry) => entry.name === 'leaf.txt');
+                    assert.equal(relativeLeaf.parentPath, path.join(relativeTree, 'sub', 'deep'));
+                    assert.equal(fs.readdirSync(tree, { withFileTypes: true }).find((entry) => entry.name === 'top.txt').parentPath, tree);
+                    assert.equal((await fsp.readdir(tree, { recursive: true })).length, 4204);
+                    let opened = 0;
+                    for await (const entry of await fsp.opendir(tree, { recursive: true })) opened += 1;
+                    assert.equal(opened, 4204);
+                    assert.ok(Buffer.isBuffer(fs.readdirSync(tree, { encoding: 'buffer' })[0]));
+                    // Listing '/' is Android's decision (SELinux may answer EACCES); the wrapper no longer adds an EPERM of its own.
+                    let rootEntries = null;
+                    try { rootEntries = fs.readdirSync('/'); } catch (error) { assert.equal(error.code, 'EACCES'); assert.equal(error.autojs6Code, undefined); }
+                    if (rootEntries) assert.ok(rootEntries.includes('proc') && rootEntries.includes('dev'), rootEntries.join(','));
+                    console.log('m20.readdir.recursive=' + names.length);
+                    // One code for the hard boundary (shared with the module loader and worker fs), one for NUL bytes, none for ordinary failures.
+                    const codeOf = (fn) => { try { fn(); return 'none'; } catch (error) { return String(error.autojs6Code || error.code); } };
+                    assert.equal(codeOf(() => fs.readFileSync('/proc/self/status')), 'ERR_AUTOJS6_FS_PATH_ESCAPE');
+                    assert.equal(codeOf(() => fs.readFileSync('../'.repeat(16) + 'proc/self/status')), 'ERR_AUTOJS6_FS_PATH_ESCAPE');
+                    assert.equal(codeOf(() => fs.readdirSync('/sys/kernel')), 'ERR_AUTOJS6_FS_PATH_ESCAPE');
+                    assert.equal(codeOf(() => fs.symlinkSync('/proc/self', path.join(dir, 'proc-link'))), 'ERR_AUTOJS6_FS_PATH_ESCAPE');
+                    assert.equal(codeOf(() => fs.readlinkSync('/proc/self/exe')), 'ERR_AUTOJS6_FS_PATH_ESCAPE');
+                    assert.equal(codeOf(() => fs.readFileSync(path.join(dir, 'a' + String.fromCharCode(0) + 'b'))), 'ERR_AUTOJS6_FS_NUL_BYTE');
+                    let missing = null;
+                    try { fs.readFileSync(path.join(dir, 'missing.txt')); } catch (error) { missing = error; }
+                    assert.equal(missing.code, 'ENOENT');
+                    assert.equal(missing.autojs6Code, undefined);
+                    let existing = null;
+                    try { fs.mkdirSync(tree); } catch (error) { existing = error; }
+                    assert.equal(existing.code, 'EEXIST');
+                    assert.equal(existing.autojs6Code, undefined);
+                    console.log('m20.fs.codes=PASS');
+                    // readlink / chmod / chown / utimes accept absolute paths (the old validators rejected any absolute path) and chmod follows symlinks like Node.
+                    const target = path.resolve(dir, 'target.txt');
+                    fs.writeFileSync(target, 'x');
+                    const absLink = path.resolve(dir, 'abs-link');
+                    fs.symlinkSync(target, absLink);
+                    assert.equal(fs.readlinkSync(absLink), target);
+                    fs.chmodSync(target, 0o600);
+                    assert.equal(fs.statSync(target).mode & 0o777, 0o600);
+                    fs.chmodSync(absLink, 0o640);
+                    assert.equal(fs.statSync(target).mode & 0o777, 0o640);
+                    fs.utimesSync(target, new Date(1000000000000), new Date(1000000000000));
+                    assert.equal(fs.statSync(target).mtimeMs, 1000000000000);
+                    fs.utimesSync(absLink, new Date(1100000000000), new Date(1100000000000));
+                    assert.equal(fs.statSync(target).mtimeMs, 1100000000000);
+                    const stat = fs.statSync(target);
+                    fs.chownSync(target, stat.uid, stat.gid);
+                    await fsp.chmod(absLink, 0o644);
+                    assert.equal(fs.statSync(target).mode & 0o777, 0o644);
+                    console.log('m20.fs.absolute.ops=PASS');
+                  } finally {
+                    fs.rmSync(dir, { recursive: true, force: true });
+                  }
+                  console.log('m20.readdir.codes=PASS');
+                })().catch((error) => { console.error(error && error.stack || error); process.exitCode = 1; });
+                """);
+        try (WorkspaceInvocation invocation = execute("m20-readdir-codes", "main.cjs", files, false)) {
+            assertSucceeded(invocation.result, "m20.readdir.codes=PASS");
+            String stdout = invocation.result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+            for (String expected : new String[] {
+                    "m20.readdir.recursive=4204",
+                    "m20.fs.codes=PASS",
+                    "m20.fs.absolute.ops=PASS"
+            }) {
+                assertTrue("stdout is missing '" + expected + "': " + stdout, stdout.contains(expected));
+            }
+        }
+    }
+
     /** M20.2: worker process.exit() ends the thread as in Node; getBuiltinModule follows the worker allowlist. */
     @Test
     public void m20_workerProcessExitAndGetBuiltinModuleFollowNode() throws Exception {
