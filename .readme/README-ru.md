@@ -127,6 +127,7 @@ console.log("AutoJs6 Node.js runtime");
 * `Улучшение` Внутри worker process.exit() завершает только поток worker, как в Node, а process.getBuiltinModule() следует списку разрешённых builtin worker вместо полного отключения
 * `Улучшение` Worker разрешают голые имена пакетов через node_modules рабочей области, как в Node (условия exports, main, index, самоссылка), вместо отказа
 * `Улучшение` Динамический import() внутри worker проходит через частичный ESM-загрузчик worker (локальные пути, URL file:, пакеты рабочей области, разрешённые builtin, with { type: "json" }) вместо отказа
+* `Улучшение` Пример host-events переведён в stable после ручной приёмки физической клавиши и доступа к уведомлениям
 
 # v1.5.4
 
