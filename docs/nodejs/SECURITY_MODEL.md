@@ -27,8 +27,10 @@ selection metadata cannot replace either declaration or Android consent. See
 [the manual guide](MANUAL-ACCEPTANCE.md) for runnable projects.
 
 Execution cancellation and resource cleanup remain necessary for usable lifecycle
-behavior. Remaining custom restrictions include sensitive fs roots (`/proc`, `/sys`,
-`/dev`), some process/worker/Java APIs and resource quotas. Their gradual reduction,
+behavior. Worker message size / queue caps and fs watcher count / event-rate quotas
+were removed in v1.5.5; remaining custom restrictions include sensitive fs roots
+(`/proc`, `/sys`, `/dev`), the worker-count default (CPU parallelism, adjustable per
+request), Binder transport limits and some process/worker/Java APIs. Their gradual reduction,
 along with capability defaults, is tracked by [M18-M20](../../Roadmap.md). No claim is made that all custom
 restrictions have already been removed.
 

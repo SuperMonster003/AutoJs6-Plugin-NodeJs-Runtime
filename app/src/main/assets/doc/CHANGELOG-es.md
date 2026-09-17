@@ -14,6 +14,7 @@
 * `Mejora` Los diagnósticos de autojs6:profile describen el runtime real en lugar de las marcas históricas partial / reserved / deferred: acceso a archivos limitado por Android, el subconjunto de process, los canales de worker, el pool de procesos y las decisiones de WASI / native addon
 * `Mejora` Auditoría de ejemplos: packaged-esm, packaged-dynamic-import, require-esm, wasm-basic, wasm-plugin y desktop-parity-suite pasan a stable; las dos suites de paridad ejecutan sus fragmentos en lugar de imprimir texto de catálogo; compile-cache se marca como no aplicable y se elimina el ejemplo package-install, que solo mostraba metadatos
 * `Mejora` La carga de módulos sigue el acceso a archivos de Android como en Node: require, import y Worker aceptan rutas absolutas, destinos en directorios superiores y URL file: (/proc, /sys y /dev siguen denegados); la búsqueda en node_modules permanece anclada al espacio de trabajo
+* `Mejora` Los mensajes de Worker y los observadores de fs siguen los límites nativos de Node: se eliminan los topes de 64 KB por mensaje y 32 en cola, y las cuotas de 16 observadores / 64 eventos por segundo; solo la memoria de Android los limita
 
 # v1.5.4
 

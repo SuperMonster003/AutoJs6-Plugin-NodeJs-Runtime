@@ -3639,8 +3639,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return Object.freeze({
       maxWorkers,
       startupTimeoutMs: integer("startupTimeoutMs", 5000, 1, 60000),
-      maxMessageBytes: 65536,
-      maxQueuedMessages: 32,
+      messageBudget: "native_structured_clone",
       allowedBuiltins: Object.freeze(builtins),
       workerProfile: Object.freeze({
         fs: Object.freeze({
@@ -4519,9 +4518,8 @@ std::string buildEmbeddedScriptExecutionSource(
           rawFd: false
         }),
         limits: Object.freeze({
-          watcherLimit: __autojs6_scoped_fs_watcher_limit,
-          watchEventLimit: __autojs6_scoped_fs_watch_event_limit,
-          watchEventWindowMs: __autojs6_scoped_fs_watch_event_window_ms
+          watchers: "native_unbounded",
+          watchEvents: "native_unbounded"
         })
       }),
       workerThreadsProfile: Object.freeze({
@@ -4549,8 +4547,7 @@ std::string buildEmbeddedScriptExecutionSource(
         executionMode: "not_applicable_runs_inside_execution",
         secondExecutionSlot: "process_pool_two_slots",
         scopedScriptPath: "android_file_access",
-        messageSizeBytes: __autojs6_worker_threads_policy.maxMessageBytes,
-        maxQueuedMessages: __autojs6_worker_threads_policy.maxQueuedMessages,
+        messageBudget: "native_structured_clone",
         cleanup: "worker_pool_close_or_execution_destroy",
         packagedBehavior: "stable",
         bridgeModules: "denied",
@@ -8605,93 +8602,6 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_define_error_property(error, "autojs6Code", "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
     return error;
   }
-  function __autojs6_worker_threads_estimate_message_bytes(value) {
-    const seen = new Set();
-    function estimate(input, depth) {
-      if (input === undefined || input === null) return 4;
-      const valueType = typeof input;
-      if (valueType === "string") return input.length * 2;
-      if (valueType === "number" || valueType === "bigint") return 8;
-      if (valueType === "boolean") return 4;
-      if (valueType === "function" || valueType === "symbol") {
-        throw __autojs6_worker_threads_data_clone_error(
-          "AutoJs6 worker_threads message cannot clone " + valueType + " values.",
-          "uncloneable_" + valueType
-        );
-      }
-      if (depth > 32) return 0;
-      if (seen.has(input)) return 0;
-      seen.add(input);
-      if (typeof ArrayBuffer === "function" && input instanceof ArrayBuffer) {
-        return input.byteLength;
-      }
-      if (typeof ArrayBuffer === "function" && typeof ArrayBuffer.isView === "function" && ArrayBuffer.isView(input)) {
-        return input.byteLength || 0;
-      }
-      if (input && typeof input === "object") {
-        const tag = Object.prototype.toString.call(input);
-        if (tag === "[object Date]") return 16;
-        if (tag === "[object MessagePort]") return 64;
-        if (typeof Map === "function" && input instanceof Map) {
-          let total = 0;
-          for (const entry of input) {
-            total += estimate(entry[0], depth + 1) + estimate(entry[1], depth + 1);
-          }
-          return total;
-        }
-        if (typeof Set === "function" && input instanceof Set) {
-          let total = 0;
-          for (const item of input) {
-            total += estimate(item, depth + 1);
-          }
-          return total;
-        }
-        let total = 0;
-        for (const key of Object.keys(input)) {
-          total += String(key).length * 2;
-          total += estimate(input[key], depth + 1);
-        }
-        return total;
-      }
-      return 0;
-    }
-    return estimate(value, 0);
-  }
-  function __autojs6_worker_threads_validate_message_budget(message, label) {
-    const size = __autojs6_worker_threads_estimate_message_bytes(message);
-    if (size > __autojs6_worker_threads_policy.maxMessageBytes) {
-      throw __autojs6_worker_threads_data_clone_error(
-        "AutoJs6 worker_threads " + label + " exceeds " +
-          __autojs6_worker_threads_policy.maxMessageBytes + " bytes.",
-        "message_too_large"
-      );
-    }
-    return size;
-  }
-  function __autojs6_worker_threads_try_queue_message(queueState, label) {
-    const state = queueState || {};
-    const queued = Math.max(0, Number(state.__autojs6QueuedMessages) || 0);
-    if (queued >= __autojs6_worker_threads_policy.maxQueuedMessages) {
-      throw __autojs6_worker_threads_data_clone_error(
-        "AutoJs6 worker_threads " + label + " exceeded " +
-          __autojs6_worker_threads_policy.maxQueuedMessages + " queued messages.",
-        "message_queue_limit"
-      );
-    }
-    state.__autojs6QueuedMessages = queued + 1;
-    const decrement = function() {
-      state.__autojs6QueuedMessages = Math.max(0, (Number(state.__autojs6QueuedMessages) || 0) - 1);
-    };
-    try {
-      if (typeof setImmediate === "function") {
-        setImmediate(decrement);
-      } else {
-        setTimeout(decrement, 0);
-      }
-    } catch (_) {
-      decrement();
-    }
-  }
   function __autojs6_worker_threads_register_message_port_record(record) {
     if (!record || record.__autojs6Closed) return;
     if (__autojs6_worker_message_port_records.has(record)) return;
@@ -8843,8 +8753,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return Object.freeze({
       maxWorkers: __autojs6_worker_threads_policy.maxWorkers,
       startupTimeoutMs: __autojs6_worker_threads_policy.startupTimeoutMs,
-      maxMessageBytes: __autojs6_worker_threads_policy.maxMessageBytes,
-      maxQueuedMessages: __autojs6_worker_threads_policy.maxQueuedMessages,
+      messageBudget: __autojs6_worker_threads_policy.messageBudget,
       allowedBuiltins: Object.freeze(__autojs6_worker_threads_policy.allowedBuiltins.slice()),
       workerProfile: Object.freeze({
         fs: Object.freeze({
@@ -9083,8 +8992,6 @@ std::string buildEmbeddedScriptExecutionSource(
       dirname: descriptor.dirname,
       format: descriptor.format,
       policy: {
-        maxMessageBytes: __autojs6_worker_threads_policy.maxMessageBytes,
-        maxQueuedMessages: __autojs6_worker_threads_policy.maxQueuedMessages,
         allowedBuiltins: __autojs6_worker_threads_policy.allowedBuiltins,
         rawNetwork: __autojs6_raw_node_network_modules_enabled,
         unrestrictedFs: __autojs6_unrestricted_fs_access_enabled,
@@ -9169,10 +9076,6 @@ std::string buildEmbeddedScriptExecutionSource(
   const __allowed = Object.freeze(Object.fromEntries(__descriptor.policy.allowedBuiltins.map(name => [name.replace(/^node:/, ""), name])));
   const __networkBuiltins = new Set(["net", "http", "https", "tls", "dns", "dns/promises", "dgram", "http2"]);
   let __sqliteCache = null;
-  const __messagePolicy = Object.freeze({
-    maxMessageBytes: (__descriptor.policy && __descriptor.policy.maxMessageBytes) || 65536,
-    maxQueuedMessages: (__descriptor.policy && __descriptor.policy.maxQueuedMessages) || 32
-  });
   const __profilePolicy = (__descriptor.policy && __descriptor.policy.workerProfile) || {};
   const __workerProfile = Object.freeze({
     fs: Object.freeze({
@@ -9187,7 +9090,6 @@ std::string buildEmbeddedScriptExecutionSource(
   });
   let __limitedFsCache = null;
   let __limitedFsPromisesCache = null;
-  const __parentPortQueueState = Object.create(null);
   function __dataCloneError(message) {
     let error;
     if (typeof DOMException === "function") {
@@ -9198,45 +9100,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     __defineErrorProperty(error, "autojs6Code", "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
     return error;
-  }
-  function __estimateMessageBytes(value, seen, depth) {
-    if (value === undefined || value === null) return 4;
-    const valueType = typeof value;
-    if (valueType === "string") return value.length * 2;
-    if (valueType === "number" || valueType === "bigint") return 8;
-    if (valueType === "boolean") return 4;
-    if (valueType === "function" || valueType === "symbol") {
-      throw __dataCloneError("AutoJs6 worker_threads cannot clone " + valueType + " values.");
-    }
-    const visited = seen || new Set();
-    const currentDepth = depth || 0;
-    if (currentDepth > 32 || visited.has(value)) return 0;
-    visited.add(value);
-    if (typeof ArrayBuffer === "function" && value instanceof ArrayBuffer) return value.byteLength;
-    if (typeof ArrayBuffer === "function" && typeof ArrayBuffer.isView === "function" && ArrayBuffer.isView(value)) return value.byteLength || 0;
-    if (Object.prototype.toString.call(value) === "[object MessagePort]") return 64;
-    if (typeof Map === "function" && value instanceof Map) {
-      let total = 0;
-      for (const entry of value) total += __estimateMessageBytes(entry[0], visited, currentDepth + 1) + __estimateMessageBytes(entry[1], visited, currentDepth + 1);
-      return total;
-    }
-    if (typeof Set === "function" && value instanceof Set) {
-      let total = 0;
-      for (const item of value) total += __estimateMessageBytes(item, visited, currentDepth + 1);
-      return total;
-    }
-    let total = 0;
-    for (const key of Object.keys(value)) {
-      total += String(key).length * 2;
-      total += __estimateMessageBytes(value[key], visited, currentDepth + 1);
-    }
-    return total;
-  }
-  function __validateMessage(message, label) {
-    const size = __estimateMessageBytes(message);
-    if (size > __messagePolicy.maxMessageBytes) {
-      throw __dataCloneError("AutoJs6 worker_threads " + label + " exceeds " + __messagePolicy.maxMessageBytes + " bytes.");
-    }
   }
   function __prepareTransferList(transferList, label) {
     if (transferList === undefined || transferList === null) return [];
@@ -9265,22 +9128,8 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return output;
   }
-  function __tryQueueMessage(queueState, label) {
-    const queued = Math.max(0, Number(queueState.queued) || 0);
-    if (queued >= __messagePolicy.maxQueuedMessages) {
-      throw __dataCloneError("AutoJs6 worker_threads " + label + " exceeded " + __messagePolicy.maxQueuedMessages + " queued messages.");
-    }
-    queueState.queued = queued + 1;
-    const decrement = function() {
-      queueState.queued = Math.max(0, (Number(queueState.queued) || 0) - 1);
-    };
-    if (typeof setImmediate === "function") setImmediate(decrement);
-    else setTimeout(decrement, 0);
-  }
   const __limitedParentPort = Object.freeze({
     postMessage: function(message, transferList) {
-      __validateMessage(message, "parentPort.postMessage");
-      __tryQueueMessage(__parentPortQueueState, "parentPort.postMessage");
       return __parentPort.postMessage(message, __prepareTransferList(transferList, "parentPort.postMessage transferList"));
     },
     on: function(eventName, listener) { __parentPort.on(eventName, listener); return this; },
@@ -10074,7 +9923,6 @@ std::string buildEmbeddedScriptExecutionSource(
       const state = {
         nativePort,
         record,
-        queued: Object.create(null),
         onmessage: null,
         onmessageWrapper: null,
         onmessageerror: null,
@@ -10216,10 +10064,9 @@ std::string buildEmbeddedScriptExecutionSource(
         __autojs6_worker_threads_unregister_message_port_record(record);
       }
     }
-    function __autojs6_worker_threads_post_native_message(nativeTarget, queueState, message, transferList, label) {
+    function __autojs6_worker_threads_post_native_message(nativeTarget, message, transferList, label) {
+      // Message size and queue depth follow Node's native structured clone; only memory bounds them.
       const prepared = __autojs6_worker_threads_prepare_transfer_list(transferList, label + " transferList");
-      __autojs6_worker_threads_validate_message_budget(message, label);
-      __autojs6_worker_threads_try_queue_message(queueState, label);
       const nativeMessage = __autojs6_worker_threads_to_native_message(message);
       try {
         const result = nativeTarget.postMessage(nativeMessage, prepared.nativeList);
@@ -10326,7 +10173,6 @@ std::string buildEmbeddedScriptExecutionSource(
           if (state.record.__autojs6Closed) return undefined;
           return __autojs6_worker_threads_post_native_message(
             state.nativePort,
-            state.queued,
             message,
             transferList,
             "MessagePort.postMessage"
@@ -10450,7 +10296,6 @@ std::string buildEmbeddedScriptExecutionSource(
           opts.transferList,
           "Worker options.transferList"
         );
-        __autojs6_worker_threads_validate_message_budget(opts.workerData, "Worker workerData");
         const nativeWorkerData = __autojs6_worker_threads_to_native_message(opts.workerData);
         const nativeResourceLimits = __autojs6_worker_threads_normalize_resource_limits(
           opts.resourceLimits,
@@ -10541,7 +10386,6 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       return __autojs6_worker_threads_post_native_message(
         this.__autojs6NativeWorker,
-        this,
         message,
         transferList,
         "Worker.postMessage"
@@ -28111,9 +27955,6 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_scoped_fd_records = Object.create(null);
   let __autojs6_scoped_fd_next_id = 1;
   const __autojs6_scoped_fs_recursive_entry_limit = 4096;
-  const __autojs6_scoped_fs_watcher_limit = 16;
-  const __autojs6_scoped_fs_watch_event_limit = 64;
-  const __autojs6_scoped_fs_watch_event_window_ms = 1000;
   let __autojs6_deferred_success_waiting = false;
   let __autojs6_deferred_success_value = undefined;
   function __autojs6_pending_callback_count() {
@@ -28564,7 +28405,6 @@ std::string buildEmbeddedScriptExecutionSource(
       wrappedListener,
       pending: __autojs6_watch_file_keeps_pending(options),
       active: true,
-      rateState: __autojs6_create_scoped_fs_watch_rate_state()
     };
     try {
       Object.defineProperty(wrappedListener, "__autojs6ScopedWatchFileRecord", {
@@ -28631,76 +28471,6 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_fs_watch_keeps_pending(options) {
     return !(options && typeof options === "object" && options.persistent === false);
   }
-  function __autojs6_active_scoped_fs_watcher_count() {
-    return __autojs6_scoped_fs_watch_records.length +
-      __autojs6_scoped_watch_file_records.length;
-  }
-  function __autojs6_assert_scoped_fs_watcher_available(operation) {
-    if (__autojs6_active_scoped_fs_watcher_count() >= __autojs6_scoped_fs_watcher_limit) {
-      throw __autojs6_error(
-        "Embedded Node scoped fs " + operation + " watcher limit exceeded: " +
-          __autojs6_scoped_fs_watcher_limit,
-        "ERR_AUTOJS6_FS_WATCH_LIMIT"
-      );
-    }
-  }
-  function __autojs6_create_scoped_fs_watch_rate_state() {
-    return {
-      windowStartMs: 0,
-      eventCount: 0
-    };
-  }
-  function __autojs6_scoped_fs_watch_rate_limit_error(operation) {
-    return __autojs6_error(
-      "Embedded Node scoped fs " + operation + " event rate limit exceeded: " +
-        __autojs6_scoped_fs_watch_event_limit + " events per " +
-        __autojs6_scoped_fs_watch_event_window_ms + "ms",
-      "ERR_AUTOJS6_FS_WATCH_RATE_LIMITED"
-    );
-  }
-  function __autojs6_close_rate_limited_watch_record(record) {
-    if (!record) {
-      return;
-    }
-    if (record.kind === "watchFile") {
-      try {
-        __autojs6_untrack_watch_file_records(record.path, record.listener, true);
-      } catch (_) {
-        __autojs6_settle_watch_file_record(record);
-      }
-      return;
-    }
-    try {
-      if (record.close && typeof record.close === "function") {
-        record.close();
-      } else if (record.watcher && typeof record.watcher.close === "function") {
-        record.watcher.close();
-      }
-    } catch (_) {
-    } finally {
-      __autojs6_settle_fs_watch_record(record);
-    }
-  }
-  function __autojs6_note_scoped_fs_watch_event(record, operation) {
-    if (!record || !record.active) {
-      return;
-    }
-    const state = record.rateState || (record.rateState = __autojs6_create_scoped_fs_watch_rate_state());
-    const now = Date.now();
-    if (
-      !state.windowStartMs ||
-      now - state.windowStartMs >= __autojs6_scoped_fs_watch_event_window_ms
-    ) {
-      state.windowStartMs = now;
-      state.eventCount = 0;
-    }
-    state.eventCount += 1;
-    if (state.eventCount > __autojs6_scoped_fs_watch_event_limit) {
-      const error = __autojs6_scoped_fs_watch_rate_limit_error(operation);
-      __autojs6_close_rate_limited_watch_record(record);
-      throw error;
-    }
-  }
   function __autojs6_patch_fs_watcher_handle(watcher, record) {
     if (!watcher || typeof watcher.close !== "function" || watcher.__autojs6ScopedFsWatchPatched) {
       return watcher;
@@ -28708,7 +28478,6 @@ std::string buildEmbeddedScriptExecutionSource(
     const nativeClose = watcher.close;
     const nativeRef = typeof watcher.ref === "function" ? watcher.ref : null;
     const nativeUnref = typeof watcher.unref === "function" ? watcher.unref : null;
-    const nativeEmit = typeof watcher.emit === "function" ? watcher.emit : null;
     try {
       Object.defineProperty(watcher, "close", {
         value: function() {
@@ -28735,19 +28504,6 @@ std::string buildEmbeddedScriptExecutionSource(
           value: function() {
             __autojs6_set_watch_record_pending(record, false);
             return nativeUnref.apply(this, arguments);
-          },
-          configurable: true,
-          enumerable: false,
-          writable: true
-        });
-      }
-      if (nativeEmit) {
-        Object.defineProperty(watcher, "emit", {
-          value: function(eventName) {
-            if (eventName === "change") {
-              __autojs6_note_scoped_fs_watch_event(record, "watch");
-            }
-            return nativeEmit.apply(this, arguments);
           },
           configurable: true,
           enumerable: false,
@@ -28790,7 +28546,6 @@ std::string buildEmbeddedScriptExecutionSource(
       watcher,
       pending: __autojs6_fs_watch_keeps_pending(options),
       active: true,
-      rateState: __autojs6_create_scoped_fs_watch_rate_state()
     };
     const cleanup = function() {
       __autojs6_timers_promises_remove_abort_listener(signal, onAbort);
@@ -28851,7 +28606,6 @@ std::string buildEmbeddedScriptExecutionSource(
       pending: __autojs6_fs_watch_keeps_pending(options),
       active: true,
       close: null,
-      rateState: __autojs6_create_scoped_fs_watch_rate_state()
     };
     const cleanup = function() {
       __autojs6_timers_promises_remove_abort_listener(signal, onAbort);
@@ -28907,7 +28661,6 @@ std::string buildEmbeddedScriptExecutionSource(
               finish(null);
             }
             if (result && !result.done && result.value) {
-              __autojs6_note_scoped_fs_watch_event(record, "watch");
               return {
                 value: __autojs6_watch_event_value(result.value, filenameEncoding),
                 done: false
@@ -29019,7 +28772,6 @@ std::string buildEmbeddedScriptExecutionSource(
     const normalized = __autojs6_normalize_fs_watch_options(parsed.options);
     const watchOptions = normalized.options;
     const resolved = __autojs6_validate_fs_path(pathValue, "watch", { mustExist: true });
-    __autojs6_assert_scoped_fs_watcher_available("watch");
     const wrapped = typeof parsed.listener === "function"
       ? function(eventType, filename) {
           if (__autojs6_finished) {
@@ -29056,7 +28808,6 @@ std::string buildEmbeddedScriptExecutionSource(
     const normalized = __autojs6_normalize_fs_watch_options(options);
     const watchOptions = normalized.options;
     const resolved = __autojs6_validate_fs_path(pathValue, "watch", { mustExist: true });
-    __autojs6_assert_scoped_fs_watcher_available("watch");
     const nativeIterator = watchOptions === undefined
       ? nodeFsPromises.watch(resolved)
       : nodeFsPromises.watch(resolved, watchOptions);
@@ -29076,16 +28827,11 @@ std::string buildEmbeddedScriptExecutionSource(
         return;
       }
       try {
-        __autojs6_note_scoped_fs_watch_event(
-          wrapped.__autojs6ScopedWatchFileRecord,
-          "watchFile"
-        );
         return parsed.listener.call(this, curr, prev);
       } catch (error) {
         __autojs6_finish_error(error);
       }
     };
-    __autojs6_assert_scoped_fs_watcher_available("watchFile");
     const handle = parsed.options === undefined
       ? nodeFs.watchFile(resolved, wrapped)
       : nodeFs.watchFile(resolved, parsed.options, wrapped);

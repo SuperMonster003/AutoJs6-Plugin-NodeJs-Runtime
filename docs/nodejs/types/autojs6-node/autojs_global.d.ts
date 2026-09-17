@@ -525,10 +525,10 @@ declare namespace AutoJs6Node {
     readonly rawFd: boolean;
   }
 
+  /** Watchers and watch events follow native Node; only Android memory bounds them. */
   export interface FilesystemProfileLimits {
-    readonly watcherLimit: number;
-    readonly watchEventLimit: number;
-    readonly watchEventWindowMs: number;
+    readonly watchers: "native_unbounded" | string;
+    readonly watchEvents: "native_unbounded" | string;
   }
 
   export interface FilesystemProfile {
@@ -588,8 +588,8 @@ declare namespace AutoJs6Node {
   export interface WorkerThreadsPolicy {
     readonly maxWorkers: number;
     readonly startupTimeoutMs: number;
-    readonly maxMessageBytes: number;
-    readonly maxQueuedMessages: number;
+    /** Message size and queue depth follow Node's structured clone; there is no AutoJs6 cap. */
+    readonly messageBudget: "native_structured_clone" | string;
     readonly allowedBuiltins: readonly string[];
     readonly workerProfile: WorkerThreadsWorkerProfile;
     readonly workerPool: WorkerThreadsPoolPolicy;
@@ -622,8 +622,7 @@ declare namespace AutoJs6Node {
     readonly executionMode: "not_applicable_runs_inside_execution" | string;
     readonly secondExecutionSlot: "process_pool_two_slots" | string;
     readonly scopedScriptPath: "android_file_access" | "workingDirectory" | string;
-    readonly messageSizeBytes: number;
-    readonly maxQueuedMessages: number;
+    readonly messageBudget: "native_structured_clone" | string;
     readonly cleanup: "worker_pool_close_or_execution_destroy" | string;
     readonly packagedBehavior: "stable" | string;
     readonly bridgeModules: "denied" | string;

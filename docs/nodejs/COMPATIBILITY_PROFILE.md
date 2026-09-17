@@ -25,7 +25,9 @@ suites into real runners, and `new Worker(code, { eval: true })` now works as
 in Node. Module loading follows Android file access like Node (M20.2): `require`,
 `import` and `Worker` accept absolute paths, parent-directory targets and `file:`
 URLs, with `/proc`, `/sys` and `/dev` still denied; `node_modules` lookup and
-package scopes stay anchored to the workspace.
+package scopes stay anchored to the workspace. Worker messages and fs watchers
+follow native Node limits: the 64 KB message / 32-queued caps and the
+16-watcher / 64-events-per-second quotas are gone, so only Android memory bounds them.
 Native Node builtins retain their own names: `events` / `node:events` is EventEmitter;
 Android event observation is exposed as `autojs6:events`. The runtime links ICU 78 with
 English-only locale data (`--with-intl=small-icu`, since v1.5.1): `Intl` exists and
