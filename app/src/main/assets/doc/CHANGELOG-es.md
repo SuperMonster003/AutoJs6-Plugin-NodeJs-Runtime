@@ -22,6 +22,7 @@
 * `Mejora` La muestra scheduled-node-task imprime su política de ciclo de vida y puede conservar la tarea programada para una ejecución real de WorkManager; el modo scheduled obtiene regresión del lado del plugin
 * `Mejora` El modo de ejecución scheduled pasa a available en el catálogo de capacidades tras una ejecución real del runner programado de WorkManager del host a través del plugin
 * `Mejora` media.play() devuelve una sesión de reproducción (pause/resume/seekTo/stop/status) a través del servicio de música de scripts del host, y el nuevo módulo media_store expone un acceso acotado a MediaStore (capabilities/query/get/insert/update/delete/scanFile/exportFile) protegido por las capacidades media.playback / media.library / media.library.mutate; autojs6:compat.media añade los alias estilo Rhino playMusic; ambos requieren la compilación del host correspondiente
+* `Mejora` Los ejemplos media-playback / media-library pasan a stable tras la aceptación manual con los proveedores de medios del host ya integrados; la instantánea 1.5.5 del catálogo de capacidades se publica en releases/nodejs-capability-catalog y la tarea de alineación con el host ahora la referencia
 
 # v1.5.4
 

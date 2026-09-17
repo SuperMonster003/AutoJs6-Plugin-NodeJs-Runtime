@@ -560,8 +560,8 @@
     },
     {
       "name": "media-playback",
-      "status": "partial",
-      "reason": "Host media session playback (play, pause, seek, resume, stop, Rhino playMusic aliases) passed host instrumentation on a physical device with the same call chain; the audible manual acceptance of this project is still open.",
+      "status": "stable",
+      "reason": "Manual acceptance passed on 2026-09-17 on the user's device with a host that ships the media providers (audible tone, session pause/seek/resume/stop and the Rhino playMusic aliases); the same call chain passed host instrumentation on a physical device.",
       "tags": [
         "main-app",
         "bridge",
@@ -572,8 +572,8 @@
     },
     {
       "name": "media-library",
-      "status": "partial",
-      "reason": "The MediaStore capabilities/insert/query/get/update/exportFile/scanFile/delete round trip passed host instrumentation on a physical device with the same call chain; manual acceptance of this project on a user device is still open.",
+      "status": "stable",
+      "reason": "Manual acceptance passed on 2026-09-17 on the user's device with a host that ships the media providers (MediaStore capabilities/insert/query/update/exportFile/scanFile/delete round trip); the same call chain passed host instrumentation on a physical device.",
       "tags": [
         "main-app",
         "bridge",

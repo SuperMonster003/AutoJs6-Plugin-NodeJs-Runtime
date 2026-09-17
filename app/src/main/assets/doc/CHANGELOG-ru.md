@@ -22,6 +22,7 @@
 * `Улучшение` Пример scheduled-node-task печатает политику жизненного цикла и может сохранять запланированную задачу для реального запуска WorkManager; режим scheduled получил регрессию на стороне плагина
 * `Улучшение` Режим выполнения scheduled переведён в available в каталоге возможностей после реального запуска планировщика WorkManager хоста через плагин
 * `Улучшение` media.play() возвращает сеанс воспроизведения (pause/resume/seekTo/stop/status) через музыкальный сервис хоста, а новый модуль media_store даёт ограниченный доступ к MediaStore (capabilities/query/get/insert/update/delete/scanFile/exportFile) под возможностями media.playback / media.library / media.library.mutate; autojs6:compat.media получает псевдонимы в стиле Rhino playMusic; для обоих нужна соответствующая сборка хоста
+* `Улучшение` Примеры media-playback / media-library переведены в stable после ручной приёмки с объединёнными медиа-провайдерами хоста; снимок каталога возможностей 1.5.5 опубликован в releases/nodejs-capability-catalog, и задача сверки с хостом теперь указывает на него
 
 # v1.5.4
 

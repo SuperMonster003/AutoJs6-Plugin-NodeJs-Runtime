@@ -131,6 +131,7 @@ console.log("AutoJs6 Node.js runtime");
 * `優化` scheduled-node-task 範例列印生命週期策略並可保留定時任務供 WorkManager 實跑; scheduled 執行模式補齊插件側回歸
 * `優化` scheduled 執行模式在宿主 WorkManager 定時執行器經插件實跑通過後, 能力目錄狀態轉為 available
 * `優化` media.play() 回傳經宿主腳本音樂服務播放的會話物件 (pause/resume/seekTo/stop/status), 新增 media_store 模組提供受限的 MediaStore capabilities/query/get/insert/update/delete/scanFile/exportFile, 分別由 media.playback / media.library / media.library.mutate 能力把關; autojs6:compat.media 補上 Rhino 風格的 playMusic 等別名; 均需配套宿主構建
+* `優化` media-playback / media-library 範例經宿主媒體 provider 合併後的人工驗收轉為 stable; 能力目錄快照 1.5.5 發佈到 releases/nodejs-capability-catalog, 宿主對齊任務改為對照該快照
 
 # v1.5.4
 
