@@ -123,6 +123,7 @@ console.log("AutoJs6 Node.js runtime");
 * `تحسين` أصبحت تشخيصات autojs6:profile تصف وقت التشغيل الفعلي بدلا من العلامات التاريخية partial / reserved / deferred: الوصول إلى الملفات ضمن أذونات Android، ومجموعة process الفرعية، وقنوات worker، ومجمع العمليات، وقرارات WASI / native addon
 * `تحسين` مراجعة الأمثلة: أصبحت packaged-esm و packaged-dynamic-import و require-esm و wasm-basic و wasm-plugin و desktop-parity-suite مستقرة؛ وتنفذ حزمتا التكافؤ مقاطعهما فعليا بدلا من طباعة نص الفهرس؛ وعُلّم compile-cache على أنه غير قابل للتطبيق وحُذف مثال package-install الذي كان يعرض بيانات وصفية فقط
 * `تحسين` يتبع تحميل الوحدات وصول Android إلى الملفات كما في Node: يقبل require و import و Worker المسارات المطلقة وأهداف الدلائل الأعلى وعناوين file: (يبقى /proc و /sys و /dev مرفوضة)؛ ويظل البحث في node_modules مثبتا على مساحة العمل
+* `تحسين` تتبع رسائل Worker ومراقبو fs حدود Node الأصلية: أُزيلت حدود 64 كيلوبايت للرسالة و 32 في الطابور وحصص 16 مراقبا / 64 حدثا في الثانية؛ ولا يحدها سوى ذاكرة Android
 
 # v1.5.4
 

@@ -123,6 +123,7 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` autojs6:profile 诊断对象按实际运行时描述, 不再沿用历史 partial / reserved / deferred 文案: Android 权限约束的文件访问、process 子集、worker 通道、进程池以及 WASI / native addon 决策
 * `优化` 样例清点: packaged-esm、packaged-dynamic-import、require-esm、wasm-basic、wasm-plugin 与 desktop-parity-suite 转为 stable; 两个 parity 套件改为真正逐条执行片段而非打印目录文案; compile-cache 标为不适用, 删除只打印元数据的 package-install 样例
 * `优化` 模块加载与 Node 一致地交给 Android 文件访问: require、import 与 Worker 接受绝对路径、上级目录目标与 file: URL (/proc、/sys、/dev 仍拒绝); node_modules 查找仍锚定工作区
+* `优化` Worker 消息与 fs 监视器按 Node 原生限制运行: 移除 64 KB 消息与 32 条排队上限, 以及 16 个监视器 / 每秒 64 事件配额; 仅受 Android 内存约束
 
 # v1.5.4
 

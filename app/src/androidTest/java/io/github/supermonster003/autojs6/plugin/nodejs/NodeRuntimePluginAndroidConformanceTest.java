@@ -588,6 +588,87 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         }
     }
 
+    /** M20.2: worker messages and fs watchers follow native Node limits; only Android memory bounds them. */
+    @Test
+    public void m20_workerMessagesAndFsWatchersFollowNativeLimits() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("echo.cjs", "const { parentPort, workerData } = require('node:worker_threads');"
+                + " parentPort.on('message', (m) => parentPort.postMessage({ length: m.length, workerData: workerData.length, big: new Uint8Array(300000) }));");
+        files.put("main.cjs", """
+                const assert = require('node:assert/strict');
+                const fs = require('node:fs');
+                const path = require('node:path');
+                const wt = require('node:worker_threads');
+                const profile = require('autojs6:profile');
+                assert.equal(wt.policy.messageBudget, 'native_structured_clone');
+                assert.equal(profile.filesystemProfile.limits.watchers, 'native_unbounded');
+                assert.equal(profile.processWorkerReplacementProfile.messageBudget, 'native_structured_clone');
+                (async () => {
+                  const worker = new wt.Worker(path.join(__dirname, 'echo.cjs'), { workerData: new Uint8Array(200000) });
+                  try {
+                    const replies = [];
+                    const done = new Promise((resolve, reject) => {
+                      worker.on('message', (reply) => { replies.push(reply); if (replies.length === 40) resolve(); });
+                      worker.on('error', reject);
+                    });
+                    // 40 messages in one tick, the first a 1 MiB payload: the old 64 KB / 32-queued caps threw here.
+                    worker.postMessage(new Uint8Array(1048576));
+                    for (let index = 1; index < 40; index += 1) worker.postMessage(new Uint8Array(1000));
+                    await done;
+                    assert.equal(replies[0].length, 1048576);
+                    assert.equal(replies[0].workerData, 200000);
+                    assert.equal(replies[0].big.length, 300000);
+                    console.log('m20.worker.messages=' + replies.length);
+                  } finally {
+                    await worker.terminate();
+                  }
+                  const dir = fs.mkdtempSync(path.join(__dirname, 'watch-'));
+                  const watchers = [];
+                  try {
+                    // 24 watchers: the old cap threw ERR_AUTOJS6_FS_WATCH_LIMIT at the 17th.
+                    for (let index = 0; index < 24; index += 1) {
+                      const file = path.join(dir, 'file-' + index + '.txt');
+                      fs.writeFileSync(file, 'x');
+                      watchers.push(fs.watch(file, () => {}));
+                    }
+                    console.log('m20.fs.watchers=' + watchers.length);
+                    const busy = path.join(dir, 'busy.txt');
+                    fs.writeFileSync(busy, 'start');
+                    let events = 0;
+                    watchers.push(fs.watch(busy, () => { events += 1; }));
+                    // 100 change events within a second: the old quota closed the watcher after 64.
+                    for (let index = 0; index < 100; index += 1) {
+                      fs.writeFileSync(busy, 'tick ' + index);
+                      await new Promise((resolve) => setImmediate(resolve));
+                    }
+                    const deadline = Date.now() + 3000;
+                    while (events < 65 && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 20));
+                    console.log('m20.fs.watch.events=' + (events >= 65 ? 'unbounded' : String(events)));
+                  } finally {
+                    for (const watcher of watchers) watcher.close();
+                    fs.rmSync(dir, { recursive: true, force: true });
+                  }
+                  console.log('m20.quotas=PASS');
+                })().catch((error) => { console.error(error && error.stack || error); process.exitCode = 1; });
+                """);
+        try (WorkspaceInvocation invocation = execute("m20-quotas", "main.cjs", files,
+                new LinkedHashMap<>(), false, null, null, SCRIPT_TIMEOUT_MS, false, Collections.emptyList(), true)) {
+            Bundle result = invocation.result;
+            String stdout = result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+            assertTrue("m20 quotas failed: " + result.getString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, "")
+                            + " / " + result.getString(NodeJsRuntimeContract.KEY_STDERR, "") + " / " + stdout,
+                    result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            for (String expected : new String[] {
+                    "m20.worker.messages=40",
+                    "m20.fs.watchers=24",
+                    "m20.fs.watch.events=unbounded",
+                    "m20.quotas=PASS"
+            }) {
+                assertTrue("stdout is missing '" + expected + "': " + stdout, stdout.contains(expected));
+            }
+        }
+    }
+
     @Test
     public void x3d_03_importedCommonJsStackRemovesFunctionWrapperOffset() throws Exception {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();
