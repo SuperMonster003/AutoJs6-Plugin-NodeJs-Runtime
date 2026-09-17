@@ -129,6 +129,7 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 * `Mejora` El import() dinámico dentro de los workers pasa por el cargador ESM parcial del worker (rutas locales, URL file:, paquetes del espacio de trabajo, builtins permitidos, with { type: "json" }) en lugar de rechazarse
 * `Mejora` La muestra host-events pasa a stable tras superar la aceptación manual de tecla física y acceso a notificaciones
 * `Mejora` La muestra scheduled-node-task imprime su política de ciclo de vida y puede conservar la tarea programada para una ejecución real de WorkManager; el modo scheduled obtiene regresión del lado del plugin
+* `Mejora` El modo de ejecución scheduled pasa a available en el catálogo de capacidades tras una ejecución real del runner programado de WorkManager del host a través del plugin
 
 # v1.5.4
 

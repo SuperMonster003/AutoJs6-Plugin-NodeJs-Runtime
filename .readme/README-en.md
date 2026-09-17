@@ -129,6 +129,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 * `Improvement` Dynamic import() inside workers goes through the worker partial ESM loader (local paths, file: URLs, workspace packages, allowed builtins, with { type: "json" }) instead of being rejected
 * `Improvement` host-events sample promoted to stable after the physical key and notification access acceptance passed
 * `Improvement` scheduled-node-task sample prints its lifecycle policy and can keep the scheduled task for a real WorkManager run; the scheduled execution mode gains plugin-side regression coverage
+* `Improvement` scheduled execution mode promoted to available in the capability catalog after a real host WorkManager scheduled-runner run through the plugin
 
 # v1.5.4
 

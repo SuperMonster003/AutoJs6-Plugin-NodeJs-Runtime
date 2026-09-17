@@ -20,6 +20,7 @@
 * `Amelioration` L'import() dynamique dans les workers passe par le chargeur ESM partiel du worker (chemins locaux, URL file:, paquets de l'espace de travail, builtins autorisés, with { type: "json" }) au lieu d'être refusé
 * `Amelioration` L'exemple host-events passe en stable après la validation manuelle de la touche physique et de l'accès aux notifications
 * `Amelioration` L'exemple scheduled-node-task affiche sa politique de cycle de vie et peut conserver la tâche planifiée pour une exécution réelle de WorkManager ; le mode scheduled obtient une régression côté plugin
+* `Amelioration` Le mode d'exécution scheduled passe à available dans le catalogue de capacités après une exécution réelle du runner planifié WorkManager de l'hôte via le plugin
 
 # v1.5.4
 

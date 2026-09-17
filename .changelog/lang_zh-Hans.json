@@ -17,7 +17,8 @@
         "worker 内 bare 包名按 Node 语义经工作区 node_modules 解析 (exports 条件、main、index、包自引用), 不再一律拒绝",
         "worker 内动态 import() 经 worker 的 partial ESM 装载器执行 (相对/绝对路径、file: URL、工作区包、builtin 名单、with { type: \"json\" }), 不再拒绝",
         "host-events 样例在实体按键与通知访问人工验收通过后转为 stable",
-        "scheduled-node-task 样例打印生命周期策略并可保留定时任务供 WorkManager 实跑; scheduled 执行模式补齐插件侧回归"
+        "scheduled-node-task 样例打印生命周期策略并可保留定时任务供 WorkManager 实跑; scheduled 执行模式补齐插件侧回归",
+        "scheduled 执行模式在宿主 WorkManager 定时运行器经插件实跑通过后, 能力目录状态转为 available"
       ],
       "fix": [
         "runtimeInfo 报告的能力目录版本与摘要改由 runtime kit 派生, 修正 1.5.4 中仍为 1.5.0 的旧值",

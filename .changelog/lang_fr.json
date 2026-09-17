@@ -17,7 +17,8 @@
         "Les workers résolvent les spécificateurs de paquet nus via le node_modules de l'espace de travail comme dans Node (conditions exports, main, index, auto-référence) au lieu de les refuser",
         "L'import() dynamique dans les workers passe par le chargeur ESM partiel du worker (chemins locaux, URL file:, paquets de l'espace de travail, builtins autorisés, with { type: \"json\" }) au lieu d'être refusé",
         "L'exemple host-events passe en stable après la validation manuelle de la touche physique et de l'accès aux notifications",
-        "L'exemple scheduled-node-task affiche sa politique de cycle de vie et peut conserver la tâche planifiée pour une exécution réelle de WorkManager ; le mode scheduled obtient une régression côté plugin"
+        "L'exemple scheduled-node-task affiche sa politique de cycle de vie et peut conserver la tâche planifiée pour une exécution réelle de WorkManager ; le mode scheduled obtient une régression côté plugin",
+        "Le mode d'exécution scheduled passe à available dans le catalogue de capacités après une exécution réelle du runner planifié WorkManager de l'hôte via le plugin"
       ],
       "fix": [
         "La version et l'empreinte du catalogue de capacités rapportées par runtimeInfo dérivent désormais du runtime kit, corrigeant les anciennes valeurs 1.5.0 encore rapportées par 1.5.4",
