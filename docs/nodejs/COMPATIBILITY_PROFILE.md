@@ -15,7 +15,11 @@ The capability catalog marks `typescript` as stable: the host compile route
 capability, and direct raw TypeScript dispatch fails closed by design. The lifecycle
 catalog lists only runnable execution modes; the `packaged_long_running` surface and
 the `node_sandboxed` / `worker_computation` placeholder names are gone, and the
-catalog identity reported by runtimeInfo is derived from the runtime kit.
+catalog identity reported by runtimeInfo is derived from the runtime kit. The
+`autojs6:profile` diagnostics describe the runtime as built: Android-bounded file
+access with `/proc`, `/sys` and `/dev` denied, the native `process` subset, stable
+worker channels, the two-slot process pool, and the WASI / native addon decisions;
+historical partial / reserved / deferred markers are gone.
 Native Node builtins retain their own names: `events` / `node:events` is EventEmitter;
 Android event observation is exposed as `autojs6:events`. The runtime links ICU 78 with
 English-only locale data (`--with-intl=small-icu`, since v1.5.1): `Intl` exists and

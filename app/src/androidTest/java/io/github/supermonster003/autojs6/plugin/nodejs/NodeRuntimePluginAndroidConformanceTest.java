@@ -400,6 +400,47 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         }
     }
 
+    /** M18.2: the autojs6:profile diagnostics must describe the runtime as it actually behaves. */
+    @Test
+    public void m18_profileDiagnosticsDescribeTheActualRuntime() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.cjs", """
+                const assert = require('node:assert/strict');
+                const profile = require('autojs6:profile');
+                assert.equal(profile.engineVersion, 'autojs6-node-profile-v1.3');
+                // File access is bounded by Android permissions plus the /proc, /sys and /dev denial, not by a sandbox root.
+                assert.equal(profile.scopedFs, false);
+                assert.equal(profile.filesystemProfile.mode, 'android_file_access_with_sensitive_roots_denied');
+                assert.equal(profile.filesystemProfile.safeProfileScoped, false);
+                assert.equal(profile.filesystemProfile.androidSharedStorage, true);
+                assert.equal(profile.filesystemProfile.advancedApis.streams, 'stable');
+                assert.equal(profile.processParityProfile.chdir, 'existing_directories_except_sensitive_roots');
+                assert.ok(!profile.processParityProfile.androidUnsupported.includes('unrestricted_chdir'));
+                assert.equal(profile.processParityProfile.versions, 'native');
+                assert.equal(process.versions.node, process.version.slice(1));
+                assert.equal(typeof process.resourceUsage().userCPUTime, 'number');
+                assert.equal(profile.stdlibProfile.moduleStatus['zlib/promises'], 'not_a_node_builtin');
+                assert.ok(!profile.stdlibProfile.androidUnsupported.includes('zlib/promises'));
+                assert.equal(profile.workerThreadsProfile.messageChannel, 'stable');
+                assert.equal(profile.processWorkerReplacementProfile.secondExecutionSlot, 'process_pool_two_slots');
+                assert.equal(profile.processWorkerReplacementProfile.executionMode, 'not_applicable_runs_inside_execution');
+                assert.equal(profile.packagedCapabilityProfile.longRunning, 'interactive_long_running_via_execution_mode');
+                assert.equal(profile.wasiProfile.status, 'denied_by_decision');
+                assert.deepEqual(profile.wasiProfile.targetProfiles, []);
+                assert.equal(profile.nativeAddonProfile.status, 'unsupported_by_policy');
+                assert.equal(profile.esmLoaderProfile.dataUrlImports, 'inline_js_json_only');
+                assert.equal(profile.packageManagerProfile.registryDownload, 'denied_by_policy');
+                assert.equal(profile.packageManagerProfile.terminalCli, 'host_terminal_node_npm_corepack_launcher');
+                for (const name of ['processParityProfile', 'packagedCapabilityProfile', 'processWorkerReplacementProfile', 'wasiProfile', 'nativeAddonProfile']) {
+                  assert.ok(!/(_partial|_reserved|closed_by_p)/.test(profile[name].status), name + '=' + profile[name].status);
+                }
+                console.log('m18.profile=PASS');
+                """);
+        try (WorkspaceInvocation invocation = execute("profile-diagnostics", "main.cjs", files, false)) {
+            assertSucceeded(invocation.result, "m18.profile=PASS");
+        }
+    }
+
     @Test
     public void x3d_03_importedCommonJsStackRemovesFunctionWrapperOffset() throws Exception {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();

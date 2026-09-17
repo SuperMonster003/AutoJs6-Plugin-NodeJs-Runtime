@@ -10,6 +10,7 @@
 
 * `修復` runtimeInfo 回報的能力目錄版本與摘要改由 runtime kit 派生, 修正 1.5.4 中仍為 1.5.0 的舊值
 * `優化` TypeScript 宿主編譯路由在能力目錄中轉為 stable, 刪除已退役的 legacy stripping 中繼資料; 生命週期目錄只保留可執行的執行模式, 移除 packaged_long_running 啟動面與 node_sandboxed / worker_computation 保留名; 傳輸、准入與取消中繼資料按實際執行階段對齊
+* `優化` autojs6:profile 診斷物件按實際執行階段描述, 不再沿用歷史 partial / reserved / deferred 文案: Android 權限約束的檔案存取、process 子集、worker 通道、程序集區以及 WASI / native addon 決策
 
 # v1.5.4
 
