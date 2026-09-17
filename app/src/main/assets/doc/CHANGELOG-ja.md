@@ -13,6 +13,7 @@
 * `改善` ホストの TypeScript コンパイル経路を能力カタログで stable に変更し、退役済みの legacy stripping メタデータを削除; ライフサイクルカタログは実行可能なモードのみを列挙し、packaged_long_running 起動面と node_sandboxed / worker_computation の予約名を削除; 転送・受付・キャンセルのメタデータを実際のランタイムに合わせて整合
 * `改善` autojs6:profile 診断オブジェクトは過去の partial / reserved / deferred 表記ではなく実際のランタイムを記述: Android 権限に基づくファイルアクセス、process サブセット、worker チャネル、プロセスプール、WASI / native addon の決定
 * `改善` サンプル棚卸し: packaged-esm、packaged-dynamic-import、require-esm、wasm-basic、wasm-plugin、desktop-parity-suite を stable に昇格。両 parity スイートはカタログ文言を出力する代わりにスニペットを実際に実行。compile-cache は適用外とし、メタデータのみの package-install サンプルを削除
+* `改善` モジュール読み込みは Node と同様に Android のファイルアクセスに従う: require、import、Worker が絶対パス、親ディレクトリのターゲット、file: URL を受け付ける (/proc、/sys、/dev は引き続き拒否)。node_modules の探索はワークスペースに固定のまま
 
 # v1.5.4
 

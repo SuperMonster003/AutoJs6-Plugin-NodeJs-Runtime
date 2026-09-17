@@ -11,6 +11,6 @@
     "capabilities": ["dynamic_import", "esm"],
     "expectedProvider": "Node native ESM linker with computed specifiers",
     "packagedSupport": "not applicable: exported APKs do not bundle this runtime; run the project from the host entry",
-    "securityLimitations": ["computed relative specifiers inside the project resolve through the runtime loader", "absolute paths and file: URLs are rejected by the workspace loader (M20.2 tracks that relaxation)", "http(s) specifiers are not supported by Node", "disabled builtins remain denied"]
+    "securityLimitations": ["computed relative specifiers inside the project resolve through the runtime loader", "absolute paths, parent-directory targets and file: URLs load within Android file access (/proc, /sys, /dev denied); node_modules lookup stays anchored to the workspace", "http(s) specifiers are not supported by Node", "disabled builtins remain denied"]
   }
 }

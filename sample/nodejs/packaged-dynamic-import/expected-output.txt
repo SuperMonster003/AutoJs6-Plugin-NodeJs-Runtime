@@ -1,2 +1,3 @@
 sample.packaged-dynamic-import.result=imported:DYNAMIC
+sample.packaged-dynamic-import.fileUrl=same-module
 sample.packaged-dynamic-import=PASS

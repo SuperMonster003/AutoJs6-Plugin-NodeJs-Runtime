@@ -13,6 +13,7 @@
 * `Улучшение` Маршрут компиляции TypeScript на стороне хоста переведен в stable в каталоге возможностей, устаревшие метаданные legacy stripping удалены; каталог жизненного цикла перечисляет только запускаемые режимы выполнения, убраны поверхность packaged_long_running и зарезервированные имена node_sandboxed / worker_computation; метаданные транспорта, допуска и отмены соответствуют реальному runtime
 * `Улучшение` Диагностика autojs6:profile описывает реальный runtime вместо исторических пометок partial / reserved / deferred: доступ к файлам в границах разрешений Android, подмножество process, каналы worker, пул процессов и решения по WASI / native addon
 * `Улучшение` Ревизия примеров: packaged-esm, packaged-dynamic-import, require-esm, wasm-basic, wasm-plugin и desktop-parity-suite переведены в stable; обе parity-сборки реально выполняют свои сниппеты вместо печати текста каталога; compile-cache помечен как неприменимый, пример package-install (только метаданные) удалён
+* `Улучшение` Загрузка модулей следует доступу к файлам Android, как в Node: require, import и Worker принимают абсолютные пути, цели в родительских каталогах и URL file: (/proc, /sys и /dev по-прежнему запрещены); поиск node_modules остаётся привязанным к рабочей области
 
 # v1.5.4
 
