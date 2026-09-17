@@ -35,3 +35,25 @@ provider, 也没有引入第二套跨仓清单或默认构建门禁。
 验证: 18 份宿主跳转都对应本仓正文; 7 份活跃指南的本地 Markdown 链接可解析; 历史档案
 注明原仓路径语义。宿主构建脚本不消费迁走文档。49 个样例与 38 个声明模块的既有检查
 通过, 事件/录音样例保持人工验收待办。双仓分别提交迁移, 提交号记入 Roadmap。
+
+## M19.3 第一批: 宿主侧插件所有元数据 (2026-09-17)
+
+宿主分支 `node-m19-3-plugin-owned-metadata` (基于 `a8171da64`, 提交 `42b0dcefc`, 未合并) 只删除宿主中
+与插件能力目录重复或没有消费者的运行时元数据, 不移动共享 Android provider, 不引入新的跨仓清单。
+插件不消费 `embedded_script.execution_mode*` 诊断键, 本批插件侧无运行时改动。
+
+| 宿主文件 | 实际消费者 | 本批结果 |
+|---|---|---|
+| `NodeExecutionModePolicy.kt` | `NodeProjectRunner`、`NodeJsRuntimePluginBridge`、`NodeBridgeProtocol`、`NodePluginExecutionModels`、`AssetsProjectLauncher`、`NodeLifecycleCheckpointStore`、`NodeWorkManagerBridgeScheduler` 及 4 个 androidTest | 只保留宿主启动事实: 三个可运行模式、模式到唯一启动面、`normalize`、`isLongRunningRequest` 与 6 键 `nativeValues`; 删除 Definition 表、`worker_computation` / `node_sandboxed` 保留名、`packaged_long_running` 启动面与 10 个插件所有诊断键 |
+| `NodeLifecycleCheckpointStore.kt` | lifecycle bridge | checkpoint 只认 `interactive_session`, 与插件 1.5.5 一致 |
+| `NodeWorkManagerBridgeScheduler.kt` | WorkManager 运行记录 | 不再由宿主回填 timeout / restart / quota 三键; 插件 `runtime_budget.*` 与 `bridge_*` 原样透传 |
+| `NodeProfileSelectionDiagnostics.kt` | `NodeDoctorReportGenerator`、`NodePrivacyDisclosurePolicy` | schema v2 `host_manifest_echo`: 只回显清单声明的 profile、node.permissions、Android 权限与 warnings; required-profile 映射、profileCatalog、failureHints 与 5 个无调用者 helper 删除, 4 个 profile 常量保留; profile 语义由插件 `autojs.profile` 报告 |
+| `NodeProjectRuntimeCompatibilityDescriptor.kt` | `NodeProjectLaunchDescriptor`、`AssetsProjectLauncher`、Doctor | 保留兼容读取, 只删除零消费者的 `currentText()` |
+| `NodeRuntimeBudgetPolicy.kt`、`NodeInteractiveLongRunningStatusStore.kt`、`NodeExecutionQueuePolicy.kt` | 无 | 删除 |
+| `NodeBridgePermissionManifest.kt`、`NodeCapabilityBrokerPolicy`、`NodeBridgeLimits`、androidStatus 探针、模块源传输预算、Compiler 路由、WorkManager 配额、`plugin-api/nodejs-api` 镜像 | 宿主 Android 授权、Binder 与传输 | 保留在实际所有者处 |
+
+仍待后续子批: `NodePrivacyDisclosurePolicy` 的 `policy_partial` 状态与 pending 列表、provider registry 的
+`packagedSupport` 文案、`NodeBridgePermissionManifest` 默认值经既有契约归并; 旧宿主 (master) 与新宿主 (分支)
+的启动、取消、文件回传对照回归。宿主分支是否合并由用户决定。
+
+验证: 宿主 main 与 androidTest Kotlin 编译、app Debug 与 androidTest APK 构建通过; 宿主 engine 包离线 JVM 21 类 109 用例 0 失败 (1 skipped); 小米 968e9f18 (arm64, API 35, 插件 Debug 189) 安装以主检出同一签名密钥重签的宿主 Debug 与 androidTest 后, NodeExecutionModePolicy (4) + NodeWorkManagerBridge (9, 含 WorkManager 定时运行器经插件实跑) + NodeOverlayBridge (3) + NodeInputObserverBridge (6) + NodeCapabilityBrokerV2 (4) 共 **OK (26 tests)**; 首次用默认 debug 密钥安装被 INSTALL_FAILED_UPDATE_INCOMPATIBLE 拒绝 (未卸载任何包), 那一轮跑的是设备上的旧宿主与旧测试包, 其旧 `phase7StateMachineDefinesAllModePolicies` 在 master 上本就红 (文案断言过期), 不计入本批。
