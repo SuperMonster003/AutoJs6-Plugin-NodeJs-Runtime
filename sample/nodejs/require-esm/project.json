@@ -9,8 +9,8 @@
   },
   "example": {
     "capabilities": ["commonjs", "esm", "require-esm"],
-    "expectedProvider": "Embedded Node partial ESM loader",
-    "packagedSupport": "main-app example only in this phase",
-    "securityLimitations": ["local project graph only", "no remote imports", "disabled builtins remain denied"]
+    "expectedProvider": "Node 24 require(esm)",
+    "packagedSupport": "not applicable: exported APKs do not bundle this runtime; run the project from the host entry",
+    "securityLimitations": ["synchronous ESM graphs only (no top-level await), as in Node", "disabled builtins remain denied"]
   }
 }

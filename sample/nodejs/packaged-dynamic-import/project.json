@@ -9,8 +9,8 @@
   },
   "example": {
     "capabilities": ["dynamic_import", "esm"],
-    "expectedProvider": "packaged Embedded Node local dynamic import loader",
-    "packagedSupport": "supported for relative local files",
-    "securityLimitations": ["URL imports denied", "absolute paths denied", "project escape denied"]
+    "expectedProvider": "Node native ESM linker with computed specifiers",
+    "packagedSupport": "not applicable: exported APKs do not bundle this runtime; run the project from the host entry",
+    "securityLimitations": ["computed relative specifiers inside the project resolve through the runtime loader", "absolute paths and file: URLs are rejected by the workspace loader (M20.2 tracks that relaxation)", "http(s) specifiers are not supported by Node", "disabled builtins remain denied"]
   }
 }

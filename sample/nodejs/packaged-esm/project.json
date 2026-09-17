@@ -8,9 +8,9 @@
     "permissions": []
   },
   "example": {
-    "capabilities": ["esm"],
-    "expectedProvider": "packaged Embedded Node ESM loader",
-    "packagedSupport": "supported for local project files",
-    "securityLimitations": ["local project graph only", "no remote imports", "disabled builtins remain denied"]
+    "capabilities": ["esm", "dynamic_import"],
+    "expectedProvider": "Node native ESM linker (esmLoaderProfile.status=native_linker)",
+    "packagedSupport": "not applicable: exported APKs do not bundle this runtime; run the project from the host entry",
+    "securityLimitations": ["relative specifiers inside the project and data: (JavaScript/JSON) imports", "absolute paths and file: URLs are rejected by the workspace loader (M20.2 tracks that relaxation)", "disabled builtins remain denied"]
   }
 }

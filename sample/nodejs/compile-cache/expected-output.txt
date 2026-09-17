@@ -1,2 +1,4 @@
+sample.compile-cache.on-disk=not_applicable_custom_loader
+sample.compile-cache.runtime-loader=true
 sample.compile-cache.same-module=true
 sample.compile-cache=PASS

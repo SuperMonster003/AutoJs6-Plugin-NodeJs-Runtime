@@ -8,8 +8,7 @@ function codeOf(error) {
   try {
     const plugins = require("plugins");
     plugins.install("org.example.wasm_math", {
-      source: "./plugins/org.example.wasm_math",
-      config: { mode: "wasm-policy" }
+      source: "./plugins/org.example.wasm_math"
     });
     const plugin = plugins.load("org.example.wasm_math");
     const result = await plugin.add(19, 23);

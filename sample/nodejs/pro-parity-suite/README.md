@@ -1,39 +1,28 @@
 # pro-parity-suite
 
-Phase 13 Auto.js Pro parity example catalog.
+Auto.js Pro parity catalog. `main.cjs` runs every snippet in order; each
+snippet prints its own result lines and an explicit skip code when the host
+provider or the Android permission behind it is missing, so the output
+documents what is really available on the device.
 
-This project groups migration-oriented snippets for the most common Pro-style
-Node surfaces: `$autojs.java`, `rhino.install`, UI, floaty/overlay, tasks,
-notifications/settings/power, media/recorder, screenshot/OCR, and
-accessibility. The main entry is a catalog runner; it
-prints the expected marker for each snippet without claiming that gated Android
-permissions or future providers are already promoted.
+| Example | Snippet | Required capabilities | Skip reason |
+| --- | --- | --- | --- |
+| Java interop | `snippets/java-interop.cjs` | `java_interop` | the provider enforces the reviewed class/member allowlist |
+| Rhino install | `snippets/rhino-install.cjs` | `rhino`, `java_interop` | `rhino.install({ explicit: true })` needs the Java proxy provider |
+| UI layout | `snippets/ui-layout.cjs` | `ui` | the host UI provider may be unavailable for the execution mode |
+| Floaty overlay | `snippets/overlay-floaty.cjs` | `ui.overlay`, `ui.overlay.permission` | Android overlay permission may be missing |
+| Tasks | `snippets/tasks-work-manager.cjs` | `work_manager` | WorkManager provider may be unavailable |
+| Notifications/power | `snippets/notifications-power.cjs` | `notifications`, `notifications.settings`, `device`, `device.power` | notification or power provider may be unavailable |
+| Media/recorder | `snippets/media-recorder.cjs` | `media`, `media.audio`, `media.metadata`, `media.recording` | microphone permission or MediaInfo plugin may be missing |
+| Screenshot/OCR | `snippets/screenshot-ocr.cjs` | `screen_capture`, `image`, `ocr` | MediaProjection consent, image handle or OCR provider may be missing |
+| Accessibility | `snippets/accessibility-selector.cjs` | `accessibility` | the accessibility service may be disabled |
 
-| Example | Snippet | Required capabilities | Packaged behavior | Skip reason |
-| --- | --- | --- | --- | --- |
-| Java interop | `snippets/java-interop.cjs` | `java_interop` | stable packaged allowlist; metadata cannot expand classes or members | stable provider enforces the exact class/member allowlist and execution-owned handles |
-| Rhino install | `snippets/rhino-install.cjs` | `rhino`, `java_interop` | packaged Rhino proxy globals require an explicit call and never mutate globals by default | `rhino.install({ explicit: true })` requires Java proxy provider readiness |
-| UI layout | `snippets/ui-layout.cjs` | `ui` | packaged UI is provider-dependent until lifecycle/disclosure evidence lands | live Activity-owned UI provider may be unavailable |
-| Floaty overlay | `snippets/overlay-floaty.cjs` | `ui.overlay`, `ui.overlay.permission` | visible window with property updates, dragging, pushed events and script cleanup | Android overlay permission may be unavailable |
-| Tasks | `snippets/tasks-work-manager.cjs` | `work_manager` | one-shot metadata is supported; daily/weekly/intent tasks remain gated | WorkManager provider or persistent task rows may be unavailable |
-| Notifications/power | `snippets/notifications-power.cjs` | `notifications`, `notifications.settings`, `device`, `device.power` | settings/status metadata is supported; notification ownership, foreground disclosure, and OEM power behavior remain gated | notifications/settings or device.power provider may be unavailable |
-| Media/recorder | `snippets/media-recorder.cjs` | `media`, `media.audio`, `media.metadata`, `media.recording` | 3-second AAC recording with microphone permission and foreground disclosure, followed by MediaInfo parsing | microphone permission or MediaInfo plugin may be unavailable |
-| Screenshot/OCR | `snippets/screenshot-ocr.cjs` | `screen_capture`, `image`, `ocr` | packaged capture/OCR remains gated by disclosure and permission review | MediaProjection permission, image handle, or OCR provider may be unavailable |
-| Accessibility | `snippets/accessibility-selector.cjs` | `accessibility` | packaged accessibility needs explicit service/disclosure review | accessibility service may be disabled |
+Every snippet can also run on its own: it exports `run()` and executes when it
+is the entry. Running the suite outside the AutoJs6 host prints a skip code for
+each snippet and still completes the catalog.
 
-Prompt and disclosure references are deliberately metadata-only. The packaged
-behavior rows identify where reviewed disclosure, foreground ownership, service
-review, or permission review is required, while the skip reasons and guarded
-snippets keep provider, permission, or profile denial paths explicit.
-
-Expected output is listed in `expected-output.txt`.
-
-`smoke.cjs` is the focused runtime smoke subset. It executes only the
-Activity-owned JSON UI layout path represented by `snippets/ui-layout.cjs` and
-the WorkManager one-shot schedule/cancel path represented by
-`snippets/tasks-work-manager.cjs`. It does not execute Java interop, Rhino
-global install, overlay, notifications/power, media/recorder, screenshot/OCR,
-or accessibility authority examples.
+`smoke.cjs` is the focused subset used by the host smoke run: the JSON UI layout
+path and the WorkManager one-shot schedule/cancel path.
 
 `overlay-floaty` is stable after real window checks on three ABIs. Run it directly
 to show a draggable window for three seconds; its text and alpha change, events

@@ -19,7 +19,11 @@ catalog identity reported by runtimeInfo is derived from the runtime kit. The
 `autojs6:profile` diagnostics describe the runtime as built: Android-bounded file
 access with `/proc`, `/sys` and `/dev` denied, the native `process` subset, stable
 worker channels, the two-slot process pool, and the WASI / native addon decisions;
-historical partial / reserved / deferred markers are gone.
+historical partial / reserved / deferred markers are gone. The sample audit
+promoted the ESM, WebAssembly and desktop parity samples, turned both parity
+suites into real runners, and `new Worker(code, { eval: true })` now works as
+in Node; absolute paths and `file:` URLs are still rejected by the workspace
+loader (tracked under M20.2).
 Native Node builtins retain their own names: `events` / `node:events` is EventEmitter;
 Android event observation is exposed as `autojs6:events`. The runtime links ICU 78 with
 English-only locale data (`--with-intl=small-icu`, since v1.5.1): `Intl` exists and

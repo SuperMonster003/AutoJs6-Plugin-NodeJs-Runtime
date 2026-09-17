@@ -4,7 +4,7 @@ function codeOf(error) {
   return String(error && (error.code || error.autojs6Code || error.name || "ERROR"));
 }
 
-(async function main() {
+async function run() {
   try {
     const javaApi = globalThis.$autojs && globalThis.$autojs.java
       ? globalThis.$autojs.java
@@ -16,7 +16,13 @@ function codeOf(error) {
     console.log("sample.pro-parity-suite.java-interop.skipped=" + codeOf(error));
   }
   console.log("sample.pro-parity-suite.java-interop=PASS");
-})().catch((error) => {
-  console.error(error && (error.stack || error.message) || error);
-  process.exitCode = 1;
-});
+}
+
+module.exports = { run };
+
+if (require.main === module) {
+  run().catch((error) => {
+    console.error(error && (error.stack || error.message) || error);
+    process.exitCode = 1;
+  });
+}

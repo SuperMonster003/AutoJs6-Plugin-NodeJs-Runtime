@@ -5,8 +5,11 @@
   "type": "commonjs",
   "main": "index.cjs",
   "autojs6": {
-    "pluginKind": "js-wasm-policy",
-    "capabilities": ["wasm"],
-    "nativeAddons": false
+    "plugin": {
+      "id": "org.example.wasm_math",
+      "permissions": [],
+      "dependencies": [],
+      "exports": {}
+    }
   }
 }

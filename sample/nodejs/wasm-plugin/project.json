@@ -9,8 +9,8 @@
   },
   "example": {
     "capabilities": ["plugins", "plugin.org.example.wasm_math", "wasm"],
-    "expectedProvider": "JS-only plugin manager with design-gated WASM plugin metadata",
-    "packagedSupport": "local checked plugin files only",
-    "securityLimitations": ["native service plugins remain deferred", "native addons remain denied", "WASM resource limits are required before promotion"]
+    "expectedProvider": "JS plugin manager; the checked local plugin instantiates WebAssembly with V8",
+    "packagedSupport": "not applicable: exported APKs do not bundle this runtime; run the project from the host entry",
+    "securityLimitations": ["there is no separate WASM plugin kind: a checked local JS plugin compiles the module bytes it ships", "native addons remain unsupported by policy"]
   }
 }
