@@ -1,0 +1,9 @@
+Playing tone.wav (1.5 s, 440 Hz) through the host media session at volume 0.4.
+playback.session=string|true|true
+playback.paused=true
+playback.resumed=true|true
+playback.ended=true
+playback.stopped=true
+playback.stale=true
+compat.music=true|true|true
+sample.media-playback=PASS

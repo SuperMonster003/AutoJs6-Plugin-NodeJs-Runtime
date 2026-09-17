@@ -1,0 +1,9 @@
+{
+  "name": "media-library",
+  "type": "node",
+  "main": "main.cjs",
+  "node": {
+    "timeoutMs": 60000,
+    "permissions": ["media", "media.library", "media.library.mutate"]
+  }
+}

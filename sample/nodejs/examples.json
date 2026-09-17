@@ -559,6 +559,30 @@
       "packagedCompatible": false
     },
     {
+      "name": "media-playback",
+      "status": "partial",
+      "reason": "Host media session playback (play, pause, seek, resume, stop, Rhino playMusic aliases) passed host instrumentation on a physical device with the same call chain; the audible manual acceptance of this project is still open.",
+      "tags": [
+        "main-app",
+        "bridge",
+        "permission-optional"
+      ],
+      "mainAppSmoke": false,
+      "packagedCompatible": false
+    },
+    {
+      "name": "media-library",
+      "status": "partial",
+      "reason": "The MediaStore capabilities/insert/query/get/update/exportFile/scanFile/delete round trip passed host instrumentation on a physical device with the same call chain; manual acceptance of this project on a user device is still open.",
+      "tags": [
+        "main-app",
+        "bridge",
+        "permission-optional"
+      ],
+      "mainAppSmoke": false,
+      "packagedCompatible": false
+    },
+    {
       "name": "streams-compression",
       "status": "stable",
       "tags": [

@@ -130,6 +130,7 @@ console.log("AutoJs6 Node.js runtime");
 * `تحسين` ترقية عينة host-events إلى stable بعد اجتياز القبول اليدوي للمفتاح الفعلي والوصول إلى الإشعارات
 * `تحسين` تطبع عينة scheduled-node-task سياسة دورة حياتها ويمكنها الاحتفاظ بالمهمة المجدولة لتشغيل WorkManager فعلي؛ ويحصل وضع التنفيذ scheduled على اختبار انحدار من جانب الإضافة
 * `تحسين` ترقية وضع التنفيذ scheduled إلى available في فهرس القدرات بعد تشغيل فعلي لمشغّل WorkManager المجدول في المضيف عبر الإضافة
+* `تحسين` تعيد media.play() جلسة تشغيل (pause/resume/seekTo/stop/status) عبر خدمة موسيقى السكربتات في المضيف، وتوفر وحدة media_store الجديدة وصولاً محدوداً إلى MediaStore (capabilities/query/get/insert/update/delete/scanFile/exportFile) خلف قدرات media.playback / media.library / media.library.mutate؛ وتكتسب autojs6:compat.media أسماء بديلة بأسلوب Rhino مثل playMusic؛ وكلاهما يتطلب بنية المضيف المطابقة
 
 # v1.5.4
 

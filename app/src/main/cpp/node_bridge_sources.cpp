@@ -3497,6 +3497,8 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_limited_media_cache = null;
   let __autojs6_limited_mediainfo_cache = null;
   let __autojs6_limited_recorder_cache = null;
+  let __autojs6_limited_media_store_cache = null;
+  let __autojs6_rhino_compat_media_cache = null;
   let __autojs6_limited_storage_cache = null;
   let __autojs6_limited_storages_cache = null;
   let __autojs6_limited_database_cache = null;
@@ -5330,6 +5332,15 @@ std::string buildEmbeddedScriptExecutionSource(
     if (text === "recorder" || text === "media.record" || text === "media:recording" || text === "media-recording" || text === "audio.recording") {
       return "media.recording";
     }
+    if (text === "media.playback" || text === "media-playback" || text === "media.play" || text === "music") {
+      return "media.playback";
+    }
+    if (text === "media.library" || text === "media-library" || text === "media_store" || text === "media-store" || text === "mediastore") {
+      return "media.library";
+    }
+    if (text === "media.library.mutate" || text === "media-library.mutate" || text === "media_store.mutate" || text === "media-store.mutate" || text === "mediastore.mutate") {
+      return "media.library.mutate";
+    }
     if (text === "engine.exec") {
       return "engines.exec";
     }
@@ -5539,6 +5550,9 @@ std::string buildEmbeddedScriptExecutionSource(
       normalized === "media.audio" ||
       normalized === "media.metadata" ||
       normalized === "media.recording" ||
+      normalized === "media.playback" ||
+      normalized === "media.library" ||
+      normalized === "media.library.mutate" ||
       normalized === "notifications" ||
       normalized === "notifications.settings" ||
       normalized === "sensors" ||
@@ -5591,7 +5605,13 @@ std::string buildEmbeddedScriptExecutionSource(
       "android.permission.FOREGROUND_SERVICE",
       "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",
       "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
-      "android.permission.FOREGROUND_SERVICE_MICROPHONE"
+      "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+      "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+      "android.permission.READ_MEDIA_AUDIO",
+      "android.permission.READ_MEDIA_IMAGES",
+      "android.permission.READ_MEDIA_VIDEO",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE"
     ];
     const output = [];
     function add(permission) {
@@ -5605,6 +5625,16 @@ std::string buildEmbeddedScriptExecutionSource(
         add("android.permission.RECORD_AUDIO");
         add("android.permission.FOREGROUND_SERVICE");
         add("android.permission.FOREGROUND_SERVICE_MICROPHONE");
+      } else if (capability === "media.playback") {
+        add("android.permission.FOREGROUND_SERVICE");
+        add("android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK");
+      } else if (capability === "media.library") {
+        add("android.permission.READ_MEDIA_AUDIO");
+        add("android.permission.READ_MEDIA_IMAGES");
+        add("android.permission.READ_MEDIA_VIDEO");
+        add("android.permission.READ_EXTERNAL_STORAGE");
+      } else if (capability === "media.library.mutate") {
+        add("android.permission.WRITE_EXTERNAL_STORAGE");
       } else if (capability === "network" || capability === "raw_node_network_modules") {
         add("android.permission.INTERNET");
       } else if (capability === "screen_capture") {
@@ -5874,7 +5904,23 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     if (moduleName === "ocr") return ["ocr", "image"];
     if (moduleName === "barcode") return ["barcode", "image"];
-    if (moduleName === "media") return ["media", "media.audio"];
+    if (moduleName === "media") {
+      if (
+        methodName === "play" ||
+        methodName === "pause" ||
+        methodName === "resume" ||
+        methodName === "stop" ||
+        methodName === "seekTo" ||
+        methodName === "getPlaybackStatus"
+      ) return ["media", "media.playback"];
+      return ["media", "media.audio"];
+    }
+    if (moduleName === "media_store") {
+      if (methodName === "insert" || methodName === "update" || methodName === "delete") {
+        return ["media", "media.library", "media.library.mutate"];
+      }
+      return ["media", "media.library"];
+    }
     if (moduleName === "mediainfo") return ["media", "media.metadata"];
     if (moduleName === "recorder") return ["media", "media.recording"];
     if (moduleName === "storage" || moduleName === "storages") return ["storage"];
@@ -5939,6 +5985,10 @@ std::string buildEmbeddedScriptExecutionSource(
       required === "media.audio" ||
       required === "media.metadata" ||
       required === "media.recording" ||
+      // M18.2: playback and the media library are never implied by "media"; mutation is never implied by "media.library".
+      required === "media.playback" ||
+      required === "media.library" ||
+      required === "media.library.mutate" ||
       required === "app.query" ||
       required === "package_manager.mutate" ||
       // M3.2: coordinate gestures must be declared explicitly; plain
@@ -6004,6 +6054,9 @@ std::string buildEmbeddedScriptExecutionSource(
     if (text === "audio" || text === "media.audio" || text === "media_audio") return "media.audio";
     if (text === "mediainfo" || text === "media.info" || text === "media_info" || text === "media.metadata" || text === "media_metadata") return "media.metadata";
     if (text === "recorder" || text === "media.record" || text === "media.recording" || text === "media_recording" || text === "audio.recording") return "media.recording";
+    if (text === "media.playback" || text === "media_playback" || text === "media.play" || text === "music") return "media.playback";
+    if (text === "media.library" || text === "media_library" || text === "media_store" || text === "mediastore" || text === "media.store") return "media.library";
+    if (text === "media.library.mutate" || text === "media_library.mutate" || text === "media_store.mutate" || text === "mediastore.mutate" || text === "media.store.mutate") return "media.library.mutate";
     if (text === "sensor" || text === "sensors") return "sensors";
     if (text === "ocr") return "ocr";
     if (text === "barcode" || text === "qrcode" || text === "qr_code") return "barcode";
@@ -6065,6 +6118,9 @@ std::string buildEmbeddedScriptExecutionSource(
       normalizedScope === "media.audio" ||
       normalizedScope === "media.metadata" ||
       normalizedScope === "media.recording" ||
+      normalizedScope === "media.playback" ||
+      normalizedScope === "media.library" ||
+      normalizedScope === "media.library.mutate" ||
       normalizedScope === "package_manager" ||
       normalizedScope === "package_manager.mutate" ||
       normalizedScope === "sensors" ||
@@ -6092,6 +6148,9 @@ std::string buildEmbeddedScriptExecutionSource(
       "media.audio",
       "media.metadata",
       "media.recording",
+      "media.playback",
+      "media.library",
+      "media.library.mutate",
       "package_manager",
       "package_manager.mutate",
       "sensors",
@@ -15062,7 +15121,7 @@ std::string buildEmbeddedScriptExecutionSource(
     keys: __autojs6_rhino_compat_key_constants
   });
   const __autojs6_rhino_compat_basic_global_names = Object.freeze(["toast", "toastLog", "sleep", "setClip", "getClip", "files", "base64", "colors", "fmt", "cvt", "s13n", "mime", "nanoid", "util", "opencc", "pinyin", "pinyin4j", "jsox", "storages", "sqlite", "console", "setTimeout", "clearTimeout", "setInterval", "clearInterval", "selector", "text", "desc", "id", "className", "textContains", "descContains", "textMatches", "descMatches", "idMatches", "classNameMatches", "clickable", "enabled", "scrollable", "depth", "boundsInside", "boundsContains", "description", "descriptionContains", "descriptionMatches", "idContains", "classNameContains", "click", "back", "home", "recentApps", "recents", "app", "device", "shell", "images", "requestScreenCapture", "requestScreenCaptureAsync", "captureScreen", "ocr", "barcode", "qrcode", "media", "mediainfo", "recorder", "keys", "ui"]);
-  const __autojs6_rhino_compat_basic_module_names = Object.freeze(["toast", "clipboard", "console", "timers", "files", "base64", "colors", "formatter", "fmt", "converter", "cvt", "s13n", "mime", "nanoid", "util", "opencc", "pinyin", "pinyin4j", "jsox", "jsox.mathx", "jsox.arrayx", "jsox.numberx", "storage", "storages", "database", "sqlite", "selector", "app", "device", "shell", "images", "media_projection", "ocr", "barcode", "qrcode", "media", "mediainfo", "recorder", "events.keys", "ui", "tasks"]);
+  const __autojs6_rhino_compat_basic_module_names = Object.freeze(["toast", "clipboard", "console", "timers", "files", "base64", "colors", "formatter", "fmt", "converter", "cvt", "s13n", "mime", "nanoid", "util", "opencc", "pinyin", "pinyin4j", "jsox", "jsox.mathx", "jsox.arrayx", "jsox.numberx", "storage", "storages", "database", "sqlite", "selector", "app", "device", "shell", "images", "media_projection", "ocr", "barcode", "qrcode", "media", "mediainfo", "media_store", "recorder", "events.keys", "ui", "tasks"]);
   const __autojs6_rhino_compat_installed_globals = [];
   function __autojs6_rhino_compat_error(message, code, apiName, category) {
     const error = __autojs6_error(message, code);
@@ -16309,7 +16368,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const ocr = __autojs6_rhino_compat_ocr();
     const barcode = __autojs6_rhino_compat_barcode();
     const qrcode = __autojs6_rhino_compat_qrcode();
-    const media = __autojs6_limited_media();
+    const media = __autojs6_rhino_compat_media();
     const mediainfo = __autojs6_limited_mediainfo();
     const recorder = __autojs6_limited_recorder();
     const ui = __autojs6_limited_ui();
@@ -16482,7 +16541,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const ocr = __autojs6_rhino_compat_ocr();
     const barcode = __autojs6_rhino_compat_barcode();
     const qrcode = __autojs6_rhino_compat_qrcode();
-    const media = __autojs6_limited_media();
+    const media = __autojs6_rhino_compat_media();
     const mediainfo = __autojs6_limited_mediainfo();
     const recorder = __autojs6_limited_recorder();
     const ui = __autojs6_limited_ui();
@@ -20832,7 +20891,18 @@ std::string buildEmbeddedScriptExecutionSource(
     const input = __autojs6_media_options(options);
     let permissions = ["media"];
     if (moduleName === "media") {
-      permissions = ["media", "media.audio"];
+      permissions = (
+        methodName === "play" ||
+        methodName === "pause" ||
+        methodName === "resume" ||
+        methodName === "stop" ||
+        methodName === "seekTo" ||
+        methodName === "getPlaybackStatus"
+      ) ? ["media", "media.playback"] : ["media", "media.audio"];
+    } else if (moduleName === "media_store") {
+      permissions = methodName === "insert" || methodName === "update" || methodName === "delete"
+        ? ["media", "media.library", "media.library.mutate"]
+        : ["media", "media.library"];
     } else if (moduleName === "mediainfo") {
       permissions = ["media", "media.metadata"];
     } else if (moduleName === "recorder") {
@@ -20917,11 +20987,133 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_call_autojs("media", "setAudioStreamVolume", [streamName, volume],
         __autojs6_media_bridge_options("media", "setAudioStreamVolume", options, 5000)).then(function() { return undefined; });
     }
+    function playbackCall(methodName, args, options, fallbackMs) {
+      return __autojs6_call_autojs(
+        "media",
+        methodName,
+        args,
+        __autojs6_media_bridge_options("media", methodName, options, fallbackMs)
+      ).then(__autojs6_media_freeze_record);
+    }
+    function targetArgs(options, methodName) {
+      const input = __autojs6_media_options(options);
+      const id = __autojs6_media_session_ref(input.session !== undefined ? input.session : input.id, methodName);
+      return id === null ? [] : [{ id }];
+    }
+    function seekArgs(reference, positionMs, methodName) {
+      if (typeof positionMs !== "number" || !Number.isFinite(positionMs) || positionMs < 0) {
+        throw new TypeError("media." + methodName + " requires a non-negative position in milliseconds.");
+      }
+      const id = __autojs6_media_session_ref(reference, methodName);
+      return id === null ? [Math.trunc(positionMs)] : [Math.trunc(positionMs), { id }];
+    }
+    function session(status) {
+      const id = status && typeof status.id === "string" ? status.id : "";
+      return Object.freeze({
+        id,
+        path: status && typeof status.path === "string" ? status.path : null,
+        looping: !!(status && status.looping === true),
+        volume: status && typeof status.volume === "number" ? status.volume : null,
+        status(options) {
+          return playbackCall("getPlaybackStatus", [{ id }], options, 5000);
+        },
+        pause(options) {
+          return playbackCall("pause", [{ id }], options, 5000);
+        },
+        resume(options) {
+          return playbackCall("resume", [{ id }], options, 10000);
+        },
+        stop(options) {
+          return playbackCall("stop", [{ id }], options, 10000);
+        },
+        seekTo(positionMs, options) {
+          let args;
+          try {
+            args = seekArgs(id, positionMs, "seekTo");
+          } catch (error) {
+            return Promise.reject(error);
+          }
+          return playbackCall("seekTo", args, options, 5000);
+        }
+      });
+    }
+    function play(path, options) {
+      const input = __autojs6_media_options(options);
+      const payload = {};
+      let filePath;
+      try {
+        filePath = __autojs6_media_file_path("media", "play", path);
+        if (input.volume !== undefined && input.volume !== null) {
+          if (typeof input.volume !== "number" || !Number.isFinite(input.volume) || input.volume < 0 || input.volume > 1) {
+            throw new TypeError("media.play volume must be a number between 0 and 1.");
+          }
+          payload.volume = input.volume;
+        }
+        if (input.looping !== undefined && input.looping !== null) {
+          payload.looping = input.looping === true;
+        }
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return playbackCall("play", [filePath, payload], options, 40000).then(session);
+    }
+    function pause(options) {
+      let args;
+      try {
+        args = targetArgs(options, "pause");
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return playbackCall("pause", args, options, 5000);
+    }
+    function resume(options) {
+      let args;
+      try {
+        args = targetArgs(options, "resume");
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return playbackCall("resume", args, options, 10000);
+    }
+    function stop(options) {
+      let args;
+      try {
+        args = targetArgs(options, "stop");
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return playbackCall("stop", args, options, 10000);
+    }
+    function seekTo(positionMs, options) {
+      let args;
+      try {
+        const input = __autojs6_media_options(options);
+        args = seekArgs(input.session !== undefined ? input.session : input.id, positionMs, "seekTo");
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return playbackCall("seekTo", args, options, 5000);
+    }
+    function getPlaybackStatus(options) {
+      let args;
+      try {
+        args = targetArgs(options, "getPlaybackStatus");
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return playbackCall("getPlaybackStatus", args, options, 5000);
+    }
     __autojs6_limited_media_cache = Object.freeze({
       getAudioStreamVolume,
       getAudioStreamMaxVolume,
       getAudioStreamInfo,
-      setAudioStreamVolume
+      setAudioStreamVolume,
+      play,
+      pause,
+      resume,
+      stop,
+      seekTo,
+      getPlaybackStatus
     });
     return __autojs6_limited_media_cache;
   }
@@ -21081,6 +21273,218 @@ std::string buildEmbeddedScriptExecutionSource(
       stop
     });
     return __autojs6_limited_recorder_cache;
+  }
+  function __autojs6_media_file_path(moduleName, methodName, value) {
+    const text = value === undefined || value === null ? "" : String(value);
+    if (!text || text.indexOf("\u0000") !== -1) {
+      throw __autojs6_media_invalid_argument_error(
+        moduleName,
+        methodName,
+        moduleName + "." + methodName + " path must be a non-empty file path without NUL bytes."
+      );
+    }
+    return text;
+  }
+  function __autojs6_media_session_ref(value, methodName) {
+    if (value === undefined || value === null || value === "") {
+      return null;
+    }
+    if (typeof value === "object" && !Array.isArray(value)) {
+      return __autojs6_media_session_ref(value.id, methodName);
+    }
+    const text = String(value).trim();
+    if (!/^[A-Za-z0-9_.:-]+$/.test(text)) {
+      throw new TypeError("media." + methodName + " session must be a playback session, its id or a status object.");
+    }
+    return text;
+  }
+  function __autojs6_media_store_collection(value, methodName) {
+    const text = value === undefined || value === null ? "" : String(value).trim().toLowerCase();
+    if (text !== "audio" && text !== "images" && text !== "video" && text !== "downloads") {
+      throw new TypeError("media_store." + methodName + " collection must be audio, images, video or downloads.");
+    }
+    return text;
+  }
+  function __autojs6_media_store_item_id(value, methodName) {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return __autojs6_media_store_item_id(value.id, methodName);
+    }
+    if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) {
+      return value;
+    }
+    if (typeof value === "string" && /^[0-9]{1,18}$/.test(value.trim())) {
+      return Number(value.trim());
+    }
+    throw new TypeError("media_store." + methodName + " id must be a MediaStore item id or an item object.");
+  }
+  function __autojs6_media_store_pick(source, keys) {
+    const payload = {};
+    keys.forEach(function(key) {
+      if (source[key] !== undefined) payload[key] = source[key];
+    });
+    return payload;
+  }
+  function __autojs6_limited_media_store() {
+    if (__autojs6_limited_media_store_cache) {
+      return __autojs6_limited_media_store_cache;
+    }
+    function call(methodName, args, options, fallbackMs) {
+      return __autojs6_call_autojs(
+        "media_store",
+        methodName,
+        args,
+        __autojs6_media_bridge_options("media_store", methodName, options, fallbackMs)
+      ).then(__autojs6_media_freeze_record);
+    }
+    function capabilities(options) {
+      return call("capabilities", [], options, 5000);
+    }
+    function query(collection, options) {
+      let name;
+      try {
+        name = __autojs6_media_store_collection(collection, "query");
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      const payload = __autojs6_media_store_pick(__autojs6_media_options(options), ["filter", "sort", "limit", "offset", "columns"]);
+      return call("query", [name, payload], options, 15000);
+    }
+    function get(collection, id, options) {
+      let args;
+      try {
+        args = [__autojs6_media_store_collection(collection, "get"), __autojs6_media_store_item_id(id, "get")];
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return call("get", args, options, 10000);
+    }
+    function insert(collection, options) {
+      let name;
+      try {
+        name = __autojs6_media_store_collection(collection, "insert");
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      const payload = __autojs6_media_store_pick(__autojs6_media_options(options), ["displayName", "mimeType", "source", "relativePath"]);
+      return call("insert", [name, payload], options, 60000);
+    }
+    function update(collection, id, values, options) {
+      let args;
+      try {
+        args = [
+          __autojs6_media_store_collection(collection, "update"),
+          __autojs6_media_store_item_id(id, "update"),
+          __autojs6_media_store_pick(__autojs6_media_options(values), ["displayName", "relativePath"])
+        ];
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return call("update", args, options, 15000);
+    }
+    function remove(collection, id, options) {
+      let args;
+      try {
+        args = [__autojs6_media_store_collection(collection, "delete"), __autojs6_media_store_item_id(id, "delete")];
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return call("delete", args, options, 15000);
+    }
+    function scanFile(path, options) {
+      let filePath;
+      try {
+        filePath = __autojs6_media_file_path("media_store", "scanFile", path);
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      const payload = __autojs6_media_store_pick(__autojs6_media_options(options), ["mimeType"]);
+      return call("scanFile", [filePath, payload], options, 40000);
+    }
+    function exportFile(collection, id, destination, options) {
+      let args;
+      try {
+        args = [
+          __autojs6_media_store_collection(collection, "exportFile"),
+          __autojs6_media_store_item_id(id, "exportFile"),
+          __autojs6_media_file_path("media_store", "exportFile", destination)
+        ];
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return call("exportFile", args, options, 60000);
+    }
+    __autojs6_limited_media_store_cache = Object.freeze({
+      capabilities,
+      query,
+      get,
+      insert,
+      update,
+      delete: remove,
+      remove,
+      scanFile,
+      exportFile
+    });
+    return __autojs6_limited_media_store_cache;
+  }
+  function __autojs6_rhino_compat_media() {
+    if (__autojs6_rhino_compat_media_cache) {
+      return __autojs6_rhino_compat_media_cache;
+    }
+    const media = __autojs6_limited_media();
+    const store = __autojs6_limited_media_store();
+    function ignoreResult() {
+      return undefined;
+    }
+    function playMusic(path, volume, looping, options) {
+      const playOptions = Object.assign({}, __autojs6_media_options(options));
+      if (volume !== undefined && volume !== null) playOptions.volume = volume;
+      if (looping !== undefined && looping !== null) playOptions.looping = looping === true;
+      return media.play(path, playOptions);
+    }
+    function pauseMusic(options) {
+      return media.pause(options).then(ignoreResult);
+    }
+    function resumeMusic(options) {
+      return media.resume(options).then(ignoreResult);
+    }
+    function stopMusic(options) {
+      return media.stop(options).then(ignoreResult);
+    }
+    function musicSeekTo(positionMs, options) {
+      return media.seekTo(positionMs, options).then(ignoreResult);
+    }
+    function isMusicPlaying(options) {
+      return media.getPlaybackStatus(options).then(function(status) {
+        return !!(status && status.active === true && status.playing === true);
+      });
+    }
+    function getMusicDuration(options) {
+      return media.getPlaybackStatus(options).then(function(status) {
+        return status && status.active === true ? status.durationMs : 0;
+      });
+    }
+    function getMusicCurrentPosition(options) {
+      return media.getPlaybackStatus(options).then(function(status) {
+        return status && status.active === true ? status.positionMs : -1;
+      });
+    }
+    function scanFile(path, options) {
+      return store.scanFile(path, options).then(function(result) {
+        return !!(result && result.scanned === true);
+      });
+    }
+    __autojs6_rhino_compat_media_cache = Object.freeze(Object.assign({}, media, {
+      playMusic,
+      pauseMusic,
+      resumeMusic,
+      stopMusic,
+      musicSeekTo,
+      isMusicPlaying,
+      getMusicDuration,
+      getMusicCurrentPosition,
+      scanFile
+    }));
+    return __autojs6_rhino_compat_media_cache;
   }
   function __autojs6_storage_options(value) {
     return value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -39749,6 +40153,9 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "recorder") {
       return "recorder";
     }
+    if (name === "media_store") {
+      return "media_store";
+    }
     if (name === "storage") {
       return "storage";
     }
@@ -40132,6 +40539,9 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     if (name === "recorder") {
       return __autojs6_limited_recorder();
+    }
+    if (name === "media_store") {
+      return __autojs6_limited_media_store();
     }
     if (name === "storage") {
       return __autojs6_limited_storage("storage");

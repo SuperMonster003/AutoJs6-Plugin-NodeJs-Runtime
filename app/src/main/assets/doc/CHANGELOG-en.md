@@ -21,6 +21,7 @@
 * `Improvement` host-events sample promoted to stable after the physical key and notification access acceptance passed
 * `Improvement` scheduled-node-task sample prints its lifecycle policy and can keep the scheduled task for a real WorkManager run; the scheduled execution mode gains plugin-side regression coverage
 * `Improvement` scheduled execution mode promoted to available in the capability catalog after a real host WorkManager scheduled-runner run through the plugin
+* `Improvement` media.play() returns a playback session (pause/resume/seekTo/stop/status) over the host script music service, and the new media_store module exposes scoped MediaStore capabilities/query/get/insert/update/delete/scanFile/exportFile behind the media.playback / media.library / media.library.mutate capabilities; autojs6:compat.media gains the Rhino playMusic-style aliases; both require the matching host build
 
 # v1.5.4
 

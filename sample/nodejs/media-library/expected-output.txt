@@ -1,0 +1,8 @@
+library.capabilities=autojs6-node-media-store-capabilities-v1|true|app_owned_items_only
+library.inserted=audio|true|number|true
+library.query=true|true
+library.updated=true
+library.exported=true|true
+library.scanned=boolean
+library.deleted=true|true
+sample.media-library=PASS

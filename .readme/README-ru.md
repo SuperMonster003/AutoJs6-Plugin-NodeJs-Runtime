@@ -130,6 +130,7 @@ console.log("AutoJs6 Node.js runtime");
 * `Улучшение` Пример host-events переведён в stable после ручной приёмки физической клавиши и доступа к уведомлениям
 * `Улучшение` Пример scheduled-node-task печатает политику жизненного цикла и может сохранять запланированную задачу для реального запуска WorkManager; режим scheduled получил регрессию на стороне плагина
 * `Улучшение` Режим выполнения scheduled переведён в available в каталоге возможностей после реального запуска планировщика WorkManager хоста через плагин
+* `Улучшение` media.play() возвращает сеанс воспроизведения (pause/resume/seekTo/stop/status) через музыкальный сервис хоста, а новый модуль media_store даёт ограниченный доступ к MediaStore (capabilities/query/get/insert/update/delete/scanFile/exportFile) под возможностями media.playback / media.library / media.library.mutate; autojs6:compat.media получает псевдонимы в стиле Rhino playMusic; для обоих нужна соответствующая сборка хоста
 
 # v1.5.4
 

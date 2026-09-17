@@ -4,14 +4,20 @@ Last reviewed: 2026-09-10.
 
 Node/V8 runs in the runtime plugin's Android application. Automation providers run
 in the host application. These applications have different UIDs: `fs` accesses
-files as the plugin, while `mediainfo`, image file methods and the recorder access
-files as the host. A path readable by one application may be denied to the other.
+files as the plugin, while `mediainfo`, image file methods, the recorder, media
+playback and MediaStore import/export access files as the host. A path readable by one application may be denied to the other.
 Android permissions, storage access and private application directories apply.
 
 Ordinary Node fs paths may be absolute or relative. The v1.4.0 development update
 also accepts absolute paths, parents and symlinks for host media/image/recording
 files; matching host code is required. Empty and NUL paths remain invalid, and
-these methods take file paths rather than content URIs. Permission failures from
+these methods take file paths rather than content URIs. `media_store` compiles
+structured JSON filters into parameterised MediaStore selections, only modifies
+items AutoJs6 created on Android 10+, and never passes cursors, Uri objects or
+descriptors across the bridge. `media_store` compiles
+structured JSON filters into parameterised MediaStore selections, only modifies
+items AutoJs6 created on Android 10+, and never passes cursors, Uri objects or
+descriptors across the bridge. Permission failures from
 Android are reported to the script. The detailed contract is in
 [HOST-API](../HOST-API.md).
 
