@@ -16,6 +16,7 @@
 * `Mejora` La carga de módulos sigue el acceso a archivos de Android como en Node: require, import y Worker aceptan rutas absolutas, destinos en directorios superiores y URL file: (/proc, /sys y /dev siguen denegados); la búsqueda en node_modules permanece anclada al espacio de trabajo
 * `Mejora` Los mensajes de Worker y los observadores de fs siguen los límites nativos de Node: se eliminan los topes de 64 KB por mensaje y 32 en cola, y las cuotas de 16 observadores / 64 eventos por segundo; solo la memoria de Android los limita
 * `Mejora` Dentro de los workers process.exit() termina solo el hilo del worker como en Node y process.getBuiltinModule() sigue la lista de builtins permitidos del worker en lugar de estar deshabilitado
+* `Mejora` Los workers resuelven especificadores de paquete sin ruta a través del node_modules del espacio de trabajo como en Node (condiciones exports, main, index, autorreferencia) en lugar de rechazarlos
 
 # v1.5.4
 

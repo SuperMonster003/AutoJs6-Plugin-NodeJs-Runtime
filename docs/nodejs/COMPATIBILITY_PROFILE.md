@@ -67,9 +67,10 @@ The debug Inspector supports explicit local debugging through localhost and adb
 forward. It is disabled by default; remote listening is unsupported. Native addons,
 arbitrary private bindings and unrestricted Java reflection remain unavailable.
 Inside workers `process.exit()` ends the thread as in Node and
-`process.getBuiltinModule()` follows the worker builtin allowlist; nested workers and
-bare package specifiers inside workers are still unsupported. Subprocesses and
-bridges retain documented execution limits.
+`process.getBuiltinModule()` follows the worker builtin allowlist, and bare package
+specifiers resolve through the workspace `node_modules` as in Node (exports conditions,
+main, index, self-reference); nested workers and dynamic import inside workers are
+still unsupported. Subprocesses and bridges retain documented execution limits.
 Screen capture, OCR and recording have the manual acceptance recorded in
 [Roadmap](../../Roadmap.md); physical event receipts remain pending. Android consent
 is still required when using those capabilities. A callable facade is not evidence

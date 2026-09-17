@@ -278,6 +278,19 @@ check("ajv", () => {
       screenshot.data.length === expected.width * expected.height * 4;
   });
 
+  await checkAsync("worker", async () => {
+    const { Worker } = require("node:worker_threads");
+    const path = require("node:path");
+    const worker = new Worker(path.resolve("worker-packages.cjs"));
+    const report = await new Promise((resolve, reject) => {
+      worker.once("message", resolve);
+      worker.once("error", reject);
+      worker.once("exit", (code) => { if (code !== 0) reject(new Error("worker exited with " + code)); });
+    });
+    console.log("npm.worker.report=" + report);
+    return report === "lodash,dayjs,semver,zod,date-fns,resolve,missing";
+  });
+
   console.log("npm.suite=done");
 })().catch((error) => {
   console.error("npm.suite=fail " + (error && error.stack || error));

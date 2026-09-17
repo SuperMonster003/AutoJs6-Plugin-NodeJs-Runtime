@@ -16,6 +16,7 @@
 * `개선` 모듈 로딩이 Node처럼 Android 파일 접근을 따름: require, import, Worker가 절대 경로, 상위 디렉터리 대상, file: URL을 허용 (/proc, /sys, /dev는 계속 거부). node_modules 탐색은 워크스페이스에 고정
 * `개선` Worker 메시지와 fs 감시자가 Node 네이티브 제한을 따름: 64 KB 메시지 / 32개 대기열 상한과 16개 감시자 / 초당 64 이벤트 할당량 제거. Android 메모리만이 한계
 * `개선` worker 내 process.exit()가 Node처럼 해당 worker 스레드만 종료하고, process.getBuiltinModule()이 worker builtin 허용 목록을 따름 (일괄 비활성화 해제)
+* `개선` worker 내 bare 패키지 지정자를 Node처럼 워크스페이스 node_modules에서 해석 (exports 조건, main, index, 자기 참조). 일괄 거부 해제
 
 # v1.5.4
 

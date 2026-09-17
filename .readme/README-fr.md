@@ -125,6 +125,7 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 * `Amelioration` Le chargement des modules suit l'accès aux fichiers Android comme Node : require, import et Worker acceptent les chemins absolus, les cibles dans les répertoires parents et les URL file: (/proc, /sys et /dev restent refusés) ; la recherche node_modules reste ancrée à l'espace de travail
 * `Amelioration` Les messages Worker et les observateurs fs suivent les limites natives de Node : les plafonds de 64 Ko par message et 32 en file, ainsi que les quotas de 16 observateurs / 64 événements par seconde, sont supprimés ; seule la mémoire Android les borne
 * `Amelioration` Dans les workers, process.exit() termine uniquement le thread du worker comme dans Node et process.getBuiltinModule() suit la liste des builtins autorisés du worker au lieu d'être désactivé
+* `Amelioration` Les workers résolvent les spécificateurs de paquet nus via le node_modules de l'espace de travail comme dans Node (conditions exports, main, index, auto-référence) au lieu de les refuser
 
 # v1.5.4
 

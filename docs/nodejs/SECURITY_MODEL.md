@@ -31,8 +31,8 @@ behavior. Worker message size / queue caps and fs watcher count / event-rate quo
 were removed in v1.5.5; remaining custom restrictions include sensitive fs roots
 (`/proc`, `/sys`, `/dev`), the worker-count default (CPU parallelism, adjustable per
 request), Binder transport limits, the lifecycle-mapped `process.exit` / denied
-`process.kill` / `process.abort` on the shared runtime process, nested workers and bare
-package specifiers inside workers, and Java interop denial inside workers. Their gradual reduction,
+`process.kill` / `process.abort` on the shared runtime process, nested workers and dynamic
+import inside workers, and Java interop denial inside workers. Their gradual reduction,
 along with capability defaults, is tracked by [M18-M20](../../Roadmap.md). No claim is made that all custom
 restrictions have already been removed.
 

@@ -120,7 +120,7 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 | `barcode` | 需 Barcode 外部插件 |
 | `java` | 默认启用; 仅允许宿主白名单中的类、构造器、方法和字段, 反射/ClassLoader/进程与原生库加载继续拒绝 |
 | `rhino` | 默认提供显式迁移入口; 执行请求使用 `explicit: true`, 不会自动安装旧 Rhino 全局对象 |
-| `worker_threads` | 默认启用; 数量默认 `min(8, os.availableParallelism())`, 使用 Node 默认内存限制, WorkerPool 任务默认不设超时; worker 内 builtin 名单与主线程一致, 网络/文件系统继承执行开关, `process.exit()` 按 Node 语义只结束该 worker 线程, `process.getBuiltinModule()` 走同一 builtin 名单; AutoJs 桥与 inspector 仍拒绝, 嵌套 worker 与 worker 内 bare 包名 (node_modules) 暂不支持 |
+| `worker_threads` | 默认启用; 数量默认 `min(8, os.availableParallelism())`, 使用 Node 默认内存限制, WorkerPool 任务默认不设超时; worker 内 builtin 名单与主线程一致, 网络/文件系统继承执行开关, `process.exit()` 按 Node 语义只结束该 worker 线程, `process.getBuiltinModule()` 走同一 builtin 名单; worker 内 bare 包名按 Node 语义从脚本目录向上查工作区 node_modules (exports 的 require/import 条件与子路径模式、main、index、包自引用; 嵌套 node_modules 优先); AutoJs 桥与 inspector 仍拒绝, 嵌套 worker 与 worker 内动态 import 暂不支持 |
 | `child_process` | 默认启用并遵循 Node 原生语义; 受 Android UID/SELinux/清单与调用方校验约束，但不继承独立 `shell` 桥的私有可执行文件白名单或资源预算，脚本必须自行校验命令、限制 stdio/超时并回收子进程 |
 
 全局 `fetch`、`Request`、`Response`、`Headers`、`FormData`、`WebSocket` 使用 Node 自带的 Web API (网络实现为内置 Undici)。全局网络请求与 raw Node http/https 一样默认可用, 无需宿主 `network` 声明; 请求设 `rawNodeNetworkModulesEnabled=false` 会拒绝全局 fetch/WebSocket 的网络操作, 非联网的数据类仍可用。需要宿主代理、证书与网络策略时, 显式使用 `require("autojs6:fetch")` 或 `require("autojs6:websocket")`, 这两个桥模块仍独立检查宿主 `network` 能力。

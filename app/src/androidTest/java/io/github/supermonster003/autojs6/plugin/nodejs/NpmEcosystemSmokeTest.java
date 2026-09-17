@@ -140,6 +140,8 @@ public final class NpmEcosystemSmokeTest {
                     hostSandbox.getAbsolutePath()
             );
             request.putLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, SCRIPT_TIMEOUT_MS);
+            // M20.2: the corpus also runs a worker that requires packages through node_modules.
+            request.putBoolean(NodeJsRuntimeContract.KEY_WORKER_THREADS_ENABLED, true);
             request.putInt(
                     NodeJsRuntimeContract.KEY_WORKSPACE_ARCHIVE_TRANSPORT_VERSION,
                     NodeJsRuntimeContract.WORKSPACE_ARCHIVE_TRANSPORT_CONTRACT_VERSION
@@ -187,6 +189,10 @@ public final class NpmEcosystemSmokeTest {
                         stdout.contains("npm." + packageName + "=ok")
                 );
             }
+            assertTrue(
+                    "worker package resolution did not pass; stdout=" + stdout + " stderr=" + stderr,
+                    stdout.contains("npm.worker=ok")
+            );
             assertTrue("suite terminator missing; stdout=" + stdout, stdout.contains("npm.suite=done"));
         } finally {
             targetContext.unbindService(connection);

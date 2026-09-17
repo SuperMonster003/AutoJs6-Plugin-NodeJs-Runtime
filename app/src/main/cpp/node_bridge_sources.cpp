@@ -4534,6 +4534,7 @@ std::string buildEmbeddedScriptExecutionSource(
         nestedWorkers: false,
         rawNativeHandles: false,
         packagedBehavior: "native_available_only",
+        packageResolution: "workspace_node_modules",
         processApis: Object.freeze({
           exit: "ends_worker_thread_as_node",
           getBuiltinModule: "allowlisted_builtins",
@@ -9003,6 +9004,7 @@ std::string buildEmbeddedScriptExecutionSource(
         allowedBuiltins: __autojs6_worker_threads_policy.allowedBuiltins,
         rawNetwork: __autojs6_raw_node_network_modules_enabled,
         unrestrictedFs: __autojs6_unrestricted_fs_access_enabled,
+        facadeModules: __autojs6_rhino_compat_basic_module_names,
         workerProfile: __autojs6_worker_threads_policy_snapshot().workerProfile
       },
       moduleSources: descriptor.moduleSources || Object.create(null)
@@ -9628,22 +9630,314 @@ std::string buildEmbeddedScriptExecutionSource(
       __esmUnsupported("AutoJs6 worker_threads disables ESM syntax in CommonJS workers: " + filename);
     }
   }
+  // Bare package specifiers resolve like Node: from the requesting file upward through the
+  // workspace node_modules directories (exports with require/import conditions, main, index,
+  // self-reference). Node builtins outside the worker allowlist, protocol specifiers and the
+  // AutoJs6 facades stay denied in workers.
+  const __facadeModules = new Set((__descriptor.policy && __descriptor.policy.facadeModules) || []);
+  const __nativeModule = __nativeRequire("module");
+  function __packageNotFound(message) {
+    return __error(message, "ERR_AUTOJS6_MODULE_NOT_FOUND", "MODULE_NOT_FOUND");
+  }
+  function __packageNotExported(moduleName, key) {
+    return __error(
+      "AutoJs6 worker package exports does not define subpath '" + key + "' for '" + moduleName + "'.",
+      "ERR_AUTOJS6_MODULE_NOT_FOUND",
+      "ERR_PACKAGE_PATH_NOT_EXPORTED"
+    );
+  }
+  function __invalidPackageTarget(message) {
+    return __error(message, "ERR_AUTOJS6_MODULE_NOT_FOUND", "ERR_INVALID_PACKAGE_TARGET");
+  }
+  function __parsePackageSpecifier(raw) {
+    if (!raw || raw.indexOf("\u0000") >= 0) return null;
+    const normalized = raw.charAt(raw.length - 1) === "/" ? raw.slice(0, -1) : raw;
+    const parts = normalized.split("/");
+    for (const part of parts) {
+      if (part === "" || part === "." || part === "..") return null;
+    }
+    if (parts[0].charAt(0) === "@") {
+      if (parts.length < 2 || parts[0].length <= 1 || parts[1].charAt(0) === "@") return null;
+      return { packageName: parts[0] + "/" + parts[1], subpath: parts.slice(2).join("/") };
+    }
+    return { packageName: parts[0], subpath: parts.slice(1).join("/") };
+  }
+  function __packageData(packageDir) {
+    const record = __packageJsonRecord(__path.resolve(packageDir, "package.json"));
+    if (!record) return null;
+    let data;
+    try {
+      data = JSON.parse(record.source);
+    } catch (error) {
+      throw __error("Invalid AutoJs6 worker package.json: " + record.sourceURL, "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
+    }
+    return data && typeof data === "object" && !Array.isArray(data) ? data : null;
+  }
+  function __directoryExists(directory) {
+    try {
+      const stat = __fs.statSync(directory);
+      if (stat && typeof stat.isDirectory === "function" && stat.isDirectory()) return true;
+    } catch (_) {}
+    const prefix = directory + "/";
+    for (const key of Object.keys(__moduleSources)) {
+      if (key.indexOf(prefix) === 0) return true;
+    }
+    return false;
+  }
+  function __activeConditions(mode) {
+    return mode === "esm" ? ["autojs6", "import", "node", "default"] : ["autojs6", "require", "node", "default"];
+  }
+  function __conditionTarget(entry, mode) {
+    if (typeof entry === "string") return { target: entry, blocked: false };
+    if (entry === null) return { target: null, blocked: true };
+    if (Array.isArray(entry)) {
+      for (const item of entry) {
+        const selected = __conditionTarget(item, mode);
+        if (selected !== null) return selected;
+      }
+      return null;
+    }
+    if (entry && typeof entry === "object") {
+      const active = __activeConditions(mode);
+      for (const key of Object.keys(entry)) {
+        if (active.indexOf(key) < 0) continue;
+        const selected = __conditionTarget(entry[key], mode);
+        if (selected !== null) return selected;
+      }
+      return null;
+    }
+    return null;
+  }
+  function __patternReplacement(patternKey, key) {
+    const star = patternKey.indexOf("*");
+    if (star < 0) return null;
+    if (patternKey.indexOf("*", star + 1) >= 0) {
+      throw __invalidPackageTarget("Unsupported AutoJs6 worker package exports multiple wildcard pattern: " + patternKey);
+    }
+    const prefix = patternKey.slice(0, star);
+    const suffix = patternKey.slice(star + 1);
+    if (key.indexOf(prefix) !== 0) return null;
+    if (suffix && key.slice(-suffix.length) !== suffix) return null;
+    if (key.length < prefix.length + suffix.length) return null;
+    const replacement = key.slice(prefix.length, suffix ? -suffix.length : undefined);
+    if (!replacement || replacement.indexOf("\u0000") >= 0 || __path.isAbsolute(replacement)) return null;
+    for (const part of replacement.split("/")) {
+      if (part === "" || part === "." || part === "..") return null;
+    }
+    return replacement;
+  }
+  function __patternKeyCompare(left, right) {
+    const leftStar = left.indexOf("*");
+    const rightStar = right.indexOf("*");
+    const leftBaseLength = leftStar < 0 ? left.length : leftStar + 1;
+    const rightBaseLength = rightStar < 0 ? right.length : rightStar + 1;
+    if (leftBaseLength > rightBaseLength) return -1;
+    if (rightBaseLength > leftBaseLength) return 1;
+    if (leftStar < 0) return 1;
+    if (rightStar < 0) return -1;
+    if (left.length > right.length) return -1;
+    if (right.length > left.length) return 1;
+    return 0;
+  }
+  function __bestPatternMatch(entries, key) {
+    let bestKey = null;
+    let bestReplacement = null;
+    for (const patternKey of Object.keys(entries)) {
+      const replacement = __patternReplacement(patternKey, key);
+      if (replacement === null) continue;
+      if (bestKey === null || __patternKeyCompare(patternKey, bestKey) < 0) {
+        bestKey = patternKey;
+        bestReplacement = replacement;
+      }
+    }
+    return bestKey === null ? null : { key: bestKey, replacement: bestReplacement };
+  }
+  function __exportsTarget(packageData, subpath, mode, moduleName) {
+    if (!packageData || !Object.prototype.hasOwnProperty.call(packageData, "exports")) return { present: false, target: null };
+    const exportsValue = packageData.exports;
+    const key = subpath ? "./" + subpath : ".";
+    if (typeof exportsValue === "string") {
+      if (subpath) throw __packageNotExported(moduleName, key);
+      return { present: true, target: exportsValue };
+    }
+    let entry = null;
+    let replacement = null;
+    let matched = false;
+    if (Array.isArray(exportsValue)) {
+      if (!subpath) {
+        entry = exportsValue;
+        matched = true;
+      }
+    } else if (exportsValue && typeof exportsValue === "object") {
+      const keys = Object.keys(exportsValue);
+      const subpathShape = keys.length > 0 && keys[0].charAt(0) === ".";
+      if (subpathShape) {
+        if (Object.prototype.hasOwnProperty.call(exportsValue, key)) {
+          entry = exportsValue[key];
+          matched = true;
+        } else {
+          const pattern = __bestPatternMatch(exportsValue, key);
+          if (pattern !== null) {
+            entry = exportsValue[pattern.key];
+            replacement = pattern.replacement;
+            matched = true;
+          }
+        }
+      } else if (!subpath) {
+        entry = exportsValue;
+        matched = true;
+      }
+    }
+    if (!matched) throw __packageNotExported(moduleName, key);
+    const selected = __conditionTarget(entry, mode);
+    if (selected === null || selected.blocked) throw __packageNotExported(moduleName, key);
+    let target = selected.target;
+    if (replacement !== null) {
+      if ((String(target).match(/\*/g) || []).length !== 1) {
+        throw __invalidPackageTarget("AutoJs6 worker package exports pattern target must contain exactly one '*' for '" + moduleName + "': " + target);
+      }
+      target = target.replace("*", replacement);
+    }
+    return { present: true, target };
+  }
+  function __fileCandidates(base, mode) {
+    return mode === "esm"
+      ? [base, base + ".mjs", base + ".js", base + ".cjs", base + ".json"]
+      : [base, base + ".js", base + ".cjs", base + ".json"];
+  }
+  function __indexCandidates(directory, mode) {
+    return __fileCandidates(__path.resolve(directory, "index"), mode).slice(1);
+  }
+  function __firstExisting(candidates, boundary, label) {
+    for (const candidate of candidates) {
+      const absolute = __validatePath(candidate, label);
+      if (boundary && !__withinRoot(absolute, boundary)) continue;
+      if (__normalizedExtension(absolute) === ".node") __nativeAddonDisabled(absolute);
+      if (__recordExists(absolute, true)) return absolute;
+    }
+    return null;
+  }
+  function __resolvePackageTarget(packageDir, target, mode, fieldName, moduleName) {
+    if (typeof target !== "string" || target.length === 0 || target.indexOf("\u0000") >= 0 || __path.isAbsolute(target)) {
+      throw __invalidPackageTarget("Invalid AutoJs6 worker package " + fieldName + " target for '" + moduleName + "': " + String(target));
+    }
+    if (fieldName === "exports" && target.indexOf("./") !== 0) {
+      throw __invalidPackageTarget("AutoJs6 worker package exports target must start with './' for '" + moduleName + "': " + target);
+    }
+    const base = __path.resolve(packageDir, target);
+    if (!__withinRoot(base, packageDir)) {
+      throw __invalidPackageTarget("AutoJs6 worker package " + fieldName + " escapes the package directory for '" + moduleName + "': " + target);
+    }
+    const extension = __normalizedExtension(base);
+    if (extension === ".node") __nativeAddonDisabled(target);
+    if (extension && !__supportedSourceExtension(extension, true)) {
+      throw __invalidPackageTarget("Unsupported AutoJs6 worker package " + fieldName + " extension for '" + moduleName + "': " + target);
+    }
+    const resolved = __firstExisting(extension ? [base] : __fileCandidates(base, mode), packageDir, "package " + fieldName + " target");
+    if (resolved) return resolved;
+    if (!extension && fieldName === "main") {
+      const index = __firstExisting(__indexCandidates(base, mode), packageDir, "package main directory");
+      if (index) return index;
+    }
+    throw __packageNotFound("Cannot find AutoJs6 worker package " + fieldName + " target '" + target + "' for '" + moduleName + "'.");
+  }
+  function __resolvePackageDirectory(packageDir, subpath, mode, moduleName) {
+    const packageData = __packageData(packageDir);
+    if (packageData) {
+      const exported = __exportsTarget(packageData, subpath, mode, moduleName);
+      if (exported.present) return __resolvePackageTarget(packageDir, exported.target, mode, "exports", moduleName);
+    }
+    if (subpath) {
+      const base = __path.resolve(packageDir, subpath);
+      if (!__withinRoot(base, packageDir)) {
+        throw __packageNotFound("AutoJs6 worker package subpath escapes the package directory for '" + moduleName + "'.");
+      }
+      const extension = __normalizedExtension(base);
+      if (extension === ".node") __nativeAddonDisabled(subpath);
+      const file = __firstExisting(extension ? [base] : __fileCandidates(base, mode), packageDir, "package subpath");
+      if (file) return file;
+      if (!extension && __directoryExists(base)) return __resolvePackageDirectory(base, "", mode, moduleName);
+      throw __packageNotFound("Cannot find module '" + moduleName + "' in AutoJs6 worker package directory " + packageDir + ".");
+    }
+    if (packageData && typeof packageData.main === "string" && packageData.main.length > 0) {
+      try {
+        return __resolvePackageTarget(packageDir, packageData.main, mode, "main", moduleName);
+      } catch (error) {
+        if (!error || error.code !== "MODULE_NOT_FOUND") throw error;
+      }
+    }
+    const index = __firstExisting(__indexCandidates(packageDir, mode), packageDir, "package index");
+    if (index) return index;
+    throw __packageNotFound("Cannot find module '" + moduleName + "' in AutoJs6 worker package directory " + packageDir + ".");
+  }
+  function __nodeModulesSearchDirs(parentFilename) {
+    const dirs = [];
+    let current = __path.resolve(__path.dirname(parentFilename || __entryFilename));
+    if (!__withinRoot(current, __root)) current = __root;
+    while (__withinRoot(current, __root) && !__sensitivePath(current)) {
+      if (__path.basename(current) !== "node_modules") dirs.push(__path.resolve(current, "node_modules"));
+      if (current === __root) break;
+      const parent = __path.dirname(current);
+      if (!parent || parent === current) break;
+      current = __withinRoot(parent, __root) ? parent : __root;
+    }
+    return dirs;
+  }
+  function __resolveSelfReference(specifier, parentFilename, mode, moduleName) {
+    let current = __path.resolve(__path.dirname(parentFilename || __entryFilename));
+    if (!__withinRoot(current, __root)) return null;
+    while (__withinRoot(current, __root) && !__sensitivePath(current)) {
+      const packageData = __packageData(current);
+      if (packageData) {
+        if (packageData.name !== specifier.packageName || !Object.prototype.hasOwnProperty.call(packageData, "exports")) return null;
+        const exported = __exportsTarget(packageData, specifier.subpath, mode, moduleName);
+        return exported.present ? __resolvePackageTarget(current, exported.target, mode, "exports", moduleName) : null;
+      }
+      if (current === __root) break;
+      const parent = __path.dirname(current);
+      if (!parent || parent === current) break;
+      current = parent;
+    }
+    return null;
+  }
+  function __resolveBare(raw, parentFilename, mode) {
+    if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(raw)) return __deny(raw);
+    if (__nativeModule.isBuiltin(raw)) return __deny(raw);
+    const specifier = __parsePackageSpecifier(raw);
+    if (!specifier) throw __packageNotFound("Invalid AutoJs6 worker package specifier: " + raw);
+    const selfResolved = __resolveSelfReference(specifier, parentFilename, mode, raw);
+    if (selfResolved) return { resolved: selfResolved, kind: __moduleKind(selfResolved) };
+    const searchDirs = __nodeModulesSearchDirs(parentFilename);
+    for (const nodeModulesDir of searchDirs) {
+      const packageDir = __path.resolve(nodeModulesDir, specifier.packageName);
+      if (!__withinRoot(packageDir, __root) || __sensitivePath(packageDir) || !__directoryExists(packageDir)) continue;
+      const resolved = __resolvePackageDirectory(packageDir, specifier.subpath, mode, raw);
+      return { resolved, kind: __moduleKind(resolved) };
+    }
+    if (__facadeModules.has(raw)) return __deny(raw);
+    throw __packageNotFound(
+      "Cannot find module '" + raw + "' from '" + (parentFilename || __entryFilename) +
+        "'. node_modules search paths='" + searchDirs.join("|") + "'."
+    );
+  }
+  function __resolveModule(raw, parentFilename, mode) {
+    return __isRelativeModuleName(raw) || __path.isAbsolute(raw)
+      ? __resolveLocal(raw, parentFilename, mode)
+      : __resolveBare(raw, parentFilename, mode);
+  }
   function __createRequire(parentModule) {
     const parentFilename = parentModule ? parentModule.filename : __entryFilename;
     function workerRequire(request) {
       const raw = String(request || "");
       if (__builtinAllowed(raw)) return __loadBuiltin(raw);
-      if (__isRelativeModuleName(raw) || __path.isAbsolute(raw)) {
-        const resolved = __resolveLocal(raw, parentFilename, "cjs");
-        return __loadCjsModule(resolved.resolved, parentModule);
-      }
-      return __deny(raw);
+      const resolved = __resolveModule(raw, parentFilename, "cjs");
+      if (resolved.kind === "esm") __requireEsmUnsupported(raw);
+      return __loadCjsModule(resolved.resolved, parentModule);
     }
     workerRequire.resolve = function(request) {
       const raw = String(request || "");
       if (__builtinAllowed(raw)) return __resolveBuiltin(raw);
-      if (__isRelativeModuleName(raw) || __path.isAbsolute(raw)) return __resolveLocal(raw, parentFilename, "cjs").resolved;
-      return __deny(raw);
+      return __resolveModule(raw, parentFilename, "cjs").resolved;
     };
     return workerRequire;
   }
@@ -9828,11 +10122,12 @@ std::string buildEmbeddedScriptExecutionSource(
     if (/^file:/i.test(raw)) {
       try { localName = __nativeRequire("url").fileURLToPath(raw); } catch (error) { return Promise.reject(error); }
     }
-    if (!__isRelativeModuleName(localName) && !__path.isAbsolute(localName)) return Promise.reject(__error(
-      "AutoJs6 worker_threads ESM imports only local worker dependencies and allowed builtins: " + raw,
-      "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
-    ));
-    const resolved = __resolveLocal(localName, parentFilename, "esm");
+    let resolved;
+    try {
+      resolved = __resolveModule(localName, parentFilename, "esm");
+    } catch (error) {
+      return Promise.reject(error);
+    }
     if (resolved.kind === "cjs") {
       return Promise.resolve(__namespaceFromCommonJs(__loadCjsModule(resolved.resolved, null)));
     }
