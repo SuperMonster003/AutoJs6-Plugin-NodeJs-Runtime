@@ -4718,10 +4718,7 @@ std::string buildEmbeddedScriptExecutionSource(
         rhinoExecutionTimeout: "ERR_AUTOJS6_RHINO_EXECUTION_TIMEOUT",
         rhinoJsonUnsafeResult: "ERR_AUTOJS6_RHINO_JSON_UNSAFE_RESULT",
         fsScopedPath: "ERR_AUTOJS6_FS_SCOPED_PATH",
-        fsAbsolutePathDenied: "ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED",
         fsPathEscape: "ERR_AUTOJS6_FS_PATH_ESCAPE",
-        fsRealpathEscape: "ERR_AUTOJS6_FS_REALPATH_ESCAPE",
-        fsSymlinkEscape: "ERR_AUTOJS6_FS_SYMLINK_ESCAPE",
         fsNulByte: "ERR_AUTOJS6_FS_NUL_BYTE",
         bridgePermissionDenied: "ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED",
         bridgeCapabilityNotDeclared: "ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED",
@@ -28080,27 +28077,21 @@ std::string buildEmbeddedScriptExecutionSource(
     return String(display).replace(/\u0000/g, "<NUL>");
   }
   function __autojs6_scoped_fs_autojs6_error_code(reason) {
+    // Only three policy outcomes remain now that fs reach is Android file access:
+    // NUL bytes, the /proc /sys /dev hard boundary (one code, shared with the
+    // module loader and worker fs), and refusing to remove the reach root. Other
+    // fs failures keep their Node/Android code without an AutoJs6 policy code.
     const text = String(reason || "").toLowerCase();
-    if (text.indexOf("nul") >= 0) {
+    if (text.indexOf("nul path") >= 0 || text.indexOf("contains nul") >= 0 || text.indexOf("rejects nul") >= 0) {
       return "ERR_AUTOJS6_FS_NUL_BYTE";
     }
-    if (text.indexOf("absolute") >= 0) {
-      return "ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED";
+    if (text.indexOf("scoped path denied") >= 0) {
+      return "ERR_AUTOJS6_FS_SCOPED_PATH";
     }
-    if (text.indexOf("real path escapes") >= 0 || text.indexOf("realpath escape") >= 0) {
-      return "ERR_AUTOJS6_FS_REALPATH_ESCAPE";
-    }
-    if (text.indexOf("symlink escapes") >= 0 || text.indexOf("symlink is unsupported") >= 0) {
-      return "ERR_AUTOJS6_FS_SYMLINK_ESCAPE";
-    }
-    if (
-      text.indexOf("escapes working directory") >= 0 ||
-      text.indexOf("escapes sandboxroot") >= 0 ||
-      text.indexOf("parent escapes working directory") >= 0
-    ) {
+    if (text.indexOf("sensitive root") >= 0 || text.indexOf("escapes") >= 0 || text.indexOf("absolute path") >= 0) {
       return "ERR_AUTOJS6_FS_PATH_ESCAPE";
     }
-    return "ERR_AUTOJS6_FS_SCOPED_PATH";
+    return undefined;
   }
   function __autojs6_scoped_fs_policy_error(message, pathValue, operation, code, reason) {
     const error = __autojs6_error(
@@ -28257,33 +28248,19 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
     const scope = __autojs6_fs_root(path, fs);
-    const absoluteInput = path.isAbsolute(pathText);
     const resolved = path.resolve(scope.cwd, pathText || ".");
-    if (
-      absoluteInput &&
-      !input.allowAbsolute &&
-      (!__autojs6_path_within_root(resolved, scope.root) || __autojs6_sensitive_path(resolved))
-    ) {
-      throw __autojs6_scoped_fs_policy_error(
-        "Embedded Node scoped fs rejects absolute path for " + operation + ": " + display,
-        pathValue,
-        operation,
-        "EPERM",
-        "absolute path"
-      );
-    }
     if (!__autojs6_path_within_root(resolved, scope.root) || __autojs6_sensitive_path(resolved)) {
       throw __autojs6_scoped_fs_policy_error(
-        "Embedded Node scoped fs " + inputKind + "path escapes working directory for " + operation + ": " + display + " (sandboxRoot=" + scope.root + ")",
+        "Embedded Node scoped fs " + inputKind + "path is outside Android file access or under a sensitive root (/proc, /sys, /dev) for " + operation + ": " + display,
         pathValue,
         operation,
         "EPERM",
-        "path escapes working directory"
+        "path under sensitive root"
       );
     }
     if (options && options.rejectRoot && resolved === scope.root) {
       throw __autojs6_scoped_fs_policy_error(
-        "Embedded Node scoped fs cannot remove workingDirectory root for " + operation + ": " + display,
+        "Embedded Node scoped fs cannot remove the filesystem reach root for " + operation + ": " + display,
         pathValue,
         operation,
         "EPERM",
@@ -28295,11 +28272,11 @@ std::string buildEmbeddedScriptExecutionSource(
       const real = fs.realpathSync(resolved);
       if (!__autojs6_path_within_root(real, scope.realRoot) || __autojs6_sensitive_path(real)) {
         throw __autojs6_scoped_fs_policy_error(
-          "Embedded Node scoped fs " + inputKind + "real path escapes working directory for " + operation + ": " + display + " (sandboxRoot=" + scope.root + ")",
+          "Embedded Node scoped fs " + inputKind + "real path resolves outside Android file access or under a sensitive root (/proc, /sys, /dev) for " + operation + ": " + display,
           pathValue,
           operation,
           "EPERM",
-          "real path escapes working directory"
+          "real path under sensitive root"
         );
       }
       return resolved;
@@ -28320,7 +28297,7 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       if (!parent || !__autojs6_path_within_root(parent, scope.root)) {
         throw __autojs6_scoped_fs_policy_error(
-          "Embedded Node scoped fs " + inputKind + "parent escapes working directory for " + operation + ": " + display + " (sandboxRoot=" + scope.root + ")",
+          "Embedded Node scoped fs " + inputKind + "parent is outside Android file access for " + operation + ": " + display,
           pathValue,
           operation,
           "EPERM",
@@ -28330,11 +28307,11 @@ std::string buildEmbeddedScriptExecutionSource(
       const realParent = fs.realpathSync(parent);
       if (!__autojs6_path_within_root(realParent, scope.realRoot) || __autojs6_sensitive_path(realParent)) {
         throw __autojs6_scoped_fs_policy_error(
-          "Embedded Node scoped fs " + inputKind + "parent real path escapes working directory for " + operation + ": " + display + " (sandboxRoot=" + scope.root + ")",
+          "Embedded Node scoped fs " + inputKind + "parent real path resolves outside Android file access or under a sensitive root (/proc, /sys, /dev) for " + operation + ": " + display,
           pathValue,
           operation,
           "EPERM",
-          "real path escapes working directory"
+          "real path under sensitive root"
         );
       }
     }
@@ -28760,7 +28737,6 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_scoped_fs_watch_records = [];
   let __autojs6_scoped_fd_records = Object.create(null);
   let __autojs6_scoped_fd_next_id = 1;
-  const __autojs6_scoped_fs_recursive_entry_limit = 4096;
   let __autojs6_deferred_success_waiting = false;
   let __autojs6_deferred_success_value = undefined;
   function __autojs6_pending_callback_count() {
@@ -30545,121 +30521,31 @@ std::string buildEmbeddedScriptExecutionSource(
       ? path.join(base, relative)
       : base.replace(/[\\/]*$/, "/") + relative;
   }
-  function __autojs6_validate_readdir_child_path(resolvedPath, operation) {
-    const path = __autojs6_path_module();
-    const fs = __autojs6_fs_module();
-    if (!path || !fs) {
-      throw new Error("Embedded Node scoped fs needs allowlisted path and fs modules.");
-    }
-    const scope = __autojs6_fs_root(path, fs);
-    if (!__autojs6_path_within_root(resolvedPath, scope.root) || __autojs6_sensitive_path(resolvedPath)) {
-      throw __autojs6_fs_operation_error(operation, "result escapes working directory: " + resolvedPath, "EPERM");
-    }
-    const lstat = fs.lstatSync(resolvedPath);
-    if (lstat && typeof lstat.isSymbolicLink === "function" && lstat.isSymbolicLink()) {
-      return resolvedPath;
-    }
-    const real = fs.realpathSync(resolvedPath);
-    if (!__autojs6_path_within_root(real, scope.realRoot) || __autojs6_sensitive_path(real)) {
-      throw __autojs6_fs_operation_error(operation, "result real path escapes working directory: " + resolvedPath, "EPERM");
-    }
-    return resolvedPath;
-  }
-  function __autojs6_recursive_readdir_entries(nodeFs, resolvedRoot, requestedPath, options, operation) {
-    const path = __autojs6_path_module();
-    const op = operation || "readdirSync";
-    const encoding = __autojs6_readdir_options_encoding(options);
-    const withFileTypes = __autojs6_readdir_options_with_file_types(options);
-    const displayRoot = __autojs6_path_value_display(requestedPath === undefined ? "." : requestedPath);
-    const results = [];
-    const direntReadOptions = { withFileTypes: true };
-    if (encoding !== undefined) {
-      direntReadOptions.encoding = encoding;
-    }
-    function pushResult(value) {
-      if (results.length >= __autojs6_scoped_fs_recursive_entry_limit) {
-        throw __autojs6_out_of_range(
-          "Embedded Node scoped fs " + op + " recursive entry limit exceeded: " +
-            __autojs6_scoped_fs_recursive_entry_limit
-        );
-      }
-      results.push(value);
-    }
-    function encodedName(relativePath) {
-      if (encoding !== "buffer") {
-        return relativePath;
-      }
-      const BufferCtor = __autojs6_buffer_constructor();
-      if (!BufferCtor || typeof BufferCtor.from !== "function") {
-        throw new Error("Embedded Node scoped fs " + op + " needs allowlisted Buffer support for buffer encoding.");
-      }
-      return BufferCtor.from(String(relativePath), "utf8");
-    }
-    function walk(resolvedDir, relativeDir) {
-      const nativeEntries = nodeFs.readdirSync(resolvedDir, direntReadOptions);
-      const childDirs = [];
-      const parentPath = __autojs6_join_exposed_parent_path(displayRoot, relativeDir);
-      for (const nativeEntry of nativeEntries) {
-        const nameText = __autojs6_dirent_name_text(nativeEntry.name, op);
-        const childResolved = path.join(resolvedDir, nameText);
-        __autojs6_validate_readdir_child_path(childResolved, op + " result");
-        const childRelative = relativeDir
-          ? path.join(relativeDir, nameText)
-          : nameText;
-        if (withFileTypes) {
-          pushResult(__autojs6_limited_dirent(nativeEntry, parentPath));
-        } else {
-          pushResult(encodedName(childRelative));
-        }
-        if (
-          nativeEntry &&
-          typeof nativeEntry.isDirectory === "function" &&
-          nativeEntry.isDirectory() &&
-          (
-            typeof nativeEntry.isSymbolicLink !== "function" ||
-            !nativeEntry.isSymbolicLink()
-          )
-        ) {
-          childDirs.push({
-            resolved: childResolved,
-            relative: childRelative
-          });
-        }
-      }
-      for (const child of childDirs) {
-        walk(child.resolved, child.relative);
-      }
-    }
-    walk(resolvedRoot, "");
-    return results;
-  }
-  function __autojs6_verify_readdir_entries(nodeFs, resolvedRoot, requestedPath, entries, options, operation) {
-    const path = __autojs6_path_module();
-    const op = operation || "readdirSync";
-    const withFileTypes = __autojs6_readdir_options_with_file_types(options);
-    const parentPath = __autojs6_path_value_display(requestedPath === undefined ? "." : requestedPath);
-    if (!withFileTypes) {
-      for (const entry of entries) {
-        const nameText = __autojs6_dirent_name_text(entry, op);
-        __autojs6_validate_readdir_child_path(path.join(resolvedRoot, nameText), op + " result");
-      }
+  function __autojs6_exposed_readdir_entries(resolvedRoot, requestedPath, entries, options) {
+    // Node reports dirent.parentPath in terms of the path the caller passed. The
+    // wrapper resolved that path before calling native fs, so map the native
+    // parentPath back to the caller's spelling; names and recursion are native.
+    if (!__autojs6_readdir_options_with_file_types(options) || !Array.isArray(entries)) {
       return entries;
     }
+    const path = __autojs6_path_module();
+    const displayRoot = __autojs6_path_value_display(requestedPath === undefined ? "." : requestedPath);
     return entries.map(function(entry) {
-      const nameText = __autojs6_dirent_name_text(entry.name, op);
-      __autojs6_validate_readdir_child_path(path.join(resolvedRoot, nameText), op + " result");
-      return __autojs6_limited_dirent(entry, parentPath);
+      const nativeParent = entry && entry.parentPath !== undefined && entry.parentPath !== null
+        ? String(entry.parentPath)
+        : resolvedRoot;
+      const relativeParent = path && typeof path.relative === "function"
+        ? path.relative(resolvedRoot, nativeParent)
+        : "";
+      return __autojs6_limited_dirent(entry, __autojs6_join_exposed_parent_path(displayRoot, relativeParent));
     });
   }
   function __autojs6_scoped_readdir_sync(nodeFs, pathValue, options, operation) {
     const requestedPath = pathValue === undefined ? "." : pathValue;
     const op = operation || "readdirSync";
     const resolvedRoot = __autojs6_validate_fs_path(requestedPath, op, { mustExist: true });
-    if (__autojs6_readdir_options_recursive(options)) {
-      return __autojs6_recursive_readdir_entries(nodeFs, resolvedRoot, requestedPath, options, op);
-    }
     const entries = nodeFs.readdirSync(resolvedRoot, options);
-    return __autojs6_verify_readdir_entries(nodeFs, resolvedRoot, requestedPath, entries, options, op);
+    return __autojs6_exposed_readdir_entries(resolvedRoot, requestedPath, entries, options);
   }
   function __autojs6_normalize_opendir_options(options, operation) {
     if (options !== undefined && options !== null && typeof options !== "object") {
@@ -30822,7 +30708,8 @@ std::string buildEmbeddedScriptExecutionSource(
       "Embedded Node scoped fs " + operation + " rejected readlink path " +
         __autojs6_path_value_display(pathValue) + ": " + reason +
         " (cwd=" + cwd + ", sandboxRoot=" + sandboxRoot + ")",
-      code || "EPERM"
+      code || "EPERM",
+      __autojs6_fs_autojs6_error_code(reason)
     );
   }
   function __autojs6_normalize_readlink_options(options, operation) {
@@ -30870,13 +30757,10 @@ std::string buildEmbeddedScriptExecutionSource(
     if (pathText.indexOf("\u0000") >= 0) {
       throw __autojs6_readlink_error(op, pathValue, "NUL path is rejected", "ERR_INVALID_ARG_TYPE");
     }
-    if (path.isAbsolute(pathText) && !input.allowAbsolute) {
-      throw __autojs6_readlink_error(op, pathValue, "absolute path is rejected", "EPERM");
-    }
     const scope = __autojs6_fs_root(path, nodeFs);
     const resolved = path.resolve(scope.cwd, pathText || ".");
     if (!__autojs6_path_within_root(resolved, scope.root) || __autojs6_sensitive_path(resolved)) {
-      throw __autojs6_readlink_error(op, pathValue, inputKind + "path escapes working directory", "EPERM");
+      throw __autojs6_readlink_error(op, pathValue, inputKind + "path is outside Android file access or under a sensitive root (/proc, /sys, /dev)", "EPERM");
     }
     const parent = path.dirname(resolved);
     let realParent;
@@ -30892,7 +30776,7 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
     if (!__autojs6_path_within_root(realParent, scope.realRoot) || __autojs6_sensitive_path(realParent)) {
-      throw __autojs6_readlink_error(op, pathValue, "parent symlink escapes sandboxRoot", "EPERM");
+      throw __autojs6_readlink_error(op, pathValue, "parent real path is under a sensitive root (/proc, /sys, /dev)", "EPERM");
     }
     let linkStat;
     try {
@@ -30947,7 +30831,7 @@ std::string buildEmbeddedScriptExecutionSource(
         throw __autojs6_readlink_error(
           op,
           pathValue,
-          "symlink escapes sandboxRoot: realTarget=" + realTarget,
+          "symlink target is under a sensitive root (/proc, /sys, /dev): realTarget=" + realTarget,
           "EPERM"
         );
       }
@@ -30955,7 +30839,7 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_readlink_error(
         op,
         pathValue,
-        "symlink escapes sandboxRoot: target=" + targetText,
+        "symlink target is under a sensitive root (/proc, /sys, /dev): target=" + targetText,
         "EPERM"
       );
     }
@@ -30977,7 +30861,8 @@ std::string buildEmbeddedScriptExecutionSource(
       "Embedded Node scoped fs " + operation + " rejected ownership path " +
         __autojs6_path_value_display(pathValue) + ": " + reason +
         " (cwd=" + cwd + ", sandboxRoot=" + sandboxRoot + ")",
-      code || "EPERM"
+      code || "EPERM",
+      __autojs6_fs_autojs6_error_code(reason)
     );
   }
   function __autojs6_chown_validation_code(message) {
@@ -31047,13 +30932,10 @@ std::string buildEmbeddedScriptExecutionSource(
     if (pathText.indexOf("\u0000") >= 0) {
       throw __autojs6_chown_error(operation, pathValue, "NUL path is rejected", "ERR_INVALID_ARG_TYPE");
     }
-    if (path.isAbsolute(pathText) && !input.allowAbsolute) {
-      throw __autojs6_chown_error(operation, pathValue, "absolute path is rejected", "EPERM");
-    }
     const scope = __autojs6_fs_root(path, nodeFs);
     const resolved = path.resolve(scope.cwd, pathText || ".");
     if (!__autojs6_path_within_root(resolved, scope.root) || __autojs6_sensitive_path(resolved)) {
-      throw __autojs6_chown_error(operation, pathValue, inputKind + "path escapes working directory: " + display, "EPERM");
+      throw __autojs6_chown_error(operation, pathValue, inputKind + "path is outside Android file access or under a sensitive root (/proc, /sys, /dev): " + display, "EPERM");
     }
     const parent = path.dirname(resolved);
     let realParent;
@@ -31068,7 +30950,7 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
     if (!__autojs6_path_within_root(realParent, scope.realRoot) || __autojs6_sensitive_path(realParent)) {
-      throw __autojs6_chown_error(operation, pathValue, "parent symlink escapes sandboxRoot", "EPERM");
+      throw __autojs6_chown_error(operation, pathValue, "parent real path is under a sensitive root (/proc, /sys, /dev)", "EPERM");
     }
     let linkStat;
     try {
@@ -31094,7 +30976,7 @@ std::string buildEmbeddedScriptExecutionSource(
         );
       }
       if (!__autojs6_path_within_root(realPath, scope.realRoot) || __autojs6_sensitive_path(realPath)) {
-        throw __autojs6_chown_error(operation, pathValue, "real path escapes sandboxRoot", "EPERM");
+        throw __autojs6_chown_error(operation, pathValue, "real path is under a sensitive root (/proc, /sys, /dev)", "EPERM");
       }
       return resolved;
     }
@@ -31134,7 +31016,7 @@ std::string buildEmbeddedScriptExecutionSource(
         throw __autojs6_chown_error(
           operation,
           pathValue,
-          "symlink escapes sandboxRoot: realTarget=" + realTarget,
+          "symlink target is under a sensitive root (/proc, /sys, /dev): realTarget=" + realTarget,
           "EPERM"
         );
       }
@@ -31142,7 +31024,7 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_chown_error(
         operation,
         pathValue,
-        "symlink escapes sandboxRoot: target=" + targetText,
+        "symlink target is under a sensitive root (/proc, /sys, /dev): target=" + targetText,
         "EPERM"
       );
     }
@@ -31184,7 +31066,8 @@ std::string buildEmbeddedScriptExecutionSource(
       "Embedded Node scoped fs " + operation + " rejected chmod path " +
         __autojs6_path_value_display(pathValue) + ": " + reason +
         " (cwd=" + cwd + ", sandboxRoot=" + sandboxRoot + ")",
-      code || "EPERM"
+      code || "EPERM",
+      __autojs6_fs_autojs6_error_code(reason)
     );
   }
   function __autojs6_chmod_validation_code(message) {
@@ -31216,13 +31099,10 @@ std::string buildEmbeddedScriptExecutionSource(
     if (pathText.indexOf("\u0000") >= 0) {
       throw __autojs6_chmod_error(operation, pathValue, "NUL path is rejected", "ERR_INVALID_ARG_TYPE");
     }
-    if (path.isAbsolute(pathText) && !input.allowAbsolute) {
-      throw __autojs6_chmod_error(operation, pathValue, "absolute path is rejected", "EPERM");
-    }
     const scope = __autojs6_fs_root(path, nodeFs);
     const resolved = path.resolve(scope.cwd, pathText || ".");
     if (!__autojs6_path_within_root(resolved, scope.root) || __autojs6_sensitive_path(resolved)) {
-      throw __autojs6_chmod_error(operation, pathValue, inputKind + "path escapes working directory: " + display, "EPERM");
+      throw __autojs6_chmod_error(operation, pathValue, inputKind + "path is outside Android file access or under a sensitive root (/proc, /sys, /dev): " + display, "EPERM");
     }
     return resolved;
   }
@@ -31273,9 +31153,6 @@ std::string buildEmbeddedScriptExecutionSource(
         "path does not exist: " + (error && error.message ? String(error.message) : String(error)),
         error && error.code ? String(error.code) : "ENOENT"
       );
-    }
-    if (linkStat && typeof linkStat.isSymbolicLink === "function" && linkStat.isSymbolicLink()) {
-      throw __autojs6_chmod_error(op, pathValue, "symlink is unsupported", "EPERM");
     }
     try {
       return nodeFs.chmodSync(resolved, normalizedMode);
@@ -31336,7 +31213,8 @@ std::string buildEmbeddedScriptExecutionSource(
       "Embedded Node scoped fs " + operation + " rejected timestamp path " +
         __autojs6_path_value_display(pathValue) + ": " + reason +
         " (cwd=" + cwd + ", sandboxRoot=" + sandboxRoot + ")",
-      code || "EPERM"
+      code || "EPERM",
+      __autojs6_fs_autojs6_error_code(reason)
     );
   }
   function __autojs6_utimes_validation_code(message) {
@@ -31392,13 +31270,10 @@ std::string buildEmbeddedScriptExecutionSource(
     if (pathText.indexOf("\u0000") >= 0) {
       throw __autojs6_utimes_error(operation, pathValue, "NUL path is rejected", "ERR_INVALID_ARG_TYPE");
     }
-    if (path.isAbsolute(pathText) && !input.allowAbsolute) {
-      throw __autojs6_utimes_error(operation, pathValue, "absolute path is rejected", "EPERM");
-    }
     const scope = __autojs6_fs_root(path, nodeFs);
     const resolved = path.resolve(scope.cwd, pathText || ".");
     if (!__autojs6_path_within_root(resolved, scope.root) || __autojs6_sensitive_path(resolved)) {
-      throw __autojs6_utimes_error(operation, pathValue, inputKind + "path escapes working directory: " + display, "EPERM");
+      throw __autojs6_utimes_error(operation, pathValue, inputKind + "path is outside Android file access or under a sensitive root (/proc, /sys, /dev): " + display, "EPERM");
     }
     const parent = path.dirname(resolved);
     let realParent;
@@ -31413,7 +31288,7 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
     if (!__autojs6_path_within_root(realParent, scope.realRoot) || __autojs6_sensitive_path(realParent)) {
-      throw __autojs6_utimes_error(operation, pathValue, "parent symlink escapes sandboxRoot", "EPERM");
+      throw __autojs6_utimes_error(operation, pathValue, "parent real path is under a sensitive root (/proc, /sys, /dev)", "EPERM");
     }
     let linkStat;
     try {
@@ -31439,7 +31314,7 @@ std::string buildEmbeddedScriptExecutionSource(
         );
       }
       if (!__autojs6_path_within_root(realPath, scope.realRoot) || __autojs6_sensitive_path(realPath)) {
-        throw __autojs6_utimes_error(operation, pathValue, "real path escapes sandboxRoot", "EPERM");
+        throw __autojs6_utimes_error(operation, pathValue, "real path is under a sensitive root (/proc, /sys, /dev)", "EPERM");
       }
       return resolved;
     }
@@ -31479,7 +31354,7 @@ std::string buildEmbeddedScriptExecutionSource(
         throw __autojs6_utimes_error(
           operation,
           pathValue,
-          "symlink escapes sandboxRoot: realTarget=" + realTarget,
+          "symlink target is under a sensitive root (/proc, /sys, /dev): realTarget=" + realTarget,
           "EPERM"
         );
       }
@@ -31487,7 +31362,7 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_utimes_error(
         operation,
         pathValue,
-        "symlink escapes sandboxRoot: target=" + targetText,
+        "symlink target is under a sensitive root (/proc, /sys, /dev): target=" + targetText,
         "EPERM"
       );
     }
@@ -31524,9 +31399,6 @@ std::string buildEmbeddedScriptExecutionSource(
         "path does not exist: " + (error && error.message ? String(error.message) : String(error)),
         error && error.code ? String(error.code) : "ENOENT"
       );
-    }
-    if (linkStat && typeof linkStat.isSymbolicLink === "function" && linkStat.isSymbolicLink()) {
-      throw __autojs6_utimes_error(op, pathValue, "symlink is unsupported", "EPERM");
     }
     try {
       return nodeFs.utimesSync(resolved, normalizedAtime, normalizedMtime);
@@ -31576,7 +31448,8 @@ std::string buildEmbeddedScriptExecutionSource(
         __autojs6_path_value_display(sourcePath) + " to " +
         __autojs6_path_value_display(destinationPath) + ": " + reason +
         " (cwd=" + cwd + ", sandboxRoot=" + sandboxRoot + ")",
-      code || "EPERM"
+      code || "EPERM",
+      __autojs6_fs_autojs6_error_code(reason)
     );
   }
   function __autojs6_normalize_cp_options(options, operation, sourcePath, destinationPath) {
@@ -32498,7 +32371,7 @@ std::string buildEmbeddedScriptExecutionSource(
       ? path.resolve(targetText)
       : path.resolve(linkParent, targetText || ".");
     if (!__autojs6_path_within_root(targetAbsolute, scope.root) || __autojs6_sensitive_path(targetAbsolute)) {
-      throw __autojs6_fs_operation_error(operation, inputKind + "target escapes working directory: " + display, "EPERM");
+      throw __autojs6_fs_operation_error(operation, inputKind + "target is under a sensitive root (/proc, /sys, /dev): " + display, "EPERM");
     }
     let nearestExisting = targetAbsolute;
     while (
@@ -32509,7 +32382,7 @@ std::string buildEmbeddedScriptExecutionSource(
       nearestExisting = path.dirname(nearestExisting);
     }
     if (!nearestExisting || !__autojs6_path_within_root(nearestExisting, scope.root) || __autojs6_sensitive_path(nearestExisting)) {
-      throw __autojs6_fs_operation_error(operation, inputKind + "target parent escapes working directory: " + display, "EPERM");
+      throw __autojs6_fs_operation_error(operation, inputKind + "target parent is under a sensitive root (/proc, /sys, /dev): " + display, "EPERM");
     }
     let realExisting;
     try {
