@@ -12,7 +12,8 @@
         "autojs6:profile 診断オブジェクトは過去の partial / reserved / deferred 表記ではなく実際のランタイムを記述: Android 権限に基づくファイルアクセス、process サブセット、worker チャネル、プロセスプール、WASI / native addon の決定",
         "サンプル棚卸し: packaged-esm、packaged-dynamic-import、require-esm、wasm-basic、wasm-plugin、desktop-parity-suite を stable に昇格。両 parity スイートはカタログ文言を出力する代わりにスニペットを実際に実行。compile-cache は適用外とし、メタデータのみの package-install サンプルを削除",
         "モジュール読み込みは Node と同様に Android のファイルアクセスに従う: require、import、Worker が絶対パス、親ディレクトリのターゲット、file: URL を受け付ける (/proc、/sys、/dev は引き続き拒否)。node_modules の探索はワークスペースに固定のまま",
-        "Worker メッセージと fs ウォッチャーは Node ネイティブの制限に従う: 64 KB メッセージ / 32 件キュー上限と 16 ウォッチャー / 毎秒 64 イベントのクォータを撤廃。制約は Android のメモリのみ"
+        "Worker メッセージと fs ウォッチャーは Node ネイティブの制限に従う: 64 KB メッセージ / 32 件キュー上限と 16 ウォッチャー / 毎秒 64 イベントのクォータを撤廃。制約は Android のメモリのみ",
+        "worker 内の process.exit() は Node と同様にその worker スレッドのみを終了し、process.getBuiltinModule() は worker の builtin 許可リストに従う (一律無効化を廃止)"
       ],
       "fix": [
         "runtimeInfo が報告する能力カタログのバージョンとダイジェストを runtime kit から導出し、1.5.4 で残っていた 1.5.0 の旧値を修正",

@@ -15,6 +15,7 @@
 * `Amelioration` Audit des exemples : packaged-esm, packaged-dynamic-import, require-esm, wasm-basic, wasm-plugin et desktop-parity-suite passent en stable ; les deux suites de parité exécutent réellement leurs extraits au lieu d'imprimer le texte du catalogue ; compile-cache est marqué non applicable et l'exemple package-install, purement métadonnées, est supprimé
 * `Amelioration` Le chargement des modules suit l'accès aux fichiers Android comme Node : require, import et Worker acceptent les chemins absolus, les cibles dans les répertoires parents et les URL file: (/proc, /sys et /dev restent refusés) ; la recherche node_modules reste ancrée à l'espace de travail
 * `Amelioration` Les messages Worker et les observateurs fs suivent les limites natives de Node : les plafonds de 64 Ko par message et 32 en file, ainsi que les quotas de 16 observateurs / 64 événements par seconde, sont supprimés ; seule la mémoire Android les borne
+* `Amelioration` Dans les workers, process.exit() termine uniquement le thread du worker comme dans Node et process.getBuiltinModule() suit la liste des builtins autorisés du worker au lieu d'être désactivé
 
 # v1.5.4
 

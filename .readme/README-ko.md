@@ -124,6 +124,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `개선` 샘플 점검: packaged-esm, packaged-dynamic-import, require-esm, wasm-basic, wasm-plugin, desktop-parity-suite를 stable로 승격. 두 parity 스위트는 카탈로그 문구를 출력하는 대신 스니펫을 실제로 실행. compile-cache는 해당 없음으로 표시하고 메타데이터만 출력하던 package-install 샘플 삭제
 * `개선` 모듈 로딩이 Node처럼 Android 파일 접근을 따름: require, import, Worker가 절대 경로, 상위 디렉터리 대상, file: URL을 허용 (/proc, /sys, /dev는 계속 거부). node_modules 탐색은 워크스페이스에 고정
 * `개선` Worker 메시지와 fs 감시자가 Node 네이티브 제한을 따름: 64 KB 메시지 / 32개 대기열 상한과 16개 감시자 / 초당 64 이벤트 할당량 제거. Android 메모리만이 한계
+* `개선` worker 내 process.exit()가 Node처럼 해당 worker 스레드만 종료하고, process.getBuiltinModule()이 worker builtin 허용 목록을 따름 (일괄 비활성화 해제)
 
 # v1.5.4
 

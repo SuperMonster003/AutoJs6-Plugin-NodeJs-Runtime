@@ -15,6 +15,7 @@
 * `Improvement` Sample audit: packaged-esm, packaged-dynamic-import, require-esm, wasm-basic, wasm-plugin and desktop-parity-suite are stable; both parity suites now execute their snippets instead of printing catalog text; compile-cache is marked not applicable and the metadata-only package-install sample is removed
 * `Improvement` Module loading follows Android file access like Node: require, import and Worker accept absolute paths, parent-directory targets and file: URLs (/proc, /sys and /dev stay denied); node_modules lookup stays anchored to the workspace
 * `Improvement` Worker messages and fs watchers follow native Node limits: the 64 KB message and 32-queued caps and the 16-watcher / 64-events-per-second quotas are removed; only Android memory bounds them
+* `Improvement` Inside workers process.exit() ends the worker thread as in Node and process.getBuiltinModule() follows the worker builtin allowlist instead of being disabled
 
 # v1.5.4
 

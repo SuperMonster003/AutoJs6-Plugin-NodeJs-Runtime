@@ -596,6 +596,15 @@ declare namespace AutoJs6Node {
     readonly resourceLimits: WorkerThreadsResourceLimits;
   }
 
+  export interface WorkerThreadsProcessApis {
+    readonly exit: "ends_worker_thread_as_node" | string;
+    readonly getBuiltinModule: "allowlisted_builtins" | string;
+    readonly abort: "unavailable_as_node" | string;
+    readonly chdir: "unavailable_as_node" | string;
+    readonly kill: "denied_shared_runtime_process" | string;
+    readonly dlopen: "denied_native_addon" | string;
+  }
+
   export interface WorkerThreadsProfile {
     readonly status: "stable" | "disabled_by_request" | string;
     readonly defaultEnabled: boolean;
@@ -608,6 +617,8 @@ declare namespace AutoJs6Node {
     readonly nestedWorkers: boolean;
     readonly rawNativeHandles: boolean;
     readonly packagedBehavior: "native_available_only" | "partial" | string;
+    /** process APIs inside workers: exit ends the thread as in Node; abort/chdir are unavailable as in Node. */
+    readonly processApis: WorkerThreadsProcessApis;
     readonly policy: WorkerThreadsPolicy;
   }
 
