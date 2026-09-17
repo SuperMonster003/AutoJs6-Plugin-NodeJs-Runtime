@@ -1,3 +1,4 @@
+sample.scheduled-node-task.lifecycle=<one_shot/script when run directly; scheduled/scheduled_runner when the WorkManager runner launches it>
 sample.scheduled-node-task.provider=work_manager
-sample.scheduled-node-task.cancelled=<true or unavailable marker>
+sample.scheduled-node-task.cancelled=<true; kept=<id> when keep-scheduled.txt exists; or an unavailable marker>
 sample.scheduled-node-task=PASS

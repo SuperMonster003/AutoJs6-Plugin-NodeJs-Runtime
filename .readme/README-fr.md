@@ -128,6 +128,7 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 * `Amelioration` Les workers résolvent les spécificateurs de paquet nus via le node_modules de l'espace de travail comme dans Node (conditions exports, main, index, auto-référence) au lieu de les refuser
 * `Amelioration` L'import() dynamique dans les workers passe par le chargeur ESM partiel du worker (chemins locaux, URL file:, paquets de l'espace de travail, builtins autorisés, with { type: "json" }) au lieu d'être refusé
 * `Amelioration` L'exemple host-events passe en stable après la validation manuelle de la touche physique et de l'accès aux notifications
+* `Amelioration` L'exemple scheduled-node-task affiche sa politique de cycle de vie et peut conserver la tâche planifiée pour une exécution réelle de WorkManager ; le mode scheduled obtient une régression côté plugin
 
 # v1.5.4
 

@@ -16,6 +16,7 @@ package.json 和 main.cjs。在 AutoJs6 文件列表中进入项目, 使用项�
 | OCR | sample/nodejs/ocr-automation | 系统整屏录屏授权, 可用 OCR 插件 |
 | 实体按键、事件入口 | sample/nodejs/host-events | AutoJs6 无障碍; 通知观察另需通知使用权 |
 | 3 秒录音及 MediaInfo | sample/nodejs/audio-recording | AutoJs6 麦克风权限, MediaInfo 插件, 宿主在前台 |
+| scheduled 执行模式 (WorkManager 定时运行) | sample/nodejs/scheduled-node-task | 宿主 WorkManager 定时运行器; 设备保持可运行后台任务 |
 
 ## M14: 截屏与 OCR
 
@@ -123,3 +124,16 @@ PASS 代替其余来源的检查。
 记录设备型号/API、宿主与插件版本、所运行项目名、系统授权选择、PASS 或完整错误,
 以及截屏尺寸/识别文本、keyCode/action、录音字节数/音轨信息。录音本身和完整截图
 可以保留在本地, 验收记录只需要上述结果。
+
+## M18.2: scheduled 执行模式 (WorkManager 定时运行)
+
+能力目录中 `scheduled` 执行模式的插件侧 (模式与 `scheduled_runner` 启动面解析、无检查点、
+无隐式重试、退出码回报) 已由 ExecutionModeLifecycleSmokeTest 覆盖; 端到端需要宿主的
+WorkManager 定时运行器实际拉起 Node 项目:
+
+1. 将 sample/nodejs/scheduled-node-task 整个目录复制到设备的 AutoJs6 工作目录, 在该目录内新建空文件 `keep-scheduled.txt`。
+2. 从项目入口运行。日志应出现 `sample.scheduled-node-task.lifecycle=one_shot/script` 与 `sample.scheduled-node-task.kept=<id>`。
+3. 保持宿主可运行后台任务 (不要强行停止 AutoJs6), 约 60 秒后 WorkManager 运行器会再次拉起 `main.cjs`。
+   在 AutoJs6 日志中应看到 `sample.scheduled-node-task.lifecycle=scheduled/scheduled_runner`、
+   `sample.scheduled-node-task.launchedByRunner=true` 与 `sample.scheduled-node-task=PASS`。
+4. 回报这三行 (或实际出现的错误); 该次运行不会被隐式重试。测试后删除 `keep-scheduled.txt`。
