@@ -19,6 +19,7 @@
 * `Improvement` Workers resolve bare package specifiers through the workspace node_modules as in Node (exports conditions, main, index, self-reference) instead of denying them
 * `Improvement` Dynamic import() inside workers goes through the worker partial ESM loader (local paths, file: URLs, workspace packages, allowed builtins, with { type: "json" }) instead of being rejected
 * `Improvement` host-events sample promoted to stable after the physical key and notification access acceptance passed
+* `Improvement` scheduled-node-task sample prints its lifecycle policy and can keep the scheduled task for a real WorkManager run; the scheduled execution mode gains plugin-side regression coverage
 
 # v1.5.4
 

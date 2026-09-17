@@ -16,7 +16,8 @@
         "Inside workers process.exit() ends the worker thread as in Node and process.getBuiltinModule() follows the worker builtin allowlist instead of being disabled",
         "Workers resolve bare package specifiers through the workspace node_modules as in Node (exports conditions, main, index, self-reference) instead of denying them",
         "Dynamic import() inside workers goes through the worker partial ESM loader (local paths, file: URLs, workspace packages, allowed builtins, with { type: \"json\" }) instead of being rejected",
-        "host-events sample promoted to stable after the physical key and notification access acceptance passed"
+        "host-events sample promoted to stable after the physical key and notification access acceptance passed",
+        "scheduled-node-task sample prints its lifecycle policy and can keep the scheduled task for a real WorkManager run; the scheduled execution mode gains plugin-side regression coverage"
       ],
       "fix": [
         "The capability catalog version and digest reported by runtimeInfo are now derived from the runtime kit, correcting the stale 1.5.0 values still reported by 1.5.4",

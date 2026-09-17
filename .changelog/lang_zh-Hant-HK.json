@@ -16,7 +16,8 @@
         "worker 內 process.exit() 按 Node 語義只結束該 worker 執行緒, process.getBuiltinModule() 走 worker builtin 名單, 不再整體停用",
         "worker 內 bare 套件名按 Node 語義經工作區 node_modules 解析 (exports 條件、main、index、套件自引用), 不再一律拒絕",
         "worker 內動態 import() 經 worker 的 partial ESM 載入器執行 (相對/絕對路徑、file: URL、工作區套件、builtin 名單、with { type: \"json\" }), 不再拒絕",
-        "host-events 範例在實體按鍵與通知存取人工驗收通過後轉為 stable"
+        "host-events 範例在實體按鍵與通知存取人工驗收通過後轉為 stable",
+        "scheduled-node-task 範例列印生命週期策略並可保留定時任務供 WorkManager 實跑; scheduled 執行模式補齊插件側回歸"
       ],
       "fix": [
         "runtimeInfo 回報的能力目錄版本與摘要改由 runtime kit 派生, 修正 1.5.4 中仍為 1.5.0 的舊值",

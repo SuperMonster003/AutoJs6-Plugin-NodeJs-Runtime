@@ -74,4 +74,25 @@ public final class NodeRuntimeModuleInjectorTest {
 
         assertFalse(policy.checkpointEnabled);
     }
+
+    /** Roadmap M18.2: the scheduled mode infers the scheduler surface and never opens checkpoints. */
+    @Test
+    public void scheduledRequestResolvesSchedulerSurfaceWithoutCheckpoint() {
+        NodeRuntimeModuleInjector.LifecycleRequestPolicy policy =
+                NodeRuntimeModuleInjector.resolveLifecycleRequest("scheduled", null, null);
+
+        assertEquals("scheduled", policy.executionMode);
+        assertEquals("scheduled_runner", policy.launchSurface);
+        assertFalse(policy.checkpointEnabled);
+    }
+
+    @Test
+    public void scheduledEngineInfoFallbackKeepsSchedulerSurface() {
+        NodeRuntimeModuleInjector.LifecycleRequestPolicy policy =
+                NodeRuntimeModuleInjector.resolveLifecycleRequest(null, "scheduled", "scheduled_runner");
+
+        assertEquals("scheduled", policy.executionMode);
+        assertEquals("scheduled_runner", policy.launchSurface);
+        assertFalse(policy.checkpointEnabled);
+    }
 }

@@ -1,5 +1,6 @@
 package io.github.supermonster003.autojs6.plugin.nodejs;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -94,6 +95,80 @@ public final class ExecutionModeLifecycleSmokeTest {
             ));
             assertTrue("restart policy changed", stdout.contains("m8.lifecycle.restart=never"));
             assertTrue("automatic restart unexpectedly enabled", stdout.contains("m8.lifecycle.auto=false"));
+        } finally {
+            context.unbindService(connection);
+        }
+    }
+
+    /** Roadmap M18.2: a scheduled request resolves the scheduler surface, runs exactly once and reports its exit code. */
+    @Test
+    public void scheduledRequestRunsOnceWithoutImplicitRetry() throws Exception {
+        Context context = InstrumentationRegistry.getInstrumentation()
+                .getTargetContext()
+                .getApplicationContext();
+        CountDownLatch connected = new CountDownLatch(1);
+        AtomicReference<IBinder> binder = new AtomicReference<>();
+        ServiceConnection connection = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                binder.set(service);
+                connected.countDown();
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+            }
+        };
+        ComponentName component = new ComponentName(
+                context.getPackageName(),
+                context.getPackageName() + ".NodeJsRuntimePluginService"
+        );
+        assertTrue(
+                "bindService was rejected",
+                context.bindService(new Intent().setComponent(component), connection, Context.BIND_AUTO_CREATE)
+        );
+        try {
+            assertTrue("bind timed out", connected.await(BIND_TIMEOUT_MS, TimeUnit.MILLISECONDS));
+            INodeJsRuntimePlugin runtime = INodeJsRuntimePlugin.Stub.asInterface(binder.get());
+            assertNotNull("runtime proxy unavailable", runtime);
+
+            Bundle request = new Bundle();
+            request.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, "m18-scheduled-lifecycle-mode");
+            request.putString(NodeJsRuntimeContract.KEY_SOURCE_NAME, "m18-scheduled-lifecycle-mode.cjs");
+            request.putString(NodeJsRuntimeContract.KEY_WORKING_DIRECTORY, context.getCacheDir().getAbsolutePath());
+            request.putString(NodeJsRuntimeContract.KEY_EXECUTION_MODE, "scheduled");
+            request.putString(
+                    NodeJsRuntimeContract.KEY_SOURCE,
+                    "const lifecycle = require('autojs6:lifecycle');\n" +
+                            "console.log('m18.scheduled.mode=' + lifecycle.policy.executionMode);\n" +
+                            "console.log('m18.scheduled.surface=' + lifecycle.policy.launchSurface);\n" +
+                            "console.log('m18.scheduled.checkpoint=' + lifecycle.policy.checkpoint.enabled);\n" +
+                            "console.log('m18.scheduled.restart=' + lifecycle.policy.restartPolicy);\n" +
+                            "console.log('m18.scheduled.auto=' + lifecycle.policy.automaticRestart);\n" +
+                            "console.log('m18.scheduled.attempt');\n" +
+                            "process.exitCode = 2;\n"
+            );
+
+            Bundle result = runtime.runScript(request, emptyCallback());
+            assertNotNull("scheduled execution returned null", result);
+            String stdout = result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+            assertTrue("request executionMode was not injected: " + stdout, stdout.contains(
+                    "m18.scheduled.mode=scheduled"
+            ));
+            assertTrue("scheduler surface was not inferred: " + stdout, stdout.contains(
+                    "m18.scheduled.surface=scheduled_runner"
+            ));
+            assertTrue("checkpoint policy must stay closed for scheduled runs", stdout.contains(
+                    "m18.scheduled.checkpoint=false"
+            ));
+            assertTrue("restart policy changed", stdout.contains("m18.scheduled.restart=never"));
+            assertTrue("automatic restart unexpectedly enabled", stdout.contains("m18.scheduled.auto=false"));
+            assertEquals("exit code must surface to the scheduler", 2, result.getInt(NodeJsRuntimeContract.KEY_EXIT_CODE, -1));
+            assertEquals(
+                    "scheduled script must run exactly once (no implicit retry): " + stdout,
+                    1,
+                    stdout.split("m18\\.scheduled\\.attempt", -1).length - 1
+            );
         } finally {
             context.unbindService(connection);
         }

@@ -19,6 +19,7 @@
 * `優化` worker 內 bare 套件名按 Node 語意經工作區 node_modules 解析 (exports 條件、main、index、套件自引用), 不再一律拒絕
 * `優化` worker 內動態 import() 經 worker 的 partial ESM 載入器執行 (相對/絕對路徑、file: URL、工作區套件、builtin 名單、with { type: "json" }), 不再拒絕
 * `優化` host-events 範例在實體按鍵與通知存取人工驗收通過後轉為 stable
+* `優化` scheduled-node-task 範例列印生命週期策略並可保留定時任務供 WorkManager 實跑; scheduled 執行模式補齊外掛側回歸
 
 # v1.5.4
 
