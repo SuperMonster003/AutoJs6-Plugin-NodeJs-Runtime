@@ -20,6 +20,7 @@
 * `改善` worker 内の動的 import() を worker の partial ESM ローダー経由で実行 (相対/絶対パス、file: URL、ワークスペースのパッケージ、許可された builtin、with { type: "json" })。拒否を廃止
 * `改善` 実機キーと通知アクセスの手動受け入れに合格し、host-events サンプルを stable に昇格
 * `改善` scheduled-node-task サンプルがライフサイクルポリシーを出力し、WorkManager の実行のためにタスクを保持可能に。scheduled 実行モードにプラグイン側の回帰テストを追加
+* `改善` ホストの WorkManager スケジュールランナーがプラグイン経由で実行できたため、scheduled 実行モードを能力カタログで available に昇格
 
 # v1.5.4
 

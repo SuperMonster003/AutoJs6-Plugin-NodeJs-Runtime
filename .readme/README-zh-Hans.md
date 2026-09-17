@@ -129,6 +129,7 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` worker 内动态 import() 经 worker 的 partial ESM 装载器执行 (相对/绝对路径、file: URL、工作区包、builtin 名单、with { type: "json" }), 不再拒绝
 * `优化` host-events 样例在实体按键与通知访问人工验收通过后转为 stable
 * `优化` scheduled-node-task 样例打印生命周期策略并可保留定时任务供 WorkManager 实跑; scheduled 执行模式补齐插件侧回归
+* `优化` scheduled 执行模式在宿主 WorkManager 定时运行器经插件实跑通过后, 能力目录状态转为 available
 
 # v1.5.4
 

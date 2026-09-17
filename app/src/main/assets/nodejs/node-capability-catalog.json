@@ -586,7 +586,7 @@
       },
       {
         "id": "scheduled",
-        "status": "partial",
+        "status": "available",
         "longRunning": false,
         "launchSurfaces": [
           "scheduled_runner"

@@ -129,6 +129,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `개선` worker 내 동적 import()를 worker의 partial ESM 로더로 처리 (상대/절대 경로, file: URL, 워크스페이스 패키지, 허용 builtin, with { type: "json" }). 거부 해제
 * `개선` 실물 키와 알림 접근 수동 검수 통과 후 host-events 샘플을 stable로 승격
 * `개선` scheduled-node-task 샘플이 수명주기 정책을 출력하고 WorkManager 실행을 위해 작업을 유지할 수 있음; scheduled 실행 모드에 플러그인 측 회귀 추가
+* `개선` 호스트 WorkManager 예약 러너가 플러그인을 통해 실제 실행된 후 scheduled 실행 모드를 기능 카탈로그에서 available로 승격
 
 # v1.5.4
 

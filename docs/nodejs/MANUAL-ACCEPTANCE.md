@@ -137,3 +137,8 @@ WorkManager 定时运行器实际拉起 Node 项目:
    在 AutoJs6 日志中应看到 `sample.scheduled-node-task.lifecycle=scheduled/scheduled_runner`、
    `sample.scheduled-node-task.launchedByRunner=true` 与 `sample.scheduled-node-task=PASS`。
 4. 回报这三行 (或实际出现的错误); 该次运行不会被隐式重试。测试后删除 `keep-scheduled.txt`。
+
+2026-09-17 回执: 宿主 WorkManager 定时运行器已在小米 968e9f18 (arm64, API 35) 上实跑 — 宿主 instrumentation
+`NodeWorkManagerBridgeInstrumentationTest` 经真实 AndroidX WorkManager 与真实 Binder 以 `executionMode=scheduled` /
+`launchSurface=scheduled_runner` 拉起插件 Debug 189 执行打包项目入口与 ESM 入口、持久化运行记录并验证取消可阻止延迟执行
+(9/9 通过); 据此能力目录 `scheduled` 转为 available。上述样例手工步骤保留为可选复核, 未通过样例手工流程复核。
