@@ -5,6 +5,15 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.5.4": {
+      "released_date": "2026/09/17",
+      "improvement": [
+        "檔案串流、gzip/deflate/Brotli 壓縮串流和基本 VM 執行正式化; 明確啟用的 Debug Inspector 在 localhost 範圍內正式支援"
+      ],
+      "fix": [
+        "嵌入執行不再輸出 ExperimentalWarning 提示, 保留 warning 事件、一般警告、淘汰警告和錯誤; Node 上游 API 穩定性與終端預設行為不變"
+      ]
+    },
     "v1.5.3": {
       "released_date": "2026/09/16",
       "improvement": [

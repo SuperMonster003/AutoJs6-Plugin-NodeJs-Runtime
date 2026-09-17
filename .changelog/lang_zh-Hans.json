@@ -5,6 +5,15 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.5.4": {
+      "released_date": "2026/09/17",
+      "improvement": [
+        "文件流、gzip/deflate/Brotli 压缩流和基础 VM 执行正式化; 显式启用的 Debug Inspector 在 localhost 范围内正式支持"
+      ],
+      "fix": [
+        "嵌入执行不再输出 ExperimentalWarning 提示, 保留 warning 事件、普通警告、弃用警告和错误; Node 上游 API 稳定性与终端默认行为不变"
+      ]
+    },
     "v1.5.3": {
       "released_date": "2026/09/16",
       "improvement": [

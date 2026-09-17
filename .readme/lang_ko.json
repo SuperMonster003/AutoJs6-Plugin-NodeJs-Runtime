@@ -42,7 +42,9 @@
     "파일 시스템: Android 권한이 허용하는 기기 경로에 접근할 수 있고 `/proc`, `/sys`, `/dev` 는 엄격한 경계입니다.",
     "TypeScript: host output을 허용하고 실행 중 생성된 project file에 provider-v3 compilation을 요청할 수 있습니다. direct raw TypeScript는 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`를 반환합니다.",
     "ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, 네이티브 live binding 및 순환 의존성 지원.",
-    "기능: 동기 스크립트 실행, bundle transport, 네이티브 내장 런타임, 호스트 기능 브로커, host capability live bridge."
+    "기능: 동기 스크립트 실행, bundle transport, 네이티브 내장 런타임, 호스트 기능 브로커, host capability live bridge.",
+    "파일 스트림, gzip/deflate/Brotli 스트림 및 기본 VM 실행을 정식 지원; 명시적으로 활성화한 Debug Inspector는 localhost 범위에서 정식 지원.",
+    "내장 실행에서 ExperimentalWarning 출력을 중단하고 warning 이벤트, 일반 경고, 사용 중단 경고 및 오류를 유지; Node 상위 API 안정성과 터미널 기본 동작은 변경되지 않음."
   ],
   "h3_release_history": "릴리스 기록",
   "h5_for_more_release_history": "더 많은 릴리스 기록",

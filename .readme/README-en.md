@@ -104,12 +104,21 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 - TypeScript: accepts host output and can request provider-v3 compilation for runtime-created project files; direct raw TypeScript returns `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
 - ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, with native live bindings and cyclic dependencies.
 - Capabilities: sync script execution, bundle transport, native embedded runtime, host capability broker, host capability live bridge.
+- File streams, gzip/deflate/Brotli streams and basic VM execution are stable plugin capabilities; the explicitly enabled Debug Inspector is stable within its localhost scope.
+- Embedded execution no longer prints ExperimentalWarning notices; warning events, ordinary warnings, deprecations and errors remain available. Upstream Node API stability and terminal defaults are unchanged.
 
 ******
 
 ### Release History
 
 ******
+
+# v1.5.4
+
+###### 2026/09/17
+
+* `Fix` Embedded execution no longer prints ExperimentalWarning notices; warning events, ordinary warnings, deprecations and errors remain available. Upstream Node API stability and terminal defaults are unchanged
+* `Improvement` File streams, gzip/deflate/Brotli streams and basic VM execution are stable plugin capabilities; the explicitly enabled Debug Inspector is stable within its localhost scope
 
 # v1.5.3
 
@@ -123,13 +132,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/09/15
 
 * `Improvement` Raise compileSdk to 37 (Android 17); targetSdk stays at 36 until the behavior that depends on the target is verified
-
-# v1.5.1
-
-###### 2026/09/15
-
-* `Fix` Node's fatal-error and warning text is written to the real stderr on Android in addition to logcat, so a terminal shows uncaught exceptions instead of exiting silently
-* `Improvement` `libnode.so` rebuilt with `--with-intl=small-icu`: `Intl` and Unicode property escapes (`\p{...}`) in regular expressions are available with English-only locale data (`NODE_ICU_DATA` accepts a full ICU data file), so corepack can run pnpm 11 and Yarn Berry in the AutoJs6 terminal
 
 ##### For more release history
 

@@ -14,6 +14,7 @@ declare namespace AutoJs6Node {
     readonly packagedAllowed: boolean;
     readonly releaseForbidden: boolean;
     readonly securityLevel: "low" | "medium" | "high" | "critical" | string;
+    /** Plugin support status within the documented scope, independent of upstream Node API stability. */
     readonly status: "stable" | "partial" | "disabled" | "unsupported" | string;
   }
 
@@ -629,6 +630,7 @@ declare namespace AutoJs6Node {
     readonly rawProcessHandles: boolean;
   }
 
+  /** Native VM support. Node 24.21 VM Modules remain experimental upstream. */
   export interface VmProfile {
     readonly status: "native_available" | string;
     readonly defaultEnabled: boolean;

@@ -104,12 +104,21 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 - TypeScript: host output を受け入れ, 実行中に作成された project file には provider-v3 compilation を要求できます. direct raw TypeScript は `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` を返します.
 - ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, ネイティブ live binding と循環依存に対応します.
 - 能力: 同期スクリプト実行, bundle transport, ネイティブ組み込みランタイム, ホスト能力ブローカー, host capability live bridge.
+- ファイルストリーム、gzip/deflate/Brotli ストリームと基本 VM 実行を正式サポート; 明示的に有効化した Debug Inspector は localhost の範囲で正式サポート.
+- 組み込み実行で ExperimentalWarning の表示を停止し、warning イベント、通常の警告、非推奨警告とエラーを維持; Node 上流 API の安定性と端末の既定動作は変更なし.
 
 ******
 
 ### リリース履歴
 
 ******
+
+# v1.5.4
+
+###### 2026/09/17
+
+* `修正` 組み込み実行で ExperimentalWarning の表示を停止し、warning イベント、通常の警告、非推奨警告とエラーを維持; Node 上流 API の安定性と端末の既定動作は変更なし
+* `改善` ファイルストリーム、gzip/deflate/Brotli ストリームと基本 VM 実行を正式サポート; 明示的に有効化した Debug Inspector は localhost の範囲で正式サポート
 
 # v1.5.3
 
@@ -123,13 +132,6 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 ###### 2026/09/15
 
 * `改善` compileSdk を 37 (Android 17) に引き上げ, targetSdk はターゲット依存の動作を検証するまで 36 のまま
-
-# v1.5.1
-
-###### 2026/09/15
-
-* `修正` Node 自身の致命的エラーと警告のテキストを Android で logcat に加えて実際の stderr にも書き出すようにし, ターミナルが無言で終了せず未捕捉の例外を表示するようにしました
-* `改善` `libnode.so` を `--with-intl=small-icu` で再構築: `Intl` と正規表現の Unicode プロパティエスケープ (`\p{...}`) が英語ロケールデータのみで利用可能に (`NODE_ICU_DATA` で完全な ICU データファイルを指定可能). これにより corepack が AutoJs6 ターミナルで pnpm 11 と Yarn Berry を実行できます
 
 ##### その他のリリース履歴
 

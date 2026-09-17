@@ -1,6 +1,6 @@
 {
   "schema": "autojs6-node-capability-catalog-v1",
-  "catalogVersion": "1.5.0",
+  "catalogVersion": "1.5.4",
   "runtime": {
     "pluginId": "nodejs",
     "engine": "nodejs",
@@ -137,7 +137,7 @@
       "property": null,
       "defaultEnabled": true,
       "securityLevel": "medium",
-      "status": "partial",
+      "status": "stable",
       "overrides": {
         "buildTime": false,
         "projectJson": false,
@@ -269,7 +269,7 @@
       "property": null,
       "defaultEnabled": true,
       "securityLevel": "high",
-      "status": "partial",
+      "status": "stable",
       "overrides": {
         "buildTime": false,
         "projectJson": false,
@@ -313,7 +313,7 @@
       "property": null,
       "defaultEnabled": true,
       "securityLevel": "medium",
-      "status": "partial",
+      "status": "stable",
       "overrides": {
         "buildTime": false,
         "projectJson": false,

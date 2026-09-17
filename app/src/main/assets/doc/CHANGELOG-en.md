@@ -4,6 +4,13 @@
 
 ******
 
+# v1.5.4
+
+###### 2026/09/17
+
+* `Fix` Embedded execution no longer prints ExperimentalWarning notices; warning events, ordinary warnings, deprecations and errors remain available. Upstream Node API stability and terminal defaults are unchanged
+* `Improvement` File streams, gzip/deflate/Brotli streams and basic VM execution are stable plugin capabilities; the explicitly enabled Debug Inspector is stable within its localhost scope
+
 # v1.5.3
 
 ###### 2026/09/16

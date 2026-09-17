@@ -5,6 +5,15 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.5.4": {
+      "released_date": "2026/09/17",
+      "improvement": [
+        "File streams, gzip/deflate/Brotli streams and basic VM execution are stable plugin capabilities; the explicitly enabled Debug Inspector is stable within its localhost scope"
+      ],
+      "fix": [
+        "Embedded execution no longer prints ExperimentalWarning notices; warning events, ordinary warnings, deprecations and errors remain available. Upstream Node API stability and terminal defaults are unchanged"
+      ]
+    },
     "v1.5.3": {
       "released_date": "2026/09/16",
       "improvement": [

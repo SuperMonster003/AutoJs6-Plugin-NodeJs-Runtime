@@ -42,7 +42,9 @@
     "Filesystem: device paths allowed by Android permissions are reachable; `/proc`, `/sys`, and `/dev` are hard boundaries.",
     "TypeScript: accepts host output and can request provider-v3 compilation for runtime-created project files; direct raw TypeScript returns `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.",
     "ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, with native live bindings and cyclic dependencies.",
-    "Capabilities: sync script execution, bundle transport, native embedded runtime, host capability broker, host capability live bridge."
+    "Capabilities: sync script execution, bundle transport, native embedded runtime, host capability broker, host capability live bridge.",
+    "File streams, gzip/deflate/Brotli streams and basic VM execution are stable plugin capabilities; the explicitly enabled Debug Inspector is stable within its localhost scope.",
+    "Embedded execution no longer prints ExperimentalWarning notices; warning events, ordinary warnings, deprecations and errors remain available. Upstream Node API stability and terminal defaults are unchanged."
   ],
   "h3_release_history": "Release History",
   "h5_for_more_release_history": "For more release history",

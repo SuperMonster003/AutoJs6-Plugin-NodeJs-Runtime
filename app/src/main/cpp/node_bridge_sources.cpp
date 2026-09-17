@@ -4067,7 +4067,7 @@ std::string buildEmbeddedScriptExecutionSource(
         packagedAllowed: false,
         releaseForbidden: false,
         securityLevel: "medium",
-        status: "partial"
+        status: "stable"
       }),
       zlib_streams: Object.freeze({
         id: "zlib_streams",
@@ -4084,7 +4084,7 @@ std::string buildEmbeddedScriptExecutionSource(
         packagedAllowed: false,
         releaseForbidden: false,
         securityLevel: "medium",
-        status: "partial"
+        status: "stable"
       }),
       vm: Object.freeze({
         id: "vm",
@@ -4101,7 +4101,7 @@ std::string buildEmbeddedScriptExecutionSource(
         packagedAllowed: false,
         releaseForbidden: false,
         securityLevel: "high",
-        status: "partial"
+        status: "stable"
       }),
       inspector: Object.freeze({
         id: "inspector",
@@ -4118,7 +4118,7 @@ std::string buildEmbeddedScriptExecutionSource(
         packagedAllowed: false,
         releaseForbidden: true,
         securityLevel: "high",
-        status: __autojs6_inspector_enabled ? "experimental" : "disabled"
+        status: __autojs6_inspector_enabled ? "stable" : "disabled"
       }),
       java_interop: Object.freeze({
         id: "java_interop",

@@ -104,12 +104,21 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 - TypeScript: accepte la sortie de l'hôte et peut demander la compilation provider-v3 des fichiers créés pendant l'exécution; le TypeScript brut direct renvoie `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
 - Linker ESM: `vm.SourceTextModule` / `vm.SyntheticModule`, avec live bindings natifs et dépendances cycliques.
 - Capacites: execution synchrone de scripts, bundle transport, runtime natif embarque, agent de capacites hote, host capability live bridge.
+- Les flux de fichiers, les flux gzip/deflate/Brotli et l'exécution VM de base sont stables; le Debug Inspector explicitement activé est stable dans son périmètre localhost.
+- L'exécution intégrée n'affiche plus les avis ExperimentalWarning; les événements warning, avertissements ordinaires, dépréciations et erreurs restent disponibles. La stabilité des API Node et les valeurs par défaut du terminal sont inchangées.
 
 ******
 
 ### Historique Des Versions
 
 ******
+
+# v1.5.4
+
+###### 2026/09/17
+
+* `Correction` L'exécution intégrée n'affiche plus les avis ExperimentalWarning; les événements warning, avertissements ordinaires, dépréciations et erreurs restent disponibles. La stabilité des API Node et les valeurs par défaut du terminal sont inchangées
+* `Amelioration` Les flux de fichiers, les flux gzip/deflate/Brotli et l'exécution VM de base sont stables; le Debug Inspector explicitement activé est stable dans son périmètre localhost
 
 # v1.5.3
 
@@ -123,13 +132,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 ###### 2026/09/15
 
 * `Amelioration` compileSdk passe à 37 (Android 17) ; targetSdk reste à 36 jusqu'à la vérification du comportement dépendant de la cible
-
-# v1.5.1
-
-###### 2026/09/15
-
-* `Correction` Le texte des erreurs fatales et des avertissements de Node est écrit sur le vrai stderr sous Android en plus de logcat, de sorte qu'un terminal affiche les exceptions non interceptées au lieu de se terminer silencieusement
-* `Amelioration` `libnode.so` reconstruit avec `--with-intl=small-icu` : `Intl` et les échappements de propriétés Unicode (`\p{...}`) dans les expressions régulières sont disponibles avec les seules données de locale anglaises (`NODE_ICU_DATA` accepte un fichier de données ICU complet), ce qui permet à corepack d'exécuter pnpm 11 et Yarn Berry dans le terminal AutoJs6
 
 ##### Pour plus d'historique des versions
 

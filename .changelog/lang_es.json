@@ -5,6 +5,15 @@
   "changelog_label_improvement": "Mejora",
   "changelog_label_dependency": "Dependencia",
   "$data": {
+    "v1.5.4": {
+      "released_date": "2026/09/17",
+      "improvement": [
+        "Los flujos de archivos, gzip/deflate/Brotli y la ejecución básica de VM son estables; Debug Inspector, activado explícitamente, es estable dentro de localhost"
+      ],
+      "fix": [
+        "La ejecución integrada deja de imprimir avisos ExperimentalWarning; conserva los eventos warning, advertencias normales, avisos de obsolescencia y errores. La estabilidad de las API de Node y los valores predeterminados del terminal no cambian"
+      ]
+    },
     "v1.5.3": {
       "released_date": "2026/09/16",
       "improvement": [

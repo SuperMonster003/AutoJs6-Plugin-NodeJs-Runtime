@@ -1,0 +1,10 @@
+{
+  "name": "vm-context",
+  "type": "node",
+  "main": "main.mjs",
+  "node": {
+    "backend": "embedded",
+    "timeoutMs": 5000,
+    "permissions": []
+  }
+}

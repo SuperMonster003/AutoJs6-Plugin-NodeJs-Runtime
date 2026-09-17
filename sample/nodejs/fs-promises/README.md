@@ -1,7 +1,8 @@
 # fs-promises
 
-Scoped `fs/promises` example.
+`fs/promises` example using ordinary project-relative files.
 
-This sample uses the partial AutoJs6 Safe Node Profile `fs/promises` surface.
+The plugin applies Android file permissions and the documented `/proc`, `/sys`,
+`/dev` boundaries. See `../streams-compression` for file and compression pipelines.
 
 Expected output is listed in `expected-output.txt`.

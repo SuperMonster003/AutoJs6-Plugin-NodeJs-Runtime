@@ -1,0 +1,10 @@
+{
+  "name": "streams-compression",
+  "type": "node",
+  "main": "main.mjs",
+  "node": {
+    "backend": "embedded",
+    "timeoutMs": 15000,
+    "permissions": []
+  }
+}

@@ -1,0 +1,1 @@
+sample.streams-compression=PASS

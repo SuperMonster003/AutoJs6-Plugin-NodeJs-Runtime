@@ -5,6 +5,15 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.5.4": {
+      "released_date": "2026/09/17",
+      "improvement": [
+        "Потоки файлов, gzip/deflate/Brotli и базовое выполнение VM переведены в стабильные возможности; явно включенный Debug Inspector стабилен в пределах localhost"
+      ],
+      "fix": [
+        "Встроенное выполнение больше не выводит ExperimentalWarning; события warning, обычные предупреждения, предупреждения об устаревании и ошибки сохранены. Стабильность API Node и настройки терминала по умолчанию не изменены"
+      ]
+    },
     "v1.5.3": {
       "released_date": "2026/09/16",
       "improvement": [

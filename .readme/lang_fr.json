@@ -42,7 +42,9 @@
     "Système de fichiers: les chemins autorisés par Android sont accessibles; `/proc`, `/sys` et `/dev` sont des limites strictes.",
     "TypeScript: accepte la sortie de l'hôte et peut demander la compilation provider-v3 des fichiers créés pendant l'exécution; le TypeScript brut direct renvoie `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.",
     "Linker ESM: `vm.SourceTextModule` / `vm.SyntheticModule`, avec live bindings natifs et dépendances cycliques.",
-    "Capacites: execution synchrone de scripts, bundle transport, runtime natif embarque, agent de capacites hote, host capability live bridge."
+    "Capacites: execution synchrone de scripts, bundle transport, runtime natif embarque, agent de capacites hote, host capability live bridge.",
+    "Les flux de fichiers, les flux gzip/deflate/Brotli et l'exécution VM de base sont stables; le Debug Inspector explicitement activé est stable dans son périmètre localhost.",
+    "L'exécution intégrée n'affiche plus les avis ExperimentalWarning; les événements warning, avertissements ordinaires, dépréciations et erreurs restent disponibles. La stabilité des API Node et les valeurs par défaut du terminal sont inchangées."
   ],
   "h3_release_history": "Historique Des Versions",
   "h5_for_more_release_history": "Pour plus d'historique des versions",

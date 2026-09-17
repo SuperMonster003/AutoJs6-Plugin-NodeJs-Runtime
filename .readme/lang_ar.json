@@ -42,7 +42,9 @@
     "نظام الملفات: يمكن الوصول إلى مسارات الجهاز التي تسمح بها أذونات Android; وتعد `/proc` و `/sys` و `/dev` حدودا صارمة.",
     "TypeScript: يقبل ناتج المضيف ويمكنه طلب ترجمة ملفات المشروع المنشأة أثناء التشغيل عبر provider v3; ويعيد الإرسال الخام المباشر `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.",
     "رابط ESM: `vm.SourceTextModule` / `vm.SyntheticModule` مع live binding أصلي وتبعيات دائرية.",
-    "القدرات: تنفيذ سكربت متزامن, bundle transport, بيئة تشغيل اصلية مدمجة, وسيط قدرات المضيف, host capability live bridge."
+    "القدرات: تنفيذ سكربت متزامن, bundle transport, بيئة تشغيل اصلية مدمجة, وسيط قدرات المضيف, host capability live bridge.",
+    "أصبحت تدفقات الملفات وتدفقات gzip/deflate/Brotli وتنفيذ VM الأساسي ميزات مستقرة; كما أصبح Debug Inspector المفعّل صراحة مستقرا ضمن localhost.",
+    "لم يعد التنفيذ المدمج يطبع تنبيهات ExperimentalWarning; مع الاحتفاظ بأحداث warning والتحذيرات العادية وتحذيرات الإهمال والأخطاء. لم يتغير تصنيف استقرار واجهات Node أو الإعدادات الافتراضية للطرفية."
   ],
   "h3_release_history": "سجل الاصدارات",
   "h5_for_more_release_history": "لمزيد من سجل الاصدارات",

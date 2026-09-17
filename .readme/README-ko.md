@@ -104,12 +104,21 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 - TypeScript: host output을 허용하고 실행 중 생성된 project file에 provider-v3 compilation을 요청할 수 있습니다. direct raw TypeScript는 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`를 반환합니다.
 - ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, 네이티브 live binding 및 순환 의존성 지원.
 - 기능: 동기 스크립트 실행, bundle transport, 네이티브 내장 런타임, 호스트 기능 브로커, host capability live bridge.
+- 파일 스트림, gzip/deflate/Brotli 스트림 및 기본 VM 실행을 정식 지원; 명시적으로 활성화한 Debug Inspector는 localhost 범위에서 정식 지원.
+- 내장 실행에서 ExperimentalWarning 출력을 중단하고 warning 이벤트, 일반 경고, 사용 중단 경고 및 오류를 유지; Node 상위 API 안정성과 터미널 기본 동작은 변경되지 않음.
 
 ******
 
 ### 릴리스 기록
 
 ******
+
+# v1.5.4
+
+###### 2026/09/17
+
+* `수정` 내장 실행에서 ExperimentalWarning 출력을 중단하고 warning 이벤트, 일반 경고, 사용 중단 경고 및 오류를 유지; Node 상위 API 안정성과 터미널 기본 동작은 변경되지 않음
+* `개선` 파일 스트림, gzip/deflate/Brotli 스트림 및 기본 VM 실행을 정식 지원; 명시적으로 활성화한 Debug Inspector는 localhost 범위에서 정식 지원
 
 # v1.5.3
 
@@ -123,13 +132,6 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 ###### 2026/09/15
 
 * `개선` compileSdk 를 37 (Android 17) 로 올리며, targetSdk 는 대상 버전에 의존하는 동작을 검증할 때까지 36 으로 유지
-
-# v1.5.1
-
-###### 2026/09/15
-
-* `수정` Node 자체의 치명적 오류와 경고 텍스트를 Android 에서 logcat 외에 실제 stderr 에도 기록하여, 터미널이 조용히 종료되는 대신 처리되지 않은 예외를 표시합니다
-* `개선` `libnode.so` 를 `--with-intl=small-icu` 로 다시 빌드: 영어 로케일 데이터만으로 `Intl` 과 정규식의 유니코드 속성 이스케이프 (`\p{...}`) 를 사용할 수 있으며 (`NODE_ICU_DATA` 로 전체 ICU 데이터 파일 지정 가능), 이에 따라 corepack 이 AutoJs6 터미널에서 pnpm 11 과 Yarn Berry 를 실행할 수 있습니다
 
 ##### 더 많은 릴리스 기록
 

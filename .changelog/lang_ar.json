@@ -5,6 +5,15 @@
   "changelog_label_improvement": "تحسين",
   "changelog_label_dependency": "اعتماد",
   "$data": {
+    "v1.5.4": {
+      "released_date": "2026/09/17",
+      "improvement": [
+        "أصبحت تدفقات الملفات وتدفقات gzip/deflate/Brotli وتنفيذ VM الأساسي ميزات مستقرة; كما أصبح Debug Inspector المفعّل صراحة مستقرا ضمن localhost"
+      ],
+      "fix": [
+        "لم يعد التنفيذ المدمج يطبع تنبيهات ExperimentalWarning; مع الاحتفاظ بأحداث warning والتحذيرات العادية وتحذيرات الإهمال والأخطاء. لم يتغير تصنيف استقرار واجهات Node أو الإعدادات الافتراضية للطرفية"
+      ]
+    },
     "v1.5.3": {
       "released_date": "2026/09/16",
       "improvement": [

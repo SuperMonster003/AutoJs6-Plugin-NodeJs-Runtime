@@ -1,6 +1,6 @@
 # node-runtime-info
 
-Runtime descriptor example for Phase 9 native modernization checks.
+Stable runtime descriptor example for the installed plugin.
 
 - Capabilities: Node runtime version and feature-shape reporting
 - Expected provider: embedded Node runtime descriptor
