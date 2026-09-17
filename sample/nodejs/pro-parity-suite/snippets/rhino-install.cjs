@@ -4,7 +4,7 @@ function codeOf(error) {
   return String(error && (error.code || error.autojs6Code || error.name || "ERROR"));
 }
 
-(async function main() {
+async function run() {
   try {
     const rhino = require("rhino");
     const target = {};
@@ -14,7 +14,13 @@ function codeOf(error) {
     console.log("sample.pro-parity-suite.rhino-install.skipped=" + codeOf(error));
   }
   console.log("sample.pro-parity-suite.rhino-install=PASS");
-})().catch((error) => {
-  console.error(error && (error.stack || error.message) || error);
-  process.exitCode = 1;
-});
+}
+
+module.exports = { run };
+
+if (require.main === module) {
+  run().catch((error) => {
+    console.error(error && (error.stack || error.message) || error);
+    process.exitCode = 1;
+  });
+}

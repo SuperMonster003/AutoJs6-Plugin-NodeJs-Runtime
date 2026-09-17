@@ -1,6 +1,6 @@
 "nodejs";
 
-(async function main() {
+async function run() {
   let capture = null;
   try {
     const image = require("image");
@@ -27,7 +27,13 @@
     }
     await require("image").stopScreenCapture();
   }
-})().catch((error) => {
-  console.error(error && (error.stack || error.message) || error);
-  process.exitCode = 1;
-});
+}
+
+module.exports = { run };
+
+if (require.main === module) {
+  run().catch((error) => {
+    console.error(error && (error.stack || error.message) || error);
+    process.exitCode = 1;
+  });
+}

@@ -1,7 +1,11 @@
 # packaged-node-apk
 
-Packaged APK smoke example.
+Reads the host application's identity through the `app` bridge. The name dates
+from an earlier packaged-APK plan; exported APKs do not bundle this runtime, so
+run the project from the host entry.
 
-Use this project when building a packaged APK that carries the Embedded Node runtime and module sources.
+- Capabilities: `app`
+- Expected provider: host `app` bridge (`packageName`, `versionName`)
+- Packaged support: not applicable
 
 Expected output is listed in `expected-output.txt`.

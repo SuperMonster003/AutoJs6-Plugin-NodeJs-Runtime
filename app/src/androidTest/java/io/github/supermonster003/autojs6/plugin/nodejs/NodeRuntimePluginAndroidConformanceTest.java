@@ -441,6 +441,62 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         }
     }
 
+    /** M18.2: every host-independent sample project runs from its own files and prints its expected output. */
+    @Test
+    public void m18_sampleProjectsPrintTheirExpectedOutput() throws Exception {
+        AssetManager assets = InstrumentationRegistry.getInstrumentation().getContext().getAssets();
+        String[] names = {
+                "packaged-esm", "packaged-dynamic-import", "require-esm", "compile-cache",
+                "inspector-debug", "cpu-profile", "heap-snapshot", "wasm-basic", "wasm-plugin",
+                "js-plugin-ui", "desktop-parity-suite", "pro-parity-suite"
+        };
+        for (String name : names) {
+            LinkedHashMap<String, String> files = readSampleProject(assets, name);
+            JSONObject project = new JSONObject(files.get("project.json"));
+            JSONObject node = project.optJSONObject("node");
+            long timeout = Math.max(node == null ? 0L : node.optLong("timeoutMs", 0L), SCRIPT_TIMEOUT_MS);
+            // Workers stay enabled, as the plugin defaults when the host sends no override.
+            try (WorkspaceInvocation invocation = execute("sample-" + name, project.optString("main", "main.cjs"), files,
+                    new LinkedHashMap<>(), false, null, null, timeout, false, Collections.emptyList(), true)) {
+                Bundle result = invocation.result;
+                String stdout = result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+                assertTrue(name + " failed: " + result.getString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, "")
+                                + '\n' + result.getString(NodeJsRuntimeContract.KEY_STDERR, "") + '\n' + stdout,
+                        result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+                assertEquals(name + " exit code", 0, result.getInt(NodeJsRuntimeContract.KEY_EXIT_CODE, -1));
+                for (String line : files.get("expected-output.txt").split("\\r?\\n")) {
+                    String expected = line.trim();
+                    // Lines with <...> placeholders describe host-dependent outcomes.
+                    if (expected.isEmpty() || expected.contains("<")) continue;
+                    assertTrue(name + " stdout is missing '" + expected + "':" + '\n' + stdout, stdout.contains(expected));
+                }
+            }
+        }
+    }
+
+    private static LinkedHashMap<String, String> readSampleProject(AssetManager assets, String name) throws IOException {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        java.util.ArrayDeque<String> pending = new java.util.ArrayDeque<>();
+        pending.add(name);
+        while (!pending.isEmpty()) {
+            String entry = pending.removeFirst();
+            String[] children = assets.list(entry);
+            if (children != null && children.length > 0) {
+                for (String child : children) pending.addLast(entry + "/" + child);
+                continue;
+            }
+            try (InputStream input = assets.open(entry); ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                byte[] chunk = new byte[8192];
+                int count;
+                while ((count = input.read(chunk)) >= 0) buffer.write(chunk, 0, count);
+                files.put(entry.substring(name.length() + 1), new String(buffer.toByteArray(), StandardCharsets.UTF_8));
+            }
+        }
+        assertTrue("sample " + name + " is missing project.json", files.containsKey("project.json"));
+        assertTrue("sample " + name + " is missing expected-output.txt", files.containsKey("expected-output.txt"));
+        return files;
+    }
+
     @Test
     public void x3d_03_importedCommonJsStackRemovesFunctionWrapperOffset() throws Exception {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();

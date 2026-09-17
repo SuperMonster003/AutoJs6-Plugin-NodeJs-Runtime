@@ -59,7 +59,6 @@ private val nodePluginExampleKnownTags = setOf(
     "storage",
     "notifications",
     "sensors",
-    "package-install",
     "provider",
     "capability-truth",
     "crash",

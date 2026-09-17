@@ -1,6 +1,6 @@
 "nodejs";
 
-(async function main() {
+async function run() {
   const recorder = require("recorder");
   let recording = false;
   try {
@@ -33,7 +33,13 @@
   } finally {
     if (recording) await recorder.stop();
   }
-})().catch(error => {
-  console.error(error && (error.stack || error.message) || error);
-  process.exitCode = 1;
-});
+}
+
+module.exports = { run };
+
+if (require.main === module) {
+  run().catch((error) => {
+    console.error(error && (error.stack || error.message) || error);
+    process.exitCode = 1;
+  });
+}

@@ -9053,6 +9053,29 @@ std::string buildEmbeddedScriptExecutionSource(
       )
     };
   }
+  function __autojs6_worker_threads_eval_descriptor(source, parentFilename) {
+    // Node semantics: new Worker(code, { eval: true }) runs the string as a CommonJS
+    // worker named "[worker eval]" next to the parent script; the workspace snapshot
+    // is shared so the code can still require() project modules.
+    const path = __autojs6_path_module();
+    const code = source === undefined || source === null ? "" : String(source);
+    const root = __autojs6_module_resolution_root(parentFilename || __autojs6_source_name);
+    const parentDir = __autojs6_module_dirname(parentFilename || __autojs6_source_name) || root;
+    const filename = path.resolve(parentDir, "[worker eval].cjs");
+    __autojs6_assert_worker_source_supported(code, "[worker eval]", "cjs");
+    return {
+      root,
+      filename,
+      dirname: parentDir,
+      format: "cjs",
+      source: code,
+      sourceURL: "[worker eval]",
+      moduleSources: __autojs6_worker_threads_module_sources_snapshot(
+        filename,
+        { source: code, sourceURL: "[worker eval]" }
+      )
+    };
+  }
   function __autojs6_worker_threads_bootstrap_source(descriptor) {
     const descriptorLiteral = JSON.stringify({
       root: descriptor.root,
@@ -10419,7 +10442,9 @@ std::string buildEmbeddedScriptExecutionSource(
       const opts = options && typeof options === "object" ? options : {};
       let nativeWorker = null;
       try {
-        const descriptor = __autojs6_worker_threads_resolve_script(filename, __autojs6_source_name);
+        const descriptor = opts.eval === true
+          ? __autojs6_worker_threads_eval_descriptor(filename, __autojs6_source_name)
+          : __autojs6_worker_threads_resolve_script(filename, __autojs6_source_name);
         const workerDataTransfer = __autojs6_worker_threads_prepare_transfer_list(
           opts.transferList,
           "Worker options.transferList"

@@ -1,17 +1,13 @@
 "nodejs";
 
 const Module = require("module");
+const profile = require("autojs6:profile");
 
-if (typeof Module.enableCompileCache === "function") {
-  try {
-    const result = Module.enableCompileCache();
-    console.log("sample.compile-cache.status=" + result.status);
-  } catch (error) {
-    console.log("sample.compile-cache.status=blocked:" + (error && (error.code || error.name)));
-  }
-} else {
-  console.log("sample.compile-cache.status=unavailable");
-}
+// Project modules are compiled by the runtime's workspace loader, not by Node's
+// CommonJS loader, so Node's on-disk compile cache has nothing to cache here.
+const onDisk = typeof Module.enableCompileCache === "function" ? "exposed" : "not_applicable_custom_loader";
+console.log("sample.compile-cache.on-disk=" + onDisk);
+console.log("sample.compile-cache.runtime-loader=" + (profile.compileCache && profile.compileCache.customLoader === true));
 
 const first = require("./lib/counter.cjs");
 const second = require("./lib/counter.cjs");

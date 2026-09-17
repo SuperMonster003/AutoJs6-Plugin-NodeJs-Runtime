@@ -1,1 +1,2 @@
+sample.wasm-plugin.add=42
 sample.wasm-plugin=PASS

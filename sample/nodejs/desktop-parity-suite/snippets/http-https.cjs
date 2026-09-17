@@ -4,7 +4,7 @@ function codeOf(error) {
   return String(error && (error.code || error.autojs6Code || error.name || "ERROR"));
 }
 
-(async function main() {
+async function run() {
   try {
     const http = require("http");
     const https = require("https");
@@ -19,7 +19,13 @@ function codeOf(error) {
     console.log("sample.desktop-parity-suite.http-https.skipped=" + codeOf(error));
   }
   console.log("sample.desktop-parity-suite.http-https=PASS");
-})().catch((error) => {
-  console.error(error && (error.stack || error.message) || error);
-  process.exitCode = 1;
-});
+}
+
+module.exports = { run };
+
+if (require.main === module) {
+  run().catch((error) => {
+    console.error(error && (error.stack || error.message) || error);
+    process.exitCode = 1;
+  });
+}

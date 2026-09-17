@@ -31,7 +31,7 @@ function runWorker(Worker) {
   });
 }
 
-(async function main() {
+async function run() {
   try {
     const workerThreads = require("worker_threads");
     if (!workerThreads.isMainThread) {
@@ -43,7 +43,13 @@ function runWorker(Worker) {
     console.log("sample.desktop-parity-suite.worker-threads.skipped=" + codeOf(error));
   }
   console.log("sample.desktop-parity-suite.worker-threads=PASS");
-})().catch((error) => {
-  console.error(error && (error.stack || error.message) || error);
-  process.exitCode = 1;
-});
+}
+
+module.exports = { run };
+
+if (require.main === module) {
+  run().catch((error) => {
+    console.error(error && (error.stack || error.message) || error);
+    process.exitCode = 1;
+  });
+}

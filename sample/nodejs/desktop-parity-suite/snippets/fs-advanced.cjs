@@ -7,7 +7,7 @@ function codeOf(error) {
   return String(error && (error.code || error.autojs6Code || error.name || "ERROR"));
 }
 
-(async function main() {
+async function run() {
   const dir = "./desktop-parity-fs";
   const file = dir + "/out.txt";
   try {
@@ -31,7 +31,13 @@ function codeOf(error) {
     console.log("sample.desktop-parity-suite.fs-advanced.skipped=" + codeOf(error));
   }
   console.log("sample.desktop-parity-suite.fs-advanced=PASS");
-})().catch((error) => {
-  console.error(error && (error.stack || error.message) || error);
-  process.exitCode = 1;
-});
+}
+
+module.exports = { run };
+
+if (require.main === module) {
+  run().catch((error) => {
+    console.error(error && (error.stack || error.message) || error);
+    process.exitCode = 1;
+  });
+}

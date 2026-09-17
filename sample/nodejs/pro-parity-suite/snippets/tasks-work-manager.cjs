@@ -4,7 +4,7 @@ function codeOf(error) {
   return String(error && (error.code || error.autojs6Code || error.name || "ERROR"));
 }
 
-(async function main() {
+async function run() {
   try {
     const work = require("work_manager");
     const id = await work.scheduleOnce({
@@ -19,7 +19,13 @@ function codeOf(error) {
     console.log("sample.pro-parity-suite.tasks-work-manager.skipped=" + codeOf(error));
   }
   console.log("sample.pro-parity-suite.tasks-work-manager=PASS");
-})().catch((error) => {
-  console.error(error && (error.stack || error.message) || error);
-  process.exitCode = 1;
-});
+}
+
+module.exports = { run };
+
+if (require.main === module) {
+  run().catch((error) => {
+    console.error(error && (error.stack || error.message) || error);
+    process.exitCode = 1;
+  });
+}

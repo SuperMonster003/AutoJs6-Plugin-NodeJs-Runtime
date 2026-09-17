@@ -9,8 +9,10 @@
 ###### 2026/09/17
 
 * `Fix` The capability catalog version and digest reported by runtimeInfo are now derived from the runtime kit, correcting the stale 1.5.0 values still reported by 1.5.4
+* `Fix` worker_threads honors new Worker(code, { eval: true }) as in Node instead of treating the code as a script path
 * `Improvement` The host TypeScript compile route is a stable catalog capability and the retired legacy stripping metadata is removed; the lifecycle catalog lists only runnable execution modes, dropping the packaged_long_running surface and the node_sandboxed / worker_computation placeholders; transport, admission and cancellation metadata match the actual runtime
 * `Improvement` The autojs6:profile diagnostics describe the actual runtime instead of historical partial / reserved / deferred markers: Android-bounded file access, the process subset, worker channels, the process pool, and the WASI / native addon decisions
+* `Improvement` Sample audit: packaged-esm, packaged-dynamic-import, require-esm, wasm-basic, wasm-plugin and desktop-parity-suite are stable; both parity suites now execute their snippets instead of printing catalog text; compile-cache is marked not applicable and the metadata-only package-install sample is removed
 
 # v1.5.4
 

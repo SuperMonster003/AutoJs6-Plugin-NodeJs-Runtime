@@ -107,35 +107,31 @@
       "name": "packaged-node-apk",
       "status": "stable",
       "tags": [
-        "packaged",
         "bridge",
         "app"
       ],
       "mainAppSmoke": false,
-      "packagedCompatible": true
+      "packagedCompatible": false
     },
     {
       "name": "packaged-esm",
-      "status": "partial",
-      "reason": "Supports a managed local module graph; remote imports and the full desktop ESM loader surface remain unavailable.",
+      "status": "stable",
       "tags": [
-        "packaged",
-        "esm"
-      ],
-      "mainAppSmoke": false,
-      "packagedCompatible": true
-    },
-    {
-      "name": "packaged-dynamic-import",
-      "status": "partial",
-      "reason": "Dynamic import is limited to the closed local project graph; URL, absolute-path, and project-escape imports remain denied.",
-      "tags": [
-        "packaged",
         "esm",
         "dynamic-import"
       ],
       "mainAppSmoke": false,
-      "packagedCompatible": true
+      "packagedCompatible": false
+    },
+    {
+      "name": "packaged-dynamic-import",
+      "status": "stable",
+      "tags": [
+        "esm",
+        "dynamic-import"
+      ],
+      "mainAppSmoke": false,
+      "packagedCompatible": false
     },
     {
       "name": "live-fetch",
@@ -242,16 +238,15 @@
     {
       "name": "js-plugin-ui",
       "status": "partial",
-      "reason": "Loads checked local JS plugins only; downloads, native plugin archives, and a universally available Activity UI provider are not supported.",
+      "reason": "Plugin loading and the layout descriptor work; showing the layout needs the host UI provider behind the ui permission, so plugin-only runs print ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED for that step.",
       "tags": [
         "main-app",
-        "packaged",
         "bridge",
         "plugin",
         "ui"
       ],
       "mainAppSmoke": false,
-      "packagedCompatible": true
+      "packagedCompatible": false
     },
     {
       "name": "typescript-cjs",
@@ -289,8 +284,7 @@
     },
     {
       "name": "require-esm",
-      "status": "partial",
-      "reason": "CommonJS can require the managed local ESM subset, but full Node ESM loader and remote graph parity are not available.",
+      "status": "stable",
       "tags": [
         "main-app",
         "commonjs",
@@ -336,8 +330,8 @@
     },
     {
       "name": "compile-cache",
-      "status": "partial",
-      "reason": "Proves CommonJS in-memory module caching only; persistent compile-cache preparation remains runtime-managed with no user control.",
+      "status": "unsupported",
+      "reason": "Node's on-disk compile cache does not apply: project modules go through the runtime's own workspace loader, so module.enableCompileCache() is not exposed and the sample only shows in-memory module caching.",
       "tags": [
         "main-app",
         "commonjs",
@@ -349,7 +343,7 @@
     {
       "name": "inspector-debug",
       "status": "partial",
-      "reason": "A debug host can opt into the localhost-only CDP endpoint per execution; release builds, remote binding, blocking wait and packaged-project metadata remain denied.",
+      "reason": "Needs an explicit inspector request from a Debug host build; the request key exists but the current host never sets it, so an ordinary run only prints the denial code.",
       "tags": [
         "main-app",
         "inspector",
@@ -361,7 +355,7 @@
     {
       "name": "cpu-profile",
       "status": "partial",
-      "reason": "Profiler.Session works after an explicit debug-only inspector request, but the sample runner has no request toggle and no managed .cpuprofile export workflow exists.",
+      "reason": "Profiler.Session needs an explicit inspector request from a Debug host build; the current host never sets it and no managed .cpuprofile export exists, so an ordinary run only prints the denial code.",
       "tags": [
         "main-app",
         "profiler",
@@ -383,7 +377,7 @@
     {
       "name": "heap-snapshot",
       "status": "partial",
-      "reason": "Debug-only Inspector.Session exposes HeapProfiler and heap usage, while bounded app-private snapshot export and explicit user export remain unimplemented.",
+      "reason": "HeapProfiler needs an explicit inspector request from a Debug host build; the current host never sets it and snapshot export is not implemented, so an ordinary run reports heap usage and the denial code.",
       "tags": [
         "main-app",
         "heap-snapshot",
@@ -394,8 +388,7 @@
     },
     {
       "name": "wasm-basic",
-      "status": "partial",
-      "reason": "Validates basic V8 WebAssembly compute, but packaged support and explicit memory/resource budgets are not promoted.",
+      "status": "stable",
       "tags": [
         "main-app",
         "wasm"
@@ -417,14 +410,12 @@
     },
     {
       "name": "wasm-plugin",
-      "status": "partial",
-      "reason": "WASM plugin metadata and integrity/resource policy remain design-gated; only checked local JS plugin behavior is available.",
+      "status": "stable",
       "tags": [
         "main-app",
         "wasm",
         "plugin",
-        "wasm-plugin",
-        "design-gated"
+        "wasm-plugin"
       ],
       "mainAppSmoke": false,
       "packagedCompatible": false
@@ -473,18 +464,6 @@
       "packagedCompatible": false
     },
     {
-      "name": "package-install",
-      "status": "partial",
-      "reason": "Shows install metadata only; device-side registry download and lifecycle-script handling remain deferred.",
-      "tags": [
-        "main-app",
-        "pure-js-npm",
-        "package-install"
-      ],
-      "mainAppSmoke": false,
-      "packagedCompatible": false
-    },
-    {
       "name": "typescript-project",
       "status": "stable",
       "tags": [
@@ -508,7 +487,7 @@
     {
       "name": "pro-parity-suite",
       "status": "partial",
-      "reason": "Most Pro-style providers remain permission-, lifecycle-, or disclosure-gated; the catalog runner permits explicit skips.",
+      "reason": "Every snippet needs a host provider plus its Android permission (Java interop, Rhino, UI, overlay, WorkManager, notifications/power, recorder, screenshot/OCR, accessibility); plugin-only runs print each skip code and the catalog still completes.",
       "tags": [
         "main-app",
         "bridge",
@@ -517,16 +496,14 @@
         "requires-accessibility",
         "requires-screen-capture",
         "requires-image",
-        "ocr",
-        "design-gated"
+        "ocr"
       ],
       "mainAppSmoke": false,
       "packagedCompatible": false
     },
     {
       "name": "desktop-parity-suite",
-      "status": "partial",
-      "reason": "Several desktop surfaces remain partial or disabled, notably WASI, inspector, registry installs, and unrestricted loader hooks.",
+      "status": "stable",
       "tags": [
         "main-app",
         "desktop-parity",
@@ -536,14 +513,13 @@
         "network",
         "http",
         "raw-network",
-        "scoped-fs",
         "fs-promises",
         "filehandle",
         "fs-watch",
+        "wasm",
         "wasi",
         "inspector",
         "pure-js-npm",
-        "design-gated",
         "security"
       ],
       "mainAppSmoke": false,

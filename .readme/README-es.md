@@ -118,8 +118,10 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 ###### 2026/09/17
 
 * `Correccion` La versión y el resumen del catálogo de capacidades que informa runtimeInfo ahora derivan del runtime kit, corrigiendo los valores obsoletos 1.5.0 que 1.5.4 seguía informando
+* `Correccion` worker_threads acepta new Worker(code, { eval: true }) como en Node en lugar de tratar el código como ruta de script
 * `Mejora` La ruta de compilación TypeScript del host pasa a stable en el catálogo de capacidades y se eliminan los metadatos retirados de legacy stripping; el catálogo de ciclo de vida solo enumera modos de ejecución ejecutables, quitando la superficie packaged_long_running y los nombres reservados node_sandboxed / worker_computation; los metadatos de transporte, admisión y cancelación coinciden con el runtime real
 * `Mejora` Los diagnósticos de autojs6:profile describen el runtime real en lugar de las marcas históricas partial / reserved / deferred: acceso a archivos limitado por Android, el subconjunto de process, los canales de worker, el pool de procesos y las decisiones de WASI / native addon
+* `Mejora` Auditoría de ejemplos: packaged-esm, packaged-dynamic-import, require-esm, wasm-basic, wasm-plugin y desktop-parity-suite pasan a stable; las dos suites de paridad ejecutan sus fragmentos en lugar de imprimir texto de catálogo; compile-cache se marca como no aplicable y se elimina el ejemplo package-install, que solo mostraba metadatos
 
 # v1.5.4
 

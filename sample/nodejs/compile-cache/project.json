@@ -8,9 +8,9 @@
     "permissions": []
   },
   "example": {
-    "capabilities": ["compile-cache", "commonjs"],
-    "expectedProvider": "Embedded Node compile-cache policy gate",
-    "packagedSupport": "main-app example only in this phase",
-    "securityLimitations": ["cache storage is runtime-managed", "native addons remain denied"]
+    "capabilities": ["commonjs"],
+    "expectedProvider": "none: the runtime's workspace loader compiles project modules itself, so Node's on-disk compile cache does not apply",
+    "packagedSupport": "not applicable: exported APKs do not bundle this runtime; run the project from the host entry",
+    "securityLimitations": ["module.enableCompileCache() is not exposed", "native addons remain unsupported by policy"]
   }
 }

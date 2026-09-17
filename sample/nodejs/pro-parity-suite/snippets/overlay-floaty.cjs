@@ -1,6 +1,6 @@
 "nodejs";
 
-(async function main() {
+async function run() {
   const overlay = require("ui.overlay");
   let window = null;
   try {
@@ -34,7 +34,13 @@
   } finally {
     if (window && !window.closed) await window.close();
   }
-})().catch(error => {
-  console.error(error && (error.stack || error.message) || error);
-  process.exitCode = 1;
-});
+}
+
+module.exports = { run };
+
+if (require.main === module) {
+  run().catch((error) => {
+    console.error(error && (error.stack || error.message) || error);
+    process.exitCode = 1;
+  });
+}

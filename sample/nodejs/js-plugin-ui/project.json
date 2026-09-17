@@ -9,8 +9,8 @@
   },
   "example": {
     "capabilities": ["plugins", "plugin.org.example.sample_ui", "ui"],
-    "expectedProvider": "local JS-only plugin manager plus Activity-owned UI bridge",
-    "packagedSupport": "supported only for already-packaged local plugin files",
-    "securityLimitations": ["no plugin downloads", "native plugin archives denied", "UI handles stay opaque"]
+    "expectedProvider": "JS plugin manager plus the host UI provider behind the ui permission",
+    "packagedSupport": "not applicable: exported APKs do not bundle this runtime; run the project from the host entry",
+    "securityLimitations": ["no plugin downloads", "native plugin archives denied", "UI handles stay opaque", "without the host UI provider the ui step prints ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED"]
   }
 }

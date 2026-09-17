@@ -118,8 +118,10 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/09/17
 
 * `修复` runtimeInfo 报告的能力目录版本与摘要改由 runtime kit 派生, 修正 1.5.4 中仍为 1.5.0 的旧值
+* `修复` worker_threads 按 Node 语义支持 new Worker(code, { eval: true }), 不再把代码字符串当作脚本路径
 * `优化` TypeScript 宿主编译路由在能力目录中转为 stable, 删除已退役的 legacy stripping 元数据; 生命周期目录只保留可运行的执行模式, 移除 packaged_long_running 启动面与 node_sandboxed / worker_computation 保留名; 传输、准入与取消元数据按实际运行时对齐
 * `优化` autojs6:profile 诊断对象按实际运行时描述, 不再沿用历史 partial / reserved / deferred 文案: Android 权限约束的文件访问、process 子集、worker 通道、进程池以及 WASI / native addon 决策
+* `优化` 样例清点: packaged-esm、packaged-dynamic-import、require-esm、wasm-basic、wasm-plugin 与 desktop-parity-suite 转为 stable; 两个 parity 套件改为真正逐条执行片段而非打印目录文案; compile-cache 标为不适用, 删除只打印元数据的 package-install 样例
 
 # v1.5.4
 

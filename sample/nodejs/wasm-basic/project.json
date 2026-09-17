@@ -9,8 +9,8 @@
   },
   "example": {
     "capabilities": ["wasm"],
-    "expectedProvider": "embedded Node V8 WebAssembly runtime",
-    "packagedSupport": "main-app example only in this phase",
-    "securityLimitations": ["native addons remain denied", "resource limits still apply"]
+    "expectedProvider": "V8 WebAssembly in Node",
+    "packagedSupport": "not applicable: exported APKs do not bundle this runtime; run the project from the host entry",
+    "securityLimitations": ["native addons remain unsupported by policy", "node:wasi is denied by decision; pure WebAssembly imports are the supported path"]
   }
 }

@@ -5,55 +5,12 @@
   "node": {
     "backend": "embedded",
     "timeoutMs": 180000,
-    "profile": "pro_compat_opt_in",
-    "permissions": [
-      "java_interop",
-      "rhino",
-      "ui",
-      "ui.overlay",
-      "ui.overlay.permission",
-      "work_manager",
-      "notifications",
-      "notifications.settings",
-      "device",
-      "device.power",
-      "media",
-      "media.audio",
-      "media.metadata",
-      "media.recording",
-      "screen_capture",
-      "image",
-      "ocr",
-      "accessibility"
-    ]
+    "permissions": ["java_interop", "rhino", "ui", "ui.overlay", "ui.overlay.permission", "work_manager", "notifications", "notifications.settings", "device", "device.power", "media", "media.audio", "media.metadata", "media.recording", "screen_capture", "image", "ocr", "accessibility"]
   },
   "example": {
-    "capabilities": [
-      "java_interop",
-      "rhino",
-      "ui",
-      "ui.overlay",
-      "ui.overlay.permission",
-      "work_manager",
-      "notifications",
-      "notifications.settings",
-      "device",
-      "device.power",
-      "media",
-      "media.audio",
-      "media.metadata",
-      "media.recording",
-      "screen_capture",
-      "image",
-      "ocr",
-      "accessibility"
-    ],
-    "expectedProvider": "Phase 13 Pro compatibility providers, many still gated",
-    "packagedSupport": "metadata-only catalog; packaged execution requires reviewed disclosure and provider-specific gates",
-    "securityLimitations": [
-      "Pro profile metadata does not grant authority yet",
-      "prompt/disclosure policy remains metadata-only",
-      "snippets catch unavailable providers and print skip reasons"
-    ]
+    "capabilities": ["java_interop", "rhino", "ui", "ui.overlay", "ui.overlay.permission", "work_manager", "notifications", "notifications.settings", "device", "device.power", "media", "media.audio", "media.metadata", "media.recording", "screen_capture", "image", "ocr", "accessibility"],
+    "expectedProvider": "AutoJs6 host providers behind the declared bridge capabilities; each snippet prints its skip code when a provider or Android permission is missing",
+    "packagedSupport": "not applicable: exported APKs do not bundle this runtime; run the project from the host entry",
+    "securityLimitations": ["Android permissions (overlay, microphone, MediaProjection, accessibility, notification access) are granted by the user, not by project metadata", "the catalog runner completes even when snippets skip; read the per-snippet lines"]
   }
 }

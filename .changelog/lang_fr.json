@@ -9,10 +9,12 @@
       "released_date": "2026/09/17",
       "improvement": [
         "La route de compilation TypeScript de l'hôte devient stable dans le catalogue de capacités et les métadonnées retirées de legacy stripping sont supprimées; le catalogue de cycle de vie ne liste que les modes d'exécution exécutables, en retirant la surface packaged_long_running et les noms réservés node_sandboxed / worker_computation; les métadonnées de transport, d'admission et d'annulation correspondent au runtime réel",
-        "Les diagnostics autojs6:profile décrivent le runtime réel au lieu des marqueurs historiques partial / reserved / deferred : accès aux fichiers borné par Android, sous-ensemble process, canaux worker, pool de processus et décisions WASI / native addon"
+        "Les diagnostics autojs6:profile décrivent le runtime réel au lieu des marqueurs historiques partial / reserved / deferred : accès aux fichiers borné par Android, sous-ensemble process, canaux worker, pool de processus et décisions WASI / native addon",
+        "Audit des exemples : packaged-esm, packaged-dynamic-import, require-esm, wasm-basic, wasm-plugin et desktop-parity-suite passent en stable ; les deux suites de parité exécutent réellement leurs extraits au lieu d'imprimer le texte du catalogue ; compile-cache est marqué non applicable et l'exemple package-install, purement métadonnées, est supprimé"
       ],
       "fix": [
-        "La version et l'empreinte du catalogue de capacités rapportées par runtimeInfo dérivent désormais du runtime kit, corrigeant les anciennes valeurs 1.5.0 encore rapportées par 1.5.4"
+        "La version et l'empreinte du catalogue de capacités rapportées par runtimeInfo dérivent désormais du runtime kit, corrigeant les anciennes valeurs 1.5.0 encore rapportées par 1.5.4",
+        "worker_threads accepte new Worker(code, { eval: true }) comme Node au lieu de traiter le code comme un chemin de script"
       ]
     },
     "v1.5.4": {

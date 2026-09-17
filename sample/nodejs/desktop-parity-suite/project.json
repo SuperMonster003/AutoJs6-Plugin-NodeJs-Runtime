@@ -5,43 +5,12 @@
   "node": {
     "backend": "embedded",
     "timeoutMs": 15000,
-    "profile": "desktop_compat_opt_in",
-    "permissions": [
-      "esm_loader",
-      "worker_threads",
-      "network",
-      "http",
-      "https",
-      "raw_network",
-      "fs.advanced",
-      "scoped_fs",
-      "wasi",
-      "inspector",
-      "package_manager",
-      "pure_js_npm"
-    ]
+    "permissions": []
   },
   "example": {
-    "capabilities": [
-      "esm_loader",
-      "worker_threads",
-      "network",
-      "http",
-      "https",
-      "raw_network",
-      "fs.advanced",
-      "scoped_fs",
-      "wasi",
-      "inspector",
-      "package_manager",
-      "pure_js_npm"
-    ],
-    "expectedProvider": "Phase 13 desktop compatibility providers, many still gated",
-    "packagedSupport": "metadata-only catalog; packaged desktop parity requires provider-specific promotion and reviewed packaging evidence",
-    "securityLimitations": [
-      "Desktop profile metadata does not grant authority yet",
-      "Safe profile denial examples stay explicit and machine-verifiable",
-      "snippets catch unavailable providers and print skip reasons"
-    ]
+    "capabilities": ["esm", "worker_threads", "http", "raw_network", "fs.advanced", "wasm", "inspector", "pure_js_npm"],
+    "expectedProvider": "Node 24 builtins as shipped by the runtime; every snippet prints its real outcome",
+    "packagedSupport": "not applicable: exported APKs do not bundle this runtime; run the project from the host entry",
+    "securityLimitations": ["node:wasi is denied by decision; pure WebAssembly is available", "the inspector needs an explicit Debug host request and prints its denial code otherwise", "registry installs happen in the host terminal (npm); the runtime loads checked-in or host-installed packages", "dgram and http2 need the raw_network capability"]
   }
 }
