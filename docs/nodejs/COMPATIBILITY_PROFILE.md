@@ -28,6 +28,12 @@ URLs, with `/proc`, `/sys` and `/dev` still denied; `node_modules` lookup and
 package scopes stay anchored to the workspace. Worker messages and fs watchers
 follow native Node limits: the 64 KB message / 32-queued caps and the
 16-watcher / 64-events-per-second quotas are gone, so only Android memory bounds them.
+The scoped fs wrapper also dropped its own option restrictions: stream `fs`, inherited
+`fd` / `dest` and arbitrary `flags` options, `watch({ recursive: true })`, async `cp`
+filters (`cpSync` keeps Node's `ERR_INVALID_RETURN_VALUE`), absolute, parent-directory
+and literal `!` glob patterns with `exclude` arrays, `readableWebStream` `type` /
+`encoding`, and the `Stats` / `Dirent` / `Dir` constructors follow native Node 24, so
+`filesystemProfile.advancedApis.recursiveWatch` reports `native`.
 Native Node builtins retain their own names: `events` / `node:events` is EventEmitter;
 Android event observation is exposed as `autojs6:events`. The runtime links ICU 78 with
 English-only locale data (`--with-intl=small-icu`, since v1.5.1): `Intl` exists and

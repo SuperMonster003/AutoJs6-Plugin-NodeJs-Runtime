@@ -132,6 +132,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 * `Improvement` scheduled execution mode promoted to available in the capability catalog after a real host WorkManager scheduled-runner run through the plugin
 * `Improvement` media.play() returns a playback session (pause/resume/seekTo/stop/status) over the host script music service, and the new media_store module exposes scoped MediaStore capabilities/query/get/insert/update/delete/scanFile/exportFile behind the media.playback / media.library / media.library.mutate capabilities; autojs6:compat.media gains the Rhino playMusic-style aliases; both require the matching host build
 * `Improvement` media-playback / media-library samples promoted to stable after manual acceptance with the merged host media providers; capability catalog snapshot 1.5.5 published under releases/nodejs-capability-catalog and the host alignment task now points at it
+* `Improvement` fs wrapper drops its own option restrictions: stream fs / inherited fd / flags options, watch({ recursive: true }), async cp filters (cpSync keeps Node's ERR_INVALID_RETURN_VALUE), absolute / parent-directory / literal '!' glob patterns with exclude arrays, readableWebStream type / encoding and the Stats / Dirent / Dir constructors now follow native Node 24; filesystemProfile.advancedApis.recursiveWatch reports native
 
 # v1.5.4
 

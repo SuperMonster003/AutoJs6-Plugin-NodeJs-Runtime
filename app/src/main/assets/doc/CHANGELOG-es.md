@@ -23,6 +23,7 @@
 * `Mejora` El modo de ejecución scheduled pasa a available en el catálogo de capacidades tras una ejecución real del runner programado de WorkManager del host a través del plugin
 * `Mejora` media.play() devuelve una sesión de reproducción (pause/resume/seekTo/stop/status) a través del servicio de música de scripts del host, y el nuevo módulo media_store expone un acceso acotado a MediaStore (capabilities/query/get/insert/update/delete/scanFile/exportFile) protegido por las capacidades media.playback / media.library / media.library.mutate; autojs6:compat.media añade los alias estilo Rhino playMusic; ambos requieren la compilación del host correspondiente
 * `Mejora` Los ejemplos media-playback / media-library pasan a stable tras la aceptación manual con los proveedores de medios del host ya integrados; la instantánea 1.5.5 del catálogo de capacidades se publica en releases/nodejs-capability-catalog y la tarea de alineación con el host ahora la referencia
+* `Mejora` El envoltorio fs elimina sus propias restricciones de opciones: las opciones fs / fd heredado / flags de los streams, watch({ recursive: true }), filtros cp asíncronos (cpSync conserva ERR_INVALID_RETURN_VALUE de Node), patrones glob absolutos / de directorio padre / '!' literal con arrays exclude, type / encoding de readableWebStream y los constructores Stats / Dirent / Dir siguen ahora el Node 24 nativo; filesystemProfile.advancedApis.recursiveWatch informa native
 
 # v1.5.4
 

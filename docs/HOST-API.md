@@ -148,6 +148,7 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 - 插件 APK 使用独立 applicationId/UID, 不继承 AutoJs6 宿主的存储授权。Android 11+ 访问共享存储前, 用户需在系统设置为本插件授予“所有文件访问” (`MANAGE_EXTERNAL_STORAGE`); 未授权时 Node 返回 `EACCES` 属预期行为。
 - Android UID、清单权限、SELinux 与文件自身权限仍是实际边界。插件不能借此读取其他应用的私有目录。
 - `/proc`、`/sys`、`/dev` 是运行时额外保留的硬拒绝边界, 即使 Android 授权也不会放开。
+- fs 包装层不再自设选项拦截 (M20.2 第六批, 2026-09-17): `createReadStream` / `createWriteStream` / `Utf8Stream` / `FileHandle.createReadStream` 的 `fs` 选项、原型继承的 `fd` / `dest`、任意 `flags`, `fs.watch` / `fs.promises.watch` 的 `recursive: true`, `fs.cp` / `fs.promises.cp` 的异步 `filter` (`cpSync` 遇到 Promise 与 Node 一样抛 `ERR_INVALID_RETURN_VALUE`), glob 的绝对路径 / 父目录 / `!` 字面模式与 `exclude` 数组, `FileHandle.readableWebStream` 的 `type` / `encoding` (与 Node 一样忽略), 以及 `fs.Stats` / `fs.Dirent` / `fs.Dir` 构造器均按 Node 24 原生语义处理; 包装层只保留路径校验 (硬边界 + NUL) 与 fd 归属跟踪, `autojs6:profile` 的 `filesystemProfile.advancedApis.recursiveWatch` 报告 `native`。
 - 项目清单中的 `filesystemRoots` 保留为兼容性诊断元数据 (`metadataOnly=true`, `grantsAuthority=false`), 不会授予、扩大或收窄 fs 权限。
 
 因此“沙盒根”与“文件系统可达根”是两个概念。需要可移植脚本时仍建议优先使用工作目录相对路径; 需要共享存储时再显式使用设备路径并处理 `EACCES`。

@@ -20,7 +20,8 @@
         "scheduled-node-task 샘플이 수명주기 정책을 출력하고 WorkManager 실행을 위해 작업을 유지할 수 있음; scheduled 실행 모드에 플러그인 측 회귀 추가",
         "호스트 WorkManager 예약 러너가 플러그인을 통해 실제 실행된 후 scheduled 실행 모드를 기능 카탈로그에서 available로 승격",
         "media.play()는 호스트 스크립트 음악 서비스로 재생하는 세션 객체 (pause/resume/seekTo/stop/status)를 반환하고, 새 media_store 모듈은 media.playback / media.library / media.library.mutate 권한으로 보호되는 제한된 MediaStore capabilities/query/get/insert/update/delete/scanFile/exportFile을 제공; autojs6:compat.media에 Rhino 스타일 playMusic 계열 별칭 추가; 모두 대응하는 호스트 빌드 필요",
-        "media-playback / media-library 샘플이 병합된 호스트 미디어 provider로 수동 검수를 통과해 stable로 승격; 기능 카탈로그 스냅샷 1.5.5를 releases/nodejs-capability-catalog에 게시하고 호스트 정합 작업이 이를 참조"
+        "media-playback / media-library 샘플이 병합된 호스트 미디어 provider로 수동 검수를 통과해 stable로 승격; 기능 카탈로그 스냅샷 1.5.5를 releases/nodejs-capability-catalog에 게시하고 호스트 정합 작업이 이를 참조",
+        "fs 래퍼의 자체 옵션 제한 제거: 스트림의 fs / 상속된 fd / flags 옵션, watch({ recursive: true }), 비동기 cp filter (cpSync는 Node의 ERR_INVALID_RETURN_VALUE 유지), 절대 경로 / 상위 디렉터리 / 리터럴 '!' glob 패턴과 exclude 배열, readableWebStream의 type / encoding, Stats / Dirent / Dir 생성자가 모두 Node 24 네이티브 동작을 따름; filesystemProfile.advancedApis.recursiveWatch는 native를 보고"
       ],
       "fix": [
         "runtimeInfo가 보고하는 기능 카탈로그 버전과 다이제스트를 runtime kit에서 파생하도록 변경하여 1.5.4에 남아 있던 1.5.0 이전 값을 수정",
