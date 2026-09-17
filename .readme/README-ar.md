@@ -122,6 +122,7 @@ console.log("AutoJs6 Node.js runtime");
 * `تحسين` أصبح مسار ترجمة TypeScript على المضيف قدرة مستقرة في فهرس القدرات مع إزالة بيانات legacy stripping المتقاعدة; يسرد فهرس دورة الحياة أوضاع التنفيذ القابلة للتشغيل فقط مع إزالة سطح packaged_long_running والأسماء المحجوزة node_sandboxed / worker_computation; وتتطابق بيانات النقل والقبول والإلغاء مع وقت التشغيل الفعلي
 * `تحسين` أصبحت تشخيصات autojs6:profile تصف وقت التشغيل الفعلي بدلا من العلامات التاريخية partial / reserved / deferred: الوصول إلى الملفات ضمن أذونات Android، ومجموعة process الفرعية، وقنوات worker، ومجمع العمليات، وقرارات WASI / native addon
 * `تحسين` مراجعة الأمثلة: أصبحت packaged-esm و packaged-dynamic-import و require-esm و wasm-basic و wasm-plugin و desktop-parity-suite مستقرة؛ وتنفذ حزمتا التكافؤ مقاطعهما فعليا بدلا من طباعة نص الفهرس؛ وعُلّم compile-cache على أنه غير قابل للتطبيق وحُذف مثال package-install الذي كان يعرض بيانات وصفية فقط
+* `تحسين` يتبع تحميل الوحدات وصول Android إلى الملفات كما في Node: يقبل require و import و Worker المسارات المطلقة وأهداف الدلائل الأعلى وعناوين file: (يبقى /proc و /sys و /dev مرفوضة)؛ ويظل البحث في node_modules مثبتا على مساحة العمل
 
 # v1.5.4
 

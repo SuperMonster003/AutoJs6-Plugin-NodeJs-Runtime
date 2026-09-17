@@ -13,6 +13,7 @@
 * `Amelioration` La route de compilation TypeScript de l'hôte devient stable dans le catalogue de capacités et les métadonnées retirées de legacy stripping sont supprimées; le catalogue de cycle de vie ne liste que les modes d'exécution exécutables, en retirant la surface packaged_long_running et les noms réservés node_sandboxed / worker_computation; les métadonnées de transport, d'admission et d'annulation correspondent au runtime réel
 * `Amelioration` Les diagnostics autojs6:profile décrivent le runtime réel au lieu des marqueurs historiques partial / reserved / deferred : accès aux fichiers borné par Android, sous-ensemble process, canaux worker, pool de processus et décisions WASI / native addon
 * `Amelioration` Audit des exemples : packaged-esm, packaged-dynamic-import, require-esm, wasm-basic, wasm-plugin et desktop-parity-suite passent en stable ; les deux suites de parité exécutent réellement leurs extraits au lieu d'imprimer le texte du catalogue ; compile-cache est marqué non applicable et l'exemple package-install, purement métadonnées, est supprimé
+* `Amelioration` Le chargement des modules suit l'accès aux fichiers Android comme Node : require, import et Worker acceptent les chemins absolus, les cibles dans les répertoires parents et les URL file: (/proc, /sys et /dev restent refusés) ; la recherche node_modules reste ancrée à l'espace de travail
 
 # v1.5.4
 

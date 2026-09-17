@@ -22,8 +22,10 @@ worker channels, the two-slot process pool, and the WASI / native addon decision
 historical partial / reserved / deferred markers are gone. The sample audit
 promoted the ESM, WebAssembly and desktop parity samples, turned both parity
 suites into real runners, and `new Worker(code, { eval: true })` now works as
-in Node; absolute paths and `file:` URLs are still rejected by the workspace
-loader (tracked under M20.2).
+in Node. Module loading follows Android file access like Node (M20.2): `require`,
+`import` and `Worker` accept absolute paths, parent-directory targets and `file:`
+URLs, with `/proc`, `/sys` and `/dev` still denied; `node_modules` lookup and
+package scopes stay anchored to the workspace.
 Native Node builtins retain their own names: `events` / `node:events` is EventEmitter;
 Android event observation is exposed as `autojs6:events`. The runtime links ICU 78 with
 English-only locale data (`--with-intl=small-icu`, since v1.5.1): `Intl` exists and

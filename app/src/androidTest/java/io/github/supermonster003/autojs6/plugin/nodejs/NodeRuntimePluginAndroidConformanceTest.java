@@ -497,6 +497,97 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         return files;
     }
 
+    /** M20.2: module loading follows Android file access like Node; /proc, /sys and /dev stay denied. */
+    @Test
+    public void m20_loaderFollowsAndroidFileAccessForAbsolutePathsAndFileUrls() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("y.cjs", "module.exports = 'cjs-abs';");
+        files.put("x.mjs", "export const v = 'esm-abs';");
+        files.put("main.cjs", """
+                const fs = require('node:fs');
+                const path = require('node:path');
+                const { pathToFileURL } = require('node:url');
+                const { Worker } = require('node:worker_threads');
+                const profile = require('autojs6:profile').esmLoaderProfile;
+                console.log('m20.profile=' + profile.absolutePathImports + '/' + profile.fileUrlImports + '/' + profile.workingDirectoryEscape);
+                // A directory outside the workspace root, next to it.
+                const outside = path.join(path.dirname(__dirname), 'm20-outside-' + process.pid);
+                fs.mkdirSync(outside, { recursive: true });
+                fs.writeFileSync(path.join(outside, 'sibling.json'), '{"value":7}');
+                fs.writeFileSync(path.join(outside, 'lib.cjs'), "module.exports = { where: 'outside-cjs', sibling: require('./sibling.json').value };");
+                fs.writeFileSync(path.join(outside, 'lib.mjs'), "export const where = 'outside-esm'; export { default as fromCjs } from './lib.cjs';");
+                fs.writeFileSync(path.join(outside, 'static.mjs'),
+                  'import { v } from ' + JSON.stringify(path.join(__dirname, 'x.mjs')) + ';' +
+                  ' import { where } from ' + JSON.stringify(pathToFileURL(path.join(outside, 'lib.mjs')).href) + ';' +
+                  ' export const combined = v + "+" + where;');
+                fs.writeFileSync(path.join(outside, 'worker.cjs'),
+                  "require('node:worker_threads').parentPort.postMessage(require(__dirname + '/lib.cjs').where);");
+                (async () => {
+                  try {
+                    console.log('m20.require.abs=' + require(path.join(__dirname, 'y.cjs')));
+                    console.log('m20.require.resolve.abs=' + (require.resolve(path.join(__dirname, 'y.cjs')) === path.join(__dirname, 'y.cjs')));
+                    const outsideCjs = require('../' + path.basename(outside) + '/lib.cjs');
+                    console.log('m20.require.outside=' + outsideCjs.where + '/' + outsideCjs.sibling);
+                    console.log('m20.require.outside.abs=' + (require(path.join(outside, 'lib.cjs')) === outsideCjs));
+                    console.log('m20.import.abs=' + (await import(path.join(__dirname, 'x.mjs'))).v);
+                    console.log('m20.import.fileurl=' + (await import(pathToFileURL(path.join(__dirname, 'x.mjs')).href)).v);
+                    const outsideEsm = await import(pathToFileURL(path.join(outside, 'lib.mjs')).href);
+                    console.log('m20.import.outside=' + outsideEsm.where + '/' + outsideEsm.fromCjs.sibling);
+                    console.log('m20.import.static=' + (await import(path.join(outside, 'static.mjs'))).combined);
+                    const workerValue = await new Promise((resolve, reject) => {
+                      const worker = new Worker(path.join(outside, 'worker.cjs'));
+                      worker.once('message', resolve);
+                      worker.once('error', reject);
+                    });
+                    console.log('m20.worker.outside=' + workerValue);
+                    const denied = {
+                      'require.proc': () => require('/proc/self/status'),
+                      'import.proc': () => import('/proc/self/status'),
+                      'import.fileurl.proc': () => import('file:///proc/self/status'),
+                      'import.sys': () => import('file:///sys/kernel'),
+                      'worker.dev': () => new Worker('/dev/null')
+                    };
+                    for (const [label, attempt] of Object.entries(denied)) {
+                      let code = 'none';
+                      try { await attempt(); } catch (error) { code = error.autojs6Code || error.code || error.name; }
+                      console.log('m20.denied.' + label + '=' + code);
+                    }
+                    console.log('m20.loader=PASS');
+                  } finally {
+                    fs.rmSync(outside, { recursive: true, force: true });
+                  }
+                })().catch((error) => { console.error(error && error.stack || error); process.exitCode = 1; });
+                """);
+        try (WorkspaceInvocation invocation = execute("m20-loader", "main.cjs", files,
+                new LinkedHashMap<>(), false, null, null, SCRIPT_TIMEOUT_MS, false, Collections.emptyList(), true)) {
+            Bundle result = invocation.result;
+            String stdout = result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+            assertTrue("m20 loader failed: " + result.getString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, "")
+                            + " / " + result.getString(NodeJsRuntimeContract.KEY_STDERR, "") + " / " + stdout,
+                    result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            for (String expected : new String[] {
+                    "m20.profile=allowed_within_android_app_permissions/local_file_urls/allowed_within_android_app_permissions",
+                    "m20.require.abs=cjs-abs",
+                    "m20.require.resolve.abs=true",
+                    "m20.require.outside=outside-cjs/7",
+                    "m20.require.outside.abs=true",
+                    "m20.import.abs=esm-abs",
+                    "m20.import.fileurl=esm-abs",
+                    "m20.import.outside=outside-esm/7",
+                    "m20.import.static=esm-abs+outside-esm",
+                    "m20.worker.outside=outside-cjs",
+                    "m20.denied.require.proc=ERR_AUTOJS6_FS_PATH_ESCAPE",
+                    "m20.denied.import.proc=ERR_AUTOJS6_FS_PATH_ESCAPE",
+                    "m20.denied.import.fileurl.proc=ERR_AUTOJS6_FS_PATH_ESCAPE",
+                    "m20.denied.import.sys=ERR_AUTOJS6_FS_PATH_ESCAPE",
+                    "m20.denied.worker.dev=ERR_AUTOJS6_FS_PATH_ESCAPE",
+                    "m20.loader=PASS"
+            }) {
+                assertTrue("stdout is missing '" + expected + "': " + stdout, stdout.contains(expected));
+            }
+        }
+    }
+
     @Test
     public void x3d_03_importedCommonJsStackRemovesFunctionWrapperOffset() throws Exception {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();
@@ -691,6 +782,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
             invocation.provider.assertHealthyAndNotCalled();
         }
 
+        // M20.2: a parent-directory target is no longer an fs policy violation; a raw
+        // TypeScript source outside the snapshot still needs compiler output.
         LinkedHashMap<String, String> escapingFiles = new LinkedHashMap<>();
         escapingFiles.put("main.mjs", "await import('../escape.mts');\n");
         try (WorkspaceInvocation invocation = executeWithTypeScriptSnapshot(
@@ -703,7 +796,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         )) {
             assertFalse(invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
             assertEquals(
-                    "ERR_AUTOJS6_FS_PATH_ESCAPE",
+                    NodeJsRuntimeContract.ERROR_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND,
                     invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_CODE)
             );
             assertNativeValue(invocation.result,

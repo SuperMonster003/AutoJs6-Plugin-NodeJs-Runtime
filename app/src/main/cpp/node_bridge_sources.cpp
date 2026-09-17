@@ -4226,10 +4226,10 @@ std::string buildEmbeddedScriptExecutionSource(
         loaderHooks: "denied",
         rawNodeModuleLoader: "denied",
         networkImports: "denied",
-        fileUrlImports: "denied",
+        fileUrlImports: "local_file_urls",
         dataUrlImports: "inline_js_json_only",
-        absolutePathImports: "denied",
-        workingDirectoryEscape: "denied",
+        absolutePathImports: "allowed_within_android_app_permissions",
+        workingDirectoryEscape: "allowed_within_android_app_permissions",
         disabledBuiltinImports: "denied",
         encryptedGraphParity: "not_promoted",
         pendingEvaluationCleanup: "not_proven",
@@ -4548,7 +4548,7 @@ std::string buildEmbeddedScriptExecutionSource(
         shellBridge: "separate_scoped_command_bridge",
         executionMode: "not_applicable_runs_inside_execution",
         secondExecutionSlot: "process_pool_two_slots",
-        scopedScriptPath: "workingDirectory",
+        scopedScriptPath: "android_file_access",
         messageSizeBytes: __autojs6_worker_threads_policy.maxMessageBytes,
         maxQueuedMessages: __autojs6_worker_threads_policy.maxQueuedMessages,
         cleanup: "worker_pool_close_or_execution_destroy",
@@ -8948,6 +8948,13 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
   }
+  function __autojs6_worker_threads_script_unreachable(name) {
+    return __autojs6_worker_threads_policy_error(
+      "AutoJs6 worker_threads script path is outside Android file access or under a sensitive root (/proc, /sys, /dev): " + name,
+      "script_path",
+      "ERR_AUTOJS6_FS_PATH_ESCAPE"
+    );
+  }
   function __autojs6_worker_threads_resolve_script(filename, parentFilename) {
     const path = __autojs6_path_module();
     if (
@@ -8980,14 +8987,11 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
     const root = __autojs6_module_resolution_root(parentFilename || __autojs6_source_name);
+    const reach = __autojs6_module_reach_root(path);
     const parentDir = __autojs6_module_dirname(parentFilename || __autojs6_source_name);
     const base = path.resolve(parentDir || root, name);
-    if (!__autojs6_path_within_root(base, root) || __autojs6_sensitive_path(base)) {
-      throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 worker_threads script path is outside the working directory: " + name,
-        "script_path",
-        "ERR_AUTOJS6_FS_PATH_ESCAPE"
-      );
+    if (!__autojs6_module_path_reachable(base, reach)) {
+      throw __autojs6_worker_threads_script_unreachable(name);
     }
     const extension = __autojs6_normalized_extension(path.extname(base));
     __autojs6_throw_if_native_addon_extension(
@@ -9008,12 +9012,8 @@ std::string buildEmbeddedScriptExecutionSource(
     let record;
     for (const candidate of candidates) {
       const candidateResolved = path.resolve(candidate);
-      if (!__autojs6_path_within_root(candidateResolved, root) || __autojs6_sensitive_path(candidateResolved)) {
-        throw __autojs6_worker_threads_policy_error(
-          "AutoJs6 worker_threads script path is outside the working directory: " + name,
-          "script_path",
-          "ERR_AUTOJS6_FS_PATH_ESCAPE"
-        );
+      if (!__autojs6_module_path_reachable(candidateResolved, reach)) {
+        throw __autojs6_worker_threads_script_unreachable(name);
       }
       record = __autojs6_module_record(candidateResolved, true);
       if (record && typeof record.source === "string") {
@@ -9637,11 +9637,8 @@ std::string buildEmbeddedScriptExecutionSource(
     if (!raw || raw.indexOf("\u0000") >= 0) {
       throw __error("AutoJs6 worker_threads rejects invalid local module path: " + raw, "ERR_AUTOJS6_FS_NUL_BYTE");
     }
-    if (!__isRelativeModuleName(raw)) {
+    if (!__isRelativeModuleName(raw) && !__path.isAbsolute(raw)) {
       return __deny(raw);
-    }
-    if (__path.isAbsolute(raw)) {
-      throw __error("AutoJs6 worker_threads rejects absolute local module path: " + raw, "ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED");
     }
     if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(raw)) {
       throw __error("AutoJs6 worker_threads rejects protocol module path: " + raw, "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
@@ -9763,7 +9760,7 @@ std::string buildEmbeddedScriptExecutionSource(
     function workerRequire(request) {
       const raw = String(request || "");
       if (__builtinAllowed(raw)) return __loadBuiltin(raw);
-      if (__isRelativeModuleName(raw)) {
+      if (__isRelativeModuleName(raw) || __path.isAbsolute(raw)) {
         const resolved = __resolveLocal(raw, parentFilename, "cjs");
         return __loadCjsModule(resolved.resolved, parentModule);
       }
@@ -9772,7 +9769,7 @@ std::string buildEmbeddedScriptExecutionSource(
     workerRequire.resolve = function(request) {
       const raw = String(request || "");
       if (__builtinAllowed(raw)) return __resolveBuiltin(raw);
-      if (__isRelativeModuleName(raw)) return __resolveLocal(raw, parentFilename, "cjs").resolved;
+      if (__isRelativeModuleName(raw) || __path.isAbsolute(raw)) return __resolveLocal(raw, parentFilename, "cjs").resolved;
       return __deny(raw);
     };
     return workerRequire;
@@ -9954,11 +9951,15 @@ std::string buildEmbeddedScriptExecutionSource(
   function __loadEsmModule(specifier, parentFilename) {
     const raw = String(specifier || "");
     if (__builtinAllowed(raw)) return Promise.resolve(__namespaceFromCommonJs(__loadBuiltin(raw)));
-    if (!__isRelativeModuleName(raw)) return Promise.reject(__error(
+    let localName = raw;
+    if (/^file:/i.test(raw)) {
+      try { localName = __nativeRequire("url").fileURLToPath(raw); } catch (error) { return Promise.reject(error); }
+    }
+    if (!__isRelativeModuleName(localName) && !__path.isAbsolute(localName)) return Promise.reject(__error(
       "AutoJs6 worker_threads ESM imports only local worker dependencies and allowed builtins: " + raw,
       "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
     ));
-    const resolved = __resolveLocal(raw, parentFilename, "esm");
+    const resolved = __resolveLocal(localName, parentFilename, "esm");
     if (resolved.kind === "cjs") {
       return Promise.resolve(__namespaceFromCommonJs(__loadCjsModule(resolved.resolved, null)));
     }
@@ -24464,6 +24465,19 @@ std::string buildEmbeddedScriptExecutionSource(
       name.indexOf("./") === 0 ||
       name.indexOf("../") === 0;
   }
+  function __autojs6_is_absolute_module_name(name) {
+    const path = __autojs6_path_module();
+    return path && typeof path.isAbsolute === "function"
+      ? path.isAbsolute(name)
+      : name.charAt(0) === "/";
+  }
+  // Relative and absolute specifiers both load from disk, as in Node. Android
+  // file access (with the sensitive roots denied) decides whether the target is
+  // readable; node_modules lookup and package scopes stay anchored to the
+  // workspace root.
+  function __autojs6_is_local_module_name(name) {
+    return __autojs6_is_relative_module_name(name) || __autojs6_is_absolute_module_name(name);
+  }
   function __autojs6_module_dirname(filename) {
     if (__autojs6_is_data_url_module_id(filename)) {
       return "";
@@ -26055,6 +26069,13 @@ std::string buildEmbeddedScriptExecutionSource(
       subpath: parts.slice(1).join("/")
     };
   }
+  function __autojs6_local_module_unreachable(moduleName) {
+    return __autojs6_error(
+      "Embedded Node local require cannot reach '" + moduleName +
+        "': the path is outside Android file access or under a sensitive root (/proc, /sys, /dev).",
+      "ERR_AUTOJS6_FS_PATH_ESCAPE"
+    );
+  }
   function __autojs6_first_local_module_candidate(
     candidates,
     root,
@@ -26065,8 +26086,8 @@ std::string buildEmbeddedScriptExecutionSource(
     const path = __autojs6_path_module();
     for (const candidate of candidates) {
       const resolved = path.resolve(candidate);
-      if (!__autojs6_path_within_root(resolved, root)) {
-        throw new Error("Relative require escapes Embedded Node working directory: " + moduleName);
+      if (!__autojs6_path_within_root(resolved, root) || __autojs6_sensitive_path(resolved)) {
+        throw __autojs6_local_module_unreachable(moduleName);
       }
       // Node's LOAD_AS_FILE probes the literal path first even when its
       // "extension" is bogus (require('./util.inspect') → file
@@ -26879,14 +26900,15 @@ std::string buildEmbeddedScriptExecutionSource(
     if (moduleName.indexOf("\u0000") >= 0) {
       throw new Error("Embedded Node local require rejects NUL path: " + moduleName);
     }
-    if (path.isAbsolute(moduleName)) {
-      throw new Error("Embedded Node local require rejects absolute path: " + moduleName);
-    }
-    const root = __autojs6_module_resolution_root(parentFilename);
+    // Node accepts absolute and relative specifiers alike; Android file access
+    // (with the sensitive roots denied) decides whether the target is readable.
+    const root = __autojs6_module_reach_root(path);
     const parentDir = __autojs6_module_dirname(parentFilename);
-    const base = path.resolve(parentDir || root, moduleName);
-    if (!__autojs6_path_within_root(base, root)) {
-      throw new Error("Relative require escapes Embedded Node working directory: " + moduleName);
+    const base = path.isAbsolute(moduleName)
+      ? path.resolve(moduleName)
+      : path.resolve(parentDir || __autojs6_module_resolution_root(parentFilename), moduleName);
+    if (!__autojs6_module_path_reachable(base, root)) {
+      throw __autojs6_local_module_unreachable(moduleName);
     }
     const resolutionMode = mode || "cjs";
     const allowEsm = __autojs6_package_target_allows_esm(resolutionMode);
@@ -26963,24 +26985,39 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_find_package_scope(parentFilename, root) {
     const path = __autojs6_path_module();
     let current = path.resolve(__autojs6_module_dirname(parentFilename) || root);
+    let boundary = root;
     if (!__autojs6_path_within_root(current, root)) {
-      current = root;
+      // A module loaded from outside the workspace (absolute require/import)
+      // keeps Node's walk-up semantics inside Android file access instead of
+      // borrowing the workspace package.json.
+      const reach = __autojs6_module_reach_root(path);
+      if (__autojs6_module_path_reachable(current, reach)) {
+        boundary = reach;
+      } else {
+        current = root;
+      }
     }
-    while (__autojs6_path_within_root(current, root)) {
+    while (__autojs6_path_within_root(current, boundary)) {
       const packageJsonResolved = path.resolve(current, "package.json");
-      if (
-        __autojs6_path_within_root(packageJsonResolved, root) &&
-        __autojs6_package_data(packageJsonResolved, parentFilename)
-      ) {
+      let packageData = null;
+      try {
+        packageData = __autojs6_path_within_root(packageJsonResolved, boundary)
+          ? __autojs6_package_data(packageJsonResolved, parentFilename)
+          : null;
+      } catch (error) {
+        // Outside the workspace an unreadable ancestor is simply not a package scope.
+        if (boundary === root || (error && error.__autojs6ModuleSourceProviderRecorded)) throw error;
+      }
+      if (packageData) {
         return { packageDir: current, packageJsonResolved };
       }
-      if (current !== root && __autojs6_is_package_dir_in_node_modules(current, root)) {
+      if (current !== boundary && __autojs6_is_package_dir_in_node_modules(current, boundary)) {
         break;
       }
-      if (current === root) break;
+      if (current === boundary) break;
       const parent = path.dirname(current);
       if (!parent || parent === current) break;
-      current = __autojs6_path_within_root(parent, root) ? parent : root;
+      current = __autojs6_path_within_root(parent, boundary) ? parent : boundary;
     }
     return null;
   }
@@ -27268,6 +27305,14 @@ std::string buildEmbeddedScriptExecutionSource(
     return __autojs6_unrestricted_fs_access_enabled
       ? "/"
       : __autojs6_resolved_sandbox_root(path);
+  }
+  // Module files are read through the same reach as fs: any path Android lets
+  // the app read, minus /proc, /sys and /dev.
+  function __autojs6_module_reach_root(path) {
+    return __autojs6_resolved_fs_access_root(path || __autojs6_path_module());
+  }
+  function __autojs6_module_path_reachable(pathValue, reach) {
+    return __autojs6_path_within_root(pathValue, reach) && !__autojs6_sensitive_path(pathValue);
   }
   function __autojs6_resolved_current_working_directory(path) {
     const root = __autojs6_resolved_sandbox_root(path);
@@ -37252,6 +37297,24 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_esm_record_denial(message);
     return __autojs6_error(message, code || "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED");
   }
+  function __autojs6_esm_unreachable(specifier) {
+    return __autojs6_esm_error(
+      "Embedded Node partial ESM import cannot reach '" + specifier +
+        "': the path is outside Android file access or under a sensitive root (/proc, /sys, /dev).",
+      "ERR_AUTOJS6_FS_PATH_ESCAPE"
+    );
+  }
+  // Absolute paths and file: URLs name a local module directly, as in Node.
+  function __autojs6_esm_local_specifier_path(name) {
+    const path = __autojs6_path_module();
+    if (path && typeof path.isAbsolute === "function" && path.isAbsolute(name)) return name;
+    if (!/^file:/i.test(name)) return null;
+    const nodeUrl = __autojs6_url_module();
+    if (!nodeUrl || typeof nodeUrl.fileURLToPath !== "function") {
+      throw __autojs6_esm_error("Embedded Node partial ESM file: import needs allowlisted url.fileURLToPath.");
+    }
+    return nodeUrl.fileURLToPath(name);
+  }
   function __autojs6_esm_entry_filename() {
     return __autojs6_entry_filename();
   }
@@ -37824,7 +37887,7 @@ std::string buildEmbeddedScriptExecutionSource(
     for (const candidate of candidates) {
       const resolved = path.resolve(candidate);
       if (!__autojs6_path_within_root(resolved, root) || __autojs6_sensitive_path(resolved)) {
-        throw __autojs6_esm_error("Embedded Node partial ESM import escapes working directory: " + specifier, "ERR_AUTOJS6_FS_PATH_ESCAPE");
+        throw __autojs6_esm_unreachable(specifier);
       }
       if (packageDir && !__autojs6_path_within_root(resolved, packageDir)) {
         throw __autojs6_esm_error("Embedded Node partial ESM package import escapes package directory: " + specifier, "ERR_AUTOJS6_FS_PATH_ESCAPE");
@@ -37866,9 +37929,9 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name.indexOf("\u0000") >= 0) {
       throw __autojs6_esm_error("Embedded Node partial ESM rejects NUL import specifier.", "ERR_AUTOJS6_FS_NUL_BYTE");
     }
-    if (path.isAbsolute(name)) {
-      throw __autojs6_esm_error("Embedded Node partial ESM rejects absolute import: " + name, "ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED");
-    }
+    // Node accepts absolute paths and file: URLs for local modules; Android
+    // file access (with the sensitive roots denied) decides readability.
+    const localName = __autojs6_esm_local_specifier_path(name);
     if (__autojs6_esm_builtin_specifier(name)) {
       __autojs6_resolve_trace("esm builtin matched", {
         request: name,
@@ -37886,11 +37949,11 @@ std::string buildEmbeddedScriptExecutionSource(
       });
       return resolvedData;
     }
-    if (__autojs6_protocol_specifier(name)) {
+    if (localName === null && __autojs6_protocol_specifier(name)) {
       const code = /^https?:/i.test(name) ? "ERR_AUTOJS6_NETWORK_DISABLED" : "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED";
       throw __autojs6_esm_error("Embedded Node partial ESM rejects protocol import: " + name, code);
     }
-    if (__autojs6_is_data_url_module_id(parentFilename)) {
+    if (localName === null && __autojs6_is_data_url_module_id(parentFilename)) {
       throw __autojs6_esm_error(
         "Embedded Node partial ESM data URL modules cannot resolve scoped package or relative imports: " + name,
         "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED"
@@ -37904,7 +37967,7 @@ std::string buildEmbeddedScriptExecutionSource(
         resolved
       };
     }
-    if (!__autojs6_is_relative_module_name(name)) {
+    if (localName === null && !__autojs6_is_relative_module_name(name)) {
       // Keep the CommonJS M2.4 rule for ESM: an installed npm package wins
       // over a same-named AutoJs6 compatibility facade. Only when no package
       // resolves do bare imports such as app/device/toast become synthetic
@@ -37934,10 +37997,13 @@ std::string buildEmbeddedScriptExecutionSource(
         resolved
       };
     }
+    const reach = __autojs6_module_reach_root(path);
     const parentDir = __autojs6_module_dirname(parentFilename);
-    const base = path.resolve(parentDir || root, name);
-    if (!__autojs6_path_within_root(base, root) || __autojs6_sensitive_path(base)) {
-      throw __autojs6_esm_error("Embedded Node partial ESM import escapes working directory: " + name, "ERR_AUTOJS6_FS_PATH_ESCAPE");
+    const base = localName !== null
+      ? path.resolve(localName)
+      : path.resolve(parentDir || root, name);
+    if (!__autojs6_module_path_reachable(base, reach)) {
+      throw __autojs6_esm_unreachable(name);
     }
     const extension = __autojs6_normalized_extension(path.extname(base));
     if (__autojs6_typescript_precompiled_snapshot) {
@@ -37967,7 +38033,7 @@ std::string buildEmbeddedScriptExecutionSource(
           : [base + ".mts", base + ".ts", base + ".mjs", base + ".js", base + ".cts", base + ".cjs", base + ".json"]);
     const resolved = __autojs6_resolve_esm_file_candidate(
       candidates,
-      root,
+      reach,
       name,
       parentFilename,
       undefined,
@@ -38770,17 +38836,16 @@ std::string buildEmbeddedScriptExecutionSource(
       if (name.indexOf("\0") >= 0) {
         throw __autojs6_esm_error("Embedded Node local dynamic import rejects NUL byte in specifier.", "ERR_AUTOJS6_FS_NUL_BYTE");
       }
-      const path = __autojs6_path_module();
-      if (path.isAbsolute(name)) {
-        throw __autojs6_esm_error("Embedded Node local dynamic import rejects absolute path: " + name, "ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED");
-      }
       const protocolMatch = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(name);
       if (protocolMatch && !__autojs6_esm_builtin_specifier(name) && !__autojs6_is_data_url_module_id(name)) {
         const protocol = protocolMatch[1].toLowerCase();
         if (protocol === "http" || protocol === "https") {
           throw __autojs6_error("Embedded Node local dynamic import rejects network URL imports: " + name, "ERR_AUTOJS6_NETWORK_DISABLED");
         }
-        throw __autojs6_dynamic_import_unsupported("Embedded Node local dynamic import rejects URL/protocol imports: " + name);
+        // file: URLs (like absolute paths) resolve as in Node inside Android file access.
+        if (protocol !== "file") {
+          throw __autojs6_dynamic_import_unsupported("Embedded Node local dynamic import rejects URL/protocol imports: " + name);
+        }
       }
       return __autojs6_native_esm_import(
         name,
@@ -39767,7 +39832,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_require_builtin_allowlist[name];
     }
     const __autojs6_require_resolution_mode = __autojs6_commonjs_require_resolution_mode();
-    if (__autojs6_is_relative_module_name(name)) {
+    if (__autojs6_is_local_module_name(name)) {
       return __autojs6_resolve_local_module(name, parentFilename, __autojs6_require_resolution_mode);
     }
     if (name.indexOf("#") === 0) {
@@ -40165,7 +40230,7 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
     const __autojs6_require_resolution_mode = __autojs6_commonjs_require_resolution_mode();
-    if (__autojs6_is_relative_module_name(name)) {
+    if (__autojs6_is_local_module_name(name)) {
       return __autojs6_load_local_module(__autojs6_resolve_local_module(name, parentFilename, __autojs6_require_resolution_mode), parentModule);
     }
     if (name.indexOf("#") === 0) {

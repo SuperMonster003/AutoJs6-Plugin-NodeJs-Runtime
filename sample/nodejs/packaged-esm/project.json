@@ -11,6 +11,6 @@
     "capabilities": ["esm", "dynamic_import"],
     "expectedProvider": "Node native ESM linker (esmLoaderProfile.status=native_linker)",
     "packagedSupport": "not applicable: exported APKs do not bundle this runtime; run the project from the host entry",
-    "securityLimitations": ["relative specifiers inside the project and data: (JavaScript/JSON) imports", "absolute paths and file: URLs are rejected by the workspace loader (M20.2 tracks that relaxation)", "disabled builtins remain denied"]
+    "securityLimitations": ["relative specifiers inside the project and data: (JavaScript/JSON) imports", "absolute paths, parent-directory targets and file: URLs load within Android file access (/proc, /sys, /dev denied); node_modules lookup stays anchored to the workspace", "disabled builtins remain denied"]
   }
 }

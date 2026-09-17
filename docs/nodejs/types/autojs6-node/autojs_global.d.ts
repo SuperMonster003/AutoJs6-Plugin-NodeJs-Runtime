@@ -43,10 +43,10 @@ declare namespace AutoJs6Node {
     readonly loaderHooks: "denied" | string;
     readonly rawNodeModuleLoader: "denied" | string;
     readonly networkImports: "denied" | string;
-    readonly fileUrlImports: "denied" | string;
+    readonly fileUrlImports: "local_file_urls" | "denied" | string;
     readonly dataUrlImports: "inline_js_json_only" | "denied" | string;
-    readonly absolutePathImports: "denied" | string;
-    readonly workingDirectoryEscape: "denied" | string;
+    readonly absolutePathImports: "allowed_within_android_app_permissions" | "denied" | string;
+    readonly workingDirectoryEscape: "allowed_within_android_app_permissions" | "denied" | string;
     readonly disabledBuiltinImports: "denied" | string;
     readonly encryptedGraphParity: "not_promoted" | string;
     readonly pendingEvaluationCleanup: "not_proven" | string;
@@ -621,7 +621,7 @@ declare namespace AutoJs6Node {
     readonly shellBridge: "separate_scoped_command_bridge" | string;
     readonly executionMode: "not_applicable_runs_inside_execution" | string;
     readonly secondExecutionSlot: "process_pool_two_slots" | string;
-    readonly scopedScriptPath: "workingDirectory" | string;
+    readonly scopedScriptPath: "android_file_access" | "workingDirectory" | string;
     readonly messageSizeBytes: number;
     readonly maxQueuedMessages: number;
     readonly cleanup: "worker_pool_close_or_execution_destroy" | string;
