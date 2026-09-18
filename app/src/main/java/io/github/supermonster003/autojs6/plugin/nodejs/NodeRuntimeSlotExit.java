@@ -27,8 +27,8 @@ final class NodeRuntimeSlotExit {
     static final String SOURCE_NOT_RECORDED = "not_recorded";
     /** The system finalises the record shortly after the death; wait at most this long for it. */
     static final long RECORD_WAIT_MS = 2_000L;
-    /** A plain SIGKILL record may still be refined to LOW_MEMORY once lmkd reports its kill. */
-    static final long SIGKILL_REFINEMENT_WAIT_MS = 400L;
+    /** A record is taken once it has stayed the same for this long; the system fills it in from several sources. */
+    static final long RECORD_SETTLE_MS = 400L;
     private static final long POLL_INTERVAL_MS = 100L;
     private static final int SIGKILL = 9;
 
@@ -106,22 +106,39 @@ final class NodeRuntimeSlotExit {
         ActivityManager manager = context.getSystemService(ActivityManager.class);
         if (manager == null || pid <= 0) return null;
         long deadline = SystemClock.elapsedRealtime() + Math.max(0L, waitMs);
-        long firstSeenAt = -1L;
+        long stableSince = -1L;
+        String key = null;
         ApplicationExitInfo record = null;
         while (true) {
             ApplicationExitInfo candidate = latestRecord(manager, context.getPackageName(), pid, notBeforeWallMs);
             long now = SystemClock.elapsedRealtime();
             if (candidate != null) {
-                record = candidate;
-                if (firstSeenAt < 0) firstSeenAt = now;
-                boolean provisional = candidate.getReason() == ApplicationExitInfo.REASON_SIGNALED
-                        && candidate.getStatus() == SIGKILL;
-                if (!provisional || now - firstSeenAt >= SIGKILL_REFINEMENT_WAIT_MS) break;
+                // The system assembles the record from several sources that arrive in any order: its own death
+                // note (reason may still be UNKNOWN), the zygote's exit status (a CRASH_NATIVE record can appear
+                // with signal 0 first), and lmkd (a plain SIGKILL becomes LOW_MEMORY). It is taken once it has
+                // stayed the same for RECORD_SETTLE_MS, or at the deadline.
+                String candidateKey = recordKey(candidate.getReason(), candidate.getStatus(), candidate.getDescription());
+                if (record == null || !candidateKey.equals(key)) {
+                    record = candidate;
+                    key = candidateKey;
+                    stableSince = now;
+                } else if (settled(stableSince, now)) {
+                    break;
+                }
             }
             if (now >= deadline) break;
             SystemClock.sleep(Math.min(POLL_INTERVAL_MS, deadline - now));
         }
         return record;
+    }
+
+    /** The fields the system fills in after the first note; a change restarts the settle window. */
+    static String recordKey(int reason, int status, String description) {
+        return reason + "/" + status + "/" + (description == null ? "" : description);
+    }
+
+    static boolean settled(long stableSinceMs, long nowMs) {
+        return stableSinceMs >= 0 && nowMs - stableSinceMs >= RECORD_SETTLE_MS;
     }
 
     @TargetApi(Build.VERSION_CODES.R)

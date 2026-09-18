@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Runtime
 
-This plugin provides the Node.js 24.5.0 native runtime for AutoJs6.
+This plugin provides the Node.js 24.21.0 native runtime for AutoJs6.
 
 Install and enable it in the AutoJs6 plugin center, then start a script with:
 

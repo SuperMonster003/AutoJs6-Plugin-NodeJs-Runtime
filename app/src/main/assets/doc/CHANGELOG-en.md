@@ -6,7 +6,7 @@
 
 # v1.5.5
 
-###### 2026/09/17
+###### 2026/09/18
 
 * `Fix` The capability catalog version and digest reported by runtimeInfo are now derived from the runtime kit, correcting the stale 1.5.0 values still reported by 1.5.4
 * `Fix` worker_threads honors new Worker(code, { eval: true }) as in Node instead of treating the code as a script path

@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Runtime
 
-此插件为 AutoJs6 提供 Node.js 24.5.0 原生运行时.
+此插件为 AutoJs6 提供 Node.js 24.21.0 原生运行时.
 
 在 AutoJs6 插件中心安装并启用后, 使用以下指令启动脚本:
 

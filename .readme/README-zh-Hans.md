@@ -115,7 +115,7 @@ console.log("AutoJs6 Node.js runtime");
 
 # v1.5.5
 
-###### 2026/09/17
+###### 2026/09/18
 
 * `修复` runtimeInfo 报告的能力目录版本与摘要改由 runtime kit 派生, 修正 1.5.4 中仍为 1.5.0 的旧值
 * `修复` worker_threads 按 Node 语义支持 new Worker(code, { eval: true }), 不再把代码字符串当作脚本路径

@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Runtime
 
-이 플러그인은 AutoJs6 에 Node.js 24.5.0 네이티브 런타임을 제공합니다.
+이 플러그인은 AutoJs6 에 Node.js 24.21.0 네이티브 런타임을 제공합니다.
 
 AutoJs6 플러그인 센터에서 설치하고 활성화한 뒤 다음 지시문으로 스크립트를 시작합니다:
 
