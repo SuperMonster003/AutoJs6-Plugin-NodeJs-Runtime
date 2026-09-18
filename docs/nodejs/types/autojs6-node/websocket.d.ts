@@ -5,8 +5,11 @@
     export interface ConnectOptions {
       headers?: Readonly<Record<string, string>> | readonly (readonly [string, string])[];
       protocols?: string | readonly string[];
+      /** Passed to the host provider unclamped; its policy caps the connect timeout. Default 10000. */
       timeoutMs?: number;
+      /** Passed to the host provider only when set; the connection reports the value the host applied. */
       maxMessageBytes?: number;
+      /** Passed to the host provider only when set; its policy supplies the default and ceiling. */
       maxQueueSize?: number;
       signal?: AutoJs6Node.AbortSignalLike;
     }
@@ -57,14 +60,11 @@
       close(code?: number, reason?: string, options?: { timeoutMs?: number; signal?: AutoJs6Node.AbortSignalLike }): Promise<void>;
     }
 
+    /** Connect timeout ceilings, message and queue sizes are the host provider's policy; the runtime passes the caller's options through unclamped. */
     export interface Policy {
       readonly defaultTimeoutMs: number;
-      readonly hardTimeoutMs: number;
-      readonly defaultMaxMessageBytes: number;
-      readonly hardMaxMessageBytes: number;
-      readonly defaultMaxQueueSize: number;
-      readonly hardMaxQueueSize: number;
       readonly allowedSchemes: readonly string[];
+      readonly limitsEnforcedBy: "host_provider";
     }
 
     export interface Diagnostics {

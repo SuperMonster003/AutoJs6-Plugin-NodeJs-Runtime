@@ -11,7 +11,8 @@ declare module "axios" {
     export interface RequestConfig {
       url?: string;
       baseURL?: string;
-      method?: "GET" | "POST" | "get" | "post";
+      /** Forwarded to the host provider, whose policy decides the accepted method set. */
+      method?: string;
       headers?: HeaderInit;
       params?: ParamsInit;
       data?: BodyInit;
@@ -51,10 +52,12 @@ declare module "axios" {
       };
     }
 
+    /** Timeout ceilings, response size and the accepted method set are the host network provider's policy; the runtime only fills these defaults. */
     export interface Policy {
       readonly defaultTimeoutMs: number;
-      readonly defaultMaxResponseBytes: number;
       readonly defaultMaxRedirects: number;
+      readonly allowedSchemes: readonly string[];
+      readonly limitsEnforcedBy: "host_provider";
     }
 
     export interface Diagnostics {

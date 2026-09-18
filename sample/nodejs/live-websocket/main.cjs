@@ -7,7 +7,7 @@ function codeOf(error) {
 (async function main() {
   const websocket = require("autojs6:websocket");
   console.log("sample.live-websocket.provider=controlled-websocket");
-  console.log("sample.live-websocket.limit=" + websocket.policy.defaultMaxMessageBytes);
+  console.log("sample.live-websocket.limits=" + websocket.policy.limitsEnforcedBy);
 
   try {
     const connection = await websocket.connect("wss://example.invalid/sample", {

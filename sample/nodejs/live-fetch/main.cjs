@@ -7,7 +7,7 @@ function codeOf(error) {
 (async function main() {
   const fetch = require("autojs6:fetch");
   console.log("sample.live-fetch.provider=controlled-fetch");
-  console.log("sample.live-fetch.limit=" + fetch.policy.defaultMaxResponseBytes);
+  console.log("sample.live-fetch.limits=" + fetch.policy.limitsEnforcedBy);
 
   try {
     const response = await fetch("https://example.invalid/sample", {

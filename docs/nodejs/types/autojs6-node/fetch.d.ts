@@ -7,8 +7,11 @@
       method?: string;
       headers?: HeaderInit;
       body?: BodyInit;
+      /** Passed to the host provider unclamped; its policy caps the timeout. Default 30000. */
       timeoutMs?: number;
+      /** Passed to the host provider only when set; its policy supplies the default and ceiling. */
       maxResponseBytes?: number;
+      /** Redirects the runtime follows itself; default 20 like Node's fetch. */
       maxRedirects?: number;
       signal?: AutoJs6Node.AbortSignalLike;
     }
@@ -31,10 +34,12 @@
       arrayBuffer(): Promise<ArrayBuffer>;
     }
 
+    /** Timeout ceilings, response size and the accepted method set are the host network provider's policy; the runtime only fills these defaults. */
     export interface Policy {
       readonly defaultTimeoutMs: number;
-      readonly defaultMaxResponseBytes: number;
       readonly defaultMaxRedirects: number;
+      readonly allowedSchemes: readonly string[];
+      readonly limitsEnforcedBy: "host_provider";
     }
 
     export interface Diagnostics {

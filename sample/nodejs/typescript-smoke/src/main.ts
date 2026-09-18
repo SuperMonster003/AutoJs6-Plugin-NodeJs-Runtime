@@ -498,8 +498,9 @@ async function smoke(): Promise<void> {
   const response: fetchModule.Response = await fetchModule("https://example.invalid/get", {
     headers: { "x-test": "yes" },
     timeoutMs: 1000,
-    maxResponseBytes: fetchModule.policy.defaultMaxResponseBytes
+    maxResponseBytes: 4096
   });
+  const fetchLimitsEnforcedBy: "host_provider" = fetchModule.policy.limitsEnforcedBy;
   const responseText: string = await response.text();
   const responseJson: unknown = await fetchModule.default("https://example.invalid/json", { timeoutMs: 1000 }).then((item) => item.json());
   const fetchDiagnostics: fetchModule.Diagnostics = fetchModule.diagnostics();
@@ -597,9 +598,10 @@ async function smoke(): Promise<void> {
     headers: { "x-mode": "types" },
     protocols: ["json"],
     timeoutMs: websocket.policy.defaultTimeoutMs,
-    maxMessageBytes: websocket.policy.defaultMaxMessageBytes,
-    maxQueueSize: websocket.policy.defaultMaxQueueSize
+    maxMessageBytes: 65536,
+    maxQueueSize: 32
   });
+  const websocketLimitsEnforcedBy: "host_provider" = websocket.policy.limitsEnforcedBy;
   connection.onmessage = (message) => {
     void message.type;
   };
@@ -1118,6 +1120,8 @@ async function smoke(): Promise<void> {
   void responseText;
   void responseJson;
   void fetchDiagnostics;
+  void fetchLimitsEnforcedBy;
+  void websocketLimitsEnforcedBy;
   void httpRequest;
   void httpsRequest;
   void httpListenDenied;

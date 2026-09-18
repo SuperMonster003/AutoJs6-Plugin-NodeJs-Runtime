@@ -102,6 +102,10 @@ partial ESM loader with `with { type: "json" }` support; nested workers are stil
 unsupported. Subprocesses retain documented execution limits; bridge calls beyond the
 `maxPendingBridgeCalls` window wait in FIFO order instead of failing, and the other
 `autojs6:bridge-limits` fields are enforced by the host broker rather than the runtime.
+The bridged `autojs6:fetch` / `autojs6:websocket` / `axios` facades pass caller timeouts,
+response, message and queue sizes and the HTTP method to the host provider unclamped;
+the host policy and the Binder transaction size (about 1 MB per body) bound them, and the
+runtime follows up to 20 redirects like Node.
 Screen capture, OCR and recording have the manual acceptance recorded in
 [Roadmap](../../Roadmap.md); physical event receipts remain pending. Android consent
 is still required when using those capabilities. A callable facade is not evidence
