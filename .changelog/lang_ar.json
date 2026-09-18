@@ -6,7 +6,7 @@
   "changelog_label_dependency": "اعتماد",
   "$data": {
     "v1.5.5": {
-      "released_date": "2026/09/17",
+      "released_date": "2026/09/18",
       "improvement": [
         "أصبح مسار ترجمة TypeScript على المضيف قدرة مستقرة في فهرس القدرات مع إزالة بيانات legacy stripping المتقاعدة; يسرد فهرس دورة الحياة أوضاع التنفيذ القابلة للتشغيل فقط مع إزالة سطح packaged_long_running والأسماء المحجوزة node_sandboxed / worker_computation; وتتطابق بيانات النقل والقبول والإلغاء مع وقت التشغيل الفعلي",
         "أصبحت تشخيصات autojs6:profile تصف وقت التشغيل الفعلي بدلا من العلامات التاريخية partial / reserved / deferred: الوصول إلى الملفات ضمن أذونات Android، ومجموعة process الفرعية، وقنوات worker، ومجمع العمليات، وقرارات WASI / native addon",

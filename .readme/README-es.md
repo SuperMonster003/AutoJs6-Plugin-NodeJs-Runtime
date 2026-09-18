@@ -115,7 +115,7 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 # v1.5.5
 
-###### 2026/09/17
+###### 2026/09/18
 
 * `Correccion` La versión y el resumen del catálogo de capacidades que informa runtimeInfo ahora derivan del runtime kit, corrigiendo los valores obsoletos 1.5.0 que 1.5.4 seguía informando
 * `Correccion` worker_threads acepta new Worker(code, { eval: true }) como en Node en lugar de tratar el código como ruta de script

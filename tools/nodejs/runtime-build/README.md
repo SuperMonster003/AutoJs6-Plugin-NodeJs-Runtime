@@ -9,8 +9,8 @@ Node sources with four Android patches and `--with-intl=small-icu` (ICU 78,
 English-only locale data; since plugin 1.5.1). All three ABIs passed embedding and
 device validation. Independent rebuild results and the exact Docker image,
 NDK and patch hashes are recorded in
-[runtime-build.lock.json](runtime-build.lock.json). Runtime Kit 1.4.0 and the
-four signed APKs are local release artifacts; external publication is separate.
+[runtime-build.lock.json](runtime-build.lock.json). Runtime Kit 1.5.5 and the
+four signed APKs ship with plugin v1.5.5 (Runtime Kit 1.4.0 shipped with v1.3.0).
 
 ## Build Node 24.21 from source
 

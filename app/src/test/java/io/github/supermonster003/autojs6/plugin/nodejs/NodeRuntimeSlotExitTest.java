@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 /** Roadmap M12.5a: the exit-record wording a host shows verbatim is fixed here, independent of Android. */
@@ -23,6 +24,18 @@ public class NodeRuntimeSlotExitTest {
         assertTrue(NodeRuntimeSlotExit.isSignal(2));
         assertTrue(NodeRuntimeSlotExit.isSignal(5));
         assertFalse(NodeRuntimeSlotExit.isSignal(3));
+    }
+
+    @Test
+    public void aRecordIsTakenOnlyAfterItsFieldsStayedTheSameForTheSettleWindow() {
+        // UNKNOWN -> SIGNALED, CRASH_NATIVE with signal 0 -> SIGABRT, SIGNALED/SIGKILL -> LOW_MEMORY all change the key.
+        assertNotEquals(NodeRuntimeSlotExit.recordKey(0, 0, null), NodeRuntimeSlotExit.recordKey(2, 9, null));
+        assertNotEquals(NodeRuntimeSlotExit.recordKey(5, 0, null), NodeRuntimeSlotExit.recordKey(5, 6, null));
+        assertNotEquals(NodeRuntimeSlotExit.recordKey(2, 9, null), NodeRuntimeSlotExit.recordKey(3, 9, null));
+        assertEquals(NodeRuntimeSlotExit.recordKey(5, 6, null), NodeRuntimeSlotExit.recordKey(5, 6, ""));
+        assertFalse(NodeRuntimeSlotExit.settled(-1L, 10_000L));
+        assertFalse(NodeRuntimeSlotExit.settled(1_000L, 1_000L + NodeRuntimeSlotExit.RECORD_SETTLE_MS - 1L));
+        assertTrue(NodeRuntimeSlotExit.settled(1_000L, 1_000L + NodeRuntimeSlotExit.RECORD_SETTLE_MS));
     }
 
     @Test

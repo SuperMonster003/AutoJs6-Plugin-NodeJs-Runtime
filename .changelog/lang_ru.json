@@ -6,7 +6,7 @@
   "changelog_label_dependency": "Зависимость",
   "$data": {
     "v1.5.5": {
-      "released_date": "2026/09/17",
+      "released_date": "2026/09/18",
       "improvement": [
         "Маршрут компиляции TypeScript на стороне хоста переведен в stable в каталоге возможностей, устаревшие метаданные legacy stripping удалены; каталог жизненного цикла перечисляет только запускаемые режимы выполнения, убраны поверхность packaged_long_running и зарезервированные имена node_sandboxed / worker_computation; метаданные транспорта, допуска и отмены соответствуют реальному runtime",
         "Диагностика autojs6:profile описывает реальный runtime вместо исторических пометок partial / reserved / deferred: доступ к файлам в границах разрешений Android, подмножество process, каналы worker, пул процессов и решения по WASI / native addon",
