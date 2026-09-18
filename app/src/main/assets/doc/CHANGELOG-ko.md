@@ -33,6 +33,7 @@
 * `개선` 호스트 provider 전송은 호스트가 getNativeDiagnostics()로 공개하는 소스별 / 합계 / 요청 수 한도를 채택 (내장 16 MiB / 64 MiB / 139264 값은 폴백일 뿐), 브리지 fetch 응답 본문은 파일 디스크립터로 전달되어 (bodyTransport "pfd") Binder 트랜잭션 크기가 아닌 호스트 maxResponseBytes 정책만으로 제한되며, Binder 트랜잭션 크기를 넘는 호스트 응답은 브리지 타임아웃 대신 즉시 ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED로 보고 (호스트 브랜치 node-m20-2-binder-body-pfd)
 * `개선` 브리지 fetch 요청 본문과 WebSocket 메시지가 256 KiB를 넘으면 인라인 base64 JSON 대신 읽기 전용 파일 디스크립터 (bodyTransport / messageTransport "pfd")로 호스트에 전달되어 (호스트가 bridgeRequestBinaryTransport=pfd를 공개하는 경우, 호스트 브랜치 node-m20-2-binder-body-pfd) 업로드 크기가 Binder 트랜잭션 크기가 아닌 호스트 요청 정책 (64 MiB)과 maxMessageBytes만으로 제한됨
 * `개선` 제어된 fetch 응답이 이제 Response.url 로 provider 의 최종 URL 을 노출합니다 (ResponseInit 에 url 이 없어 이전에는 항상 빈 문자열이었음)
+* `개선` Java 상호 운용이 호스트의 선언형 허용 목록 (클래스 → 생성자 / 정적·인스턴스 메서드 / 필드, 호스트가 표에 따라 리플렉션으로 실행, 인수는 JSON 원시값과 객체 핸들) 으로 전부 전달되며, 런타임 자체 클래스 표를 없애고 호스트가 공개한 표를 java.policy 로 읽어오고, getStatic() / describe() 를 추가하며, 멤버 자체가 던진 예외는 ERR_AUTOJS6_JAVA_CALL_FAILED 로 보고합니다
 
 # v1.5.4
 

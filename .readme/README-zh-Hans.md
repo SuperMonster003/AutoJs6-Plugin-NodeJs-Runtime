@@ -142,6 +142,7 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` 宿主 provider 传输通道改为采用宿主经 getNativeDiagnostics() 公布的单源 / 总量 / 请求计数尺寸 (内置的 16 MiB / 64 MiB / 139264 仅作回退), 桥接 fetch 的响应体改经文件描述符交付 (bodyTransport "pfd"), 只受宿主 maxResponseBytes 策略约束而不再受 Binder 事务尺寸限制, 宿主回复超过 Binder 事务尺寸时立即报 ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED (宿主分支 node-m20-2-binder-body-pfd) 而非桥超时
 * `优化` 桥接 fetch 的请求正文与 WebSocket 消息超过 256 KiB 时改以只读文件描述符 (bodyTransport / messageTransport "pfd") 而非内联 base64 JSON 送达宿主 (需宿主公布 bridgeRequestBinaryTransport=pfd, 宿主分支 node-m20-2-binder-body-pfd), 上行大小只受宿主请求策略 (64 MiB) 与 maxMessageBytes 约束而不再受 Binder 事务尺寸限制
 * `优化` 受控 fetch 的响应对象现经 Response.url 暴露 provider 返回的最终 URL (ResponseInit 不含 url, 此前恒为空串)
+* `优化` Java 互操作改为整体转发到宿主的声明式白名单 (类 → 构造器 / 静态与实例方法 / 字段, 由宿主按表反射执行, 参数支持 JSON 原始值与对象句柄), 运行时不再自设类表而是把宿主公布的表读回为 java.policy, 新增 getStatic() / describe(), 成员自身抛出的异常以 ERR_AUTOJS6_JAVA_CALL_FAILED 报告
 
 # v1.5.4
 

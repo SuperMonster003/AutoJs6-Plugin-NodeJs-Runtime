@@ -954,6 +954,14 @@ async function smoke(): Promise<void> {
   const autojsJavaWidth: Promise<unknown> = autojsJavaRect.then((rect) => rect.call("width", [], { timeoutMs: 1000 }));
   const autojsJavaField: Promise<unknown> = autojsJavaRect.then((rect) => $autojs.java.getField(rect, "left", { timeoutMs: 1000 }));
   const autojsJavaRelease: Promise<boolean> = autojsJavaRect.then((rect) => java.release(rect, { timeoutMs: 1000 }));
+  const javaLimitsEnforcedBy: "host_provider" = java.policy.limitsEnforcedBy;
+  const javaPolicyPublished: boolean = java.policy.published;
+  const javaMathSpec: AutoJs6Node.AutoJsJavaClassSpec | undefined = java.policy.classes["java.lang.Math"];
+  const javaStaticField: Promise<unknown> = java.getStatic("java.lang.Math", "PI", { timeoutMs: 1000 });
+  const javaDescribed: Promise<AutoJs6Node.AutoJsJavaClassSpec> = javaClass.describe({ timeoutMs: 1000 });
+  const javaHandleArgument: Promise<unknown> = javaRect.then((rect) =>
+    java.callStatic("android.graphics.Rect", "intersects", [rect, rect], { timeoutMs: 1000 }));
+  const autojsJavaStaticField: Promise<unknown> = $autojs.java.getStatic(autojsJavaClass, "E", { timeoutMs: 1000 });
   const javaDefineClassDenied: (descriptor?: unknown) => never = java.defineClass;
   const autojsJavaDefineClassDenied: (descriptor?: unknown) => never = $autojs.java.defineClass;
   const autojsLoadDex: (dexFile: string) => never = $autojs.java.loadDex;
