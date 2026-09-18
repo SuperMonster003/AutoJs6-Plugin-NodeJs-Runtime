@@ -21,7 +21,15 @@ declare module "node:sqlite" {
   export type SQLOutputValue = null | number | bigint | string | Uint8Array;
   export type SQLRow = Record<string, SQLOutputValue> | SQLOutputValue[];
   export type SQLParameters = SQLInputValue[] | [Record<string, SQLInputValue>, ...SQLInputValue[]];
+  /** File path, Buffer path, file URL object, SQLite `file:` URI string, `:memory:` or `""` (private temporary database). */
   export type DatabasePath = string | Uint8Array | { readonly protocol: string; readonly href: string };
+  export type AuthorizerCallback = (
+    actionCode: number,
+    arg1: string | null,
+    arg2: string | null,
+    dbName: string | null,
+    triggerOrView: string | null,
+  ) => number;
 
   export interface DatabaseSyncOptions {
     open?: boolean;
@@ -91,7 +99,7 @@ declare module "node:sqlite" {
     readonly isTransaction: boolean;
     open(): void;
     close(): void;
-    /** ATTACH, VACUUM INTO and file-directory PRAGMAs are unsupported. */
+    /** ATTACH with a literal filename and VACUUM INTO targets pass the runtime's /proc, /sys, /dev check through SQLite's authorizer; directory PRAGMAs are native; ATTACH with a bound or computed filename throws ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED. */
     exec(sql: string): void;
     prepare(sql: string): StatementSync;
     location(dbName?: string): string | null;
@@ -103,6 +111,8 @@ declare module "node:sqlite" {
       filter?: (tableName: string) => boolean;
       onConflict?: (conflictType: number) => number;
     }): boolean;
+    /** Runs after the runtime's /proc, /sys, /dev boundary check; null clears only the user callback. Throws ERR_INVALID_STATE on a closed connection. */
+    setAuthorizer(callback: AuthorizerCallback | null): void;
     enableLoadExtension(allow: false): void;
     /** Always throws ERR_AUTOJS6_NATIVE_ADDON_DISABLED. */
     loadExtension(path: string, entryPoint?: string): never;

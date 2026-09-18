@@ -135,6 +135,7 @@ console.log("AutoJs6 Node.js runtime");
 * `Улучшение` Обёртка fs больше не навязывает собственные ограничения опций: опции fs / унаследованный fd / flags у потоков, watch({ recursive: true }), асинхронные фильтры cp (cpSync сохраняет ERR_INVALID_RETURN_VALUE из Node), абсолютные / родительские / буквальные '!' glob-шаблоны с массивами exclude, type / encoding у readableWebStream и конструкторы Stats / Dirent / Dir теперь следуют нативному Node 24; filesystemProfile.advancedApis.recursiveWatch сообщает native
 * `Улучшение` Рекурсивные readdir / opendir теперь нативные (сняты лимит в 4096 записей и проверка realpath для каждой записи; readdir('/') перечисляет имена proc/sys/dev как в Node), readlink / chmod / chown / utimes принимают абсолютные пути, chmod следует по символическим ссылкам, а коды ошибок политики fs сведены к ERR_AUTOJS6_FS_NUL_BYTE / ERR_AUTOJS6_FS_PATH_ESCAPE (жёсткая граница, общий с загрузчиком) / ERR_AUTOJS6_FS_SCOPED_PATH; обычные сбои fs сохраняют только код Node
 * `Улучшение` Среда выполнения больше не имеет собственных бюджетов исходников модулей (16 МиБ на модуль, 64 МиБ всего, 8192 модуля, число запросов к provider), точка входа CommonJS получает абсолютные __filename / require.main.filename / process.argv[1] как в Node и require.main.id равен '.', а fs.mkdtemp* стал нативным: возвращает префикс в написании вызывающего кода плюс суффикс в запрошенной кодировке и больше не отклоняет родительский каталог-символическую ссылку
+* `Улучшение` node:sqlite передаёт файловые операции SQL нативному SQLite: ATTACH с литеральным именем файла (включая file: URI) проверяется авторизатором SQLite на границу /proc, /sys, /dev вместо сканирования текста SQL, цели VACUUM INTO проходят ту же проверку границы через внутренний ATTACH SQLite, каталожные PRAGMA больше не перехватываются, строки file: URI и пустая временная база открываются, а setAuthorizer() сочетается с проверкой границы (отклоняется только ATTACH с именем файла из параметра или выражения)
 
 # v1.5.4
 
@@ -198,6 +199,4 @@ app/src/main/assets/doc/CHANGELOG-*.md
 - Документация AutoJs6: https://docs.autojs6.com
 - Официальный проект Node.js: https://github.com/nodejs/node
 - План сборки среды выполнения Node.js: tools/nodejs/runtime-build/README.md
-
-
-[16 KB page alignment and build verification](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/docs/16kb.md)
+- 16 KB page alignment: [master/docs/16kb.md](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/docs/16kb.md)

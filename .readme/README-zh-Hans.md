@@ -135,6 +135,7 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` fs 包装层移除自设的选项拦截: 流的 fs / 继承的 fd / flags 选项、watch({ recursive: true })、异步 cp filter (cpSync 保持 Node 的 ERR_INVALID_RETURN_VALUE)、绝对路径 / 父目录 / 字面 '!' glob 模式与 exclude 数组、readableWebStream 的 type / encoding 以及 Stats / Dirent / Dir 构造器均按 Node 24 原生语义处理; filesystemProfile.advancedApis.recursiveWatch 报告 native
 * `优化` 递归 readdir / opendir 交给原生 (移除 4096 条目上限与逐条 realpath 校验; readdir('/') 与 Node 一样列出 proc/sys/dev 名称), readlink / chmod / chown / utimes 接受绝对路径且 chmod 跟随符号链接, fs 策略错误码收敛为 ERR_AUTOJS6_FS_NUL_BYTE / ERR_AUTOJS6_FS_PATH_ESCAPE (硬边界, 与 loader 一致) / ERR_AUTOJS6_FS_SCOPED_PATH, 普通 fs 失败只保留 Node 码
 * `优化` 运行时移除自设的模块源预算 (单模块 16 MiB、总量 64 MiB、8192 个模块、provider 请求计数), CommonJS 入口的 __filename / require.main.filename / process.argv[1] 与 Node 一样为绝对路径且 require.main.id 为 '.', fs.mkdtemp* 交给原生: 返回调用者的前缀写法加后缀并支持所请求的编码, 前缀父目录为符号链接时不再拒绝
+* `优化` node:sqlite 把 SQL 文件操作交给原生 SQLite: 字面量文件名的 ATTACH (含 file: URI) 改经 SQLite authorizer 按 /proc、/sys、/dev 边界校验而不再扫描 SQL 文本, VACUUM INTO 的目标经 SQLite 内部 ATTACH 接受同一边界校验, 目录 PRAGMA 不再拦截, file: URI 字符串与空临时库可以打开, setAuthorizer() 与边界检查复合 (仅绑定参数或表达式给出文件名的 ATTACH 仍被拒绝)
 
 # v1.5.4
 
@@ -198,6 +199,4 @@ app/src/main/assets/doc/CHANGELOG-*.md
 - AutoJs6 文档: https://docs.autojs6.com
 - Node.js 官方项目: https://github.com/nodejs/node
 - Node.js 运行时构建计划: tools/nodejs/runtime-build/README.md
-
-
-[16 KB page alignment and build verification](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/docs/16kb.md)
+- 16 KB page alignment: [master/docs/16kb.md](https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/docs/16kb.md)
