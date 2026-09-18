@@ -3544,14 +3544,14 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_limited_java_cache = null;
   let __autojs6_limited_worker_threads_cache = null;
   let __autojs6_worker_threads_shape_facade_cache = null;
+  // Timeout ceilings, response size and the accepted method set of the bridged fetch are
+  // the host network provider's policy (it clamps and enforces them itself). The runtime
+  // only fills Node-like defaults and follows redirects, stopping after 20 hops like Node.
   const __autojs6_fetch_policy = Object.freeze({
     defaultTimeoutMs: 30000,
-    hardTimeoutMs: 120000,
-    defaultMaxResponseBytes: 33554432,
-    hardMaxResponseBytes: 67108864,
-    defaultMaxRedirects: 5,
-    hardMaxRedirects: 10,
-    allowedSchemes: Object.freeze(["http:", "https:"])
+    defaultMaxRedirects: 20,
+    allowedSchemes: Object.freeze(["http:", "https:"]),
+    limitsEnforcedBy: "host_provider"
   });
   const __autojs6_fetch_diagnostics = {
     activeRequestCount: 0,
@@ -3562,15 +3562,13 @@ std::string buildEmbeddedScriptExecutionSource(
     completedCount: 0,
     lastPolicyRejection: ""
   };
+  // Connect timeout ceilings, message and queue sizes of the bridged WebSocket are the host
+  // provider's policy; the runtime passes the caller's options through unclamped.
   const __autojs6_websocket_policy = Object.freeze({
     defaultTimeoutMs: 10000,
-    hardTimeoutMs: 60000,
-    defaultMaxMessageBytes: 65536,
-    hardMaxMessageBytes: 1048576,
-    defaultMaxQueueSize: 32,
-    hardMaxQueueSize: 128,
     allowedSchemes: Object.freeze(["ws:", "wss:"]),
-    drainIntervalMs: 25
+    drainIntervalMs: 25,
+    limitsEnforcedBy: "host_provider"
   });
   const __autojs6_websocket_diagnostics = {
     activeConnectionCount: 0,
@@ -6901,31 +6899,29 @@ std::string buildEmbeddedScriptExecutionSource(
     if (!Number.isFinite(number) || number <= 0) {
       return __autojs6_fetch_policy.defaultTimeoutMs;
     }
-    return Math.max(1, Math.min(Math.floor(number), __autojs6_fetch_policy.hardTimeoutMs));
+    return Math.max(1, Math.floor(number));
   }
+  // Undefined unless the caller asks for a limit, so the host provider's own default applies.
   function __autojs6_fetch_max_response_bytes(value) {
-    const number = Number(value === undefined || value === null ? __autojs6_fetch_policy.defaultMaxResponseBytes : value);
-    if (!Number.isFinite(number) || number < 0) {
-      return __autojs6_fetch_policy.defaultMaxResponseBytes;
+    const number = Number(value);
+    if (value === undefined || value === null || !Number.isFinite(number) || number < 0) {
+      return undefined;
     }
-    return Math.max(0, Math.min(Math.floor(number), __autojs6_fetch_policy.hardMaxResponseBytes));
+    return Math.floor(number);
   }
   function __autojs6_fetch_max_redirects(value) {
     const number = Number(value === undefined || value === null ? __autojs6_fetch_policy.defaultMaxRedirects : value);
     if (!Number.isFinite(number) || number < 0) {
       return __autojs6_fetch_policy.defaultMaxRedirects;
     }
-    return Math.max(0, Math.min(Math.floor(number), __autojs6_fetch_policy.hardMaxRedirects));
+    return Math.floor(number);
   }
   function __autojs6_fetch_policy_snapshot() {
     return Object.freeze({
       defaultTimeoutMs: __autojs6_fetch_policy.defaultTimeoutMs,
-      hardTimeoutMs: __autojs6_fetch_policy.hardTimeoutMs,
-      defaultMaxResponseBytes: __autojs6_fetch_policy.defaultMaxResponseBytes,
-      hardMaxResponseBytes: __autojs6_fetch_policy.hardMaxResponseBytes,
       defaultMaxRedirects: __autojs6_fetch_policy.defaultMaxRedirects,
-      hardMaxRedirects: __autojs6_fetch_policy.hardMaxRedirects,
-      allowedSchemes: Object.freeze(__autojs6_fetch_policy.allowedSchemes.slice())
+      allowedSchemes: Object.freeze(__autojs6_fetch_policy.allowedSchemes.slice()),
+      limitsEnforcedBy: __autojs6_fetch_policy.limitsEnforcedBy
     });
   }
   function __autojs6_fetch_diagnostics_snapshot() {
@@ -7079,26 +7075,14 @@ std::string buildEmbeddedScriptExecutionSource(
     } catch (error) {
       return Promise.reject(error);
     }
+    // The accepted method set and body rules are the host provider's policy.
     const method = String(requestInit.method || (source && source.method) || "GET").toUpperCase();
-    if (method !== "GET" && method !== "POST") {
-      return Promise.reject(__autojs6_fetch_error(
-        "AutoJs6 controlled fetch currently supports only GET and POST.",
-        "ERR_AUTOJS6_NETWORK_PERMISSION_DENIED"
-      ));
-    }
     const headers = __autojs6_fetch_merge_headers(source && source.headers, requestInit.headers);
     const hasInitBody = __autojs6_has_own(requestInit, "body");
-    if (method === "GET" && hasInitBody && requestInit.body !== undefined && requestInit.body !== null) {
-      return Promise.reject(__autojs6_fetch_policy_error(
-        "AutoJs6 controlled fetch GET requests must not include a body.",
-        "get_body",
-        "ERR_AUTOJS6_NETWORK_POLICY_DENIED"
-      ));
-    }
     let bodyPromise;
     if (hasInitBody) {
       bodyPromise = __autojs6_fetch_body_descriptor(requestInit.body);
-    } else if (source && method === "POST") {
+    } else if (source && method !== "GET" && method !== "HEAD") {
       bodyPromise = source.arrayBuffer().then(function(arrayBuffer) {
         return __autojs6_fetch_body_descriptor(arrayBuffer);
       });
@@ -7115,9 +7099,11 @@ std::string buildEmbeddedScriptExecutionSource(
         method,
         headers: __autojs6_fetch_headers_json(headers),
         timeoutMs,
-        maxResponseBytes,
         maxRedirects
       };
+      if (maxResponseBytes !== undefined) {
+        descriptor.maxResponseBytes = maxResponseBytes;
+      }
       if (bodyDescriptor.bodyBase64 !== undefined) {
         descriptor.bodyBase64 = bodyDescriptor.bodyBase64;
       }
@@ -7147,7 +7133,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return [];
   }
-  function __autojs6_fetch_response_body(result, maxResponseBytes) {
+  function __autojs6_fetch_response_body(result) {
     const BufferCtor = __autojs6_fetch_buffer_constructor();
     if (!BufferCtor || typeof BufferCtor.from !== "function") {
       throw __autojs6_fetch_error(
@@ -7162,13 +7148,6 @@ std::string buildEmbeddedScriptExecutionSource(
       buffer = BufferCtor.from(String(result.bodyText), "utf8");
     } else {
       buffer = BufferCtor.from([]);
-    }
-    const byteLength = Number(result && result.bodyBytes !== undefined ? result.bodyBytes : buffer.length);
-    if (byteLength > maxResponseBytes || buffer.length > maxResponseBytes) {
-      throw __autojs6_fetch_error(
-        "AutoJs6 controlled fetch response exceeded " + maxResponseBytes + " bytes.",
-        "ERR_AUTOJS6_NETWORK_RESPONSE_TOO_LARGE"
-      );
     }
     return buffer;
   }
@@ -7317,10 +7296,10 @@ std::string buildEmbeddedScriptExecutionSource(
       return result;
     });
   }
-  function __autojs6_fetch_to_response(result, maxResponseBytes) {
+  function __autojs6_fetch_to_response(result) {
     const response = result && typeof result === "object" ? result : {};
     return new Response(
-      __autojs6_fetch_response_body(response, maxResponseBytes),
+      __autojs6_fetch_response_body(response),
       {
         status: response.status === undefined ? 0 : Number(response.status),
         statusText: response.statusText === undefined ? "" : String(response.statusText),
@@ -7335,7 +7314,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const fetchStartedAtMs = Date.now();
       __autojs6_fetch_publish_diagnostics(request, "start", null, null, fetchStartedAtMs);
       return __autojs6_fetch_dispatch(request).then(function(result) {
-        return __autojs6_fetch_to_response(result, request.maxResponseBytes);
+        return __autojs6_fetch_to_response(result);
       }).then(function(response) {
         __autojs6_fetch_diagnostics.completedCount += 1;
         __autojs6_fetch_finish_request();
@@ -8051,31 +8030,28 @@ std::string buildEmbeddedScriptExecutionSource(
     if (!Number.isFinite(number) || number <= 0) {
       return __autojs6_websocket_policy.defaultTimeoutMs;
     }
-    return Math.max(1, Math.min(Math.floor(number), __autojs6_websocket_policy.hardTimeoutMs));
+    return Math.max(1, Math.floor(number));
   }
+  // Undefined unless the caller asks, so the host provider's own defaults and ceilings apply.
   function __autojs6_websocket_max_message_bytes(value) {
-    const number = Number(value === undefined || value === null ? __autojs6_websocket_policy.defaultMaxMessageBytes : value);
-    if (!Number.isFinite(number) || number < 0) {
-      return __autojs6_websocket_policy.defaultMaxMessageBytes;
+    const number = Number(value);
+    if (value === undefined || value === null || !Number.isFinite(number) || number < 0) {
+      return undefined;
     }
-    return Math.max(0, Math.min(Math.floor(number), __autojs6_websocket_policy.hardMaxMessageBytes));
+    return Math.floor(number);
   }
   function __autojs6_websocket_max_queue_size(value) {
-    const number = Number(value === undefined || value === null ? __autojs6_websocket_policy.defaultMaxQueueSize : value);
-    if (!Number.isFinite(number) || number <= 0) {
-      return __autojs6_websocket_policy.defaultMaxQueueSize;
+    const number = Number(value);
+    if (value === undefined || value === null || !Number.isFinite(number) || number <= 0) {
+      return undefined;
     }
-    return Math.max(1, Math.min(Math.floor(number), __autojs6_websocket_policy.hardMaxQueueSize));
+    return Math.floor(number);
   }
   function __autojs6_websocket_policy_snapshot() {
     return Object.freeze({
       defaultTimeoutMs: __autojs6_websocket_policy.defaultTimeoutMs,
-      hardTimeoutMs: __autojs6_websocket_policy.hardTimeoutMs,
-      defaultMaxMessageBytes: __autojs6_websocket_policy.defaultMaxMessageBytes,
-      hardMaxMessageBytes: __autojs6_websocket_policy.hardMaxMessageBytes,
-      defaultMaxQueueSize: __autojs6_websocket_policy.defaultMaxQueueSize,
-      hardMaxQueueSize: __autojs6_websocket_policy.hardMaxQueueSize,
-      allowedSchemes: Object.freeze(__autojs6_websocket_policy.allowedSchemes.slice())
+      allowedSchemes: Object.freeze(__autojs6_websocket_policy.allowedSchemes.slice()),
+      limitsEnforcedBy: __autojs6_websocket_policy.limitsEnforcedBy
     });
   }
   function __autojs6_websocket_diagnostics_snapshot() {
@@ -8187,52 +8163,22 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return BufferCtor.from(data).toString("base64");
   }
-  function __autojs6_websocket_send_descriptor(data, maxMessageBytes) {
+  // The host session enforces its maxMessageBytes; the runtime only shapes the payload.
+  function __autojs6_websocket_send_descriptor(data) {
     const BufferCtor = __autojs6_fetch_buffer_constructor();
     if (typeof data === "string") {
-      const bytes = BufferCtor && typeof BufferCtor.byteLength === "function"
-        ? BufferCtor.byteLength(data, "utf8")
-        : data.length;
-      if (bytes > maxMessageBytes) {
-        throw __autojs6_websocket_policy_error(
-          "AutoJs6 controlled WebSocket message exceeded " + maxMessageBytes + " bytes.",
-          "message_too_large",
-          "ERR_AUTOJS6_NETWORK_RESPONSE_TOO_LARGE"
-        );
-      }
       return { text: data };
     }
     if (BufferCtor && typeof BufferCtor.isBuffer === "function" && BufferCtor.isBuffer(data)) {
-      if (data.length > maxMessageBytes) {
-        throw __autojs6_websocket_policy_error(
-          "AutoJs6 controlled WebSocket message exceeded " + maxMessageBytes + " bytes.",
-          "message_too_large",
-          "ERR_AUTOJS6_NETWORK_RESPONSE_TOO_LARGE"
-        );
-      }
       return { dataBase64: data.toString("base64") };
     }
     if (typeof ArrayBuffer === "function" && data instanceof ArrayBuffer) {
-      if (data.byteLength > maxMessageBytes) {
-        throw __autojs6_websocket_policy_error(
-          "AutoJs6 controlled WebSocket message exceeded " + maxMessageBytes + " bytes.",
-          "message_too_large",
-          "ERR_AUTOJS6_NETWORK_RESPONSE_TOO_LARGE"
-        );
-      }
       return { dataBase64: __autojs6_websocket_binary_base64(new Uint8Array(data)) };
     }
     if (typeof ArrayBuffer === "function" && ArrayBuffer.isView && ArrayBuffer.isView(data)) {
-      if (data.byteLength > maxMessageBytes) {
-        throw __autojs6_websocket_policy_error(
-          "AutoJs6 controlled WebSocket message exceeded " + maxMessageBytes + " bytes.",
-          "message_too_large",
-          "ERR_AUTOJS6_NETWORK_RESPONSE_TOO_LARGE"
-        );
-      }
       return { dataBase64: __autojs6_websocket_binary_base64(data) };
     }
-    return __autojs6_websocket_send_descriptor(String(data), maxMessageBytes);
+    return __autojs6_websocket_send_descriptor(String(data));
   }
   function __autojs6_websocket_emit(connection, eventName) {
     const args = Array.prototype.slice.call(arguments, 2);
@@ -8332,7 +8278,9 @@ std::string buildEmbeddedScriptExecutionSource(
       subscriptionId: record.subscriptionId,
       url: String(record.url || ""),
       readyState: "open",
-      maxMessageBytes: __autojs6_websocket_max_message_bytes(connectionOptions.maxMessageBytes),
+      maxMessageBytes: record.maxMessageBytes !== undefined && record.maxMessageBytes !== null
+        ? Number(record.maxMessageBytes)
+        : __autojs6_websocket_max_message_bytes(connectionOptions.maxMessageBytes),
       onopen: null,
       onmessage: null,
       onclose: null,
@@ -8375,7 +8323,7 @@ std::string buildEmbeddedScriptExecutionSource(
         }
         let descriptor;
         try {
-          descriptor = __autojs6_websocket_send_descriptor(data, this.maxMessageBytes);
+          descriptor = __autojs6_websocket_send_descriptor(data);
         } catch (error) {
           return Promise.reject(error);
         }

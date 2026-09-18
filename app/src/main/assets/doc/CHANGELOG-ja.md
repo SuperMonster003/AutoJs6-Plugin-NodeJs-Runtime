@@ -28,6 +28,7 @@
 * `改善` ランタイム独自のモジュールソース予算 (モジュールあたり 16 MiB, 合計 64 MiB, 8192 モジュール, provider リクエスト数) を撤廃, CommonJS エントリの __filename / require.main.filename / process.argv[1] は Node と同様に絶対パスになり require.main.id は '.', fs.mkdtemp* はネイティブに委譲: 呼び出し側のプレフィックス表記にサフィックスを付けて要求されたエンコーディングで返し, 親ディレクトリがシンボリックリンクでも拒否しない
 * `改善` node:sqlite は SQL のファイル操作をネイティブ SQLite に委ねる: リテラルのファイル名を持つ ATTACH (file: URI を含む) は SQL テキストの走査ではなく SQLite の authorizer で /proc、/sys、/dev 境界を検査し, VACUUM INTO の出力先は SQLite 内部の ATTACH を通じて同じ境界検査を受け, ディレクトリ PRAGMA は遮断されなくなり, file: URI 文字列と空の一時データベースを開け, setAuthorizer() は境界検査と合成される (バインドパラメータや式でファイル名を与える ATTACH のみ引き続き拒否)
 * `改善` ブリッジのクォータをホストに委ねる: autojs6:bridge-limits の maxPendingBridgeCalls ウィンドウを超える呼び出しは ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT で失敗せず先入れ先出しで待機するようになり, ランタイム自身は画像ハンドル数・同時実行の制御付き fetch 数・制御付き WebSocket 接続数を制限しなくなり (ホストの broker は引き続き自身のポリシーを適用), require('fetch').policy.maxConcurrentRequests と require('websocket').policy.maxConnections は廃止
+* `改善` ブリッジ経由の fetch / WebSocket / axios facade の上限をホストに委ねる: タイムアウト・応答サイズ・リダイレクト回数・メッセージとキューのサイズ・HTTP メソッドを切り詰めずにホストのプロバイダへ渡し (ホスト側ポリシーが適用), ランタイムは Node と同様に最大 20 回のリダイレクトを追い, policy から廃止した hard*/既定サイズ項目は limitsEnforcedBy に置き換え
 
 # v1.5.4
 

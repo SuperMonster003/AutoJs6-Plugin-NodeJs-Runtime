@@ -28,6 +28,7 @@
 * `優化` 運行時移除自設的模組源預算 (單模組 16 MiB、總量 64 MiB、8192 個模組、provider 請求計數), CommonJS 入口的 __filename / require.main.filename / process.argv[1] 與 Node 一樣為絕對路徑且 require.main.id 為 '.', fs.mkdtemp* 交給原生: 返回調用者的前綴寫法加後綴並支援所請求的編碼, 前綴父目錄為符號連結時不再拒絕
 * `優化` node:sqlite 把 SQL 檔案操作交給原生 SQLite: 字面量檔名的 ATTACH (含 file: URI) 改經 SQLite authorizer 按 /proc、/sys、/dev 邊界校驗而不再掃描 SQL 文字, VACUUM INTO 的目標經 SQLite 內部 ATTACH 接受同一邊界校驗, 目錄 PRAGMA 不再攔截, file: URI 字串與空臨時庫可以開啟, setAuthorizer() 與邊界檢查複合 (僅綁定參數或表達式給出檔名的 ATTACH 仍被拒絕)
 * `優化` 橋配額交給宿主: 超出 autojs6:bridge-limits 中 maxPendingBridgeCalls 視窗的呼叫改為按先進先出排隊等待而不再以 ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT 失敗, 執行時不再自行限制圖像句柄數、受控 fetch 並發數與受控 WebSocket 連線數 (宿主 broker 繼續執行其策略), require('fetch').policy.maxConcurrentRequests 與 require('websocket').policy.maxConnections 欄位退役
+* `優化` 橋接 fetch / WebSocket / axios facade 的硬上限交給宿主: 逾時、回應體大小、重新導向次數、訊息與佇列尺寸及 HTTP 方法原樣傳給宿主提供者 (由宿主策略決定), 執行時像 Node 一樣最多跟隨 20 次重新導向, policy 中退役的 hard* / 預設尺寸欄位改為 limitsEnforcedBy
 
 # v1.5.4
 

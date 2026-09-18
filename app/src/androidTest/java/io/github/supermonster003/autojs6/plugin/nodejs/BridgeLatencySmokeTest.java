@@ -338,6 +338,118 @@ public final class BridgeLatencySmokeTest {
         return count;
     }
 
+    @Test public void controlledNetworkFacadesLeaveLimitsToTheHost() throws Exception {
+        java.util.concurrent.ConcurrentLinkedQueue<String> seen = new java.util.concurrent.ConcurrentLinkedQueue<>();
+        AtomicReference<String> largeResponseFailure = new AtomicReference<>("");
+        INodeJsHostCapabilityBroker broker = new INodeJsHostCapabilityBroker.Stub() {
+            @Override public Bundle getBrokerInfo() {
+                Bundle info = new ScreenStateTestBroker().getBrokerInfo();
+                info.putStringArray(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_MODULES, new String[]{"device", "fetch", "websocket"});
+                return info;
+            }
+            @Override public Bundle getNativeDiagnostics() { return new Bundle(); }
+            @Override public void destroy(Bundle reason) { }
+            @Override public void dispatch(Bundle request, INodeJsHostCapabilityCallback callback) {
+                try {
+                    JSONObject call = new JSONObject(request.getString(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_JSON));
+                    String module = call.getString("module"), method = call.getString("method");
+                    JSONObject descriptor = call.getJSONArray("args").optJSONObject(0);
+                    JSONObject result = new JSONObject();
+                    if ("fetch".equals(module)) {
+                        String url = descriptor.getString("url");
+                        String path = new java.net.URL(url).getPath();
+                        seen.add("fetch " + descriptor.getString("method") + " " + path + " " + descriptor.toString());
+                        result.put("url", url).put("status", 200).put("statusText", "OK").put("headers", new JSONArray());
+                        if (path.startsWith("/redirect/")) {
+                            int hops = Integer.parseInt(path.substring("/redirect/".length()));
+                            if (hops > 0) {
+                                result.put("status", 302).put("headers", new JSONArray().put(new JSONArray().put("location").put("/redirect/" + (hops - 1))));
+                            }
+                            result.put("bodyText", "hop " + hops);
+                        } else if (path.startsWith("/large/")) {
+                            byte[] bytes = new byte[Integer.parseInt(path.substring("/large/".length()))];
+                            for (int index = 0; index < bytes.length; index++) bytes[index] = (byte) (index % 251);
+                            result.put("bodyBase64", android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)).put("bodyBytes", bytes.length);
+                        } else {
+                            result.put("headers", new JSONArray().put(new JSONArray().put("content-type").put("application/json")));
+                            result.put("bodyText", descriptor.toString());
+                        }
+                    } else if ("drainEvents".equals(method)) {
+                        Bundle response = new Bundle();
+                        response.putString(NodeJsRuntimeContract.KEY_BRIDGE_RESPONSE_JSON,
+                                new JSONObject().put("id", call.getString("id")).put("ok", true).put("result", new JSONArray()).toString());
+                        callback.onResponse(response);
+                        return;
+                    } else {
+                        seen.add("websocket " + method + " " + (descriptor == null ? "" : descriptor.toString()).replaceAll("\"(text|dataBase64)\":\"[^\"]*\"", "$1=<payload>"));
+                        if ("connect".equals(method)) {
+                            result.put("id", "ws-" + seen.size()).put("url", descriptor.getString("url")).put("readyState", "open")
+                                    .put("maxMessageBytes", descriptor.optInt("maxMessageBytes", 65536))
+                                    .put("maxQueueSize", descriptor.optInt("maxQueueSize", 32));
+                        } else if ("send".equals(method)) {
+                            seen.add("websocket sent " + descriptor.optString("text", "").length());
+                        }
+                    }
+                    Bundle response = new Bundle();
+                    response.putString(NodeJsRuntimeContract.KEY_BRIDGE_RESPONSE_JSON,
+                            new JSONObject().put("id", call.getString("id")).put("ok", true).put("result", result).toString());
+                    try {
+                        callback.onResponse(response);
+                    } catch (RemoteException | RuntimeException error) {
+                        largeResponseFailure.set(error.getClass().getSimpleName());
+                    }
+                } catch (Exception error) {
+                    throw new AssertionError(error);
+                }
+            }
+        };
+        Bundle result = run(broker, null,
+                "(async () => { const assert = require('assert'); const cfetch = require('fetch'); const base = 'http://fake.local';\n" +
+                "let r = await cfetch(base + '/echo', { method: 'PUT', body: 'x', timeoutMs: 300000, maxResponseBytes: 268435456, maxRedirects: 15 });\n" +
+                "let d = await r.json();\n" +
+                "assert.deepStrictEqual([d.method, d.bodyText, d.timeoutMs, d.maxResponseBytes, d.maxRedirects], ['PUT', 'x', 300000, 268435456, 15]);\n" +
+                "r = await cfetch(base + '/echo'); d = await r.json();\n" +
+                "assert.deepStrictEqual([d.method, 'maxResponseBytes' in d, d.timeoutMs, d.maxRedirects], ['GET', false, 30000, 20]);\n" +
+                "r = await cfetch(base + '/echo', { method: 'GET', body: 'b' }); d = await r.json(); assert.strictEqual(d.bodyText, 'b');\n" +
+                "r = await cfetch(base + '/redirect/12', { maxRedirects: 15 }); assert.strictEqual(r.status, 200); assert.strictEqual(await r.text(), 'hop 0');\n" +
+                "await assert.rejects(cfetch(base + '/redirect/3', { maxRedirects: 2 }), e => e.code === 'ERR_AUTOJS6_NETWORK_POLICY_DENIED');\n" +
+                "r = await cfetch(base + '/large/262144', { maxResponseBytes: 10 }); assert.strictEqual((await r.arrayBuffer()).byteLength, 262144);\n" +
+                "const large = await cfetch(base + '/large/2097152', { timeoutMs: 3000 }).then(x => 'ok', e => String(e.code));\n" +
+                "assert.deepStrictEqual([cfetch.policy.hardMaxResponseBytes, cfetch.policy.limitsEnforcedBy, cfetch.policy.defaultMaxRedirects, require('axios').policy.limitsEnforcedBy], [undefined, 'host_provider', 20, 'host_provider']);\n" +
+                "const ws = require('websocket');\n" +
+                "const conn = await ws.connect('ws://fake.local/', { timeoutMs: 120000, maxMessageBytes: 4194304, maxQueueSize: 512 });\n" +
+                "assert.strictEqual(conn.maxMessageBytes, 4194304);\n" +
+                "await conn.send('x'.repeat(262144));\n" +
+                "const largeSend = await conn.send('y'.repeat(2097152)).then(() => 'ok', e => String(e.code));\n" +
+                "const plain = await ws.connect('ws://fake.local/plain'); assert.strictEqual(plain.maxMessageBytes, 65536);\n" +
+                "assert.deepStrictEqual([ws.policy.hardMaxMessageBytes, ws.policy.limitsEnforcedBy], [undefined, 'host_provider']);\n" +
+                "await conn.close(); await plain.close();\n" +
+                "console.log('m20.network=' + JSON.stringify({ large, largeSend }));\n" +
+                "})().catch(e => { console.error(e); process.exitCode = 1; });", "device", "network");
+        String stdout = result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+        int marker = stdout.indexOf("m20.network=");
+        assertTrue("missing network marker: " + stdout, marker >= 0);
+        JSONObject outcome = new JSONObject(stdout.substring(marker + "m20.network=".length()).trim());
+        String log = String.join("\n", seen);
+        assertTrue(log, log.contains("fetch PUT /echo"));
+        assertTrue(log, log.contains("fetch GET /redirect/12 ") && log.contains("\"maxRedirects\":15,\"redirectCount\":12}"));
+        assertTrue(log, log.contains("\"maxRedirects\":2,\"redirectCount\":2}") && !log.contains("\"maxRedirects\":2,\"redirectCount\":3}"));
+        assertTrue(log, log.contains("\"timeoutMs\":120000") && log.contains("\"maxMessageBytes\":4194304") && log.contains("\"maxQueueSize\":512"));
+        String plainConnect = "";
+        for (String entry : seen) if (entry.startsWith("websocket connect ") && entry.replace("\\/", "/").contains("ws://fake.local/plain")) plainConnect = entry;
+        assertTrue(log, plainConnect.contains("\"timeoutMs\":10000") && !plainConnect.contains("maxMessageBytes") && !plainConnect.contains("maxQueueSize"));
+        assertTrue(log, log.contains("websocket sent 262144"));
+        // A 2 MiB body in either direction is bounded by the Binder transaction, not by the runtime.
+        assertTrue("2 MiB response should not succeed over Binder: " + outcome, !"ok".equals(outcome.getString("large")));
+        assertTrue("2 MiB response should fail at the broker: " + largeResponseFailure.get(), !largeResponseFailure.get().isEmpty());
+        assertTrue("2 MiB send should not succeed over Binder: " + outcome, !"ok".equals(outcome.getString("largeSend")));
+        assertTrue("2 MiB send should not reach the broker: " + log, !log.contains("websocket sent 2097152"));
+        Bundle status = new Bundle();
+        status.putString("stream", "\nM20 network facade 2 MiB response=" + outcome.getString("large") + " (broker " + largeResponseFailure.get() +
+                ") 2 MiB send=" + outcome.getString("largeSend") + "\n");
+        InstrumentationRegistry.getInstrumentation().sendStatus(0, status);
+    }
+
     private static String value(String[] payload, String key) {
         for (String entry : payload) {
             if (entry.startsWith(key + "=")) return entry.substring(key.length() + 1);
