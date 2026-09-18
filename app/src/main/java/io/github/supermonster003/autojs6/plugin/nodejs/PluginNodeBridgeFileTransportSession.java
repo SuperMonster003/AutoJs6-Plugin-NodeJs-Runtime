@@ -2,6 +2,7 @@ package io.github.supermonster003.autojs6.plugin.nodejs;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -33,16 +34,20 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
     private static final String BRIDGE_PROCESS_DEAD = "ERR_AUTOJS6_BRIDGE_PROCESS_DEAD";
     private static final String BRIDGE_PROVIDER_FAILED = "ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED";
     private static final String BRIDGE_RESOURCE_LIMIT = "ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT";
+    private static final String BRIDGE_INVALID_REQUEST = "ERR_AUTOJS6_BRIDGE_INVALID_REQUEST";
     private static final int DEFAULT_MAX_PENDING_BRIDGE_CALLS = 32;
     private static final int HARD_MAX_PENDING_BRIDGE_CALLS = 128;
     private static final long POLL_INTERVAL_MS = 10L;
     private static final long STOP_JOIN_MS = 1000L;
     private static final int DRAIN_ITERATIONS = 20;
+    /** Bodies and messages above this size leave the JSON and travel as a descriptor (M20.2 batch 14). */
+    static final long UPLOAD_INLINE_MAX_BYTES = 262_144L;
 
     private final File root;
     private final String executionId;
     private final File requestDir;
     private final File responseDir;
+    private final File uploadDir;
     private final INodeJsHostCapabilityBroker hostBroker;
     private final int maxPendingBridgeCalls;
     private final AtomicBoolean running = new AtomicBoolean(false);
@@ -53,6 +58,7 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
     private final AtomicInteger pending = new AtomicInteger(0);
     private final AtomicInteger resourceLimited = new AtomicInteger(0);
     private final AtomicInteger eventCount = new AtomicInteger(0);
+    private final AtomicInteger uploadCount = new AtomicInteger(0);
     private final AtomicInteger pollCount = new AtomicInteger(0);
     private final AtomicLong lastPollAtEpochMs = new AtomicLong(0L);
     private final AtomicLong lastRequestAtEpochMs = new AtomicLong(0L);
@@ -62,6 +68,7 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
     private final Thread thread;
     private volatile String transport;
     private boolean nativeInstalled;
+    private volatile boolean uploadTransportEnabled;
 
     PluginNodeBridgeFileTransportSession(
             File cacheDir,
@@ -84,6 +91,7 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
         );
         this.requestDir = new File(root, "requests");
         this.responseDir = new File(root, "responses");
+        this.uploadDir = new File(root, "uploads");
         this.hostBroker = hostBroker;
         this.maxPendingBridgeCalls = clamp(
                 maxPendingBridgeCalls,
@@ -119,22 +127,40 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
         return "jni";
     }
 
+    /**
+     * M20.2 batch 14: only hosts that advertise the descriptor request transport get the
+     * upload directory; older hosts keep receiving inline base64 bodies and messages.
+     */
+    void adoptHostBrokerInfo(Bundle hostBrokerInfo) {
+        uploadTransportEnabled = hostBrokerInfo != null
+                && NodeJsRuntimeContract.BRIDGE_REQUEST_BINARY_TRANSPORT_PFD.equals(
+                        hostBrokerInfo.getString(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_BINARY_TRANSPORT));
+    }
+
     String configJson() {
         try {
-            return new JSONObject()
+            JSONObject config = new JSONObject()
                     .put("enabled", true)
                     .put("version", 1)
                     .put("transport", transport)
                     .put("requestDir", requestDir.getAbsolutePath())
                     .put("responseDir", responseDir.getAbsolutePath())
-                    .put("pollIntervalMs", POLL_INTERVAL_MS)
-                    .toString();
+                    .put("pollIntervalMs", POLL_INTERVAL_MS);
+            if (uploadTransportEnabled) {
+                config.put("uploadDir", uploadDir.getAbsolutePath())
+                        .put("uploadInlineMaxBytes", UPLOAD_INLINE_MAX_BYTES);
+            }
+            return config.toString();
         } catch (Throwable ignored) {
             return "{\"enabled\":false}";
         }
     }
 
     void start(Context context) {
+        if (uploadTransportEnabled) {
+            deleteRecursively(uploadDir);
+            uploadDir.mkdirs();
+        }
         if ("jni".equals(transport)) {
             try {
                 NativeNodeEmbeddedRuntimeBridge.setBridgeSink(context, this, maxPendingBridgeCalls);
@@ -155,9 +181,14 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
     public synchronized void useFileTransport() {
         if (!stopped.get() && running.compareAndSet(false, true)) {
             transport = "file";
-            deleteRecursively(root);
+            // Upload files of calls in flight must survive a mid-session JNI fallback.
+            deleteRecursively(requestDir);
+            deleteRecursively(responseDir);
             requestDir.mkdirs();
             responseDir.mkdirs();
+            if (uploadTransportEnabled) {
+                uploadDir.mkdirs();
+            }
             thread.start();
         }
     }
@@ -217,6 +248,8 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
         values.put("embedded_script.bridge_live_enabled", "true");
         values.put("embedded_script.bridge_live_transport", transport);
         values.put("embedded_script.bridge_live_event_count", Integer.toString(eventCount.get()));
+        values.put("embedded_script.bridge_live_upload_transport", uploadTransportEnabled ? "pfd" : "inline");
+        values.put("embedded_script.bridge_live_upload_count", Integer.toString(uploadCount.get()));
         values.put("embedded_script.bridge_live_request_count", Integer.toString(requestCount.get()));
         values.put("embedded_script.bridge_live_dispatch_count", Integer.toString(completed.get()));
         values.put("embedded_script.bridge_live_dispatch_failed_count", Integer.toString(failed.get()));
@@ -340,14 +373,57 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
                 }
             }
         };
+        ParcelFileDescriptor upload = null;
+        String hostRequestText = requestText;
+        if (identity.uploadPath != null) {
+            // M20.2 batch 14: hand the runtime's upload file to the host as a read-only descriptor.
+            try {
+                upload = ParcelFileDescriptor.open(uploadFile(identity), ParcelFileDescriptor.MODE_READ_ONLY);
+                hostRequestText = identity.hostRequestJson;
+                uploadCount.incrementAndGet();
+            } catch (IOException | RuntimeException error) {
+                completeResponse(responded, delivery, bridgeFailureResponseJson(identity,
+                        "AutoJs6 live bridge upload is not usable: " + messageOf(error), BRIDGE_INVALID_REQUEST));
+                return;
+            }
+        }
         try {
             Bundle brokerRequest = new Bundle();
-            brokerRequest.putString(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_JSON, requestText);
+            brokerRequest.putString(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_JSON, hostRequestText);
+            if (upload != null) {
+                brokerRequest.putParcelable(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_BINARY_PFD, upload);
+                brokerRequest.putLong(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_BINARY_BYTE_COUNT, identity.uploadByteCount);
+            }
             hostBroker.dispatch(brokerRequest, callback);
         } catch (Throwable error) {
             completeResponse(responded, delivery,
                     bridgeFailureResponseJson(identity, messageOf(error), BRIDGE_PROVIDER_FAILED));
+        } finally {
+            if (upload != null) {
+                // Binder duplicated the descriptor for the host process; this copy is done.
+                try {
+                    upload.close();
+                } catch (IOException ignored) { }
+            }
         }
+    }
+
+    private File uploadFile(BridgeRequestIdentity identity) throws IOException {
+        if (!uploadTransportEnabled) {
+            throw new IOException("the host does not accept descriptor uploads");
+        }
+        File file = new File(identity.uploadPath).getCanonicalFile();
+        if (!uploadDir.getCanonicalFile().equals(file.getParentFile())) {
+            throw new IOException("upload path is outside the session upload directory");
+        }
+        if (!file.isFile()) {
+            throw new IOException("upload file is missing");
+        }
+        long length = file.length();
+        if (identity.uploadByteCount < 0L || length != identity.uploadByteCount) {
+            throw new IOException("declared " + identity.uploadByteCount + " bytes but the file holds " + length);
+        }
+        return file;
     }
 
     private void completeResponse(AtomicBoolean responded, ResponseDelivery delivery, String responseJson) {
@@ -432,11 +508,18 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
     private static BridgeRequestIdentity bridgeRequestIdentity(String requestJson, String fallbackId) {
         try {
             JSONObject request = new JSONObject(requestJson);
-            return new BridgeRequestIdentity(
-                    nonBlank(request.optString("id"), fallbackId),
-                    nonBlank(request.optString("module"), ""),
-                    nonBlank(request.optString("method"), "")
-            );
+            String id = nonBlank(request.optString("id"), fallbackId);
+            String module = nonBlank(request.optString("module"), "");
+            String method = nonBlank(request.optString("method"), "");
+            JSONObject upload = request.optJSONObject("upload");
+            String uploadPath = upload == null ? null : nonBlank(upload.optString("path"), null);
+            if (uploadPath == null) {
+                return new BridgeRequestIdentity(id, module, method);
+            }
+            long uploadByteCount = upload.optLong("byteCount", -1L);
+            // The host only needs the size; the path stays inside the plugin process.
+            request.put("upload", new JSONObject().put("byteCount", uploadByteCount));
+            return new BridgeRequestIdentity(id, module, method, uploadPath, uploadByteCount, request.toString());
         } catch (Throwable ignored) {
             return new BridgeRequestIdentity(fallbackId, "", "");
         }
@@ -469,6 +552,9 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
         }
         if (BRIDGE_RESOURCE_LIMIT.equals(code)) {
             return "resource-limit";
+        }
+        if (BRIDGE_INVALID_REQUEST.equals(code)) {
+            return "invalid-request";
         }
         return "provider-failed";
     }
@@ -568,11 +654,25 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
         final String id;
         final String module;
         final String method;
+        /** M20.2 batch 14: runtime upload file backing this request, or null for inline calls. */
+        final String uploadPath;
+        final long uploadByteCount;
+        /** The request JSON forwarded to the host: the upload path replaced by its byte count. */
+        final String hostRequestJson;
 
         BridgeRequestIdentity(String id, String module, String method) {
+            this(id, module, method, null, -1L, null);
+        }
+
+        BridgeRequestIdentity(
+                String id, String module, String method, String uploadPath, long uploadByteCount, String hostRequestJson
+        ) {
             this.id = id;
             this.module = module;
             this.method = method;
+            this.uploadPath = uploadPath;
+            this.uploadByteCount = uploadByteCount;
+            this.hostRequestJson = hostRequestJson;
         }
     }
 }

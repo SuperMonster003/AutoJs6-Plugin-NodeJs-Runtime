@@ -31,6 +31,8 @@
 * `改善` ブリッジ経由の fetch / WebSocket / axios facade の上限をホストに委ねる: タイムアウト・応答サイズ・リダイレクト回数・メッセージとキューのサイズ・HTTP メソッドを切り詰めずにホストのプロバイダへ渡し (ホスト側ポリシーが適用), ランタイムは Node と同様に最大 20 回のリダイレクトを追い, policy から廃止した hard*/既定サイズ項目は limitsEnforcedBy に置き換え
 * `改善` opendir は Node 自身の遅延 fs.Dir を返す (bufferSize・encoding・recursive はネイティブ opendir に渡り, ENOENT / ENOTDIR / ERR_DIR_CLOSED は Node のエラー; dir.path と parentPath だけ呼び出し側の表記を保つ). ランタイム独自のファイルシステム到達ルート削除ガードは廃止し, ルートの rm / rmdir も他のパスと同様に Node と Android の判断に委ねる (fs ポリシーコードは FS_NUL_BYTE と FS_PATH_ESCAPE のみ)
 * `改善` ホスト provider トランスポートはホストが getNativeDiagnostics() で公開するソース単体 / 合計 / リクエスト数の上限を採用 (組み込みの 16 MiB / 64 MiB / 139264 はフォールバックのみ), ブリッジ fetch のレスポンス本文はファイルディスクリプタ経由で届き (bodyTransport "pfd") Binder トランザクションサイズではなくホストの maxResponseBytes ポリシーだけで制限され, Binder トランザクションサイズを超えるホスト応答はブリッジタイムアウトではなく直ちに ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED として報告 (ホストブランチ node-m20-2-binder-body-pfd)
+* `改善` ブリッジ fetch のリクエスト本文と WebSocket メッセージが 256 KiB を超える場合, インライン base64 JSON ではなく読み取り専用ファイルディスクリプタ (bodyTransport / messageTransport "pfd") でホストへ届くようになり (ホストが bridgeRequestBinaryTransport=pfd を公開する場合, ホストブランチ node-m20-2-binder-body-pfd), 上りサイズは Binder トランザクションサイズではなくホストのリクエストポリシー (64 MiB) と maxMessageBytes だけで制限される
+* `改善` 制御付き fetch のレスポンスが Response.url でプロバイダーの最終 URL を公開するようになりました (ResponseInit に url が無いため, 従来は常に空文字列でした)
 
 # v1.5.4
 

@@ -224,8 +224,13 @@ public final class BridgeLatencySmokeTest {
     }
 
     private Bundle run(INodeJsHostCapabilityBroker broker, String transport, String source, String... permissions) throws Exception {
+        return runWithExecutionId(broker, transport, "m12-bridge-" + System.nanoTime(), source, permissions);
+    }
+
+    private Bundle runWithExecutionId(INodeJsHostCapabilityBroker broker, String transport, String executionId, String source,
+                                      String... permissions) throws Exception {
         Bundle request = new Bundle();
-        request.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, "m12-bridge-" + System.nanoTime());
+        request.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, executionId);
         request.putString(NodeJsRuntimeContract.KEY_SOURCE, source);
         request.putLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 20_000);
         request.putBinder(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_BROKER, broker.asBinder());
@@ -543,6 +548,152 @@ public final class BridgeLatencySmokeTest {
             assertEquals("every fetch request asks for the binary transport (" + transport + ")", 47, binaryFlagged.get());
             assertEquals("descriptor replies over " + transport, 45, descriptorsSent.get());
         }
+    }
+
+    /** M20.2 batch 14: bodies and messages above the inline threshold reach the host as descriptors. */
+    @Test public void controlledFetchBodiesAndWebSocketMessagesUploadThroughTheBinaryTransport() throws Exception {
+        java.util.concurrent.ConcurrentLinkedQueue<String> seen = new java.util.concurrent.ConcurrentLinkedQueue<>();
+        INodeJsHostCapabilityBroker broker = new INodeJsHostCapabilityBroker.Stub() {
+            @Override public Bundle getBrokerInfo() {
+                Bundle info = new ScreenStateTestBroker().getBrokerInfo();
+                info.putStringArray(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_MODULES, new String[]{"device", "fetch", "websocket"});
+                info.putString(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_BINARY_TRANSPORT, NodeJsRuntimeContract.BRIDGE_REQUEST_BINARY_TRANSPORT_PFD);
+                return info;
+            }
+            @Override public Bundle getNativeDiagnostics() { return new Bundle(); }
+            @Override public void destroy(Bundle reason) { }
+            @Override public void dispatch(Bundle request, INodeJsHostCapabilityCallback callback) {
+                try {
+                    JSONObject call = new JSONObject(request.getString(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_JSON));
+                    JSONObject descriptor = call.getJSONArray("args").getJSONObject(0);
+                    String target = call.getString("module") + "." + call.getString("method");
+                    String payload = "none";
+                    try (android.os.ParcelFileDescriptor upload = request.getParcelable(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_BINARY_PFD)) {
+                        if (upload != null) {
+                            // Host-side shape of M20.2 batch 14: the JSON says how many bytes, the descriptor holds them.
+                            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+                            long total = 0;
+                            boolean pattern = true;
+                            try (java.io.InputStream stream = new android.os.ParcelFileDescriptor.AutoCloseInputStream(upload.dup())) {
+                                byte[] chunk = new byte[65536];
+                                int read;
+                                while ((read = stream.read(chunk)) > 0) {
+                                    for (int index = 0; index < read; index++) {
+                                        if (chunk[index] != (byte) ((total + index) % 251)) pattern = false;
+                                    }
+                                    digest.update(chunk, 0, read);
+                                    total += read;
+                                }
+                            }
+                            payload = "pfd:" + request.getLong(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_BINARY_BYTE_COUNT, -1L) + ":" + total + ":" + pattern
+                                    + ":" + hex(digest.digest()) + ":" + call.getJSONObject("upload").getLong("byteCount") + ":" + call.getJSONObject("upload").has("path");
+                        } else if (descriptor.has("bodyBase64") || descriptor.has("dataBase64")) {
+                            payload = "inline:" + android.util.Base64.decode(descriptor.optString("bodyBase64", descriptor.optString("dataBase64")), android.util.Base64.DEFAULT).length;
+                        } else if (descriptor.has("bodyText") || descriptor.has("text")) {
+                            payload = "text:" + descriptor.optString("bodyText", descriptor.optString("text")).getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+                        }
+                    }
+                    Object result;
+                    if (target.equals("fetch.request")) {
+                        String path = new java.net.URL(descriptor.getString("url")).getPath();
+                        seen.add(path + "|" + descriptor.getString("method") + "|" + descriptor.optString("bodyTransport", "inline") + "|" + descriptor.optLong("bodyBytes", -1L) + "|" + payload);
+                        JSONObject reply = new JSONObject().put("url", descriptor.getString("url")).put("status", 200).put("statusText", "OK")
+                                .put("headers", new JSONArray().put(new JSONArray().put("content-type").put("application/json")));
+                        if (path.equals("/redirect-307")) {
+                            reply.put("status", 307).put("headers", new JSONArray().put(new JSONArray().put("location").put("/replayed")));
+                        } else if (path.equals("/redirect-303")) {
+                            reply.put("status", 303).put("headers", new JSONArray().put(new JSONArray().put("location").put("/dropped")));
+                        }
+                        byte[] body = new JSONObject().put("path", path).put("method", descriptor.getString("method")).put("payload", payload)
+                                .toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                        reply.put("bodyBase64", android.util.Base64.encodeToString(body, android.util.Base64.NO_WRAP)).put("bodyBytes", body.length);
+                        result = reply;
+                    } else if (target.equals("websocket.connect")) {
+                        result = new JSONObject().put("id", "ws-upload").put("url", descriptor.getString("url")).put("readyState", "open")
+                                .put("maxMessageBytes", descriptor.optInt("maxMessageBytes", 1048576)).put("maxQueueSize", 32);
+                    } else if (target.equals("websocket.send")) {
+                        seen.add("ws|" + descriptor.optString("messageTransport", "inline") + "|" + descriptor.optString("messageKind", "")
+                                + "|" + descriptor.optLong("messageBytes", -1L) + "|" + payload);
+                        result = Boolean.TRUE;
+                    } else if (target.equals("websocket.drainEvents")) {
+                        result = new JSONArray();
+                    } else if (target.equals("websocket.close")) {
+                        result = Boolean.TRUE;
+                    } else {
+                        throw new AssertionError("unexpected bridge call: " + call);
+                    }
+                    Bundle response = new Bundle();
+                    response.putString(NodeJsRuntimeContract.KEY_BRIDGE_RESPONSE_JSON,
+                            new JSONObject().put("id", call.getString("id")).put("ok", true).put("result", result).toString());
+                    callback.onResponse(response);
+                } catch (Exception error) {
+                    throw new AssertionError(error);
+                }
+            }
+        };
+        for (String transport : new String[]{"jni", "file"}) {
+            seen.clear();
+            String executionId = "m20-upload-" + transport + "-" + System.nanoTime();
+            java.io.File sessionDir = new java.io.File(context.getCacheDir(), "nodejs-bridge-live/" + executionId);
+            Bundle result = runWithExecutionId(broker, transport, executionId,
+                    "(async () => { const cfetch = require('fetch'); const websocket = require('websocket'); const crypto = require('crypto'); const fs = require('fs');\n" +
+                    "const base = 'http://fake.local'; const uploadDir = " + JSONObject.quote(new java.io.File(sessionDir, "uploads").getAbsolutePath()) + ";\n" +
+                    "const big = Buffer.alloc(3 * 1024 * 1024); for (let i = 0; i < big.length; i++) big[i] = i % 251;\n" +
+                    "const sha = crypto.createHash('sha256').update(big).digest('hex');\n" +
+                    "const post = async (path, body, headers) => { const r = await cfetch(base + path, { method: 'POST', body, headers }); return Object.assign({ status: r.status }, await r.json()); };\n" +
+                    "const left = () => fs.existsSync(uploadDir) ? fs.readdirSync(uploadDir).length : -1;\n" +
+                    "const bigReply = await post('/sha', big); const leftAfterBig = left();\n" +
+                    "const textReply = await post('/sha', 'y'.repeat(400 * 1024), { 'content-type': 'text/plain' });\n" +
+                    "const viewReply = await post('/sha', new Uint8Array(big.buffer, big.byteOffset, 512 * 1024));\n" +
+                    "const smallReply = await post('/sha', Buffer.from('tiny')); const tinyText = await post('/sha', 'tiny');\n" +
+                    "const replayed = await post('/redirect-307', big); const dropped = await post('/redirect-303', big);\n" +
+                    "const parallel = await Promise.all(Array.from({ length: 12 }, (_, i) => post('/sha', Buffer.alloc(300 * 1024 + i, i)).then(r => r.payload.split(':')[2])));\n" +
+                    "const conn = await websocket.connect('ws://fake.local/socket', { maxMessageBytes: 1048576 });\n" +
+                    "await conn.send(big.subarray(0, 700 * 1024)); await conn.send('z'.repeat(300 * 1024)); await conn.send('hi'); await conn.send(Buffer.from([1, 2, 3])); await conn.close(1000, 'done');\n" +
+                    "console.log('m20.upload=' + JSON.stringify({ sha, big: bigReply, leftAfterBig, text: textReply.payload, view: viewReply.payload, small: smallReply.payload, tinyText: tinyText.payload, replayed, dropped, parallel, left: left() }));\n" +
+                    "})().catch(e => { console.error(e); process.exitCode = 1; });", "device", "network");
+            String stdout = result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+            int marker = stdout.indexOf("m20.upload=");
+            assertTrue("missing upload marker (" + transport + "): " + stdout, marker >= 0);
+            JSONObject outcome = new JSONObject(stdout.substring(marker + "m20.upload=".length()).trim());
+            String bigPayload = "pfd:3145728:3145728:true:" + outcome.getString("sha") + ":3145728:false";
+            assertEquals(transport + ": " + seen, "/sha|POST|pfd|3145728|" + bigPayload, seen.peek());
+            assertEquals(transport, bigPayload, outcome.getJSONObject("big").getString("payload"));
+            assertEquals(transport + ": the upload file is released once the call settles", 0, outcome.getInt("leftAfterBig"));
+            assertTrue(transport + ": " + outcome, outcome.getString("text").startsWith("pfd:409600:409600:false:"));
+            assertTrue(transport + ": " + outcome, outcome.getString("view").startsWith("pfd:524288:524288:true:"));
+            assertEquals(transport, "inline:4", outcome.getString("small"));
+            assertEquals(transport, "text:4", outcome.getString("tinyText"));
+            JSONObject replayed = outcome.getJSONObject("replayed");
+            assertEquals(transport + ": " + replayed, "/replayed|POST|" + bigPayload,
+                    replayed.getString("path") + "|" + replayed.getString("method") + "|" + replayed.getString("payload"));
+            JSONObject dropped = outcome.getJSONObject("dropped");
+            assertEquals(transport + ": " + dropped, "/dropped|GET|none",
+                    dropped.getString("path") + "|" + dropped.getString("method") + "|" + dropped.getString("payload"));
+            JSONArray parallel = outcome.getJSONArray("parallel");
+            for (int index = 0; index < 12; index++) assertEquals(transport, Integer.toString(300 * 1024 + index), parallel.getString(index));
+            assertEquals(transport + ": no upload file survives", 0, outcome.getInt("left"));
+            java.util.List<String> wsSeen = new java.util.ArrayList<>();
+            for (String entry : seen) if (entry.startsWith("ws|")) wsSeen.add(entry);
+            assertEquals(transport + ": " + seen, 4, wsSeen.size());
+            assertTrue(wsSeen.get(0), wsSeen.get(0).startsWith("ws|pfd|binary|716800|pfd:716800:716800:true:"));
+            assertTrue(wsSeen.get(1), wsSeen.get(1).startsWith("ws|pfd|text|307200|pfd:307200:307200:false:"));
+            assertEquals("ws|inline||-1|text:2", wsSeen.get(2));
+            assertEquals("ws|inline||-1|inline:3", wsSeen.get(3));
+            // fetch: big, text, view, small, tinyText, 307 + replay, 303 + follow-up, 12 parallel; ws: 4 sends
+            assertEquals(transport + ": " + seen, 25, seen.size());
+            String[] payload = result.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD);
+            assertEquals("pfd", value(payload, "embedded_script.bridge_live_upload_transport"));
+            // big, text, view, 307 twice, 303 once, 12 parallel, ws binary + text
+            assertEquals("20", value(payload, "embedded_script.bridge_live_upload_count"));
+            assertTrue(transport + ": the session directory is removed after the run", !sessionDir.exists());
+        }
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder();
+        for (byte value : bytes) builder.append(String.format("%02x", value));
+        return builder.toString();
     }
 
     private static String value(String[] payload, String key) {
