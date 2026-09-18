@@ -117,6 +117,7 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ###### Unreleased
 
+* `Ajout` Une erreur fatale Node.js dans un slot du runtime (tas JavaScript épuisé, vérification interne échouée) laisse désormais le rapport de diagnostic propre à Node dans le cache du plugin (crash/<executionId>.json, écrit avant l'abort ; aucun gestionnaire de signal n'est installé) : le résultat d'échec porte l'événement, les chiffres du tas, la pile JS et le chemin dans slotExit.crash et dans le message d'erreur (par exemple CRASH_NATIVE (SIGABRT; see the logcat tombstone; Node.js fatal error: Allocation failed - JavaScript heap out of memory; JS heap 61.9 MB used of 64.0 MB limit; report .../crash/<executionId>.json)), et getRuntimeInfo expose le rapport le plus récent en lastCrash même après un redémarrage du dispatcher ; la nouvelle option de requête maxOldGenerationSizeMb plafonne le tas JS d'une exécution (ancienne génération V8, en Mo), ce qui est aussi la façon dont le test de régression reproduit le plantage
 * `Correction` Correction de la mort du slot du runtime par épuisement du tas V8 (signalée comme CRASH_NATIVE / SIGABRT) lors du require d'un gros module CommonJS : le masquage des commentaires et chaînes du chargeur concaténait caractère par caractère, si bien qu'un module de 22 MiB nécessitait environ 700 MB de tas ; il émet désormais des segments avec un résultat identique (environ 44 MB), et les analyses import / export de CommonJS sautent entre les candidats au lieu de tester chaque caractère
 
 # v1.5.5

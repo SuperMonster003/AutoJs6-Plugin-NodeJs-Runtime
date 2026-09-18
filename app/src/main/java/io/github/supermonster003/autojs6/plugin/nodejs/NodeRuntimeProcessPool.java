@@ -15,6 +15,7 @@ import org.autojs.plugin.nodejs.api.INodeJsRuntimeCallback;
 import org.autojs.plugin.nodejs.api.INodeJsRuntimePlugin;
 import org.autojs.plugin.nodejs.api.NodeJsRuntimeContract;
 
+import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +42,9 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
     private volatile boolean closed;
     /** Most recent unexpected slot death (M12.5a); cancellation restarts are not counted. */
     private volatile Bundle lastSlotExit;
+    /** Newest fatal-error report on disk (M12.5), parsed once per file. */
+    private volatile Bundle lastCrashCache;
+    private volatile String lastCrashKey;
 
     NodeRuntimeProcessPool(NodeJsRuntimePluginService service) {
         this.service = service;
@@ -287,6 +291,15 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
         int slotId = job.slot == null ? -1 : job.slot.id;
         Bundle exit = NodeRuntimeSlotExit.describe(service, job.pid, slotId, job.id,
                 job.dispatchedAtWallMs - 1_000L, NodeRuntimeSlotExit.RECORD_WAIT_MS);
+        // M12.5: a Node.js fatal error leaves its diagnostic report next to the exit record.
+        File crashDirectory = NodeRuntimeCrashReport.directory(service.getCacheDir());
+        NodeRuntimeCrashReport.Report crash = NodeRuntimeCrashReport.forExecution(crashDirectory, job.id, job.pid, job.dispatchedAtWallMs - 1_000L);
+        if (crash != null) {
+            crash.maxOldGenerationSizeMb = Math.max(0, job.request.getInt(NodeJsRuntimeContract.KEY_MAX_OLD_GENERATION_SIZE_MB, 0));
+            exit.putBundle(NodeRuntimeCrashReport.KEY_CRASH, crash.toBundle());
+            exit.putString("summary", NodeRuntimeSlotExit.withCrash(exit.getString("summary"), crash.summary()));
+            NodeRuntimeCrashReport.prune(crashDirectory, NodeRuntimeCrashReport.KEEP_NEWEST);
+        }
         lastSlotExit = exit;
         Bundle result = service.bundles.failureBundle(job.request, job.startedAt,
                 NodeRuntimeSlotExit.failureMessage(slotId, job.pid, exit.getString("summary")),
@@ -404,7 +417,23 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
         info.putParcelableArrayList("slots", snapshots);
         Bundle exit = lastSlotExit;
         if (exit != null) info.putBundle(NodeRuntimeSlotExit.KEY_LAST_SLOT_EXIT, new Bundle(exit));
+        Bundle crash = lastCrash();
+        if (crash != null) info.putBundle(NodeRuntimeCrashReport.KEY_LAST_CRASH, crash);
         return info;
+    }
+
+    /** The newest report on disk survives dispatcher restarts, unlike lastSlotExit. */
+    private Bundle lastCrash() {
+        File file = NodeRuntimeCrashReport.newestFile(NodeRuntimeCrashReport.directory(service.getCacheDir()));
+        if (file == null) return null;
+        String key = file.getAbsolutePath() + ":" + file.lastModified() + ":" + file.length();
+        Bundle cached = lastCrashCache;
+        if (cached != null && key.equals(lastCrashKey)) return new Bundle(cached);
+        NodeRuntimeCrashReport.Report report = NodeRuntimeCrashReport.read(file);
+        Bundle crash = report == null ? null : report.toBundle();
+        lastCrashCache = crash;
+        lastCrashKey = key;
+        return crash == null ? null : new Bundle(crash);
     }
 
     @Override public void close() {

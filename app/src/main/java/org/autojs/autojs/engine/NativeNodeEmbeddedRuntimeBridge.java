@@ -182,7 +182,8 @@ public final class NativeNodeEmbeddedRuntimeBridge {
             boolean inspectorEnabled,
             boolean workerThreadsEnabled,
             boolean childProcessEnabled,
-            boolean javaInteropEnabled
+            boolean javaInteropEnabled,
+            int maxOldGenerationSizeMb
     ) {
         return INSTANCE.nativeRunEmbeddedScriptLifecycleWithRuntimeModulesV2(
                 source,
@@ -203,7 +204,8 @@ public final class NativeNodeEmbeddedRuntimeBridge {
                 inspectorEnabled,
                 workerThreadsEnabled,
                 childProcessEnabled,
-                javaInteropEnabled
+                javaInteropEnabled,
+                maxOldGenerationSizeMb
         );
     }
 
@@ -226,7 +228,8 @@ public final class NativeNodeEmbeddedRuntimeBridge {
             boolean inspectorEnabled,
             boolean workerThreadsEnabled,
             boolean childProcessEnabled,
-            boolean javaInteropEnabled
+            boolean javaInteropEnabled,
+            int maxOldGenerationSizeMb
     );
 
     private native void nativeSetOutputStreamSink(OutputSink sink);

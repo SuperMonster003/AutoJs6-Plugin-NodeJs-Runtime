@@ -124,6 +124,7 @@ using NodeMultiIsolatePlatformDisposeIsolate =
         void (*)(node::MultiIsolatePlatform*, v8::Isolate*);
 using V8InitializePlatform = void (*)(v8::Platform*);
 using V8Initialize = bool (*)(int);
+using V8SetFlagsFromString = void (*)(const char*);
 using UvLoopInit = int (*)(uv_loop_t*);
 using UvLoopClose = int (*)(uv_loop_t*);
 using UvRun = int (*)(uv_loop_t*, uv_run_mode);
@@ -238,6 +239,7 @@ extern const char* const kV8IsolateExitSymbol;
 extern const char* const kV8HandleScopeConstructorSymbol;
 extern const char* const kV8HandleScopeDestructorSymbol;
 extern const char* const kV8ContextEnterSymbol;
+extern const char* const kV8SetFlagsFromStringSymbol;
 extern const char* const kV8ContextExitSymbol;
 extern const char* const kV8ContextGlobalSymbol;
 extern const char* const kV8StringNewFromUtf8Symbol;
@@ -884,6 +886,8 @@ struct EmbeddedScriptExecutionRequest {
     bool workerThreadsEnabled = false;
     bool childProcessEnabled = false;
     bool javaInteropEnabled = false;
+    // Roadmap M12.5: JS heap cap for this execution in MB (V8 old generation); 0 keeps Node's default.
+    int maxOldGenerationSizeMb = 0;
 };
 
 struct EmbeddedProcessRuntimeExecution {
@@ -931,6 +935,7 @@ void runEmbeddedScriptNodeLifecycle(
         const char* sourceLabelOverride,
         const char* workingDirectoryOverride,
         bool inspectorEnabled,
+        int maxOldGenerationSizeMb,
         bool fullUvDiagnostics,
         node::MultiIsolatePlatform* processRuntimePlatform,
         bool processRuntimePersistent,

@@ -37,6 +37,7 @@ extern const char* const kV8HandleScopeDestructorSymbol = "_ZN2v811HandleScopeD1
 extern const char* const kV8ContextEnterSymbol = "_ZN2v87Context5EnterEv";
 extern const char* const kV8ContextExitSymbol = "_ZN2v87Context4ExitEv";
 extern const char* const kV8ContextGlobalSymbol = "_ZN2v87Context6GlobalEv";
+extern const char* const kV8SetFlagsFromStringSymbol = "_ZN2v82V818SetFlagsFromStringEPKc";
 extern const char* const kV8StringNewFromUtf8Symbol = "_ZN2v86String11NewFromUtf8EPNS_7IsolateEPKcNS_13NewStringTypeEi";
 extern const char* const kV8ObjectGetSymbol = "_ZN2v86Object3GetENS_5LocalINS_7ContextEEENS1_INS_5ValueEEE";
 extern const char* const kV8ValueToStringSymbol = "_ZNK2v85Value8ToStringENS_5LocalINS_7ContextEEE";
@@ -2578,6 +2579,30 @@ std::string buildEmbeddedScriptExecutionSource(
       environmentVariables: Object.freeze(Object.assign(Object.create(null), process.env || {}))
     });
   }
+  function __autojs6_configure_fatal_error_report() {
+    // Roadmap M12.5: a V8 fatal error (JavaScript heap out of memory, a failed CHECK) aborts the slot
+    // process. Node writes its own diagnostic report before that abort when asked to; the dispatcher
+    // reads it back as the crash marker (cacheDir/crash/<executionId>.json) and puts the event, the
+    // heap figures and the JS stack into the failure result. Only the fatal-error trigger is enabled;
+    // user code keeps the disabled process.report facade installed below.
+    let config;
+    try {
+      config = __autojs6_lifecycle_config().crashReport;
+    } catch (_) {
+      return;
+    }
+    if (!config || typeof config.directory !== "string" || !config.directory) return;
+    try {
+      const report = process.report;
+      if (!report || typeof report !== "object") return;
+      report.directory = config.directory;
+      if (typeof config.filename === "string" && config.filename) report.filename = config.filename;
+      report.compact = true;
+      report.excludeNetwork = true;
+      if ("excludeEnv" in report) report.excludeEnv = true;
+      report.reportOnFatalError = true;
+    } catch (_) {}
+  }
   function __autojs6_create_process_report() {
     const report = Object.create(null);
     Object.defineProperties(report, {
@@ -2818,6 +2843,7 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_define_process_property("cwd", __autojs6_scoped_process_cwd, false);
     __autojs6_define_process_property("chdir", __autojs6_scoped_process_chdir, false);
     __autojs6_define_process_property("permission", __autojs6_create_process_permission(), false);
+    __autojs6_configure_fatal_error_report();
     __autojs6_define_process_property("report", __autojs6_create_process_report(), false);
   }
   function __autojs6_limited_tty_color_depth() {
@@ -12323,7 +12349,8 @@ std::string buildEmbeddedScriptExecutionSource(
         requestPath: "",
         pollIntervalMs: 50,
         graceMs: 1500
-      })
+      }),
+      crashReport: Object.freeze({ directory: "", filename: "" })
     });
     try {
       const record = __autojs6_runtime_module_embedded_sources["autojs6:lifecycle-config"];
@@ -12338,6 +12365,7 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       const checkpoint = parsed.checkpoint && typeof parsed.checkpoint === "object" ? parsed.checkpoint : {};
       const stop = parsed.stop && typeof parsed.stop === "object" ? parsed.stop : {};
+      const crashReport = parsed.crashReport && typeof parsed.crashReport === "object" ? parsed.crashReport : {};
       __autojs6_lifecycle_config_cache = Object.freeze({
         schemaVersion: Number(parsed.schemaVersion) || 1,
         executionId: parsed.executionId === undefined || parsed.executionId === null ? "" : String(parsed.executionId),
@@ -12358,6 +12386,10 @@ std::string buildEmbeddedScriptExecutionSource(
           requestPath: stop.requestPath === undefined || stop.requestPath === null ? "" : String(stop.requestPath),
           pollIntervalMs: Math.max(10, Math.min(Number(stop.pollIntervalMs) || 50, 1000)),
           graceMs: Math.max(0, Number(stop.graceMs) || 0)
+        }),
+        crashReport: Object.freeze({
+          directory: typeof crashReport.directory === "string" ? crashReport.directory : "",
+          filename: typeof crashReport.filename === "string" ? crashReport.filename : ""
         })
       });
       return __autojs6_lifecycle_config_cache;

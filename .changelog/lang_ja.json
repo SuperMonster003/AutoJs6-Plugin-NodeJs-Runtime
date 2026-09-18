@@ -7,6 +7,9 @@
   "$data": {
     "v1.5.6": {
       "released_date": "Unreleased",
+      "feature": [
+        "ランタイムスロットで Node.js の致命的エラー (JavaScript ヒープのメモリ不足、内部チェックの失敗) が起きると、Node 自身の診断レポートをプラグインのキャッシュに残すようになりました (crash/<executionId>.json、中止前に書き出し、シグナルハンドラは導入しません)。失敗結果は slotExit.crash とエラーメッセージにイベント・ヒープ使用量・JS スタック・レポートのパスを含み (例: CRASH_NATIVE (SIGABRT; see the logcat tombstone; Node.js fatal error: Allocation failed - JavaScript heap out of memory; JS heap 61.9 MB used of 64.0 MB limit; report .../crash/<executionId>.json))、getRuntimeInfo は最新のレポートを lastCrash として公開します (ディスパッチャ再起動後も読めます)。新しいリクエストオプション maxOldGenerationSizeMb は 1 回の実行の JS ヒープ上限 (V8 の old generation、MB 単位) を設定し、回帰テストもこれでクラッシュを再現します"
+      ],
       "fix": [
         "大きな CommonJS モジュールを require すると、ランタイムスロットが V8 のヒープメモリ不足で中止する (CRASH_NATIVE / SIGABRT として報告される) 問題を修正しました。ローダーのコメント・文字列マスクが 1 文字ずつ連結していたため 22 MiB のモジュールに約 700 MB のヒープが必要でしたが、現在は同じ結果を連続区間単位で出力し (約 44 MB)、CommonJS の import / export 走査も全文字を検査せず候補位置間をジャンプします"
       ]

@@ -117,6 +117,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ###### Unreleased
 
+* `Feature` A Node.js fatal error in a runtime slot (JavaScript heap out of memory, a failed internal check) now leaves Node's own diagnostic report in the plugin cache (crash/<executionId>.json, written before the abort; no signal handler is installed): the failure result carries its event, heap figures, JS stack and path in slotExit.crash and in the error message (for example CRASH_NATIVE (SIGABRT; see the logcat tombstone; Node.js fatal error: Allocation failed - JavaScript heap out of memory; JS heap 61.9 MB used of 64.0 MB limit; report .../crash/<executionId>.json)), and getRuntimeInfo exposes the newest report as lastCrash across dispatcher restarts; the new request option maxOldGenerationSizeMb caps the JS heap of one execution (V8 old generation, in MB), which is also how the regression test reproduces the crash
 * `Fix` Fixed the runtime slot dying of a V8 heap out-of-memory abort (reported as CRASH_NATIVE / SIGABRT) when a large CommonJS module was required: the loader's comment and string masking appended one character at a time, so a 22 MiB module needed about 700 MB of heap; it now emits runs with identical output (about 44 MB), and the CommonJS import / export scans jump between candidates instead of testing every character
 
 # v1.5.5

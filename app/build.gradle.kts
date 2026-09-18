@@ -269,6 +269,8 @@ dependencies {
     implementation(files(commonPluginApiAar))
     implementation(project(":nodejs-api"))
     testImplementation("junit:junit:4.13.2")
+    // JVM tests of the Node diagnostic report parser (M12.5); Android ships org.json at runtime.
+    testImplementation("org.json:json:20160810")
     androidTestImplementation(libs.test.ext.junit)
     androidTestImplementation(libs.test.runner)
     // AndroidX's optional annotations are needed when R8 processes release tests.

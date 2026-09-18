@@ -117,6 +117,7 @@ console.log("AutoJs6 Node.js runtime");
 
 ###### Unreleased
 
+* `ميزة` عند حدوث خطأ فادح في Node.js داخل فتحة وقت التشغيل (نفاد ذاكرة كومة JavaScript، فشل فحص داخلي) يُترك الآن تقرير التشخيص الخاص بـ Node في ذاكرة التخزين المؤقت للإضافة (crash/<executionId>.json، يُكتب قبل الإيقاف؛ لا يُثبَّت أي معالج إشارات): تحمل نتيجة الفشل الحدث وأرقام الكومة ومكدس JS والمسار في slotExit.crash وفي رسالة الخطأ (مثلاً CRASH_NATIVE (SIGABRT; see the logcat tombstone; Node.js fatal error: Allocation failed - JavaScript heap out of memory; JS heap 61.9 MB used of 64.0 MB limit; report .../crash/<executionId>.json))، ويعرض getRuntimeInfo أحدث تقرير باسم lastCrash حتى بعد إعادة تشغيل الموزّع؛ كما يحدّ خيار الطلب الجديد maxOldGenerationSizeMb كومة JS لتنفيذ واحد (الجيل القديم في V8، بالميغابايت)، وهو أيضاً ما يستخدمه اختبار الانحدار لإعادة إنتاج هذا الانهيار
 * `اصلاح` تم إصلاح توقف فتحة وقت التشغيل بسبب نفاد ذاكرة كومة V8 (يُبلغ عنه كـ CRASH_NATIVE / SIGABRT) عند require لوحدة CommonJS كبيرة: كان إخفاء التعليقات والسلاسل في المحمّل يضيف حرفاً واحداً في كل مرة، فاحتاجت وحدة بحجم 22 MiB إلى نحو 700 MB من الكومة؛ أصبح الآن يُخرج مقاطع متصلة بالنتيجة نفسها (نحو 44 MB)، كما صار فحص import / export في CommonJS يقفز بين المرشحين بدلاً من فحص كل حرف
 
 # v1.5.5

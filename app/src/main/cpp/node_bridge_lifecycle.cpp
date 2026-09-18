@@ -137,6 +137,7 @@ std::vector<std::string> runEmbeddedScriptExecution(
     putPayload(payload, "embedded_script.request.worker_threads_enabled", request.workerThreadsEnabled);
     putPayload(payload, "embedded_script.request.child_process_enabled", request.childProcessEnabled);
     putPayload(payload, "embedded_script.request.java_interop_enabled", request.javaInteropEnabled);
+    putPayload(payload, "embedded_script.request.max_old_generation_size_mb", static_cast<long long>(request.maxOldGenerationSizeMb));
     putPayload(payload, "embedded_script.request.node_modules_allowed", "working_directory_commonjs_mvp");
     putPayload(payload, "embedded_script.request.autojs_api_allowed", false);
     putPayload(payload, "embedded_script.request.android_bridge_allowed", false);
@@ -241,6 +242,7 @@ std::vector<std::string> runEmbeddedScriptExecution(
                 "embedded_script",
                 workingDirectoryPtr,
                 inspectorEnabled,
+                request.maxOldGenerationSizeMb,
                 fullUvDiagnostics,
                 processRuntimePersistent ? processExecution.platform : nullptr,
                 processRuntimePersistent,
@@ -281,6 +283,7 @@ void runEmbeddedScriptNodeLifecycle(
         const char* sourceLabelOverride,
         const char* workingDirectoryOverride,
         bool inspectorEnabled,
+        int maxOldGenerationSizeMb,
         bool fullUvDiagnostics,
         node::MultiIsolatePlatform* processRuntimePlatform,
         bool processRuntimePersistent,
@@ -359,6 +362,7 @@ void runEmbeddedScriptNodeLifecycle(
     SymbolLookup uvLoopCloseLookup = lookupSymbol(handle, kUvLoopCloseSymbol);
     SymbolLookup allocatorCreateLookup = lookupSymbol(handle, kArrayBufferAllocatorCreateSymbol);
     SymbolLookup newIsolateLookup = lookupSymbol(handle, kNewIsolateRawSymbol);
+    SymbolLookup setFlagsFromStringLookup;
     SymbolLookup createIsolateDataLookup;
     SymbolLookup freeIsolateDataLookup;
     SymbolLookup newContextLookup;
@@ -415,6 +419,9 @@ void runEmbeddedScriptNodeLifecycle(
     }
     if (loadEnvironment) {
         loadEnvironmentLookup = lookupSymbol(handle, kLoadEnvironmentSourceSymbol);
+    }
+    if (maxOldGenerationSizeMb > 0) {
+        setFlagsFromStringLookup = lookupSymbol(handle, kV8SetFlagsFromStringSymbol);
     }
     if (spinEventLoop) {
         spinEventLoopLookup = lookupSymbol(handle, kSpinEventLoopSymbol);
@@ -771,6 +778,8 @@ void runEmbeddedScriptNodeLifecycle(
             reinterpret_cast<NodeArrayBufferAllocatorCreate>(allocatorCreateLookup.address);
     auto newIsolate =
             reinterpret_cast<NodeNewIsolateRaw>(newIsolateLookup.address);
+    auto setFlagsFromString =
+            reinterpret_cast<V8SetFlagsFromString>(setFlagsFromStringLookup.address);
     auto createIsolateDataRaw =
             reinterpret_cast<NodeCreateIsolateDataRaw>(createIsolateData ? createIsolateDataLookup.address : nullptr);
     auto freeIsolateData =
@@ -1194,6 +1203,22 @@ void runEmbeddedScriptNodeLifecycle(
                 newIsolateLookup.symbol.c_str()
         );
         const auto isolateStartedAt = Clock::now();
+        // Roadmap M12.5: an execution-level JS heap cap. V8 reads --max-old-space-size once per isolate at
+        // creation, so the flag is set only around this NewIsolate and reset to the default right after it
+        // (worker isolates the script creates later keep Node's resourceLimits handling). Exceeding the cap is
+        // a V8 fatal error: the slot aborts and leaves the Node diagnostic report the dispatcher reads back.
+        const bool heapCapRequested = maxOldGenerationSizeMb > 0;
+        const bool heapCapApplied = heapCapRequested && setFlagsFromStringLookup.found && setFlagsFromString != nullptr;
+        putPayload(payload, "isolate.max_old_generation_size_mb", static_cast<long long>(maxOldGenerationSizeMb));
+        putPayload(
+                payload,
+                "isolate.max_old_generation_size.status",
+                !heapCapRequested ? "not_requested" : heapCapApplied ? "applied" : "symbol_missing"
+        );
+        if (heapCapApplied) {
+            const std::string flag = "--max-old-space-size=" + std::to_string(maxOldGenerationSizeMb);
+            setFlagsFromString(flag.c_str());
+        }
         try {
             node::IsolateSettings isolateSettings;
             isolate = newIsolate(allocator.get(), eventLoop.get(), platform.get(), nullptr, isolateSettings);
@@ -1216,6 +1241,9 @@ void runEmbeddedScriptNodeLifecycle(
             putPayload(payload, "isolate.create.status", "failed");
             putPayload(payload, "isolate.create.detail", "unknown native exception");
             __android_log_print(ANDROID_LOG_WARN, kLogTag, "isolate.create.failed elapsed=%lldms error=unknown", elapsedMs(isolateStartedAt));
+        }
+        if (heapCapApplied) {
+            setFlagsFromString("--max-old-space-size=0");
         }
         putPayload(payload, "timing.isolate_create.ms", elapsedMs(isolateStartedAt));
     }

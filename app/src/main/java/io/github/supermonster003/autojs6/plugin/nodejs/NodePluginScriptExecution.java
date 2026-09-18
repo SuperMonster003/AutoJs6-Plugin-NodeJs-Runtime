@@ -235,7 +235,8 @@ final class NodePluginScriptExecution {
                         ),
                         request.getBoolean(NodeJsRuntimeContract.KEY_WORKER_THREADS_ENABLED, true),
                         request.getBoolean(NodeJsRuntimeContract.KEY_CHILD_PROCESS_ENABLED, true),
-                        request.getBoolean(NodeJsRuntimeContract.KEY_JAVA_INTEROP_ENABLED, true)
+                        request.getBoolean(NodeJsRuntimeContract.KEY_JAVA_INTEROP_ENABLED, true),
+                        Math.max(0, request.getInt(NodeJsRuntimeContract.KEY_MAX_OLD_GENERATION_SIZE_MB, 0))
                 );
             } finally {
                 if (streamSink != null) {
