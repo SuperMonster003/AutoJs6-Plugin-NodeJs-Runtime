@@ -136,6 +136,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `개선` 재귀 readdir / opendir를 네이티브에 위임 (4096 항목 상한과 항목별 realpath 검사 제거; readdir('/')는 Node처럼 proc/sys/dev 이름을 나열), readlink / chmod / chown / utimes가 절대 경로를 허용하고 chmod는 심볼릭 링크를 따라감, fs 정책 오류 코드는 ERR_AUTOJS6_FS_NUL_BYTE / ERR_AUTOJS6_FS_PATH_ESCAPE (하드 경계, loader와 공유) / ERR_AUTOJS6_FS_SCOPED_PATH로 수렴하고 일반 fs 실패는 Node 코드만 유지
 * `개선` 런타임 자체 모듈 소스 예산 (모듈당 16 MiB, 총 64 MiB, 8192개 모듈, provider 요청 수) 제거, CommonJS 진입점의 __filename / require.main.filename / process.argv[1]이 Node처럼 절대 경로가 되고 require.main.id는 '.', fs.mkdtemp*는 네이티브에 위임: 호출자의 접두사 표기에 접미사를 붙여 요청한 인코딩으로 반환하고 부모 디렉터리가 심볼릭 링크여도 거부하지 않음
 * `개선` node:sqlite가 SQL 파일 작업을 네이티브 SQLite에 맡김: 리터럴 파일명의 ATTACH (file: URI 포함)는 SQL 텍스트를 훑는 대신 SQLite authorizer로 /proc, /sys, /dev 경계를 검사하고, VACUUM INTO 대상은 SQLite 내부 ATTACH를 통해 같은 경계 검사를 거치고, 디렉터리 PRAGMA는 더 이상 가로채지 않으며, file: URI 문자열과 빈 임시 데이터베이스를 열 수 있고, setAuthorizer()는 경계 검사와 결합됨 (바인드 매개변수나 식으로 파일명을 주는 ATTACH만 계속 거부)
+* `개선` 브리지 할당량을 호스트에 맡김: autojs6:bridge-limits의 maxPendingBridgeCalls 창을 넘는 호출은 ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT로 실패하지 않고 선입선출로 대기하며, 런타임은 이미지 핸들 수·동시 제어 fetch 요청 수·제어 WebSocket 연결 수를 더 이상 자체 제한하지 않고 (호스트 broker는 계속 자체 정책을 적용), require('fetch').policy.maxConcurrentRequests와 require('websocket').policy.maxConnections는 폐기됨
 
 # v1.5.4
 

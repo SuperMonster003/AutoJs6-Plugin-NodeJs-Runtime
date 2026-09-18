@@ -3477,8 +3477,8 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_bridge_pending = new Map();
   const __autojs6_bridge_queued_requests = [];
   let __autojs6_bridge_queued_clipboard_text = "";
-  const __autojs6_bridge_active_image_handles = new Set();
-  let __autojs6_bridge_pending_image_handles = 0;
+  const __autojs6_bridge_waiting = [];
+  let __autojs6_bridge_draining = false;
   let __autojs6_limited_toast_cache = null;
   let __autojs6_limited_app_cache = null;
   let __autojs6_limited_engines_cache = null;
@@ -3545,7 +3545,6 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_limited_worker_threads_cache = null;
   let __autojs6_worker_threads_shape_facade_cache = null;
   const __autojs6_fetch_policy = Object.freeze({
-    maxConcurrentRequests: __autojs6_bridge_limits_policy().maxNetworkRequests,
     defaultTimeoutMs: 30000,
     hardTimeoutMs: 120000,
     defaultMaxResponseBytes: 33554432,
@@ -3564,7 +3563,6 @@ std::string buildEmbeddedScriptExecutionSource(
     lastPolicyRejection: ""
   };
   const __autojs6_websocket_policy = Object.freeze({
-    maxConnections: __autojs6_bridge_limits_policy().maxWebSocketConnections,
     defaultTimeoutMs: 10000,
     hardTimeoutMs: 60000,
     defaultMaxMessageBytes: 65536,
@@ -5779,6 +5777,10 @@ std::string buildEmbeddedScriptExecutionSource(
       warnings: Object.freeze(warnings)
     });
   }
+  // autojs6:bridge-limits is shared with the host broker, which enforces every field on
+  // its side (image handles, shell commands, network requests, WebSocket connections and
+  // the accessibility query rate). The runtime applies only maxPendingBridgeCalls, as the
+  // in-flight window of the bridge transport; calls beyond it wait instead of failing.
   function __autojs6_bridge_limit_defaults() {
     return Object.freeze({
       maxPendingBridgeCalls: 32,
@@ -5866,6 +5868,14 @@ std::string buildEmbeddedScriptExecutionSource(
       maxNetworkRequests: policy.maxNetworkRequests,
       maxWebSocketConnections: policy.maxWebSocketConnections,
       accessibilityQueriesPerSecond: policy.accessibilityQueriesPerSecond,
+      runtimeEnforced: Object.freeze(["maxPendingBridgeCalls"]),
+      hostEnforced: Object.freeze([
+        "maxImageHandles",
+        "maxShellCommands",
+        "maxNetworkRequests",
+        "maxWebSocketConnections",
+        "accessibilityQueriesPerSecond"
+      ]),
       sources: Object.freeze(policy.sources.slice()),
       warnings: Object.freeze(policy.warnings.slice()),
       defaults: Object.freeze(Object.assign({}, policy.defaults)),
@@ -6324,7 +6334,8 @@ std::string buildEmbeddedScriptExecutionSource(
       status,
       timeoutMs: Number(request.timeoutMs || 0),
       durationMs: Math.max(0, Date.now() - startedAtMs),
-      pendingCount: __autojs6_bridge_pending.size
+      pendingCount: __autojs6_bridge_pending.size,
+      waitingCount: __autojs6_bridge_waiting.length
     };
     if (Array.isArray(request.permissions)) {
       message.permissions = request.permissions.map(String);
@@ -6342,39 +6353,90 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_bridge_diagnostics_message(record, status, error)
     );
   }
-  function __autojs6_bridge_reject_pending(record, error) {
-    if (!record) return;
+  function __autojs6_bridge_forget_record(record) {
+    record.settled = true;
     if (record.timeout !== null) {
       clearTimeout(record.timeout);
+      record.timeout = null;
     }
     if (typeof record.cleanup === "function") {
       try {
         record.cleanup();
       } catch (_) {}
     }
-    __autojs6_bridge_pending.delete(record.id);
-    if (typeof globalThis.__autojs6_bridge_native_cancel === "function") {
-      globalThis.__autojs6_bridge_native_cancel(record.id);
+    if (record.dispatched === true) {
+      __autojs6_bridge_pending.delete(record.id);
+      if (typeof globalThis.__autojs6_bridge_native_cancel === "function") {
+        globalThis.__autojs6_bridge_native_cancel(record.id);
+      }
+      return;
     }
+    const index = __autojs6_bridge_waiting.indexOf(record);
+    if (index >= 0) {
+      __autojs6_bridge_waiting.splice(index, 1);
+    }
+  }
+  function __autojs6_bridge_reject_pending(record, error) {
+    if (!record || record.settled === true) return;
+    __autojs6_bridge_forget_record(record);
     __autojs6_bridge_publish_diagnostics(record, "error", error);
     record.reject(error);
+    __autojs6_bridge_drain_waiting();
   }
   function __autojs6_bridge_resolve_pending(record, value) {
-    if (!record) return;
-    if (record.timeout !== null) {
-      clearTimeout(record.timeout);
-    }
-    if (typeof record.cleanup === "function") {
-      try {
-        record.cleanup();
-      } catch (_) {}
-    }
-    __autojs6_bridge_pending.delete(record.id);
-    if (typeof globalThis.__autojs6_bridge_native_cancel === "function") {
-      globalThis.__autojs6_bridge_native_cancel(record.id);
-    }
+    if (!record || record.settled === true) return;
+    __autojs6_bridge_forget_record(record);
     __autojs6_bridge_publish_diagnostics(record, "end", null);
     record.resolve(value);
+    __autojs6_bridge_drain_waiting();
+  }
+  // Calls beyond the autojs6:bridge-limits.maxPendingBridgeCalls window (the in-flight
+  // capacity shared with the Java and JNI channels) wait here in FIFO order instead of
+  // failing with ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT.
+  function __autojs6_bridge_drain_waiting() {
+    if (__autojs6_bridge_destroyed || __autojs6_bridge_draining) {
+      return;
+    }
+    __autojs6_bridge_draining = true;
+    try {
+      const inFlightLimit = __autojs6_bridge_limits_policy().maxPendingBridgeCalls;
+      while (__autojs6_bridge_waiting.length > 0 && __autojs6_bridge_pending.size < inFlightLimit) {
+        __autojs6_bridge_dispatch_record(__autojs6_bridge_waiting.shift());
+      }
+    } finally {
+      __autojs6_bridge_draining = false;
+    }
+  }
+  function __autojs6_bridge_dispatch_record(record) {
+    const request = record.request;
+    record.dispatched = true;
+    __autojs6_bridge_pending.set(request.id, record);
+    __autojs6_bridge_publish_diagnostics(record, "start", null);
+    try {
+      if (request.binary === true && (typeof globalThis.__autojs6_bridge_native_expect_binary !== "function" ||
+          !globalThis.__autojs6_bridge_native_expect_binary(request.id, __autojs6_bridge_limits_policy().maxPendingBridgeCalls))) {
+        throw __autojs6_bridge_error("Image byte transport is unavailable or full.", "ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT", request.module, request.method);
+      }
+      const requestMessage = JSON.stringify(request);
+      if (!__autojs6_bridge_transport || typeof __autojs6_bridge_transport.postMessage !== "function") {
+        if (__autojs6_bridge_post_live_host_message(requestMessage, request)) {
+          return;
+        }
+        if (__autojs6_bridge_post_queued_host_message(requestMessage)) {
+          return;
+        }
+        throw __autojs6_bridge_error(
+          "AutoJs6 bridge transport is not available.",
+          "ERR_AUTOJS6_BRIDGE_PROCESS_DEAD",
+          request.module,
+          request.method,
+          { id: request.id }
+        );
+      }
+      __autojs6_bridge_transport.postMessage(requestMessage);
+    } catch (error) {
+      __autojs6_bridge_reject_pending(record, error);
+    }
   }
   function __autojs6_bridge_receive_message(message) {
     let response;
@@ -6484,7 +6546,7 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_destroy_all_zlib_streams("bridge destroy");
     __autojs6_destroy_all_scoped_fs_streams("bridge destroy");
     const message = reason ? String(reason) : "AutoJs6 bridge process is not available.";
-    const records = Array.from(__autojs6_bridge_pending.values());
+    const records = __autojs6_bridge_waiting.splice(0).concat(Array.from(__autojs6_bridge_pending.values()));
     for (const record of records) {
       __autojs6_bridge_reject_pending(
         record,
@@ -6857,7 +6919,6 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_fetch_policy_snapshot() {
     return Object.freeze({
-      maxConcurrentRequests: __autojs6_fetch_policy.maxConcurrentRequests,
       defaultTimeoutMs: __autojs6_fetch_policy.defaultTimeoutMs,
       hardTimeoutMs: __autojs6_fetch_policy.hardTimeoutMs,
       defaultMaxResponseBytes: __autojs6_fetch_policy.defaultMaxResponseBytes,
@@ -6930,10 +6991,7 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_fetch_mark_diagnostic_recorded(error);
     }
   }
-  function __autojs6_fetch_try_start_request() {
-    if (__autojs6_fetch_diagnostics.activeRequestCount >= __autojs6_fetch_policy.maxConcurrentRequests) {
-      return false;
-    }
+  function __autojs6_fetch_start_request() {
     __autojs6_fetch_diagnostics.activeRequestCount += 1;
     if (__autojs6_fetch_diagnostics.activeRequestCount > __autojs6_fetch_diagnostics.maxActiveRequestCount) {
       __autojs6_fetch_diagnostics.maxActiveRequestCount = __autojs6_fetch_diagnostics.activeRequestCount;
@@ -7273,13 +7331,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_controlled_fetch(input, init) {
     return __autojs6_fetch_request_descriptor(input, init).then(function(request) {
-      if (!__autojs6_fetch_try_start_request()) {
-        throw __autojs6_fetch_policy_error(
-          "AutoJs6 controlled fetch exceeded " + __autojs6_fetch_policy.maxConcurrentRequests + " active requests.",
-          "max_concurrent_requests",
-          "ERR_AUTOJS6_NETWORK_POLICY_DENIED"
-        );
-      }
+      __autojs6_fetch_start_request();
       const fetchStartedAtMs = Date.now();
       __autojs6_fetch_publish_diagnostics(request, "start", null, null, fetchStartedAtMs);
       return __autojs6_fetch_dispatch(request).then(function(result) {
@@ -8017,7 +8069,6 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_websocket_policy_snapshot() {
     return Object.freeze({
-      maxConnections: __autojs6_websocket_policy.maxConnections,
       defaultTimeoutMs: __autojs6_websocket_policy.defaultTimeoutMs,
       hardTimeoutMs: __autojs6_websocket_policy.hardTimeoutMs,
       defaultMaxMessageBytes: __autojs6_websocket_policy.defaultMaxMessageBytes,
@@ -8078,10 +8129,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return error;
   }
-  function __autojs6_websocket_try_start_connection() {
-    if (__autojs6_websocket_diagnostics.activeConnectionCount >= __autojs6_websocket_policy.maxConnections) {
-      return false;
-    }
+  function __autojs6_websocket_start_connection() {
     __autojs6_websocket_diagnostics.activeConnectionCount += 1;
     if (__autojs6_websocket_diagnostics.activeConnectionCount > __autojs6_websocket_diagnostics.maxActiveConnectionCount) {
       __autojs6_websocket_diagnostics.maxActiveConnectionCount = __autojs6_websocket_diagnostics.activeConnectionCount;
@@ -8382,13 +8430,7 @@ std::string buildEmbeddedScriptExecutionSource(
     } catch (error) {
       return Promise.reject(error);
     }
-    if (!__autojs6_websocket_try_start_connection()) {
-      return Promise.reject(__autojs6_websocket_policy_error(
-        "AutoJs6 controlled WebSocket exceeded " + __autojs6_websocket_policy.maxConnections + " active connections.",
-        "max_connections",
-        "ERR_AUTOJS6_NETWORK_POLICY_DENIED"
-      ));
-    }
+    __autojs6_websocket_start_connection();
     return __autojs6_call_autojs(
       "websocket",
       "connect",
@@ -19956,41 +19998,17 @@ std::string buildEmbeddedScriptExecutionSource(
       height: __autojs6_number_property(value, "height")
     });
   }
-  function __autojs6_bridge_resource_limit_error(moduleName, methodName, message) {
-    return __autojs6_bridge_error(
-      message,
-      "ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT",
-      moduleName,
-      methodName
-    );
-  }
+  // The host image bridge enforces autojs6:bridge-limits.maxImageHandles; the runtime no
+  // longer counts handles itself.
   function __autojs6_track_image_creation(moduleName, methodName, factory) {
-    const limits = __autojs6_bridge_limits_policy();
-    if (__autojs6_bridge_active_image_handles.size + __autojs6_bridge_pending_image_handles >= limits.maxImageHandles) {
-      return Promise.reject(__autojs6_bridge_resource_limit_error(
-        moduleName,
-        methodName,
-        "AutoJs6 image bridge exceeded " + limits.maxImageHandles + " active image handles."
-      ));
-    }
-    __autojs6_bridge_pending_image_handles += 1;
     let created;
     try {
       created = factory();
     } catch (error) {
-      __autojs6_bridge_pending_image_handles = Math.max(0, __autojs6_bridge_pending_image_handles - 1);
       return Promise.reject(error);
     }
     return Promise.resolve(created).then(function(handle) {
-      __autojs6_bridge_pending_image_handles = Math.max(0, __autojs6_bridge_pending_image_handles - 1);
-      const normalized = __autojs6_normalize_image_handle(handle);
-      if (normalized) {
-        __autojs6_bridge_active_image_handles.add(normalized.id);
-      }
-      return normalized;
-    }, function(error) {
-      __autojs6_bridge_pending_image_handles = Math.max(0, __autojs6_bridge_pending_image_handles - 1);
-      throw error;
+      return __autojs6_normalize_image_handle(handle);
     });
   }
   function __autojs6_normalize_point(value) {
@@ -20478,7 +20496,6 @@ std::string buildEmbeddedScriptExecutionSource(
         __autojs6_image_bridge_options(__autojs6_image_options(options), 5000)
       ).then(function() {
         recycledImageHandles.add(imageHandle.id);
-        __autojs6_bridge_active_image_handles.delete(imageHandle.id);
         return undefined;
       });
     }
@@ -22520,15 +22537,6 @@ std::string buildEmbeddedScriptExecutionSource(
         methodValue
       ));
     }
-    const bridgeLimits = __autojs6_bridge_limits_policy();
-    if (__autojs6_bridge_pending.size >= bridgeLimits.maxPendingBridgeCalls) {
-      return Promise.reject(__autojs6_bridge_error(
-        "AutoJs6 bridge exceeded " + bridgeLimits.maxPendingBridgeCalls + " pending calls.",
-        "ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT",
-        moduleValue,
-        methodValue
-      ));
-    }
     const opts = options && typeof options === "object" ? options : {};
     const timeoutMs = __autojs6_bridge_timeout_ms(opts.timeoutMs);
     const effectivePermissions = __autojs6_bridge_effective_permissions(moduleValue, methodValue, opts.permissions);
@@ -22570,11 +22578,13 @@ std::string buildEmbeddedScriptExecutionSource(
         reject,
         timeout: null,
         cleanup: null,
+        dispatched: false,
+        settled: false,
         startedAtMs: Date.now()
       };
       if (signal && typeof signal.addEventListener === "function") {
         const abortListener = function() {
-          if (!__autojs6_bridge_pending.has(request.id)) {
+          if (record.settled === true) {
             return;
           }
           __autojs6_bridge_reject_pending(
@@ -22593,8 +22603,10 @@ std::string buildEmbeddedScriptExecutionSource(
           } catch (_) {}
         };
       }
+      // The timeout covers the whole call, including time spent waiting for a transport
+      // slot, so a queued call can still time out or be cancelled.
       record.timeout = setTimeout(function() {
-        if (!__autojs6_bridge_pending.has(request.id)) {
+        if (record.settled === true) {
           return;
         }
         __autojs6_bridge_reject_pending(
@@ -22608,33 +22620,13 @@ std::string buildEmbeddedScriptExecutionSource(
           )
         );
       }, timeoutMs);
-      __autojs6_bridge_pending.set(request.id, record);
-      __autojs6_bridge_publish_diagnostics(record, "start", null);
-      try {
-        if (request.binary === true && (typeof globalThis.__autojs6_bridge_native_expect_binary !== "function" ||
-            !globalThis.__autojs6_bridge_native_expect_binary(request.id, bridgeLimits.maxPendingBridgeCalls))) {
-          throw __autojs6_bridge_error("Image byte transport is unavailable or full.", "ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT", moduleValue, methodValue);
-        }
-        const requestMessage = JSON.stringify(request);
-        if (!__autojs6_bridge_transport || typeof __autojs6_bridge_transport.postMessage !== "function") {
-          if (__autojs6_bridge_post_live_host_message(requestMessage, request)) {
-            return;
-          }
-          if (__autojs6_bridge_post_queued_host_message(requestMessage)) {
-            return;
-          }
-          throw __autojs6_bridge_error(
-            "AutoJs6 bridge transport is not available.",
-            "ERR_AUTOJS6_BRIDGE_PROCESS_DEAD",
-            moduleValue,
-            methodValue,
-            { id: request.id }
-          );
-        }
-        __autojs6_bridge_transport.postMessage(requestMessage);
-      } catch (error) {
-        __autojs6_bridge_reject_pending(record, error);
+      const inFlightLimit = __autojs6_bridge_limits_policy().maxPendingBridgeCalls;
+      if (__autojs6_bridge_waiting.length > 0 || __autojs6_bridge_pending.size >= inFlightLimit) {
+        // The transport window is full: wait for a slot in FIFO order instead of failing.
+        __autojs6_bridge_waiting.push(record);
+        return;
       }
+      __autojs6_bridge_dispatch_record(record);
     });
   }
   function __autojs6_bridge_module() {
@@ -22648,6 +22640,9 @@ std::string buildEmbeddedScriptExecutionSource(
       destroy: __autojs6_bridge_destroy,
       pendingCount: function() {
         return __autojs6_bridge_pending.size;
+      },
+      waitingCount: function() {
+        return __autojs6_bridge_waiting.length;
       }
     });
     __autojs6_bridge_cache = Object.freeze({
