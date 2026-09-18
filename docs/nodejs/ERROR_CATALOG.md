@@ -40,11 +40,12 @@ message, request ID, and execution ID when reporting a failure.
 ## Workspace, Modules, and Policy
 
 Native filesystem failures normally retain Node/Android codes such as ENOENT
-or EACCES. Remaining runtime policy errors use three **ERR_AUTOJS6_FS_*** codes:
-`ERR_AUTOJS6_FS_NUL_BYTE` for NUL bytes, `ERR_AUTOJS6_FS_PATH_ESCAPE` for the `/proc`,
-`/sys`, `/dev` hard boundary (shared with the module loader and worker fs), and
-`ERR_AUTOJS6_FS_SCOPED_PATH` for removing the reach root; the other `FS_*` names still
-listed in catalog 1.5.5 are retired and no longer produced. Workspace transfer and
+or EACCES. Remaining runtime policy errors use two **ERR_AUTOJS6_FS_*** codes:
+`ERR_AUTOJS6_FS_NUL_BYTE` for NUL bytes and `ERR_AUTOJS6_FS_PATH_ESCAPE` for the `/proc`,
+`/sys`, `/dev` hard boundary (shared with the module loader and worker fs). fs no longer
+produces `ERR_AUTOJS6_FS_SCOPED_PATH` (removing the reach root is Node's decision; the
+code remains only for a non-local `worker_threads` script name), and the other `FS_*`
+names still listed in catalog 1.5.5 are retired and no longer produced. Workspace transfer and
 compiler module providers have their own relative-path validation. Module-source providers use
 **ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_*** for invalid, denied, cancelled, timed-out,
 or failed requests; `ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED` now only comes from the

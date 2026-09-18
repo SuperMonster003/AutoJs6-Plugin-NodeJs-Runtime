@@ -35,10 +35,12 @@ and literal `!` glob patterns with `exclude` arrays, `readableWebStream` `type` 
 `encoding`, and the `Stats` / `Dirent` / `Dir` constructors follow native Node 24, so
 `filesystemProfile.advancedApis.recursiveWatch` reports `native`. Recursive `readdir` /
 `opendir` are native as well (the 4096-entry cap and per-entry realpath checks are gone),
-`readlink` / `chmod` / `chown` / `utimes` accept absolute paths, and fs policy errors use
-three codes only: `ERR_AUTOJS6_FS_NUL_BYTE`, `ERR_AUTOJS6_FS_PATH_ESCAPE` for the
-`/proc` / `/sys` / `/dev` boundary, and `ERR_AUTOJS6_FS_SCOPED_PATH` for removing the
-reach root. The runtime keeps no module-source budget of its own (the 16 MiB per
+`opendir` returns Node's own lazy `fs.Dir` (`bufferSize`, `encoding` and `recursive` go to
+native; only `dir.path` and `parentPath` keep the caller's spelling), `readlink` / `chmod` /
+`chown` / `utimes` accept absolute paths, and fs policy errors use two codes only:
+`ERR_AUTOJS6_FS_NUL_BYTE` and `ERR_AUTOJS6_FS_PATH_ESCAPE` for the `/proc` / `/sys` /
+`/dev` boundary; removing the reach root is Node's decision like any other path. The
+runtime keeps no module-source budget of its own (the 16 MiB per
 module, 64 MiB total, 8192 module and provider request-count caps are gone): modules
 read from the filesystem, embedded runtime modules and `data:` URL modules are bounded
 by device memory only, while the host provider transport keeps its shared protocol
