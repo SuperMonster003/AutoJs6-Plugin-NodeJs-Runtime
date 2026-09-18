@@ -134,6 +134,7 @@ console.log("AutoJs6 Node.js runtime");
 * `優化` media-playback / media-library 範例經宿主媒體 provider 合併後的人工驗收轉為 stable; 能力目錄快照 1.5.5 發佈到 releases/nodejs-capability-catalog, 宿主對齊任務改為對照該快照
 * `優化` fs 包裝層移除自設的選項攔截: 串流的 fs / 繼承的 fd / flags 選項、watch({ recursive: true })、非同步 cp filter (cpSync 保持 Node 的 ERR_INVALID_RETURN_VALUE)、絕對路徑 / 父目錄 / 字面 '!' glob 模式與 exclude 陣列、readableWebStream 的 type / encoding 以及 Stats / Dirent / Dir 構造器均按 Node 24 原生語義處理; filesystemProfile.advancedApis.recursiveWatch 報告 native
 * `優化` 遞迴 readdir / opendir 交給原生 (移除 4096 條目上限與逐條 realpath 校驗; readdir('/') 與 Node 一樣列出 proc/sys/dev 名稱), readlink / chmod / chown / utimes 接受絕對路徑且 chmod 跟隨符號連結, fs 策略錯誤碼收斂為 ERR_AUTOJS6_FS_NUL_BYTE / ERR_AUTOJS6_FS_PATH_ESCAPE (硬邊界, 與 loader 一致) / ERR_AUTOJS6_FS_SCOPED_PATH, 普通 fs 失敗只保留 Node 碼
+* `優化` 運行時移除自設的模組源預算 (單模組 16 MiB、總量 64 MiB、8192 個模組、provider 請求計數), CommonJS 入口的 __filename / require.main.filename / process.argv[1] 與 Node 一樣為絕對路徑且 require.main.id 為 '.', fs.mkdtemp* 交給原生: 返回調用者的前綴寫法加後綴並支援所請求的編碼, 前綴父目錄為符號連結時不再拒絕
 
 # v1.5.4
 

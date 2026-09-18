@@ -916,6 +916,114 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         }
     }
 
+    /** M20.2: the runtime keeps no module-source budget, a CommonJS entry sees Node's absolute paths, and mkdtemp keeps the caller's prefix spelling. */
+    @Test
+    public void m20_loaderBudgetAndEntryPathsFollowNode() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.cjs", """
+                const assert = require('node:assert/strict');
+                const fs = require('node:fs');
+                const fsp = require('node:fs/promises');
+                const path = require('node:path');
+                (async () => {
+                  // Node hands the entry an absolute __filename even though the host named it 'main.cjs'.
+                  assert.ok(path.isAbsolute(__filename), __filename);
+                  assert.equal(path.basename(__filename), 'main.cjs');
+                  assert.equal(__dirname, path.dirname(__filename));
+                  assert.equal(require.main, module);
+                  assert.equal(require.main.filename, __filename);
+                  assert.equal(require.main.id, '.');
+                  assert.equal(process.argv[1], __filename);
+                  assert.equal(require.resolve('./main.cjs'), __filename);
+                  const dep = require('./lib/dep.cjs');
+                  assert.equal(dep.id, path.join(__dirname, 'lib', 'dep.cjs'));
+                  assert.equal(dep.parentId, '.');
+                  assert.ok(dep.mainIsParent);
+                  const esm = (await import('./lib/esm.mjs')).info;
+                  assert.equal(esm.filename, path.join(__dirname, 'lib', 'esm.mjs'));
+                  assert.equal(esm.main, false);
+                  console.log('m20.entry.paths=PASS');
+                  // mkdtemp returns the caller's prefix spelling plus the native suffix, in the requested encoding.
+                  const outside = path.resolve(process.cwd(), '..', 'm20-loader-' + process.pid);
+                  fs.mkdirSync(path.join(outside, 'real-parent'), { recursive: true });
+                  const created = [];
+                  try {
+                    const rel = fs.mkdtempSync('tmp-');
+                    assert.match(rel, /^tmp-[A-Za-z0-9]{6}$/);
+                    assert.ok(fs.statSync(path.resolve(rel)).isDirectory());
+                    created.push(rel);
+                    const dotted = fs.mkdtempSync('./tmp-');
+                    assert.ok(dotted.startsWith('./tmp-'), dotted);
+                    created.push(dotted);
+                    const abs = fs.mkdtempSync(path.join(__dirname, 'tmp-'));
+                    assert.ok(abs.startsWith(path.join(__dirname, 'tmp-')), abs);
+                    created.push(abs);
+                    const viaPromise = await fsp.mkdtemp('tmp-');
+                    assert.match(viaPromise, /^tmp-[A-Za-z0-9]{6}$/);
+                    created.push(viaPromise);
+                    const viaCallback = await new Promise((resolve, reject) => fs.mkdtemp('tmp-', (error, folder) => error ? reject(error) : resolve(folder)));
+                    assert.match(viaCallback, /^tmp-[A-Za-z0-9]{6}$/);
+                    created.push(viaCallback);
+                    const asBuffer = fs.mkdtempSync('tmp-', { encoding: 'buffer' });
+                    assert.ok(Buffer.isBuffer(asBuffer));
+                    assert.match(asBuffer.toString(), /^tmp-[A-Za-z0-9]{6}$/);
+                    created.push(asBuffer.toString());
+                    const asHex = fs.mkdtempSync('tmp-', 'hex');
+                    assert.match(Buffer.from(asHex, 'hex').toString(), /^tmp-[A-Za-z0-9]{6}$/);
+                    created.push(Buffer.from(asHex, 'hex').toString());
+                    const trailing = fs.mkdtempSync(path.join(outside, 'real-parent') + path.sep);
+                    assert.equal(path.dirname(trailing), path.join(outside, 'real-parent'));
+                    fs.symlinkSync('real-parent', path.join(outside, 'link-parent'));
+                    const viaLink = fs.mkdtempSync(path.join(outside, 'link-parent', 'tmp-'));
+                    assert.ok(viaLink.startsWith(path.join(outside, 'link-parent', 'tmp-')), viaLink);
+                    assert.ok(fs.statSync(viaLink).isDirectory());
+                    const disposable = fs.mkdtempDisposableSync('tmp-');
+                    assert.match(disposable.path, /^tmp-[A-Za-z0-9]{6}$/);
+                    disposable.remove();
+                    assert.ok(!fs.existsSync(disposable.path));
+                    assert.throws(() => fs.mkdtempSync('missing-dir/tmp-'), (error) => error.code === 'ENOENT' && error.autojs6Code === undefined);
+                    assert.throws(() => fs.mkdtempSync('tmp-', { encoding: 'nope' }), { code: 'ERR_INVALID_ARG_VALUE' });
+                    assert.throws(() => fs.mkdtempSync(42), { code: 'ERR_INVALID_ARG_TYPE' });
+                    assert.throws(() => fs.mkdtempSync('tmp-' + String.fromCharCode(0)), { autojs6Code: 'ERR_AUTOJS6_FS_NUL_BYTE' });
+                    console.log('m20.mkdtemp=PASS');
+                    // No module-source budget: 22 MiB modules (three of them, 66 MiB in total) and 8300 modules load.
+                    const bigSource = 'module.exports = 1; // ' + 'x'.repeat(22 * 1024 * 1024);
+                    for (const name of ['big-a.cjs', 'big-b.cjs', 'big-c.cjs']) {
+                      fs.writeFileSync(path.join(outside, name), bigSource);
+                      assert.equal(require(path.join(outside, name)), 1);
+                    }
+                    let sum = 0;
+                    for (let index = 0; index < 8300; index += 1) {
+                      sum += (await import('data:text/javascript,export default ' + index + ';')).default;
+                    }
+                    assert.equal(sum, 8300 * 8299 / 2);
+                    console.log('m20.module.budget=PASS');
+                  } finally {
+                    for (const folder of created) fs.rmSync(folder, { recursive: true, force: true });
+                    fs.rmSync(outside, { recursive: true, force: true });
+                  }
+                  console.log('m20.loader.paths=PASS');
+                })().catch((error) => { console.error(error && error.stack || error); process.exitCode = 1; });
+                """);
+        files.put("lib/dep.cjs", """
+                module.exports = { id: module.id, parentId: module.parent && module.parent.id, mainIsParent: require.main === module.parent };
+                """);
+        files.put("lib/esm.mjs", """
+                export const info = { filename: import.meta.filename, main: import.meta.main };
+                """);
+        try (WorkspaceInvocation invocation = execute("m20-loader-paths", "main.cjs", files, false, 180_000L)) {
+            assertSucceeded(invocation.result, "m20.loader.paths=PASS");
+            String stdout = invocation.result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+            for (String expected : new String[] {
+                    "m20.entry.paths=PASS",
+                    "m20.mkdtemp=PASS",
+                    "m20.module.budget=PASS"
+            }) {
+                assertTrue("stdout is missing '" + expected + "': " + stdout, stdout.contains(expected));
+            }
+        }
+    }
+
     /** M20.2: readdir/opendir recursion is native (no 4096-entry cap) and fs policy codes collapse to NUL / hard boundary / reach root. */
     @Test
     public void m20_readdirRecursionAndFsPolicyCodesFollowNode() throws Exception {

@@ -134,6 +134,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `개선` media-playback / media-library 샘플이 병합된 호스트 미디어 provider로 수동 검수를 통과해 stable로 승격; 기능 카탈로그 스냅샷 1.5.5를 releases/nodejs-capability-catalog에 게시하고 호스트 정합 작업이 이를 참조
 * `개선` fs 래퍼의 자체 옵션 제한 제거: 스트림의 fs / 상속된 fd / flags 옵션, watch({ recursive: true }), 비동기 cp filter (cpSync는 Node의 ERR_INVALID_RETURN_VALUE 유지), 절대 경로 / 상위 디렉터리 / 리터럴 '!' glob 패턴과 exclude 배열, readableWebStream의 type / encoding, Stats / Dirent / Dir 생성자가 모두 Node 24 네이티브 동작을 따름; filesystemProfile.advancedApis.recursiveWatch는 native를 보고
 * `개선` 재귀 readdir / opendir를 네이티브에 위임 (4096 항목 상한과 항목별 realpath 검사 제거; readdir('/')는 Node처럼 proc/sys/dev 이름을 나열), readlink / chmod / chown / utimes가 절대 경로를 허용하고 chmod는 심볼릭 링크를 따라감, fs 정책 오류 코드는 ERR_AUTOJS6_FS_NUL_BYTE / ERR_AUTOJS6_FS_PATH_ESCAPE (하드 경계, loader와 공유) / ERR_AUTOJS6_FS_SCOPED_PATH로 수렴하고 일반 fs 실패는 Node 코드만 유지
+* `개선` 런타임 자체 모듈 소스 예산 (모듈당 16 MiB, 총 64 MiB, 8192개 모듈, provider 요청 수) 제거, CommonJS 진입점의 __filename / require.main.filename / process.argv[1]이 Node처럼 절대 경로가 되고 require.main.id는 '.', fs.mkdtemp*는 네이티브에 위임: 호출자의 접두사 표기에 접미사를 붙여 요청한 인코딩으로 반환하고 부모 디렉터리가 심볼릭 링크여도 거부하지 않음
 
 # v1.5.4
 

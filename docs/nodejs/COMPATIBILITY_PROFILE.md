@@ -38,7 +38,16 @@ and literal `!` glob patterns with `exclude` arrays, `readableWebStream` `type` 
 `readlink` / `chmod` / `chown` / `utimes` accept absolute paths, and fs policy errors use
 three codes only: `ERR_AUTOJS6_FS_NUL_BYTE`, `ERR_AUTOJS6_FS_PATH_ESCAPE` for the
 `/proc` / `/sys` / `/dev` boundary, and `ERR_AUTOJS6_FS_SCOPED_PATH` for removing the
-reach root.
+reach root. The runtime keeps no module-source budget of its own (the 16 MiB per
+module, 64 MiB total, 8192 module and provider request-count caps are gone): modules
+read from the filesystem, embedded runtime modules and `data:` URL modules are bounded
+by device memory only, while the host provider transport keeps its shared protocol
+sizes. A CommonJS entry sees an absolute `__filename` / `require.main.filename` /
+`process.argv[1]` with `require.main.id === "."` like Node, and `fs.mkdtemp*` returns
+the caller's prefix spelling plus the native suffix in the requested encoding. The
+`esmModuleGraphModules` diagnostic is a bounded sample (first 64 entries plus a remainder
+count) so a large ESM graph cannot overflow the Binder transaction that carries the
+finished event.
 Native Node builtins retain their own names: `events` / `node:events` is EventEmitter;
 Android event observation is exposed as `autojs6:events`. The runtime links ICU 78 with
 English-only locale data (`--with-intl=small-icu`, since v1.5.1): `Intl` exists and
