@@ -58,6 +58,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -116,6 +117,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
 
     private Context targetContext;
     private BoundRuntime boundRuntime;
+    private final AtomicLong plaintextProviderAdvertisedSourceMaxBytes = new AtomicLong(-1L);
 
     @Before
     public void bindRealPluginRuntime() throws Exception {
@@ -1119,6 +1121,74 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         }
     }
 
+    /** M20.2: the provider transport adopts the host-advertised protocol sizes; the built-in numbers are only a fallback. */
+    @Test
+    public void m20_providerTransportAdoptsHostAdvertisedLimits() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put(
+                "main.cjs",
+                "const value = require('./materialized-plain.cjs');\n" +
+                        "console.log('m20.provider.limits=' + value.length);\n"
+        );
+        StringBuilder module = new StringBuilder("module.exports = '");
+        while (module.length() < 2048) module.append("0123456789abcdef");
+        module.append("';\n");
+        byte[] rawPlaintext = module.toString().getBytes(StandardCharsets.UTF_8);
+        int payloadLength = module.length() - "module.exports = '".length() - "';\n".length();
+
+        plaintextProviderAdvertisedSourceMaxBytes.set(1024L);
+        try (WorkspaceInvocation invocation = execute(
+                "provider-limits-host-1024",
+                "main.cjs",
+                files,
+                new LinkedHashMap<>(),
+                true,
+                rawPlaintext
+        )) {
+            assertFalse("2 KiB source unexpectedly passed a host-advertised 1 KiB limit",
+                    invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            assertEquals(
+                    NodeJsRuntimeContract.ERROR_MODULE_SOURCE_PROVIDER_BUDGET_EXCEEDED,
+                    invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_CODE)
+            );
+            assertNativeValue(invocation.result,
+                    "embedded_script.module_provider.transport_limits_source", "host");
+            assertNativeValue(invocation.result,
+                    "embedded_script.module_provider.transport_source_bytes_limit", "1024");
+            assertNativeValue(invocation.result,
+                    "embedded_script.module_provider.transport_aggregate_source_bytes_limit", "4096");
+            assertNativeValue(invocation.result,
+                    "embedded_script.module_provider.transport_request_count_limit", "64");
+            invocation.callback.assertOneStartedAndOneTerminalEvent();
+        } finally {
+            plaintextProviderAdvertisedSourceMaxBytes.set(-1L);
+        }
+
+        try (WorkspaceInvocation invocation = execute(
+                "provider-limits-default",
+                "main.cjs",
+                files,
+                new LinkedHashMap<>(),
+                true,
+                rawPlaintext
+        )) {
+            String stdout = invocation.result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+            assertTrue("materialized source failed under the default limits: " +
+                            invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, "") + " / " + stdout,
+                    invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
+            assertTrue(stdout, stdout.contains("m20.provider.limits=" + payloadLength));
+            assertNativeValue(invocation.result,
+                    "embedded_script.module_provider.transport_limits_source", "default");
+            assertNativeValue(invocation.result,
+                    "embedded_script.module_provider.transport_source_bytes_limit", "16777216");
+            assertNativeValue(invocation.result,
+                    "embedded_script.module_provider.transport_aggregate_source_bytes_limit", "67108864");
+            assertNativeValue(invocation.result,
+                    "embedded_script.module_provider.transport_request_count_limit", "139264");
+            invocation.callback.assertOneStartedAndOneTerminalEvent();
+        }
+    }
+
     /** M20.2: opendir returns Node's own lazy Dir and removing the reach root is Node's decision like any other path. */
     @Test
     public void m20_opendirIsNativeLazyDirAndReachRootFollowsNode() throws Exception {
@@ -2110,7 +2180,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                             executionId,
                             sandboxRoot,
                             runtimePid,
-                            missingPlaintextSource
+                            missingPlaintextSource,
+                            plaintextProviderAdvertisedSourceMaxBytes.get()
                     )
                     : null;
             ExactGraphProvider exactGraphProvider = exactProviderActions == null
@@ -2889,6 +2960,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         private final String rootPrefix;
         private final int expectedRuntimePid;
         private final byte[] missingPlaintextSource;
+        private final long advertisedSourceMaxBytes;
         private final AtomicInteger resolveCount = new AtomicInteger();
         private final AtomicInteger callerPid = new AtomicInteger(-1);
         private final AtomicReference<String> lastResolvedPath = new AtomicReference<>("");
@@ -2905,6 +2977,16 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 int expectedRuntimePid,
                 byte[] missingPlaintextSource
         ) throws IOException {
+            this(executionId, root, expectedRuntimePid, missingPlaintextSource, -1L);
+        }
+
+        PlaintextProvider(
+                String executionId,
+                File root,
+                int expectedRuntimePid,
+                byte[] missingPlaintextSource,
+                long advertisedSourceMaxBytes
+        ) throws IOException {
             this.executionId = executionId;
             this.root = root.getCanonicalFile();
             this.rootPrefix = this.root.getAbsolutePath() + File.separator;
@@ -2912,6 +2994,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
             this.missingPlaintextSource = missingPlaintextSource == null
                     ? null
                     : missingPlaintextSource.clone();
+            this.advertisedSourceMaxBytes = advertisedSourceMaxBytes;
         }
 
         @Override
@@ -3041,6 +3124,19 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                             "x3d.plaintext_provider.failure=" + failure.get()
                     }
             );
+            if (advertisedSourceMaxBytes > 0L) {
+                // Mirrors NodeJsEncryptedModuleSourceProvider: the host publishes its transport sizes.
+                diagnostics.putInt(
+                        NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_SOURCE_MAX_BYTES,
+                        (int) advertisedSourceMaxBytes
+                );
+                diagnostics.putLong(
+                        NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_TOTAL_MAX_BYTES,
+                        advertisedSourceMaxBytes * 4L
+                );
+                diagnostics.putInt(NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_MAX_COUNT, 64);
+                diagnostics.putInt(NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_REQUEST_MAX_COUNT, 64);
+            }
             return diagnostics;
         }
 

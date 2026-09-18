@@ -327,7 +327,7 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
                         if (binary != null && !NativeNodeEmbeddedRuntimeBridge.attachBridgeBinary(executionId,
                                 identity.id.getBytes(StandardCharsets.UTF_8), binary.getFd(),
                                 response.getLong(NodeJsRuntimeContract.KEY_BRIDGE_BINARY_BYTE_COUNT, -1))) {
-                            json = bridgeFailureResponseJson(identity, "Image byte response is invalid or no longer active.", BRIDGE_PROVIDER_FAILED);
+                            json = bridgeFailureResponseJson(identity, "Binary response attachment is invalid or no longer active.", BRIDGE_PROVIDER_FAILED);
                         }
                     } catch (java.io.IOException | RuntimeException error) {
                         json = bridgeFailureResponseJson(identity, messageOf(error), BRIDGE_PROVIDER_FAILED);

@@ -6411,9 +6411,17 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_bridge_pending.set(request.id, record);
     __autojs6_bridge_publish_diagnostics(record, "start", null);
     try {
-      if (request.binary === true && (typeof globalThis.__autojs6_bridge_native_expect_binary !== "function" ||
-          !globalThis.__autojs6_bridge_native_expect_binary(request.id, __autojs6_bridge_limits_policy().maxPendingBridgeCalls))) {
-        throw __autojs6_bridge_error("Image byte transport is unavailable or full.", "ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT", request.module, request.method);
+      if (request.binary === true) {
+        const reserved = typeof globalThis.__autojs6_bridge_native_expect_binary === "function" &&
+          globalThis.__autojs6_bridge_native_expect_binary(request.id, __autojs6_bridge_limits_policy().maxPendingBridgeCalls);
+        if (!reserved) {
+          if (request.module === "fetch") {
+            // No descriptor slot for this call: let the host answer inline instead.
+            delete request.binary;
+          } else {
+            throw __autojs6_bridge_error("Image byte transport is unavailable or full.", "ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT", request.module, request.method);
+          }
+        }
       }
       const requestMessage = JSON.stringify(request);
       if (!__autojs6_bridge_transport || typeof __autojs6_bridge_transport.postMessage !== "function") {
@@ -6457,6 +6465,24 @@ std::string buildEmbeddedScriptExecutionSource(
       return false;
     }
     if (response.ok === true) {
+      if (record.request.binary === true && record.request.module === "fetch") {
+        const result = response.result;
+        if (result && typeof result === "object" && result.bodyTransport === "pfd") {
+          try {
+            const bytes = globalThis.__autojs6_bridge_native_take_binary(record.id);
+            if (!bytes || bytes.byteLength !== Number(result.bodyBytes)) {
+              throw new Error("Host fetch body bytes are missing or have an invalid length.");
+            }
+            result.body = __autojs6_buffer_module().Buffer.from(bytes);
+          } catch (error) {
+            __autojs6_bridge_reject_pending(record, __autojs6_bridge_error(
+              String(error.message || error), "ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED", record.request.module, record.request.method));
+            return true;
+          }
+        }
+        __autojs6_bridge_resolve_pending(record, result === undefined ? null : result);
+        return true;
+      }
       if (record.request.binary === true) {
         try {
           const bytes = globalThis.__autojs6_bridge_native_take_binary(record.id);
@@ -7142,7 +7168,10 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
     let buffer;
-    if (result && result.bodyBase64 !== undefined && result.bodyBase64 !== null) {
+    if (result && BufferCtor.isBuffer(result.body)) {
+      // Descriptor-delivered body (host "bodyTransport": "pfd"), already mapped by the bridge.
+      buffer = result.body;
+    } else if (result && result.bodyBase64 !== undefined && result.bodyBase64 !== null) {
       buffer = BufferCtor.from(String(result.bodyBase64), "base64");
     } else if (result && result.bodyText !== undefined && result.bodyText !== null) {
       buffer = BufferCtor.from(String(result.bodyText), "utf8");
@@ -22513,6 +22542,9 @@ std::string buildEmbeddedScriptExecutionSource(
     };
     const eventMethod = { sensors: "subscribe", websocket: "connect", ui: "showLayout", "ui.overlay": "show", input_observer: "observeKeys" };
     if ((moduleValue === "image" || moduleValue === "images") && methodValue === "toBytes") request.binary = true;
+    // Controlled fetch bodies come back through the same descriptor channel as image bytes
+    // (host reply "bodyTransport": "pfd"); hosts without it keep answering inline base64.
+    if (moduleValue === "fetch" && methodValue === "request") request.binary = true;
     const liveConfig = __autojs6_bridge_live_config();
     if ((eventMethod[moduleValue] === methodValue || (moduleValue === "events" && methodValue.startsWith("observe"))) && liveConfig && liveConfig.transport === "jni" &&
         !__autojs6_bridge_native_unavailable && typeof globalThis.__autojs6_bridge_native_subscription === "function") {

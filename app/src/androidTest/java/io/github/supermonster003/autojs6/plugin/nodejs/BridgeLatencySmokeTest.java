@@ -450,6 +450,101 @@ public final class BridgeLatencySmokeTest {
         InstrumentationRegistry.getInstrumentation().sendStatus(0, status);
     }
 
+    @Test public void controlledFetchBodiesArriveThroughTheBinaryTransport() throws Exception {
+        java.util.concurrent.ConcurrentLinkedQueue<String> seen = new java.util.concurrent.ConcurrentLinkedQueue<>();
+        java.util.concurrent.atomic.AtomicInteger binaryFlagged = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.atomic.AtomicInteger descriptorsSent = new java.util.concurrent.atomic.AtomicInteger();
+        INodeJsHostCapabilityBroker broker = new INodeJsHostCapabilityBroker.Stub() {
+            @Override public Bundle getBrokerInfo() {
+                Bundle info = new ScreenStateTestBroker().getBrokerInfo();
+                info.putStringArray(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_MODULES, new String[]{"device", "fetch"});
+                return info;
+            }
+            @Override public Bundle getNativeDiagnostics() { return new Bundle(); }
+            @Override public void destroy(Bundle reason) { }
+            @Override public void dispatch(Bundle request, INodeJsHostCapabilityCallback callback) {
+                try {
+                    JSONObject call = new JSONObject(request.getString(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_JSON));
+                    if (call.optBoolean("binary", false)) binaryFlagged.incrementAndGet();
+                    JSONObject descriptor = call.getJSONArray("args").getJSONObject(0);
+                    String path = new java.net.URL(descriptor.getString("url")).getPath();
+                    seen.add(path);
+                    JSONObject result = new JSONObject().put("url", descriptor.getString("url")).put("status", 200).put("statusText", "OK")
+                            .put("headers", new JSONArray().put(new JSONArray().put("content-type").put("application/octet-stream")));
+                    Bundle response = new Bundle();
+                    java.io.File payload = null;
+                    android.os.ParcelFileDescriptor fd = null;
+                    try {
+                        if (path.startsWith("/pfd/") || path.equals("/redirect-pfd")) {
+                            // Host-side shape of M20.2 batch 13: body in a cache file, JSON carries only its size.
+                            int count = path.equals("/redirect-pfd") ? 4096 : Integer.parseInt(path.substring("/pfd/".length()));
+                            payload = java.io.File.createTempFile("fetch-body-", ".bin", context.getCacheDir());
+                            try (java.io.FileOutputStream stream = new java.io.FileOutputStream(payload)) {
+                                byte[] chunk = new byte[8192];
+                                for (int offset = 0; offset < count; offset += chunk.length) {
+                                    int length = Math.min(chunk.length, count - offset);
+                                    for (int index = 0; index < length; index++) chunk[index] = (byte) ((offset + index) % 251);
+                                    stream.write(chunk, 0, length);
+                                }
+                            }
+                            if (path.equals("/redirect-pfd")) {
+                                result.put("status", 302).put("headers", new JSONArray().put(new JSONArray().put("location").put("/pfd/1024")));
+                            }
+                            result.put("bodyBytes", count).put("bodyTransport", "pfd");
+                            fd = android.os.ParcelFileDescriptor.open(payload, android.os.ParcelFileDescriptor.MODE_READ_ONLY);
+                            response.putParcelable(NodeJsRuntimeContract.KEY_BRIDGE_BINARY_PFD, fd);
+                            response.putLong(NodeJsRuntimeContract.KEY_BRIDGE_BINARY_BYTE_COUNT, count);
+                            descriptorsSent.incrementAndGet();
+                        } else if (path.startsWith("/inline/")) {
+                            byte[] bytes = new byte[Integer.parseInt(path.substring("/inline/".length()))];
+                            for (int index = 0; index < bytes.length; index++) bytes[index] = (byte) (index % 251);
+                            result.put("bodyBase64", android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)).put("bodyBytes", bytes.length);
+                        } else {
+                            result.put("bodyBase64", "").put("bodyBytes", 0);
+                        }
+                        response.putString(NodeJsRuntimeContract.KEY_BRIDGE_RESPONSE_JSON,
+                                new JSONObject().put("id", call.getString("id")).put("ok", true).put("result", result).toString());
+                        callback.onResponse(response);
+                    } finally {
+                        if (fd != null) fd.close();
+                        if (payload != null) payload.delete();
+                    }
+                } catch (Exception error) {
+                    throw new AssertionError(error);
+                }
+            }
+        };
+        for (String transport : new String[]{"jni", "file"}) {
+            seen.clear();
+            binaryFlagged.set(0);
+            descriptorsSent.set(0);
+            Bundle result = run(broker, transport,
+                    "(async () => { const cfetch = require('fetch'); const base = 'http://fake.local';\n" +
+                    "const big = Buffer.from(await (await cfetch(base + '/pfd/4194304')).arrayBuffer());\n" +
+                    "let pattern = big.length === 4194304; for (let i = 0; pattern && i < big.length; i += 4099) pattern = big[i] === i % 251;\n" +
+                    "const inline = Buffer.from(await (await cfetch(base + '/inline/65536')).arrayBuffer());\n" +
+                    "const empty = await (await cfetch(base + '/empty')).arrayBuffer();\n" +
+                    "const redirected = await cfetch(base + '/redirect-pfd'); const redirectedBody = await redirected.arrayBuffer();\n" +
+                    "const parallel = await Promise.all(Array.from({ length: 40 }, (_, i) => cfetch(base + '/pfd/' + (1024 + i)).then(r => r.arrayBuffer()).then(b => b.byteLength)));\n" +
+                    "const text = await (await cfetch(base + '/pfd/13')).text();\n" +
+                    "const viaAxios = await require('axios').get(base + '/pfd/2048', { responseType: 'arraybuffer' });\n" +
+                    "console.log('m20.pfd=' + JSON.stringify({ pattern, inline: inline.length === 65536 && inline[65535] === 65535 % 251, empty: empty.byteLength,\n" +
+                    "  redirect: [redirected.status, redirectedBody.byteLength], parallel: parallel.every((n, i) => n === 1024 + i), text: text.length, axios: viaAxios.data.byteLength }));\n" +
+                    "})().catch(e => { console.error(e); process.exitCode = 1; });", "device", "network");
+            String stdout = result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+            int marker = stdout.indexOf("m20.pfd=");
+            assertTrue("missing pfd marker (" + transport + "): " + stdout, marker >= 0);
+            JSONObject outcome = new JSONObject(stdout.substring(marker + "m20.pfd=".length()).trim());
+            assertTrue(transport + ": " + outcome, outcome.getBoolean("pattern") && outcome.getBoolean("inline") && outcome.getInt("empty") == 0);
+            assertEquals(transport + ": " + outcome, "[200,1024]", outcome.getJSONArray("redirect").toString());
+            assertTrue(transport + ": " + outcome, outcome.getBoolean("parallel") && outcome.getInt("text") == 13 && outcome.getInt("axios") == 2048);
+            // big + inline + empty + redirect + its follow-up + 40 parallel + text + axios
+            assertEquals("fetch requests over " + transport + ": " + seen, 47, seen.size());
+            assertEquals("every fetch request asks for the binary transport (" + transport + ")", 47, binaryFlagged.get());
+            assertEquals("descriptor replies over " + transport, 45, descriptorsSent.get());
+        }
+    }
+
     private static String value(String[] payload, String key) {
         for (String entry : payload) {
             if (entry.startsWith(key + "=")) return entry.substring(key.length() + 1);

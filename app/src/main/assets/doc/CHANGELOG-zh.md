@@ -30,6 +30,7 @@
 * `优化` 桥配额交给宿主: 超出 autojs6:bridge-limits 中 maxPendingBridgeCalls 窗口的调用改为按先进先出排队等待而不再以 ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT 失败, 运行时不再自行限制图像句柄数、受控 fetch 并发数与受控 WebSocket 连接数 (宿主 broker 继续执行其策略), require('fetch').policy.maxConcurrentRequests 与 require('websocket').policy.maxConnections 字段退役
 * `优化` 桥接 fetch / WebSocket / axios facade 的硬上限交给宿主: 超时、响应体大小、重定向次数、消息与队列尺寸及 HTTP 方法原样传给宿主提供者 (由宿主策略决定), 运行时像 Node 一样最多跟随 20 次重定向, policy 中退役的 hard* / 默认尺寸字段改为 limitsEnforcedBy
 * `优化` opendir 直接返回 Node 原生的惰性 fs.Dir (bufferSize、encoding 与 recursive 交给原生 opendir, ENOENT / ENOTDIR / ERR_DIR_CLOSED 均为 Node 原生错误; 只有 dir.path 与 parentPath 保留调用者写法), 运行时删除文件系统可达根的守卫退役, 对根目录的 rm / rmdir 与其他路径一样交给 Node 与 Android 决定 (fs 策略码只剩 FS_NUL_BYTE 与 FS_PATH_ESCAPE)
+* `优化` 宿主 provider 传输通道改为采用宿主经 getNativeDiagnostics() 公布的单源 / 总量 / 请求计数尺寸 (内置的 16 MiB / 64 MiB / 139264 仅作回退), 桥接 fetch 的响应体改经文件描述符交付 (bodyTransport "pfd"), 只受宿主 maxResponseBytes 策略约束而不再受 Binder 事务尺寸限制, 宿主回复超过 Binder 事务尺寸时立即报 ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED (宿主分支 node-m20-2-binder-body-pfd) 而非桥超时
 
 # v1.5.4
 

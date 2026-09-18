@@ -35,7 +35,9 @@ message, request ID, and execution ID when reporting a failure.
   a host-configured request/resource budget was exceeded. The runtime itself no longer
   rejects calls for the in-flight window (excess calls wait), image handle counts, fetch
   concurrency or WebSocket connection counts.
-- **ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED**: a host provider failed after validation.
+- **ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED**: a host provider failed after validation, or the
+  host reply exceeded the Binder transaction size (hosts with the M20.2 batch-13 broker
+  report this at once instead of letting the call run into the bridge timeout).
 
 ## Workspace, Modules, and Policy
 
