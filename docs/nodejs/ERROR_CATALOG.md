@@ -13,7 +13,12 @@ message, request ID, and execution ID when reporting a failure.
   external Node.js runtime plugin.
 - **ERR_AUTOJS6_NODE_RUNTIME_UNAVAILABLE**: no usable runtime path exists.
 - **ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE**: the required plugin cannot be discovered,
-  trusted, enabled, bound, or used for the device ABI.
+  trusted, enabled, bound, or used for the device ABI. It is also the code when a
+  runtime slot process dies during an execution; the message then carries the
+  system's exit record, for example `LOW_MEMORY (killed by the system low-memory
+  killer; rss 2.6 GB)` or `CRASH_NATIVE (SIGABRT; see the logcat tombstone)`, and
+  the result carries a `slotExit` Bundle (Android 11+; older systems report that
+  the reason is unavailable).
 - **ERR_AUTOJS6_NODE_PLUGIN_CONTRACT_MISMATCH**: host and plugin contract ranges do
   not overlap.
 - **ERR_AUTOJS6_NODE_PLUGIN_EXECUTION_LOST**: an in-flight plugin execution was lost.

@@ -39,6 +39,8 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
     private final ExecutorService executions = Executors.newFixedThreadPool(5,
             task -> new Thread(task, "Node-pool-execution"));
     private volatile boolean closed;
+    /** Most recent unexpected slot death (M12.5a); cancellation restarts are not counted. */
+    private volatile Bundle lastSlotExit;
 
     NodeRuntimeProcessPool(NodeJsRuntimePluginService service) {
         this.service = service;
@@ -78,6 +80,7 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
         final long timeout;
         volatile boolean cancelled;
         int pid;
+        long dispatchedAtWallMs;
         Slot slot;
         Job(Bundle request) {
             this.request = request;
@@ -210,6 +213,7 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
             }
             INodeJsRuntimePlugin remote = awaitRemote(job.slot, job);
             job.pid = remote.getRuntimeInfo().getInt(NodeJsRuntimeContract.KEY_PID);
+            job.dispatchedAtWallMs = System.currentTimeMillis();
             if (job.timeout > 0) {
                 long remaining = job.remaining();
                 if (remaining <= 0) throw new AdmissionFailure(timeout(job, "dispatch"));
@@ -261,6 +265,7 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
             result = job.cancelled ? service.bundles.failureBundle(job.request, job.startedAt,
                     "Node execution was cancelled and its runtime slot restarted.", null, NodeJsRuntimePluginService.ERROR_SCRIPT_CANCELLED) :
                     job.timeout > 0 && job.remaining() <= 0 ? timeout(job, "dispatch") :
+                    deadObject(error) != null && job.pid > 0 ? slotExitFailure(job, deadObject(error)) :
                     service.bundles.failureBundle(job.request, job.startedAt, "Node runtime slot failed: " + error.getMessage(),
                             error, NodeJsRuntimePluginService.ERROR_UNAVAILABLE);
         } finally {
@@ -268,6 +273,26 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
             unregister(job);
         }
         return finish(job, callback, result);
+    }
+
+    private static Throwable deadObject(Throwable error) {
+        for (Throwable current = error; current != null; current = current.getCause()) {
+            if (current instanceof android.os.DeadObjectException) return current;
+        }
+        return null;
+    }
+
+    /** The slot process died mid-execution: report the system's exit record instead of a bare DeadObjectException. */
+    private Bundle slotExitFailure(Job job, Throwable death) {
+        int slotId = job.slot == null ? -1 : job.slot.id;
+        Bundle exit = NodeRuntimeSlotExit.describe(service, job.pid, slotId, job.id,
+                job.dispatchedAtWallMs - 1_000L, NodeRuntimeSlotExit.RECORD_WAIT_MS);
+        lastSlotExit = exit;
+        Bundle result = service.bundles.failureBundle(job.request, job.startedAt,
+                NodeRuntimeSlotExit.failureMessage(slotId, job.pid, exit.getString("summary")),
+                death, NodeJsRuntimePluginService.ERROR_UNAVAILABLE);
+        result.putBundle(NodeRuntimeSlotExit.KEY_SLOT_EXIT, new Bundle(exit));
+        return result;
     }
 
     private Bundle timeout(Job job, String phase) {
@@ -377,6 +402,8 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
         info.putStringArray(NodeJsRuntimeContract.KEY_CAPABILITIES, capabilities.toArray(new String[0]));
         info.putInt("dispatcherPid", android.os.Process.myPid());
         info.putParcelableArrayList("slots", snapshots);
+        Bundle exit = lastSlotExit;
+        if (exit != null) info.putBundle(NodeRuntimeSlotExit.KEY_LAST_SLOT_EXIT, new Bundle(exit));
         return info;
     }
 
