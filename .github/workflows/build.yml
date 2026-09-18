@@ -72,12 +72,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # 2560M is the runner's default; kept as the memory-pressure canary (it caught the loader masking OOM).
           - api: 36
             target: google_apis
             page_size: 4096
+            ram_size: 2560M
+          # The 16 KB image ships ~470 MB of swap against ~1.9 GB on the 4 KB one; extra RAM makes up the headroom.
           - api: 35
             target: google_apis_ps16k
             page_size: 16384
+            ram_size: 4096M
     steps:
       - uses: actions/checkout@v7
         with:
@@ -98,10 +102,11 @@ jobs:
           api-level: ${{ matrix.api }}
           arch: x86_64
           target: ${{ matrix.target }}
+          ram-size: ${{ matrix.ram_size }}
           disable-animations: true
           script: bash .github/scripts/emulator-smoke.sh
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: emulator-results-${{ matrix.target }}
-          path: smoke-results.txt
+          path: smoke-*.txt
