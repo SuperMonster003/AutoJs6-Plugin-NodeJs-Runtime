@@ -12572,8 +12572,8 @@ std::string buildEmbeddedScriptExecutionSource(
     return __autojs6_files_call("write", function() {
       const nodeFs = __autojs6_fs_module();
       const resolved = __autojs6_files_resolve_required(pathValue, "write", "path", {
-        checkParent: true,
-        rejectRoot: true
+        checkParent: true
+
       });
       nodeFs.writeFileSync(resolved, __autojs6_files_text(text), __autojs6_files_encoding(encoding));
     });
@@ -12582,8 +12582,8 @@ std::string buildEmbeddedScriptExecutionSource(
     return __autojs6_files_call("append", function() {
       const nodeFs = __autojs6_fs_module();
       const resolved = __autojs6_files_resolve_required(pathValue, "append", "path", {
-        checkParent: true,
-        rejectRoot: true
+        checkParent: true
+
       });
       nodeFs.appendFileSync(resolved, __autojs6_files_text(text), __autojs6_files_encoding(encoding));
     });
@@ -12623,7 +12623,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return __autojs6_files_call("remove", function() {
       const nodeFs = __autojs6_fs_module();
-      const resolved = __autojs6_files_resolve(String(pathValue), "remove", { rejectRoot: true });
+      const resolved = __autojs6_files_resolve(String(pathValue), "remove");
       if (!nodeFs.existsSync(resolved)) {
         return false;
       }
@@ -12641,8 +12641,8 @@ std::string buildEmbeddedScriptExecutionSource(
       const nodeFs = __autojs6_fs_module();
       const source = __autojs6_files_resolve_required(sourcePath, "copy source", "pathFrom", {});
       const destination = __autojs6_files_resolve_required(destinationPath, "copy destination", "pathTo", {
-        checkParent: true,
-        rejectRoot: true
+        checkParent: true
+
       });
       if (!nodeFs.existsSync(source)) {
         return false;
@@ -12661,8 +12661,8 @@ std::string buildEmbeddedScriptExecutionSource(
       const nodeFs = __autojs6_fs_module();
       const source = __autojs6_files_resolve_required(sourcePath, "move source", "path", {});
       const destination = __autojs6_files_resolve_required(destinationPath, "move destination", "newPath", {
-        checkParent: true,
-        rejectRoot: true
+        checkParent: true
+
       });
       if (!nodeFs.existsSync(source)) {
         return false;
@@ -12682,8 +12682,8 @@ std::string buildEmbeddedScriptExecutionSource(
     return __autojs6_files_call("ensureDir", function() {
       const nodeFs = __autojs6_fs_module();
       const resolved = __autojs6_files_resolve_required(pathValue, "ensureDir", "path", {
-        checkParent: true,
-        rejectRoot: true
+        checkParent: true
+
       });
       const text = String(pathValue);
       const target = /[\\\/]$/.test(text)
@@ -12691,8 +12691,8 @@ std::string buildEmbeddedScriptExecutionSource(
         : __autojs6_files_parent_directory(resolved, "ensureDir");
       __autojs6_files_resolve(target, "ensureDir target", {
         allowAbsolute: true,
-        checkParent: true,
-        rejectRoot: true
+        checkParent: true
+
       });
       if (!nodeFs.existsSync(target)) {
         nodeFs.mkdirSync(target, { recursive: true });
@@ -27934,16 +27934,14 @@ std::string buildEmbeddedScriptExecutionSource(
     return String(display).replace(/\u0000/g, "<NUL>");
   }
   function __autojs6_scoped_fs_autojs6_error_code(reason) {
-    // Only three policy outcomes remain now that fs reach is Android file access:
-    // NUL bytes, the /proc /sys /dev hard boundary (one code, shared with the
-    // module loader and worker fs), and refusing to remove the reach root. Other
-    // fs failures keep their Node/Android code without an AutoJs6 policy code.
+    // Only two policy outcomes remain now that fs reach is Android file access:
+    // NUL bytes and the /proc /sys /dev hard boundary (one code, shared with the
+    // module loader and worker fs). Removing the reach root is Node's decision like
+    // any other path; other fs failures keep their Node/Android code without an
+    // AutoJs6 policy code.
     const text = String(reason || "").toLowerCase();
     if (text.indexOf("nul path") >= 0 || text.indexOf("contains nul") >= 0 || text.indexOf("rejects nul") >= 0) {
       return "ERR_AUTOJS6_FS_NUL_BYTE";
-    }
-    if (text.indexOf("scoped path denied") >= 0) {
-      return "ERR_AUTOJS6_FS_SCOPED_PATH";
     }
     if (text.indexOf("sensitive root") >= 0 || text.indexOf("escapes") >= 0 || text.indexOf("absolute path") >= 0) {
       return "ERR_AUTOJS6_FS_PATH_ESCAPE";
@@ -28113,15 +28111,6 @@ std::string buildEmbeddedScriptExecutionSource(
         operation,
         "EPERM",
         "path under sensitive root"
-      );
-    }
-    if (options && options.rejectRoot && resolved === scope.root) {
-      throw __autojs6_scoped_fs_policy_error(
-        "Embedded Node scoped fs cannot remove the filesystem reach root for " + operation + ": " + display,
-        pathValue,
-        operation,
-        "EPERM",
-        "scoped path denied"
       );
     }
     const exists = fs.existsSync(resolved);
@@ -30404,150 +30393,95 @@ std::string buildEmbeddedScriptExecutionSource(
     const entries = nodeFs.readdirSync(resolvedRoot, options);
     return __autojs6_exposed_readdir_entries(resolvedRoot, requestedPath, entries, options);
   }
-  function __autojs6_normalize_opendir_options(options, operation) {
-    if (options !== undefined && options !== null && typeof options !== "object") {
-      throw __autojs6_invalid_arg_type("Embedded Node scoped fs " + operation + " options must be an object.");
+  function __autojs6_dir_display_path(requestedPath) {
+    // Node keeps the path as given: a Buffer stays a Buffer, a file URL becomes its path.
+    if (__autojs6_is_buffer_path_value(requestedPath)) {
+      return requestedPath;
     }
-    const input = options && typeof options === "object" ? options : {};
-    if (
-      input.bufferSize !== undefined &&
-      (
-        typeof input.bufferSize !== "number" ||
-        !Number.isSafeInteger(input.bufferSize) ||
-        input.bufferSize <= 0
-      )
-    ) {
-      throw __autojs6_out_of_range("Embedded Node scoped fs " + operation + " bufferSize option must be a positive integer.");
+    if (requestedPath && typeof requestedPath === "object" && typeof requestedPath.protocol === "string") {
+      return __autojs6_file_url_to_absolute_path(requestedPath, "opendir file URL");
     }
+    return String(requestedPath === undefined ? "." : requestedPath);
+  }
+  function __autojs6_exposed_dir(nativeDir, resolved, requestedPath) {
+    // The Dir itself is native: reads are lazy, bufferSize / encoding / recursive are
+    // native opendir's business and ERR_DIR_CLOSED comes from Node. The wrapper only
+    // restores the caller's spelling of the path on `dir.path` and on each dirent's
+    // parentPath, like readdir does. Node's async iterator reads through a private
+    // method, so it is re-declared on the instance to go through the mapped read.
+    const nodeFs = __autojs6_fs_module();
+    const dirPrototype = nodeFs.Dir.prototype;
+    const mapEntry = function(entry) {
+      return entry === null || entry === undefined
+        ? null
+        : __autojs6_exposed_readdir_entries(resolved, requestedPath, [entry], { withFileTypes: true })[0];
+    };
+    function read(callback) {
+      if (typeof callback === "function") {
+        return dirPrototype.read.call(nativeDir, function(error, entry) {
+          if (error) {
+            callback(error);
+            return;
+          }
+          callback(null, mapEntry(entry));
+        });
+      }
+      return dirPrototype.read.call(nativeDir).then(mapEntry);
+    }
+    function readSync() {
+      return mapEntry(dirPrototype.readSync.call(nativeDir));
+    }
+    async function* entries() {
+      try {
+        while (true) {
+          const entry = await read();
+          if (entry === null) {
+            break;
+          }
+          yield entry;
+        }
+      } finally {
+        await dirPrototype.close.call(nativeDir);
+      }
+    }
+    const descriptors = {
+      path: { value: __autojs6_dir_display_path(requestedPath), configurable: true },
+      read: { value: read, writable: true, configurable: true },
+      readSync: { value: readSync, writable: true, configurable: true },
+      entries: { value: entries, writable: true, configurable: true }
+    };
+    if (typeof Symbol === "function" && Symbol.asyncIterator) {
+      descriptors[Symbol.asyncIterator] = { value: entries, writable: true, configurable: true };
+    }
+    Object.defineProperties(nativeDir, descriptors);
+    return nativeDir;
+  }
+  function __autojs6_scoped_opendir_target(pathValue, operation) {
+    // Path policy only (NUL bytes, the /proc /sys /dev boundary); existence, ENOTDIR
+    // and the options are checked by native opendir with Node's own errors.
+    const requestedPath = pathValue === undefined ? "." : pathValue;
     return {
-      encoding: input.encoding === undefined ? undefined : input.encoding,
-      recursive: input.recursive === true
+      requestedPath,
+      resolved: __autojs6_validate_fs_path(requestedPath, operation || "opendir")
     };
   }
   function __autojs6_scoped_opendir(pathValue, options, operation) {
-    const path = __autojs6_path_module();
     const nodeFs = __autojs6_fs_module();
-    if (!path || !nodeFs) {
-      throw new Error("Embedded Node scoped fs opendir needs allowlisted path and fs modules.");
+    if (!nodeFs || typeof nodeFs.opendirSync !== "function") {
+      throw new Error("Embedded Node scoped fs opendir needs allowlisted fs.opendirSync.");
     }
-    const op = operation || "opendir";
-    const requestedPath = pathValue === undefined ? "." : pathValue;
-    const dirOptions = __autojs6_normalize_opendir_options(options, op);
-    const resolved = __autojs6_validate_fs_path(requestedPath, op, { mustExist: true });
-    const stat = nodeFs.statSync(resolved);
-    if (!stat || typeof stat.isDirectory !== "function" || !stat.isDirectory()) {
-      throw __autojs6_error("Embedded Node scoped fs " + op + " target is not a directory: " + String(requestedPath), "ENOTDIR");
+    const target = __autojs6_scoped_opendir_target(pathValue, operation || "opendirSync");
+    return __autojs6_exposed_dir(nodeFs.opendirSync(target.resolved, options), target.resolved, target.requestedPath);
+  }
+  function __autojs6_scoped_opendir_promise(pathValue, options, operation) {
+    const nodeFs = __autojs6_fs_module();
+    if (!nodeFs || !nodeFs.promises || typeof nodeFs.promises.opendir !== "function") {
+      throw new Error("Embedded Node scoped fs opendir needs allowlisted fs.promises.opendir.");
     }
-    const entries = __autojs6_scoped_readdir_sync(
-      nodeFs,
-      requestedPath,
-      { withFileTypes: true, encoding: dirOptions.encoding, recursive: dirOptions.recursive },
-      op
-    );
-    const dirPrototype = nodeFs && nodeFs.Dir && nodeFs.Dir.prototype
-      ? nodeFs.Dir.prototype
-      : null;
-    const dir = Object.create(dirPrototype);
-    let index = 0;
-    let closed = false;
-    function assertOpen(action) {
-      if (closed) {
-        throw __autojs6_fs_operation_error(
-          action,
-          "Dir is closed",
-          "ERR_DIR_CLOSED"
-        );
-      }
-    }
-    function readNext() {
-      assertOpen("opendir.read");
-      if (index >= entries.length) {
-        return null;
-      }
-      const value = entries[index];
-      index += 1;
-      return value;
-    }
-    function closeDir() {
-      closed = true;
-    }
-    const descriptors = {
-      path: {
-        value: String(requestedPath || "."),
-        enumerable: true
-      },
-      read: {
-        value: function(callback) {
-          if (callback !== undefined) {
-            return __autojs6_scoped_fs_callback("opendir.read", callback, readNext);
-          }
-          return __autojs6_scoped_fs_promise("opendir.read", readNext);
-        },
-        enumerable: true
-      },
-      readSync: {
-        value: function() {
-          return readNext();
-        },
-        enumerable: true
-      },
-      close: {
-        value: function(callback) {
-          if (callback !== undefined) {
-            return __autojs6_scoped_fs_callback("opendir.close", callback, closeDir);
-          }
-          return __autojs6_scoped_fs_promise("opendir.close", function() {
-            closeDir();
-          });
-        },
-        enumerable: true
-      },
-      closeSync: {
-        value: function() {
-          closeDir();
-        },
-        enumerable: true
-      }
-    };
-    if (typeof Symbol === "function" && Symbol.asyncDispose) {
-      descriptors[Symbol.asyncDispose] = {
-        value: function() {
-          return dir.close();
-        }
-      };
-    }
-    if (typeof Symbol === "function" && Symbol.dispose) {
-      descriptors[Symbol.dispose] = {
-        value: function() {
-          return dir.closeSync();
-        }
-      };
-    }
-    if (typeof Symbol === "function" && Symbol.asyncIterator) {
-      descriptors[Symbol.asyncIterator] = {
-        value: function() {
-          return {
-            next: function() {
-              return dir.read().then(function(value) {
-                if (value === null) {
-                  return dir.close().then(function() {
-                    return { value: undefined, done: true };
-                  });
-                }
-                return { value, done: false };
-              });
-            },
-            return: function() {
-              return dir.close().then(function() {
-                return { value: undefined, done: true };
-              });
-            }
-          };
-        }
-      };
-    }
-    Object.defineProperties(dir, descriptors);
-    return Object.freeze(dir);
+    const target = __autojs6_scoped_opendir_target(pathValue, operation || "opendir");
+    return nodeFs.promises.opendir(target.resolved, options).then(function(nativeDir) {
+      return __autojs6_exposed_dir(nativeDir, target.resolved, target.requestedPath);
+    });
   }
   function __autojs6_readlink_error(operation, pathValue, reason, code) {
     const path = __autojs6_path_module();
@@ -31390,7 +31324,7 @@ std::string buildEmbeddedScriptExecutionSource(
         target = __autojs6_scoped_cp_validate_absolute(
           path.join(target, path.basename(source)),
           operation + " destination file",
-          { checkParent: true, rejectRoot: true }
+          { checkParent: true }
         );
       }
     }
@@ -31518,7 +31452,7 @@ std::string buildEmbeddedScriptExecutionSource(
         target = __autojs6_scoped_cp_validate_absolute(
           path.join(target, path.basename(source)),
           operation + " destination file",
-          { checkParent: true, rejectRoot: true }
+          { checkParent: true }
         );
       }
     }
@@ -31596,7 +31530,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const childDestination = __autojs6_scoped_cp_validate_absolute(
         path.join(destination, entry.name),
         operation + " destination child",
-        { checkParent: true, rejectRoot: true }
+        { checkParent: true }
       );
       if (!__autojs6_cp_filter_allows(options, childSource, childDestination, operation, childSource, childDestination)) {
         continue;
@@ -31681,8 +31615,8 @@ std::string buildEmbeddedScriptExecutionSource(
     const normalizedOptions = __autojs6_normalize_cp_options(options, op, sourcePath, destinationPath);
     const source = __autojs6_validate_fs_path(sourcePath, op + " source", { mustExist: true });
     const destination = __autojs6_validate_fs_path(destinationPath, op + " destination", {
-      checkParent: true,
-      rejectRoot: true
+      checkParent: true
+
     });
     if (!__autojs6_cp_filter_allows(normalizedOptions, source, destination, op, sourcePath, destinationPath)) {
       return;
@@ -31747,7 +31681,7 @@ std::string buildEmbeddedScriptExecutionSource(
         const childDestination = __autojs6_scoped_cp_validate_absolute(
           path.join(destination, entry.name),
           operation + " destination child",
-          { checkParent: true, rejectRoot: true }
+          { checkParent: true }
         );
         if (!(await decide(childSource, childDestination))) {
           continue;
@@ -31795,8 +31729,8 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const source = __autojs6_validate_fs_path(sourcePath, op + " source", { mustExist: true });
     const destination = __autojs6_validate_fs_path(destinationPath, op + " destination", {
-      checkParent: true,
-      rejectRoot: true
+      checkParent: true
+
     });
     __autojs6_adjust_pending_callback("fs", 1);
     return decide(source, destination).then(async function(allowed) {
@@ -31960,8 +31894,8 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_fs_operation_error(op, "needs allowlisted fs.rmdirSync", "EPERM");
     }
     const resolved = __autojs6_validate_fs_path(pathValue, op, {
-      mustExist: true,
-      rejectRoot: true
+      mustExist: true
+
     });
     return nodeFs.rmdirSync(resolved, options);
   }
@@ -32003,8 +31937,8 @@ std::string buildEmbeddedScriptExecutionSource(
     const op = operation || "mkdtempDisposableSync";
     const createdPath = __autojs6_scoped_mkdtemp_sync(prefixPath, options, op);
     const createdResolved = __autojs6_validate_fs_path(createdPath, op + " created path", {
-      mustExist: true,
-      rejectRoot: true
+      mustExist: true
+
     });
     return __autojs6_create_mkdtemp_disposable(createdPath, createdResolved, Boolean(asyncRemove));
   }
@@ -32073,13 +32007,13 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const source = __autojs6_validate_fs_path(oldPath, op + " oldPath", {
       allowAbsolute: true,
-      mustExist: true,
-      rejectRoot: true
+      mustExist: true
+
     });
     const destination = __autojs6_validate_fs_path(newPath, op + " newPath", {
       allowAbsolute: true,
-      checkParent: true,
-      rejectRoot: true
+      checkParent: true
+
     });
     if (source === destination) {
       return;
@@ -32136,12 +32070,12 @@ std::string buildEmbeddedScriptExecutionSource(
       throw new Error("Embedded Node scoped fs " + op + " needs allowlisted path and fs modules.");
     }
     const source = __autojs6_validate_fs_path(existingPath, op + " existingPath", {
-      mustExist: true,
-      rejectRoot: true
+      mustExist: true
+
     });
     const destination = __autojs6_validate_fs_path(newPath, op + " newPath", {
-      checkParent: true,
-      rejectRoot: true
+      checkParent: true
+
     });
     const sourceLstat = nodeFs.lstatSync(source);
     if (sourceLstat && typeof sourceLstat.isSymbolicLink === "function" && sourceLstat.isSymbolicLink()) {
@@ -32247,8 +32181,8 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const normalizedType = __autojs6_normalize_symlink_type(type, op);
     const destination = __autojs6_validate_fs_path(pathValue, op + " path", {
-      checkParent: true,
-      rejectRoot: true
+      checkParent: true
+
     });
     const destinationParent = path.dirname(destination);
     if (!nodeFs.existsSync(destinationParent)) {
@@ -36287,7 +36221,7 @@ std::string buildEmbeddedScriptExecutionSource(
       opendir: {
         value: function(pathValue, options) {
           return __autojs6_scoped_fs_promise("opendir", function () {
-            return __autojs6_scoped_opendir(pathValue === undefined ? "." : pathValue, options, "opendir");
+            return __autojs6_scoped_opendir_promise(pathValue, options, "opendir");
           });
         },
         enumerable: true
@@ -37165,7 +37099,7 @@ std::string buildEmbeddedScriptExecutionSource(
       },
       rmSync: {
         value: function(pathValue, options) {
-          return nodeFs.rmSync(__autojs6_validate_fs_path(pathValue, "rmSync", { rejectRoot: true }), options);
+          return nodeFs.rmSync(__autojs6_validate_fs_path(pathValue, "rmSync"), options);
         },
         enumerable: true
       },
@@ -37324,15 +37258,15 @@ std::string buildEmbeddedScriptExecutionSource(
       opendir: {
         value: function(pathValue, options, callback) {
           const parsed = __autojs6_fs_options_callback("opendir", options, callback);
-          return __autojs6_scoped_fs_callback("opendir", parsed.callback, function () {
-            return scopedFs.opendirSync(pathValue === undefined ? "." : pathValue, parsed.options);
+          return __autojs6_scoped_fs_callback_promise("opendir", parsed.callback, function () {
+            return __autojs6_scoped_opendir_promise(pathValue, parsed.options, "opendir");
           });
         },
         enumerable: true
       },
       opendirSync: {
         value: function(pathValue, options) {
-          return __autojs6_scoped_opendir(pathValue === undefined ? "." : pathValue, options, "opendirSync");
+          return __autojs6_scoped_opendir(pathValue, options, "opendirSync");
         },
         enumerable: true
       },

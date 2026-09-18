@@ -1119,6 +1119,94 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         }
     }
 
+    /** M20.2: opendir returns Node's own lazy Dir and removing the reach root is Node's decision like any other path. */
+    @Test
+    public void m20_opendirIsNativeLazyDirAndReachRootFollowsNode() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.cjs", """
+                const assert = require('node:assert/strict');
+                const fs = require('node:fs');
+                const fsp = require('node:fs/promises');
+                const path = require('node:path');
+                (async () => {
+                  const dir = fs.mkdtempSync(path.join(__dirname, 'opendir-'));
+                  try {
+                    const tree = path.join(dir, 'tree');
+                    fs.mkdirSync(path.join(tree, 'sub', 'deep'), { recursive: true });
+                    fs.writeFileSync(path.join(tree, 'a.txt'), '');
+                    fs.writeFileSync(path.join(tree, 'sub', 'b.txt'), '');
+                    fs.writeFileSync(path.join(tree, 'sub', 'deep', 'c.txt'), '');
+                    const relativeTree = path.relative(process.cwd(), tree);
+                    // The Dir is native (bufferSize / recursive go to native opendir); dir.path and parentPath keep the caller's spelling.
+                    const sync = fs.opendirSync(relativeTree, { bufferSize: 1, recursive: true });
+                    assert.ok(sync instanceof fs.Dir);
+                    assert.equal(sync.path, relativeTree);
+                    const seen = [];
+                    let entry;
+                    while ((entry = sync.readSync()) !== null) seen.push(entry);
+                    assert.equal(seen.length, 5);
+                    const c = seen.find((item) => item.name === 'c.txt');
+                    assert.equal(c.parentPath, path.join(relativeTree, 'sub', 'deep'));
+                    assert.ok(c.isFile() && c instanceof fs.Dirent && seen.find((item) => item.name === 'deep').isDirectory());
+                    sync.closeSync();
+                    assert.throws(() => sync.readSync(), (error) => error.code === 'ERR_DIR_CLOSED');
+                    await assert.rejects(sync.read(), (error) => error.code === 'ERR_DIR_CLOSED');
+                    const viaCallback = await new Promise((resolve, reject) => fs.opendir(tree, (error, opened) => error ? reject(error) : resolve(opened)));
+                    assert.equal(viaCallback.path, tree);
+                    const first = await viaCallback.read();
+                    assert.equal(first.parentPath, tree);
+                    const second = await new Promise((resolve, reject) => viaCallback.read((error, item) => error ? reject(error) : resolve(item)));
+                    assert.ok(second === null || second.parentPath === tree);
+                    await viaCallback.close();
+                    let count = 0;
+                    for await (const item of await fsp.opendir(relativeTree, { recursive: true })) {
+                      count += 1;
+                      assert.ok(String(item.parentPath).startsWith(relativeTree), String(item.parentPath));
+                    }
+                    assert.equal(count, 5);
+                    const partial = await fsp.opendir(tree);
+                    for await (const item of partial) { void item; break; }
+                    await assert.rejects(partial.read(), (error) => error.code === 'ERR_DIR_CLOSED');
+                    const buffered = fs.opendirSync(tree, { encoding: 'buffer' });
+                    assert.ok(Buffer.isBuffer(buffered.readSync().name));
+                    buffered.closeSync();
+                    // Option validation and failures are Node's own: ERR_OUT_OF_RANGE, ENOENT / ENOTDIR with syscall 'opendir', no autojs6Code.
+                    assert.throws(() => fs.opendirSync(tree, { bufferSize: 0 }), (error) => error.code === 'ERR_OUT_OF_RANGE');
+                    assert.throws(() => fs.opendirSync(path.join(tree, 'missing')), (error) => error.code === 'ENOENT' && error.syscall === 'opendir' && error.autojs6Code === undefined);
+                    assert.throws(() => fs.opendirSync(path.join(tree, 'a.txt')), (error) => error.code === 'ENOTDIR' && error.syscall === 'opendir' && error.autojs6Code === undefined);
+                    await assert.rejects(fsp.opendir(path.join(tree, 'missing')), (error) => error.code === 'ENOENT' && error.syscall === 'opendir');
+                    assert.throws(() => fs.opendirSync('/proc/self'), (error) => error.autojs6Code === 'ERR_AUTOJS6_FS_PATH_ESCAPE');
+                    console.log('m20.opendir=PASS');
+                    // Removing the reach root is Node's decision: non-recursive rm of a directory is ERR_FS_EISDIR, rmdir of a non-empty root is native; no ERR_AUTOJS6_FS_SCOPED_PATH.
+                    let rootRm = null;
+                    try { fs.rmSync('/'); } catch (error) { rootRm = error; }
+                    assert.equal(rootRm && rootRm.code, 'ERR_FS_EISDIR');
+                    assert.equal(rootRm.autojs6Code, undefined);
+                    let rootRmdir = null;
+                    try { fs.rmdirSync('/'); } catch (error) { rootRmdir = error; }
+                    assert.ok(rootRmdir && rootRmdir.autojs6Code === undefined && rootRmdir.code !== 'ERR_AUTOJS6_FS_SCOPED_PATH', String(rootRmdir));
+                    let rootRmdirAsync = null;
+                    try { await fsp.rmdir('/'); } catch (error) { rootRmdirAsync = error; }
+                    assert.ok(rootRmdirAsync && rootRmdirAsync.autojs6Code === undefined, String(rootRmdirAsync));
+                    console.log('m20.reach.root=' + rootRmdir.code);
+                  } finally {
+                    fs.rmSync(dir, { recursive: true, force: true });
+                  }
+                  console.log('m20.opendir.codes=PASS');
+                })().catch((error) => { console.error(error && error.stack || error); process.exitCode = 1; });
+                """);
+        try (WorkspaceInvocation invocation = execute("m20-opendir-codes", "main.cjs", files, false)) {
+            assertSucceeded(invocation.result, "m20.opendir.codes=PASS");
+            String stdout = invocation.result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+            for (String expected : new String[] {
+                    "m20.opendir=PASS",
+                    "m20.reach.root="
+            }) {
+                assertTrue("stdout is missing '" + expected + "': " + stdout, stdout.contains(expected));
+            }
+        }
+    }
+
     /** M20.2: worker process.exit() ends the thread as in Node; getBuiltinModule follows the worker allowlist. */
     @Test
     public void m20_workerProcessExitAndGetBuiltinModuleFollowNode() throws Exception {

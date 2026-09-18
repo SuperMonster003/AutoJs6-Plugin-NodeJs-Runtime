@@ -138,6 +138,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `개선` node:sqlite가 SQL 파일 작업을 네이티브 SQLite에 맡김: 리터럴 파일명의 ATTACH (file: URI 포함)는 SQL 텍스트를 훑는 대신 SQLite authorizer로 /proc, /sys, /dev 경계를 검사하고, VACUUM INTO 대상은 SQLite 내부 ATTACH를 통해 같은 경계 검사를 거치고, 디렉터리 PRAGMA는 더 이상 가로채지 않으며, file: URI 문자열과 빈 임시 데이터베이스를 열 수 있고, setAuthorizer()는 경계 검사와 결합됨 (바인드 매개변수나 식으로 파일명을 주는 ATTACH만 계속 거부)
 * `개선` 브리지 할당량을 호스트에 맡김: autojs6:bridge-limits의 maxPendingBridgeCalls 창을 넘는 호출은 ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT로 실패하지 않고 선입선출로 대기하며, 런타임은 이미지 핸들 수·동시 제어 fetch 요청 수·제어 WebSocket 연결 수를 더 이상 자체 제한하지 않고 (호스트 broker는 계속 자체 정책을 적용), require('fetch').policy.maxConcurrentRequests와 require('websocket').policy.maxConnections는 폐기됨
 * `개선` 브리지 fetch / WebSocket / axios facade의 상한을 호스트에 맡김: 타임아웃·응답 크기·리디렉션 횟수·메시지와 큐 크기·HTTP 메서드를 자르지 않고 호스트 제공자에 전달하며 (호스트 정책 적용), 런타임은 Node처럼 최대 20회 리디렉션을 따르고, policy에서 폐기된 hard*/기본 크기 필드는 limitsEnforcedBy로 대체
+* `개선` opendir가 Node 자체의 지연 fs.Dir를 반환 (bufferSize·encoding·recursive는 네이티브 opendir로 전달, ENOENT / ENOTDIR / ERR_DIR_CLOSED는 Node 오류; dir.path와 parentPath만 호출자 표기를 유지). 런타임의 파일 시스템 도달 루트 삭제 방지 가드는 폐기되어 루트의 rm / rmdir도 다른 경로처럼 Node와 Android가 결정 (fs 정책 코드는 FS_NUL_BYTE와 FS_PATH_ESCAPE만 남음)
 
 # v1.5.4
 
