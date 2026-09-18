@@ -113,6 +113,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.5.6
+
+###### Unreleased
+
+* `Correccion` Se corrigió la muerte de la ranura del runtime por agotamiento del heap de V8 (informado como CRASH_NATIVE / SIGABRT) al hacer require de un módulo CommonJS grande: el enmascarado de comentarios y cadenas del cargador concatenaba carácter a carácter, por lo que un módulo de 22 MiB necesitaba unos 700 MB de heap; ahora emite tramos con el mismo resultado (unos 44 MB) y los escaneos de import / export de CommonJS saltan entre candidatos en lugar de comprobar cada carácter
+
 # v1.5.5
 
 ###### 2026/09/18
@@ -152,13 +158,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 * `Correccion` La ejecución integrada deja de imprimir avisos ExperimentalWarning; conserva los eventos warning, advertencias normales, avisos de obsolescencia y errores. La estabilidad de las API de Node y los valores predeterminados del terminal no cambian
 * `Mejora` Los flujos de archivos, gzip/deflate/Brotli y la ejecución básica de VM son estables; Debug Inspector, activado explícitamente, es estable dentro de localhost
-
-# v1.5.3
-
-###### 2026/09/16
-
-* `Mejora` Autorización de red local de Android 17 integrada en la activación y los ajustes del plugin, sin página de permisos en el lanzador; sin permiso, el plugin permanece desactivado y se omite el inicio automático sin avisos
-* `Mejora` Compatibilidad con Android 17 (SDK 37), controles de permiso de red local propios del plugin y ayuda para recuperar el acceso
 
 ##### Para mas historial de versiones
 

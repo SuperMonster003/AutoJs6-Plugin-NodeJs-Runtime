@@ -113,6 +113,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.5.6
+
+###### Unreleased
+
+* `修复` 修复 require 大体积 CommonJS 模块时运行时槽进程因 V8 堆内存耗尽而中止 (回报为 CRASH_NATIVE / SIGABRT) 的问题: 加载器的注释与字符串掩码逐字符拼接, 22 MiB 模块需要约 700 MB 堆内存; 现改为按连续区段输出 (结果相同, 约 44 MB), CommonJS 的 import / export 扫描也改为在候选位置间跳转而非逐字符检测
+
 # v1.5.5
 
 ###### 2026/09/18
@@ -152,13 +158,6 @@ console.log("AutoJs6 Node.js runtime");
 
 * `修复` 嵌入执行不再输出 ExperimentalWarning 提示, 保留 warning 事件、普通警告、弃用警告和错误; Node 上游 API 稳定性与终端默认行为不变
 * `优化` 文件流、gzip/deflate/Brotli 压缩流和基础 VM 执行正式化; 显式启用的 Debug Inspector 在 localhost 范围内正式支持
-
-# v1.5.3
-
-###### 2026/09/16
-
-* `优化` Android 17 本地网络授权统一移至插件中心启用流程和插件设置, 不再提供启动器授权页面; 未获授权时保持关闭并静默跳过自动启动
-* `优化` 适配 Android 17 (SDK 37), 提供插件独立的本地网络权限控制及恢复引导
 
 ##### 更多发行历史可参阅
 

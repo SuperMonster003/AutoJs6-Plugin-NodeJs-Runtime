@@ -5,6 +5,12 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v1.5.6": {
+      "released_date": "Unreleased",
+      "fix": [
+        "大きな CommonJS モジュールを require すると、ランタイムスロットが V8 のヒープメモリ不足で中止する (CRASH_NATIVE / SIGABRT として報告される) 問題を修正しました。ローダーのコメント・文字列マスクが 1 文字ずつ連結していたため 22 MiB のモジュールに約 700 MB のヒープが必要でしたが、現在は同じ結果を連続区間単位で出力し (約 44 MB)、CommonJS の import / export 走査も全文字を検査せず候補位置間をジャンプします"
+      ]
+    },
     "v1.5.5": {
       "released_date": "2026/09/18",
       "improvement": [

@@ -4,6 +4,12 @@
 
 ******
 
+# v1.5.6
+
+###### Unreleased
+
+* `Correccion` Se corrigió la muerte de la ranura del runtime por agotamiento del heap de V8 (informado como CRASH_NATIVE / SIGABRT) al hacer require de un módulo CommonJS grande: el enmascarado de comentarios y cadenas del cargador concatenaba carácter a carácter, por lo que un módulo de 22 MiB necesitaba unos 700 MB de heap; ahora emite tramos con el mismo resultado (unos 44 MB) y los escaneos de import / export de CommonJS saltan entre candidatos en lugar de comprobar cada carácter
+
 # v1.5.5
 
 ###### 2026/09/18

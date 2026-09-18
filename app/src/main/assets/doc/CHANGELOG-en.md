@@ -4,6 +4,12 @@
 
 ******
 
+# v1.5.6
+
+###### Unreleased
+
+* `Fix` Fixed the runtime slot dying of a V8 heap out-of-memory abort (reported as CRASH_NATIVE / SIGABRT) when a large CommonJS module was required: the loader's comment and string masking appended one character at a time, so a 22 MiB module needed about 700 MB of heap; it now emits runs with identical output (about 44 MB), and the CommonJS import / export scans jump between candidates instead of testing every character
+
 # v1.5.5
 
 ###### 2026/09/18
