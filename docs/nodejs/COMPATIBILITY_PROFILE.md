@@ -25,7 +25,12 @@ suites into real runners, and `new Worker(code, { eval: true })` now works as
 in Node. Module loading follows Android file access like Node (M20.2): `require`,
 `import` and `Worker` accept absolute paths, parent-directory targets and `file:`
 URLs, with `/proc`, `/sys` and `/dev` still denied; `node_modules` lookup and
-package scopes stay anchored to the workspace. Worker messages and fs watchers
+package scopes stay anchored to the workspace. An installed package shadows only
+the runtime modules that stand in for real npm packages (axios, colors, mime,
+nanoid, opencc, undici); AutoJs6 capability facades and the other runtime modules
+answer regardless, in `require`, `require.resolve` and `import` alike, and every
+bare runtime module name can be imported from ESM (`autojs6:profile` reports the rule
+as `moduleResolutionProfile`). Worker messages and fs watchers
 follow native Node limits: the 64 KB message / 32-queued caps and the
 16-watcher / 64-events-per-second quotas are gone, so only Android memory bounds them.
 The scoped fs wrapper also dropped its own option restrictions: stream `fs`, inherited

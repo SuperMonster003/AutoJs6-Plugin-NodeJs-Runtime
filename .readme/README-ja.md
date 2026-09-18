@@ -143,6 +143,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `改善` ブリッジ fetch のリクエスト本文と WebSocket メッセージが 256 KiB を超える場合, インライン base64 JSON ではなく読み取り専用ファイルディスクリプタ (bodyTransport / messageTransport "pfd") でホストへ届くようになり (ホストが bridgeRequestBinaryTransport=pfd を公開する場合, ホストブランチ node-m20-2-binder-body-pfd), 上りサイズは Binder トランザクションサイズではなくホストのリクエストポリシー (64 MiB) と maxMessageBytes だけで制限される
 * `改善` 制御付き fetch のレスポンスが Response.url でプロバイダーの最終 URL を公開するようになりました (ResponseInit に url が無いため, 従来は常に空文字列でした)
 * `改善` Java 相互運用はホストの宣言的ホワイトリスト (クラス → コンストラクタ / 静的・インスタンスメソッド / フィールド、ホストがテーブルに従ってリフレクションで実行、引数は JSON プリミティブとオブジェクトハンドル) へ全面的に転送されるようになり、ランタイム独自のクラス表を廃止してホストが公開した表を java.policy として読み戻し、getStatic() / describe() を追加、メンバー自身が投げた例外は ERR_AUTOJS6_JAVA_CALL_FAILED で報告されます
+* `改善` ランタイムモジュールに対する npm 優先ルールは、実在の npm パッケージを代替するモジュール (axios、colors、mime、nanoid、opencc、undici) のみに限定されました。node_modules 内の同名パッケージが java、fetch、websocket、device などの AutoJs6 ファサードを置き換えることはなくなり、require.resolve は require と同じルールに従い、すべてのランタイムモジュール名を ESM から import でき、autojs6:profile が moduleResolutionProfile としてルールを公開し、Rhino の Packages プロキシに getStatic() / describe() が追加されました
 
 # v1.5.4
 

@@ -718,6 +718,9 @@ async function smoke(): Promise<void> {
   const esmLoaderProfileStatus: string = autojsProfile.esmLoaderProfile.status;
   const esmLoaderProfileRequestEnabled: boolean = autojsProfile.esmLoaderProfile.requestEnabled;
   const esmLoaderProfileDynamicImport: string = autojsProfile.esmLoaderProfile.dynamicImport;
+  const moduleResolutionNpmPrecedence: string = autojsProfile.moduleResolutionProfile.npmPrecedence;
+  const moduleResolutionShadowable: readonly string[] = autojsProfile.moduleResolutionProfile.npmShadowableModules;
+  const moduleResolutionRuntimeShadowable: false = autojsProfile.moduleResolutionProfile.runtimeModulesShadowable;
   const esmLoaderProfilePackageExports: string = autojsProfile.esmLoaderProfile.packageExports;
   const esmLoaderProfileLoaderHooks: string = autojsProfile.esmLoaderProfile.loaderHooks;
   const esmLoaderProfileRawNodeLoader: boolean = autojsProfile.esmLoaderProfile.rawNodeLoader;

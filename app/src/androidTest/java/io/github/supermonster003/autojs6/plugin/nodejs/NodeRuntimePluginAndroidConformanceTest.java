@@ -1830,27 +1830,82 @@ public final class NodeRuntimePluginAndroidConformanceTest {
             invocation.assertWorkspaceOutputCommitted();
         }
 
+        // npm precedence covers only the runtime modules that stand in for npm packages (mime, ...):
+        // a same-named package under node_modules shadows `mime` but not the `app` / `websocket` facades
+        // (the published-Binder harness runs with Java interop disabled, so `java` is covered by the shared predicate).
         LinkedHashMap<String, String> npmShadowFiles = new LinkedHashMap<>();
         npmShadowFiles.put(
                 "main.mjs",
                 "import app from 'app';\n" +
-                        "console.log('x3d.esm.facade-shadow=' + app.source);\n"
+                        "import mime from 'mime';\n" +
+                        "import websocket from 'websocket';\n" +
+                        "console.log('x3d.esm.facade-shadow=' + [typeof app.isInstalled, String(app.source), mime.source, " +
+                        "typeof websocket.connect, String(websocket.source)].join(','));\n"
         );
-        npmShadowFiles.put(
-                "node_modules/app/package.json",
-                "{\"name\":\"app\",\"type\":\"module\",\"exports\":\"./index.mjs\"}\n"
-        );
-        npmShadowFiles.put(
-                "node_modules/app/index.mjs",
-                "export default { source: 'npm' };\n"
-        );
+        for (String shadowed : new String[]{"app", "mime", "websocket"}) {
+            npmShadowFiles.put(
+                    "node_modules/" + shadowed + "/package.json",
+                    "{\"name\":\"" + shadowed + "\",\"type\":\"module\",\"exports\":\"./index.mjs\"}\n"
+            );
+            npmShadowFiles.put(
+                    "node_modules/" + shadowed + "/index.mjs",
+                    "export default { source: 'npm' };\n"
+            );
+        }
         try (WorkspaceInvocation invocation = execute(
                 "esm-autojs6-facade-npm-shadow",
                 "main.mjs",
                 npmShadowFiles,
                 false
         )) {
-            assertSucceeded(invocation.result, "x3d.esm.facade-shadow=npm");
+            assertSucceeded(invocation.result, "x3d.esm.facade-shadow=function,undefined,npm,function,undefined");
+            invocation.callback.assertOneStartedAndOneTerminalEvent();
+            invocation.assertWorkspaceOutputCommitted();
+        }
+
+        LinkedHashMap<String, String> cjsShadowFiles = new LinkedHashMap<>();
+        cjsShadowFiles.put(
+                "main.cjs",
+                "const profile = require('autojs6:profile');\n" +
+                        "const sensors = require('sensors');\n" +
+                        "const fetch = require('fetch');\n" +
+                        "const websocket = require('websocket');\n" +
+                        "const device = require('device');\n" +
+                        "const files = require('files');\n" +
+                        "const mime = require('mime');\n" +
+                        "const colors = require('colors');\n" +
+                        "console.log('x3d.cjs.facade-shadow=' + [typeof sensors.subscribe, typeof fetch.fetch, typeof websocket.connect, " +
+                        "typeof device.isScreenOn, typeof files.read, mime.source, colors.source].join(','));\n" +
+                        "console.log('x3d.cjs.facade-resolve=' + [require.resolve('sensors'), require.resolve('device'), " +
+                        "require.resolve('mime').indexOf('/node_modules/mime/') >= 0, " +
+                        "require.resolve('colors').indexOf('/node_modules/colors/') >= 0].join(','));\n" +
+                        "console.log('x3d.cjs.facade-profile=' + [profile.moduleResolutionProfile.npmPrecedence, " +
+                        "profile.moduleResolutionProfile.npmShadowableModules.join('+'), " +
+                        "profile.moduleResolutionProfile.runtimeModulesShadowable, " +
+                        "profile.moduleResolutionProfile.appliesTo.join('+')].join(','));\n"
+        );
+        for (String shadowed : new String[]{"sensors", "fetch", "websocket", "device", "files", "mime", "colors"}) {
+            cjsShadowFiles.put(
+                    "node_modules/" + shadowed + "/package.json",
+                    "{\"name\":\"" + shadowed + "\",\"main\":\"index.js\"}\n"
+            );
+            cjsShadowFiles.put(
+                    "node_modules/" + shadowed + "/index.js",
+                    "module.exports = { source: 'npm' };\n"
+            );
+        }
+        try (WorkspaceInvocation invocation = execute(
+                "cjs-autojs6-facade-npm-shadow",
+                "main.cjs",
+                cjsShadowFiles,
+                false
+        )) {
+            assertSucceeded(invocation.result, "x3d.cjs.facade-shadow=function,function,function,function,function,npm,npm");
+            assertSucceeded(invocation.result, "x3d.cjs.facade-resolve=sensors,device,true,true");
+            assertSucceeded(
+                    invocation.result,
+                    "x3d.cjs.facade-profile=npm_shims_only,axios+colors+mime+nanoid+opencc+undici,false,require+require.resolve+import"
+            );
             invocation.callback.assertOneStartedAndOneTerminalEvent();
             invocation.assertWorkspaceOutputCommitted();
         }

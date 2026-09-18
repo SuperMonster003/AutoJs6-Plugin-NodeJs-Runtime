@@ -54,7 +54,7 @@
   },
   "buildProvenance": {
     "sourceRepository": "AutoJs6-Plugin-NodeJs-Runtime",
-    "sourceGitBase": "281fddaa4c38b589c3f25fc04432d1a06a246cbe",
+    "sourceGitBase": "f7fcb52056f16d3e7d0fe2d94de51ddeae9557b2",
     "runtimeBuildPlan": {
       "lockFile": "tools/nodejs/runtime-build/runtime-build.lock.json",
       "lockSha256": "5e159976dc6157fb0b38bc5af175ec689c5a2a8589c0d82ba16b92d209d6d92a",
@@ -122,9 +122,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 2567224,
-      "sha256": "3f93aa775b2e37a93af846de2fdb4537fa3448a95d00b483537c7bed06b7b786",
-      "buildId": "cd446f55191f4a9cc07c1c749f1333e58953029b"
+      "size": 2570200,
+      "sha256": "b5770ab2af1cfb73221796a8552f22e53ca3d48b0478e4cad3559dae12ef6028",
+      "buildId": "b1bf0c08d7808bf053db78d1fa9e76d6574191c2"
     },
     {
       "id": "libautojs6-node-armeabi-v7a",
@@ -136,9 +136,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 2232796,
-      "sha256": "29a0da64b5d40dadb82528d9ec3777dd94d516d11442db149ed10ade19038d83",
-      "buildId": "784b188681c103234127cb7e827fdf82b3cb5480"
+      "size": 2235772,
+      "sha256": "9878fc82f4724035b1a4c84635c225e5d224d801291852e3cc458f3ed4b2bffc",
+      "buildId": "3e67155ef3850cf7c189f6c8145f40c6dbbaa088"
     },
     {
       "id": "libautojs6-node-x86_64",
@@ -150,9 +150,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 2594304,
-      "sha256": "36f65f1a9cd9341060cd55bf2788190f78c605767d01559bfe92bf3c99ac9fcc",
-      "buildId": "2525ff91916f4598f1c4e3d2fa0ceb560d1a7cdd"
+      "size": 2597296,
+      "sha256": "e126242f7d681ef31a552e54cf4a8c16f98f40f1e64bb28404be274739266b8b",
+      "buildId": "5b4508f4b50b0678a741c7278c909a122367cbf7"
     },
     {
       "id": "libc++_shared-arm64-v8a",

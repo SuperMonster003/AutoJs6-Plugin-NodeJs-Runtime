@@ -143,6 +143,7 @@ console.log("AutoJs6 Node.js runtime");
 * `優化` 橋接 fetch 的請求正文與 WebSocket 訊息超過 256 KiB 時改以唯讀檔案描述符 (bodyTransport / messageTransport "pfd") 而非內聯 base64 JSON 送達宿主 (需宿主公佈 bridgeRequestBinaryTransport=pfd, 宿主分支 node-m20-2-binder-body-pfd), 上行大小只受宿主請求策略 (64 MiB) 與 maxMessageBytes 約束而不再受 Binder 事務尺寸限制
 * `優化` 受控 fetch 的回應物件現經 Response.url 暴露 provider 返回的最終 URL (ResponseInit 不含 url, 此前恒為空字串)
 * `優化` Java 互操作改為整體轉發到宿主的宣告式白名單 (類別 → 建構子 / 靜態與實例方法 / 欄位, 由宿主按表反射執行, 參數支援 JSON 原始值與物件控制代碼), 執行階段不再自設類別表而是把宿主公佈的表讀回為 java.policy, 新增 getStatic() / describe(), 成員自身擲出的例外以 ERR_AUTOJS6_JAVA_CALL_FAILED 回報
+* `優化` 執行階段模組的 npm 優先規則收窄為只涵蓋代替真實 npm 套件的模組 (axios、colors、mime、nanoid、opencc、undici): node_modules 裡的同名套件不再取代 java、fetch、websocket、device 等 AutoJs6 facade, require.resolve 與 require 同規則, 全部執行階段模組裸名可從 ESM 匯入, autojs6:profile 以 moduleResolutionProfile 公佈該規則, Rhino Packages 代理新增 getStatic() / describe()
 
 # v1.5.4
 
