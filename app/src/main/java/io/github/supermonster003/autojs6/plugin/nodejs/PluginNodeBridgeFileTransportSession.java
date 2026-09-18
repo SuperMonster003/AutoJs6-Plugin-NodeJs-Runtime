@@ -10,6 +10,7 @@ import org.autojs.autojs.engine.NativeNodeEmbeddedRuntimeBridge;
 import org.autojs.plugin.nodejs.api.INodeJsHostCapabilityBroker;
 import org.autojs.plugin.nodejs.api.INodeJsHostCapabilityCallback;
 import org.autojs.plugin.nodejs.api.NodeJsRuntimeContract;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -69,6 +70,7 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
     private volatile String transport;
     private boolean nativeInstalled;
     private volatile boolean uploadTransportEnabled;
+    private volatile String javaInteropPolicyJson;
 
     PluginNodeBridgeFileTransportSession(
             File cacheDir,
@@ -135,6 +137,10 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
         uploadTransportEnabled = hostBrokerInfo != null
                 && NodeJsRuntimeContract.BRIDGE_REQUEST_BINARY_TRANSPORT_PFD.equals(
                         hostBrokerInfo.getString(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_BINARY_TRANSPORT));
+        // M20.2 batch 15: the host publishes its Java interop allowlist; the runtime shows it as java.policy.
+        javaInteropPolicyJson = hostBrokerInfo == null
+                ? null
+                : hostBrokerInfo.getString(NodeJsRuntimeContract.KEY_JAVA_INTEROP_POLICY_JSON);
     }
 
     String configJson() {
@@ -149,6 +155,13 @@ final class PluginNodeBridgeFileTransportSession implements NativeNodeEmbeddedRu
             if (uploadTransportEnabled) {
                 config.put("uploadDir", uploadDir.getAbsolutePath())
                         .put("uploadInlineMaxBytes", UPLOAD_INLINE_MAX_BYTES);
+            }
+            if (javaInteropPolicyJson != null && !javaInteropPolicyJson.isEmpty()) {
+                try {
+                    config.put("javaInteropPolicy", new JSONObject(javaInteropPolicyJson));
+                } catch (JSONException ignored) {
+                    // A host that publishes an unreadable table is treated as publishing none.
+                }
             }
             return config.toString();
         } catch (Throwable ignored) {

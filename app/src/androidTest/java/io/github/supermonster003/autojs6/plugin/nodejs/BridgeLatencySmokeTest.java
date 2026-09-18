@@ -1,6 +1,7 @@
 package io.github.supermonster003.autojs6.plugin.nodejs;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -27,6 +28,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -221,6 +224,129 @@ public final class BridgeLatencySmokeTest {
         assertEquals("300", value(payload, "embedded_script.bridge_live_event_count"));
         assertEquals("172", value(payload, "embedded_script.bridge_live_event_dropped_count"));
         assertEquals("0", value(payload, "embedded_script.bridge_live_dispatch_poll_count"));
+    }
+
+    @Test public void javaInteropForwardsToTheHostAllowlistAndReadsItsPolicy() throws Exception {
+        List<String> forwarded = new ArrayList<>();
+        JSONObject mathSpec = new JSONObject().put("className", "java.lang.Math").put("explicit", true).put("constructable", false)
+                .put("staticMethods", new JSONArray().put("floorDiv").put("max")).put("instanceMethods", new JSONArray())
+                .put("staticFields", new JSONArray().put("PI")).put("instanceFields", new JSONArray()).put("fields", new JSONArray());
+        JSONObject rectSpec = new JSONObject().put("className", "android.graphics.Rect").put("explicit", true).put("constructable", true)
+                .put("staticMethods", new JSONArray().put("intersects")).put("instanceMethods", new JSONArray().put("width"))
+                .put("staticFields", new JSONArray()).put("instanceFields", new JSONArray().put("bottom").put("left").put("right").put("top"))
+                .put("fields", new JSONArray().put("bottom").put("left").put("right").put("top"));
+        String policyJson = new JSONObject().put("limitsEnforcedBy", "host_provider")
+                .put("allowedClasses", new JSONArray().put("android.graphics.Rect").put("android.os.Build$VERSION").put("java.lang.Math").put("java.util.concurrent.TimeUnit"))
+                .put("deniedClassPrefixes", new JSONArray().put("java.io.").put("java.lang.reflect."))
+                .put("classes", new JSONObject().put("java.lang.Math", mathSpec).put("android.graphics.Rect", rectSpec)).toString();
+        INodeJsHostCapabilityBroker broker = new INodeJsHostCapabilityBroker.Stub() {
+            @Override public Bundle getBrokerInfo() {
+                Bundle info = new ScreenStateTestBroker().getBrokerInfo();
+                info.putStringArray(NodeJsRuntimeContract.KEY_HOST_CAPABILITY_MODULES, new String[]{"device", "java"});
+                info.putString(NodeJsRuntimeContract.KEY_JAVA_INTEROP_POLICY_JSON, policyJson);
+                return info;
+            }
+            @Override public Bundle getNativeDiagnostics() { return new Bundle(); }
+            @Override public void destroy(Bundle reason) { }
+            @Override public void dispatch(Bundle request, INodeJsHostCapabilityCallback callback) {
+                try {
+                    JSONObject call = new JSONObject(request.getString(NodeJsRuntimeContract.KEY_BRIDGE_REQUEST_JSON));
+                    String method = call.getString("method");
+                    JSONObject payload = call.getJSONArray("args").getJSONObject(0);
+                    String className = payload.optString("className");
+                    String member = payload.has("method") ? payload.optString("method") : payload.optString("field");
+                    synchronized (forwarded) { forwarded.add(method + ":" + (className.isEmpty() ? payload.optString("handle") : className) + (member.isEmpty() ? "" : "." + member)); }
+                    JSONObject reply = new JSONObject().put("id", call.getString("id")).put("ok", true);
+                    JSONArray args = payload.optJSONArray("args");
+                    if (!"java".equals(call.getString("module"))) {
+                        reply.put("result", JSONObject.NULL);
+                    } else if ("java.lang.Runtime".equals(className)) {
+                        reply.put("ok", false).put("error", new JSONObject().put("message", "denied by host").put("code", "ERR_AUTOJS6_JAVA_CLASS_DENIED"));
+                    } else if (className.startsWith("java.lang.reflect.")) {
+                        reply.put("ok", false).put("error", new JSONObject().put("message", "reflection denied by host").put("code", "ERR_AUTOJS6_JAVA_REFLECTION_DENIED"));
+                    } else if ("type".equals(method)) {
+                        reply.put("result", "java.lang.Math".equals(className) ? mathSpec : rectSpec);
+                    } else if ("callStatic".equals(method) && "max".equals(member)) {
+                        reply.put("result", Math.max(args.getInt(0), args.getInt(1)));
+                    } else if ("callStatic".equals(method) && "floorDiv".equals(member)) {
+                        reply.put("ok", false).put("error", new JSONObject().put("message", "java.lang.Math.floorDiv threw java.lang.ArithmeticException: / by zero").put("code", "ERR_AUTOJS6_JAVA_CALL_FAILED"));
+                    } else if ("callStatic".equals(method) && "intersects".equals(member)) {
+                        if (!"java-1".equals(args.getJSONObject(0).getString("__autojs6JavaHandle")) || !"java-2".equals(args.getJSONObject(1).getString("__autojs6JavaHandle"))) {
+                            throw new AssertionError("handle arguments were not forwarded as ids: " + args);
+                        }
+                        reply.put("result", true);
+                    } else if ("new".equals(method)) {
+                        String handle = "java-" + (args.getInt(0) == 1 ? 1 : 2);
+                        reply.put("result", new JSONObject().put("__autojs6JavaHandle", handle).put("className", "android.graphics.Rect")
+                                .put("value", new JSONObject().put("string", "Rect(" + args.getInt(0) + ", " + args.getInt(1) + " - " + args.getInt(2) + ", " + args.getInt(3) + ")")
+                                        .put("left", args.getInt(0)).put("top", args.getInt(1)).put("right", args.getInt(2)).put("bottom", args.getInt(3))));
+                    } else if ("call".equals(method) && "width".equals(member)) {
+                        reply.put("result", 10);
+                    } else if ("call".equals(method) && "toMillis".equals(member)) {
+                        reply.put("result", 5000);
+                    } else if ("getField".equals(method)) {
+                        reply.put("result", 2);
+                    } else if ("getStatic".equals(method) && "SDK_INT".equals(member)) {
+                        reply.put("result", 35);
+                    } else if ("getStatic".equals(method) && "SECONDS".equals(member)) {
+                        reply.put("result", new JSONObject().put("__autojs6JavaHandle", "java-3").put("className", "java.util.concurrent.TimeUnit")
+                                .put("value", new JSONObject().put("string", "SECONDS").put("name", "SECONDS")));
+                    } else if ("release".equals(method)) {
+                        reply.put("result", true);
+                    } else {
+                        throw new AssertionError("unexpected java call " + call);
+                    }
+                    Bundle response = new Bundle();
+                    response.putString(NodeJsRuntimeContract.KEY_BRIDGE_RESPONSE_JSON, reply.toString());
+                    callback.onResponse(response);
+                } catch (Exception error) {
+                    throw new AssertionError(error);
+                }
+            }
+        };
+        Bundle result = run(broker, null,
+                "(async () => { const java = require('java');\n" +
+                "const codeOf = e => String(e && (e.autojs6Code || e.code || e.name || ''));\n" +
+                "const failCode = async p => { try { await p; return 'ok'; } catch (e) { return codeOf(e); } };\n" +
+                "const policy = java.policy;\n" +
+                "console.log('m20.java.policy=' + [policy.enabled, policy.published, policy.limitsEnforcedBy, policy.allowedClasses.join(','),\n" +
+                "  policy.deniedClassPrefixes.length, policy.classes['java.lang.Math'].staticMethods.join(','), Object.isFrozen(policy.classes['java.lang.Math'].staticMethods)].join('|'));\n" +
+                "const max = await java.callStatic('java.lang.Math', 'max', [3, 7]);\n" +
+                "const rect = await java.new('android.graphics.Rect', [1, 2, 11, 22]);\n" +
+                "const other = await java.type('android.graphics.Rect').new([0, 0, 5, 5]);\n" +
+                "const intersects = await java.callStatic('android.graphics.Rect', 'intersects', [rect, other]);\n" +
+                "const width = await rect.call('width');\n" +
+                "const top = await rect.getField('top');\n" +
+                "const sdk = await java.getStatic('android.os.Build$VERSION', 'SDK_INT');\n" +
+                "const seconds = await java.type('java.util.concurrent.TimeUnit').getStatic('SECONDS');\n" +
+                "const millis = await seconds.call('toMillis', [5]);\n" +
+                "const described = await java.describe('java.lang.Math');\n" +
+                "const released = await rect.release();\n" +
+                "console.log('m20.java.values=' + [max, rect.className, rect.value.left, rect.value.string, intersects, width, top, sdk,\n" +
+                "  seconds.value.name, typeof seconds.call, millis, described.constructable, described.staticMethods.join(','), Object.isFrozen(described), released].join('|'));\n" +
+                "console.log('m20.java.codes=' + [\n" +
+                "  await failCode(java.callStatic('java.lang.Runtime', 'getRuntime')),\n" +
+                "  await failCode(java.describe('java.lang.reflect.Method')),\n" +
+                "  await failCode(java.callStatic('java.lang.Math', 'floorDiv', [1, 0])),\n" +
+                "  await failCode(java.callStatic('', 'max')),\n" +
+                "  await failCode(java.callStatic('java.lang.Math', 'max', [{ nested: true }]))].join('|'));\n" +
+                "const facade = globalThis.$autojs && globalThis.$autojs.java;\n" +
+                "console.log('m20.java.facade=' + (facade ? [typeof facade.getStatic, typeof facade.describe, facade.policy.published, facade.mode].join('|') : 'absent'));\n" +
+                "})().catch(e => { console.error(e); process.exitCode = 1; });", "device", "java_interop");
+        String stdout = result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
+        assertTrue(stdout, stdout.contains("m20.java.policy=true|true|host_provider|android.graphics.Rect,android.os.Build$VERSION,java.lang.Math,java.util.concurrent.TimeUnit|2|floorDiv,max|true"));
+        assertTrue(stdout, stdout.contains("m20.java.values=7|android.graphics.Rect|1|Rect(1, 2 - 11, 22)|true|10|2|35|SECONDS|function|5000|false|floorDiv,max|true|true"));
+        assertTrue(stdout, stdout.contains("m20.java.codes=ERR_AUTOJS6_JAVA_CLASS_DENIED|ERR_AUTOJS6_JAVA_REFLECTION_DENIED|ERR_AUTOJS6_JAVA_CALL_FAILED|ERR_AUTOJS6_JAVA_CLASS_DENIED|ERR_AUTOJS6_JAVA_METHOD_DENIED"));
+        assertTrue(stdout, stdout.contains("m20.java.facade=function|function|true|allowlist"));
+        synchronized (forwarded) {
+            // Class names the runtime used to reject on its own now reach the host unchanged.
+            assertTrue(forwarded.toString(), forwarded.contains("callStatic:java.lang.Runtime.getRuntime"));
+            assertTrue(forwarded.toString(), forwarded.contains("type:java.lang.reflect.Method"));
+            assertTrue(forwarded.toString(), forwarded.contains("getStatic:android.os.Build$VERSION.SDK_INT"));
+            assertTrue(forwarded.toString(), forwarded.contains("call:java-1.width"));
+            assertTrue(forwarded.toString(), forwarded.contains("release:java-1"));
+            assertFalse(forwarded.toString(), forwarded.contains("callStatic:.max"));
+        }
     }
 
     private Bundle run(INodeJsHostCapabilityBroker broker, String transport, String source, String... permissions) throws Exception {

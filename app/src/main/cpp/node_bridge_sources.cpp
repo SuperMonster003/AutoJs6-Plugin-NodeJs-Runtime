@@ -3588,23 +3588,36 @@ std::string buildEmbeddedScriptExecutionSource(
     maxPeriodicIntervalMs: 2592000000,
     allowedConstraints: Object.freeze(["charging", "network", "idle"])
   });
-  const __autojs6_java_interop_policy = Object.freeze({
-    enabled: __autojs6_java_interop_enabled,
-    allowedClasses: Object.freeze(["android.graphics.Rect", "java.lang.Math", "java.util.UUID"]),
-    deniedClassPrefixes: Object.freeze([
-      "android.accessibilityservice.",
-      "android.app.",
-      "android.content.",
-      "android.media.projection.",
-      "android.view.",
-      "java.io.",
-      "java.lang.invoke.",
-      "java.lang.reflect.",
-      "java.net.",
-      "java.nio.file.",
-      "kotlin.reflect."
-    ])
-  });
+  // M20.2 batch 15: the Java interop allowlist lives in the host. The runtime only knows whether
+  // the capability is enabled for this request and what the host published through the bridge
+  // config; class and member decisions are made by the host provider, not repeated here.
+  function __autojs6_deep_freeze_json(value) {
+    if (Array.isArray(value)) {
+      value.forEach(__autojs6_deep_freeze_json);
+      return Object.freeze(value);
+    }
+    if (value && typeof value === "object") {
+      Object.keys(value).forEach(function(key) {
+        __autojs6_deep_freeze_json(value[key]);
+      });
+      return Object.freeze(value);
+    }
+    return value;
+  }
+  function __autojs6_java_policy_from_config(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return null;
+    }
+    try {
+      return __autojs6_deep_freeze_json(JSON.parse(JSON.stringify(value)));
+    } catch (_) {
+      return null;
+    }
+  }
+  function __autojs6_java_host_policy() {
+    const config = __autojs6_bridge_live_config();
+    return config && config.javaInteropPolicy ? config.javaInteropPolicy : null;
+  }
   const __autojs6_worker_threads_policy = (function() {
     const record = __autojs6_runtime_module_embedded_sources["autojs6:worker-policy"];
     const input = record && typeof record.source === "string" ? JSON.parse(record.source) : {};
@@ -6806,13 +6819,16 @@ std::string buildEmbeddedScriptExecutionSource(
       // session upload directory and the inline threshold above which bodies use it.
       const uploadDir = parsed.uploadDir === undefined || parsed.uploadDir === null ? "" : String(parsed.uploadDir);
       const uploadInlineMaxBytes = Number(parsed.uploadInlineMaxBytes);
+      // M20.2 batch 15: the host Java interop allowlist, as published by getBrokerInfo().
+      const javaInteropPolicy = __autojs6_java_policy_from_config(parsed.javaInteropPolicy);
       __autojs6_bridge_live_config_cache = Object.freeze({
         transport: parsed.transport === "file" ? "file" : "jni",
         requestDir,
         responseDir,
         pollIntervalMs: Math.max(5, Math.min(pollIntervalMs, 250)),
         uploadDir,
-        uploadInlineMaxBytes: Number.isFinite(uploadInlineMaxBytes) && uploadInlineMaxBytes >= 0 ? Math.floor(uploadInlineMaxBytes) : 262144
+        uploadInlineMaxBytes: Number.isFinite(uploadInlineMaxBytes) && uploadInlineMaxBytes >= 0 ? Math.floor(uploadInlineMaxBytes) : 262144,
+        javaInteropPolicy
       });
       return __autojs6_bridge_live_config_cache;
     } catch (_) {
@@ -16848,10 +16864,14 @@ std::string buildEmbeddedScriptExecutionSource(
     );
   }
   function __autojs6_java_policy_snapshot() {
+    const host = __autojs6_java_host_policy();
     return Object.freeze({
-      enabled: __autojs6_java_interop_policy.enabled,
-      allowedClasses: Object.freeze(__autojs6_java_interop_policy.allowedClasses.slice()),
-      deniedClassPrefixes: Object.freeze(__autojs6_java_interop_policy.deniedClassPrefixes.slice())
+      enabled: __autojs6_java_interop_enabled,
+      limitsEnforcedBy: "host_provider",
+      published: !!host,
+      allowedClasses: host && Array.isArray(host.allowedClasses) ? host.allowedClasses : Object.freeze([]),
+      deniedClassPrefixes: host && Array.isArray(host.deniedClassPrefixes) ? host.deniedClassPrefixes : Object.freeze([]),
+      classes: host && host.classes && typeof host.classes === "object" ? host.classes : Object.freeze({})
     });
   }
   function __autojs6_java_check_enabled() {
@@ -16868,51 +16888,7 @@ std::string buildEmbeddedScriptExecutionSource(
         "ERR_AUTOJS6_JAVA_CLASS_DENIED"
       );
     }
-    if (
-      className.indexOf("java.lang.reflect.") === 0 ||
-      className.indexOf("kotlin.reflect.") === 0 ||
-      className.indexOf("java.lang.invoke.") === 0
-    ) {
-      throw __autojs6_java_interop_error(
-        "AutoJs6 Java interop denies reflection class " + className + ".",
-        "ERR_AUTOJS6_JAVA_REFLECTION_DENIED",
-        className
-      );
-    }
-    const deniedExact = [
-      "java.lang.Class",
-      "java.lang.ClassLoader",
-      "java.lang.Runtime",
-      "java.lang.Process",
-      "java.lang.ProcessBuilder",
-      "java.lang.System",
-      "dalvik.system.DexClassLoader",
-      "dalvik.system.PathClassLoader",
-      "dalvik.system.InMemoryDexClassLoader"
-    ];
-    if (deniedExact.indexOf(className) >= 0) {
-      throw __autojs6_java_interop_error(
-        "AutoJs6 Java interop denies class " + className + ".",
-        "ERR_AUTOJS6_JAVA_CLASS_DENIED",
-        className
-      );
-    }
-    for (const prefix of __autojs6_java_interop_policy.deniedClassPrefixes) {
-      if (className.indexOf(prefix) === 0) {
-        throw __autojs6_java_interop_error(
-          "AutoJs6 Java interop denies class " + className + ".",
-          "ERR_AUTOJS6_JAVA_CLASS_DENIED",
-          className
-        );
-      }
-    }
-    if (__autojs6_java_interop_policy.allowedClasses.indexOf(className) < 0) {
-      throw __autojs6_java_interop_error(
-        "AutoJs6 Java interop allowlist does not include " + className + ".",
-        "ERR_AUTOJS6_JAVA_CLASS_DENIED",
-        className
-      );
-    }
+    // Whether the class is admitted is the host allowlist's decision (java.policy shows it).
     return className;
   }
   function __autojs6_java_method_name(value, className) {
@@ -16944,8 +16920,15 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       return value;
     }
+    if (value && typeof value === "object") {
+      // M20.2 batch 15: handles of objects the host already admitted travel as their id.
+      const handle = __autojs6_java_handle_id(value);
+      if (handle) {
+        return { __autojs6JavaHandle: handle };
+      }
+    }
     throw __autojs6_java_interop_error(
-      "AutoJs6 Java interop arguments must be JSON primitives in the MVP.",
+      "AutoJs6 Java interop arguments must be JSON primitives or Java object handles.",
       "ERR_AUTOJS6_JAVA_METHOD_DENIED",
       className,
       methodName
@@ -16984,6 +16967,12 @@ std::string buildEmbeddedScriptExecutionSource(
       },
       create: function(args, options) {
         return __autojs6_java_new(checkedClassName, args, options);
+      },
+      getStatic: function(fieldName, options) {
+        return __autojs6_java_get_static(checkedClassName, fieldName, options);
+      },
+      describe: function(options) {
+        return __autojs6_java_describe(checkedClassName, options);
       }
     });
   }
@@ -17009,7 +16998,7 @@ std::string buildEmbeddedScriptExecutionSource(
         signal: __autojs6_bridge_signal_from_options(options),
         permissions: ["java_interop"]
       }
-    );
+    ).then(__autojs6_java_handle_descriptor);
   }
   function __autojs6_java_new(className, args, options) {
     let descriptor;
@@ -17124,7 +17113,7 @@ std::string buildEmbeddedScriptExecutionSource(
         signal: __autojs6_bridge_signal_from_options(options),
         permissions: ["java_interop"]
       }
-    );
+    ).then(__autojs6_java_handle_descriptor);
   }
   function __autojs6_java_get_field(target, fieldName, options) {
     let descriptor;
@@ -17157,7 +17146,7 @@ std::string buildEmbeddedScriptExecutionSource(
         signal: __autojs6_bridge_signal_from_options(options),
         permissions: ["java_interop"]
       }
-    );
+    ).then(__autojs6_java_handle_descriptor);
   }
   function __autojs6_java_release(target, options) {
     let descriptor;
@@ -17187,6 +17176,48 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     );
   }
+  function __autojs6_java_get_static(className, fieldName, options) {
+    let descriptor;
+    try {
+      const checkedClassName = __autojs6_java_class_name(className);
+      descriptor = {
+        className: checkedClassName,
+        field: __autojs6_java_method_name(fieldName, checkedClassName)
+      };
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    return __autojs6_call_autojs(
+      "java",
+      "getStatic",
+      [descriptor],
+      {
+        timeoutMs: __autojs6_java_timeout(options),
+        signal: __autojs6_bridge_signal_from_options(options),
+        permissions: ["java_interop"]
+      }
+    ).then(__autojs6_java_handle_descriptor);
+  }
+  function __autojs6_java_describe(className, options) {
+    let descriptor;
+    try {
+      descriptor = { className: __autojs6_java_class_name(className) };
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    return __autojs6_call_autojs(
+      "java",
+      "type",
+      [descriptor],
+      {
+        timeoutMs: __autojs6_java_timeout(options),
+        signal: __autojs6_bridge_signal_from_options(options),
+        permissions: ["java_interop"]
+      }
+    ).then(function(result) {
+      return result && typeof result === "object" ? __autojs6_deep_freeze_json(result) : result;
+    });
+  }
   function __autojs6_java_define_class_unsupported() {
     __autojs6_java_check_enabled();
     throw __autojs6_java_interop_error(
@@ -17212,6 +17243,8 @@ std::string buildEmbeddedScriptExecutionSource(
       call: __autojs6_java_call_instance,
       callInstance: __autojs6_java_call_instance,
       getField: __autojs6_java_get_field,
+      getStatic: __autojs6_java_get_static,
+      describe: __autojs6_java_describe,
       release: __autojs6_java_release,
       dispose: __autojs6_java_release,
       defineClass: __autojs6_java_define_class_unsupported,
@@ -17256,6 +17289,12 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_autojs_java_release(target, options) {
     return __autojs6_limited_java().release(target, options);
   }
+  function __autojs6_autojs_java_get_static(classOrName, fieldName, options) {
+    return __autojs6_limited_java().getStatic(__autojs6_autojs_java_class_name(classOrName), fieldName, options);
+  }
+  function __autojs6_autojs_java_describe(classOrName, options) {
+    return __autojs6_limited_java().describe(__autojs6_autojs_java_class_name(classOrName), options);
+  }
   function __autojs6_autojs_java_create(classOrName, args, threadModeOrOptions, maybeOptions) {
     if (!__autojs6_java_interop_enabled) {
       throw __autojs6_java_interop_disabled_error();
@@ -17298,7 +17337,7 @@ std::string buildEmbeddedScriptExecutionSource(
       stable: enabled,
       mode: enabled ? "allowlist" : "disabled",
       reason: enabled
-        ? "Allowlist-only Java interop is enabled."
+        ? "Java interop forwards to the host allowlist; the host publishes its class table as policy."
         : "AutoJs6 Java interop is unavailable for this request; the stable allowlist policy remains enforced.",
       policy: __autojs6_java_policy_snapshot(),
       findClass: __autojs6_autojs_java_find_class,
@@ -17309,6 +17348,8 @@ std::string buildEmbeddedScriptExecutionSource(
       call: __autojs6_autojs_java_call_instance,
       callInstance: __autojs6_autojs_java_call_instance,
       getField: __autojs6_autojs_java_get_field,
+      getStatic: __autojs6_autojs_java_get_static,
+      describe: __autojs6_autojs_java_describe,
       release: __autojs6_autojs_java_release,
       dispose: __autojs6_autojs_java_release,
       defineClass: __autojs6_java_define_class_unsupported,

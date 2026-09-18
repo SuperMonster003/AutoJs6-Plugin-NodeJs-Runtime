@@ -96,8 +96,11 @@ need a host build that ships those providers (merged into the host master on
 transfer and on-demand compiler inputs have separate project-path contracts.
 
 The debug Inspector supports explicit local debugging through localhost and adb
-forward. It is disabled by default; remote listening is unsupported. Native addons,
-arbitrary private bindings and unrestricted Java reflection remain unavailable.
+forward. It is disabled by default; remote listening is unsupported. Java interop reaches
+only the classes and members of the host's declarative allowlist, which the host executes
+by reflection and publishes as `java.policy` (the runtime keeps no class table of its own);
+native addons, arbitrary private bindings and unrestricted Java reflection remain
+unavailable.
 Inside workers `process.exit()` ends the thread as in Node and
 `process.getBuiltinModule()` follows the worker builtin allowlist, and bare package
 specifiers resolve through the workspace `node_modules` as in Node (exports conditions,

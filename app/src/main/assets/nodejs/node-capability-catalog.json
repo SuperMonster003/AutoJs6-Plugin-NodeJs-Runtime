@@ -1601,6 +1601,13 @@
       },
       {
         "module": "java",
+        "method": "getStatic",
+        "requiredCapabilities": [
+          "java_interop"
+        ]
+      },
+      {
+        "module": "java",
         "method": "new",
         "requiredCapabilities": [
           "java_interop"
@@ -2957,6 +2964,10 @@
       {
         "name": "FS_WATCH_RATE_LIMITED",
         "code": "ERR_AUTOJS6_FS_WATCH_RATE_LIMITED"
+      },
+      {
+        "name": "JAVA_CALL_FAILED",
+        "code": "ERR_AUTOJS6_JAVA_CALL_FAILED"
       },
       {
         "name": "JAVA_CLASS_DENIED",

@@ -58,6 +58,16 @@ bound or computed filename; `ERR_AUTOJS6_SQLITE_PATH_UNSUPPORTED` is retired. Fe
 boundaries use specific codes for disabled builtins,
 network, process APIs, workers, native addons, or Java interop.
 
+Java interop reports the host's decisions with **ERR_AUTOJS6_JAVA_*** codes (M20.2 batch 15):
+`ERR_AUTOJS6_JAVA_INTEROP_DISABLED` when the capability is off for the request,
+`ERR_AUTOJS6_JAVA_CLASS_DENIED` for classes outside the host allowlist (including results
+whose class is not listed), `ERR_AUTOJS6_JAVA_REFLECTION_DENIED` for `java.lang.reflect`,
+`java.lang.invoke` and `kotlin.reflect`, `ERR_AUTOJS6_JAVA_METHOD_DENIED` for members the
+table does not name, arguments no public overload accepts, or released handles, and
+`ERR_AUTOJS6_JAVA_CALL_FAILED` when the admitted member itself threw (the Java exception
+class and message are in the error message). The runtime no longer keeps its own class
+table; `java.policy` is the table the host published.
+
 Compiler-backed Node TypeScript projects may request provider-v3 compilation for an
 exact runtime-created `.ts/.mts/.cts` file. **ERR_AUTOJS6_TYPESCRIPT_COMPILATION_FAILED**
 means that the dynamic source produced TypeScript error diagnostics or no exact emitted
