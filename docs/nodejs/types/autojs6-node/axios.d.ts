@@ -52,7 +52,6 @@ declare module "axios" {
     }
 
     export interface Policy {
-      readonly maxConcurrentRequests: number;
       readonly defaultTimeoutMs: number;
       readonly defaultMaxResponseBytes: number;
       readonly defaultMaxRedirects: number;

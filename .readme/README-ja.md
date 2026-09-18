@@ -136,6 +136,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `改善` 再帰的な readdir / opendir をネイティブに委譲 (4096 エントリ上限とエントリごとの realpath 検査を撤廃; readdir('/') は Node と同様に proc/sys/dev の名前を列挙), readlink / chmod / chown / utimes は絶対パスを受け付け chmod はシンボリックリンクを辿る, fs ポリシーエラーコードは ERR_AUTOJS6_FS_NUL_BYTE / ERR_AUTOJS6_FS_PATH_ESCAPE (ハード境界, loader と共通) / ERR_AUTOJS6_FS_SCOPED_PATH に収束し, 通常の fs 失敗は Node のコードのみを保持
 * `改善` ランタイム独自のモジュールソース予算 (モジュールあたり 16 MiB, 合計 64 MiB, 8192 モジュール, provider リクエスト数) を撤廃, CommonJS エントリの __filename / require.main.filename / process.argv[1] は Node と同様に絶対パスになり require.main.id は '.', fs.mkdtemp* はネイティブに委譲: 呼び出し側のプレフィックス表記にサフィックスを付けて要求されたエンコーディングで返し, 親ディレクトリがシンボリックリンクでも拒否しない
 * `改善` node:sqlite は SQL のファイル操作をネイティブ SQLite に委ねる: リテラルのファイル名を持つ ATTACH (file: URI を含む) は SQL テキストの走査ではなく SQLite の authorizer で /proc、/sys、/dev 境界を検査し, VACUUM INTO の出力先は SQLite 内部の ATTACH を通じて同じ境界検査を受け, ディレクトリ PRAGMA は遮断されなくなり, file: URI 文字列と空の一時データベースを開け, setAuthorizer() は境界検査と合成される (バインドパラメータや式でファイル名を与える ATTACH のみ引き続き拒否)
+* `改善` ブリッジのクォータをホストに委ねる: autojs6:bridge-limits の maxPendingBridgeCalls ウィンドウを超える呼び出しは ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT で失敗せず先入れ先出しで待機するようになり, ランタイム自身は画像ハンドル数・同時実行の制御付き fetch 数・制御付き WebSocket 接続数を制限しなくなり (ホストの broker は引き続き自身のポリシーを適用), require('fetch').policy.maxConcurrentRequests と require('websocket').policy.maxConnections は廃止
 
 # v1.5.4
 

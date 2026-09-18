@@ -130,11 +130,24 @@ public final class BridgeLatencySmokeTest {
                     "(async () => { const bridge = require('autojs6:bridge');\n" +
                     "const text = 'bridge-' + String.fromCodePoint(0x1f680, 0x4e2d) + '\\u0000-end';\n" +
                     "const call = (method, value, timeoutMs = 5000) => bridge.callAutoJs('device', method, [value], {permissions:['device'], timeoutMs});\n" +
-                    "const batch = Array.from({length:32}, (_, i) => call('echo', text + i));\n" +
-                    "await call('overflow', text).then(() => { throw new Error('missing limit'); }, e => {\n" +
-                    "if (e.code !== 'ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT') throw e; });\n" +
+                    "const batch = Array.from({length:40}, (_, i) => call('echo', text + i));\n" +
+                    "if (bridge.__test.pendingCount() !== 32 || bridge.__test.waitingCount() !== 8) throw new Error('window ' + bridge.__test.pendingCount() + '/' + bridge.__test.waitingCount());\n" +
                     "const values = await Promise.all(batch);\n" +
                     "values.forEach((v, i) => { if (v !== text + i) throw new Error('UTF-8 corruption'); });\n" +
+                    "if (bridge.__test.waitingCount() !== 0) throw new Error('waiting leak');\n" +
+                    "const slow = Array.from({length:32}, (_, i) => call('late', text + i));\n" +
+                    "await call('queued', text, 20).then(() => { throw new Error('missing queued timeout'); }, e => {\n" +
+                    "if (e.code !== 'ERR_AUTOJS6_BRIDGE_TIMEOUT') throw e; });\n" +
+                    "if (bridge.__test.waitingCount() !== 0) throw new Error('queued timeout leak');\n" +
+                    "const slowValues = await Promise.all(slow);\n" +
+                    "slowValues.forEach((v, i) => { if (v !== text + i) throw new Error('slow mismatch'); });\n" +
+                    "const cfetch = require('fetch');\n" +
+                    "const fetches = await Promise.allSettled(Array.from({length:40}, () => cfetch('https://example.invalid/')));\n" +
+                    "const fetchCodes = new Set(fetches.map(r => r.status === 'rejected' ? String(r.reason.code) : 'fulfilled'));\n" +
+                    "if (fetchCodes.size !== 1 || fetchCodes.has('ERR_AUTOJS6_NETWORK_POLICY_DENIED')) throw new Error('fetch window ' + [...fetchCodes]);\n" +
+                    "if (cfetch.policy.maxConcurrentRequests !== undefined || require('websocket').policy.maxConnections !== undefined) throw new Error('policy still lists a concurrency cap');\n" +
+                    "const limits = require('autojs6:profile').bridgeLimits;\n" +
+                    "if (String(limits.runtimeEnforced) !== 'maxPendingBridgeCalls' || limits.hostEnforced.length !== 5) throw new Error('bridgeLimits report ' + JSON.stringify(limits));\n" +
                     "await call('late', text, 20).then(() => { throw new Error('missing timeout'); }, e => {\n" +
                     "if (e.code !== 'ERR_AUTOJS6_BRIDGE_TIMEOUT') throw e; });\n" +
                     "if (bridge.__test.pendingCount() !== 0) throw new Error('pending leak');\n" +

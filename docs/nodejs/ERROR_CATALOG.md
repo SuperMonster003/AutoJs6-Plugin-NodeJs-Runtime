@@ -32,7 +32,9 @@ message, request ID, and execution ID when reporting a failure.
   cancellation or timeout.
 - **ERR_AUTOJS6_BRIDGE_PROCESS_DEAD**: the peer process died.
 - **ERR_AUTOJS6_BRIDGE_RATE_LIMITED**, **ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT**:
-  configured request/resource budget was exceeded.
+  a host-configured request/resource budget was exceeded. The runtime itself no longer
+  rejects calls for the in-flight window (excess calls wait), image handle counts, fetch
+  concurrency or WebSocket connection counts.
 - **ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED**: a host provider failed after validation.
 
 ## Workspace, Modules, and Policy

@@ -99,7 +99,9 @@ Inside workers `process.exit()` ends the thread as in Node and
 specifiers resolve through the workspace `node_modules` as in Node (exports conditions,
 main, index, self-reference); dynamic `import()` inside workers goes through the worker
 partial ESM loader with `with { type: "json" }` support; nested workers are still
-unsupported. Subprocesses and bridges retain documented execution limits.
+unsupported. Subprocesses retain documented execution limits; bridge calls beyond the
+`maxPendingBridgeCalls` window wait in FIFO order instead of failing, and the other
+`autojs6:bridge-limits` fields are enforced by the host broker rather than the runtime.
 Screen capture, OCR and recording have the manual acceptance recorded in
 [Roadmap](../../Roadmap.md); physical event receipts remain pending. Android consent
 is still required when using those capabilities. A callable facade is not evidence

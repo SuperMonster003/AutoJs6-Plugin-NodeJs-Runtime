@@ -58,7 +58,6 @@
     }
 
     export interface Policy {
-      readonly maxConnections: number;
       readonly defaultTimeoutMs: number;
       readonly hardTimeoutMs: number;
       readonly defaultMaxMessageBytes: number;

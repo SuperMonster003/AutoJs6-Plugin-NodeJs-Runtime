@@ -809,6 +809,7 @@ declare namespace AutoJs6Node {
     readonly profileRollbackPolicy: ProfileRollbackPolicy;
     readonly privacyDisclosurePolicy: PrivacyDisclosurePolicy;
     readonly bridgePermissions: BridgePermissionsReport;
+    /** The `autojs6:bridge-limits` policy shared with the host broker. The runtime applies only `maxPendingBridgeCalls` (calls beyond that in-flight window wait in FIFO order); `runtimeEnforced` / `hostEnforced` list which side applies each field. */
     readonly bridgeLimits: Readonly<Record<string, unknown>>;
   }
 
