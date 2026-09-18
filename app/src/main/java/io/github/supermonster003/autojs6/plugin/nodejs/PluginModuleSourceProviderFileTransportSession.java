@@ -65,14 +65,19 @@ final class PluginModuleSourceProviderFileTransportSession {
             NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_DEADLINE_ELAPSED_REALTIME_MS;
 
     static final int CONTRACT_VERSION = NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_CONTRACT_VERSION;
-    static final long SINGLE_SOURCE_BYTES_LIMIT = 16L * 1024L * 1024L;
-    static final long TOTAL_SOURCE_BYTES_LIMIT = 64L * 1024L * 1024L;
+    // Transport sizes are the host provider's protocol: the session adopts the values the
+    // host advertises through getNativeDiagnostics() (KEY_MODULE_SOURCE_PROVIDER_*_MAX_*)
+    // and only falls back to these defaults for hosts that advertise nothing.
+    static final long DEFAULT_SINGLE_SOURCE_BYTES_LIMIT = 16L * 1024L * 1024L;
+    static final long DEFAULT_TOTAL_SOURCE_BYTES_LIMIT = 64L * 1024L * 1024L;
     // Productive source requests are bounded independently by source count and
     // byte budgets. Plaintext resolution probes legitimately outnumber loaded
-    // sources in large dependency graphs, so keep a separate generous probe
-    // allowance and use their sum only as an absolute termination backstop.
-    static final int REQUEST_COUNT_LIMIT = 8_192 + 131_072;
-    static final int TRANSPORT_REQUEST_COUNT_LIMIT = REQUEST_COUNT_LIMIT * 2;
+    // sources in large dependency graphs, so the default keeps a separate generous
+    // probe allowance; twice the request count is only the transport's absolute
+    // termination backstop.
+    static final int DEFAULT_REQUEST_COUNT_LIMIT = 8_192 + 131_072;
+    static final String LIMITS_SOURCE_HOST = "host";
+    static final String LIMITS_SOURCE_DEFAULT = "default";
 
     private static final long DEFAULT_TIMEOUT_MS = 5000L;
     private static final long HARD_TIMEOUT_MS = 30_000L;
@@ -163,6 +168,8 @@ final class PluginModuleSourceProviderFileTransportSession {
     private final AtomicInteger lastTypeScriptLine = new AtomicInteger(0);
     private final AtomicInteger lastTypeScriptColumn = new AtomicInteger(0);
     private final AtomicReference<ParcelFileDescriptor> activeSourceDescriptor = new AtomicReference<>(null);
+    private final Object limitsLock = new Object();
+    private volatile ProviderLimits limits;
     private final Map<String, MetadataPreflightReplay> metadataPreflightReplays =
             new ConcurrentHashMap<>();
     private final Thread thread;
@@ -299,7 +306,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                 permissionMetadataRequired,
                 bridgeLimitMetadataRequired
         )) {
-            readLocalMetadataOnce(texts, workspaceSession, path, deadline);
+            readLocalMetadataOnce(texts, workspaceSession, path, DEFAULT_SINGLE_SOURCE_BYTES_LIMIT, deadline);
         }
         return new RuntimeMetadataSnapshot(
                 texts.get(workingProjectPath),
@@ -327,6 +334,7 @@ final class PluginModuleSourceProviderFileTransportSession {
             Map<String, String> texts,
             PluginWorkspaceArchiveSession workspaceSession,
             String runtimePath,
+            long singleSourceBytesLimit,
             long deadline
     ) throws IOException {
         if (texts.containsKey(runtimePath)) {
@@ -334,7 +342,7 @@ final class PluginModuleSourceProviderFileTransportSession {
         }
         byte[] source = workspaceSession.readExactRuntimeMetadataNoFollow(
                 runtimePath,
-                SINGLE_SOURCE_BYTES_LIMIT,
+                singleSourceBytesLimit,
                 deadline
         );
         String text = source == null ? null : decodeStrictUtf8(source);
@@ -360,7 +368,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                     recordMetadataResponse(STATUS_NOT_ENCRYPTED, resolve, "");
                     byte[] source = workspaceSession.readExactRuntimeMetadataNoFollow(
                             runtimePath,
-                            SINGLE_SOURCE_BYTES_LIMIT,
+                            limits().singleSourceBytes,
                             deadline
                     );
                     if (source == null) {
@@ -447,11 +455,11 @@ final class PluginModuleSourceProviderFileTransportSession {
         if (materializationRequest) {
             missingCandidateRequestCount.incrementAndGet();
         }
-        if (providerCount > REQUEST_COUNT_LIMIT) {
+        if (providerCount > limits().requestCount) {
             recordMetadataFailure(STATUS_FAILED, ERROR_BUDGET_EXCEEDED);
             throw new PolicyMetadataException(
                     ERROR_BUDGET_EXCEEDED,
-                    "Module-source provider request count exceeds " + REQUEST_COUNT_LIMIT + "."
+                    "Module-source provider request count exceeds " + limits().requestCount + "."
             );
         }
         String id = __metadataRequestId();
@@ -548,10 +556,10 @@ final class PluginModuleSourceProviderFileTransportSession {
             long deadline
     ) throws IOException {
         long declaredBytes = response.sourceBytes;
-        if (declaredBytes < 0L || declaredBytes > SINGLE_SOURCE_BYTES_LIMIT) {
+        if (declaredBytes < 0L || declaredBytes > limits().singleSourceBytes) {
             throw new BudgetExceededException("Runtime policy metadata exceeds the single-source byte budget.");
         }
-        if (sourceBytes.get() > TOTAL_SOURCE_BYTES_LIMIT - declaredBytes) {
+        if (sourceBytes.get() > limits().totalSourceBytes - declaredBytes) {
             throw new BudgetExceededException("Runtime policy metadata exceeds the aggregate source byte budget.");
         }
         File privateSource = new File(responseDir, safeFileName(response.id) + ".metadata.source");
@@ -560,7 +568,7 @@ final class PluginModuleSourceProviderFileTransportSession {
             if (copied != declaredBytes) {
                 throw new IOException("Runtime policy metadata PFD byte count changed during copy.");
             }
-            byte[] source = readSourceBytesBounded(privateSource, copied);
+            byte[] source = readSourceBytesBounded(privateSource, copied, limits().singleSourceBytes);
             admitMetadataBytes(copied);
             if (materialize) {
                 plaintextCount.incrementAndGet();
@@ -583,7 +591,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                 materializedSourceBytes.addAndGet(copied);
                 byte[] verified = workspaceSession.readExactRuntimeMetadataNoFollow(
                         response.resolvedPath,
-                        SINGLE_SOURCE_BYTES_LIMIT,
+                        limits().singleSourceBytes,
                         deadline
                 );
                 if (verified == null || !Arrays.equals(source, verified)) {
@@ -597,8 +605,8 @@ final class PluginModuleSourceProviderFileTransportSession {
     }
 
     private void admitMetadataBytes(long bytes) throws BudgetExceededException {
-        if (bytes < 0L || bytes > SINGLE_SOURCE_BYTES_LIMIT ||
-                sourceBytes.get() > TOTAL_SOURCE_BYTES_LIMIT - bytes) {
+        if (bytes < 0L || bytes > limits().singleSourceBytes ||
+                sourceBytes.get() > limits().totalSourceBytes - bytes) {
             throw new BudgetExceededException("Runtime policy metadata exceeds its provider byte budget.");
         }
         rawSourceCount.incrementAndGet();
@@ -840,6 +848,20 @@ final class PluginModuleSourceProviderFileTransportSession {
                 Long.toString(metadataPreflightSourceBytes.get())
         );
         values.put("embedded_script.module_provider.transport", "file_pfd_v2");
+        ProviderLimits effectiveLimits = limits();
+        values.put("embedded_script.module_provider.transport_limits_source", effectiveLimits.source);
+        values.put(
+                "embedded_script.module_provider.transport_source_bytes_limit",
+                Long.toString(effectiveLimits.singleSourceBytes)
+        );
+        values.put(
+                "embedded_script.module_provider.transport_aggregate_source_bytes_limit",
+                Long.toString(effectiveLimits.totalSourceBytes)
+        );
+        values.put(
+                "embedded_script.module_provider.transport_request_count_limit",
+                Integer.toString(effectiveLimits.requestCount)
+        );
         values.put("embedded_script.module_provider.transport_request_count", Integer.toString(requestCount.get()));
         values.put("embedded_script.module_provider.transport_response_count", Integer.toString(responseCount.get()));
         values.put(
@@ -852,6 +874,83 @@ final class PluginModuleSourceProviderFileTransportSession {
                 Long.toString(transportElapsedMs.get())
         );
         return nativePayloadFromMap(values);
+    }
+
+    /** Transport sizes advertised by the host provider, or the built-in defaults. */
+    static final class ProviderLimits {
+        final long singleSourceBytes;
+        final long totalSourceBytes;
+        final int requestCount;
+        final int transportRequestCount;
+        final String source;
+
+        ProviderLimits(long singleSourceBytes, long totalSourceBytes, int requestCount, String source) {
+            this.singleSourceBytes = singleSourceBytes;
+            this.totalSourceBytes = totalSourceBytes;
+            this.requestCount = requestCount;
+            this.transportRequestCount = requestCount > Integer.MAX_VALUE / 2 ? Integer.MAX_VALUE : requestCount * 2;
+            this.source = source;
+        }
+    }
+
+    static final ProviderLimits DEFAULT_LIMITS = new ProviderLimits(
+            DEFAULT_SINGLE_SOURCE_BYTES_LIMIT,
+            DEFAULT_TOTAL_SOURCE_BYTES_LIMIT,
+            DEFAULT_REQUEST_COUNT_LIMIT,
+            LIMITS_SOURCE_DEFAULT
+    );
+
+    ProviderLimits limits() {
+        ProviderLimits current = limits;
+        if (current != null) {
+            return current;
+        }
+        synchronized (limitsLock) {
+            if (limits == null) {
+                limits = resolveProviderLimits();
+            }
+            return limits;
+        }
+    }
+
+    private ProviderLimits resolveProviderLimits() {
+        Bundle diagnostics = providerDiagnostics(Math.min(timeoutMs, 1000L));
+        if (diagnostics == null) {
+            return DEFAULT_LIMITS;
+        }
+        long single = limitValue(diagnostics, NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_SOURCE_MAX_BYTES);
+        long total = limitValue(diagnostics, NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_TOTAL_MAX_BYTES);
+        long requests = limitValue(diagnostics, NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_REQUEST_MAX_COUNT);
+        if (single <= 0L || total <= 0L || requests <= 0L || requests > Integer.MAX_VALUE) {
+            return DEFAULT_LIMITS;
+        }
+        return new ProviderLimits(single, Math.max(single, total), (int) requests, LIMITS_SOURCE_HOST);
+    }
+
+    private static long limitValue(Bundle diagnostics, String key) {
+        if (!diagnostics.containsKey(key)) {
+            return -1L;
+        }
+        long value = diagnostics.getLong(key, Long.MIN_VALUE);
+        if (value != Long.MIN_VALUE) {
+            return value;
+        }
+        int intValue = diagnostics.getInt(key, Integer.MIN_VALUE);
+        return intValue == Integer.MIN_VALUE ? -1L : intValue;
+    }
+
+    private Bundle providerDiagnostics(long waitMs) {
+        FutureTask<Bundle> task = new FutureTask<>(provider::getNativeDiagnostics);
+        Thread diagnosticsThread = new Thread(task);
+        diagnosticsThread.setName("AutoJs6ModuleSourceProviderLimits");
+        diagnosticsThread.setDaemon(true);
+        diagnosticsThread.start();
+        try {
+            return task.get(Math.max(1L, waitMs), TimeUnit.MILLISECONDS);
+        } catch (Throwable error) {
+            task.cancel(true);
+            return null;
+        }
     }
 
     String[] providerNativePayload() {
@@ -928,7 +1027,7 @@ final class PluginModuleSourceProviderFileTransportSession {
             boolean validOperation = OPERATION_RESOLVE.equals(operation) ||
                     materializationRequest || compilationRequest;
             String path = nonBlank(requestJson.optString("path"), "");
-            if (count > TRANSPORT_REQUEST_COUNT_LIMIT) {
+            if (count > limits().transportRequestCount) {
                 transportFailureCount.incrementAndGet();
                 transportFailureRecorded = true;
                 writeResponse(requestFile, failureJson(
@@ -939,7 +1038,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                         elapsedSince(startedAt),
                         ERROR_BUDGET_EXCEEDED,
                         "Module-source provider transport operation count exceeds " +
-                                TRANSPORT_REQUEST_COUNT_LIMIT + "."
+                                limits().transportRequestCount + "."
                 ), null, true);
                 return;
             }
@@ -1011,7 +1110,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                 }
                 compilationSource = workspaceSession.readExactRuntimeTypeScriptNoFollow(
                         path,
-                        SINGLE_SOURCE_BYTES_LIMIT,
+                        limits().singleSourceBytes,
                         requestDeadline
                 );
                 if (compilationSource == null) {
@@ -1019,9 +1118,9 @@ final class PluginModuleSourceProviderFileTransportSession {
                 }
             }
             int providerCount = providerRequestCount.incrementAndGet();
-            if (providerCount > REQUEST_COUNT_LIMIT) {
+            if (providerCount > limits().requestCount) {
                 throw new BudgetExceededException(
-                        "Module-source provider request count exceeds " + REQUEST_COUNT_LIMIT + "."
+                        "Module-source provider request count exceeds " + limits().requestCount + "."
                 );
             }
             Bundle providerResponse = callProvider(
@@ -1504,12 +1603,12 @@ final class PluginModuleSourceProviderFileTransportSession {
                 closeSourceFd(response);
                 throw new IOException("PFD module-source byte count is invalid.");
             }
-            if (declaredBytes > SINGLE_SOURCE_BYTES_LIMIT) {
+            if (declaredBytes > limits().singleSourceBytes) {
                 closeSourceFd(response);
                 throw new BudgetExceededException("PFD module source exceeds the single-source byte budget.");
             }
             long aggregateBefore = sourceBytes.get();
-            if (aggregateBefore > TOTAL_SOURCE_BYTES_LIMIT - declaredBytes) {
+            if (aggregateBefore > limits().totalSourceBytes - declaredBytes) {
                 closeSourceFd(response);
                 throw new BudgetExceededException("PFD module sources exceed the aggregate byte budget.");
             }
@@ -1657,11 +1756,11 @@ final class PluginModuleSourceProviderFileTransportSession {
     }
 
     private void ensurePreparedSourceBudget(long bytes) throws BudgetExceededException {
-        if (bytes < 0L || bytes > SINGLE_SOURCE_BYTES_LIMIT) {
+        if (bytes < 0L || bytes > limits().singleSourceBytes) {
             throw new BudgetExceededException("Prepared module source exceeds the single-source byte budget.");
         }
         long before = preparedSourceBytes.get();
-        if (before > TOTAL_SOURCE_BYTES_LIMIT - bytes) {
+        if (before > limits().totalSourceBytes - bytes) {
             throw new BudgetExceededException("Prepared module sources exceed the aggregate byte budget.");
         }
     }
@@ -1688,8 +1787,12 @@ final class PluginModuleSourceProviderFileTransportSession {
         lastTypeScriptColumn.set(Math.max(0, column));
     }
 
-    private static byte[] readSourceBytesBounded(File file, long expectedBytes) throws IOException {
-        if (expectedBytes < 0L || expectedBytes > SINGLE_SOURCE_BYTES_LIMIT) {
+    private static byte[] readSourceBytesBounded(
+            File file,
+            long expectedBytes,
+            long singleSourceBytesLimit
+    ) throws IOException {
+        if (expectedBytes < 0L || expectedBytes > singleSourceBytesLimit) {
             throw new BudgetExceededException("Decrypted TypeScript module source exceeds its byte budget.");
         }
         try (FileInputStream input = new FileInputStream(file);
@@ -1702,7 +1805,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                     continue;
                 }
                 total += count;
-                if (total > expectedBytes || total > SINGLE_SOURCE_BYTES_LIMIT) {
+                if (total > expectedBytes || total > singleSourceBytesLimit) {
                     throw new IOException("Decrypted TypeScript module source changed before preparation.");
                 }
                 output.write(buffer, 0, count);
@@ -1802,7 +1905,7 @@ final class PluginModuleSourceProviderFileTransportSession {
             } catch (Throwable error) {
                 throw new IOException("Could not stat decrypted module-source PFD.", error);
             }
-            if (statSize > SINGLE_SOURCE_BYTES_LIMIT) {
+            if (statSize > limits().singleSourceBytes) {
                 throw new BudgetExceededException("Decrypted module-source PFD exceeds the single-source byte budget.");
             }
             if (statSize >= 0L && statSize != declaredBytes) {
@@ -1822,7 +1925,7 @@ final class PluginModuleSourceProviderFileTransportSession {
                         continue;
                     }
                     copied += count;
-                    if (copied > SINGLE_SOURCE_BYTES_LIMIT) {
+                    if (copied > limits().singleSourceBytes) {
                         throw new BudgetExceededException("Decrypted module source exceeds the single-source byte budget.");
                     }
                     if (copied > declaredBytes) {

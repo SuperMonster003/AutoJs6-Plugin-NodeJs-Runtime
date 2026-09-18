@@ -43,8 +43,10 @@ native; only `dir.path` and `parentPath` keep the caller's spelling), `readlink`
 runtime keeps no module-source budget of its own (the 16 MiB per
 module, 64 MiB total, 8192 module and provider request-count caps are gone): modules
 read from the filesystem, embedded runtime modules and `data:` URL modules are bounded
-by device memory only, while the host provider transport keeps its shared protocol
-sizes. A CommonJS entry sees an absolute `__filename` / `require.main.filename` /
+by device memory only, while the host provider transport takes its per-source, aggregate
+and request-count sizes from the host's own `getNativeDiagnostics()` advertisement (the
+plugin's 16 MiB / 64 MiB / 139264 values are only the fallback for hosts that advertise
+nothing). A CommonJS entry sees an absolute `__filename` / `require.main.filename` /
 `process.argv[1]` with `require.main.id === "."` like Node, and `fs.mkdtemp*` returns
 the caller's prefix spelling plus the native suffix in the requested encoding. The
 `esmModuleGraphModules` diagnostic is a bounded sample (first 64 entries plus a remainder
@@ -106,8 +108,12 @@ unsupported. Subprocesses retain documented execution limits; bridge calls beyon
 `autojs6:bridge-limits` fields are enforced by the host broker rather than the runtime.
 The bridged `autojs6:fetch` / `autojs6:websocket` / `axios` facades pass caller timeouts,
 response, message and queue sizes and the HTTP method to the host provider unclamped;
-the host policy and the Binder transaction size (about 1 MB per body) bound them, and the
-runtime follows up to 20 redirects like Node.
+the host policy bounds them and the runtime follows up to 20 redirects like Node. Bridged
+fetch response bodies arrive through a file descriptor (`bodyTransport: "pfd"`, mapped
+into a Buffer) on hosts that support it, so only `maxResponseBytes` bounds them; request
+bodies and WebSocket messages still travel inline through Binder (about 1 MB per call), and
+a host reply that exceeds the Binder transaction size is reported at once as
+`ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED` instead of waiting for the bridge timeout.
 Screen capture, OCR and recording have the manual acceptance recorded in
 [Roadmap](../../Roadmap.md); physical event receipts remain pending. Android consent
 is still required when using those capabilities. A callable facade is not evidence
