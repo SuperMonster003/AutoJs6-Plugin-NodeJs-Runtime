@@ -35,6 +35,7 @@
 * `개선` 제어된 fetch 응답이 이제 Response.url 로 provider 의 최종 URL 을 노출합니다 (ResponseInit 에 url 이 없어 이전에는 항상 빈 문자열이었음)
 * `개선` Java 상호 운용이 호스트의 선언형 허용 목록 (클래스 → 생성자 / 정적·인스턴스 메서드 / 필드, 호스트가 표에 따라 리플렉션으로 실행, 인수는 JSON 원시값과 객체 핸들) 으로 전부 전달되며, 런타임 자체 클래스 표를 없애고 호스트가 공개한 표를 java.policy 로 읽어오고, getStatic() / describe() 를 추가하며, 멤버 자체가 던진 예외는 ERR_AUTOJS6_JAVA_CALL_FAILED 로 보고합니다
 * `개선` 런타임 모듈에 대한 npm 우선 규칙이 실제 npm 패키지를 대신하는 모듈 (axios, colors, mime, nanoid, opencc, undici) 로만 좁혀졌습니다. node_modules 의 동명 패키지가 java, fetch, websocket, device 등 AutoJs6 파사드를 더 이상 대체하지 않고, require.resolve 가 require 와 같은 규칙을 따르며, 모든 런타임 모듈 이름을 ESM 에서 import 할 수 있고, autojs6:profile 이 moduleResolutionProfile 로 규칙을 공개하며, Rhino Packages 프록시에 getStatic() / describe() 가 추가되었습니다
+* `개선` 스크립트 실행 중 런타임 슬롯 프로세스가 종료되면 (저메모리 킬러에 의한 종료, 네이티브 크래시, 직접 kill) 실패 결과가 DeadObjectException 만이 아니라 시스템이 기록한 종료 이유를 보고합니다. 메시지는 LOW_MEMORY (killed by the system low-memory killer; rss 2.6 GB) 또는 CRASH_NATIVE (SIGABRT; see the logcat tombstone) 와 같으며, 결과에는 slotExit, getRuntimeInfo 에는 lastSlotExit 가 포함됩니다 (Android 11 이상; 이전 버전은 이유를 확인할 수 없다고 보고)
 
 # v1.5.4
 

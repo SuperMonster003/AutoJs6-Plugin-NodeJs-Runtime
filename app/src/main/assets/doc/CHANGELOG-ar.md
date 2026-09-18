@@ -35,6 +35,7 @@
 * `تحسين` أصبحت استجابات fetch الخاضع للتحكم تكشف عنوان URL النهائي للمزوّد عبر Response.url (لا يحمل ResponseInit عنوان url، لذا كان يُقرأ دائمًا كسلسلة فارغة)
 * `تحسين` أصبح التشغيل البيني مع Java يُحوِّل كل استدعاء إلى القائمة البيضاء التصريحية للمضيف (الصنف ← المُنشئات والطرق الثابتة وطرق الكائنات والحقول، وينفذها المضيف بالانعكاس مع قيم JSON الأولية ومقابض الكائنات)، ولم يعد وقت التشغيل يحتفظ بجدول أصناف خاص به بل يقرأ الجدول الذي ينشره المضيف بوصفه java.policy، وأُضيفت getStatic() / describe()، وتُبلَّغ الاستثناءات التي يرميها العضو نفسه بالرمز ERR_AUTOJS6_JAVA_CALL_FAILED
 * `تحسين` أصبحت أولوية npm على وحدات وقت التشغيل مقتصرة على الوحدات التي تحل محل حزم npm حقيقية (axios وcolors وmime وnanoid وopencc وundici): لم تعد الحزمة المتماثلة الاسم في node_modules تستبدل واجهات java وfetch وwebsocket وdevice وغيرها من واجهات AutoJs6، وتتبع require.resolve القاعدة نفسها التي تتبعها require، ويمكن استيراد أي اسم وحدة لوقت التشغيل من ESM، وينشر autojs6:profile القاعدة باسم moduleResolutionProfile، وأُضيفت getStatic() / describe() إلى وكيل Packages في Rhino
+* `تحسين` عندما تموت عملية فتحة وقت التشغيل أثناء تنفيذ السكربت (قتلها low-memory killer أو انهيار أصلي أو kill مباشر)، تُبلغ نتيجة الفشل الآن عن سجل الخروج الذي يحتفظ به النظام بدلاً من DeadObjectException فقط: تبدو الرسالة مثل LOW_MEMORY (killed by the system low-memory killer; rss 2.6 GB) أو CRASH_NATIVE (SIGABRT; see the logcat tombstone)، وتحمل النتيجة slotExit ويحمل getRuntimeInfo القيمة lastSlotExit (Android 11 فأحدث؛ الأنظمة الأقدم تُبلغ بأن السبب غير متاح)
 
 # v1.5.4
 

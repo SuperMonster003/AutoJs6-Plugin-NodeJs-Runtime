@@ -144,6 +144,7 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` 受控 fetch 的响应对象现经 Response.url 暴露 provider 返回的最终 URL (ResponseInit 不含 url, 此前恒为空串)
 * `优化` Java 互操作改为整体转发到宿主的声明式白名单 (类 → 构造器 / 静态与实例方法 / 字段, 由宿主按表反射执行, 参数支持 JSON 原始值与对象句柄), 运行时不再自设类表而是把宿主公布的表读回为 java.policy, 新增 getStatic() / describe(), 成员自身抛出的异常以 ERR_AUTOJS6_JAVA_CALL_FAILED 报告
 * `优化` 运行时模块的 npm 优先规则收窄为只覆盖代替真实 npm 包的模块 (axios、colors、mime、nanoid、opencc、undici): node_modules 里的同名包不再替换 java、fetch、websocket、device 等 AutoJs6 facade, require.resolve 与 require 同规则, 全部运行时模块裸名可从 ESM 导入, autojs6:profile 以 moduleResolutionProfile 公布该规则, Rhino Packages 代理新增 getStatic() / describe()
+* `优化` 运行时槽进程在脚本执行中死亡 (被低内存杀手回收、原生崩溃、被直接杀死) 时, 失败结果改为回报系统记录的退出原因而不再只有 DeadObjectException: 消息形如 LOW_MEMORY (killed by the system low-memory killer; rss 2.6 GB) 或 CRASH_NATIVE (SIGABRT; see the logcat tombstone), 结果附 slotExit, getRuntimeInfo 附 lastSlotExit (Android 11+; 更低版本回报原因不可用)
 
 # v1.5.4
 

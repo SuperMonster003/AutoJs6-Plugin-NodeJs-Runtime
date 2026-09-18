@@ -35,6 +35,7 @@
 * `優化` 受控 fetch 的回應物件現經 Response.url 暴露 provider 回傳的最終 URL (ResponseInit 不含 url, 此前恆為空字串)
 * `優化` Java 互操作改為整體轉發到宿主的宣告式白名單 (類別 → 建構子 / 靜態與實例方法 / 欄位, 由宿主按表反射執行, 參數支援 JSON 原始值與物件控制代碼), 執行階段不再自設類別表而是把宿主公布的表讀回為 java.policy, 新增 getStatic() / describe(), 成員自身擲出的例外以 ERR_AUTOJS6_JAVA_CALL_FAILED 回報
 * `優化` 執行階段模組的 npm 優先規則收窄為只涵蓋代替真實 npm 套件的模組 (axios、colors、mime、nanoid、opencc、undici): node_modules 裡的同名套件不再取代 java、fetch、websocket、device 等 AutoJs6 facade, require.resolve 與 require 同規則, 全部執行階段模組裸名可從 ESM 匯入, autojs6:profile 以 moduleResolutionProfile 公佈該規則, Rhino Packages 代理新增 getStatic() / describe()
+* `優化` 執行階段槽處理程序在腳本執行中死亡 (被低記憶體殺手回收、原生崩潰、被直接終止) 時, 失敗結果改為回報系統記錄的結束原因而不再只有 DeadObjectException: 訊息形如 LOW_MEMORY (killed by the system low-memory killer; rss 2.6 GB) 或 CRASH_NATIVE (SIGABRT; see the logcat tombstone), 結果附 slotExit, getRuntimeInfo 附 lastSlotExit (Android 11+; 更低版本回報原因不可用)
 
 # v1.5.4
 
