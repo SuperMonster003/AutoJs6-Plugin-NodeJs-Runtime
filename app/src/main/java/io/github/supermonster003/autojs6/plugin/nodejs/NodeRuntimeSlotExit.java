@@ -246,6 +246,15 @@ final class NodeRuntimeSlotExit {
         return "exit reason not recorded yet";
     }
 
+    /** M12.5: adds the fatal-error report line to a summary, inside its parenthesis when it has one. */
+    static String withCrash(String summary, String crashSummary) {
+        if (crashSummary == null || crashSummary.isEmpty()) return summary == null ? "" : summary;
+        if (summary == null || summary.isEmpty()) return crashSummary;
+        return summary.endsWith(")")
+                ? summary.substring(0, summary.length() - 1) + "; " + crashSummary + ")"
+                : summary + " (" + crashSummary + ")";
+    }
+
     static String failureMessage(int slotId, int pid, String summary) {
         return "Node runtime slot " + slotId + " (pid " + pid + ") exited during the execution: " + summary + ".";
     }

@@ -8,6 +8,7 @@
 
 ###### Unreleased
 
+* `新增` 运行时槽进程发生 Node.js 致命错误 (JavaScript 堆内存耗尽、内部检查失败) 时, 现在会在插件缓存目录留下 Node 自带的诊断报告 (crash/<executionId>.json, 于中止前写出, 不安装信号处理器): 失败结果在 slotExit.crash 与错误消息中带上事件、堆用量、JS 栈与报告路径 (例如 CRASH_NATIVE (SIGABRT; see the logcat tombstone; Node.js fatal error: Allocation failed - JavaScript heap out of memory; JS heap 61.9 MB used of 64.0 MB limit; report .../crash/<executionId>.json)), getRuntimeInfo 以 lastCrash 暴露最新报告 (调度进程重启后仍可读); 新增请求选项 maxOldGenerationSizeMb 为单次执行设置 JS 堆上限 (V8 老生代, 单位 MB), 回归用例也借此复现该崩溃
 * `修复` 修复 require 大体积 CommonJS 模块时运行时槽进程因 V8 堆内存耗尽而中止 (回报为 CRASH_NATIVE / SIGABRT) 的问题: 加载器的注释与字符串掩码逐字符拼接, 22 MiB 模块需要约 700 MB 堆内存; 现改为按连续区段输出 (结果相同, 约 44 MB), CommonJS 的 import / export 扫描也改为在候选位置间跳转而非逐字符检测
 
 # v1.5.5

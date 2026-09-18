@@ -575,7 +575,8 @@ static jobjectArray runEmbeddedScriptLifecycleNative(
         bool inspectorEnabled,
         bool workerThreadsEnabled,
         bool childProcessEnabled,
-        bool javaInteropEnabled
+        bool javaInteropEnabled,
+        int maxOldGenerationSizeMb
 ) {
     EmbeddedScriptExecutionRequest request;
     request.source = toStdString(env, source);
@@ -594,6 +595,7 @@ static jobjectArray runEmbeddedScriptLifecycleNative(
     request.workerThreadsEnabled = workerThreadsEnabled;
     request.childProcessEnabled = childProcessEnabled;
     request.javaInteropEnabled = javaInteropEnabled;
+    request.maxOldGenerationSizeMb = maxOldGenerationSizeMb;
     std::vector<std::string> payload = runEmbeddedScriptExecution(request);
     appendNativePhaseTimingMetadata(payload, "legacy_jni_lifecycle_payload");
     compactEmbeddedScriptLifecyclePayload(payload);
@@ -1278,7 +1280,8 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeRunEmbeddedS
             false,
             workerThreadsEnabled == JNI_TRUE,
             childProcessEnabled == JNI_TRUE,
-            javaInteropEnabled == JNI_TRUE
+            javaInteropEnabled == JNI_TRUE,
+            0
     );
 }
 
@@ -1306,7 +1309,8 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeRunEmbeddedS
         jboolean inspectorEnabled,
         jboolean workerThreadsEnabled,
         jboolean childProcessEnabled,
-        jboolean javaInteropEnabled
+        jboolean javaInteropEnabled,
+        jint maxOldGenerationSizeMb
 ) {
     const std::vector<std::string> moduleSourceNameValues = toStringVectorOrEmpty(env, moduleSourceNames, "moduleSourceNames");
     if (env->ExceptionCheck()) {
@@ -1384,6 +1388,7 @@ Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeRunEmbeddedS
             inspectorEnabled == JNI_TRUE,
             workerThreadsEnabled == JNI_TRUE,
             childProcessEnabled == JNI_TRUE,
-            javaInteropEnabled == JNI_TRUE
+            javaInteropEnabled == JNI_TRUE,
+            static_cast<int>(maxOldGenerationSizeMb)
     );
 }

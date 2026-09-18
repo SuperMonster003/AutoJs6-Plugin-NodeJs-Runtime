@@ -257,6 +257,10 @@ final class NodeRuntimeModuleInjector {
                         ""
                 )
         );
+        // M12.5: where the slot leaves Node's fatal-error report; Node does not create the directory itself.
+        File crashDirectory = NodeRuntimeCrashReport.directory(context.getCacheDir());
+        //noinspection ResultOfMethodCallIgnored
+        crashDirectory.mkdirs();
         try {
             return new JSONObject()
                     .put("schemaVersion", LIFECYCLE_CONFIG_SCHEMA_VERSION)
@@ -267,6 +271,9 @@ final class NodeRuntimeModuleInjector {
                     .put("projectKey", sha256(packageName + "\n" + cwd).substring(0, 32))
                     .put("executionMode", lifecyclePolicy.executionMode)
                     .put("launchSurface", lifecyclePolicy.launchSurface)
+                    .put("crashReport", new JSONObject()
+                            .put("directory", crashDirectory.getAbsolutePath())
+                            .put("filename", NodeRuntimeCrashReport.fileName(executionId)))
                     .put("checkpoint", new JSONObject()
                             .put("enabled", lifecyclePolicy.checkpointEnabled)
                             .put("maxBytes", LIFECYCLE_MAX_CHECKPOINT_BYTES)

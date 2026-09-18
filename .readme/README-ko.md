@@ -117,6 +117,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 
 ###### Unreleased
 
+* `추가` 런타임 슬롯에서 Node.js 치명적 오류 (JavaScript 힙 메모리 부족, 내부 검사 실패) 가 발생하면 이제 Node 자체 진단 보고서를 플러그인 캐시에 남깁니다 (crash/<executionId>.json, 중단 전에 기록, 시그널 핸들러는 설치하지 않음). 실패 결과는 slotExit.crash 와 오류 메시지에 이벤트, 힙 사용량, JS 스택, 보고서 경로를 담고 (예: CRASH_NATIVE (SIGABRT; see the logcat tombstone; Node.js fatal error: Allocation failed - JavaScript heap out of memory; JS heap 61.9 MB used of 64.0 MB limit; report .../crash/<executionId>.json)), getRuntimeInfo 는 최신 보고서를 lastCrash 로 노출합니다 (디스패처 재시작 후에도 읽힘). 새 요청 옵션 maxOldGenerationSizeMb 는 한 번의 실행에 대한 JS 힙 상한 (V8 old generation, MB 단위) 을 설정하며 회귀 테스트도 이를 통해 해당 크래시를 재현합니다
 * `수정` 큰 CommonJS 모듈을 require 할 때 런타임 슬롯이 V8 힙 메모리 부족으로 중단되던 (CRASH_NATIVE / SIGABRT 로 보고) 문제를 수정했습니다. 로더의 주석 및 문자열 마스킹이 한 문자씩 이어 붙여 22 MiB 모듈에 약 700 MB 의 힙이 필요했으나, 이제 동일한 결과를 연속 구간 단위로 생성하고 (약 44 MB) CommonJS 의 import / export 스캔도 모든 문자를 검사하는 대신 후보 위치 사이를 건너뜁니다
 
 # v1.5.5

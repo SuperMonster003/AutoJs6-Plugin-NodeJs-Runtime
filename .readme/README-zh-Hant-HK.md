@@ -117,6 +117,7 @@ console.log("AutoJs6 Node.js runtime");
 
 ###### Unreleased
 
+* `新增` 運行時槽進程發生 Node.js 致命錯誤 (JavaScript 堆記憶體耗盡、內部檢查失敗) 時, 現在會在插件快取目錄留下 Node 自帶的診斷報告 (crash/<executionId>.json, 於中止前寫出, 不安裝訊號處理器): 失敗結果在 slotExit.crash 與錯誤訊息中帶上事件、堆用量、JS 堆疊與報告路徑 (例如 CRASH_NATIVE (SIGABRT; see the logcat tombstone; Node.js fatal error: Allocation failed - JavaScript heap out of memory; JS heap 61.9 MB used of 64.0 MB limit; report .../crash/<executionId>.json)), getRuntimeInfo 以 lastCrash 公開最新報告 (調度進程重啟後仍可讀); 新增請求選項 maxOldGenerationSizeMb 為單次執行設定 JS 堆上限 (V8 老生代, 單位 MB), 回歸測試也藉此重現該崩潰
 * `修復` 修正 require 大型 CommonJS 模組時運行時槽進程因 V8 堆記憶體耗盡而中止 (回報為 CRASH_NATIVE / SIGABRT) 的問題: 加載器的註釋與字串遮罩逐字元拼接, 22 MiB 模組需要約 700 MB 堆記憶體; 現改為按連續區段輸出 (結果相同, 約 44 MB), CommonJS 的 import / export 掃描也改為在候選位置間跳轉而非逐字元檢測
 
 # v1.5.5
