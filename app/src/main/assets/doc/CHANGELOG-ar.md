@@ -34,6 +34,7 @@
 * `تحسين` أصبحت أجسام طلبات fetch الموصول ورسائل WebSocket التي تتجاوز 256 KiB تصل إلى المضيف كواصف ملف للقراءة فقط (bodyTransport / messageTransport "pfd") بدلًا من JSON base64 المضمّن، على المضيفين الذين يعلنون bridgeRequestBinaryTransport=pfd (فرع المضيف node-m20-2-binder-body-pfd)، فلا يحدّ الرفع سوى سياسة طلبات المضيف (64 MiB) و maxMessageBytes لا حجم معاملة Binder
 * `تحسين` أصبحت استجابات fetch الخاضع للتحكم تكشف عنوان URL النهائي للمزوّد عبر Response.url (لا يحمل ResponseInit عنوان url، لذا كان يُقرأ دائمًا كسلسلة فارغة)
 * `تحسين` أصبح التشغيل البيني مع Java يُحوِّل كل استدعاء إلى القائمة البيضاء التصريحية للمضيف (الصنف ← المُنشئات والطرق الثابتة وطرق الكائنات والحقول، وينفذها المضيف بالانعكاس مع قيم JSON الأولية ومقابض الكائنات)، ولم يعد وقت التشغيل يحتفظ بجدول أصناف خاص به بل يقرأ الجدول الذي ينشره المضيف بوصفه java.policy، وأُضيفت getStatic() / describe()، وتُبلَّغ الاستثناءات التي يرميها العضو نفسه بالرمز ERR_AUTOJS6_JAVA_CALL_FAILED
+* `تحسين` أصبحت أولوية npm على وحدات وقت التشغيل مقتصرة على الوحدات التي تحل محل حزم npm حقيقية (axios وcolors وmime وnanoid وopencc وundici): لم تعد الحزمة المتماثلة الاسم في node_modules تستبدل واجهات java وfetch وwebsocket وdevice وغيرها من واجهات AutoJs6، وتتبع require.resolve القاعدة نفسها التي تتبعها require، ويمكن استيراد أي اسم وحدة لوقت التشغيل من ESM، وينشر autojs6:profile القاعدة باسم moduleResolutionProfile، وأُضيفت getStatic() / describe() إلى وكيل Packages في Rhino
 
 # v1.5.4
 

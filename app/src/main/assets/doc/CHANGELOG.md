@@ -34,6 +34,7 @@
 * `优化` 桥接 fetch 的请求正文与 WebSocket 消息超过 256 KiB 时改以只读文件描述符 (bodyTransport / messageTransport "pfd") 而非内联 base64 JSON 送达宿主 (需宿主公布 bridgeRequestBinaryTransport=pfd, 宿主分支 node-m20-2-binder-body-pfd), 上行大小只受宿主请求策略 (64 MiB) 与 maxMessageBytes 约束而不再受 Binder 事务尺寸限制
 * `优化` 受控 fetch 的响应对象现经 Response.url 暴露 provider 返回的最终 URL (ResponseInit 不含 url, 此前恒为空串)
 * `优化` Java 互操作改为整体转发到宿主的声明式白名单 (类 → 构造器 / 静态与实例方法 / 字段, 由宿主按表反射执行, 参数支持 JSON 原始值与对象句柄), 运行时不再自设类表而是把宿主公布的表读回为 java.policy, 新增 getStatic() / describe(), 成员自身抛出的异常以 ERR_AUTOJS6_JAVA_CALL_FAILED 报告
+* `优化` 运行时模块的 npm 优先规则收窄为只覆盖代替真实 npm 包的模块 (axios、colors、mime、nanoid、opencc、undici): node_modules 里的同名包不再替换 java、fetch、websocket、device 等 AutoJs6 facade, require.resolve 与 require 同规则, 全部运行时模块裸名可从 ESM 导入, autojs6:profile 以 moduleResolutionProfile 公布该规则, Rhino Packages 代理新增 getStatic() / describe()
 
 # v1.5.4
 

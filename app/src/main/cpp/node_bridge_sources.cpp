@@ -3446,6 +3446,21 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return values;
   })());
+  // npm precedence (M2.4, narrowed 2026-09-18): only the runtime modules that stand in for a real
+  // npm package yield to an installed package of the same bare name. AutoJs6 capability facades
+  // (java, fetch, websocket, device, ...) and the other runtime modules keep answering, like Node
+  // builtins and the node: / autojs6: prefixes do. The same set drives require, require.resolve
+  // and ESM import; autojs6:profile publishes it as moduleResolutionProfile.
+  const __autojs6_npm_shadowable_module_names = Object.freeze(["axios", "colors", "mime", "nanoid", "opencc", "undici"]);
+  // Bare runtime module names served by require(); ESM import accepts the same names.
+  const __autojs6_runtime_facade_module_names = Object.freeze([
+    "rhino", "files", "base64", "colors", "formatter", "fmt", "converter", "cvt", "s13n", "mime", "nanoid",
+    "opencc", "pinyin", "pinyin4j", "jsox", "jsox.mathx", "jsox.arrayx", "jsox.numberx", "toast", "app",
+    "engines", "dialogs", "accessibility", "media_projection", "image", "images", "ocr", "barcode", "media",
+    "mediainfo", "recorder", "media_store", "storage", "storages", "database", "sqlite", "notifications",
+    "sensors", "ui", "ui.overlay", "input_observer", "clipboard", "device", "shell", "fetch", "keys", "undici",
+    "axios", "websocket", "work_manager", "package_manager", "npm", "plugins", "java"
+  ]);
   const __autojs6_require_builtin_cache = Object.create(null);
   const __autojs6_resolve_trace_stack = [];
   let __autojs6_scoped_fs_cache = null;
@@ -4242,6 +4257,18 @@ std::string buildEmbeddedScriptExecutionSource(
         rawNodeLoader: false,
         customConditions: false
       }),
+      moduleResolutionProfile: Object.freeze({
+        schema: "autojs6-node-module-resolution-v1",
+        status: "stable",
+        nodeModulesLookup: "workspace_anchored_node_resolution",
+        npmPrecedence: "npm_shims_only",
+        npmShadowableModules: __autojs6_npm_shadowable_module_names,
+        runtimeModulesShadowable: false,
+        hostBridgeModulesShadowable: false,
+        nodeBuiltinsShadowable: false,
+        reservedPrefixes: Object.freeze(["node:", "autojs6:"]),
+        appliesTo: Object.freeze(["require", "require.resolve", "import"])
+      }),
       packageManagerProfile: Object.freeze({
         status: "android_substrate_partial",
         defaultEnabled: false,
@@ -4741,6 +4768,7 @@ std::string buildEmbeddedScriptExecutionSource(
         javaClassDenied: "ERR_AUTOJS6_JAVA_CLASS_DENIED",
         javaMethodDenied: "ERR_AUTOJS6_JAVA_METHOD_DENIED",
         javaReflectionDenied: "ERR_AUTOJS6_JAVA_REFLECTION_DENIED",
+        javaCallFailed: "ERR_AUTOJS6_JAVA_CALL_FAILED",
         nativeAddonDisabled: "ERR_AUTOJS6_NATIVE_ADDON_DISABLED",
         legacyAliases: Object.freeze(legacyAliases)
       }),
@@ -15076,6 +15104,17 @@ std::string buildEmbeddedScriptExecutionSource(
         }
         if (property === "className" || property === "name" || property === "path") {
           return path;
+        }
+        // Batch-15 entry points: static fields and the host's table entry for this class path.
+        if (property === "getStatic") {
+          return function(fieldName, options) {
+            return __autojs6_java_get_static(path, fieldName, options);
+          };
+        }
+        if (property === "describe") {
+          return function(options) {
+            return __autojs6_java_describe(path, options);
+          };
         }
         if (property === "toString" || property === "valueOf") {
           return function() {
@@ -27862,19 +27901,14 @@ std::string buildEmbeddedScriptExecutionSource(
     return null;
   }
   function __autojs6_compat_shim_shadowable(name) {
-    // Bare names the compat chain would otherwise answer. Node builtin ids
-    // and "node:"/"autojs6:" prefixed ids are excluded on purpose: those must
-    // keep their builtin/limited semantics regardless of installed packages.
+    // Only the runtime modules that stand in for a real npm package (mime, nanoid, ...) yield to
+    // an installed package of the same name; Node builtin ids, "node:"/"autojs6:" prefixed ids,
+    // AutoJs6 capability facades and the other runtime modules keep their semantics regardless of
+    // installed packages.
     if (!name || name.indexOf(":") >= 0 || name.charAt(0) === "." || name.charAt(0) === "/") {
       return false;
     }
-    if (__autojs6_denied_builtin_module_name(name)) {
-      return false;
-    }
-    if (__autojs6_limited_module_is_builtin(name)) {
-      return false;
-    }
-    return true;
+    return __autojs6_npm_shadowable_module_names.indexOf(name) >= 0;
   }
   function __autojs6_try_resolve_node_modules_module(moduleName, parentFilename, mode) {
     try {
@@ -37900,7 +37934,8 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_denied_builtin_module_name(name);
   }
   function __autojs6_esm_facade_specifier(name) {
-    return __autojs6_rhino_compat_basic_module_names.indexOf(name) >= 0;
+    return __autojs6_rhino_compat_basic_module_names.indexOf(name) >= 0 ||
+      __autojs6_runtime_facade_module_names.indexOf(name) >= 0;
   }
   function __autojs6_esm_namespace_from_commonjs(value) {
     const namespace = Object.create(null);
@@ -38269,15 +38304,14 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     if (localName === null && !__autojs6_is_relative_module_name(name)) {
       // Keep the CommonJS M2.4 rule for ESM: an installed npm package wins
-      // over a same-named AutoJs6 compatibility facade. Only when no package
-      // resolves do bare imports such as app/device/toast become synthetic
-      // namespaces backed by the controlled facade implementation.
+      // over the same-named runtime module only for the npm shims (mime,
+      // nanoid, ...); bare imports of the other runtime modules such as
+      // app/device/java become synthetic namespaces backed by the controlled
+      // facade implementation even when a same-named package is installed.
       if (__autojs6_esm_facade_specifier(name)) {
-        const packageResolved = __autojs6_try_resolve_node_modules_module(
-          name,
-          parentFilename,
-          "esm"
-        );
+        const packageResolved = __autojs6_compat_shim_shadowable(name)
+          ? __autojs6_try_resolve_node_modules_module(name, parentFilename, "esm")
+          : null;
         if (packageResolved) {
           return {
             kind: __autojs6_esm_module_kind(packageResolved) || "cjs",
@@ -39810,6 +39844,17 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     if (name === "autojs6:compat") {
       return "autojs6:compat";
+    }
+    // require.resolve mirrors require: an installed package shadows the npm shims only.
+    if (__autojs6_compat_shim_shadowable(name)) {
+      const packageResolved = __autojs6_try_resolve_node_modules_module(
+        name,
+        parentFilename,
+        __autojs6_commonjs_require_resolution_mode()
+      );
+      if (packageResolved) {
+        return packageResolved;
+      }
     }
     if (name === "rhino") {
       return "rhino";

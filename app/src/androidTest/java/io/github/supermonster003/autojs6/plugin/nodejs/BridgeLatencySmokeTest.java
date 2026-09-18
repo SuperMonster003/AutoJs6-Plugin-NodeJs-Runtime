@@ -332,12 +332,18 @@ public final class BridgeLatencySmokeTest {
                 "  await failCode(java.callStatic('java.lang.Math', 'max', [{ nested: true }]))].join('|'));\n" +
                 "const facade = globalThis.$autojs && globalThis.$autojs.java;\n" +
                 "console.log('m20.java.facade=' + (facade ? [typeof facade.getStatic, typeof facade.describe, facade.policy.published, facade.mode].join('|') : 'absent'));\n" +
+                "const proxies = {}; require('rhino').install({ explicit: true, target: proxies });\n" +
+                "const proxySdk = await proxies.android.os['Build$VERSION'].getStatic('SDK_INT');\n" +
+                "const proxyDescribed = await proxies.Packages.java.lang.Math.describe();\n" +
+                "const proxyMax = await proxies.java.lang.Math.max(3, 7);\n" +
+                "console.log('m20.java.rhino=' + [proxySdk, proxyDescribed.className, Object.isFrozen(proxyDescribed), proxyMax, typeof proxies.java.lang.Math.getStatic].join('|'));\n" +
                 "})().catch(e => { console.error(e); process.exitCode = 1; });", "device", "java_interop");
         String stdout = result.getString(NodeJsRuntimeContract.KEY_STDOUT, "");
         assertTrue(stdout, stdout.contains("m20.java.policy=true|true|host_provider|android.graphics.Rect,android.os.Build$VERSION,java.lang.Math,java.util.concurrent.TimeUnit|2|floorDiv,max|true"));
         assertTrue(stdout, stdout.contains("m20.java.values=7|android.graphics.Rect|1|Rect(1, 2 - 11, 22)|true|10|2|35|SECONDS|function|5000|false|floorDiv,max|true|true"));
         assertTrue(stdout, stdout.contains("m20.java.codes=ERR_AUTOJS6_JAVA_CLASS_DENIED|ERR_AUTOJS6_JAVA_REFLECTION_DENIED|ERR_AUTOJS6_JAVA_CALL_FAILED|ERR_AUTOJS6_JAVA_CLASS_DENIED|ERR_AUTOJS6_JAVA_METHOD_DENIED"));
         assertTrue(stdout, stdout.contains("m20.java.facade=function|function|true|allowlist"));
+        assertTrue(stdout, stdout.contains("m20.java.rhino=35|java.lang.Math|true|7|function"));
         synchronized (forwarded) {
             // Class names the runtime used to reject on its own now reach the host unchanged.
             assertTrue(forwarded.toString(), forwarded.contains("callStatic:java.lang.Runtime.getRuntime"));

@@ -55,6 +55,25 @@ declare namespace AutoJs6Node {
     readonly customConditions: boolean;
   }
 
+  /**
+   * How bare specifiers meet the workspace `node_modules`: an installed package shadows only the
+   * runtime modules listed in `npmShadowableModules` (the ones that stand in for real npm
+   * packages); AutoJs6 capability facades, the other runtime modules, Node builtins and the
+   * `node:` / `autojs6:` prefixes answer regardless, in `require`, `require.resolve` and `import`.
+   */
+  export interface ModuleResolutionProfile {
+    readonly schema: "autojs6-node-module-resolution-v1";
+    readonly status: "stable" | string;
+    readonly nodeModulesLookup: "workspace_anchored_node_resolution" | string;
+    readonly npmPrecedence: "npm_shims_only" | string;
+    readonly npmShadowableModules: readonly string[];
+    readonly runtimeModulesShadowable: false;
+    readonly hostBridgeModulesShadowable: false;
+    readonly nodeBuiltinsShadowable: false;
+    readonly reservedPrefixes: readonly string[];
+    readonly appliesTo: readonly string[];
+  }
+
   export interface PackageManagerProfile {
     readonly status: "android_substrate_partial" | "disabled_by_default" | string;
     readonly defaultEnabled: boolean;
@@ -780,6 +799,7 @@ declare namespace AutoJs6Node {
     readonly nativeAddon: boolean;
     readonly scopedFs: boolean;
     readonly esmLoaderProfile: EsmLoaderProfile;
+    readonly moduleResolutionProfile: ModuleResolutionProfile;
     readonly packageManagerProfile: PackageManagerProfile;
     readonly stdlibProfile: StdlibProfile;
     readonly processParityProfile: ProcessParityProfile;
