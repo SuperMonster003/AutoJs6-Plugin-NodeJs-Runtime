@@ -134,6 +134,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `改善` media-playback / media-library サンプルは、統合されたホストのメディア provider での手動受け入れを経て stable に昇格; 能力カタログのスナップショット 1.5.5 を releases/nodejs-capability-catalog に公開し、ホスト整合タスクはそれを参照
 * `改善` fs ラッパーの独自オプション制限を撤廃: ストリームの fs / 継承した fd / flags オプション、watch({ recursive: true })、非同期 cp filter (cpSync は Node の ERR_INVALID_RETURN_VALUE を維持)、絶対パス / 親ディレクトリ / リテラル '!' の glob パターンと exclude 配列、readableWebStream の type / encoding、および Stats / Dirent / Dir コンストラクターは Node 24 のネイティブ動作に従う; filesystemProfile.advancedApis.recursiveWatch は native を報告
 * `改善` 再帰的な readdir / opendir をネイティブに委譲 (4096 エントリ上限とエントリごとの realpath 検査を撤廃; readdir('/') は Node と同様に proc/sys/dev の名前を列挙), readlink / chmod / chown / utimes は絶対パスを受け付け chmod はシンボリックリンクを辿る, fs ポリシーエラーコードは ERR_AUTOJS6_FS_NUL_BYTE / ERR_AUTOJS6_FS_PATH_ESCAPE (ハード境界, loader と共通) / ERR_AUTOJS6_FS_SCOPED_PATH に収束し, 通常の fs 失敗は Node のコードのみを保持
+* `改善` ランタイム独自のモジュールソース予算 (モジュールあたり 16 MiB, 合計 64 MiB, 8192 モジュール, provider リクエスト数) を撤廃, CommonJS エントリの __filename / require.main.filename / process.argv[1] は Node と同様に絶対パスになり require.main.id は '.', fs.mkdtemp* はネイティブに委譲: 呼び出し側のプレフィックス表記にサフィックスを付けて要求されたエンコーディングで返し, 親ディレクトリがシンボリックリンクでも拒否しない
 
 # v1.5.4
 

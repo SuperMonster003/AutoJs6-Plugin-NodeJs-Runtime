@@ -342,10 +342,6 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_java_interop_enabled = )JS";
     script += javaInteropEnabled ? "true" : "false";
     script += R"JS(;
-  const __autojs6_runtime_module_count_limit = 8192;
-  const __autojs6_runtime_module_single_source_bytes_limit = 16777216;
-  const __autojs6_runtime_module_total_source_bytes_limit = 67108864;
-  const __autojs6_module_source_provider_request_count_limit = 8192 + 131072;
   const __autojs6_runtime_module_diagnostics = {
     loadedCount: 0,
     sourceBytes: 0,
@@ -458,7 +454,6 @@ std::string buildEmbeddedScriptExecutionSource(
   };
   const __autojs6_source_map_cache = Object.create(null);
   const __autojs6_generated_stack_mappings = Object.create(null);
-  let __autojs6_runtime_module_accounting = null;
   let __autojs6_module_source_provider_config_cache;
   let __autojs6_module_source_provider_sequence = 0;
   let __autojs6_module_source_provider_wait_array = null;
@@ -25241,23 +25236,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return text.length;
   }
-  function __autojs6_runtime_module_accounting_state() {
-    if (__autojs6_runtime_module_accounting) {
-      return __autojs6_runtime_module_accounting;
-    }
-    let moduleCount = 0;
-    let totalSourceBytes = 0;
-    for (const resolved of Object.keys(__autojs6_module_sources)) {
-      const record = __autojs6_module_sources[resolved];
-      moduleCount += 1;
-      totalSourceBytes += __autojs6_runtime_module_source_bytes(record && record.source);
-    }
-    __autojs6_runtime_module_accounting = {
-      moduleCount,
-      totalSourceBytes
-    };
-    return __autojs6_runtime_module_accounting;
-  }
   function __autojs6_record_runtime_module_denial(reason) {
     __autojs6_runtime_module_diagnostics.deniedCount += 1;
     __autojs6_runtime_module_diagnostics.lastDeniedReason = String(reason || "");
@@ -25592,19 +25570,6 @@ std::string buildEmbeddedScriptExecutionSource(
           false
         );
       }
-      const openedSourceBytes = Number(beforeStat.size);
-      if (
-        !Number.isSafeInteger(openedSourceBytes) || openedSourceBytes < 0 ||
-        openedSourceBytes > __autojs6_runtime_module_single_source_bytes_limit
-      ) {
-        throw __autojs6_module_source_provider_error(
-          "failed",
-          requestedPath,
-          "Module-source provider source exceeds the single-source byte budget.",
-          "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED",
-          false
-        );
-      }
       if (Number.isSafeInteger(expectedBytes) && Number(beforeStat.size) !== expectedBytes) {
         throw __autojs6_module_source_provider_error(
           "denied",
@@ -25755,15 +25720,6 @@ std::string buildEmbeddedScriptExecutionSource(
     diagnostics.requestCount += 1;
     if (materializeMissingPlaintext) diagnostics.missingCandidateRequestCount += 1;
     diagnostics.lastPath = String(readable || "");
-    if (diagnostics.requestCount > __autojs6_module_source_provider_request_count_limit) {
-      throw __autojs6_module_source_provider_error(
-        "failed",
-        readable,
-        "Module-source provider request count exceeds " + __autojs6_module_source_provider_request_count_limit + ".",
-        "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED",
-        false
-      );
-    }
     const fs = __autojs6_fs_module();
     if (
       !fs || typeof fs.readFileSync !== "function" || typeof fs.writeFileSync !== "function" ||
@@ -25840,7 +25796,7 @@ std::string buildEmbeddedScriptExecutionSource(
         const declaredSourceBytes = Number(response.sourceBytes);
         if (
           responseSourcePath !== expectedSourcePath || !Number.isSafeInteger(declaredSourceBytes) ||
-          declaredSourceBytes < 0 || declaredSourceBytes > __autojs6_runtime_module_single_source_bytes_limit
+          declaredSourceBytes < 0
         ) {
           throw new Error("Decrypted module-source response path or byte count is invalid.");
         }
@@ -25868,18 +25824,6 @@ std::string buildEmbeddedScriptExecutionSource(
         const source = sourceBuffer && typeof sourceBuffer.toString === "function"
           ? sourceBuffer.toString("utf8")
           : String(sourceBuffer || "");
-        if (
-          diagnostics.sourceBytes >
-          __autojs6_runtime_module_total_source_bytes_limit - actualSourceBytes
-        ) {
-          throw __autojs6_module_source_provider_error(
-            "failed",
-            readable,
-            "Decrypted module sources exceed the aggregate source byte budget.",
-            "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED",
-            false
-          );
-        }
         __autojs6_module_source_provider_record_response(response, readable);
         diagnostics.sourceBytes += actualSourceBytes;
         const result = Object.freeze({
@@ -26233,36 +26177,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return currentReal;
   }
-  function __autojs6_enforce_runtime_module_budget(resolved, source) {
-    const sourceBytes = __autojs6_runtime_module_source_bytes(source);
-    if (sourceBytes > __autojs6_runtime_module_single_source_bytes_limit) {
-      throw __autojs6_runtime_module_error(
-        "Embedded Node dynamic require fallback module source is too large for '" + resolved + "': " +
-          sourceBytes + " bytes > " + __autojs6_runtime_module_single_source_bytes_limit + " bytes",
-        "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED"
-      );
-    }
-    const accounting = __autojs6_runtime_module_accounting_state();
-    const nextCount = accounting.moduleCount + 1;
-    if (nextCount > __autojs6_runtime_module_count_limit) {
-      throw __autojs6_runtime_module_error(
-        "Embedded Node runtime module source count is too large after dynamic require fallback: " +
-          nextCount + " > " + __autojs6_runtime_module_count_limit,
-        "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED"
-      );
-    }
-    const nextTotal = accounting.totalSourceBytes + sourceBytes;
-    if (nextTotal > __autojs6_runtime_module_total_source_bytes_limit) {
-      throw __autojs6_runtime_module_error(
-        "Embedded Node runtime module sources are too large after dynamic require fallback: " +
-          nextTotal + " bytes > " + __autojs6_runtime_module_total_source_bytes_limit + " bytes",
-        "ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED"
-      );
-    }
-    accounting.moduleCount = nextCount;
-    accounting.totalSourceBytes = nextTotal;
-    return sourceBytes;
-  }
   function __autojs6_runtime_module_embedded_record(readable) {
     if (__autojs6_has_own(__autojs6_runtime_module_embedded_sources, readable)) {
       return __autojs6_runtime_module_embedded_sources[readable];
@@ -26484,7 +26398,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const embeddedSource = embeddedRecord && embeddedRecord.source !== undefined && embeddedRecord.source !== null
         ? String(embeddedRecord.source)
         : "";
-      const embeddedSourceBytes = __autojs6_enforce_runtime_module_budget(readable, embeddedSource);
+      const embeddedSourceBytes = __autojs6_runtime_module_source_bytes(embeddedSource);
       const record = {
         source: embeddedSource,
         sourceURL: embeddedRecord && embeddedRecord.sourceURL
@@ -26502,7 +26416,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return null;
     }
     if (providerResult.status === "decrypted") {
-      const providerSourceBytes = __autojs6_enforce_runtime_module_budget(readable, providerResult.source);
+      const providerSourceBytes = __autojs6_runtime_module_source_bytes(providerResult.source);
       const record = {
         source: providerResult.source,
         sourceURL: providerResult.sourceURL
@@ -26539,7 +26453,7 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
     source = String(source);
-    const sourceBytes = __autojs6_enforce_runtime_module_budget(readable, source);
+    const sourceBytes = __autojs6_runtime_module_source_bytes(source);
     const record = {
       source,
       sourceURL: sourceRecord.sourceURL
@@ -31989,35 +31903,42 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_fs_autojs6_error_code(reason)
     );
   }
-  function __autojs6_normalize_mkdtemp_options(options) {
-    if (options === undefined || options === null) {
-      return "utf8";
-    }
-    if (typeof options === "string") {
-      const encoding = options.toLowerCase();
-      if (encoding === "utf8" || encoding === "utf-8") {
-        return "utf8";
-      }
-      throw __autojs6_invalid_arg_type("Embedded Node scoped fs mkdtempSync supports only utf8 encoding.");
-    }
-    if (typeof options === "object") {
-      const encodingValue = options.encoding === undefined || options.encoding === null
-        ? "utf8"
-        : String(options.encoding).toLowerCase();
-      if (encodingValue === "utf8" || encodingValue === "utf-8") {
-        return "utf8";
-      }
-      throw __autojs6_invalid_arg_type("Embedded Node scoped fs mkdtempSync supports only utf8 encoding.");
-    }
-    throw __autojs6_invalid_arg_type("Embedded Node scoped fs mkdtempSync options must be a string or object.");
+  function __autojs6_mkdtemp_encoding(options) {
+    const encoding = typeof options === "string"
+      ? options
+      : (options && typeof options === "object" && options.encoding !== undefined && options.encoding !== null
+        ? String(options.encoding)
+        : "utf8");
+    return String(encoding).toLowerCase();
   }
-  function __autojs6_mkdtemp_suffix() {
-    const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let suffix = "";
-    for (let i = 0; i < 6; i += 1) {
-      suffix += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+  function __autojs6_mkdtemp_buffer_type() {
+    const bufferModule = __autojs6_buffer_module();
+    if (bufferModule && typeof bufferModule.Buffer === "function") {
+      return bufferModule.Buffer;
     }
-    return suffix;
+    return typeof Buffer === "function" ? Buffer : null;
+  }
+  function __autojs6_exposed_mkdtemp_path(prefixText, nativePrefix, created, options) {
+    // Node returns the caller's prefix spelling plus the native suffix, in the
+    // requested encoding. Native mkdtemp ran on the resolved prefix, so map the
+    // created path back onto the caller's spelling.
+    const encoding = __autojs6_mkdtemp_encoding(options);
+    const utf8 = encoding === "utf8" || encoding === "utf-8";
+    const BufferType = __autojs6_mkdtemp_buffer_type();
+    const createdIsBuffer = !!(BufferType && typeof BufferType.isBuffer === "function" && BufferType.isBuffer(created));
+    const createdText = createdIsBuffer
+      ? created.toString("utf8")
+      : (utf8 || !BufferType ? String(created) : BufferType.from(String(created), encoding).toString("utf8"));
+    const exposed = createdText.indexOf(nativePrefix) === 0
+      ? String(prefixText) + createdText.slice(nativePrefix.length)
+      : createdText;
+    if (createdIsBuffer) {
+      return BufferType.from(exposed, "utf8");
+    }
+    if (utf8 || !BufferType) {
+      return exposed;
+    }
+    return BufferType.from(exposed, "utf8").toString(encoding);
   }
   function __autojs6_scoped_mkdtemp_sync(prefixPath, options, operation) {
     const path = __autojs6_path_module();
@@ -32026,55 +31947,29 @@ std::string buildEmbeddedScriptExecutionSource(
     if (!path || !nodeFs) {
       throw new Error("Embedded Node scoped fs " + op + " needs allowlisted path and fs modules.");
     }
-    __autojs6_normalize_mkdtemp_options(options);
     const normalizedPrefix = __autojs6_normalize_fs_path_input(prefixPath, op + " prefix", {
       allowAbsolute: true
     });
     if (typeof normalizedPrefix.value !== "string") {
       throw __autojs6_invalid_arg_type("Embedded Node scoped fs " + op + " prefix must be a string, Buffer, or file URL.");
     }
-    const resolvedPrefix = __autojs6_validate_fs_path(prefixPath, op + " prefix", {
+    // The prefix passes the NUL / hard-boundary checks only; whether its parent
+    // exists, is a directory or sits behind a symlink is native mkdtemp's call
+    // (ENOENT / ENOTDIR like Node). The literal tail of the prefix is kept:
+    // path.resolve() would drop a trailing separator or a "." segment that
+    // Node treats as part of the template.
+    const prefixText = normalizedPrefix.value;
+    __autojs6_validate_fs_path(prefixPath, op + " prefix", { allowAbsolute: true, checkParent: true });
+    const endsWithSeparator = prefixText.length > 0 && (prefixText.charAt(prefixText.length - 1) === "/" || prefixText.charAt(prefixText.length - 1) === "\\");
+    const parentText = endsWithSeparator ? prefixText : path.dirname(prefixText);
+    const baseText = endsWithSeparator ? "" : path.basename(prefixText);
+    const resolvedParent = __autojs6_validate_fs_path(parentText || ".", op + " prefix parent", {
       allowAbsolute: true,
       checkParent: true
     });
-    const parent = path.dirname(resolvedPrefix);
-    const parentPath = __autojs6_validate_fs_path(parent, op + " parent", {
-      allowAbsolute: true,
-      mustExist: true
-    });
-    const parentLstat = nodeFs.lstatSync(parentPath);
-    if (parentLstat && typeof parentLstat.isSymbolicLink === "function" && parentLstat.isSymbolicLink()) {
-      throw __autojs6_fs_operation_error(op, "prefix parent symlink is unsupported: " + parent, "EPERM");
-    }
-    const parentStat = nodeFs.statSync(parentPath);
-    if (!parentStat || typeof parentStat.isDirectory !== "function" || !parentStat.isDirectory()) {
-      throw __autojs6_fs_operation_error(op, "prefix parent is not a directory: " + parent, "ENOTDIR");
-    }
-    for (let attempt = 0; attempt < 64; attempt += 1) {
-      const candidate = __autojs6_validate_fs_path(resolvedPrefix + __autojs6_mkdtemp_suffix(), op + " candidate", {
-        allowAbsolute: true,
-        checkParent: true,
-        rejectRoot: true
-      });
-      if (nodeFs.existsSync(candidate)) {
-        continue;
-      }
-      try {
-        nodeFs.mkdirSync(candidate);
-        const scope = __autojs6_fs_root(path, nodeFs);
-        return path.relative(scope.cwd, candidate) || ".";
-      } catch (error) {
-        if (error && error.code === "EEXIST") {
-          continue;
-        }
-        throw __autojs6_fs_operation_error(
-          op,
-          "mkdir failed for " + candidate + ": " + (error && error.message ? error.message : String(error)),
-          error && error.code || "EPERM"
-        );
-      }
-    }
-    throw __autojs6_fs_operation_error(op, "could not create a unique directory for prefix " + prefixPath, "EEXIST");
+    const nativePrefix = resolvedParent === "/" ? "/" + baseText : resolvedParent + "/" + baseText;
+    const created = nodeFs.mkdtempSync(nativePrefix, options);
+    return __autojs6_exposed_mkdtemp_path(prefixText, nativePrefix, created, options);
   }
   function __autojs6_scoped_mkdtemp_disposable_remove(resolvedPath, operation) {
     const path = __autojs6_path_module();
@@ -38178,7 +38073,6 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_esm_data_url_is_base64(header),
       id
     );
-    __autojs6_enforce_runtime_module_budget(id, source);
     const resolved = Object.freeze({
       kind: format === "json" ? "data-json" : "data",
       resolved: id,
@@ -40670,6 +40564,20 @@ std::string buildEmbeddedScriptExecutionSource(
       pendingCallbacks: pendingAsyncCallbacks > 0
     };
   }
+  // Diagnostics travel inside the finished-event Binder transaction; a large
+  // ESM graph (thousands of modules, now that no module count cap exists) would
+  // push that transaction past the Binder buffer and the finished event would be
+  // lost. Ship a bounded sample plus the remainder count instead;
+  // esmModuleGraphSize already carries the full size.
+  const __autojs6_diagnostic_module_list_limit = 64;
+  function __autojs6_bounded_module_list(modules) {
+    const list = Array.isArray(modules) ? modules : [];
+    if (list.length <= __autojs6_diagnostic_module_list_limit) {
+      return list.join("|");
+    }
+    return list.slice(0, __autojs6_diagnostic_module_list_limit).join("|") +
+      "|... +" + (list.length - __autojs6_diagnostic_module_list_limit) + " more";
+  }
   function __autojs6_result_envelope(fields) {
     const summary = __autojs6_pending_summary();
     fields.sourceName = __autojs6_source_name;
@@ -40766,7 +40674,7 @@ std::string buildEmbeddedScriptExecutionSource(
     fields.esmEntry = __autojs6_esm_diagnostics.entry;
     fields.esmModuleGraphRoot = __autojs6_esm_diagnostics.graphRoot;
     fields.esmModuleGraphSize = __autojs6_esm_diagnostics.graphSize;
-    fields.esmModuleGraphModules = __autojs6_esm_diagnostics.graphModules.join("|");
+    fields.esmModuleGraphModules = __autojs6_bounded_module_list(__autojs6_esm_diagnostics.graphModules);
     fields.esmDeniedCount = __autojs6_esm_diagnostics.deniedCount;
     fields.esmLastDeniedReason = __autojs6_esm_diagnostics.lastDeniedReason;
     fields.dynamicImportEnabled = __autojs6_dynamic_import_enabled;
@@ -40936,14 +40844,17 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_install_safe_globals();
     __autojs6_install_timer_diagnostics();
     const __autojs6_run_entry_as_esm = __autojs6_should_run_entry_as_esm();
-    const __autojs6_main_filename = __autojs6_run_entry_as_esm
-      ? __autojs6_entry_filename()
-      : __autojs6_source_name;
+    // Node hands the entry an absolute __filename / require.main.filename /
+    // process.argv[1] whatever spelling it was launched with; the raw source
+    // name stays the sourceURL for stack traces and host source maps.
+    const __autojs6_main_filename = __autojs6_entry_filename();
     __autojs6_install_process_mvp(__autojs6_main_filename);
     __autojs6_install_compile_cache();
     __autojs6_install_output_capture();
     __autojs6_install_tty_stdio_helpers();
     const __autojs6_main_module = __autojs6_create_module(__autojs6_main_filename, null);
+    // Node identifies the main module as "." (require.main.id).
+    __autojs6_main_module.id = ".";
     __autojs6_main_module_ref = __autojs6_main_module;
     __autojs6_module_cache[__autojs6_main_module.filename] = __autojs6_main_module;
     __autojs6_install_require_guard(__autojs6_main_module);

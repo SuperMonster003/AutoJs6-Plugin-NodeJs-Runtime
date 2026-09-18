@@ -45,7 +45,9 @@ or EACCES. Remaining runtime policy errors use three **ERR_AUTOJS6_FS_*** codes:
 listed in catalog 1.5.5 are retired and no longer produced. Workspace transfer and
 compiler module providers have their own relative-path validation. Module-source providers use
 **ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_*** for invalid, denied, cancelled, timed-out,
-or failed requests. Feature boundaries use specific codes for disabled builtins,
+or failed requests; `ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED` now only comes from the
+provider transport's shared protocol sizes, the runtime's own module-source budgets are
+gone. Feature boundaries use specific codes for disabled builtins,
 network, process APIs, workers, native addons, or Java interop.
 
 Compiler-backed Node TypeScript projects may request provider-v3 compilation for an
