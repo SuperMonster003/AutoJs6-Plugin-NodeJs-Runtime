@@ -4,6 +4,12 @@
 
 ******
 
+# v1.5.6
+
+###### Unreleased
+
+* `Correction` Correction de la mort du slot du runtime par épuisement du tas V8 (signalée comme CRASH_NATIVE / SIGABRT) lors du require d'un gros module CommonJS : le masquage des commentaires et chaînes du chargeur concaténait caractère par caractère, si bien qu'un module de 22 MiB nécessitait environ 700 MB de tas ; il émet désormais des segments avec un résultat identique (environ 44 MB), et les analyses import / export de CommonJS sautent entre les candidats au lieu de tester chaque caractère
+
 # v1.5.5
 
 ###### 2026/09/18

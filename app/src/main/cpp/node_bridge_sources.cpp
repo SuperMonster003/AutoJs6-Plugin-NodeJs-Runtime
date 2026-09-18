@@ -9773,7 +9773,22 @@ std::string buildEmbeddedScriptExecutionSource(
   function __maskNonCode(source) {
     const text = String(source || "");
     const templateQuote = String.fromCharCode(96);
-    let masked = "";
+    // Emit runs, not characters (see __autojs6_mask_non_code in the main bootstrap).
+    const parts = [];
+    let codeStart = -1;
+    let blanks = 0;
+    const keep = function(index) {
+      if (codeStart >= 0) return;
+      if (blanks > 0) { parts.push(" ".repeat(blanks)); blanks = 0; }
+      codeStart = index;
+    };
+    const mask = function(index, count) {
+      if (codeStart >= 0) { parts.push(text.slice(codeStart, index)); codeStart = -1; }
+      blanks += count;
+    };
+    const maskKeepingNewline = function(index, ch) {
+      if (ch === "\n" || ch === "\r") keep(index); else mask(index, 1);
+    };
     let state = "normal";
     let previous = "";
     let escaped = false;
@@ -9781,43 +9796,45 @@ std::string buildEmbeddedScriptExecutionSource(
       const ch = text.charAt(index);
       const next = text.charAt(index + 1);
       if (state === "line_comment") {
-        if (ch === "\n" || ch === "\r") { masked += ch; state = "normal"; } else { masked += " "; }
+        if (ch === "\n" || ch === "\r") { keep(index); state = "normal"; } else { mask(index, 1); }
         continue;
       }
       if (state === "block_comment") {
-        if (ch === "*" && next === "/") { masked += "  "; index += 1; state = "normal"; } else { masked += (ch === "\n" || ch === "\r") ? ch : " "; }
+        if (ch === "*" && next === "/") { mask(index, 2); index += 1; state = "normal"; } else { maskKeepingNewline(index, ch); }
         continue;
       }
       if (state === "string") {
-        masked += (ch === "\n" || ch === "\r") ? ch : " ";
+        maskKeepingNewline(index, ch);
         if (escaped) { escaped = false; continue; }
         if (ch === "\\") { escaped = true; continue; }
         if (ch === previous) state = "normal";
         continue;
       }
       if (state === "template") {
-        masked += (ch === "\n" || ch === "\r") ? ch : " ";
+        maskKeepingNewline(index, ch);
         if (escaped) { escaped = false; continue; }
         if (ch === "\\") { escaped = true; continue; }
         if (ch === templateQuote) state = "normal";
         continue;
       }
       if (state === "regex") {
-        masked += (ch === "\n" || ch === "\r") ? ch : " ";
+        maskKeepingNewline(index, ch);
         if (escaped) { escaped = false; continue; }
         if (ch === "\\") { escaped = true; continue; }
         if (ch === "/") state = "normal";
         continue;
       }
-      if (ch === "/" && next === "/") { masked += "  "; index += 1; state = "line_comment"; continue; }
-      if (ch === "/" && next === "*") { masked += "  "; index += 1; state = "block_comment"; continue; }
-      if (ch === "\"" || ch === "'") { masked += " "; previous = ch; state = "string"; escaped = false; continue; }
-      if (ch === templateQuote) { masked += " "; state = "template"; escaped = false; continue; }
-      if (ch === "/" && __regexLiteralAllowed(previous)) { masked += " "; state = "regex"; escaped = false; continue; }
-      masked += ch;
+      if (ch === "/" && next === "/") { mask(index, 2); index += 1; state = "line_comment"; continue; }
+      if (ch === "/" && next === "*") { mask(index, 2); index += 1; state = "block_comment"; continue; }
+      if (ch === "\"" || ch === "'") { mask(index, 1); previous = ch; state = "string"; escaped = false; continue; }
+      if (ch === templateQuote) { mask(index, 1); state = "template"; escaped = false; continue; }
+      if (ch === "/" && __regexLiteralAllowed(previous)) { mask(index, 1); state = "regex"; escaped = false; continue; }
+      keep(index);
       if (!__isWhitespace(ch)) previous = ch;
     }
-    return masked;
+    if (codeStart >= 0) parts.push(text.slice(codeStart));
+    if (blanks > 0) parts.push(" ".repeat(blanks));
+    return parts.join("");
   }
   // import() calls become __autojs6_dynamic_import(__filename, ...) so they go through the
   // worker partial ESM loader (local paths, file: URLs, workspace packages, allowed builtins,
@@ -38486,8 +38503,11 @@ std::string buildEmbeddedScriptExecutionSource(
       return false;
     }
     const masked = __autojs6_mask_non_code(sourceText);
-    for (let index = 0; index < masked.length; index += 1) {
-      if (!__autojs6_is_identifier_token_at(masked, index, "import")) continue;
+    for (
+      let index = __autojs6_next_identifier_token(masked, "import", 0);
+      index >= 0;
+      index = __autojs6_next_identifier_token(masked, "import", index + 1)
+    ) {
       const nextIndex = __autojs6_skip_whitespace(masked, index + "import".length);
       if (masked.charAt(nextIndex) === "(") {
         return true;
@@ -38548,8 +38568,11 @@ std::string buildEmbeddedScriptExecutionSource(
     let output = "";
     let cursor = 0;
     const parent = parentExpression || "__filename";
-    for (let index = 0; index < masked.length; index += 1) {
-      if (!__autojs6_is_identifier_token_at(masked, index, "import")) continue;
+    for (
+      let index = __autojs6_next_identifier_token(masked, "import", 0);
+      index >= 0;
+      index = __autojs6_next_identifier_token(masked, "import", index + 1)
+    ) {
       const nextIndex = __autojs6_skip_whitespace(masked, index + "import".length);
       if (masked.charAt(nextIndex) !== "(") continue;
       if (!__autojs6_dynamic_import_enabled) {
@@ -39341,6 +39364,14 @@ std::string buildEmbeddedScriptExecutionSource(
     if (before === "." || __autojs6_is_identifier_part(before)) return false;
     return !__autojs6_is_identifier_part(after);
   }
+  function __autojs6_next_identifier_token(text, token, from) {
+    // indexOf jumps between candidates instead of testing every character of the source.
+    let index = text.indexOf(token, from);
+    while (index >= 0 && !__autojs6_is_identifier_token_at(text, index, token)) {
+      index = text.indexOf(token, index + 1);
+    }
+    return index;
+  }
   function __autojs6_regex_literal_allowed(previous) {
     return !previous || "([{=:;,!&|?+-*~^<>".indexOf(previous) >= 0;
   }
@@ -39543,7 +39574,26 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_mask_non_code(source) {
     const text = String(source || "");
-    let masked = "";
+    // Emit runs, not characters: appending one character at a time made V8 keep a cons-string
+    // node per source character, so masking a 22 MiB module needed ~700 MB and died of heap OOM.
+    const parts = [];
+    let codeStart = -1;
+    let blanks = 0;
+    const keep = function(index) {
+      if (codeStart >= 0) return;
+      if (blanks > 0) {
+        parts.push(" ".repeat(blanks));
+        blanks = 0;
+      }
+      codeStart = index;
+    };
+    const mask = function(index, count) {
+      if (codeStart >= 0) {
+        parts.push(text.slice(codeStart, index));
+        codeStart = -1;
+      }
+      blanks += count;
+    };
     let state = "normal";
     let previous = "";
     let escaped = false;
@@ -39552,31 +39602,33 @@ std::string buildEmbeddedScriptExecutionSource(
       const next = text.charAt(index + 1);
       if (state === "line_comment") {
         if (ch === "\n" || ch === "\r") {
-          masked += ch;
+          keep(index);
           state = "normal";
         } else {
-          masked += " ";
+          mask(index, 1);
         }
         continue;
       }
       if (state === "block_comment") {
         if (ch === "*" && next === "/") {
-          masked += "  ";
+          mask(index, 2);
           index += 1;
           state = "normal";
+        } else if (ch === "\n" || ch === "\r") {
+          keep(index);
         } else {
-          masked += (ch === "\n" || ch === "\r") ? ch : " ";
+          mask(index, 1);
         }
         continue;
       }
       if (state === "single" || state === "double" || state === "template" || state === "regex") {
         if (escaped) {
-          masked += " ";
+          mask(index, 1);
           escaped = false;
           continue;
         }
         if (ch === "\\") {
-          masked += " ";
+          mask(index, 1);
           escaped = true;
           continue;
         }
@@ -39585,56 +39637,62 @@ std::string buildEmbeddedScriptExecutionSource(
           (state === "double" && ch === "\"") ||
           (state === "template" && ch === "`")
         ) {
-          masked += " ";
+          mask(index, 1);
           state = "normal";
           continue;
         }
         if (state === "regex" && ch === "/") {
-          masked += " ";
+          mask(index, 1);
           state = "normal";
           continue;
         }
-        masked += (ch === "\n" || ch === "\r") ? ch : " ";
+        if (ch === "\n" || ch === "\r") {
+          keep(index);
+        } else {
+          mask(index, 1);
+        }
         continue;
       }
       if (ch === "/" && next === "/") {
-        masked += "  ";
+        mask(index, 2);
         index += 1;
         state = "line_comment";
         continue;
       }
       if (ch === "/" && next === "*") {
-        masked += "  ";
+        mask(index, 2);
         index += 1;
         state = "block_comment";
         continue;
       }
       if (ch === "/" && __autojs6_regex_literal_allowed(previous)) {
-        masked += " ";
+        mask(index, 1);
         state = "regex";
         continue;
       }
       if (ch === "'") {
-        masked += " ";
+        mask(index, 1);
         state = "single";
         continue;
       }
       if (ch === "\"") {
-        masked += " ";
+        mask(index, 1);
         state = "double";
         continue;
       }
       if (ch === "`") {
-        masked += " ";
+        mask(index, 1);
         state = "template";
         continue;
       }
-      masked += ch;
+      keep(index);
       if (!__autojs6_is_whitespace(ch)) {
         previous = ch;
       }
     }
-    return masked;
+    if (codeStart >= 0) parts.push(text.slice(codeStart));
+    if (blanks > 0) parts.push(" ".repeat(blanks));
+    return parts.join("");
   }
   function __autojs6_assert_common_js_source_supported(source, sourceName) {
     if (__autojs6_is_esm_extension(__autojs6_source_extension(sourceName))) {
@@ -39644,9 +39702,15 @@ std::string buildEmbeddedScriptExecutionSource(
         )
       );
     }
-    const code = __autojs6_mask_non_code(source);
-    for (let index = 0; index < code.length; index += 1) {
-      if (!__autojs6_is_identifier_token_at(code, index, "import")) continue;
+    const text = String(source || "");
+    // require() runs this for every CommonJS module; only sources that mention the tokens need the masked scan.
+    if (text.indexOf("import") < 0 && text.indexOf("export") < 0) return;
+    const code = __autojs6_mask_non_code(text);
+    for (
+      let index = __autojs6_next_identifier_token(code, "import", 0);
+      index >= 0;
+      index = __autojs6_next_identifier_token(code, "import", index + 1)
+    ) {
       const nextIndex = __autojs6_skip_whitespace(code, index + "import".length);
       const next = code.charAt(nextIndex);
       if (next === "(") {

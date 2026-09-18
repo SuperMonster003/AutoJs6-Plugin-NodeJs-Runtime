@@ -5,6 +5,12 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.5.6": {
+      "released_date": "Unreleased",
+      "fix": [
+        "修复 require 大体积 CommonJS 模块时运行时槽进程因 V8 堆内存耗尽而中止 (回报为 CRASH_NATIVE / SIGABRT) 的问题: 加载器的注释与字符串掩码逐字符拼接, 22 MiB 模块需要约 700 MB 堆内存; 现改为按连续区段输出 (结果相同, 约 44 MB), CommonJS 的 import / export 扫描也改为在候选位置间跳转而非逐字符检测"
+      ]
+    },
     "v1.5.5": {
       "released_date": "2026/09/18",
       "improvement": [

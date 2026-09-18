@@ -113,6 +113,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.5.6
+
+###### Unreleased
+
+* `Fix` Fixed the runtime slot dying of a V8 heap out-of-memory abort (reported as CRASH_NATIVE / SIGABRT) when a large CommonJS module was required: the loader's comment and string masking appended one character at a time, so a 22 MiB module needed about 700 MB of heap; it now emits runs with identical output (about 44 MB), and the CommonJS import / export scans jump between candidates instead of testing every character
+
 # v1.5.5
 
 ###### 2026/09/18
@@ -152,13 +158,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 * `Fix` Embedded execution no longer prints ExperimentalWarning notices; warning events, ordinary warnings, deprecations and errors remain available. Upstream Node API stability and terminal defaults are unchanged
 * `Improvement` File streams, gzip/deflate/Brotli streams and basic VM execution are stable plugin capabilities; the explicitly enabled Debug Inspector is stable within its localhost scope
-
-# v1.5.3
-
-###### 2026/09/16
-
-* `Improvement` Android 17 local network authorization moves to plugin-center enablement and plugin settings, with no launcher permission page; missing permission keeps the plugin disabled and automatic startup silent
-* `Improvement` Target Android 17 (SDK 37) with separate local network permission controls and recovery guidance
 
 ##### For more release history
 

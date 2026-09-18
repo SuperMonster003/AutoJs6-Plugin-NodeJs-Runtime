@@ -113,6 +113,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.5.6
+
+###### Unreleased
+
+* `Correction` Correction de la mort du slot du runtime par épuisement du tas V8 (signalée comme CRASH_NATIVE / SIGABRT) lors du require d'un gros module CommonJS : le masquage des commentaires et chaînes du chargeur concaténait caractère par caractère, si bien qu'un module de 22 MiB nécessitait environ 700 MB de tas ; il émet désormais des segments avec un résultat identique (environ 44 MB), et les analyses import / export de CommonJS sautent entre les candidats au lieu de tester chaque caractère
+
 # v1.5.5
 
 ###### 2026/09/18
@@ -152,13 +158,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 * `Correction` L'exécution intégrée n'affiche plus les avis ExperimentalWarning; les événements warning, avertissements ordinaires, dépréciations et erreurs restent disponibles. La stabilité des API Node et les valeurs par défaut du terminal sont inchangées
 * `Amelioration` Les flux de fichiers, les flux gzip/deflate/Brotli et l'exécution VM de base sont stables; le Debug Inspector explicitement activé est stable dans son périmètre localhost
-
-# v1.5.3
-
-###### 2026/09/16
-
-* `Amelioration` Autorisation du réseau local sous Android 17 intégrée au parcours activation et aux paramètres du plugin, sans page du lanceur; sans autorisation, le plugin reste désactivé et le démarrage automatique est silencieux
-* `Amelioration` Cibler Android 17 (SDK 37) avec des autorisations réseau local propres au plugin et une aide à la récupération
 
 ##### Pour plus d'historique des versions
 

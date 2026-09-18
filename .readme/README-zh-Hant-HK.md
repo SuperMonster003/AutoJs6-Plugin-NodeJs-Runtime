@@ -113,6 +113,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.5.6
+
+###### Unreleased
+
+* `修復` 修正 require 大型 CommonJS 模組時運行時槽進程因 V8 堆記憶體耗盡而中止 (回報為 CRASH_NATIVE / SIGABRT) 的問題: 加載器的註釋與字串遮罩逐字元拼接, 22 MiB 模組需要約 700 MB 堆記憶體; 現改為按連續區段輸出 (結果相同, 約 44 MB), CommonJS 的 import / export 掃描也改為在候選位置間跳轉而非逐字元檢測
+
 # v1.5.5
 
 ###### 2026/09/18
@@ -152,13 +158,6 @@ console.log("AutoJs6 Node.js runtime");
 
 * `修復` 嵌入執行不再輸出 ExperimentalWarning 提示, 保留 warning 事件、一般警告、棄用警告和錯誤; Node 上游 API 穩定性與終端預設行為不變
 * `優化` 檔案串流、gzip/deflate/Brotli 壓縮串流和基本 VM 執行正式化; 明確啟用的 Debug Inspector 在 localhost 範圍內正式支援
-
-# v1.5.3
-
-###### 2026/09/16
-
-* `優化` Android 17 區域網絡授權統一移至外掛程式中心啟用流程及外掛程式設定, 不再提供啟動器授權頁面; 未獲授權時保持關閉並靜默略過自動啟動
-* `優化` 適配 Android 17 (SDK 37), 提供插件獨立的本地網絡權限控制及恢復指引
 
 ##### 更多發行歷史可參閱
 
