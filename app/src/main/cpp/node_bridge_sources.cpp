@@ -9251,10 +9251,10 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "fs/promises") return __limitedFsPromisesModule();
     if (__networkBuiltins.has(name) && !__descriptor.policy.rawNetwork) throw __error("Raw Node networking is disabled for this execution.", "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED");
     if (name === "sqlite") {
-      if (!__sqliteCache) __sqliteCache = __createSqliteFacade(__nativeRequire("node:sqlite"), (path, readOnly) => {
+      if (!__sqliteCache) __sqliteCache = __createSqliteFacade(__nativeRequire("node:sqlite"), (path) => {
         if (path instanceof URL) path = __nativeRequire("url").fileURLToPath(path);
-        return readOnly ? __workerFsReadablePath(path, "sqlite") : __workerFsWritablePath(path, "sqlite");
-      });
+        return __workerFsWritablePath(path, "sqlite");
+      }, __root);
       return __sqliteCache;
     }
     if (name === "module") return __limitedModule;
@@ -36019,63 +36019,88 @@ std::string buildEmbeddedScriptExecutionSource(
     parentModule.require = __autojs6_create_module_require(parentModule);
     return parentModule.require;
   }
-  function __autojs6_create_sqlite_facade(native, validatePath) {
+  function __autojs6_create_sqlite_facade(native, validatePath, attachBase) {
     const records = new WeakMap();
+    const constants = native.constants || {};
     function error(message, code) { const value = new Error(message); value.code = code; return value; }
+    function typeError(message, code) { const value = new TypeError(message); value.code = code; return value; }
     function extensionDenied() { throw error("Native SQLite extensions are disabled in AutoJs6.", "ERR_AUTOJS6_NATIVE_ADDON_DISABLED"); }
-    function databasePath(value, readOnly) {
-      if (ArrayBuffer.isView(value)) value = Buffer.from(value.buffer, value.byteOffset, value.byteLength).toString("utf8");
-      if (value === ":memory:") return value;
-      if (typeof value === "string" && (!value || value.startsWith("file:"))) {
-        throw error("SQLite URI strings and empty temporary paths are unsupported; use a file path, file URL object or :memory:.", "ERR_AUTOJS6_SQLITE_PATH_UNSUPPORTED");
+    // SQLite URI filename: file:[//authority]/path[?query][#fragment]. Only the path
+    // part is validated; the query (mode=, cache=, vfs=, ...) is SQLite's business.
+    function parseUri(value) {
+      let rest = value.slice(5);
+      let authority = null;
+      if (rest.slice(0, 2) === "//") {
+        const end = rest.indexOf("/", 2);
+        authority = end < 0 ? rest.slice(2) : rest.slice(2, end);
+        rest = end < 0 ? "" : rest.slice(end);
       }
-      return validatePath(value, readOnly);
+      const hash = rest.indexOf("#");
+      if (hash >= 0) rest = rest.slice(0, hash);
+      const mark = rest.indexOf("?");
+      const query = mark >= 0 ? rest.slice(mark + 1) : "";
+      let pathPart = mark >= 0 ? rest.slice(0, mark) : rest;
+      try { pathPart = decodeURIComponent(pathPart); } catch (_) {}
+      return { authority, path: pathPart, query };
     }
-    // Node 24.5 exposes no SQLite authorizer. Keep SQL from opening additional files
-    // outside the validated constructor/backup paths, including parameterized ATTACH.
-    function checkSql(sql) {
-      if (typeof sql !== "string") return;
-      let tokens = [];
-      function checkStatement() {
-        const command = tokens[0];
-        if (command === "ATTACH" || (command === "VACUUM" && tokens.includes("INTO")) ||
-            (command === "PRAGMA" && tokens.slice(1, 4).some(x => x === "TEMP_STORE_DIRECTORY" || x === "DATA_STORE_DIRECTORY"))) {
-          throw error("SQLite SQL file operations are unsupported; open a validated DatabaseSync or use sqlite.backup().", "ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED");
-        }
-        tokens = [];
+    function uriNamesNoFile(uri) {
+      // A foreign authority is rejected by SQLite itself; mode=memory and ":memory:"
+      // never touch a file; an empty path is a private temporary database.
+      return (uri.authority !== null && uri.authority !== "" && uri.authority !== "localhost") ||
+        uri.path === "" || uri.path === ":memory:" || /(^|&)mode=memory(&|$)/.test(uri.query);
+    }
+    function encodeUriPath(text) {
+      return String(text).replace(/%/g, "%25").replace(/[?]/g, "%3F").replace(/#/g, "%23");
+    }
+    function databasePath(value) {
+      if (ArrayBuffer.isView(value)) value = Buffer.from(value.buffer, value.byteOffset, value.byteLength).toString("utf8");
+      // ":memory:" and "" (a private temporary database) name no file.
+      if (value === ":memory:" || value === "") return value;
+      if (typeof value === "string" && value.slice(0, 5) === "file:") {
+        const uri = parseUri(value);
+        if (uriNamesNoFile(uri)) return value;
+        return "file:" + encodeUriPath(validatePath(uri.path)) + (uri.query ? "?" + uri.query : "");
       }
-      for (let i = 0; i < sql.length;) {
-        const ch = sql[i], next = sql[i + 1];
-        if (ch === "-" && next === "-") { while (i < sql.length && sql[i] !== "\n" && sql[i] !== "\r") i++; continue; }
-        if (ch === "/" && next === "*") { i += 2; while (i < sql.length && !(sql[i] === "*" && sql[i + 1] === "/")) i++; i += 2; continue; }
-        if (ch === ";") { checkStatement(); i++; continue; }
-        if (ch === "'" || ch === '"' || ch === "`" || ch === "[") {
-          const end = ch === "[" ? "]" : ch;
-          let text = ""; i++;
-          while (i < sql.length) {
-            if (sql[i] === end) {
-              if (ch !== "[" && sql[i + 1] === end) { text += end; i += 2; continue; }
-              i++; break;
-            }
-            text += sql[i++];
-          }
-          tokens.push(text.toUpperCase());
-          continue;
-        }
-        if (/[A-Za-z_]/.test(ch)) {
-          const start = i++;
-          while (i < sql.length && /[A-Za-z0-9_$]/.test(sql[i])) i++;
-          tokens.push(sql.slice(start, i).toUpperCase());
-        } else i++;
+      return validatePath(value);
+    }
+    // Node 24 exposes SQLite's authorizer, so ATTACH is checked against the same
+    // NUL / hard-boundary rules as the constructor instead of by scanning SQL text.
+    // SQLite only reports a literal filename here; a bound parameter or expression
+    // is invisible at prepare time, so that one shape stays refused.
+    function checkAttach(filename) {
+      if (typeof filename !== "string") {
+        throw error(
+          "SQLite ATTACH with a bound or computed filename cannot be checked against the /proc, /sys, /dev boundary; use a literal filename.",
+          "ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED"
+        );
       }
-      checkStatement();
+      let target = filename;
+      if (filename.slice(0, 5) === "file:") {
+        const uri = parseUri(filename);
+        if (uriNamesNoFile(uri)) return;
+        target = uri.path;
+      } else if (filename === ":memory:" || filename === "") {
+        return;
+      }
+      // SQLite resolves a relative ATTACH filename against the process working
+      // directory, which the runtime keeps at the workspace even after process.chdir().
+      validatePath(target.charAt(0) === "/" ? target : attachBase + "/" + target);
+    }
+    function installAuthorizer(entry) {
+      const user = entry.authorizer;
+      entry.db.setAuthorizer(function(action, first, second, dbName, trigger) {
+        if (action === constants.SQLITE_ATTACH) checkAttach(first);
+        return user ? user(action, first, second, dbName, trigger) : constants.SQLITE_OK;
+      });
     }
     function DatabaseSync(path, options) {
       if (!new.target) throw new TypeError("DatabaseSync requires new.");
       if (options && options.allowExtension) extensionDenied();
-      const normalized = databasePath(path, options && options.readOnly);
+      const normalized = databasePath(path);
       const db = new native.DatabaseSync(normalized, { ...options, allowExtension: false });
-      records.set(this, { db, path: normalized, readOnly: options && options.readOnly });
+      const entry = { db, path: normalized, authorizer: null };
+      records.set(this, entry);
+      if (db.isOpen) installAuthorizer(entry);
       // Node installs these accessors on each instance, not on its prototype.
       for (const name of ["isOpen", "isTransaction"]) {
         Object.defineProperty(this, name, { enumerable: true, get: () => db[name] });
@@ -36094,10 +36119,22 @@ std::string buildEmbeddedScriptExecutionSource(
           configurable: true, writable: true, enumerable: descriptor.enumerable,
           value: function(...args) {
             const entry = record(this);
-            if (key === "exec" || key === "prepare") checkSql(args[0]);
             if (key === "loadExtension" || (key === "enableLoadExtension" && args[0])) extensionDenied();
-            if (key === "open") databasePath(entry.path, entry.readOnly);
+            if (key === "open") databasePath(entry.path);
+            if (key === "setAuthorizer") {
+              // The user's callback runs after the boundary check; null only clears the user's part.
+              if (args[0] !== null && typeof args[0] !== "function") {
+                throw typeError('The "callback" argument must be a function or null.', "ERR_INVALID_ARG_TYPE");
+              }
+              // Node 24 dereferences the closed connection here (libnode segfault); refuse like Node's other methods do.
+              if (!entry.db.isOpen) throw error("database is not open", "ERR_INVALID_STATE");
+              entry.authorizer = args[0];
+              installAuthorizer(entry);
+              return undefined;
+            }
             const value = descriptor.value.apply(entry.db, args);
+            // A reopened connection starts without an authorizer.
+            if (key === "open") installAuthorizer(entry);
             return value === entry.db ? this : value;
           }
         });
@@ -36111,7 +36148,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return Object.freeze({
       ...native, DatabaseSync,
       backup: function(db, path, options) {
-        const source = record(db).db, target = databasePath(path, false);
+        const source = record(db).db, target = databasePath(path);
         return options === undefined ? native.backup(source, target) : native.backup(source, target, options);
       }
     });
@@ -36120,7 +36157,8 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_sqlite_module() {
     if (!__autojs6_sqlite_cache) {
       __autojs6_sqlite_cache = __autojs6_create_sqlite_facade(__autojs6_get_builtin_module("node:sqlite"),
-        (path, readOnly) => __autojs6_validate_fs_path(path, "sqlite", { checkParent: true, mustExist: !!readOnly }));
+        (path) => __autojs6_validate_fs_path(path, "sqlite", { checkParent: true }),
+        __autojs6_module_root || __autojs6_sandbox_root || ".");
     }
     return __autojs6_sqlite_cache;
   }

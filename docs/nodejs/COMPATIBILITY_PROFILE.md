@@ -47,7 +47,12 @@ sizes. A CommonJS entry sees an absolute `__filename` / `require.main.filename` 
 the caller's prefix spelling plus the native suffix in the requested encoding. The
 `esmModuleGraphModules` diagnostic is a bounded sample (first 64 entries plus a remainder
 count) so a large ESM graph cannot overflow the Binder transaction that carries the
-finished event.
+finished event. `node:sqlite` accepts SQLite `file:` URI strings and the empty temporary
+database; ATTACH with a literal filename is checked by SQLite's authorizer against the same
+NUL / `/proc` `/sys` `/dev` boundary as the constructor (a bound or computed filename still
+throws `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED`); VACUUM INTO targets pass the same
+check through SQLite's internal ATTACH, and directory PRAGMAs are native. `setAuthorizer()`
+composes with that check and is reinstalled on open.
 Native Node builtins retain their own names: `events` / `node:events` is EventEmitter;
 Android event observation is exposed as `autojs6:events`. The runtime links ICU 78 with
 English-only locale data (`--with-intl=small-icu`, since v1.5.1): `Intl` exists and

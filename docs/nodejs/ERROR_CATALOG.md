@@ -47,7 +47,9 @@ compiler module providers have their own relative-path validation. Module-source
 **ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_*** for invalid, denied, cancelled, timed-out,
 or failed requests; `ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED` now only comes from the
 provider transport's shared protocol sizes, the runtime's own module-source budgets are
-gone. Feature boundaries use specific codes for disabled builtins,
+gone. `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED` is now limited to ATTACH with a
+bound or computed filename; `ERR_AUTOJS6_SQLITE_PATH_UNSUPPORTED` is retired. Feature
+boundaries use specific codes for disabled builtins,
 network, process APIs, workers, native addons, or Java interop.
 
 Compiler-backed Node TypeScript projects may request provider-v3 compilation for an
