@@ -31,6 +31,8 @@
 * `優化` 橋接 fetch / WebSocket / axios facade 的硬上限交給宿主: 逾時、回應主體大小、重新導向次數、訊息與佇列大小及 HTTP 方法原樣傳給宿主提供者 (由宿主原則決定), 執行階段像 Node 一樣最多跟隨 20 次重新導向, policy 中退役的 hard* / 預設大小欄位改為 limitsEnforcedBy
 * `優化` opendir 直接回傳 Node 原生的惰性 fs.Dir (bufferSize、encoding 與 recursive 交給原生 opendir, ENOENT / ENOTDIR / ERR_DIR_CLOSED 均為 Node 原生錯誤; 只有 dir.path 與 parentPath 保留呼叫者寫法), 執行階段刪除檔案系統可達根的守衛退役, 對根目錄的 rm / rmdir 與其他路徑一樣交給 Node 與 Android 決定 (fs 原則碼只剩 FS_NUL_BYTE 與 FS_PATH_ESCAPE)
 * `優化` 宿主 provider 傳輸通道改為採用宿主經 getNativeDiagnostics() 公布的單源 / 總量 / 請求計數尺寸 (內建的 16 MiB / 64 MiB / 139264 僅作回退), 橋接 fetch 的回應主體改經檔案描述符交付 (bodyTransport "pfd"), 只受宿主 maxResponseBytes 原則約束而不再受 Binder 交易尺寸限制, 宿主回覆超過 Binder 交易尺寸時立即回報 ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED (宿主分支 node-m20-2-binder-body-pfd) 而非橋逾時
+* `優化` 橋接 fetch 的請求主體與 WebSocket 訊息超過 256 KiB 時改以唯讀檔案描述符 (bodyTransport / messageTransport "pfd") 而非內嵌 base64 JSON 送達宿主 (需宿主公布 bridgeRequestBinaryTransport=pfd, 宿主分支 node-m20-2-binder-body-pfd), 上行大小只受宿主請求原則 (64 MiB) 與 maxMessageBytes 約束而不再受 Binder 交易尺寸限制
+* `優化` 受控 fetch 的回應物件現經 Response.url 暴露 provider 回傳的最終 URL (ResponseInit 不含 url, 此前恆為空字串)
 
 # v1.5.4
 

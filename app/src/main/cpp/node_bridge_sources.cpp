@@ -6802,11 +6802,17 @@ std::string buildEmbeddedScriptExecutionSource(
         return null;
       }
       const pollIntervalMs = __autojs6_bridge_timeout_ms(parsed.pollIntervalMs || 10);
+      // M20.2 batch 14: when the host accepts descriptor uploads the service publishes the
+      // session upload directory and the inline threshold above which bodies use it.
+      const uploadDir = parsed.uploadDir === undefined || parsed.uploadDir === null ? "" : String(parsed.uploadDir);
+      const uploadInlineMaxBytes = Number(parsed.uploadInlineMaxBytes);
       __autojs6_bridge_live_config_cache = Object.freeze({
         transport: parsed.transport === "file" ? "file" : "jni",
         requestDir,
         responseDir,
-        pollIntervalMs: Math.max(5, Math.min(pollIntervalMs, 250))
+        pollIntervalMs: Math.max(5, Math.min(pollIntervalMs, 250)),
+        uploadDir,
+        uploadInlineMaxBytes: Number.isFinite(uploadInlineMaxBytes) && uploadInlineMaxBytes >= 0 ? Math.floor(uploadInlineMaxBytes) : 262144
       });
       return __autojs6_bridge_live_config_cache;
     } catch (_) {
@@ -6819,6 +6825,40 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_bridge_live_path(directory, id) {
     return String(directory).replace(/[\\\/]+$/g, "") + "/" + __autojs6_bridge_live_file_name(id);
+  }
+  let __autojs6_bridge_upload_sequence = 0;
+  // M20.2 batch 14: fetch bodies and WebSocket messages above uploadInlineMaxBytes are
+  // written under the session upload directory; the plugin service opens the file as a
+  // read-only descriptor for the host, so Binder only carries the small JSON descriptor.
+  function __autojs6_bridge_upload_inline_max_bytes() {
+    const config = __autojs6_bridge_live_config();
+    if (!config || !config.uploadDir || !__autojs6_fs_module()) {
+      return Infinity;
+    }
+    return config.uploadInlineMaxBytes;
+  }
+  function __autojs6_bridge_upload_write(bytes) {
+    const config = __autojs6_bridge_live_config();
+    const fs = __autojs6_fs_module();
+    if (!config || !config.uploadDir || !fs || typeof fs.writeFileSync !== "function") {
+      return null;
+    }
+    __autojs6_bridge_upload_sequence += 1;
+    const uploadPath = String(config.uploadDir) + "/upload-" + __autojs6_bridge_upload_sequence + "-" + Date.now().toString(36) + ".bin";
+    fs.mkdirSync(config.uploadDir, { recursive: true });
+    fs.writeFileSync(uploadPath, bytes);
+    return Object.freeze({ path: uploadPath, byteCount: bytes.byteLength });
+  }
+  function __autojs6_bridge_upload_release(upload) {
+    if (!upload || !upload.path) {
+      return;
+    }
+    const fs = __autojs6_fs_module();
+    if (fs && typeof fs.unlinkSync === "function") {
+      try {
+        fs.unlinkSync(upload.path);
+      } catch (_) {}
+    }
   }
   function __autojs6_bridge_receive_live_read_error(request, error) {
     __autojs6_bridge_receive_message({
@@ -7060,7 +7100,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return headers;
   }
-  function __autojs6_fetch_body_base64_from_buffer(buffer) {
+  function __autojs6_fetch_body_buffer_from(view) {
     const BufferCtor = __autojs6_fetch_buffer_constructor();
     if (!BufferCtor || typeof BufferCtor.from !== "function") {
       throw __autojs6_fetch_error(
@@ -7068,7 +7108,18 @@ std::string buildEmbeddedScriptExecutionSource(
         "ERR_AUTOJS6_NETWORK_PERMISSION_DENIED"
       );
     }
-    return BufferCtor.from(buffer).toString("base64");
+    return BufferCtor.from(view);
+  }
+  // M20.2 batch 14: bodies above the session's inline threshold go through the descriptor
+  // upload channel (`bodyTransport: "pfd"` + `bodyBytes`); smaller ones stay inline base64.
+  function __autojs6_fetch_bytes_descriptor(buffer) {
+    if (buffer.byteLength > __autojs6_bridge_upload_inline_max_bytes()) {
+      const upload = __autojs6_bridge_upload_write(buffer);
+      if (upload) {
+        return { bodyTransport: "pfd", bodyBytes: upload.byteCount, upload };
+      }
+    }
+    return { bodyBase64: buffer.toString("base64") };
   }
   function __autojs6_fetch_body_descriptor(body) {
     if (body === undefined || body === null) {
@@ -7076,20 +7127,24 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const BufferCtor = __autojs6_fetch_buffer_constructor();
     if (BufferCtor && typeof BufferCtor.isBuffer === "function" && BufferCtor.isBuffer(body)) {
-      return Promise.resolve({ bodyBase64: body.toString("base64") });
+      return Promise.resolve(__autojs6_fetch_bytes_descriptor(body));
     }
     if (typeof ArrayBuffer === "function" && body instanceof ArrayBuffer) {
-      return Promise.resolve({ bodyBase64: __autojs6_fetch_body_base64_from_buffer(new Uint8Array(body)) });
+      return Promise.resolve(__autojs6_fetch_bytes_descriptor(__autojs6_fetch_body_buffer_from(new Uint8Array(body))));
     }
     if (typeof ArrayBuffer === "function" && ArrayBuffer.isView && ArrayBuffer.isView(body)) {
-      return Promise.resolve({ bodyBase64: __autojs6_fetch_body_base64_from_buffer(body) });
+      return Promise.resolve(__autojs6_fetch_bytes_descriptor(__autojs6_fetch_body_buffer_from(body)));
     }
     if (__autojs6_is_blob_like(body) && typeof body.arrayBuffer === "function") {
       return body.arrayBuffer().then(function(arrayBuffer) {
-        return { bodyBase64: __autojs6_fetch_body_base64_from_buffer(new Uint8Array(arrayBuffer)) };
+        return __autojs6_fetch_bytes_descriptor(__autojs6_fetch_body_buffer_from(new Uint8Array(arrayBuffer)));
       });
     }
-    return Promise.resolve({ bodyText: String(body) });
+    const text = String(body);
+    if (BufferCtor && typeof BufferCtor.byteLength === "function" && BufferCtor.byteLength(text, "utf8") > __autojs6_bridge_upload_inline_max_bytes()) {
+      return Promise.resolve(__autojs6_fetch_bytes_descriptor(BufferCtor.from(text, "utf8")));
+    }
+    return Promise.resolve({ bodyText: text });
   }
   function __autojs6_fetch_request_descriptor(input, init) {
     const requestInit = init && typeof init === "object" ? init : {};
@@ -7120,13 +7175,19 @@ std::string buildEmbeddedScriptExecutionSource(
     const maxRedirects = __autojs6_fetch_max_redirects(requestInit.maxRedirects);
     const redirectMode = String(requestInit.redirect || "follow").toLowerCase();
     return bodyPromise.then(function(bodyDescriptor) {
-      const descriptor = {
-        url,
-        method,
-        headers: __autojs6_fetch_headers_json(headers),
-        timeoutMs,
-        maxRedirects
-      };
+      let descriptor;
+      try {
+        descriptor = {
+          url,
+          method,
+          headers: __autojs6_fetch_headers_json(headers),
+          timeoutMs,
+          maxRedirects
+        };
+      } catch (error) {
+        __autojs6_bridge_upload_release(bodyDescriptor.upload);
+        throw error;
+      }
       if (maxResponseBytes !== undefined) {
         descriptor.maxResponseBytes = maxResponseBytes;
       }
@@ -7136,8 +7197,13 @@ std::string buildEmbeddedScriptExecutionSource(
       if (bodyDescriptor.bodyText !== undefined) {
         descriptor.bodyText = bodyDescriptor.bodyText;
       }
+      if (bodyDescriptor.bodyTransport !== undefined) {
+        descriptor.bodyTransport = bodyDescriptor.bodyTransport;
+        descriptor.bodyBytes = bodyDescriptor.bodyBytes;
+      }
       return {
         descriptor,
+        upload: bodyDescriptor.upload || null,
         signal: requestInit.signal,
         bridgeTimeoutMs: timeoutMs,
         maxResponseBytes,
@@ -7238,13 +7304,18 @@ std::string buildEmbeddedScriptExecutionSource(
       maxRedirects: request.maxRedirects,
       redirectCount: request.redirectCount + 1
     });
+    let upload = request.upload;
     if (status === 303 || ((status === 301 || status === 302) && descriptor.method === "POST")) {
       descriptor.method = "GET";
       delete descriptor.bodyBase64;
       delete descriptor.bodyText;
+      delete descriptor.bodyTransport;
+      delete descriptor.bodyBytes;
+      upload = null;
     }
     return Object.assign({}, request, {
       descriptor,
+      upload,
       redirectsRemaining: request.redirectsRemaining - 1,
       redirectCount: request.redirectCount + 1
     });
@@ -7315,7 +7386,8 @@ std::string buildEmbeddedScriptExecutionSource(
       {
         timeoutMs: request.bridgeTimeoutMs,
         permissions: ["network"],
-        signal: request.signal
+        signal: request.signal,
+        upload: request.upload
       }
     ).then(function(result) {
       const redirect = __autojs6_fetch_redirect_request(request, result);
@@ -7327,15 +7399,21 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_fetch_to_response(result) {
     const response = result && typeof result === "object" ? result : {};
-    return new Response(
+    const webResponse = new Response(
       __autojs6_fetch_response_body(response),
       {
         status: response.status === undefined ? 0 : Number(response.status),
         statusText: response.statusText === undefined ? "" : String(response.statusText),
-        headers: __autojs6_fetch_response_headers(response.headers),
-        url: response.url === undefined ? "" : String(response.url)
+        headers: __autojs6_fetch_response_headers(response.headers)
       }
     );
+    // ResponseInit carries no url: expose the provider's final URL the way a fetched Response does.
+    Object.defineProperty(webResponse, "url", {
+      value: response.url === undefined ? "" : String(response.url),
+      enumerable: true,
+      configurable: true
+    });
+    return webResponse;
   }
   function __autojs6_controlled_fetch(input, init) {
     return __autojs6_fetch_request_descriptor(input, init).then(function(request) {
@@ -7345,11 +7423,13 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_fetch_dispatch(request).then(function(result) {
         return __autojs6_fetch_to_response(result);
       }).then(function(response) {
+        __autojs6_bridge_upload_release(request.upload);
         __autojs6_fetch_diagnostics.completedCount += 1;
         __autojs6_fetch_finish_request();
         __autojs6_fetch_publish_diagnostics(request, "end", response, null, fetchStartedAtMs);
         return response;
       }, function(error) {
+        __autojs6_bridge_upload_release(request.upload);
         const normalized = __autojs6_fetch_normalize_error(error);
         __autojs6_fetch_finish_request();
         __autojs6_fetch_publish_diagnostics(request, "error", null, normalized, fetchStartedAtMs);
@@ -8181,7 +8261,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return [];
   }
-  function __autojs6_websocket_binary_base64(data) {
+  function __autojs6_websocket_binary_buffer(data) {
     const BufferCtor = __autojs6_fetch_buffer_constructor();
     if (!BufferCtor || typeof BufferCtor.from !== "function") {
       throw __autojs6_websocket_policy_error(
@@ -8190,22 +8270,36 @@ std::string buildEmbeddedScriptExecutionSource(
         "ERR_AUTOJS6_NETWORK_PERMISSION_DENIED"
       );
     }
-    return BufferCtor.from(data).toString("base64");
+    return BufferCtor.from(data);
   }
   // The host session enforces its maxMessageBytes; the runtime only shapes the payload.
+  // M20.2 batch 14: messages above the session's inline threshold go through the
+  // descriptor upload channel (`messageTransport: "pfd"`, `messageKind`, `messageBytes`).
+  function __autojs6_websocket_bytes_descriptor(buffer, kind) {
+    if (buffer.byteLength > __autojs6_bridge_upload_inline_max_bytes()) {
+      const upload = __autojs6_bridge_upload_write(buffer);
+      if (upload) {
+        return { messageTransport: "pfd", messageKind: kind, messageBytes: upload.byteCount, upload };
+      }
+    }
+    return kind === "text" ? { text: buffer.toString("utf8") } : { dataBase64: buffer.toString("base64") };
+  }
   function __autojs6_websocket_send_descriptor(data) {
     const BufferCtor = __autojs6_fetch_buffer_constructor();
     if (typeof data === "string") {
+      if (BufferCtor && typeof BufferCtor.byteLength === "function" && BufferCtor.byteLength(data, "utf8") > __autojs6_bridge_upload_inline_max_bytes()) {
+        return __autojs6_websocket_bytes_descriptor(BufferCtor.from(data, "utf8"), "text");
+      }
       return { text: data };
     }
     if (BufferCtor && typeof BufferCtor.isBuffer === "function" && BufferCtor.isBuffer(data)) {
-      return { dataBase64: data.toString("base64") };
+      return __autojs6_websocket_bytes_descriptor(data, "binary");
     }
     if (typeof ArrayBuffer === "function" && data instanceof ArrayBuffer) {
-      return { dataBase64: __autojs6_websocket_binary_base64(new Uint8Array(data)) };
+      return __autojs6_websocket_bytes_descriptor(__autojs6_websocket_binary_buffer(new Uint8Array(data)), "binary");
     }
     if (typeof ArrayBuffer === "function" && ArrayBuffer.isView && ArrayBuffer.isView(data)) {
-      return { dataBase64: __autojs6_websocket_binary_base64(data) };
+      return __autojs6_websocket_bytes_descriptor(__autojs6_websocket_binary_buffer(data), "binary");
     }
     return __autojs6_websocket_send_descriptor(String(data));
   }
@@ -8356,16 +8450,20 @@ std::string buildEmbeddedScriptExecutionSource(
         } catch (error) {
           return Promise.reject(error);
         }
+        const upload = descriptor.upload || null;
+        delete descriptor.upload;
         descriptor.id = this.id;
         const opts = sendOptions && typeof sendOptions === "object" ? sendOptions : {};
         return __autojs6_call_autojs(
           "websocket",
           "send",
           [descriptor],
-          { timeoutMs: __autojs6_websocket_timeout_ms(opts.timeoutMs), permissions: ["network"], signal: opts.signal }
+          { timeoutMs: __autojs6_websocket_timeout_ms(opts.timeoutMs), permissions: ["network"], signal: opts.signal, upload }
         ).then(function() {
+          __autojs6_bridge_upload_release(upload);
           return undefined;
         }, function(error) {
+          __autojs6_bridge_upload_release(upload);
           throw __autojs6_websocket_normalize_error(error);
         });
       },
@@ -22540,6 +22638,10 @@ std::string buildEmbeddedScriptExecutionSource(
       timeoutMs,
       permissions: effectivePermissions
     };
+    if (opts.upload && typeof opts.upload === "object" && opts.upload.path) {
+      // M20.2 batch 14: the plugin service turns this file into a descriptor for the host.
+      request.upload = { path: String(opts.upload.path), byteCount: Number(opts.upload.byteCount) };
+    }
     const eventMethod = { sensors: "subscribe", websocket: "connect", ui: "showLayout", "ui.overlay": "show", input_observer: "observeKeys" };
     if ((moduleValue === "image" || moduleValue === "images") && methodValue === "toBytes") request.binary = true;
     // Controlled fetch bodies come back through the same descriptor channel as image bytes

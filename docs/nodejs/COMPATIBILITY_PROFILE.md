@@ -110,10 +110,13 @@ The bridged `autojs6:fetch` / `autojs6:websocket` / `axios` facades pass caller 
 response, message and queue sizes and the HTTP method to the host provider unclamped;
 the host policy bounds them and the runtime follows up to 20 redirects like Node. Bridged
 fetch response bodies arrive through a file descriptor (`bodyTransport: "pfd"`, mapped
-into a Buffer) on hosts that support it, so only `maxResponseBytes` bounds them; request
-bodies and WebSocket messages still travel inline through Binder (about 1 MB per call), and
-a host reply that exceeds the Binder transaction size is reported at once as
-`ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED` instead of waiting for the bridge timeout.
+into a Buffer) on hosts that support it, so only `maxResponseBytes` bounds them; fetch
+request bodies and WebSocket messages above 256 KiB travel the other way as a descriptor
+too (`bodyTransport` / `messageTransport: "pfd"`, written to the session upload directory
+and streamed by the host) on hosts that advertise `bridgeRequestBinaryTransport`, so the
+host request policy (64 MiB) and `maxMessageBytes` bound them rather than the Binder
+transaction size, and a host reply that exceeds the Binder transaction size is reported
+at once as `ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED` instead of waiting for the bridge timeout.
 Screen capture, OCR and recording have the manual acceptance recorded in
 [Roadmap](../../Roadmap.md); physical event receipts remain pending. Android consent
 is still required when using those capabilities. A callable facade is not evidence

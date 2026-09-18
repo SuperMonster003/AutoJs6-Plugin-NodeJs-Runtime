@@ -31,6 +31,8 @@
 * `개선` 브리지 fetch / WebSocket / axios facade의 상한을 호스트에 맡김: 타임아웃·응답 크기·리디렉션 횟수·메시지와 큐 크기·HTTP 메서드를 자르지 않고 호스트 제공자에 전달하며 (호스트 정책 적용), 런타임은 Node처럼 최대 20회 리디렉션을 따르고, policy에서 폐기된 hard*/기본 크기 필드는 limitsEnforcedBy로 대체
 * `개선` opendir가 Node 자체의 지연 fs.Dir를 반환 (bufferSize·encoding·recursive는 네이티브 opendir로 전달, ENOENT / ENOTDIR / ERR_DIR_CLOSED는 Node 오류; dir.path와 parentPath만 호출자 표기를 유지). 런타임의 파일 시스템 도달 루트 삭제 방지 가드는 폐기되어 루트의 rm / rmdir도 다른 경로처럼 Node와 Android가 결정 (fs 정책 코드는 FS_NUL_BYTE와 FS_PATH_ESCAPE만 남음)
 * `개선` 호스트 provider 전송은 호스트가 getNativeDiagnostics()로 공개하는 소스별 / 합계 / 요청 수 한도를 채택 (내장 16 MiB / 64 MiB / 139264 값은 폴백일 뿐), 브리지 fetch 응답 본문은 파일 디스크립터로 전달되어 (bodyTransport "pfd") Binder 트랜잭션 크기가 아닌 호스트 maxResponseBytes 정책만으로 제한되며, Binder 트랜잭션 크기를 넘는 호스트 응답은 브리지 타임아웃 대신 즉시 ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED로 보고 (호스트 브랜치 node-m20-2-binder-body-pfd)
+* `개선` 브리지 fetch 요청 본문과 WebSocket 메시지가 256 KiB를 넘으면 인라인 base64 JSON 대신 읽기 전용 파일 디스크립터 (bodyTransport / messageTransport "pfd")로 호스트에 전달되어 (호스트가 bridgeRequestBinaryTransport=pfd를 공개하는 경우, 호스트 브랜치 node-m20-2-binder-body-pfd) 업로드 크기가 Binder 트랜잭션 크기가 아닌 호스트 요청 정책 (64 MiB)과 maxMessageBytes만으로 제한됨
+* `개선` 제어된 fetch 응답이 이제 Response.url 로 provider 의 최종 URL 을 노출합니다 (ResponseInit 에 url 이 없어 이전에는 항상 빈 문자열이었음)
 
 # v1.5.4
 

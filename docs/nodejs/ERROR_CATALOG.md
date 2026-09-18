@@ -27,7 +27,8 @@ message, request ID, and execution ID when reporting a failure.
 - **ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED**: the project did not declare the
   required capability.
 - **ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED**: Android/host policy denied authority.
-- **ERR_AUTOJS6_BRIDGE_INVALID_REQUEST**: malformed or out-of-contract request.
+- **ERR_AUTOJS6_BRIDGE_INVALID_REQUEST**: malformed or out-of-contract request, including a
+  descriptor upload whose file or byte count does not match the request (M20.2 batch 14).
 - **ERR_AUTOJS6_BRIDGE_CANCELLED**, **ERR_AUTOJS6_BRIDGE_TIMEOUT**: terminal
   cancellation or timeout.
 - **ERR_AUTOJS6_BRIDGE_PROCESS_DEAD**: the peer process died.

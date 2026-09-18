@@ -183,6 +183,7 @@ final class NodePluginScriptExecution {
                         PluginNodeBridgeFileTransportSession.maxPendingBridgeCallsFromRuntimeModule(runtimeModuleSources),
                         PluginNodeBridgeFileTransportSession.transportFromRuntimeModule(runtimeModuleSources)
                 );
+                liveBridgeSession.adoptHostBrokerInfo(hostBrokerInfo);
                 liveBridgeSession.start(service);
                 runtimeModuleSources = withRuntimeModuleSource(
                         runtimeModuleSources,
