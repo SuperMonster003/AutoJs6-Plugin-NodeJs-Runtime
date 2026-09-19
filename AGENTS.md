@@ -31,7 +31,7 @@
 
 ## 构建与文档
 
-- Settings 使用公共 `io.github.supermonster003.autojs6-platform-versions:1.8.1`; 不使用本地 Maven、消费端兼容表或本地平台插件源码覆盖。平台选择日志只允许一段。
+- Settings 使用公共 `io.github.supermonster003.autojs6-platform-versions:1.8.3`; 不使用本地 Maven、消费端兼容表或本地平台插件源码覆盖。平台选择日志只允许一段。
 - 本地 Gradle 验证优先 `--offline`, 用既有依赖缓存。CI 初次获取公开构建依赖与手动 LFS 物化需要网络, 不把它描述为离线验证。
 - 保留签名约定。`sign.properties`、keystore、本地路径与密码不可提交或打印。Release 收集任务必须依赖 assembleRelease、要求有效签名、核对四个 ABI 包并追加 CRC32。
 - `.so` 使用 Git LFS; 不将 LFS 指针当作实际库打包。常规 push/PR 只做 JVM 检查, APK job 手动或 tag 触发并按真实 LFS oid 缓存对象。
@@ -98,7 +98,7 @@ C++ 先用当前 `.cxx` 的 compile_commands.json 中 NDK clang 命令离线做 
 
 - Apply the workspace AutoJs6 plugin conventions to code, resources, builds and tests. Preserve existing owner decisions and historical release evidence; a milestone or RC is not silently promoted to stable.
 - Inspect status, branch, recent history and scoped diffs before editing. Preserve pre-existing work. Use Conventional Commits; before each commit set VERSION_BUILD to the next reachable Git commit count. The final count must match HEAD. Do not push or publish without the user's instruction.
-- Root settings alone applies the public platform-versions 1.8.1 plugin before build-logic. Native alignment uses the same published version where applicable. Never use mavenLocal, sibling binary dependencies, gradle/data overrides or temporary migration backups.
+- Root settings alone applies the public platform-versions 1.8.3 plugin before build-logic. Native alignment uses the same published version where applicable. Never use mavenLocal, sibling binary dependencies, gradle/data overrides or temporary migration backups.
 - Keep signing resolution and the appendDigestToReleasedFiles task. It depends on assembleRelease and rejects incomplete signing, unexpected APK sets and unsigned APKs. Signing secrets and generated APKs remain ignored.
 - All contract entry points use org.autojs.permission.PLUGIN. Preserve the no-display Wake Activity, its metadata, WAKE action and DEFAULT category, and test discovery and explicit Binder binding. OEM first-install activation must be reported separately from a manifest test.
 - PluginInfo uses installed package versions, localized descriptions and accurate capabilities. Pure JVM providers explicitly return empty supportedAbis; native providers describe actual packaged ABIs.
