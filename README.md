@@ -117,49 +117,49 @@ console.log("AutoJs6 Node.js runtime");
 
 ###### 2026/09/19
 
-* `新增` 运行时槽进程发生 Node.js 致命错误 (JavaScript 堆内存耗尽、内部检查失败) 时, 现在会在插件缓存目录留下 Node 自带的诊断报告 (crash/<executionId>.json, 于中止前写出, 不安装信号处理器): 失败结果在 slotExit.crash 与错误消息中带上事件、堆用量、JS 栈与报告路径 (例如 CRASH_NATIVE (SIGABRT; see the logcat tombstone; Node.js fatal error: Allocation failed - JavaScript heap out of memory; JS heap 61.9 MB used of 64.0 MB limit; report .../crash/<executionId>.json)), getRuntimeInfo 以 lastCrash 暴露最新报告 (调度进程重启后仍可读); 新增请求选项 maxOldGenerationSizeMb 为单次执行设置 JS 堆上限 (V8 老生代, 单位 MB), 回归用例也借此复现该崩溃
-* `修复` 修复 require 大体积 CommonJS 模块时运行时槽进程因 V8 堆内存耗尽而中止 (回报为 CRASH_NATIVE / SIGABRT) 的问题: 加载器的注释与字符串掩码逐字符拼接, 22 MiB 模块需要约 700 MB 堆内存; 现改为按连续区段输出 (结果相同, 约 44 MB), CommonJS 的 import / export 扫描也改为在候选位置间跳转而非逐字符检测
-* `修复` AGP 9.1 构建时的 SDK XML v4 解析警告及 JVM 单元测试组装任务误触发 APK 原生库对齐检查的问题 (共享构建插件 1.8.3)
+* `新增` Node.js 致命错误支持生成诊断报告, 失败结果及 getRuntimeInfo 可读取崩溃原因, 堆用量, 调用栈和报告路径, maxOldGenerationSizeMb 选项支持设置单次执行的 V8 老生代堆上限
+* `修复` require 加载大型 CommonJS 模块时因扫描过程占用过多堆内存而崩溃的问题
+* `修复` AGP 9.1 构建时的 SDK XML v4 解析警告, 以及 JVM 单元测试误触发 APK 原生库对齐检查的问题 (共享构建插件 1.8.3)
 
 # v1.5.5
 
 ###### 2026/09/18
 
-* `修复` runtimeInfo 报告的能力目录版本与摘要改由 runtime kit 派生, 修正 1.5.4 中仍为 1.5.0 的旧值
-* `修复` worker_threads 按 Node 语义支持 new Worker(code, { eval: true }), 不再把代码字符串当作脚本路径
-* `优化` TypeScript 宿主编译路由在能力目录中转为 stable, 删除已退役的 legacy stripping 元数据; 生命周期目录只保留可运行的执行模式, 移除 packaged_long_running 启动面与 node_sandboxed / worker_computation 保留名; 传输、准入与取消元数据按实际运行时对齐
-* `优化` autojs6:profile 诊断对象按实际运行时描述, 不再沿用历史 partial / reserved / deferred 文案: Android 权限约束的文件访问、process 子集、worker 通道、进程池以及 WASI / native addon 决策
-* `优化` 样例清点: packaged-esm、packaged-dynamic-import、require-esm、wasm-basic、wasm-plugin 与 desktop-parity-suite 转为 stable; 两个 parity 套件改为真正逐条执行片段而非打印目录文案; compile-cache 标为不适用, 删除只打印元数据的 package-install 样例
-* `优化` 模块加载与 Node 一致地交给 Android 文件访问: require、import 与 Worker 接受绝对路径、上级目录目标与 file: URL (/proc、/sys、/dev 仍拒绝); node_modules 查找仍锚定工作区
-* `优化` Worker 消息与 fs 监视器按 Node 原生限制运行: 移除 64 KB 消息与 32 条排队上限, 以及 16 个监视器 / 每秒 64 事件配额; 仅受 Android 内存约束
-* `优化` worker 内 process.exit() 按 Node 语义只结束该 worker 线程, process.getBuiltinModule() 走 worker builtin 名单, 不再整体禁用
-* `优化` worker 内 bare 包名按 Node 语义经工作区 node_modules 解析 (exports 条件、main、index、包自引用), 不再一律拒绝
-* `优化` worker 内动态 import() 经 worker 的 partial ESM 装载器执行 (相对/绝对路径、file: URL、工作区包、builtin 名单、with { type: "json" }), 不再拒绝
-* `优化` host-events 样例在实体按键与通知访问人工验收通过后转为 stable
-* `优化` scheduled-node-task 样例打印生命周期策略并可保留定时任务供 WorkManager 实跑; scheduled 执行模式补齐插件侧回归
-* `优化` scheduled 执行模式在宿主 WorkManager 定时运行器经插件实跑通过后, 能力目录状态转为 available
-* `优化` media.play() 返回经宿主脚本音乐服务播放的会话对象 (pause/resume/seekTo/stop/status), 新增 media_store 模块提供受限的 MediaStore capabilities/query/get/insert/update/delete/scanFile/exportFile, 分别由 media.playback / media.library / media.library.mutate 能力把关; autojs6:compat.media 补上 Rhino 风格的 playMusic 等别名; 均需配套宿主构建
-* `优化` media-playback / media-library 样例经宿主媒体 provider 合并后的人工验收转为 stable; 能力目录快照 1.5.5 发布到 releases/nodejs-capability-catalog, 宿主对齐任务改为对照该快照
-* `优化` fs 包装层移除自设的选项拦截: 流的 fs / 继承的 fd / flags 选项、watch({ recursive: true })、异步 cp filter (cpSync 保持 Node 的 ERR_INVALID_RETURN_VALUE)、绝对路径 / 父目录 / 字面 '!' glob 模式与 exclude 数组、readableWebStream 的 type / encoding 以及 Stats / Dirent / Dir 构造器均按 Node 24 原生语义处理; filesystemProfile.advancedApis.recursiveWatch 报告 native
-* `优化` 递归 readdir / opendir 交给原生 (移除 4096 条目上限与逐条 realpath 校验; readdir('/') 与 Node 一样列出 proc/sys/dev 名称), readlink / chmod / chown / utimes 接受绝对路径且 chmod 跟随符号链接, fs 策略错误码收敛为 ERR_AUTOJS6_FS_NUL_BYTE / ERR_AUTOJS6_FS_PATH_ESCAPE (硬边界, 与 loader 一致) / ERR_AUTOJS6_FS_SCOPED_PATH, 普通 fs 失败只保留 Node 码
-* `优化` 运行时移除自设的模块源预算 (单模块 16 MiB、总量 64 MiB、8192 个模块、provider 请求计数), CommonJS 入口的 __filename / require.main.filename / process.argv[1] 与 Node 一样为绝对路径且 require.main.id 为 '.', fs.mkdtemp* 交给原生: 返回调用者的前缀写法加后缀并支持所请求的编码, 前缀父目录为符号链接时不再拒绝
-* `优化` node:sqlite 把 SQL 文件操作交给原生 SQLite: 字面量文件名的 ATTACH (含 file: URI) 改经 SQLite authorizer 按 /proc、/sys、/dev 边界校验而不再扫描 SQL 文本, VACUUM INTO 的目标经 SQLite 内部 ATTACH 接受同一边界校验, 目录 PRAGMA 不再拦截, file: URI 字符串与空临时库可以打开, setAuthorizer() 与边界检查复合 (仅绑定参数或表达式给出文件名的 ATTACH 仍被拒绝)
-* `优化` 桥配额交给宿主: 超出 autojs6:bridge-limits 中 maxPendingBridgeCalls 窗口的调用改为按先进先出排队等待而不再以 ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT 失败, 运行时不再自行限制图像句柄数、受控 fetch 并发数与受控 WebSocket 连接数 (宿主 broker 继续执行其策略), require('fetch').policy.maxConcurrentRequests 与 require('websocket').policy.maxConnections 字段退役
-* `优化` 桥接 fetch / WebSocket / axios facade 的硬上限交给宿主: 超时、响应体大小、重定向次数、消息与队列尺寸及 HTTP 方法原样传给宿主提供者 (由宿主策略决定), 运行时像 Node 一样最多跟随 20 次重定向, policy 中退役的 hard* / 默认尺寸字段改为 limitsEnforcedBy
-* `优化` opendir 直接返回 Node 原生的惰性 fs.Dir (bufferSize、encoding 与 recursive 交给原生 opendir, ENOENT / ENOTDIR / ERR_DIR_CLOSED 均为 Node 原生错误; 只有 dir.path 与 parentPath 保留调用者写法), 运行时删除文件系统可达根的守卫退役, 对根目录的 rm / rmdir 与其他路径一样交给 Node 与 Android 决定 (fs 策略码只剩 FS_NUL_BYTE 与 FS_PATH_ESCAPE)
-* `优化` 宿主 provider 传输通道改为采用宿主经 getNativeDiagnostics() 公布的单源 / 总量 / 请求计数尺寸 (内置的 16 MiB / 64 MiB / 139264 仅作回退), 桥接 fetch 的响应体改经文件描述符交付 (bodyTransport "pfd"), 只受宿主 maxResponseBytes 策略约束而不再受 Binder 事务尺寸限制, 宿主回复超过 Binder 事务尺寸时立即报 ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED (宿主分支 node-m20-2-binder-body-pfd) 而非桥超时
-* `优化` 桥接 fetch 的请求正文与 WebSocket 消息超过 256 KiB 时改以只读文件描述符 (bodyTransport / messageTransport "pfd") 而非内联 base64 JSON 送达宿主 (需宿主公布 bridgeRequestBinaryTransport=pfd, 宿主分支 node-m20-2-binder-body-pfd), 上行大小只受宿主请求策略 (64 MiB) 与 maxMessageBytes 约束而不再受 Binder 事务尺寸限制
-* `优化` 受控 fetch 的响应对象现经 Response.url 暴露 provider 返回的最终 URL (ResponseInit 不含 url, 此前恒为空串)
-* `优化` Java 互操作改为整体转发到宿主的声明式白名单 (类 → 构造器 / 静态与实例方法 / 字段, 由宿主按表反射执行, 参数支持 JSON 原始值与对象句柄), 运行时不再自设类表而是把宿主公布的表读回为 java.policy, 新增 getStatic() / describe(), 成员自身抛出的异常以 ERR_AUTOJS6_JAVA_CALL_FAILED 报告
-* `优化` 运行时模块的 npm 优先规则收窄为只覆盖代替真实 npm 包的模块 (axios、colors、mime、nanoid、opencc、undici): node_modules 里的同名包不再替换 java、fetch、websocket、device 等 AutoJs6 facade, require.resolve 与 require 同规则, 全部运行时模块裸名可从 ESM 导入, autojs6:profile 以 moduleResolutionProfile 公布该规则, Rhino Packages 代理新增 getStatic() / describe()
-* `优化` 运行时槽进程在脚本执行中死亡 (被低内存杀手回收、原生崩溃、被直接杀死) 时, 失败结果改为回报系统记录的退出原因而不再只有 DeadObjectException: 消息形如 LOW_MEMORY (killed by the system low-memory killer; rss 2.6 GB) 或 CRASH_NATIVE (SIGABRT; see the logcat tombstone), 结果附 slotExit, getRuntimeInfo 附 lastSlotExit (Android 11+; 更低版本回报原因不可用)
+* `修复` runtimeInfo 中能力目录版本及摘要过期的问题, 改为从运行时资源读取
+* `修复` Worker 的 eval 模式将代码字符串误当作文件路径的问题
+* `优化` 能力目录按实际运行时更新, TypeScript 宿主编译标为稳定, 移除已废弃的类型剥离及未实现的执行模式
+* `优化` autojs6:profile 诊断信息按实际能力更新, 明确文件权限, process, Worker, 进程池, WASI 及原生扩展的支持范围
+* `优化` 完善 ESM, 动态导入, Wasm 及桌面兼容性示例, 对照测试改为实际执行, 移除仅打印元数据的依赖安装示例 (编译缓存示例标为不适用)
+* `优化` require/import 及 Worker 支持绝对路径, 上级目录及 file: URL, 文件访问遵循 Android 权限 (node_modules 从工作区查找, /proc, /sys, /dev 仍不可访问)
+* `优化` Worker 消息及文件监听遵循 Node.js 原生限制, 移除额外的消息大小, 排队数量, 监听器及事件频率限制
+* `优化` Worker 中的 process.exit 仅结束当前线程, process.getBuiltinModule 按 Worker 模块白名单开放
+* `优化` Worker 支持通过工作区 node_modules 解析包名, 包含 exports/main/index 及包自引用
+* `优化` Worker 支持动态 import, 包含相对或绝对路径, file: URL, 工作区包, 允许的内置模块及 JSON 导入属性
+* `优化` 实体按键及通知访问示例完成真机验收, host-events 示例标为稳定
+* `优化` scheduled-node-task 示例支持显示生命周期策略及保留定时任务, 补充 scheduled 执行模式测试
+* `优化` scheduled 执行模式完成宿主 WorkManager 验证, 能力目录标为可用
+* `优化` media.play 支持返回可控制的播放会话, media_store 支持受权限约束的媒体库读写, 兼容层补充 playMusic 等 Rhino 别名 (需要配套宿主及相应媒体能力授权)
+* `优化` 媒体播放及媒体库示例完成宿主集成验证并标为稳定, 发布 1.5.5 能力目录快照供宿主核对
+* `优化` fs 的流选项, 递归监听, 复制过滤, glob, readableWebStream 及文件类型构造器遵循 Node.js 24 原生行为, 移除额外选项拦截
+* `优化` 递归 readdir/opendir 移除 4096 条目上限, readlink/chmod/chown/utimes 支持绝对路径, 普通文件错误保留 Node.js 错误码 (仍执行路径安全检查)
+* `优化` 移除运行时自设的模块大小及数量限制, CommonJS 入口路径及 fs.mkdtemp 的路径和编码行为与 Node.js 保持一致
+* `优化` node:sqlite 通过原生授权回调校验 ATTACH/VACUUM INTO 的路径, 支持 file: URI 及空临时库, 保留 /proc, /sys, /dev 边界限制 (仍拒绝通过绑定参数或表达式指定 ATTACH 文件名)
+* `优化` 宿主桥接调用超出并发窗口时按顺序排队, 图像句柄及网络连接配额统一由宿主控制, 移除运行时重复限制及对应策略字段
+* `优化` 桥接 fetch/WebSocket/axios 的超时, 大小及队列限制统一由宿主控制, 运行时最多跟随 20 次重定向, policy 改用 limitsEnforcedBy 描述限制来源
+* `优化` opendir 返回原生惰性 fs.Dir, 保留调用者的路径写法, rm/rmdir 移除额外根目录限制并遵循 Node.js 与 Android 行为 (仍检查 NUL 字节及路径越界)
+* `优化` 模块传输预算采用宿主公布的限制, fetch 响应体支持文件描述符传输, 超大 Binder 回复立即返回 ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED (需要配套宿主)
+* `优化` fetch 请求正文及 WebSocket 消息超过 256 KiB 时支持文件描述符传输, 大小由宿主策略限制 (需要宿主声明 bridgeRequestBinaryTransport=pfd)
+* `优化` 桥接 fetch 的 Response.url 返回最终响应地址, 避免始终为空字符串
+* `优化` Java 互操作统一采用宿主提供的类及成员白名单, 支持对象句柄, getStatic/describe 及成员异常回传
+* `优化` npm 同名包优先规则仅用于 axios/colors/mime/nanoid/opencc/undici 等替代模块, 保留 AutoJs6 专用模块, 运行时模块裸名支持 ESM 导入, Packages 代理支持 getStatic/describe
+* `优化` 运行时进程异常退出时回报系统记录的低内存或原生崩溃原因, 结果附带 slotExit, getRuntimeInfo 提供 lastSlotExit (需要 Android 11+, 低版本提示原因不可用)
 
 # v1.5.4
 
 ###### 2026/09/17
 
-* `修复` 嵌入执行不再输出 ExperimentalWarning 提示, 保留 warning 事件、普通警告、弃用警告和错误; Node 上游 API 稳定性与终端默认行为不变
-* `优化` 文件流、gzip/deflate/Brotli 压缩流和基础 VM 执行正式化; 显式启用的 Debug Inspector 在 localhost 范围内正式支持
+* `修复` 嵌入执行输出多余 ExperimentalWarning 提示的问题, 保留警告事件, 普通警告, 弃用警告及错误 (不改变终端行为)
+* `优化` 文件流, gzip/deflate/Brotli 压缩流及基础 VM 执行转为正式支持, Debug Inspector 支持显式启用且仅监听 localhost
 
 ##### 更多发行历史可参阅
 

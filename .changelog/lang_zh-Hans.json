@@ -8,212 +8,212 @@
     "v1.5.6": {
       "released_date": "2026/09/19",
       "feature": [
-        "运行时槽进程发生 Node.js 致命错误 (JavaScript 堆内存耗尽、内部检查失败) 时, 现在会在插件缓存目录留下 Node 自带的诊断报告 (crash/<executionId>.json, 于中止前写出, 不安装信号处理器): 失败结果在 slotExit.crash 与错误消息中带上事件、堆用量、JS 栈与报告路径 (例如 CRASH_NATIVE (SIGABRT; see the logcat tombstone; Node.js fatal error: Allocation failed - JavaScript heap out of memory; JS heap 61.9 MB used of 64.0 MB limit; report .../crash/<executionId>.json)), getRuntimeInfo 以 lastCrash 暴露最新报告 (调度进程重启后仍可读); 新增请求选项 maxOldGenerationSizeMb 为单次执行设置 JS 堆上限 (V8 老生代, 单位 MB), 回归用例也借此复现该崩溃"
+        "Node.js 致命错误支持生成诊断报告, 失败结果及 getRuntimeInfo 可读取崩溃原因, 堆用量, 调用栈和报告路径, maxOldGenerationSizeMb 选项支持设置单次执行的 V8 老生代堆上限"
       ],
       "fix": [
-        "修复 require 大体积 CommonJS 模块时运行时槽进程因 V8 堆内存耗尽而中止 (回报为 CRASH_NATIVE / SIGABRT) 的问题: 加载器的注释与字符串掩码逐字符拼接, 22 MiB 模块需要约 700 MB 堆内存; 现改为按连续区段输出 (结果相同, 约 44 MB), CommonJS 的 import / export 扫描也改为在候选位置间跳转而非逐字符检测",
-        "AGP 9.1 构建时的 SDK XML v4 解析警告及 JVM 单元测试组装任务误触发 APK 原生库对齐检查的问题 (共享构建插件 1.8.3)"
+        "require 加载大型 CommonJS 模块时因扫描过程占用过多堆内存而崩溃的问题",
+        "AGP 9.1 构建时的 SDK XML v4 解析警告, 以及 JVM 单元测试误触发 APK 原生库对齐检查的问题 (共享构建插件 1.8.3)"
       ]
     },
     "v1.5.5": {
       "released_date": "2026/09/18",
       "improvement": [
-        "TypeScript 宿主编译路由在能力目录中转为 stable, 删除已退役的 legacy stripping 元数据; 生命周期目录只保留可运行的执行模式, 移除 packaged_long_running 启动面与 node_sandboxed / worker_computation 保留名; 传输、准入与取消元数据按实际运行时对齐",
-        "autojs6:profile 诊断对象按实际运行时描述, 不再沿用历史 partial / reserved / deferred 文案: Android 权限约束的文件访问、process 子集、worker 通道、进程池以及 WASI / native addon 决策",
-        "样例清点: packaged-esm、packaged-dynamic-import、require-esm、wasm-basic、wasm-plugin 与 desktop-parity-suite 转为 stable; 两个 parity 套件改为真正逐条执行片段而非打印目录文案; compile-cache 标为不适用, 删除只打印元数据的 package-install 样例",
-        "模块加载与 Node 一致地交给 Android 文件访问: require、import 与 Worker 接受绝对路径、上级目录目标与 file: URL (/proc、/sys、/dev 仍拒绝); node_modules 查找仍锚定工作区",
-        "Worker 消息与 fs 监视器按 Node 原生限制运行: 移除 64 KB 消息与 32 条排队上限, 以及 16 个监视器 / 每秒 64 事件配额; 仅受 Android 内存约束",
-        "worker 内 process.exit() 按 Node 语义只结束该 worker 线程, process.getBuiltinModule() 走 worker builtin 名单, 不再整体禁用",
-        "worker 内 bare 包名按 Node 语义经工作区 node_modules 解析 (exports 条件、main、index、包自引用), 不再一律拒绝",
-        "worker 内动态 import() 经 worker 的 partial ESM 装载器执行 (相对/绝对路径、file: URL、工作区包、builtin 名单、with { type: \"json\" }), 不再拒绝",
-        "host-events 样例在实体按键与通知访问人工验收通过后转为 stable",
-        "scheduled-node-task 样例打印生命周期策略并可保留定时任务供 WorkManager 实跑; scheduled 执行模式补齐插件侧回归",
-        "scheduled 执行模式在宿主 WorkManager 定时运行器经插件实跑通过后, 能力目录状态转为 available",
-        "media.play() 返回经宿主脚本音乐服务播放的会话对象 (pause/resume/seekTo/stop/status), 新增 media_store 模块提供受限的 MediaStore capabilities/query/get/insert/update/delete/scanFile/exportFile, 分别由 media.playback / media.library / media.library.mutate 能力把关; autojs6:compat.media 补上 Rhino 风格的 playMusic 等别名; 均需配套宿主构建",
-        "media-playback / media-library 样例经宿主媒体 provider 合并后的人工验收转为 stable; 能力目录快照 1.5.5 发布到 releases/nodejs-capability-catalog, 宿主对齐任务改为对照该快照",
-        "fs 包装层移除自设的选项拦截: 流的 fs / 继承的 fd / flags 选项、watch({ recursive: true })、异步 cp filter (cpSync 保持 Node 的 ERR_INVALID_RETURN_VALUE)、绝对路径 / 父目录 / 字面 '!' glob 模式与 exclude 数组、readableWebStream 的 type / encoding 以及 Stats / Dirent / Dir 构造器均按 Node 24 原生语义处理; filesystemProfile.advancedApis.recursiveWatch 报告 native",
-        "递归 readdir / opendir 交给原生 (移除 4096 条目上限与逐条 realpath 校验; readdir('/') 与 Node 一样列出 proc/sys/dev 名称), readlink / chmod / chown / utimes 接受绝对路径且 chmod 跟随符号链接, fs 策略错误码收敛为 ERR_AUTOJS6_FS_NUL_BYTE / ERR_AUTOJS6_FS_PATH_ESCAPE (硬边界, 与 loader 一致) / ERR_AUTOJS6_FS_SCOPED_PATH, 普通 fs 失败只保留 Node 码",
-        "运行时移除自设的模块源预算 (单模块 16 MiB、总量 64 MiB、8192 个模块、provider 请求计数), CommonJS 入口的 __filename / require.main.filename / process.argv[1] 与 Node 一样为绝对路径且 require.main.id 为 '.', fs.mkdtemp* 交给原生: 返回调用者的前缀写法加后缀并支持所请求的编码, 前缀父目录为符号链接时不再拒绝",
-        "node:sqlite 把 SQL 文件操作交给原生 SQLite: 字面量文件名的 ATTACH (含 file: URI) 改经 SQLite authorizer 按 /proc、/sys、/dev 边界校验而不再扫描 SQL 文本, VACUUM INTO 的目标经 SQLite 内部 ATTACH 接受同一边界校验, 目录 PRAGMA 不再拦截, file: URI 字符串与空临时库可以打开, setAuthorizer() 与边界检查复合 (仅绑定参数或表达式给出文件名的 ATTACH 仍被拒绝)",
-        "桥配额交给宿主: 超出 autojs6:bridge-limits 中 maxPendingBridgeCalls 窗口的调用改为按先进先出排队等待而不再以 ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT 失败, 运行时不再自行限制图像句柄数、受控 fetch 并发数与受控 WebSocket 连接数 (宿主 broker 继续执行其策略), require('fetch').policy.maxConcurrentRequests 与 require('websocket').policy.maxConnections 字段退役",
-        "桥接 fetch / WebSocket / axios facade 的硬上限交给宿主: 超时、响应体大小、重定向次数、消息与队列尺寸及 HTTP 方法原样传给宿主提供者 (由宿主策略决定), 运行时像 Node 一样最多跟随 20 次重定向, policy 中退役的 hard* / 默认尺寸字段改为 limitsEnforcedBy",
-        "opendir 直接返回 Node 原生的惰性 fs.Dir (bufferSize、encoding 与 recursive 交给原生 opendir, ENOENT / ENOTDIR / ERR_DIR_CLOSED 均为 Node 原生错误; 只有 dir.path 与 parentPath 保留调用者写法), 运行时删除文件系统可达根的守卫退役, 对根目录的 rm / rmdir 与其他路径一样交给 Node 与 Android 决定 (fs 策略码只剩 FS_NUL_BYTE 与 FS_PATH_ESCAPE)",
-        "宿主 provider 传输通道改为采用宿主经 getNativeDiagnostics() 公布的单源 / 总量 / 请求计数尺寸 (内置的 16 MiB / 64 MiB / 139264 仅作回退), 桥接 fetch 的响应体改经文件描述符交付 (bodyTransport \"pfd\"), 只受宿主 maxResponseBytes 策略约束而不再受 Binder 事务尺寸限制, 宿主回复超过 Binder 事务尺寸时立即报 ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED (宿主分支 node-m20-2-binder-body-pfd) 而非桥超时",
-        "桥接 fetch 的请求正文与 WebSocket 消息超过 256 KiB 时改以只读文件描述符 (bodyTransport / messageTransport \"pfd\") 而非内联 base64 JSON 送达宿主 (需宿主公布 bridgeRequestBinaryTransport=pfd, 宿主分支 node-m20-2-binder-body-pfd), 上行大小只受宿主请求策略 (64 MiB) 与 maxMessageBytes 约束而不再受 Binder 事务尺寸限制",
-        "受控 fetch 的响应对象现经 Response.url 暴露 provider 返回的最终 URL (ResponseInit 不含 url, 此前恒为空串)",
-        "Java 互操作改为整体转发到宿主的声明式白名单 (类 → 构造器 / 静态与实例方法 / 字段, 由宿主按表反射执行, 参数支持 JSON 原始值与对象句柄), 运行时不再自设类表而是把宿主公布的表读回为 java.policy, 新增 getStatic() / describe(), 成员自身抛出的异常以 ERR_AUTOJS6_JAVA_CALL_FAILED 报告",
-        "运行时模块的 npm 优先规则收窄为只覆盖代替真实 npm 包的模块 (axios、colors、mime、nanoid、opencc、undici): node_modules 里的同名包不再替换 java、fetch、websocket、device 等 AutoJs6 facade, require.resolve 与 require 同规则, 全部运行时模块裸名可从 ESM 导入, autojs6:profile 以 moduleResolutionProfile 公布该规则, Rhino Packages 代理新增 getStatic() / describe()",
-        "运行时槽进程在脚本执行中死亡 (被低内存杀手回收、原生崩溃、被直接杀死) 时, 失败结果改为回报系统记录的退出原因而不再只有 DeadObjectException: 消息形如 LOW_MEMORY (killed by the system low-memory killer; rss 2.6 GB) 或 CRASH_NATIVE (SIGABRT; see the logcat tombstone), 结果附 slotExit, getRuntimeInfo 附 lastSlotExit (Android 11+; 更低版本回报原因不可用)"
+        "能力目录按实际运行时更新, TypeScript 宿主编译标为稳定, 移除已废弃的类型剥离及未实现的执行模式",
+        "autojs6:profile 诊断信息按实际能力更新, 明确文件权限, process, Worker, 进程池, WASI 及原生扩展的支持范围",
+        "完善 ESM, 动态导入, Wasm 及桌面兼容性示例, 对照测试改为实际执行, 移除仅打印元数据的依赖安装示例 (编译缓存示例标为不适用)",
+        "require/import 及 Worker 支持绝对路径, 上级目录及 file: URL, 文件访问遵循 Android 权限 (node_modules 从工作区查找, /proc, /sys, /dev 仍不可访问)",
+        "Worker 消息及文件监听遵循 Node.js 原生限制, 移除额外的消息大小, 排队数量, 监听器及事件频率限制",
+        "Worker 中的 process.exit 仅结束当前线程, process.getBuiltinModule 按 Worker 模块白名单开放",
+        "Worker 支持通过工作区 node_modules 解析包名, 包含 exports/main/index 及包自引用",
+        "Worker 支持动态 import, 包含相对或绝对路径, file: URL, 工作区包, 允许的内置模块及 JSON 导入属性",
+        "实体按键及通知访问示例完成真机验收, host-events 示例标为稳定",
+        "scheduled-node-task 示例支持显示生命周期策略及保留定时任务, 补充 scheduled 执行模式测试",
+        "scheduled 执行模式完成宿主 WorkManager 验证, 能力目录标为可用",
+        "media.play 支持返回可控制的播放会话, media_store 支持受权限约束的媒体库读写, 兼容层补充 playMusic 等 Rhino 别名 (需要配套宿主及相应媒体能力授权)",
+        "媒体播放及媒体库示例完成宿主集成验证并标为稳定, 发布 1.5.5 能力目录快照供宿主核对",
+        "fs 的流选项, 递归监听, 复制过滤, glob, readableWebStream 及文件类型构造器遵循 Node.js 24 原生行为, 移除额外选项拦截",
+        "递归 readdir/opendir 移除 4096 条目上限, readlink/chmod/chown/utimes 支持绝对路径, 普通文件错误保留 Node.js 错误码 (仍执行路径安全检查)",
+        "移除运行时自设的模块大小及数量限制, CommonJS 入口路径及 fs.mkdtemp 的路径和编码行为与 Node.js 保持一致",
+        "node:sqlite 通过原生授权回调校验 ATTACH/VACUUM INTO 的路径, 支持 file: URI 及空临时库, 保留 /proc, /sys, /dev 边界限制 (仍拒绝通过绑定参数或表达式指定 ATTACH 文件名)",
+        "宿主桥接调用超出并发窗口时按顺序排队, 图像句柄及网络连接配额统一由宿主控制, 移除运行时重复限制及对应策略字段",
+        "桥接 fetch/WebSocket/axios 的超时, 大小及队列限制统一由宿主控制, 运行时最多跟随 20 次重定向, policy 改用 limitsEnforcedBy 描述限制来源",
+        "opendir 返回原生惰性 fs.Dir, 保留调用者的路径写法, rm/rmdir 移除额外根目录限制并遵循 Node.js 与 Android 行为 (仍检查 NUL 字节及路径越界)",
+        "模块传输预算采用宿主公布的限制, fetch 响应体支持文件描述符传输, 超大 Binder 回复立即返回 ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED (需要配套宿主)",
+        "fetch 请求正文及 WebSocket 消息超过 256 KiB 时支持文件描述符传输, 大小由宿主策略限制 (需要宿主声明 bridgeRequestBinaryTransport=pfd)",
+        "桥接 fetch 的 Response.url 返回最终响应地址, 避免始终为空字符串",
+        "Java 互操作统一采用宿主提供的类及成员白名单, 支持对象句柄, getStatic/describe 及成员异常回传",
+        "npm 同名包优先规则仅用于 axios/colors/mime/nanoid/opencc/undici 等替代模块, 保留 AutoJs6 专用模块, 运行时模块裸名支持 ESM 导入, Packages 代理支持 getStatic/describe",
+        "运行时进程异常退出时回报系统记录的低内存或原生崩溃原因, 结果附带 slotExit, getRuntimeInfo 提供 lastSlotExit (需要 Android 11+, 低版本提示原因不可用)"
       ],
       "fix": [
-        "runtimeInfo 报告的能力目录版本与摘要改由 runtime kit 派生, 修正 1.5.4 中仍为 1.5.0 的旧值",
-        "worker_threads 按 Node 语义支持 new Worker(code, { eval: true }), 不再把代码字符串当作脚本路径"
+        "runtimeInfo 中能力目录版本及摘要过期的问题, 改为从运行时资源读取",
+        "Worker 的 eval 模式将代码字符串误当作文件路径的问题"
       ]
     },
     "v1.5.4": {
       "released_date": "2026/09/17",
       "improvement": [
-        "文件流、gzip/deflate/Brotli 压缩流和基础 VM 执行正式化; 显式启用的 Debug Inspector 在 localhost 范围内正式支持"
+        "文件流, gzip/deflate/Brotli 压缩流及基础 VM 执行转为正式支持, Debug Inspector 支持显式启用且仅监听 localhost"
       ],
       "fix": [
-        "嵌入执行不再输出 ExperimentalWarning 提示, 保留 warning 事件、普通警告、弃用警告和错误; Node 上游 API 稳定性与终端默认行为不变"
+        "嵌入执行输出多余 ExperimentalWarning 提示的问题, 保留警告事件, 普通警告, 弃用警告及错误 (不改变终端行为)"
       ]
     },
     "v1.5.3": {
       "released_date": "2026/09/16",
       "improvement": [
-        "Android 17 本地网络授权统一移至插件中心启用流程和插件设置, 不再提供启动器授权页面; 未获授权时保持关闭并静默跳过自动启动",
+        "Android 17 本地网络授权移至插件中心启用流程及插件设置, 移除启动器授权页面 (未授权时保持关闭并跳过自动启动)",
         "适配 Android 17 (SDK 37), 提供插件独立的本地网络权限控制及恢复引导"
       ]
     },
     "v1.5.2": {
       "released_date": "2026/09/15",
       "improvement": [
-        "将 compileSdk 提升到 37 (Android 17), targetSdk 保持 36, 待依赖目标版本的行为验证后再提升"
+        "compileSdk 升级至 37 (Android 17), targetSdk 保持 36"
       ]
     },
     "v1.5.1": {
       "released_date": "2026/09/15",
       "improvement": [
-        "`libnode.so` 以 `--with-intl=small-icu` 重建: `Intl` 与正则表达式的 Unicode 属性转义 (`\\p{...}`) 可用 (仅英文区域数据, `NODE_ICU_DATA` 可加载完整 ICU 数据文件), corepack 因此可在 AutoJs6 终端中运行 pnpm 11 与 Yarn Berry"
+        "Node.js 启用 small-icu, 支持 Intl 及正则 Unicode 属性转义, corepack 可运行 pnpm 11/Yarn Berry (内置英文区域数据, 可通过 NODE_ICU_DATA 加载完整 ICU 数据)"
       ],
       "fix": [
-        "Node 自身的致命错误与警告文本在 Android 上除 logcat 外同时写入真实 stderr, 终端可看到未捕获的异常而非静默退出"
+        "Node.js 致命错误及警告仅写入 logcat, 导致终端静默退出的问题"
       ]
     },
     "v1.5.0": {
       "released_date": "2026/09/14",
       "feature": [
-        "多入口终端启动器 `libnodexe.so` (node / npm / npx / corepack / yarn / pnpm), 各 ABI 均打包, 带 `DT_RUNPATH $ORIGIN` 与 16 KB 页对齐",
-        "取自官方 Node.js 24.21.0 发行包的 npm 11.19.0 与 corepack 0.36.0 资产, 通过 `NODE_CLI_*` manifest meta-data (schema 1) 声明, 并以 `nodeCli` 能力镜像到 runtimeInfo / PluginInfo"
+        "node/npm/npx/corepack/yarn/pnpm 终端启动器, 支持各 ABI 及 16 KB 内存页",
+        "内置 Node.js 24.21.0 官方发行包中的 npm 11.19.0 及 corepack 0.36.0, 通过插件信息及 runtimeInfo 声明终端能力"
       ]
     },
     "v1.4.2": {
       "released_date": "2026/09/13",
       "fix": [
-        "插件信息只报告当前安装包内实际存在的原生 ABI",
-        "插件元数据的构建日期固定使用英文, 不受构建机器语言影响",
-        "发行包与归档的版本信息保持一致",
-        "Android 7 工作目录文件兼容性, 保留文件描述符隔离"
+        "插件信息报告安装包未包含的原生 ABI 的问题",
+        "插件信息中的构建日期受构建环境语言影响, 未统一使用英文格式的问题",
+        "发行包与归档版本信息不一致的问题",
+        "Android 7 的工作目录文件兼容性问题 (保留文件描述符隔离)"
       ]
     },
     "v1.4.1": {
       "released_date": "2026/09/13",
       "improvement": [
-        "构建阶段校验 64 位原生库的 16 KB 页大小对齐, 检查 manifest 契约并输出 JSON 报告",
-        "宿主激活, 插件元数据, 多语言文档与签名发布归集遵循统一插件规范"
+        "构建阶段校验 64 位原生库的 16 KB 内存页对齐及 Manifest 配置, 并输出校验报告",
+        "统一宿主激活流程, 插件信息及多语言文档, 并完善签名发布校验"
       ]
     },
     "v1.4.0": {
       "released_date": "2026/09/10",
       "improvement": [
-        "提供 Android 事件与 3 秒录音独立项目, 补齐截屏, OCR, 实体按键和 MediaInfo 的项目声明及人工验收步骤",
-        "截屏找图, 屏幕 OCR 与 3 秒 AAC 录音完成真机人工验收, 对应样例及复用相同调用链的 Pro 对齐片段转为稳定状态",
-        "事件验收样例提示暂时关闭宿主音量加停止快捷键; 配套宿主读取 project.json 的 node.timeoutMs, 避免较长等待脚本在约 5 秒后超时"
+        "补充 Android 事件及 3 秒录音示例项目, 完善截屏, OCR, 实体按键及 MediaInfo 的声明和验收说明",
+        "截屏找图, 屏幕 OCR 及 3 秒 AAC 录音示例完成真机验收, 对应示例及 Pro 兼容片段标为稳定",
+        "事件示例增加音量加停止快捷键提示, 宿主支持读取 node.timeoutMs, 避免长时间等待的脚本提前超时"
       ],
       "fix": [
-        "MediaInfo 与图片文件路径支持绝对路径, 父目录和合法文件名; 录音输出同步交由更新后的宿主按 Android 文件权限处理",
-        "桥能力未声明错误直接提示缺少的 node.permissions, 不再要求仅作诊断且不授予权限的 pro_compat_opt_in profile",
-        "项目向导不再将普通 fs 绝对路径和父目录路径误报为 FS_OUTSIDE_SCOPE, 实际文件访问交由 Android 判断"
+        "MediaInfo, 图像及录音路径的额外限制问题, 文件访问统一交由配套宿主按 Android 权限处理",
+        "缺少桥接能力时错误要求配置 pro_compat_opt_in 的问题, 改为提示所需 node.permissions",
+        "项目向导将 fs 绝对路径及上级目录误报为 FS_OUTSIDE_SCOPE 的问题"
       ],
       "feature": [
-        "MediaInfo 查询支持从 0 开始的 streamNumber, countGet 流计数以及用于单位, 说明和可读名称的 infoKind; Rhino 和 Node 保持默认第 1 条流的 TEXT 查询, 并协商插件扩展能力"
+        "MediaInfo 查询增加 streamNumber 流序号, countGet 流计数及 infoKind 信息类型 (流序号从 0 开始, 默认查询第 1 条流的 TEXT 信息)"
       ]
     },
     "v1.3.0": {
       "released_date": "2026/09/09",
       "fix": [
-        "修复长驻脚本的桥会话持续累积请求与响应记录的问题, 清理已完成请求, 仅保留最近 32 条响应并限制诊断体积",
-        "原生异步任务完成前提前生成成功结果, 导致异步错误与后续退出码丢失的问题; 终态改为跟随 Node 事件循环最终退出",
+        "长期运行的脚本持续累积桥接请求及响应记录的问题, 完成后及时清理并仅保留最近 32 条响应",
+        "原生异步任务完成前返回成功结果, 导致后续错误及退出码丢失的问题",
         "OpenSSL STORE 密钥 URL 绕过文件系统限制的问题 (请通过 node:fs 读取密钥字节)"
       ],
       "improvement": [
-        "实时桥默认使用 JNI/Binder 直通并经 Node 事件循环返回响应, 降低调用延迟, 保留可选文件回退与待处理调用上限",
+        "宿主桥接默认使用 JNI/Binder 传输以降低延迟, 保留文件传输回退及待处理调用上限",
         "Node.js stream, crypto, timers, util, node:test 等内建模块恢复原生导出, 保留文件系统边界与宿主目录策略",
-        "原生 worker 默认按 CPU 并行度运行 (最多 8 个), 继承执行的网络与文件开关, 支持请求级资源上限且池任务默认不设超时; CPU 与 WASM 样例改为真实多线程执行",
-        "维持原生 WASI 禁用以保留文件系统边界, 移除两个 disabled WASI 样例; 普通 WebAssembly 与 WASM worker 继续可用",
-        "屏幕 OCR 样例申请 Android 截屏授权并识别真实图片句柄; OCR 或条码插件不可用时返回可读 unavailable 错误, 识别失败仍按错误处理",
-        "Node 脚本支持协商式异步启动, 长驻执行释放 Binder 线程, 终态回调完成后回传工作区, 兼容旧同步宿主"
+        "Worker 默认按 CPU 并行度运行且最多 8 个, 支持执行级网络及文件开关和请求级限制, 池任务默认不设超时",
+        "移除两个已禁用的 WASI 示例, 保留原生 WASI 限制及普通 WebAssembly/WASM Worker 支持",
+        "屏幕 OCR 示例使用真实截屏及图像句柄, 缺少 OCR 或条码插件时返回 unavailable 错误",
+        "Node.js 脚本支持异步启动及完成回调, 长期运行时释放 Binder 线程, 兼容旧版同步宿主"
       ],
       "feature": [
-        "Node.js 桥订阅通过既有回调推送传感器, WebSocket, UI, 悬浮窗与输入事件, 提供 on/once/off 监听, 有界事件队列及 drainEvents 兼容",
-        "Node.js 运行时支持可选 idleExitMs 空闲退出与后续脚本重新连接, 提供 idleForMs 诊断, 默认保持常驻",
+        "传感器, WebSocket, UI, 悬浮窗及输入事件推送, 支持 on/once/off 及 drainEvents",
+        "idleExitMs 空闲退出选项及 idleForMs 诊断信息, 支持后续脚本重新连接 (默认常驻)",
         "全局 fetch, Request, Response, Headers, FormData 与 WebSocket 默认使用 Node 原生 Web API; autojs6:fetch 与 autojs6:websocket 显式模块继续提供宿主网络栈",
-        "新增带文件边界检查的原生 node:sqlite, 支持 CRUD, 事务与备份; 提供原生 node:test 报告器和可运行测试样例, 离线 npm corpus 扩展 zod, cheerio, date-fns, mqtt 与 ws",
-        "process.stdin / readline 接收控制台输入, autojs6:host 接收执行级 JSON 消息, v3 postMessage 事务兼容旧宿主",
+        "node:sqlite 数据库及 node:test 报告器, 支持数据库增删改查, 事务及备份, 补充 zod/cheerio/date-fns/mqtt/ws 离线示例",
+        "process.stdin/readline 控制台输入及 autojs6:host 执行级 JSON 消息, postMessage v3 兼容旧版宿主",
         "Node.js 截屏会话接入 Android 授权和既有前台服务, 支持图片句柄, PNG/JPEG/WebP 保存及停止或脚本退出时清理",
         "Node.js 图片句柄支持裁剪, 缩放, 灰度, 阈值, 找图及找色, 复用宿主图像后端, 返回独立图片并在执行结束时清理",
-        "Node.js image.toBytes 通过文件描述符将 PNG 或 RGBA 像素传入原生 Buffer, 支持 JNI 与文件桥接, 在使用后, 超时或执行结束时回收附件",
-        "Node device 接口提供实时构建, 屏幕, 电池和内存信息, 亮度控制及定时保持亮屏; media 支持设置音频流音量, 遵循 Android 权限",
-        "autojs6:events 通过推送回调观察 Android 通知, 外部 Toast, 无障碍按键及屏幕和电池广播, 使用显式权限并自动清理订阅; Node 原生 events 保持兼容",
-        "Node app 支持 Android 服务启动, 广播发送和已安装应用查询; dialogs 支持文本输入, 单选, 多选及随脚本清理的进度窗口, keys 提供无障碍系统操作",
-        "Node recorder 支持带麦克风权限, 前台通知, 时长上限与脚本清理的 AAC 录音; ui.overlay 支持声明式属性更新, 拖动与事件推送",
-        "Node 脚本可在两个独立运行时进程中并发执行, 共用 FIFO 队列并按执行任务路由取消和输入"
+        "image.toBytes 方法, 支持通过文件描述符传输 PNG 或 RGBA 像素至 Buffer, 并自动回收传输附件",
+        "device 设备, 屏幕, 电池及内存信息查询, 亮度及保持亮屏控制, media 音量设置 (遵循 Android 权限)",
+        "autojs6:events 通知, 外部 Toast, 无障碍按键及屏幕和电池广播监听, 支持自动清理订阅",
+        "app 服务启动, 广播及应用查询, dialogs 输入, 单选, 多选及进度对话框, keys 无障碍系统操作",
+        "recorder AAC 录音及 ui.overlay 浮窗更新, 拖动和事件推送, 录音支持权限申请, 前台通知, 时长限制及自动清理",
+        "两个独立进程并发执行 Node.js 脚本, 支持按执行任务取消及发送输入"
       ],
       "dependency": [
-        "升级 Node.js 24.5.0 → 24.21.0, 三个 ABI 均使用自建 Android 源码产物"
+        "升级 Node.js 版本 24.5.0 -> 24.21.0, 三个 ABI 均从源码构建"
       ]
     },
     "v1.2.0": {
       "released_date": "2026/08/29",
       "feature": [
-        "`mediainfo` facade 新增 `capabilities()`, 且其可调用入口与 `read()` 支持显式选择插件快照 v1/v2; 省略 schema 时继续返回原有宿主 Node v1 快照",
-        "新增 module-source provider v3, 通过绑定精确字节数与 SHA-256 的有界 PFD 按需编译运行中创建的 `.ts/.mts/.cts`, 使用独立 30 s 编译预算, 稳定拒绝路径逃逸, 符号链接和歧义, 并保留宿主 TypeScript 诊断与 Source Map 栈映射",
-        "在 Android 应用权限范围内启用桌面式文件系统访问, 同时继续拒绝 `/proc`、`/sys`、`/dev`",
-        "支持 `accessibility.swipe` 与 `accessibility.gesture`, 并由独立能力 `accessibility.gesture` 门禁",
-        "支持覆盖排队与执行全过程的脚本超时, 超时返回 `ERR_AUTOJS6_SCRIPT_TIMEOUT`; 未指定超时时仍可无限运行",
-        "默认启用 `dgram` (UDP) 与 `http2`, 并对 `trace_events` 返回明确的禁用错误",
-        "支持 Debug 构建显式开启本地 `inspector` 调试, 仅监听 localhost 并通过 `adb forward` 连接",
-        "新增受宿主插件权限保护的无界面激活入口, 补齐插件中心说明并禁用应用数据备份"
+        "mediainfo.capabilities 能力查询及 v1/v2 快照选择, read 支持指定 schema (默认保持宿主 Node v1 格式)",
+        "模块源码协议 v3, 支持按需编译运行中创建的 .ts/.mts/.cts 文件, 校验源码大小及摘要, 保留诊断及 Source Map (独立编译超时为 30 秒)",
+        "Android 权限范围内的桌面式文件访问 (仍不可访问 /proc, /sys, /dev)",
+        "accessibility.swipe/gesture 手势接口, 需要声明 accessibility.gesture 能力",
+        "脚本超时选项, 覆盖排队及执行过程, 超时返回 ERR_AUTOJS6_SCRIPT_TIMEOUT (默认不设超时)",
+        "默认启用 dgram (UDP) 与 http2, 并对 trace_events 返回明确的禁用错误",
+        "支持 Debug 构建显式开启本地 inspector 调试, 仅监听 localhost 并通过 `adb forward` 连接",
+        "插件中心无界面激活入口及使用说明, 禁用应用数据备份"
       ],
       "fix": [
-        "raw TypeScript 在宿主未提供编译产物时改为 fail-closed, 补齐快照动态 import 映射并归一化生成/导入栈帧",
-        "以 V8 native linker 替换快照式 partial ESM adapter, 修复循环 re-export 中可变导出不会实时更新的问题",
-        "修复 AutoJs6 兼容 facade 的 ESM 导入与不存在的 TypeScript 后缀探测, 同时保持已安装 npm 包优先"
+        "缺少宿主编译产物时仍尝试执行 TypeScript 的问题, 补充动态导入映射及调用栈映射",
+        "ESM 循环重导出时可变导出未实时更新的问题, 改用 V8 原生链接器",
+        "AutoJs6 兼容模块的 ESM 导入及 TypeScript 后缀探测问题 (保留已安装 npm 包优先规则)"
       ],
       "improvement": [
-        "删除基于 regex 的 legacy TypeScript 类型剥离 fallback 及其请求开关, raw `.ts/.mts/.cts` 现始终要求宿主编译产物",
-        "对齐宿主/插件 v2 合约, 能力清单与 plugin-only 运行时职责边界",
+        "移除基于正则的 TypeScript 类型剥离及其选项, .ts/.mts/.cts 统一使用宿主编译产物",
+        "宿主及插件 v2 契约, 能力清单和职责说明",
         "将 Node.js 样例, TypeScript 类型声明, 项目向导, 运行时默认值及宿主对齐校验统一归属插件仓库, 移除宿主侧 Gradle 开关与重复开发资产",
-        "实测 npm 生态扩展到 15 包, 新增 axios、express 及 ESM-only 包 nanoid、p-limit、yocto-queue",
-        "以 `executionMode` 请求字段作为生命周期模式的权威来源, 将无实际作用的 `runtimeAdapter` 标记为废弃",
-        "移除十个仅打印固定状态的历史样例, 并在类型声明中标明截图、图像分析和录音尚未提供宿主 provider"
+        "npm 兼容性验证扩展至 15 个包, 包含 axios/express/nanoid/p-limit/yocto-queue",
+        "执行模式统一使用 executionMode, 废弃无实际作用的 runtimeAdapter",
+        "移除仅输出固定状态的示例, 类型声明明确截图, 图像分析及录音尚无宿主实现"
       ]
     },
     "v1.1.0": {
       "released_date": "2026/08/18",
       "feature": [
-        "支持 stdout/stderr 实时流式输出与基于 `node::Stop` 的协作式取消",
-        "以最多 3 个等待者的有界串行队列取代 BUSY 直接拒绝, 并支持常驻长运行脚本生命周期",
-        "默认启用 Node 原生网络内建模块、`worker_threads` 与 `child_process`, 并实测 10 个常用纯 JavaScript npm 包"
+        "stdout/stderr 实时输出及协作式取消",
+        "串行执行队列, 支持最多 3 个等待任务及长期运行的脚本",
+        "Node.js 原生网络模块, worker_threads 及 child_process, 完成 10 个常用纯 JavaScript npm 包的兼容性验证"
       ],
       "improvement": [
-        "支持无需工作区归档的 direct-run 与 v1..v2 模块源码 provider 宽容协商, 错误输出收敛为简明错误码与 JavaScript 栈"
+        "无需工作区归档的直接执行及模块源码协议 v1/v2 协商, 错误输出包含错误码及 JavaScript 调用栈"
       ]
     },
     "v1.0.0": {
       "released_date": "2026/07/18",
       "feature": [
-        "Node.js 运行时插件服务, 插件 ID 为 `nodejs`, 引擎为 `nodejs`, 运行时槽位为 `node24_5`",
-        "通过 `libnode.so` 和 `libautojs6-node.so` 提供 Node.js 24.5.0 原生运行时",
-        "Node.js 运行时运行于独立常驻进程, 复用进程级 Node/V8 状态并为每次执行创建全新 isolate 及 Environment",
-        "支持通过 `org.autojs.plugin.INFO` 发现插件信息, 并通过 `org.autojs.plugin.nodejs.RUNTIME` 调用运行时服务",
+        "Node.js 运行时插件, 插件及引擎标识为 nodejs, 运行时版本标识为 node24_5",
+        "通过 libnode.so 和 `libautojs6-node.so` 提供 Node.js 24.5.0 原生运行时",
+        "独立常驻进程, 每次执行创建独立的 V8 上下文及 Node.js 环境",
+        "支持通过 org.autojs.plugin.INFO 发现插件信息, 并通过 org.autojs.plugin.nodejs.RUNTIME 调用运行时服务",
         "支持 CommonJS/ESM 源码, 模块源码, 工作目录, 沙盒根目录, 环境变量, stdout/stderr 结果回传和运行时预热",
-        "支持请求级工作区归档传输 v2, 包含显式输入映射/插件私有工作区执行/输出回写/删除 tombstone 清单, 且不扫描宿主沙盒",
-        "单活动零队列准入, 通过 `ERR_AUTOJS6_NODE_PLUGIN_BUSY` 提供背压, 并支持重启进程式取消",
-        "支持宿主能力代理与 live bridge, 并注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等运行时模块",
-        "支持按 ABI 构建 APK, 包括 `arm64-v8a`/`armeabi-v7a`/`x86_64` 以及 `universal` 通用包",
+        "工作区归档传输 v2, 支持输入映射, 私有工作区, 输出回写及删除记录 (不扫描宿主沙盒)",
+        "单任务执行及重启进程式取消, 忙碌时返回 ERR_AUTOJS6_NODE_PLUGIN_BUSY",
+        "宿主能力桥接及 autojs6:host-app-info/device-info/engine-info/lifecycle-config/bridge-permissions 等运行时模块",
+        "arm64-v8a/armeabi-v7a/x86_64 独立安装包及通用安装包",
         "分包及通用 APK 输出均随 Node.js 运行库打包 `libc++_shared.so`",
         "`sample/nodejs` 示例项目, Node 解析诊断工具和运行时构建计划校验工具",
-        "插件信息, 使用说明, README 与 CHANGELOG 的多语言资源: 西班牙语/法语/俄语/阿拉伯语/日语/韩语/英语/简体中文/香港繁体/台湾繁体"
+        "插件信息, 使用说明, README 及 CHANGELOG 支持 10 种语言 (西班牙语/法语/俄语/阿拉伯语/日语/韩语/英语/简体中文/香港繁体/台湾繁体)"
       ],
       "fix": [
         "重启进程式取消期间, 运行时进程回收时可能提交不完整工作区快照的问题",
-        "请求合约校验或工作区物化失败时, 工作区归档文件描述符可能因所有权交接未覆盖全部退出路径而泄漏的问题"
+        "请求校验或工作区准备失败时, 归档文件描述符可能泄漏的问题"
       ],
       "improvement": [
-        "完善 R5 合约元数据及诊断, 覆盖 ABI/能力/常驻运行时状态/准入/取消和独立进程归因",
-        "增加基于单调时钟的分阶段诊断, 覆盖执行源码构建/引导/脚本执行/结果生成与读取/单次执行清理, 并区分已跳过与不适用状态"
+        "运行时诊断信息, 覆盖 ABI, 能力, 常驻状态, 任务准入, 取消及独立进程",
+        "分阶段耗时诊断, 覆盖源码准备, 启动, 执行, 结果生成及清理, 区分已跳过与不适用状态"
       ]
     }
   }
