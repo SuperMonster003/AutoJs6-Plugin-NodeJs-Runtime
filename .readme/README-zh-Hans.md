@@ -113,6 +113,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.5.7
+
+###### 2026/10/04
+
+* `优化` 插件中心图标采用统一工作台调整后的尺寸, 位置, 亮暗图稿与圆形底色, 保留可重建原稿和参数
+
 # v1.5.6
 
 ###### 2026/09/19
@@ -153,13 +159,6 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` Java 互操作统一采用宿主提供的类及成员白名单, 支持对象句柄, getStatic/describe 及成员异常回传
 * `优化` npm 同名包优先规则仅用于 axios/colors/mime/nanoid/opencc/undici 等替代模块, 保留 AutoJs6 专用模块, 运行时模块裸名支持 ESM 导入, Packages 代理支持 getStatic/describe
 * `优化` 运行时进程异常退出时回报系统记录的低内存或原生崩溃原因, 结果附带 slotExit, getRuntimeInfo 提供 lastSlotExit (需要 Android 11+, 低版本提示原因不可用)
-
-# v1.5.4
-
-###### 2026/09/17
-
-* `修复` 嵌入执行输出多余 ExperimentalWarning 提示的问题, 保留警告事件, 普通警告, 弃用警告及错误 (不改变终端行为)
-* `优化` 文件流, gzip/deflate/Brotli 压缩流及基础 VM 执行转为正式支持, Debug Inspector 支持显式启用且仅监听 localhost
 
 ##### 更多发行历史可参阅
 

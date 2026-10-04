@@ -113,6 +113,12 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 
 ******
 
+# v1.5.7
+
+###### 2026/10/04
+
+* `改善` プラグインセンターのアイコンに Icon Studio で調整したサイズ, 位置, 明暗の図稿と円形背景を適用し, 再生成可能な原稿とパラメーターを保持
+
 # v1.5.6
 
 ###### 2026/09/19
@@ -153,13 +159,6 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `改善` Java 相互運用はホストの宣言的ホワイトリスト (クラス → コンストラクタ / 静的・インスタンスメソッド / フィールド、ホストがテーブルに従ってリフレクションで実行、引数は JSON プリミティブとオブジェクトハンドル) へ全面的に転送されるようになり、ランタイム独自のクラス表を廃止してホストが公開した表を java.policy として読み戻し、getStatic() / describe() を追加、メンバー自身が投げた例外は ERR_AUTOJS6_JAVA_CALL_FAILED で報告されます
 * `改善` ランタイムモジュールに対する npm 優先ルールは、実在の npm パッケージを代替するモジュール (axios、colors、mime、nanoid、opencc、undici) のみに限定されました。node_modules 内の同名パッケージが java、fetch、websocket、device などの AutoJs6 ファサードを置き換えることはなくなり、require.resolve は require と同じルールに従い、すべてのランタイムモジュール名を ESM から import でき、autojs6:profile が moduleResolutionProfile としてルールを公開し、Rhino の Packages プロキシに getStatic() / describe() が追加されました
 * `改善` スクリプト実行中にランタイムスロットのプロセスが終了した場合 (低メモリキラーによる強制終了、ネイティブクラッシュ、直接の kill)、失敗結果は DeadObjectException だけではなくシステムが記録した終了理由を報告するようになりました。メッセージは LOW_MEMORY (killed by the system low-memory killer; rss 2.6 GB) や CRASH_NATIVE (SIGABRT; see the logcat tombstone) のようになり、結果には slotExit、getRuntimeInfo には lastSlotExit が付きます (Android 11 以降; それ以前のバージョンでは理由が取得できない旨を報告)
-
-# v1.5.4
-
-###### 2026/09/17
-
-* `修正` 組み込み実行で ExperimentalWarning の表示を停止し、warning イベント、通常の警告、非推奨警告とエラーを維持; Node 上流 API の安定性と端末の既定動作は変更なし
-* `改善` ファイルストリーム、gzip/deflate/Brotli ストリームと基本 VM 実行を正式サポート; 明示的に有効化した Debug Inspector は localhost の範囲で正式サポート
 
 ##### その他のリリース履歴
 

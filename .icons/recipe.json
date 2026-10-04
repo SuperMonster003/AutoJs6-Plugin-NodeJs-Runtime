@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "generatorVersion": "1.2.0",
+  "profile": "catalog",
+  "repository": "AutoJs6-Plugin-NodeJs-Runtime",
+  "packages": [
+    "io.github.supermonster003.autojs6.plugin.nodejs"
+  ],
+  "launcher": false,
+  "params": {
+    "sources": {
+      "day": "68e6f87588ecbc2217e95ae60b7a88c99a2447f39a2a3c2a2cbd26d814a13272",
+      "night": "68e6f87588ecbc2217e95ae60b7a88c99a2447f39a2a3c2a2cbd26d814a13272",
+      "alphaMode": "alpha"
+    },
+    "geometry": {
+      "mode": "preserve",
+      "scale": 0.875,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "day": {
+      "mode": "original",
+      "foreground": "#272727",
+      "brightness": 1,
+      "contrast": 1,
+      "gamma": 1,
+      "threshold": 128,
+      "invert": false
+    },
+    "night": {
+      "mode": "original",
+      "foreground": "#d8d8d8",
+      "brightness": 1,
+      "contrast": 1,
+      "gamma": 1,
+      "threshold": 128,
+      "invert": false
+    },
+    "backgrounds": {
+      "day": "transparent",
+      "night": "#002800"
+    }
+  },
+  "baseline": {
+    "params": {
+      "sources": {
+        "day": "68e6f87588ecbc2217e95ae60b7a88c99a2447f39a2a3c2a2cbd26d814a13272",
+        "night": "68e6f87588ecbc2217e95ae60b7a88c99a2447f39a2a3c2a2cbd26d814a13272",
+        "alphaMode": "alpha"
+      },
+      "geometry": {
+        "mode": "preserve",
+        "scale": 1.0,
+        "offsetX": 0.0,
+        "offsetY": 0.0
+      },
+      "day": {
+        "mode": "original",
+        "foreground": "#272727",
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "gamma": 1.0,
+        "threshold": 128,
+        "invert": false
+      },
+      "night": {
+        "mode": "original",
+        "foreground": "#d8d8d8",
+        "brightness": 1.0,
+        "contrast": 1.0,
+        "gamma": 1.0,
+        "threshold": 128,
+        "invert": false
+      },
+      "backgrounds": {
+        "day": "transparent",
+        "night": "transparent"
+      }
+    },
+    "day": "68e6f87588ecbc2217e95ae60b7a88c99a2447f39a2a3c2a2cbd26d814a13272",
+    "night": "68e6f87588ecbc2217e95ae60b7a88c99a2447f39a2a3c2a2cbd26d814a13272"
+  },
+  "outputs": {
+    "app/src/main/res/mipmap/ic_plugin_center.png": {
+      "role": "ui-day"
+    },
+    "app/src/main/res/mipmap-night/ic_plugin_center.png": {
+      "role": "ui-night"
+    },
+    "app/src/main/res/raw/keep_plugin_center_icon.xml": {
+      "role": "keep-rule"
+    },
+    "app/src/main/res/values/icon_studio_backgrounds.xml": {
+      "role": "background-color",
+      "theme": "day"
+    },
+    "app/src/main/res/values-night/icon_studio_backgrounds.xml": {
+      "role": "background-color",
+      "theme": "night"
+    },
+    "app/src/main/res/raw/keep_icon_studio_background.xml": {
+      "role": "background-keep"
+    }
+  },
+  "assets": [
+    "68e6f87588ecbc2217e95ae60b7a88c99a2447f39a2a3c2a2cbd26d814a13272"
+  ],
+  "legacyGenerator": null,
+  "backgroundDefaults": {
+    "day": "transparent",
+    "night": "transparent"
+  },
+  "originalSources": {}
+}

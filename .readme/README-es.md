@@ -113,6 +113,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.5.7
+
+###### 2026/10/04
+
+* `Mejora` Los iconos del centro de plugins usan los tamaños, posiciones, imágenes claras y oscuras y fondos circulares ajustados en Icon Studio, conservando fuentes y parámetros reproducibles
+
 # v1.5.6
 
 ###### 2026/09/19
@@ -153,13 +159,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 * `Mejora` La interoperabilidad Java ahora reenvía todas las llamadas a la lista blanca declarativa del host (clase → constructores, métodos estáticos y de instancia, campos; el host los ejecuta por reflexión con primitivos JSON y handles de objetos), el runtime deja de mantener su propia tabla de clases y lee la publicada por el host como java.policy, se añaden getStatic() / describe() y las excepciones del propio miembro se reportan como ERR_AUTOJS6_JAVA_CALL_FAILED
 * `Mejora` La precedencia de npm sobre los módulos del runtime se limita ahora a los módulos que sustituyen paquetes npm reales (axios, colors, mime, nanoid, opencc, undici): un paquete homónimo en node_modules ya no reemplaza las fachadas java, fetch, websocket, device ni las demás de AutoJs6, require.resolve sigue la misma regla que require, cualquier nombre de módulo del runtime puede importarse desde ESM, autojs6:profile publica la regla como moduleResolutionProfile y el proxy Packages de Rhino incorpora getStatic() / describe()
 * `Mejora` Cuando un proceso de ranura del runtime muere en mitad de un script (eliminado por el low-memory killer, fallo nativo, kill directo), el resultado de error ahora informa el registro de salida del sistema en lugar de un simple DeadObjectException: el mensaje es, por ejemplo, LOW_MEMORY (killed by the system low-memory killer; rss 2.6 GB) o CRASH_NATIVE (SIGABRT; see the logcat tombstone), el resultado incluye slotExit y getRuntimeInfo incluye lastSlotExit (Android 11+; los sistemas anteriores informan que el motivo no está disponible)
-
-# v1.5.4
-
-###### 2026/09/17
-
-* `Correccion` La ejecución integrada deja de imprimir avisos ExperimentalWarning; conserva los eventos warning, advertencias normales, avisos de obsolescencia y errores. La estabilidad de las API de Node y los valores predeterminados del terminal no cambian
-* `Mejora` Los flujos de archivos, gzip/deflate/Brotli y la ejecución básica de VM son estables; Debug Inspector, activado explícitamente, es estable dentro de localhost
 
 ##### Para mas historial de versiones
 

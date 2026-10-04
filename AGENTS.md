@@ -108,3 +108,9 @@ C++ 先用当前 `.cxx` 的 compile_commands.json 中 NDK clang 命令离线做 
 - Preserve native source/license locks, ABI inventory and 16 KB alignment checks. Existing device evidence is historical; never claim a new install, Binder or OEM test that was not executed.
 
 Build-number and build-time mutations are opt-in through `autojs.gradle.build.number.auto.increment.enabled` and `autojs.gradle.build.time.update.enabled`; both default to false. Final validation uses false and leaves version.properties unchanged. Preserve any real build timestamp produced before this policy and set VERSION_BUILD to the next reachable Git count when committing.
+
+
+## Icon Studio publication snapshot (2026-10-04)
+
+- `.icons/recipe.json` and its content-addressed original assets own the current icon geometry, tone and backgrounds. Keep the portable renderer, generated resources, keep rules and icon CI in the same change.
+- Use `.python/generate_icon_studio.py --check` for read-only reproduction checks. Optical size bands are advisory; retain canvas, transparency and safe-circle checks. Three uses neutral foregrounds and fixed #FAFAFA / #212121 surfaces; other plugins may use colored artwork and custom or transparent surfaces.
