@@ -1,21 +1,22 @@
-# Terminal launcher (node / npm / corepack for the AutoJs6 terminal)
+# Terminal launcher (node / npm / corepack for 3-Shell Terminal)
 
-Last reviewed: 2026-09-14.
+Last reviewed: 2026-10-05.
 
-The AutoJs6 host (6.8.0 and later) ships an in-app terminal that runs `/system/bin/sh`
-under the **host** uid. This plugin makes `node`, `npm`, `npx`, `corepack`, `yarn` and
-`pnpm` available inside that shell without any Binder traffic: the host reads a small
+The independent [3-Shell Terminal plugin](https://github.com/SuperMonster003/AutoJs6-Plugin-Three-Shell-Terminal)
+provides the terminal used by AutoJs6 6.8.0 and runs `/system/bin/sh` under the **terminal plugin** uid.
+This runtime plugin makes `node`, `npm`, `npx`, `corepack`, `yarn` and
+`pnpm` available inside that shell without any Binder traffic: the terminal plugin reads a small
 manifest contract, executes the packaged launcher directly and extracts the npm / corepack
 archive from the plugin assets. The Node runtime service, its AIDL contract and the script
 execution path are untouched.
 
-中文: 宿主终端以宿主 uid 运行 shell; 本插件通过 manifest 契约、可直接执行的启动器和 npm /
+中文: 3-Shell Terminal 以终端插件自己的 uid 运行 shell; 本插件通过 manifest 契约, 可直接执行的启动器和 npm /
 corepack 资产为该 shell 提供 `node` / `npm` 等命令, 不经过 Binder, 也不改变运行时服务与脚本执行链路.
 
 ## Contract (schema 1)
 
 Declared as `<meta-data>` on `NodeJsRuntimePluginService` (constants in
-`NodeJsPluginCapabilityKeys`). The host reads them from `ServiceInfo.metaData`.
+`NodeJsPluginCapabilityKeys`). The terminal plugin reads them from `ServiceInfo.metaData`.
 
 | Key (`org.autojs.plugin.nodejs.` prefix) | Value | Source |
 | --- | --- | --- |
@@ -25,18 +26,20 @@ Declared as `<meta-data>` on `NodeJsRuntimePluginService` (constants in
 | `NODE_CLI_ARCHIVE` | `nodejs/cli/node-cli-<node version>.bin` (asset path) | lock via placeholder |
 | `NODE_CLI_ARCHIVE_SHA256` | SHA-256 of the asset | lock via placeholder |
 | `NODE_CLI_ARCHIVE_ROOT` | `lib/node_modules` | lock via placeholder |
-| `NODE_CLI_ARCHIVE_ENTRY_COUNT` / `NODE_CLI_ARCHIVE_BYTES` | entry count and uncompressed size, host extraction limits | lock via placeholder |
+| `NODE_CLI_ARCHIVE_ENTRY_COUNT` / `NODE_CLI_ARCHIVE_BYTES` | entry count and uncompressed size, terminal extraction limits | lock via placeholder |
 | `NODE_CLI_NPM_VERSION` / `NODE_CLI_COREPACK_VERSION` | informational versions | lock via placeholder |
 
 The same facts are mirrored into `getRuntimeInfo()` and `PluginInfo.capabilities`
 (`KEY_NODE_CLI_*` in `NodeJsRuntimeContract`) and the runtime advertises the `nodeCli`
 capability, so the host Doctor report can show them without parsing the manifest.
 
-Host acceptance rules: schema must equal `1`, the executable must exist in the plugin's
+Terminal acceptance rules: the runtime signer must be trusted (official plugin signer or the
+terminal plugin's own signer), schema must equal `1`, the executable must exist in the runtime's
 `nativeLibraryDir` and start with the ELF magic, the SHA-256 must be 64 hex digits, and a
 one-shot `libnodexe.so --version` must print the plugin's Node version. Any other outcome
-leaves the terminal shell-only with a typed reason (plugin missing / not authorized / too
-old / executable missing / exec denied).
+leaves the terminal shell-only with a typed reason (disabled / plugin missing / untrusted / too
+old / executable missing / exec denied / setup failed). Node.js Runtime 1.5.0+ is required.
+The terminal's direct integration does not depend on the host Plugin Center enable switch.
 
 ## Launcher (`libnodexe.so`)
 
@@ -76,26 +79,31 @@ py tools/nodejs/cli/build-node-cli-archive.py          # download, verify SHASUM
 py tools/nodejs/cli/build-node-cli-archive.py --check  # offline: packaged asset matches the lock
 ```
 
-## Host-side layout (for reference)
+## Terminal-plugin layout (for reference)
 
-The host extracts the archive root into `<filesDir>/terminal/usr/lib/autojs6-node-cli/`,
+3-Shell Terminal extracts the archive root into its own `<filesDir>/terminal/usr/lib/autojs6-node-cli/`,
 recreates `<filesDir>/terminal/usr/bin/<command>` symbolic links to the launcher on every
-session start (the plugin's `nativeLibraryDir` changes on update) and exports
+session start (the runtime's `nativeLibraryDir` changes on update) and exports
 `AUTOJS6_NODE_CLI_ROOT`, `npm_config_prefix`, `npm_config_cache`, `COREPACK_HOME` and the
 registry settings. Global installs land in `usr/lib/node_modules`, separate from the bundled
 CLI directory.
 
+There is no automatic migration of the old host terminal's home, global npm packages or settings.
+The terminal needs its own shared-storage grant to enter `/sdcard` projects. Updating or removing
+the runtime does not restart an already running node process; new sessions rediscover the runtime
+and refresh links, or remove stale command links and use a plain shell. The schema remains 1.
+
 ## Limits (Android W^X)
 
-- Files written by the host cannot be executed: `node_modules/.bin/*` and native
-  binaries fetched by npm packages fail with `EACCES`. The host sets
-  `npm_config_bin_links=false`; run tools as `node node_modules/<pkg>/<entry>.js` or
-  through `npx`.
+- Files written in terminal app data cannot be executed: `node_modules/.bin/*` and native
+  binaries fetched by npm packages fail with `EACCES`. The terminal sets
+  `npm_config_bin_links=false`; run tools as `node node_modules/<pkg>/<entry>.js`.
+  `npx` can fetch packages but cannot execute their unavailable bin shims (typically exit 127).
 - Native addons (`.node`) are not loadable (unchanged runtime policy).
 - corepack downloads Yarn / pnpm on first use; the registry and network are the user's
-  choice in the host terminal settings. The runtime facade still performs no registry
+  choice in the terminal plugin settings. The runtime facade still performs no registry
   download (Roadmap M9.3 stays as decided). pnpm 12 and later ship as native binaries
-  without an Android build, so the host pins corepack to its bundled defaults
+  without an Android build, so the terminal pins corepack to its bundled defaults
   (`COREPACK_DEFAULT_TO_LATEST=0`: pnpm 11.x, Yarn 1.x) unless a version is named.
 - Intl: since 1.5.1 `libnode.so` is built with `--with-intl=small-icu` (ICU 78 with
   English-only locale data). `Intl`, `String.prototype.normalize` and Unicode property
@@ -105,8 +113,8 @@ CLI directory.
 - Node's own fatal-error and warning text (uncaught exceptions, `--trace-*`) reaches
   the real stderr as well as logcat (tag `nodejs`) since 1.5.1 (patch
   `0004-android-stderr-passthrough.patch`); 1.5.0 wrote it to logcat only.
-- Processes run under the host uid with the host's Android permissions, not the
-  plugin's.
+- Processes use the terminal plugin's UID and Android permissions. They do not inherit
+  the AutoJs6 host's or the Node.js Runtime service's permissions.
 
 ## Verification
 
@@ -119,4 +127,5 @@ adb -s <serial> shell am instrument -w -e class io.github.supermonster003.autojs
 `NodeCliLauncherSmokeTest` executes the installed launcher from the instrumentation
 process (same uid): `--version`, an inline script, the missing-root error path, and
 `npm` / `npx` / `corepack --version` from the extracted archive through command-named
-symbolic links. Cross-uid execution from the host is covered by the host terminal tests.
+symbolic links. Cross-uid execution from 3-Shell Terminal is covered by its
+`NodeCliInstrumentationTest` and the host's terminal script integration tests.
