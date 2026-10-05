@@ -115,9 +115,10 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 # v1.5.7
 
-###### 2026/10/04
+###### 2026/10/05
 
 * `Improvement` Plugin Center icons use the sizes, positions, light and dark artwork, and circular backgrounds adjusted in Icon Studio, retaining reproducible sources and parameters
+* `Improvement` Android App info icons share Icon Studio artwork and light/dark backgrounds while preserving transparent Plugin Center artwork and existing launcher choices
 
 # v1.5.6
 
