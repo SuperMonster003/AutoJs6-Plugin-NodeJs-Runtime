@@ -4,6 +4,14 @@
 
 ******
 
+# v1.6.0
+
+###### 2026/10/07
+
+* `تحسين` fs و fs/promises و node:sqlite هي وحدات Node.js الأصلية: أُزيل رفض /proc و /sys و /dev الخاص بوقت التشغيل وطبقة التحقق من المسارات، وإمكانية الوصول إلى الملفات تحددها أذونات Android وحدها، وتعمل واجهات الملفات غير المتزامنة في مجمع خيوط libuv بدل حجب حلقة الأحداث، وتحمل أخطاء المسارات رموز Node.js الأصلية (لم تعد عمليات الملفات وقواعد البيانات تُصدر ERR_AUTOJS6_FS_NUL_BYTE و ERR_AUTOJS6_FS_PATH_ESCAPE و ERR_AUTOJS6_FS_SCOPED_PATH و ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED)
+* `تحسين` process.cwd و process.chdir بسلوك Node.js الأصلي؛ يدخل التنفيذ دليل العمل عبر chdir حقيقي وتُحل المسارات النسبية بواسطة Node.js نفسه
+* `تحسين` ATTACH في node:sqlite (بما في ذلك أسماء الملفات عبر معامل مربوط أو تعبير) و VACUUM INTO و PRAGMA الأدلة و setAuthorizer هي سلوك SQLite الأصلي؛ ويتبع enableLoadExtension و allowExtension فحوصات الحالة الخاصة بـ Node.js
+
 # v1.5.7
 
 ###### 2026/10/05

@@ -56,7 +56,7 @@ AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 24.21
 - Debug ビルドで明示的に有効化するローカル `inspector` デバッグを追加しました。localhost のみで待ち受け、`adb forward` 経由で接続します
 - CommonJS/ESM ソース, モジュールソース, 作業ディレクトリ, サンドボックスルート, 環境変数, stdout/stderr 結果ペイロードに対応します.
 - ESM エントリと dynamic `import()` に V8 native linker を使用し, 循環依存, 可変 export, re-export の live binding を保持します; CommonJS `require(esm)` は同期相互運用境界を維持します.
-- プラグインアプリの Android 権限を境界とするデスクトップ相当のファイルシステムアクセスを提供し, `/proc`, `/sys`, `/dev` は常に拒否します.
+- Node.js 本来の fs モジュールを使用し, ファイルへの到達可否はプラグインアプリの Android 権限のみで決まります; ランタイム独自の `/proc`, `/sys`, `/dev` 拒否はありません (1.6.0 以降).
 - ホストが提供する TypeScript 出力を実行し, 実行中に作成された project `.ts`/`.mts`/`.cts` には provider-v3 compilation を要求できます. runtime 型消去 fallback と互換スイッチは削除され, direct raw dispatch は常に fail-closed です.
 - ホスト能力ブローカーと live bridge を提供し, `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` などのランタイムモジュールを注入できます.
 - `sample/nodejs` プロジェクトとホスト API 能力一覧 `docs/HOST-API.md` を含みます.
@@ -100,7 +100,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 - ネイティブランタイムライブラリ: `libnode.so`, `libautojs6-node.so` と `libnodexe.so`.
 - Intl: 英語ロケールデータのみを含む ICU 78 (`--with-intl=small-icu`); `Intl`, 正規表現の Unicode プロパティエスケープ, Node 自身の stderr へのエラー出力が AutoJs6 ターミナルで利用でき, `NODE_ICU_DATA` で完全な ICU データファイルを指定できます.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, および `universal`.
-- ファイルシステム: Android 権限が許す端末パスへアクセスでき, `/proc`, `/sys`, `/dev` は厳格な境界です.
+- ファイルシステム: Node.js 本来の fs モジュール, Android 権限で許可された任意のデバイスパスに到達でき, ランタイム独自の拒否はありません.
 - TypeScript: host output を受け入れ, 実行中に作成された project file には provider-v3 compilation を要求できます. direct raw TypeScript は `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` を返します.
 - ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, ネイティブ live binding と循環依存に対応します.
 - 能力: 同期スクリプト実行, bundle transport, ネイティブ組み込みランタイム, ホスト能力ブローカー, host capability live bridge.
@@ -112,6 +112,14 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 ### リリース履歴
 
 ******
+
+# v1.6.0
+
+###### 2026/10/07
+
+* `改善` fs, fs/promises および node:sqlite は Node.js 本来のモジュールになりました: ランタイム独自の /proc, /sys, /dev 拒否とパス検証ラッパーを撤去し, ファイルへの到達可否は Android の権限のみで決まり, 非同期ファイル API はイベントループを塞がず libuv スレッドプールで実行され, パスエラーは Node.js 本来のコードを返します (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH および ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED はファイル / データベース操作から発生しなくなりました)
+* `改善` process.cwd と process.chdir は Node.js 本来の動作になり, 実行開始時に実際の chdir で作業ディレクトリへ移動し, 相対パスは Node.js 自身が解決します
+* `改善` node:sqlite の ATTACH (バインドパラメータや式によるファイル名を含む), VACUUM INTO, ディレクトリ PRAGMA および setAuthorizer は SQLite 本来の動作となり, enableLoadExtension と allowExtension は Node.js 本来の状態チェックに従います
 
 # v1.5.7
 
@@ -127,39 +135,6 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `追加` ランタイムスロットで Node.js の致命的エラー (JavaScript ヒープのメモリ不足、内部チェックの失敗) が起きると、Node 自身の診断レポートをプラグインのキャッシュに残すようになりました (crash/<executionId>.json、中止前に書き出し、シグナルハンドラは導入しません)。失敗結果は slotExit.crash とエラーメッセージにイベント・ヒープ使用量・JS スタック・レポートのパスを含み (例: CRASH_NATIVE (SIGABRT; see the logcat tombstone; Node.js fatal error: Allocation failed - JavaScript heap out of memory; JS heap 61.9 MB used of 64.0 MB limit; report .../crash/<executionId>.json))、getRuntimeInfo は最新のレポートを lastCrash として公開します (ディスパッチャ再起動後も読めます)。新しいリクエストオプション maxOldGenerationSizeMb は 1 回の実行の JS ヒープ上限 (V8 の old generation、MB 単位) を設定し、回帰テストもこれでクラッシュを再現します
 * `修正` 大きな CommonJS モジュールを require すると、ランタイムスロットが V8 のヒープメモリ不足で中止する (CRASH_NATIVE / SIGABRT として報告される) 問題を修正しました。ローダーのコメント・文字列マスクが 1 文字ずつ連結していたため 22 MiB のモジュールに約 700 MB のヒープが必要でしたが、現在は同じ結果を連続区間単位で出力し (約 44 MB)、CommonJS の import / export 走査も全文字を検査せず候補位置間をジャンプします
 * `修正` 共有ビルドプラグイン 1.8.3 により, AGP 9.1 での SDK XML v4 解析警告と, JVM 単体テストの組み立て時に APK ネイティブライブラリのアラインメント検証が誤って実行される問題
-
-# v1.5.5
-
-###### 2026/09/18
-
-* `修正` runtimeInfo が報告する能力カタログのバージョンとダイジェストを runtime kit から導出し、1.5.4 で残っていた 1.5.0 の旧値を修正
-* `修正` worker_threads が Node と同様に new Worker(code, { eval: true }) をサポートし、コード文字列をスクリプトパスとして扱わない
-* `改善` ホストの TypeScript コンパイル経路を能力カタログで stable に変更し、退役済みの legacy stripping メタデータを削除; ライフサイクルカタログは実行可能なモードのみを列挙し、packaged_long_running 起動面と node_sandboxed / worker_computation の予約名を削除; 転送・受付・キャンセルのメタデータを実際のランタイムに合わせて整合
-* `改善` autojs6:profile 診断オブジェクトは過去の partial / reserved / deferred 表記ではなく実際のランタイムを記述: Android 権限に基づくファイルアクセス、process サブセット、worker チャネル、プロセスプール、WASI / native addon の決定
-* `改善` サンプル棚卸し: packaged-esm、packaged-dynamic-import、require-esm、wasm-basic、wasm-plugin、desktop-parity-suite を stable に昇格。両 parity スイートはカタログ文言を出力する代わりにスニペットを実際に実行。compile-cache は適用外とし、メタデータのみの package-install サンプルを削除
-* `改善` モジュール読み込みは Node と同様に Android のファイルアクセスに従う: require、import、Worker が絶対パス、親ディレクトリのターゲット、file: URL を受け付ける (/proc、/sys、/dev は引き続き拒否)。node_modules の探索はワークスペースに固定のまま
-* `改善` Worker メッセージと fs ウォッチャーは Node ネイティブの制限に従う: 64 KB メッセージ / 32 件キュー上限と 16 ウォッチャー / 毎秒 64 イベントのクォータを撤廃。制約は Android のメモリのみ
-* `改善` worker 内の process.exit() は Node と同様にその worker スレッドのみを終了し、process.getBuiltinModule() は worker の builtin 許可リストに従う (一律無効化を廃止)
-* `改善` worker 内のベアなパッケージ指定子を Node と同様にワークスペースの node_modules から解決 (exports 条件、main、index、自己参照)。一律拒否を廃止
-* `改善` worker 内の動的 import() を worker の partial ESM ローダー経由で実行 (相対/絶対パス、file: URL、ワークスペースのパッケージ、許可された builtin、with { type: "json" })。拒否を廃止
-* `改善` 実機キーと通知アクセスの手動受け入れに合格し、host-events サンプルを stable に昇格
-* `改善` scheduled-node-task サンプルがライフサイクルポリシーを出力し、WorkManager の実行のためにタスクを保持可能に。scheduled 実行モードにプラグイン側の回帰テストを追加
-* `改善` ホストの WorkManager スケジュールランナーがプラグイン経由で実行できたため、scheduled 実行モードを能力カタログで available に昇格
-* `改善` media.play() はホストのスクリプト音楽サービスで再生するセッション (pause/resume/seekTo/stop/status) を返し、新しい media_store モジュールは media.playback / media.library / media.library.mutate 能力で保護された限定的な MediaStore の capabilities/query/get/insert/update/delete/scanFile/exportFile を提供; autojs6:compat.media に Rhino 風の playMusic 系エイリアスを追加; いずれも対応するホストビルドが必要
-* `改善` media-playback / media-library サンプルは、統合されたホストのメディア provider での手動受け入れを経て stable に昇格; 能力カタログのスナップショット 1.5.5 を releases/nodejs-capability-catalog に公開し、ホスト整合タスクはそれを参照
-* `改善` fs ラッパーの独自オプション制限を撤廃: ストリームの fs / 継承した fd / flags オプション、watch({ recursive: true })、非同期 cp filter (cpSync は Node の ERR_INVALID_RETURN_VALUE を維持)、絶対パス / 親ディレクトリ / リテラル '!' の glob パターンと exclude 配列、readableWebStream の type / encoding、および Stats / Dirent / Dir コンストラクターは Node 24 のネイティブ動作に従う; filesystemProfile.advancedApis.recursiveWatch は native を報告
-* `改善` 再帰的な readdir / opendir をネイティブに委譲 (4096 エントリ上限とエントリごとの realpath 検査を撤廃; readdir('/') は Node と同様に proc/sys/dev の名前を列挙), readlink / chmod / chown / utimes は絶対パスを受け付け chmod はシンボリックリンクを辿る, fs ポリシーエラーコードは ERR_AUTOJS6_FS_NUL_BYTE / ERR_AUTOJS6_FS_PATH_ESCAPE (ハード境界, loader と共通) / ERR_AUTOJS6_FS_SCOPED_PATH に収束し, 通常の fs 失敗は Node のコードのみを保持
-* `改善` ランタイム独自のモジュールソース予算 (モジュールあたり 16 MiB, 合計 64 MiB, 8192 モジュール, provider リクエスト数) を撤廃, CommonJS エントリの __filename / require.main.filename / process.argv[1] は Node と同様に絶対パスになり require.main.id は '.', fs.mkdtemp* はネイティブに委譲: 呼び出し側のプレフィックス表記にサフィックスを付けて要求されたエンコーディングで返し, 親ディレクトリがシンボリックリンクでも拒否しない
-* `改善` node:sqlite は SQL のファイル操作をネイティブ SQLite に委ねる: リテラルのファイル名を持つ ATTACH (file: URI を含む) は SQL テキストの走査ではなく SQLite の authorizer で /proc、/sys、/dev 境界を検査し, VACUUM INTO の出力先は SQLite 内部の ATTACH を通じて同じ境界検査を受け, ディレクトリ PRAGMA は遮断されなくなり, file: URI 文字列と空の一時データベースを開け, setAuthorizer() は境界検査と合成される (バインドパラメータや式でファイル名を与える ATTACH のみ引き続き拒否)
-* `改善` ブリッジのクォータをホストに委ねる: autojs6:bridge-limits の maxPendingBridgeCalls ウィンドウを超える呼び出しは ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT で失敗せず先入れ先出しで待機するようになり, ランタイム自身は画像ハンドル数・同時実行の制御付き fetch 数・制御付き WebSocket 接続数を制限しなくなり (ホストの broker は引き続き自身のポリシーを適用), require('fetch').policy.maxConcurrentRequests と require('websocket').policy.maxConnections は廃止
-* `改善` ブリッジ経由の fetch / WebSocket / axios facade の上限をホストに委ねる: タイムアウト・応答サイズ・リダイレクト回数・メッセージとキューのサイズ・HTTP メソッドを切り詰めずにホストのプロバイダへ渡し (ホスト側ポリシーが適用), ランタイムは Node と同様に最大 20 回のリダイレクトを追い, policy から廃止した hard*/既定サイズ項目は limitsEnforcedBy に置き換え
-* `改善` opendir は Node 自身の遅延 fs.Dir を返す (bufferSize・encoding・recursive はネイティブ opendir に渡り, ENOENT / ENOTDIR / ERR_DIR_CLOSED は Node のエラー; dir.path と parentPath だけ呼び出し側の表記を保つ). ランタイム独自のファイルシステム到達ルート削除ガードは廃止し, ルートの rm / rmdir も他のパスと同様に Node と Android の判断に委ねる (fs ポリシーコードは FS_NUL_BYTE と FS_PATH_ESCAPE のみ)
-* `改善` ホスト provider トランスポートはホストが getNativeDiagnostics() で公開するソース単体 / 合計 / リクエスト数の上限を採用 (組み込みの 16 MiB / 64 MiB / 139264 はフォールバックのみ), ブリッジ fetch のレスポンス本文はファイルディスクリプタ経由で届き (bodyTransport "pfd") Binder トランザクションサイズではなくホストの maxResponseBytes ポリシーだけで制限され, Binder トランザクションサイズを超えるホスト応答はブリッジタイムアウトではなく直ちに ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED として報告 (ホストブランチ node-m20-2-binder-body-pfd)
-* `改善` ブリッジ fetch のリクエスト本文と WebSocket メッセージが 256 KiB を超える場合, インライン base64 JSON ではなく読み取り専用ファイルディスクリプタ (bodyTransport / messageTransport "pfd") でホストへ届くようになり (ホストが bridgeRequestBinaryTransport=pfd を公開する場合, ホストブランチ node-m20-2-binder-body-pfd), 上りサイズは Binder トランザクションサイズではなくホストのリクエストポリシー (64 MiB) と maxMessageBytes だけで制限される
-* `改善` 制御付き fetch のレスポンスが Response.url でプロバイダーの最終 URL を公開するようになりました (ResponseInit に url が無いため, 従来は常に空文字列でした)
-* `改善` Java 相互運用はホストの宣言的ホワイトリスト (クラス → コンストラクタ / 静的・インスタンスメソッド / フィールド、ホストがテーブルに従ってリフレクションで実行、引数は JSON プリミティブとオブジェクトハンドル) へ全面的に転送されるようになり、ランタイム独自のクラス表を廃止してホストが公開した表を java.policy として読み戻し、getStatic() / describe() を追加、メンバー自身が投げた例外は ERR_AUTOJS6_JAVA_CALL_FAILED で報告されます
-* `改善` ランタイムモジュールに対する npm 優先ルールは、実在の npm パッケージを代替するモジュール (axios、colors、mime、nanoid、opencc、undici) のみに限定されました。node_modules 内の同名パッケージが java、fetch、websocket、device などの AutoJs6 ファサードを置き換えることはなくなり、require.resolve は require と同じルールに従い、すべてのランタイムモジュール名を ESM から import でき、autojs6:profile が moduleResolutionProfile としてルールを公開し、Rhino の Packages プロキシに getStatic() / describe() が追加されました
-* `改善` スクリプト実行中にランタイムスロットのプロセスが終了した場合 (低メモリキラーによる強制終了、ネイティブクラッシュ、直接の kill)、失敗結果は DeadObjectException だけではなくシステムが記録した終了理由を報告するようになりました。メッセージは LOW_MEMORY (killed by the system low-memory killer; rss 2.6 GB) や CRASH_NATIVE (SIGABRT; see the logcat tombstone) のようになり、結果には slotExit、getRuntimeInfo には lastSlotExit が付きます (Android 11 以降; それ以前のバージョンでは理由が取得できない旨を報告)
 
 ##### その他のリリース履歴
 

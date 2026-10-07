@@ -116,11 +116,11 @@ P13-32 extends the `autojs6:profile` declaration with
 future explicit filesystem root provider is promoted.
 
 P13-33 extends the `autojs6:profile.filesystemProfile` declaration with
-`advancedApis` and `limits`. These fields report scoped advanced fs state for
-streams, `FileHandle`, fd APIs, `opendir`, watchers, and `realpath`; they do
-not expose raw native fds or expanded filesystem roots. Since M20.2 (2026-09-17)
-`advancedApis.recursiveWatch` reports `native`: the wrapper keeps only path
-validation and fd ownership tracking, so stream `fs` / inherited `fd` / `flags`
+`advancedApis` and `limits`. Since M23.1 (2026-10-07) `require("fs")` returns
+Node's own module: there is no wrapper, no path validation and no `/proc`,
+`/sys`, `/dev` denial; `mode` reports `android_file_access` and Android file
+access is the only boundary. Since M20.2 (2026-09-17)
+`advancedApis.recursiveWatch` reports `native`: stream `fs` / inherited `fd` / `flags`
 options, recursive watchers, async `cp` filters and absolute or parent-directory
 glob patterns behave as in Node 24.
 

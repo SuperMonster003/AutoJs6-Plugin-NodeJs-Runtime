@@ -4,6 +4,14 @@
 
 ******
 
+# v1.6.0
+
+###### 2026/10/07
+
+* `Amelioration` fs, fs/promises et node:sqlite sont les modules natifs de Node.js : le refus de /proc, /sys, /dev propre au runtime et sa couche de validation des chemins ont disparu, l'accessibilité des fichiers est décidée uniquement par les permissions Android, les API de fichiers asynchrones s'exécutent dans le pool de threads libuv au lieu de bloquer la boucle d'événements, et les erreurs de chemin portent les codes propres à Node.js (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH et ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED ne sont plus produits par les opérations de fichiers ou de base de données)
+* `Amelioration` process.cwd et process.chdir ont le comportement natif de Node.js ; une exécution entre dans son répertoire de travail par un vrai chdir et les chemins relatifs sont résolus par Node.js lui-même
+* `Amelioration` ATTACH de node:sqlite (y compris les noms de fichiers par paramètre lié ou expression), VACUUM INTO, les PRAGMA de répertoire et setAuthorizer sont le comportement natif de SQLite ; enableLoadExtension et allowExtension suivent les vérifications d'état propres à Node.js
+
 # v1.5.7
 
 ###### 2026/10/05

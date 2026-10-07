@@ -136,7 +136,9 @@ public final class WorkerDesktopSmokeTest {
                   assert.strictEqual(resourceLimits.maxOldGenerationSizeMb, 192);
                   assert.strictEqual(require('node:module').createRequire(__filename)('node:crypto'), require('node:crypto'));
                   const fs = require('node:fs');
-                  assert.throws(() => fs.readFileSync('/proc/self/status'), e => e.code === 'ERR_AUTOJS6_FS_PATH_ESCAPE');
+                  // M23.1: worker fs is Node's own module; /proc follows Android like any other path.
+                  assert.strictEqual(fs, process.getBuiltinModule('fs'));
+                  assert.match(fs.readFileSync('/proc/self/status', 'utf8'), /^Pid:\\s+\\d+/m);
                   assert.strictEqual(fs.readFileSync(workerData.outside,'utf8'),'outside');
                   for (const name of ['autojs6:fetch','autojs6:websocket','sqlite','ui','inspector','node:inspector']) {
                     assert.throws(() => require(name), e => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED');
@@ -145,7 +147,10 @@ public final class WorkerDesktopSmokeTest {
                   const db=new DatabaseSync(':memory:');
                   try { assert.strictEqual(db.prepare('SELECT 42 AS value').get().value,42); assert.strictEqual(db.isOpen,true); }
                   finally { db.close(); }
-                  assert.throws(()=>new DatabaseSync('/proc/self/status'),e=>e.code==='ERR_AUTOJS6_FS_PATH_ESCAPE');
+                  // A procfs file is SQLite's business: its st_size is 0, so SQLite opens it as an empty read-only
+                  // database and the first write fails with SQLite's own error; never an AutoJs6 policy code.
+                  { let bad=null; try { bad=new DatabaseSync('/proc/self/status'); bad.exec('CREATE TABLE t (x)'); throw new Error('wrote into a procfs database'); }
+                    catch(e){ assert.strictEqual(e.code,'ERR_SQLITE_ERROR'); assert.strictEqual(e.autojs6Code,undefined); } finally { try { if (bad) bad.close(); } catch(_) {} } }
                   const http = require('node:http');
                   const server = http.createServer((req,res)=>res.end('worker-native'));
                   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));

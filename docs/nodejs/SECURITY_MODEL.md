@@ -1,12 +1,18 @@
 # AutoJs6 Node.js File Access and Android Permissions
 
-Last reviewed: 2026-09-10.
+Last reviewed: 2026-10-07.
 
 Node/V8 runs in the runtime plugin's Android application. Automation providers run
 in the host application. These applications have different UIDs: `fs` accesses
 files as the plugin, while `mediainfo`, image file methods, the recorder, media
 playback and MediaStore import/export access files as the host. A path readable by one application may be denied to the other.
 Android permissions, storage access and private application directories apply.
+
+Since M23.1 (2026-10-07) `fs` is Node's own module: there is no wrapper, no path
+validation and no `/proc`, `/sys`, `/dev` denial. Whatever Android lets the plugin
+process open, Node opens; whatever Android refuses comes back as a plain Node
+error. The execution enters its working directory with a real `process.chdir`, so
+relative paths, `process.cwd()` and `process.chdir()` behave as on desktop Node.
 
 Ordinary Node fs paths may be absolute or relative. The v1.4.0 development update
 also accepts absolute paths, parents and symlinks for host media/image/recording
@@ -34,13 +40,12 @@ selection metadata cannot replace either declaration or Android consent. See
 
 Execution cancellation and resource cleanup remain necessary for usable lifecycle
 behavior. Worker message size / queue caps and fs watcher count / event-rate quotas
-were removed in v1.5.5; remaining custom restrictions include sensitive fs roots
-(`/proc`, `/sys`, `/dev`), the worker-count default (CPU parallelism, adjustable per
-request), Binder transport limits, the lifecycle-mapped `process.exit` / denied
-`process.kill` / `process.abort` on the shared runtime process, nested workers, and Java
-interop denial inside workers. Their gradual reduction,
-along with capability defaults, is tracked by [M18-M20](../../Roadmap.md). No claim is made that all custom
-restrictions have already been removed.
+were removed in v1.5.5 and the sensitive fs roots (`/proc`, `/sys`, `/dev`) in M23.1;
+remaining custom restrictions include the worker-count default (CPU parallelism,
+adjustable per request), Binder transport limits, the lifecycle-mapped `process.exit` /
+denied `process.kill` / `process.abort` on the shared runtime process, nested workers, and
+Java interop denial inside workers. Their removal is tracked by
+[M23](../../Roadmap.md): the plugin keeps no limit that Android already enforces.
 
 Plugin discovery, caller trust, Binder ownership and grants to remote MCP callers
 remain host integration responsibilities. Shared Android providers do not make a

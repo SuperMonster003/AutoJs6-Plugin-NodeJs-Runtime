@@ -1,8 +1,8 @@
 {
   "schema": "autojs6-node-plugin-runtime-kit-v1",
   "schemaVersion": 1,
-  "kitId": "autojs6-node-plugin-runtime-kit-v1.5.6-node24_21",
-  "kitVersion": "1.5.6",
+  "kitId": "autojs6-node-plugin-runtime-kit-v1.6.0-node24_21",
+  "kitVersion": "1.6.0",
   "owner": {
     "pluginId": "nodejs",
     "applicationId": "io.github.supermonster003.autojs6.plugin.nodejs",
@@ -38,8 +38,8 @@
   },
   "capabilityCatalog": {
     "schema": "autojs6-node-capability-catalog-v1",
-    "version": "1.5.6",
-    "sha256": "331b80f32d680da1755f35619ccf4e35a6edfd39056a790be4ac366e010dedf8"
+    "version": "1.6.0",
+    "sha256": "aafa879ea6cfbda21db0bb4f72a02ebe052161ca8a61f60afa512c190fb86229"
   },
   "reproducibility": {
     "artifactMaterialization": "source_build",
@@ -108,8 +108,8 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "source_tree",
       "required": true,
-      "size": 77012,
-      "sha256": "331b80f32d680da1755f35619ccf4e35a6edfd39056a790be4ac366e010dedf8",
+      "size": 76937,
+      "sha256": "aafa879ea6cfbda21db0bb4f72a02ebe052161ca8a61f60afa512c190fb86229",
       "buildId": null
     },
     {

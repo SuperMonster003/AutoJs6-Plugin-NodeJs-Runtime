@@ -1,5 +1,6 @@
 package io.github.supermonster003.autojs6.plugin.nodejs;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -32,9 +33,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Roadmap M6.2: unrestricted fs reaches outside the request workspace after
- * Android grants All files access, while runtime-owned sensitive roots remain
- * denied independently of that grant.
+ * Roadmap M6.2 / M23.1: unrestricted fs reaches outside the request workspace after
+ * Android grants All files access. Since M23.1 {@code require("fs")} is Node's own
+ * module, so /proc, /sys and /dev are Android's decision like every other path:
+ * the process's own procfs entries and /dev/null read fine, and whatever Android
+ * refuses comes back as a plain Node error without an AutoJs6 policy code.
  */
 @RunWith(AndroidJUnit4.class)
 public final class UnrestrictedFsSmokeTest {
@@ -42,7 +45,7 @@ public final class UnrestrictedFsSmokeTest {
     private static final long BIND_TIMEOUT_MS = 30_000L;
 
     @Test
-    public void externalStorageWorksButSensitiveRootsRemainDenied() throws Exception {
+    public void externalStorageWorksAndSystemPathsFollowAndroid() throws Exception {
         Assume.assumeTrue(
                 "MANAGE_EXTERNAL_STORAGE is only available from Android 11",
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
@@ -97,18 +100,11 @@ public final class UnrestrictedFsSmokeTest {
                     result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED)
             );
             assertTrue("external write/read marker missing: " + stdout, stdout.contains("m6.fs.external=ok"));
-            assertTrue(
-                    "/proc denial marker missing: " + stdout,
-                    stdout.contains("m6.fs.denied.proc=ERR_AUTOJS6_FS_PATH_ESCAPE")
-            );
-            assertTrue(
-                    "/sys denial marker missing: " + stdout,
-                    stdout.contains("m6.fs.denied.sys=ERR_AUTOJS6_FS_PATH_ESCAPE")
-            );
-            assertTrue(
-                    "/dev denial marker missing: " + stdout,
-                    stdout.contains("m6.fs.denied.dev=ERR_AUTOJS6_FS_PATH_ESCAPE")
-            );
+            assertTrue("/proc/self/status marker missing: " + stdout, stdout.contains("m23.fs.proc=ok"));
+            assertTrue("/dev/null marker missing: " + stdout, stdout.contains("m23.fs.dev=ok"));
+            assertTrue("/sys/kernel marker missing: " + stdout, stdout.contains("m23.fs.sys="));
+            assertTrue("fs identity marker missing: " + stdout, stdout.contains("m23.fs.native=true"));
+            assertFalse("an AutoJs6 fs policy code leaked: " + stdout, stdout.contains("ERR_AUTOJS6_FS_"));
         } finally {
             context.unbindService(connection);
         }
@@ -152,19 +148,17 @@ public final class UnrestrictedFsSmokeTest {
                 + "} finally {\n"
                 + "  try { fs.unlinkSync(filename); } catch (_) {}\n"
                 + "}\n"
-                + "for (const [name, sensitivePath] of Object.entries({\n"
-                + "  proc: '/proc/self/status',\n"
-                + "  sys: '/sys/kernel',\n"
-                + "  dev: '/dev/null'\n"
-                + "})) {\n"
-                + "  let denial = null;\n"
-                + "  try { fs.readFileSync(sensitivePath); } catch (error) { denial = error; }\n"
-                + "  if (!denial) throw new Error('sensitive path unexpectedly readable: ' + sensitivePath);\n"
-                + "  const code = String(denial.autojs6Code || denial.code || denial.name || '');\n"
-                + "  if (code !== 'ERR_AUTOJS6_FS_PATH_ESCAPE') {\n"
-                + "    throw new Error('unexpected sensitive-path denial for ' + sensitivePath + ': ' + code);\n"
-                + "  }\n"
-                + "  console.log('m6.fs.denied.' + name + '=' + code);\n"
-                + "}\n";
+                + "console.log('m23.fs.native=' + (fs === process.getBuiltinModule('fs') && require('fs/promises') === fs.promises));\n"
+                + "const status = fs.readFileSync('/proc/self/status', 'utf8');\n"
+                + "if (!/^Pid:\\s+\\d+/m.test(status)) throw new Error('unexpected /proc/self/status: ' + status.slice(0, 80));\n"
+                + "console.log('m23.fs.proc=ok');\n"
+                + "if (fs.readFileSync('/dev/null').length !== 0) throw new Error('/dev/null is not empty');\n"
+                + "console.log('m23.fs.dev=ok');\n"
+                + "let sys = 'ok';\n"
+                + "try { fs.readdirSync('/sys/kernel'); } catch (error) {\n"
+                + "  if (error.autojs6Code !== undefined) throw new Error('policy code on /sys/kernel: ' + error.autojs6Code);\n"
+                + "  sys = String(error.code);\n"
+                + "}\n"
+                + "console.log('m23.fs.sys=' + sys);\n";
     }
 }

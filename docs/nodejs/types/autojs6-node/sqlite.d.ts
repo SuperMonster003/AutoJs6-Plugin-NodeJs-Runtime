@@ -99,7 +99,7 @@ declare module "node:sqlite" {
     readonly isTransaction: boolean;
     open(): void;
     close(): void;
-    /** ATTACH with a literal filename and VACUUM INTO targets pass the runtime's /proc, /sys, /dev check through SQLite's authorizer; directory PRAGMAs are native; ATTACH with a bound or computed filename throws ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED. */
+    /** Since M23.1 this is Node's own DatabaseSync: ATTACH (literal, bound or computed filenames), VACUUM INTO and directory PRAGMAs are native SQLite; Android file access is the only boundary. */
     exec(sql: string): void;
     prepare(sql: string): StatementSync;
     location(dbName?: string): string | null;

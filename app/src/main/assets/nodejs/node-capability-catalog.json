@@ -1,6 +1,6 @@
 {
   "schema": "autojs6-node-capability-catalog-v1",
-  "catalogVersion": "1.5.6",
+  "catalogVersion": "1.6.0",
   "runtime": {
     "pluginId": "nodejs",
     "engine": "nodejs",
@@ -157,14 +157,10 @@
         "packagedApk": false,
         "releaseEnableAllowed": false
       },
-      "mode": "unrestricted_android_permission_bounded",
+      "mode": "android_file_access",
       "workspaceRootPurpose": "module_resolution_and_relative_path_base",
       "absolutePaths": "allowed_within_android_app_permissions",
-      "sensitiveRootsDenied": [
-        "/proc",
-        "/sys",
-        "/dev"
-      ],
+      "sensitiveRootsDenied": [],
       "filesystemRootsMetadata": "diagnostic_only"
     },
     {

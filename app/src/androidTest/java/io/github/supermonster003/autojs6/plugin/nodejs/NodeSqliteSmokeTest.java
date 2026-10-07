@@ -73,7 +73,7 @@ public final class NodeSqliteSmokeTest {
         return output;
     }
 
-    @Test public void sqliteCrudTransactionsBackupAndFileBoundaries() throws Exception {
+    @Test public void sqliteCrudTransactionsBackupAndSystemPathsFollowAndroid() throws Exception {
         unsafeLink = new File(context.getCacheDir(), "sqlite-link-" + UUID.randomUUID());
         android.system.Os.symlink("/proc/self/status", unsafeLink.getAbsolutePath());
         String output = succeeded(run("""
@@ -102,16 +102,23 @@ public final class NodeSqliteSmokeTest {
                     try { assert.strictEqual(copy.prepare('SELECT count(*) AS count FROM items').get().count,1); }
                     finally { copy.close(); }
                     assert.strictEqual(fs.readFileSync('native.sqlite').subarray(0,15).toString(),'SQLite format 3');
-                    const fileDenied=e=>(e.autojs6Code||e.code).startsWith('ERR_AUTOJS6_FS_');
-                    const sqlDenied=e=>e.code==='ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED';
                     const nativeError=e=>e.code==='ERR_SQLITE_ERROR'&&e.autojs6Code===undefined;
-                    // M20.2: ATTACH with a literal filename goes through SQLite's authorizer; only the hard boundary is ours.
+                    // M23.1: node:sqlite is Node's own module and /proc, /sys, /dev follow Android. SQLite decides what a
+                    // system path means: a procfs file has st_size 0, so it opens as an empty read-only database whose first
+                    // write fails; /sys and /dev targets cannot be created and fail at open. Either way the error is SQLite's own.
+                    const systemPathFollowsSqlite=(open)=>{ let probe=null; try { probe=open(); } catch(e){ assert.ok(nativeError(e),String(e&&e.stack||e)); return; }
+                      try { assert.throws(()=>probe.exec('CREATE TABLE t (x)'),nativeError); } finally { try { probe.close(); } catch(_) {} } };
+                    const attachFollowsSqlite=(target,sql)=>{ try { target.exec(sql); } catch(e){ assert.ok(nativeError(e),String(e&&e.stack||e)); return; }
+                      try { assert.throws(()=>target.exec('CREATE TABLE outside.t (x)'),nativeError); } finally { try { target.exec('DETACH outside'); } catch(_) {} } };
                     assert.strictEqual(typeof db.setAuthorizer,'function');
-                    assert.throws(()=>db.exec("SELECT 1; /* file */ ATTACH '/proc/self/status' AS outside"),fileDenied);
-                    assert.throws(()=>db.exec("ATTACH 'file:/proc/self/status?mode=ro' AS outside"),fileDenied);
-                    assert.throws(()=>db.exec("ATTACH '"+'../'.repeat(16)+"proc/self/status' AS outside"),fileDenied);
-                    assert.throws(()=>db.prepare('ATTACH ? AS outside'),sqlDenied);
-                    assert.throws(()=>db.prepare("ATTACH 'copy' || '.sqlite' AS outside"),sqlDenied);
+                    attachFollowsSqlite(db,"SELECT 1; /* file */ ATTACH '/proc/self/status' AS outside");
+                    attachFollowsSqlite(db,"ATTACH 'file:/proc/self/status?mode=ro' AS outside");
+                    attachFollowsSqlite(db,"ATTACH '"+'../'.repeat(16)+"proc/self/status' AS outside");
+                    // Bound and computed ATTACH filenames are plain SQLite now.
+                    db.prepare('ATTACH ? AS bound').run('bound.sqlite'); db.exec('CREATE TABLE bound.t (x); DETACH bound');
+                    assert.strictEqual(fs.readFileSync('bound.sqlite').subarray(0,15).toString(),'SQLite format 3');
+                    db.exec("ATTACH 'computed' || '.sqlite' AS computed; CREATE TABLE computed.t (x); DETACH computed");
+                    assert.strictEqual(fs.readFileSync('computed.sqlite').subarray(0,15).toString(),'SQLite format 3');
                     db.exec("ATTACH 'attached.sqlite' AS extra; CREATE TABLE extra.notes (text TEXT); INSERT INTO extra.notes VALUES ('kept'); DETACH extra");
                     assert.strictEqual(fs.readFileSync('attached.sqlite').subarray(0,15).toString(),'SQLite format 3');
                     db.exec("ATTACH 'file:copy.sqlite?mode=ro' AS ro");
@@ -120,26 +127,28 @@ public final class NodeSqliteSmokeTest {
                     db.exec('DETACH ro');
                     db.exec("VACUUM main INTO 'vacuumed.sqlite'");
                     assert.strictEqual(fs.readFileSync('vacuumed.sqlite').subarray(0,15).toString(),'SQLite format 3');
-                    // SQLite opens the VACUUM INTO target through an internal literal ATTACH, so the boundary check sees it even when bound.
+                    // VACUUM INTO targets are SQLite's business, literal or bound; /dev and /proc targets cannot be created.
                     db.prepare('VACUUM main INTO ?').run('vacuumed-bound.sqlite');
                     assert.strictEqual(fs.readFileSync('vacuumed-bound.sqlite').subarray(0,15).toString(),'SQLite format 3');
-                    assert.throws(()=>db.exec("VACUUM main INTO '/dev/sqlite-test'"),fileDenied);
-                    assert.throws(()=>db.prepare('VACUUM main INTO ?').run('/proc/sqlite-test'),fileDenied);
+                    assert.throws(()=>db.exec("VACUUM main INTO '/dev/sqlite-test'"),nativeError);
+                    assert.throws(()=>db.prepare('VACUUM main INTO ?').run('/proc/sqlite-test'),nativeError);
                     db.exec("PRAGMA temp_store_directory = '"+process.cwd()+"'");
                     assert.strictEqual(db.prepare('PRAGMA temp_store_directory').get().temp_store_directory,process.cwd());
                     db.exec("PRAGMA temp_store_directory = ''");
-                    // A user authorizer composes with the boundary check; null only clears the user's part.
+                    // The user's authorizer is the only authorizer; null clears it.
                     db.setAuthorizer(action=>action===sqlite.constants.SQLITE_INSERT?sqlite.constants.SQLITE_DENY:sqlite.constants.SQLITE_OK);
                     assert.throws(()=>db.prepare("INSERT INTO items(label) VALUES ('denied')"),nativeError);
-                    assert.throws(()=>db.exec("ATTACH '/proc/self/status' AS outside"),fileDenied);
+                    attachFollowsSqlite(db,"ATTACH '/proc/self/status' AS outside");
                     db.setAuthorizer(null);
                     db.prepare("INSERT INTO items(label) VALUES ('allowed')").run();
-                    assert.throws(()=>db.exec("ATTACH '/sys/sqlite-test' AS outside"),fileDenied);
+                    attachFollowsSqlite(db,"ATTACH '/sys/sqlite-test' AS outside");
                     assert.throws(()=>db.setAuthorizer('nope'),e=>e.code==='ERR_INVALID_ARG_TYPE');
-                    assert.throws(()=>db.enableLoadExtension(true),e=>e.code==='ERR_AUTOJS6_NATIVE_ADDON_DISABLED');
-                    assert.throws(()=>new DatabaseSync(':memory:',{allowExtension:true}),e=>e.code==='ERR_AUTOJS6_NATIVE_ADDON_DISABLED');
-                    for(const path of ['/proc/self/status','/sys/sqlite-test','/dev/sqlite-test']) assert.throws(()=>new DatabaseSync(path),fileDenied);
-                    assert.throws(()=>new DatabaseSync('file:/proc/self/status?mode=ro'),fileDenied);
+                    // Extension loading is Node's own state machine: disabled at construction unless allowExtension is set.
+                    assert.throws(()=>db.enableLoadExtension(true),e=>e.code==='ERR_INVALID_STATE');
+                    const extensible=new DatabaseSync(':memory:',{allowExtension:true});
+                    try { extensible.enableLoadExtension(true); extensible.enableLoadExtension(false); } finally { extensible.close(); }
+                    for(const path of ['/proc/self/status','/sys/sqlite-test','/dev/sqlite-test']) systemPathFollowsSqlite(()=>new DatabaseSync(path));
+                    systemPathFollowsSqlite(()=>new DatabaseSync('file:/proc/self/status?mode=ro'));
                     // SQLite URI strings, the empty temporary database and a missing read-only file are SQLite's business.
                     const viaUri=new DatabaseSync('file:'+process.cwd()+'/uri.sqlite?mode=rwc');
                     try { viaUri.exec('CREATE TABLE t (x)'); } finally { viaUri.close(); }
@@ -150,16 +159,14 @@ public final class NodeSqliteSmokeTest {
                     const temporary=new DatabaseSync('');
                     try { temporary.exec('CREATE TABLE t (x); INSERT INTO t VALUES (1)'); assert.strictEqual(temporary.prepare('SELECT x FROM t').get().x,1); } finally { temporary.close(); }
                     assert.throws(()=>new DatabaseSync('missing.sqlite',{readOnly:true}),nativeError);
-                    assert.throws(()=>sqlite.backup(db,'/dev/sqlite-test'),fileDenied);
-                    assert.throws(()=>new DatabaseSync(UNSAFE_SQLITE_LINK,{readOnly:true}),fileDenied);
+                    await assert.rejects(sqlite.backup(db,'/dev/sqlite-test'),nativeError);
+                    systemPathFollowsSqlite(()=>new DatabaseSync(UNSAFE_SQLITE_LINK,{readOnly:true}));
                     const url=require('node:url').pathToFileURL(require('node:path').join(process.cwd(),'copy.sqlite'));
                     const deferred=new DatabaseSync(url,{open:false,readOnly:true});
-                    assert.throws(()=>deferred.setAuthorizer(null),e=>e.code==='ERR_INVALID_STATE');
                     deferred.open(); assert.strictEqual(deferred.isOpen,true);
-                    // The boundary check is reinstalled on every open.
-                    assert.throws(()=>deferred.exec("ATTACH '/proc/self/status' AS outside"),fileDenied);
+                    // A reopened handle is plain SQLite too.
+                    attachFollowsSqlite(deferred,"ATTACH '/proc/self/status' AS outside");
                     deferred.close();
-                    assert.throws(()=>deferred.setAuthorizer(null),e=>e.code==='ERR_INVALID_STATE');
                     console.log('m13.sqlite=PASS');
                   } finally { db.close(); }
                 })().catch(e=>{console.error(e.stack);process.exitCode=1;});

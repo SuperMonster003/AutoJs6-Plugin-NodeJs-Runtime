@@ -153,8 +153,9 @@ declare namespace AutoJs6Node {
     readonly envSources: "request_map_plus_safe_defaults" | string;
     readonly envDefaultKeys: readonly string[];
     readonly envFilteredKeys: readonly string[];
-    readonly cwd: "working_directory_within_android_file_access" | "scoped_working_directory" | string;
-    readonly chdir: "existing_directories_except_sensitive_roots" | "scoped_relative_directory_only" | string;
+    /** Since M23.1 `process.cwd()` / `process.chdir()` are native; the execution enters its working directory with a real chdir. */
+    readonly cwd: "native" | string;
+    readonly chdir: "native" | string;
     readonly exit: "lifecycle_mapped_process_exit" | string;
     readonly signals: "denied_no_android_signal_delivery" | string;
     readonly versions: "native" | string;
@@ -551,7 +552,8 @@ declare namespace AutoJs6Node {
   }
 
   export interface FilesystemProfile {
-    readonly mode: "android_file_access_with_sensitive_roots_denied" | "scoped_working_directory" | string;
+    /** Since M23.1 `fs` is Node's own module: Android file access is the only boundary (no /proc, /sys, /dev denial). */
+    readonly mode: "android_file_access" | string;
     readonly safeProfileScoped: boolean;
     readonly additionalRoots: readonly string[];
     readonly userAuthorizedRoots: boolean;

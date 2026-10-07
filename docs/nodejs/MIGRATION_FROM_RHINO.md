@@ -29,7 +29,8 @@ Android permissions and provider readiness are still checked at call time.
 
 Use project-relative paths for portability. Node fs, `require`, `import` and
 `Worker` also accept absolute paths and `file:` URLs under the runtime plugin's
-Android permissions (`/proc`, `/sys` and `/dev` stay denied). Host media/image paths use the
+Android permissions (since M23.1 the runtime denies nothing itself; `/proc`, `/sys` and
+`/dev` follow Android too). Host media/image paths use the
 host UID and require the matching host update described in [HOST-API](../HOST-API.md). Use supported CommonJS/ESM and TypeScript compiled by the host Compiler; do not depend on native addons, arbitrary shared libraries, unrestricted
 reflection, or desktop-only process behavior.
 

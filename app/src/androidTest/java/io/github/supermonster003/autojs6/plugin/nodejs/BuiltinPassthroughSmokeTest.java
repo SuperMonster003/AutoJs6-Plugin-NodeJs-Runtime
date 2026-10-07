@@ -97,8 +97,9 @@ public final class BuiltinPassthroughSmokeTest {
                       assert.ok(require('os').totalmem() > 0);
                       assert.ok(require('os').availableParallelism() > 0);
                       assert.strictEqual(require('os').homedir(), process.cwd());
-                      assert.throws(() => require('fs').readFileSync('/proc/self/status'),
-                        error => (error.autojs6Code || error.code) === 'ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED');
+                      // M23.1: fs is Node's own module and /proc follows Android like any other path.
+                      assert.strictEqual(require('fs'), process.getBuiltinModule('fs'));
+                      assert.match(require('fs').readFileSync('/proc/self/status', 'utf8'), /^Pid:\\s+\\d+/m);
                       if (Number(process.versions.node.split('.')[1]) >= 21) {
                         const fs = require('node:fs');
                         const path = require('node:path');

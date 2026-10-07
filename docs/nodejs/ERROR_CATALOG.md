@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Error Catalog
 
-Last reviewed: 2026-09-10.
+Last reviewed: 2026-10-07.
 
 Errors may originate in either process. The host owns routing, trust, bridge,
 permission, workspace, provider, queue, and scheduling failures. The runtime plugin
@@ -47,20 +47,22 @@ message, request ID, and execution ID when reporting a failure.
 
 ## Workspace, Modules, and Policy
 
-Native filesystem failures normally retain Node/Android codes such as ENOENT
-or EACCES. Remaining runtime policy errors use two **ERR_AUTOJS6_FS_*** codes:
-`ERR_AUTOJS6_FS_NUL_BYTE` for NUL bytes and `ERR_AUTOJS6_FS_PATH_ESCAPE` for the `/proc`,
-`/sys`, `/dev` hard boundary (shared with the module loader and worker fs). fs no longer
-produces `ERR_AUTOJS6_FS_SCOPED_PATH` (removing the reach root is Node's decision; the
-code remains only for a non-local `worker_threads` script name), and the other `FS_*`
-names still listed in catalog 1.5.5 are retired and no longer produced. Workspace transfer and
+Since M23.1 (2026-10-07) `fs`, `fs/promises` and `node:sqlite` are Node's own modules:
+filesystem failures carry Node/Android codes such as ENOENT, EACCES or
+ERR_INVALID_ARG_VALUE (NUL bytes), and `/proc`, `/sys`, `/dev` follow Android like every
+other path. The scoped fs wrapper and its policy codes are retired and no longer
+produced by fs: `ERR_AUTOJS6_FS_NUL_BYTE`, `ERR_AUTOJS6_FS_PATH_ESCAPE`,
+`ERR_AUTOJS6_FS_SCOPED_PATH` (plus the older `FS_*` names still listed in the catalog).
+Until M23.3 replaces the module loader, `ERR_AUTOJS6_FS_NUL_BYTE` / `ERR_AUTOJS6_FS_PATH_ESCAPE`
+can still be raised by the loader for a NUL byte in a specifier or a package `imports` /
+`exports` target that escapes its package directory. `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED`
+and `ERR_AUTOJS6_SQLITE_PATH_UNSUPPORTED` are retired: ATTACH (literal, bound or computed),
+VACUUM INTO and directory PRAGMAs are plain SQLite. Workspace transfer and
 compiler module providers have their own relative-path validation. Module-source providers use
 **ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_*** for invalid, denied, cancelled, timed-out,
 or failed requests; `ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED` now only comes from the
 provider transport's shared protocol sizes, the runtime's own module-source budgets are
-gone. `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED` is now limited to ATTACH with a
-bound or computed filename; `ERR_AUTOJS6_SQLITE_PATH_UNSUPPORTED` is retired. Feature
-boundaries use specific codes for disabled builtins,
+gone. Feature boundaries use specific codes for disabled builtins,
 network, process APIs, workers, native addons, or Java interop.
 
 Java interop reports the host's decisions with **ERR_AUTOJS6_JAVA_*** codes (M20.2 batch 15):

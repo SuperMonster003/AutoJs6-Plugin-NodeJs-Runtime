@@ -56,7 +56,7 @@ AutoJs6 Node.js Runtime 插件为 AutoJs6 提供内嵌 Node.js 24.21.0 原生运
 - 支持 Debug 构建显式开启本地 `inspector` 调试, 仅监听 localhost 并通过 `adb forward` 连接
 - 支持 CommonJS/ESM 源码, 模块源码, 工作目录, 沙盒根目录, 环境变量, stdout/stderr 结果回传.
 - ESM 入口与 dynamic `import()` 使用 V8 native linker, 支持循环依赖、可变导出与 re-export live binding; CommonJS `require(esm)` 保留同步互操作边界.
-- 提供由插件自身 Android 权限约束的桌面式文件系统访问; `/proc`、`/sys`、`/dev` 始终由运行时拒绝.
+- 文件系统使用 Node.js 原生 fs 模块, 文件可达性完全由插件自身的 Android 权限决定; 运行时不再保留 `/proc`, `/sys`, `/dev` 等拒绝边界 (1.6.0 起).
 - 执行宿主提供的 TypeScript 编译产物, 并可通过 provider v3 请求按需编译运行中创建的项目 `.ts`/`.mts`/`.cts`; 运行时类型剥离 fallback 与兼容开关已删除, direct raw dispatch 始终 fail-closed.
 - 提供宿主能力代理与 live bridge, 可注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等运行时模块.
 - 附带 `sample/nodejs` 示例项目与 `docs/HOST-API.md` 宿主 API 能力清单.
@@ -100,7 +100,7 @@ console.log("AutoJs6 Node.js runtime");
 - 原生运行库: `libnode.so`, `libautojs6-node.so` 和 `libnodexe.so`.
 - Intl: ICU 78, 仅含英文区域数据 (`--with-intl=small-icu`); `Intl`, 正则表达式的 Unicode 属性转义以及 Node 自身写到 stderr 的错误输出均可在 AutoJs6 终端中使用, `NODE_ICU_DATA` 可指向完整的 ICU 数据文件.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.
-- 文件系统: Android 权限允许范围内可访问设备路径; `/proc`、`/sys`、`/dev` 为硬边界.
+- 文件系统: Node.js 原生 fs 模块, Android 权限允许范围内可访问任意设备路径, 运行时自身不保留拒绝边界.
 - TypeScript: 接受宿主产物并可通过 provider v3 按需编译运行中创建的项目文件; direct raw TypeScript 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
 - ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, 原生 live binding 与循环依赖.
 - 能力: 同步脚本执行, bundle transport, 原生内嵌运行时, 宿主能力代理, host capability live bridge.
@@ -112,6 +112,14 @@ console.log("AutoJs6 Node.js runtime");
 ### 发行历史
 
 ******
+
+# v1.6.0
+
+###### 2026/10/07
+
+* `优化` fs, fs/promises 及 node:sqlite 模块改为直接使用 Node.js 原生实现, 移除运行时自设的 /proc, /sys, /dev 拒绝边界与路径校验包装层, 文件可达性完全由 Android 权限决定, 异步文件 API 经 libuv 线程池执行而不再阻塞事件循环, 路径错误返回 Node.js 原生错误码 (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH 及 ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED 不再由文件及数据库操作产生)
+* `优化` process.cwd 与 process.chdir 改为 Node.js 原生行为, 脚本执行开始时以原生 chdir 进入工作目录, 相对路径由 Node.js 自行解析
+* `优化` node:sqlite 的 ATTACH (含绑定参数及表达式形式的文件名), VACUUM INTO, 目录 PRAGMA 及 setAuthorizer 均为 SQLite 原生行为, enableLoadExtension 与 allowExtension 遵循 Node.js 原生状态检查
 
 # v1.5.7
 
@@ -127,39 +135,6 @@ console.log("AutoJs6 Node.js runtime");
 * `新增` Node.js 致命错误支持生成诊断报告, 失败结果及 getRuntimeInfo 可读取崩溃原因, 堆用量, 调用栈和报告路径, maxOldGenerationSizeMb 选项支持设置单次执行的 V8 老生代堆上限
 * `修复` require 加载大型 CommonJS 模块时因扫描过程占用过多堆内存而崩溃的问题
 * `修复` AGP 9.1 构建时的 SDK XML v4 解析警告, 以及 JVM 单元测试误触发 APK 原生库对齐检查的问题 (共享构建插件 1.8.3)
-
-# v1.5.5
-
-###### 2026/09/18
-
-* `修复` runtimeInfo 中能力目录版本及摘要过期的问题, 改为从运行时资源读取
-* `修复` Worker 的 eval 模式将代码字符串误当作文件路径的问题
-* `优化` 能力目录按实际运行时更新, TypeScript 宿主编译标为稳定, 移除已废弃的类型剥离及未实现的执行模式
-* `优化` autojs6:profile 诊断信息按实际能力更新, 明确文件权限, process, Worker, 进程池, WASI 及原生扩展的支持范围
-* `优化` 完善 ESM, 动态导入, Wasm 及桌面兼容性示例, 对照测试改为实际执行, 移除仅打印元数据的依赖安装示例 (编译缓存示例标为不适用)
-* `优化` require/import 及 Worker 支持绝对路径, 上级目录及 file: URL, 文件访问遵循 Android 权限 (node_modules 从工作区查找, /proc, /sys, /dev 仍不可访问)
-* `优化` Worker 消息及文件监听遵循 Node.js 原生限制, 移除额外的消息大小, 排队数量, 监听器及事件频率限制
-* `优化` Worker 中的 process.exit 仅结束当前线程, process.getBuiltinModule 按 Worker 模块白名单开放
-* `优化` Worker 支持通过工作区 node_modules 解析包名, 包含 exports/main/index 及包自引用
-* `优化` Worker 支持动态 import, 包含相对或绝对路径, file: URL, 工作区包, 允许的内置模块及 JSON 导入属性
-* `优化` 实体按键及通知访问示例完成真机验收, host-events 示例标为稳定
-* `优化` scheduled-node-task 示例支持显示生命周期策略及保留定时任务, 补充 scheduled 执行模式测试
-* `优化` scheduled 执行模式完成宿主 WorkManager 验证, 能力目录标为可用
-* `优化` media.play 支持返回可控制的播放会话, media_store 支持受权限约束的媒体库读写, 兼容层补充 playMusic 等 Rhino 别名 (需要配套宿主及相应媒体能力授权)
-* `优化` 媒体播放及媒体库示例完成宿主集成验证并标为稳定, 发布 1.5.5 能力目录快照供宿主核对
-* `优化` fs 的流选项, 递归监听, 复制过滤, glob, readableWebStream 及文件类型构造器遵循 Node.js 24 原生行为, 移除额外选项拦截
-* `优化` 递归 readdir/opendir 移除 4096 条目上限, readlink/chmod/chown/utimes 支持绝对路径, 普通文件错误保留 Node.js 错误码 (仍执行路径安全检查)
-* `优化` 移除运行时自设的模块大小及数量限制, CommonJS 入口路径及 fs.mkdtemp 的路径和编码行为与 Node.js 保持一致
-* `优化` node:sqlite 通过原生授权回调校验 ATTACH/VACUUM INTO 的路径, 支持 file: URI 及空临时库, 保留 /proc, /sys, /dev 边界限制 (仍拒绝通过绑定参数或表达式指定 ATTACH 文件名)
-* `优化` 宿主桥接调用超出并发窗口时按顺序排队, 图像句柄及网络连接配额统一由宿主控制, 移除运行时重复限制及对应策略字段
-* `优化` 桥接 fetch/WebSocket/axios 的超时, 大小及队列限制统一由宿主控制, 运行时最多跟随 20 次重定向, policy 改用 limitsEnforcedBy 描述限制来源
-* `优化` opendir 返回原生惰性 fs.Dir, 保留调用者的路径写法, rm/rmdir 移除额外根目录限制并遵循 Node.js 与 Android 行为 (仍检查 NUL 字节及路径越界)
-* `优化` 模块传输预算采用宿主公布的限制, fetch 响应体支持文件描述符传输, 超大 Binder 回复立即返回 ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED (需要配套宿主)
-* `优化` fetch 请求正文及 WebSocket 消息超过 256 KiB 时支持文件描述符传输, 大小由宿主策略限制 (需要宿主声明 bridgeRequestBinaryTransport=pfd)
-* `优化` 桥接 fetch 的 Response.url 返回最终响应地址, 避免始终为空字符串
-* `优化` Java 互操作统一采用宿主提供的类及成员白名单, 支持对象句柄, getStatic/describe 及成员异常回传
-* `优化` npm 同名包优先规则仅用于 axios/colors/mime/nanoid/opencc/undici 等替代模块, 保留 AutoJs6 专用模块, 运行时模块裸名支持 ESM 导入, Packages 代理支持 getStatic/describe
-* `优化` 运行时进程异常退出时回报系统记录的低内存或原生崩溃原因, 结果附带 slotExit, getRuntimeInfo 提供 lastSlotExit (需要 Android 11+, 低版本提示原因不可用)
 
 ##### 更多发行历史可参阅
 

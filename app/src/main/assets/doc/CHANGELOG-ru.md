@@ -4,6 +4,14 @@
 
 ******
 
+# v1.6.0
+
+###### 2026/10/07
+
+* `Улучшение` fs, fs/promises и node:sqlite являются собственными модулями Node.js: запрет /proc, /sys, /dev и обёртка проверки путей, принадлежавшие среде выполнения, удалены, доступность файлов определяется только разрешениями Android, асинхронные файловые API выполняются в пуле потоков libuv вместо блокировки цикла событий, а ошибки путей несут собственные коды Node.js (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH и ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED больше не выдаются файловыми операциями и операциями с базой данных)
+* `Улучшение` process.cwd и process.chdir ведут себя как в Node.js; выполнение входит в рабочий каталог настоящим chdir, а относительные пути разрешает сам Node.js
+* `Улучшение` ATTACH в node:sqlite (включая имена файлов через связанный параметр или выражение), VACUUM INTO, PRAGMA каталогов и setAuthorizer являются собственным поведением SQLite; enableLoadExtension и allowExtension следуют проверкам состояния самого Node.js
+
 # v1.5.7
 
 ###### 2026/10/05

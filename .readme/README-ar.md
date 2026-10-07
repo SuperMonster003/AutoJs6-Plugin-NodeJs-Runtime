@@ -56,7 +56,7 @@
 - أُضيف تصحيح أخطاء محلي عبر `inspector` يُفعّل صراحةً في إصدارات Debug، ويستمع على localhost فقط مع الاتصال عبر `adb forward`
 - يدعم مصدر CommonJS/ESM, مصادر الوحدات, دليل العمل, جذر sandbox, متغيرات البيئة, ونتائج stdout/stderr.
 - يستخدم رابط V8 الأصلي لمداخل ESM و dynamic `import()` مع الحفاظ على التبعيات الدائرية وعمليات التصدير القابلة للتغيير و live binding عبر إعادة التصدير; يحتفظ CommonJS `require(esm)` بحدود التوافق المتزامن.
-- يوفر وصولا شبيها بسطح المكتب إلى نظام الملفات ضمن أذونات Android لتطبيق الملحق; وتبقى `/proc` و `/sys` و `/dev` مرفوضة دائما.
+- يستخدم وحدة fs الأصلية في Node.js؛ وتحدد أذونات Android لتطبيق المكوّن الإضافي وحدها إمكانية الوصول إلى الملفات، دون رفض خاص بوقت التشغيل لـ `/proc` أو `/sys` أو `/dev` (منذ 1.6.0).
 - يشغّل ناتج مترجم TypeScript الذي يقدمه المضيف ويدعم عبر provider v3 ترجمة ملفات `.ts`/`.mts`/`.cts` المنشأة أثناء التشغيل عند الطلب; ويفشل الإرسال الخام المباشر دائما بشكل مغلق بعد إزالة fallback لمحو الأنواع ومفتاح التوافق.
 - يوفر وسيط قدرات المضيف و live bridge مع وحدات تشغيل مثل `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, و `autojs6:bridge-permissions`.
 - يتضمن مشاريع `sample/nodejs` وقائمة قدرات واجهة برمجة تطبيقات المضيف `docs/HOST-API.md`.
@@ -100,7 +100,7 @@ console.log("AutoJs6 Node.js runtime");
 - مكتبات بيئة التشغيل الاصلية: `libnode.so`, `libautojs6-node.so` و `libnodexe.so`.
 - Intl: ICU 78 ببيانات الإعدادات المحلية الإنجليزية فقط (`--with-intl=small-icu`); يعمل `Intl` وهروب خصائص Unicode في التعبيرات النمطية ومخرجات أخطاء Node الخاصة على stderr داخل طرفية AutoJs6, ويمكن أن يشير `NODE_ICU_DATA` إلى ملف بيانات ICU كامل.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, و `universal`.
-- نظام الملفات: يمكن الوصول إلى مسارات الجهاز التي تسمح بها أذونات Android; وتعد `/proc` و `/sys` و `/dev` حدودا صارمة.
+- نظام الملفات: وحدة fs الأصلية في Node.js؛ يمكن الوصول إلى أي مسار على الجهاز تسمح به أذونات Android ولا يحتفظ وقت التشغيل بأي رفض خاص به.
 - TypeScript: يقبل ناتج المضيف ويمكنه طلب ترجمة ملفات المشروع المنشأة أثناء التشغيل عبر provider v3; ويعيد الإرسال الخام المباشر `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
 - رابط ESM: `vm.SourceTextModule` / `vm.SyntheticModule` مع live binding أصلي وتبعيات دائرية.
 - القدرات: تنفيذ سكربت متزامن, bundle transport, بيئة تشغيل اصلية مدمجة, وسيط قدرات المضيف, host capability live bridge.
@@ -112,6 +112,14 @@ console.log("AutoJs6 Node.js runtime");
 ### سجل الاصدارات
 
 ******
+
+# v1.6.0
+
+###### 2026/10/07
+
+* `تحسين` fs و fs/promises و node:sqlite هي وحدات Node.js الأصلية: أُزيل رفض /proc و /sys و /dev الخاص بوقت التشغيل وطبقة التحقق من المسارات، وإمكانية الوصول إلى الملفات تحددها أذونات Android وحدها، وتعمل واجهات الملفات غير المتزامنة في مجمع خيوط libuv بدل حجب حلقة الأحداث، وتحمل أخطاء المسارات رموز Node.js الأصلية (لم تعد عمليات الملفات وقواعد البيانات تُصدر ERR_AUTOJS6_FS_NUL_BYTE و ERR_AUTOJS6_FS_PATH_ESCAPE و ERR_AUTOJS6_FS_SCOPED_PATH و ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED)
+* `تحسين` process.cwd و process.chdir بسلوك Node.js الأصلي؛ يدخل التنفيذ دليل العمل عبر chdir حقيقي وتُحل المسارات النسبية بواسطة Node.js نفسه
+* `تحسين` ATTACH في node:sqlite (بما في ذلك أسماء الملفات عبر معامل مربوط أو تعبير) و VACUUM INTO و PRAGMA الأدلة و setAuthorizer هي سلوك SQLite الأصلي؛ ويتبع enableLoadExtension و allowExtension فحوصات الحالة الخاصة بـ Node.js
 
 # v1.5.7
 
@@ -127,39 +135,6 @@ console.log("AutoJs6 Node.js runtime");
 * `ميزة` عند حدوث خطأ فادح في Node.js داخل فتحة وقت التشغيل (نفاد ذاكرة كومة JavaScript، فشل فحص داخلي) يُترك الآن تقرير التشخيص الخاص بـ Node في ذاكرة التخزين المؤقت للإضافة (crash/<executionId>.json، يُكتب قبل الإيقاف؛ لا يُثبَّت أي معالج إشارات): تحمل نتيجة الفشل الحدث وأرقام الكومة ومكدس JS والمسار في slotExit.crash وفي رسالة الخطأ (مثلاً CRASH_NATIVE (SIGABRT; see the logcat tombstone; Node.js fatal error: Allocation failed - JavaScript heap out of memory; JS heap 61.9 MB used of 64.0 MB limit; report .../crash/<executionId>.json))، ويعرض getRuntimeInfo أحدث تقرير باسم lastCrash حتى بعد إعادة تشغيل الموزّع؛ كما يحدّ خيار الطلب الجديد maxOldGenerationSizeMb كومة JS لتنفيذ واحد (الجيل القديم في V8، بالميغابايت)، وهو أيضاً ما يستخدمه اختبار الانحدار لإعادة إنتاج هذا الانهيار
 * `اصلاح` تم إصلاح توقف فتحة وقت التشغيل بسبب نفاد ذاكرة كومة V8 (يُبلغ عنه كـ CRASH_NATIVE / SIGABRT) عند require لوحدة CommonJS كبيرة: كان إخفاء التعليقات والسلاسل في المحمّل يضيف حرفاً واحداً في كل مرة، فاحتاجت وحدة بحجم 22 MiB إلى نحو 700 MB من الكومة؛ أصبح الآن يُخرج مقاطع متصلة بالنتيجة نفسها (نحو 44 MB)، كما صار فحص import / export في CommonJS يقفز بين المرشحين بدلاً من فحص كل حرف
 * `اصلاح` تحذيرات قراءة SDK XML v4 مع AGP 9.1 وتشغيل فحص محاذاة مكتبات APK الأصلية خطأ عند تجميع اختبارات JVM, باستخدام إضافات البناء المشتركة 1.8.3
-
-# v1.5.5
-
-###### 2026/09/18
-
-* `اصلاح` أصبح إصدار فهرس القدرات وملخصه اللذان يبلغ عنهما runtimeInfo مشتقين من runtime kit, مما يصحح القيم القديمة 1.5.0 التي كان الإصدار 1.5.4 لا يزال يبلغ عنها
-* `اصلاح` يدعم worker_threads الآن new Worker(code, { eval: true }) كما في Node بدلا من معاملة نص الشيفرة كمسار سكربت
-* `تحسين` أصبح مسار ترجمة TypeScript على المضيف قدرة مستقرة في فهرس القدرات مع إزالة بيانات legacy stripping المتقاعدة; يسرد فهرس دورة الحياة أوضاع التنفيذ القابلة للتشغيل فقط مع إزالة سطح packaged_long_running والأسماء المحجوزة node_sandboxed / worker_computation; وتتطابق بيانات النقل والقبول والإلغاء مع وقت التشغيل الفعلي
-* `تحسين` أصبحت تشخيصات autojs6:profile تصف وقت التشغيل الفعلي بدلا من العلامات التاريخية partial / reserved / deferred: الوصول إلى الملفات ضمن أذونات Android، ومجموعة process الفرعية، وقنوات worker، ومجمع العمليات، وقرارات WASI / native addon
-* `تحسين` مراجعة الأمثلة: أصبحت packaged-esm و packaged-dynamic-import و require-esm و wasm-basic و wasm-plugin و desktop-parity-suite مستقرة؛ وتنفذ حزمتا التكافؤ مقاطعهما فعليا بدلا من طباعة نص الفهرس؛ وعُلّم compile-cache على أنه غير قابل للتطبيق وحُذف مثال package-install الذي كان يعرض بيانات وصفية فقط
-* `تحسين` يتبع تحميل الوحدات وصول Android إلى الملفات كما في Node: يقبل require و import و Worker المسارات المطلقة وأهداف الدلائل الأعلى وعناوين file: (يبقى /proc و /sys و /dev مرفوضة)؛ ويظل البحث في node_modules مثبتا على مساحة العمل
-* `تحسين` تتبع رسائل Worker ومراقبو fs حدود Node الأصلية: أُزيلت حدود 64 كيلوبايت للرسالة و 32 في الطابور وحصص 16 مراقبا / 64 حدثا في الثانية؛ ولا يحدها سوى ذاكرة Android
-* `تحسين` داخل الـ worker ينهي process.exit() خيط الـ worker فقط كما في Node، ويتبع process.getBuiltinModule() قائمة builtin المسموحة للـ worker بدلا من تعطيله كليا
-* `تحسين` تحل خيوط الـ worker محددات الحزم المجردة عبر node_modules في مساحة العمل كما في Node (شروط exports و main و index والإشارة الذاتية) بدلا من رفضها
-* `تحسين` يمر import() الديناميكي داخل الـ worker عبر محمل ESM الجزئي للـ worker (المسارات المحلية وعناوين file: وحزم مساحة العمل و builtin المسموحة و with { type: "json" }) بدلا من رفضه
-* `تحسين` ترقية عينة host-events إلى stable بعد اجتياز القبول اليدوي للمفتاح الفعلي والوصول إلى الإشعارات
-* `تحسين` تطبع عينة scheduled-node-task سياسة دورة حياتها ويمكنها الاحتفاظ بالمهمة المجدولة لتشغيل WorkManager فعلي؛ ويحصل وضع التنفيذ scheduled على اختبار انحدار من جانب الإضافة
-* `تحسين` ترقية وضع التنفيذ scheduled إلى available في فهرس القدرات بعد تشغيل فعلي لمشغّل WorkManager المجدول في المضيف عبر الإضافة
-* `تحسين` تعيد media.play() جلسة تشغيل (pause/resume/seekTo/stop/status) عبر خدمة موسيقى السكربتات في المضيف، وتوفر وحدة media_store الجديدة وصولاً محدوداً إلى MediaStore (capabilities/query/get/insert/update/delete/scanFile/exportFile) خلف قدرات media.playback / media.library / media.library.mutate؛ وتكتسب autojs6:compat.media أسماء بديلة بأسلوب Rhino مثل playMusic؛ وكلاهما يتطلب بنية المضيف المطابقة
-* `تحسين` تمت ترقية عينتَي media-playback / media-library إلى stable بعد القبول اليدوي مع موفري الوسائط المدمجين في المضيف؛ ونُشرت لقطة فهرس القدرات 1.5.5 تحت releases/nodejs-capability-catalog وتشير مهمة المحاذاة مع المضيف إليها الآن
-* `تحسين` يتخلى غلاف fs عن قيود الخيارات الخاصة به: خيارات fs / fd الموروث / flags للتدفقات، وwatch({ recursive: true })، ومرشحات cp غير المتزامنة (يحتفظ cpSync بـ ERR_INVALID_RETURN_VALUE من Node)، وأنماط glob المطلقة / الدليل الأب / '!' الحرفية مع مصفوفات exclude، وtype / encoding في readableWebStream، ومنشئات Stats / Dirent / Dir تتبع الآن سلوك Node 24 الأصلي؛ ويبلغ filesystemProfile.advancedApis.recursiveWatch عن native
-* `تحسين` أصبح readdir / opendir التكراري أصليًا (أُزيل الحد الأقصى 4096 مدخلًا وفحص realpath لكل مدخل؛ ويسرد readdir('/') أسماء proc/sys/dev كما في Node)، وتقبل readlink / chmod / chown / utimes المسارات المطلقة ويتبع chmod الروابط الرمزية، وتقلصت رموز أخطاء سياسة fs إلى ERR_AUTOJS6_FS_NUL_BYTE / ERR_AUTOJS6_FS_PATH_ESCAPE (الحد الصارم، مشترك مع المحمّل) / ERR_AUTOJS6_FS_SCOPED_PATH بينما تحتفظ إخفاقات fs العادية برمز Node فقط
-* `تحسين` أزال وقت التشغيل ميزانياته الخاصة لمصادر الوحدات (16 MiB لكل وحدة، 64 MiB إجمالًا، 8192 وحدة، عدد طلبات provider)، وتحصل نقطة دخول CommonJS على __filename / require.main.filename / process.argv[1] مطلقة كما في Node مع require.main.id يساوي '.'، وأصبح fs.mkdtemp* أصليًا: يعيد البادئة بصيغة المستدعي مع اللاحقة بالترميز المطلوب ولا يرفض بعد الآن مجلدًا أبًا يكون رابطًا رمزيًا
-* `تحسين` يسلّم node:sqlite عمليات الملفات في SQL إلى SQLite الأصلي: يُفحص ATTACH ذو اسم الملف الحرفي (بما فيه file: URI) عبر مُخوِّل SQLite مقابل حدود /proc و/sys و/dev بدل مسح نص SQL، وتخضع وجهات VACUUM INTO لفحص الحدود نفسه عبر ATTACH الداخلي في SQLite، ولم تعد PRAGMA الخاصة بالمجلدات تُعترض، وتُفتح سلاسل file: URI وقاعدة البيانات المؤقتة الفارغة، ويتركّب setAuthorizer() مع فحص الحدود (يبقى مرفوضًا فقط ATTACH الذي يأتي اسم ملفه من معامل مربوط أو تعبير)
-* `تحسين` تُسلَّم حصص الجسر إلى المضيف: الاستدعاءات التي تتجاوز نافذة maxPendingBridgeCalls في autojs6:bridge-limits تنتظر الآن بترتيب الوصول بدل الفشل بـ ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT، ولم يعد وقت التشغيل يحدّ بنفسه عدد مقابض الصور أو طلبات fetch المضبوطة المتزامنة أو اتصالات WebSocket المضبوطة (يواصل وسيط المضيف تطبيق سياسته)، وأُلغي require('fetch').policy.maxConcurrentRequests و require('websocket').policy.maxConnections
-* `تحسين` تُسلِّم واجهات fetch / WebSocket / axios الجسرية حدودها القصوى إلى المضيف: تُمرَّر المهل وحجم الاستجابة وعدد إعادات التوجيه وأحجام الرسائل والطابور وطريقة HTTP إلى مزوّد المضيف دون قصّ (تسري سياسته الخاصة)، ويتبع وقت التشغيل حتى 20 إعادة توجيه مثل Node، وتحلّ limitsEnforcedBy محلّ حقول hard* وأحجام policy الافتراضية الملغاة
-* `تحسين` يعيد opendir كائن fs.Dir الكسول الأصلي من Node (تمرَّر bufferSize وencoding وrecursive إلى opendir الأصلي، وENOENT / ENOTDIR / ERR_DIR_CLOSED أخطاء Node؛ يحتفظ dir.path وparentPath فقط بكتابة المستدعي)، وأُلغي حارس وقت التشغيل ضد حذف جذر وصول نظام الملفات فيصبح rm / rmdir للجذر قرار Node وAndroid كأي مسار آخر (رموز سياسة fs تقتصر على FS_NUL_BYTE وFS_PATH_ESCAPE)
-* `تحسين` يعتمد نقل provider المضيف حدود المصدر الواحد / الإجمالي / عدد الطلبات التي يعلنها المضيف عبر getNativeDiagnostics() (القيم المدمجة 16 MiB / 64 MiB / 139264 مجرد بديل احتياطي)، وتصل أجسام استجابة fetch الموصول عبر واصف ملف (bodyTransport "pfd") فتحدّها سياسة maxResponseBytes للمضيف فقط لا حجم معاملة Binder، ويُبلَّغ فورًا عن رد المضيف الذي يتجاوز حجم معاملة Binder بالرمز ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED (فرع المضيف node-m20-2-binder-body-pfd) بدل انتهاء مهلة الجسر
-* `تحسين` أصبحت أجسام طلبات fetch الموصول ورسائل WebSocket التي تتجاوز 256 KiB تصل إلى المضيف كواصف ملف للقراءة فقط (bodyTransport / messageTransport "pfd") بدلًا من JSON base64 المضمّن، على المضيفين الذين يعلنون bridgeRequestBinaryTransport=pfd (فرع المضيف node-m20-2-binder-body-pfd)، فلا يحدّ الرفع سوى سياسة طلبات المضيف (64 MiB) و maxMessageBytes لا حجم معاملة Binder
-* `تحسين` أصبحت استجابات fetch الخاضع للتحكم تكشف عنوان URL النهائي للمزوّد عبر Response.url (لا يحمل ResponseInit عنوان url، لذا كان يُقرأ دائمًا كسلسلة فارغة)
-* `تحسين` أصبح التشغيل البيني مع Java يُحوِّل كل استدعاء إلى القائمة البيضاء التصريحية للمضيف (الصنف ← المُنشئات والطرق الثابتة وطرق الكائنات والحقول، وينفذها المضيف بالانعكاس مع قيم JSON الأولية ومقابض الكائنات)، ولم يعد وقت التشغيل يحتفظ بجدول أصناف خاص به بل يقرأ الجدول الذي ينشره المضيف بوصفه java.policy، وأُضيفت getStatic() / describe()، وتُبلَّغ الاستثناءات التي يرميها العضو نفسه بالرمز ERR_AUTOJS6_JAVA_CALL_FAILED
-* `تحسين` أصبحت أولوية npm على وحدات وقت التشغيل مقتصرة على الوحدات التي تحل محل حزم npm حقيقية (axios وcolors وmime وnanoid وopencc وundici): لم تعد الحزمة المتماثلة الاسم في node_modules تستبدل واجهات java وfetch وwebsocket وdevice وغيرها من واجهات AutoJs6، وتتبع require.resolve القاعدة نفسها التي تتبعها require، ويمكن استيراد أي اسم وحدة لوقت التشغيل من ESM، وينشر autojs6:profile القاعدة باسم moduleResolutionProfile، وأُضيفت getStatic() / describe() إلى وكيل Packages في Rhino
-* `تحسين` عندما تموت عملية فتحة وقت التشغيل أثناء تنفيذ السكربت (قتلها low-memory killer أو انهيار أصلي أو kill مباشر)، تُبلغ نتيجة الفشل الآن عن سجل الخروج الذي يحتفظ به النظام بدلاً من DeadObjectException فقط: تبدو الرسالة مثل LOW_MEMORY (killed by the system low-memory killer; rss 2.6 GB) أو CRASH_NATIVE (SIGABRT; see the logcat tombstone)، وتحمل النتيجة slotExit ويحمل getRuntimeInfo القيمة lastSlotExit (Android 11 فأحدث؛ الأنظمة الأقدم تُبلغ بأن السبب غير متاح)
 
 ##### لمزيد من سجل الاصدارات
 

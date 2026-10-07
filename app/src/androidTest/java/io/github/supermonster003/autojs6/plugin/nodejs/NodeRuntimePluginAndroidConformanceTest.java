@@ -410,13 +410,14 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 const assert = require('node:assert/strict');
                 const profile = require('autojs6:profile');
                 assert.equal(profile.engineVersion, 'autojs6-node-profile-v1.3');
-                // File access is bounded by Android permissions plus the /proc, /sys and /dev denial, not by a sandbox root.
+                // M23.1: fs is Node's own module and file access is bounded by Android permissions alone.
                 assert.equal(profile.scopedFs, false);
-                assert.equal(profile.filesystemProfile.mode, 'android_file_access_with_sensitive_roots_denied');
+                assert.equal(profile.filesystemProfile.mode, 'android_file_access');
                 assert.equal(profile.filesystemProfile.safeProfileScoped, false);
                 assert.equal(profile.filesystemProfile.androidSharedStorage, true);
                 assert.equal(profile.filesystemProfile.advancedApis.streams, 'stable');
-                assert.equal(profile.processParityProfile.chdir, 'existing_directories_except_sensitive_roots');
+                assert.equal(profile.processParityProfile.cwd, 'native');
+                assert.equal(profile.processParityProfile.chdir, 'native');
                 assert.ok(!profile.processParityProfile.androidUnsupported.includes('unrestricted_chdir'));
                 assert.equal(profile.processParityProfile.versions, 'native');
                 assert.equal(process.versions.node, process.version.slice(1));
@@ -628,7 +629,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         }
     }
 
-    /** M20.2: module loading follows Android file access like Node; /proc, /sys and /dev stay denied. */
+    /** M20.2 / M23.1: module loading follows Android file access like Node; /proc, /sys and /dev follow Android too. */
     @Test
     public void m20_loaderFollowsAndroidFileAccessForAbsolutePathsAndFileUrls() throws Exception {
         LinkedHashMap<String, String> files = new LinkedHashMap<>();
@@ -671,17 +672,18 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                       worker.once('error', reject);
                     });
                     console.log('m20.worker.outside=' + workerValue);
-                    const denied = {
+                    // M23.1: /proc, /sys and /dev follow Android like every other path. Loading a procfs file or a
+                    // sysfs directory as a module fails for Node's own reasons, never with an AutoJs6 fs policy code.
+                    const reach = {
                       'require.proc': () => require('/proc/self/status'),
                       'import.proc': () => import('/proc/self/status'),
                       'import.fileurl.proc': () => import('file:///proc/self/status'),
-                      'import.sys': () => import('file:///sys/kernel'),
-                      'worker.dev': () => new Worker('/dev/null')
+                      'import.sys': () => import('file:///sys/kernel')
                     };
-                    for (const [label, attempt] of Object.entries(denied)) {
+                    for (const [label, attempt] of Object.entries(reach)) {
                       let code = 'none';
                       try { await attempt(); } catch (error) { code = error.autojs6Code || error.code || error.name; }
-                      console.log('m20.denied.' + label + '=' + code);
+                      console.log('m20.reach.' + label + '=' + code);
                     }
                     console.log('m20.loader=PASS');
                   } finally {
@@ -707,15 +709,15 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                     "m20.import.outside=outside-esm/7",
                     "m20.import.static=esm-abs+outside-esm",
                     "m20.worker.outside=outside-cjs",
-                    "m20.denied.require.proc=ERR_AUTOJS6_FS_PATH_ESCAPE",
-                    "m20.denied.import.proc=ERR_AUTOJS6_FS_PATH_ESCAPE",
-                    "m20.denied.import.fileurl.proc=ERR_AUTOJS6_FS_PATH_ESCAPE",
-                    "m20.denied.import.sys=ERR_AUTOJS6_FS_PATH_ESCAPE",
-                    "m20.denied.worker.dev=ERR_AUTOJS6_FS_PATH_ESCAPE",
+                    "m20.reach.require.proc=",
+                    "m20.reach.import.proc=",
+                    "m20.reach.import.fileurl.proc=",
+                    "m20.reach.import.sys=",
                     "m20.loader=PASS"
             }) {
                 assertTrue("stdout is missing '" + expected + "': " + stdout, stdout.contains(expected));
             }
+            assertTrue("an AutoJs6 fs policy code leaked: " + stdout, !stdout.contains("ERR_AUTOJS6_FS_"));
         }
     }
 
@@ -986,7 +988,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                     assert.throws(() => fs.mkdtempSync('missing-dir/tmp-'), (error) => error.code === 'ENOENT' && error.autojs6Code === undefined);
                     assert.throws(() => fs.mkdtempSync('tmp-', { encoding: 'nope' }), { code: 'ERR_INVALID_ARG_VALUE' });
                     assert.throws(() => fs.mkdtempSync(42), { code: 'ERR_INVALID_ARG_TYPE' });
-                    assert.throws(() => fs.mkdtempSync('tmp-' + String.fromCharCode(0)), { autojs6Code: 'ERR_AUTOJS6_FS_NUL_BYTE' });
+                    assert.throws(() => fs.mkdtempSync('tmp-' + String.fromCharCode(0)), { code: 'ERR_INVALID_ARG_VALUE' });
                     console.log('m20.mkdtemp=PASS');
                     // No module-source budget: 22 MiB modules (three of them, 66 MiB in total) and 8300 modules load.
                     const bigSource = 'module.exports = 1; // ' + 'x'.repeat(22 * 1024 * 1024);
@@ -1066,14 +1068,15 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                     try { rootEntries = fs.readdirSync('/'); } catch (error) { assert.equal(error.code, 'EACCES'); assert.equal(error.autojs6Code, undefined); }
                     if (rootEntries) assert.ok(rootEntries.includes('proc') && rootEntries.includes('dev'), rootEntries.join(','));
                     console.log('m20.readdir.recursive=' + names.length);
-                    // One code for the hard boundary (shared with the module loader and worker fs), one for NUL bytes, none for ordinary failures.
+                    // M23.1: no AutoJs6 fs policy codes at all. /proc, /sys and /dev follow Android: the process's own
+                    // procfs entries read fine, sysfs answers whatever SELinux allows, NUL bytes are Node's ERR_INVALID_ARG_VALUE.
                     const codeOf = (fn) => { try { fn(); return 'none'; } catch (error) { return String(error.autojs6Code || error.code); } };
-                    assert.equal(codeOf(() => fs.readFileSync('/proc/self/status')), 'ERR_AUTOJS6_FS_PATH_ESCAPE');
-                    assert.equal(codeOf(() => fs.readFileSync('../'.repeat(16) + 'proc/self/status')), 'ERR_AUTOJS6_FS_PATH_ESCAPE');
-                    assert.equal(codeOf(() => fs.readdirSync('/sys/kernel')), 'ERR_AUTOJS6_FS_PATH_ESCAPE');
-                    assert.equal(codeOf(() => fs.symlinkSync('/proc/self', path.join(dir, 'proc-link'))), 'ERR_AUTOJS6_FS_PATH_ESCAPE');
-                    assert.equal(codeOf(() => fs.readlinkSync('/proc/self/exe')), 'ERR_AUTOJS6_FS_PATH_ESCAPE');
-                    assert.equal(codeOf(() => fs.readFileSync(path.join(dir, 'a' + String.fromCharCode(0) + 'b'))), 'ERR_AUTOJS6_FS_NUL_BYTE');
+                    assert.equal(codeOf(() => fs.readFileSync('/proc/self/status')), 'none');
+                    assert.equal(codeOf(() => fs.readFileSync('../'.repeat(16) + 'proc/self/status')), 'none');
+                    assert.ok(['none', 'EACCES', 'ENOENT'].includes(codeOf(() => fs.readdirSync('/sys/kernel'))));
+                    assert.equal(codeOf(() => fs.symlinkSync('/proc/self', path.join(dir, 'proc-link'))), 'none');
+                    assert.equal(codeOf(() => fs.readlinkSync('/proc/self/exe')), 'none');
+                    assert.equal(codeOf(() => fs.readFileSync(path.join(dir, 'a' + String.fromCharCode(0) + 'b'))), 'ERR_INVALID_ARG_VALUE');
                     let missing = null;
                     try { fs.readFileSync(path.join(dir, 'missing.txt')); } catch (error) { missing = error; }
                     assert.equal(missing.code, 'ENOENT');
@@ -1245,7 +1248,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                     assert.throws(() => fs.opendirSync(path.join(tree, 'missing')), (error) => error.code === 'ENOENT' && error.syscall === 'opendir' && error.autojs6Code === undefined);
                     assert.throws(() => fs.opendirSync(path.join(tree, 'a.txt')), (error) => error.code === 'ENOTDIR' && error.syscall === 'opendir' && error.autojs6Code === undefined);
                     await assert.rejects(fsp.opendir(path.join(tree, 'missing')), (error) => error.code === 'ENOENT' && error.syscall === 'opendir');
-                    assert.throws(() => fs.opendirSync('/proc/self'), (error) => error.autojs6Code === 'ERR_AUTOJS6_FS_PATH_ESCAPE');
+                    { const procDir = fs.opendirSync('/proc/self'); assert.ok(procDir.readSync()); procDir.closeSync(); }
                     console.log('m20.opendir=PASS');
                     // Removing the reach root is Node's decision: non-recursive rm of a directory is ERR_FS_EISDIR, rmdir of a non-empty root is native; no ERR_AUTOJS6_FS_SCOPED_PATH.
                     let rootRm = null;
@@ -1466,7 +1469,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                   await assert.rejects(import('autojs6:fetch'), (e) => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED');
                   await assert.rejects(import('./missing.mjs'), (e) => e.code === 'ERR_AUTOJS6_MODULE_NOT_FOUND');
                   await assert.rejects(import('no-such-dyn-package'), (e) => e.code === 'MODULE_NOT_FOUND');
-                  await assert.rejects(import('/proc/self/status'), (e) => e.code === 'ERR_AUTOJS6_FS_PATH_ESCAPE');
+                  await assert.rejects(import('/proc/self/status'), (e) => !String(e.code).startsWith('ERR_AUTOJS6_FS_'));
                   parentPort.postMessage('cjs-ok');
                 })().catch((error) => { parentPort.postMessage('cjs-fail:' + (error && (error.stack || error.message))); });
                 """);

@@ -20,7 +20,7 @@
 
 文件中的密钥请先使用 `node:fs` 读取字节, 再交给 `crypto.createPrivateKey` 或签名 API。Node 24.21 新增的 OpenSSL STORE 密钥 URL 在 Android 构建中返回 `ERR_ACCESS_DENIED`: 该加载器能绕过既有文件路径检查, 真机已复现通过 `/proc/self/fd` 读取测试密钥。当前保留原有文件系统边界, 不开放 STORE URL; PEM/DER/JWK/KeyObject 等已有密钥输入继续使用 Node 原生实现。
 
-`os` 通过 Proxy 保留应用工作目录形式的 `tmpdir` / `homedir` 及既有 `userInfo` 身份策略, 其余导出 (含 CPU、内存、constants) 来自原生 Node。`fs` / `fs/promises` 的 `/proc`、`/sys`、`/dev` 边界仍在实际文件操作时检查; `url.fileURLToPath` 本身仅作路径转换。`process`、`module`、子进程、worker、网络和 inspector 的请求级策略见对应章节。
+`os` 通过 Proxy 保留应用工作目录形式的 `tmpdir` / `homedir` 及既有 `userInfo` 身份策略, 其余导出 (含 CPU、内存、constants) 来自原生 Node。`fs` / `fs/promises` 自 M23.1 (2026-10-07) 起直接返回 Node 原生模块 (`require("fs") === process.getBuiltinModule("fs")`): 没有包装层, 没有 `/proc`、`/sys`、`/dev` 边界, 异步 API 经 libuv 线程池执行而非在 `setImmediate` 中同步完成; 执行开始时以原生 `process.chdir` 进入工作目录, `process.cwd()` / `process.chdir()` 为原生行为; `url.pathToFileURL` / `fileURLToPath` 均为原生。`process`、`module`、子进程、worker、网络和 inspector 的请求级策略见对应章节。
 
 成功结果在 Node 事件循环完成、触发最终 `exit` 时生成, 因此原生异步工作及 `beforeExit` 中追加的任务均可完成, 最终 stdout/stderr 与 `process.exitCode` 会正确回传。
 
@@ -30,7 +30,7 @@
 
 `node:sqlite` 提供 Node 原生同步 SQLite 引擎, 支持 `DatabaseSync`、预编译语句、CRUD、事务、函数与备份, 主线程和 worker 均可使用。普通名 `sqlite` 继续表示宿主异步数据库桥。数据库构造、重新打开和 `backup` 目标经过既有 fs 路径及符号链接检查; 支持字符串/Buffer 文件路径、file URL 对象、SQLite `file:` URI 字符串、`:memory:` 与空字符串 (私有临时库)。Node 24.21 的 SQLite API 标为 release candidate; 原生 API 的稳定性级别跟随该 Node 版本, 嵌入执行的实验提示输出遵循上面的统一策略。
 
-SQL 里的文件操作交给原生 SQLite (M20.2 第九批, 2026-09-18): `ATTACH` 的字面量文件名 (含 `file:` URI) 经 Node 24 的 SQLite authorizer 按与构造函数相同的 NUL / `/proc` `/sys` `/dev` 硬边界校验后放行, 相对文件名按进程工作目录解析; 由绑定参数或表达式给出的 ATTACH 文件名在 prepare 时不可见, 仍返回 `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED` (唯一保留的 SQL 拦截); `VACUUM INTO` 的目标由 SQLite 内部以字面量 ATTACH 打开, 因此同样经过该边界校验 (绑定参数给出的目标也能校验), 其余由 Android 决定; `PRAGMA temp_store_directory` / `data_store_directory` 不再拦截; 只读打开不存在的文件由 SQLite 报错。`db.setAuthorizer()` 可正常使用: 运行时的边界检查先于用户回调执行, `setAuthorizer(null)` 只清除用户回调, close/open 后边界检查自动重装; 对未打开的连接调用返回 `ERR_INVALID_STATE` (Node 24 原生实现会在此处崩溃)。原生扩展加载仍拒绝。
+SQL 里的文件操作完全交给原生 SQLite (M23.1, 2026-10-07; 取代 M20.2 第九批的 authorizer 边界): `node:sqlite` 直接返回 Node 原生模块, `ATTACH` (字面量、绑定参数或表达式给出的文件名)、`VACUUM INTO`、`PRAGMA temp_store_directory` / `data_store_directory`、只读打开与相对路径解析 (按进程工作目录) 均为 SQLite 自身行为, 路径可达性由 Android 决定, 系统路径上的失败是 SQLite 自己的 `ERR_SQLITE_ERROR` (如 procfs 文件 "file is not a database", `/sys` `/dev` 下无法创建); `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED` 退役。`db.setAuthorizer()` 为 Node 原生实现 (不再有运行时边界回调, 对未打开连接的行为随 Node 上游); `enableLoadExtension` / `allowExtension` 按 Node 原生状态机 (构造时未开启 `allowExtension` 则 `ERR_INVALID_STATE`), 扩展本身的加载随 M23.4 原生扩展放开。
 
 ## MediaInfo 多流查询
 
@@ -147,7 +147,7 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 - `workingDirectory` / `sandboxRoot` 继续约束入口、`require()`、`node_modules`、本地 ESM 图与 `./plugins` 扫描, 但**不再作为 fs 授权根**。绝对路径与工作区外路径可以交给 Android 正常判权。
 - 插件 APK 使用独立 applicationId/UID, 不继承 AutoJs6 宿主的存储授权。Android 11+ 访问共享存储前, 用户需在系统设置为本插件授予“所有文件访问” (`MANAGE_EXTERNAL_STORAGE`); 未授权时 Node 返回 `EACCES` 属预期行为。
 - Android UID、清单权限、SELinux 与文件自身权限仍是实际边界。插件不能借此读取其他应用的私有目录。
-- `/proc`、`/sys`、`/dev` 是运行时额外保留的硬拒绝边界, 即使 Android 授权也不会放开。
+- `/proc`、`/sys`、`/dev` 自 M23.1 (2026-10-07) 起不再是运行时保留的拒绝边界: 本进程的 procfs 条目、`/dev/null` 等按 Android 允许的范围正常读写, Android 拒绝的路径返回 Node 原生错误码 (`EACCES` / `ENOENT`), 没有 AutoJs6 策略码; 下文 M20.2 各批次记录中提到的 "硬边界" 与 "包装层只保留路径校验" 为历史状态, scoped fs 包装层已整体删除。
 - fs 包装层不再自设选项拦截 (M20.2 第六批, 2026-09-17): `createReadStream` / `createWriteStream` / `Utf8Stream` / `FileHandle.createReadStream` 的 `fs` 选项、原型继承的 `fd` / `dest`、任意 `flags`, `fs.watch` / `fs.promises.watch` 的 `recursive: true`, `fs.cp` / `fs.promises.cp` 的异步 `filter` (`cpSync` 遇到 Promise 与 Node 一样抛 `ERR_INVALID_RETURN_VALUE`), glob 的绝对路径 / 父目录 / `!` 字面模式与 `exclude` 数组, `FileHandle.readableWebStream` 的 `type` / `encoding` (与 Node 一样忽略), 以及 `fs.Stats` / `fs.Dirent` / `fs.Dir` 构造器均按 Node 24 原生语义处理; 包装层只保留路径校验 (硬边界 + NUL) 与 fd 归属跟踪, `autojs6:profile` 的 `filesystemProfile.advancedApis.recursiveWatch` 报告 `native`。
 - readdir / opendir 的递归遍历交给原生 (M20.2 第七批, 2026-09-17): 原包装层自行递归并设 4096 条目上限 (超出抛 ERR_OUT_OF_RANGE), 并对每个条目做 realpath 校验, 现直接调用原生 `readdirSync(..., { recursive })`, 只把 `parentPath` 映射回调用者传入的路径写法; `readdirSync('/')` 与 Node 一样列出 `proc` / `sys` / `dev` 的名称, 读取其内容仍被拒绝。fs 策略错误码收敛为三个: NUL 字节 `ERR_AUTOJS6_FS_NUL_BYTE`、`/proc` `/sys` `/dev` 硬边界 `ERR_AUTOJS6_FS_PATH_ESCAPE` (与模块 loader / worker fs 一致; 原 `FS_ABSOLUTE_PATH_DENIED` / `FS_REALPATH_ESCAPE` / `FS_SYMLINK_ESCAPE` 退役, 不再产生)、删除可达根 `ERR_AUTOJS6_FS_SCOPED_PATH`; 其他 fs 失败只带 Node / Android 码, 不再附带 `autojs6Code`。readlink / chmod / chown / utimes 不再拒绝绝对路径, chmod / utimes 经符号链接作用于目标 (与 Node 一致)。目录 1.5.5 快照已发布, 其中退役的 FS_* 常量 (含 FS_WATCH_*) 待下次目录版本清理。
 - loader 残余: 模块源预算与入口路径 (M20.2 第八批, 2026-09-18): 移除运行时自设的模块源预算 — 单模块 16 MiB、总量 64 MiB、8192 个模块与 provider 请求计数 139264 四项上限连同 `ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED` 在运行时内的全部产生点一并删除 (Node 无此类限制), 直接经 fs 读取的明文模块、内嵌 runtime 模块与 `data:` URL 模块只受设备内存约束; 宿主 provider 传输通道 (插件 `PluginModuleSourceProviderFileTransportSession` 与宿主镜像的同组常量) 仍保留这些协议尺寸, 属宿主/插件共享协议 (第十三批起改为采用宿主公布值, 见下)。CommonJS 入口的 `__filename` / `require.main.filename` / `process.argv[1]` 改为 Node 语义的绝对路径 (原为宿主传入的原始 sourceName, 如 `<plugin-node-script.js>` 或相对写法; ESM 入口早已如此), `require.main.id` 为 `.`; 栈帧与宿主 source map 仍使用原始 sourceName。`fs.mkdtemp*` 交给原生: 返回值保留调用者的前缀写法加原生后缀 (原一律返回相对 cwd 的路径, 即使前缀是绝对路径), 支持 `buffer` / `hex` 等编码, 前缀父目录为符号链接时不再拒绝, 父目录不存在由原生返回 ENOENT。顺带修正: 诊断字段 `esmModuleGraphModules` 原把整个 ESM 模块图逐条拼进完成事件, 数千模块时会超出 Binder 事务缓冲导致完成事件丢失、脚本直到超时才结束 (小米实测 8300 个 `data:` 模块), 现只带前 64 条与剩余计数 (`esmModuleGraphSize` 仍是全量)。
@@ -270,7 +270,7 @@ try {
 
 | 项 | 原因 |
 |---|---|
-| `wasi` / `node:wasi` | 继续禁用: 原生 WASI 文件调用绕过 JS fs 路径检查, 单独限制 preopens 不能落实 `/proc`、`/sys`、`/dev` 边界; 普通 WebAssembly 与 WASM worker 可用 |
+| `wasi` / `node:wasi` | 暂仍禁用: 原决策 (M13.6) 的依据是 WASI preopens 无法落实 `/proc`、`/sys`、`/dev` 边界, M23.1 删除该边界后依据已不成立, 按 M23.2 放开原生实现; 普通 WebAssembly 与 WASM worker 可用 |
 | accessibility 的 powerDialog / waitFor / rawNode | 此旧入口仍 blocked; 电源菜单通过 keys.powerDialog, swipe/gesture 见第一节 |
 | 硬件标识符 (imei 等) | 隐私 fail-closed |
 | RootAutomator / Shizuku 输入通道 | M15.5 决定不新增; gesture/swipe 用无障碍, 设备有 root 时可显式使用 shell.execRoot |
@@ -305,7 +305,7 @@ try {
 
 | 需求 | 用这个 (Node 原生) | 不要用 | 备注 |
 |---|---|---|---|
-| 读写文件 | `fs` / `fs/promises` (Android 权限范围; `/proc`/`/sys`/`/dev` 拒绝) | `files` shim | shim 本身就是 fs 封装, 直接用 fs 少一层; 共享存储授权见第五节 |
+| 读写文件 | `fs` / `fs/promises` (Node 原生模块, Android 权限范围) | `files` shim | shim 本身就是 fs 封装, 直接用 fs 少一层; 共享存储授权见第五节 |
 | HTTP/HTTPS 客户端 | 全局 `fetch`、`http` / `https`, 或工作区安装的 npm 包 | `autojs6:fetch` / `axios` / `undici` | 全局 fetch 使用 Node 内置 Undici; 显式桥接版走宿主 OkHttp, 代理/证书策略跟随宿主 |
 | WebSocket 客户端 | 全局 `WebSocket`, 或工作区安装的 npm 包 | `autojs6:websocket` | 原生 API 遵循 Web 标准事件接口; 桥接 API 提供异步 connect/send/close 与宿主策略 |
 | HTTP 服务器 | `http.createServer` | — | 桥接版无服务器能力 |
