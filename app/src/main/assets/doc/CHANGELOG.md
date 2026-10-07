@@ -16,7 +16,7 @@
 * `优化` 全部 Node.js 内建模块 (含 cluster, domain, repl, trace_events, wasi, constants, node:sea 等) 按 Node 自身的 module.builtinModules 清单直接返回原生导出, require, require.resolve, import, process.getBuiltinModule 与 module.isBuiltin 行为与桌面版一致, 仅保留 worker_threads, child_process, inspector 及原生网络模块的请求级门禁; node:wasi 随 /proc 边界的删除一并放开 (trace_events 在当前未启用 tracing 的运行库中与 Node 一样抛出 ERR_TRACE_EVENTS_UNAVAILABLE)
 * `优化` process 对象仅保留 exit 的生命周期映射与 dlopen 的暂时拒绝, abort, kill, umask, binding, report, features 及 POSIX 身份调用均为 Node.js 原生行为; os 模块原生, homedir 与 tmpdir 通过执行环境变量 HOME/TMPDIR 指向工作目录, userInfo 返回真实的 Android 应用用户
 * `优化` module 内建模块改为仅覆盖 createRequire 的 Node.js 原生对象, registerHooks, enableCompileCache, findPackageJSON 等可直接使用; 删除仅在禁用原生网络时可达的 http, https, net, tls, dns 受限实现, 禁用时直接返回 ERR_AUTOJS6_BUILTIN_DISABLED
-* `优化` 插件信息 (INFO) 与运行时诊断的 supportedAbis 改为读取构建期写入清单的 org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (需要 AutoJs6-Gradle-Platform-Versions 1.8.4 起的 nativeAlignment 插件), 表示插件构建支持的全部 ABI 而非已安装分包; meta-data 缺失时回退为已安装包内实际打包的 ABI, 手写的 ABI 常量已删除
+* `优化` 插件信息 (INFO) 与运行时诊断的 supportedAbis 改为读取构建期写入清单的 org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (需要 AutoJs6-Gradle-Platform-Versions 1.9.0 起的 nativeAlignment 插件), 表示插件构建支持的全部 ABI 而非已安装分包; meta-data 缺失时回退为已安装包内实际打包的 ABI, 手写的 ABI 常量已删除
 
 # v1.5.7
 

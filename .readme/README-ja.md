@@ -125,7 +125,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `改善` すべての Node.js 組み込みモジュール (cluster, domain, repl, trace_events, wasi, constants, node:sea など) を Node 自身の module.builtinModules 一覧からそのまま返すようになり, require, require.resolve, import, process.getBuiltinModule, module.isBuiltin はデスクトップ版と同じ動作になりました; リクエスト単位のゲートが残るのは worker_threads, child_process, inspector とネイティブネットワークモジュールのみで, node:wasi は /proc 境界の撤去とともに開放されました (tracing を含まない現在の libnode では trace_events は Node と同様に ERR_TRACE_EVENTS_UNAVAILABLE を投げます)
 * `改善` process に残るのは exit のライフサイクル対応付けと dlopen の一時的な拒否のみで, abort, kill, umask, binding, report, features と POSIX の ID 呼び出しは Node.js 本来の動作になりました; os はネイティブで, homedir と tmpdir は実行時の環境変数 HOME/TMPDIR (作業ディレクトリに設定) に従い, userInfo は実際の Android アプリユーザーを返します
 * `改善` module 組み込みは createRequire のみを上書きした Node.js 本来のオブジェクトになり, registerHooks, enableCompileCache, findPackageJSON などが利用できます; ネイティブネットワーク無効時にのみ到達できた http, https, net, tls, dns の制限実装を削除し, その場合は ERR_AUTOJS6_BUILTIN_DISABLED を直接返します
-* `改善` プラグイン情報 (INFO) とランタイム診断の supportedAbis は, ビルド時にマニフェストへ書き込まれる org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (AutoJs6-Gradle-Platform-Versions 1.8.4 以降の nativeAlignment プラグイン) から取得するようになり, インストール済みの split ではなくプラグインがビルドされた全 ABI を表します; meta-data がない場合はインストール済み APK にパッケージされた ABI にフォールバックし, 手書きの ABI 定数は削除
+* `改善` プラグイン情報 (INFO) とランタイム診断の supportedAbis は, ビルド時にマニフェストへ書き込まれる org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (AutoJs6-Gradle-Platform-Versions 1.9.0 以降の nativeAlignment プラグイン) から取得するようになり, インストール済みの split ではなくプラグインがビルドされた全 ABI を表します; meta-data がない場合はインストール済み APK にパッケージされた ABI にフォールバックし, 手書きの ABI 定数は削除
 
 # v1.5.7
 

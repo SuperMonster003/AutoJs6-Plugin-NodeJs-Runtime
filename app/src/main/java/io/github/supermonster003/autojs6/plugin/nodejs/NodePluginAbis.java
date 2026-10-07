@@ -17,7 +17,7 @@ import java.util.zip.ZipFile;
  * ABI facts of the installed plugin package.
  *
  * The supported set is no longer a hand-written constant: the shared native-alignment Gradle
- * plugin (1.8.4+) derives it from the ABIs the build actually packages and writes it into the
+ * plugin (1.9.0+) derives it from the ABIs the build actually packages and writes it into the
  * manifest as {@code org.autojs.plugin.contract.SUPPORTED_ABIS}. A package built without that
  * meta-data falls back to the ABIs whose runtime library is installed.
  */
