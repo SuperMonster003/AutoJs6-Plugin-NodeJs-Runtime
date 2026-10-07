@@ -157,13 +157,14 @@ public final class BuiltinPassthroughSmokeTest {
                         try {
                           fs.writeFileSync(keyPath, pem);
                           fd = fs.openSync(keyPath, 'r');
-                          const denied = error => error.code === 'ERR_ACCESS_DENIED';
+                          // M23.1: the Android-only STORE denial patch is gone; file: key URLs load like on desktop.
+                          const expectedDer = privateKey.export({format: 'der', type: 'pkcs8'});
                           for (const keyUrl of [new URL('file:///proc/self/fd/' + fd), require('node:url').pathToFileURL(keyPath)]) {
-                            assert.throws(() => crypto.createPrivateKey(keyUrl), denied);
-                            assert.throws(() => crypto.sign(null, Buffer.from('test'), {key: keyUrl}), denied);
+                            assert.deepStrictEqual(crypto.createPrivateKey(keyUrl).export({format: 'der', type: 'pkcs8'}), expectedDer);
+                            const urlSignature = crypto.sign(null, Buffer.from('test'), {key: keyUrl});
+                            assert.ok(crypto.verify(null, Buffer.from('test'), crypto.createPublicKey(privateKey), urlSignature));
                           }
-                          assert.deepStrictEqual(crypto.createPrivateKey(pem).export({format: 'der', type: 'pkcs8'}),
-                            privateKey.export({format: 'der', type: 'pkcs8'}));
+                          assert.deepStrictEqual(crypto.createPrivateKey(pem).export({format: 'der', type: 'pkcs8'}), expectedDer);
                           const data = Buffer.from('store-policy');
                           const signature = crypto.sign(null, data, crypto.createPrivateKey(fs.readFileSync(keyPath)));
                           assert.ok(crypto.verify(null, data, crypto.createPublicKey(privateKey), signature));
@@ -173,6 +174,12 @@ public final class BuiltinPassthroughSmokeTest {
                           fs.rmdirSync(keyDir);
                         }
                       }
+                      // M23.1: full ICU data (--with-intl=full-icu); locale formatting matches desktop Node.
+                      assert.strictEqual(process.config.variables.icu_small, false);
+                      assert.strictEqual(new Intl.NumberFormat('de-DE').format(1234.5), '1.234,5');
+                      assert.strictEqual(new Intl.DateTimeFormat('zh-CN', {month: 'long'}).format(new Date(2026, 0, 1)), '\\u4e00\\u6708');
+                      assert.strictEqual(new Intl.DateTimeFormat('fr', {weekday: 'long'}).format(new Date(2026, 0, 5)), 'lundi');
+                      console.log('m23.icu.full=' + (typeof process.versions.icu === 'string' ? process.versions.icu : 'missing'));
                       const test = require('node:test');
                       await test('m13 native test runner', t => {
                         assert.strictEqual(typeof t.mock.method, 'function');

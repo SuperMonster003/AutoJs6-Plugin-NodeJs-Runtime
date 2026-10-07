@@ -37,7 +37,7 @@
     "プラグイン ID: `nodejs`, エンジン: `nodejs`.",
     "ランタイムサービスアクション: `org.autojs.plugin.nodejs.RUNTIME`.",
     "ネイティブランタイムライブラリ: `libnode.so`, `libautojs6-node.so` と `libnodexe.so`.",
-    "Intl: 英語ロケールデータのみを含む ICU 78 (`--with-intl=small-icu`); `Intl`, 正規表現の Unicode プロパティエスケープ, Node 自身の stderr へのエラー出力が AutoJs6 ターミナルで利用でき, `NODE_ICU_DATA` で完全な ICU データファイルを指定できます.",
+    "Intl: 完全なロケールデータ付き ICU 78 (`--with-intl=full-icu`, 1.6.0 以降; 1.5.1 から 1.5.7 は英語のみの small-icu); `Intl`, ロケール書式, 正規表現の Unicode プロパティエスケープ, Node 自身の stderr へのエラー出力はデスクトップ版 Node と一致し, `NODE_ICU_DATA` は不要です.",
     "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, および `universal`.",
     "ファイルシステム: Node.js 本来の fs モジュール, Android 権限で許可された任意のデバイスパスに到達でき, ランタイム独自の拒否はありません.",
     "TypeScript: host output を受け入れ, 実行中に作成された project file には provider-v3 compilation を要求できます. direct raw TypeScript は `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` を返します.",

@@ -5,8 +5,8 @@ Node 24.5 binary materializer. Both are manual maintenance tools; neither runs
 in the default APK or PR build.
 
 Current status: the default Android runtime is Node 24.21.0, built from official
-Node sources with four Android patches and `--with-intl=small-icu` (ICU 78,
-English-only locale data; since plugin 1.5.1). All three ABIs passed embedding and
+Node sources with three Android patches and `--with-intl=full-icu` (ICU 78 with
+full locale data since plugin 1.6.0 / M23.1; `small-icu` from 1.5.1 to 1.5.7). All three ABIs passed embedding and
 device validation. Independent rebuild results and the exact Docker image,
 NDK and patch hashes are recorded in
 [runtime-build.lock.json](runtime-build.lock.json). Runtime Kit 1.5.5 and the
@@ -69,9 +69,9 @@ above also supports fresh source builds for future maintenance.
 Artifacts and ELF reports are under
 `<work-root>/24.21.0-<abi>-<run-id>/output/`. The build uses Android API 24,
 16 KB LOAD alignment, SHA-1 ELF Build IDs, fixed source paths/timestamp, ICU 78
-with English-only data (`--with-intl=small-icu`), no Node startup snapshot, and keeps
-the inspector backend for Debug use. See Roadmap M17.3 / M21.2 for the
-packaging/ICU/inspector decision; the fourth patch keeps Node's fatal-error text on
+with full locale data (`--with-intl=full-icu`, M23.1), no Node startup snapshot, and keeps
+the inspector backend for Debug use. See Roadmap M17.3 / M21.2 / M23.1 for the
+packaging/ICU/inspector decision; the `0004` patch keeps Node's fatal-error text on
 the real stderr in addition to logcat.
 
 The Android patch is extracted from degaso/nodejs-mobile commit
@@ -82,11 +82,11 @@ and the fork's blanket V8 trap-handler disable are excluded; upstream already
 handles Android trap-handler support. A separate local patch adds the POSIX
 trap-handler sources needed by Linux `mksnapshot` when GYP's `OS` is Android
 for the cross build. This fixes the observed host linker errors without
-changing the Android target's trap-handler policy. The third patch rejects
-OpenSSL STORE private-key URLs on Android after an actual `file:///proc/self/fd`
-bypass was reproduced. Read key files through `node:fs` and pass their bytes to
-`crypto.createPrivateKey` or signing APIs. PEM/DER/JWK and KeyObject inputs
-continue to work. All three patch digests are recorded in the lock.
+changing the Android target's trap-handler policy. The former third patch
+(`0003-disable-android-openssl-store.patch`) rejected OpenSSL STORE private-key
+URLs on Android to protect the runtime's own `/proc` boundary; M23.1 removed that
+boundary and the patch with it, so key URLs load as on desktop Node. The three
+remaining patch digests are recorded in the lock.
 
 `verify-source-runtime.py` checks architecture, 16 KB LOAD alignment, Build ID
 and the Node/V8/libuv symbols dynamically consumed by the current bridge.

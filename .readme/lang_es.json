@@ -37,7 +37,7 @@
     "ID de plugin: `nodejs`, motor: `nodejs`.",
     "Accion del servicio runtime: `org.autojs.plugin.nodejs.RUNTIME`.",
     "Bibliotecas nativas de runtime: `libnode.so`, `libautojs6-node.so` y `libnodexe.so`.",
-    "Intl: ICU 78 solo con datos de configuración regional en inglés (`--with-intl=small-icu`); `Intl`, los escapes de propiedades Unicode en expresiones regulares y la salida de error propia de Node en stderr funcionan en el terminal de AutoJs6, y `NODE_ICU_DATA` puede apuntar a un archivo de datos ICU completo.",
+    "Intl: ICU 78 con datos regionales completos (`--with-intl=full-icu` desde 1.6.0; de 1.5.1 a 1.5.7, small-icu solo en inglés); `Intl`, el formato regional, los escapes de propiedades Unicode en expresiones regulares y la salida de error de Node en stderr coinciden con el Node de escritorio, sin necesidad de `NODE_ICU_DATA`.",
     "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64` y `universal`.",
     "Sistema de archivos: módulo fs nativo de Node.js; cualquier ruta del dispositivo permitida por los permisos de Android es accesible y el runtime no conserva ninguna denegación propia.",
     "TypeScript: acepta salida del host y puede solicitar compilación provider-v3 de archivos creados durante la ejecución; TypeScript raw directo devuelve `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.",

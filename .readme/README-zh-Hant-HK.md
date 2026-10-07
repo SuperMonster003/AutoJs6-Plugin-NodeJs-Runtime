@@ -98,7 +98,7 @@ console.log("AutoJs6 Node.js runtime");
 - 插件 ID: `nodejs`, 引擎: `nodejs`.
 - 運行時服務動作: `org.autojs.plugin.nodejs.RUNTIME`.
 - 原生運行庫: `libnode.so`, `libautojs6-node.so` 和 `libnodexe.so`.
-- Intl: ICU 78, 僅含英文區域資料 (`--with-intl=small-icu`); `Intl`, 正規表示式的 Unicode 屬性跳脫以及 Node 自身寫到 stderr 的錯誤輸出均可在 AutoJs6 終端中使用, `NODE_ICU_DATA` 可指向完整的 ICU 資料檔.
+- Intl: ICU 78 完整地區資料 (`--with-intl=full-icu`, 1.6.0 起; 1.5.1 至 1.5.7 為僅含英文資料的 small-icu); `Intl`, 地區格式化, 正規表示式的 Unicode 屬性轉義以及 Node 自身寫到 stderr 的錯誤輸出均與桌面版一致, 無需 `NODE_ICU_DATA`.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.
 - 檔案系統: Node.js 原生 fs 模組, Android 權限允許範圍內可存取任意裝置路徑, 執行時自身不保留拒絕邊界.
 - TypeScript: 接受宿主產物並可透過 provider v3 按需編譯執行期間建立的項目檔案; direct raw TypeScript 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -120,6 +120,8 @@ console.log("AutoJs6 Node.js runtime");
 * `優化` fs, fs/promises 及 node:sqlite 模組改為直接使用 Node.js 原生實作, 移除執行時自設的 /proc, /sys, /dev 拒絕邊界與路徑校驗包裝層, 檔案可達性完全由 Android 權限決定, 非同步檔案 API 經 libuv 執行緒池執行而不再阻塞事件迴圈, 路徑錯誤回傳 Node.js 原生錯誤碼 (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH 及 ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED 不再由檔案及資料庫操作產生)
 * `優化` process.cwd 與 process.chdir 改為 Node.js 原生行為, 指令碼執行開始時以原生 chdir 進入工作目錄, 相對路徑由 Node.js 自行解析
 * `優化` node:sqlite 的 ATTACH (含繫結參數及運算式形式的檔名), VACUUM INTO, 目錄 PRAGMA 及 setAuthorizer 均為 SQLite 原生行為, enableLoadExtension 與 allowExtension 遵循 Node.js 原生狀態檢查
+* `優化` Node.js 執行庫改用完整 ICU 資料建置 (--with-intl=full-icu), Intl 及各地區的格式化行為與桌面版 Node.js 一致, 不再需要 NODE_ICU_DATA
+* `優化` crypto.createPrivateKey 及簽署 API 支援 file: URL 形式的 OpenSSL STORE 金鑰輸入 (移除 Android 建置中的停用修補)
 * `優化` 全部 Node.js 內建模組 (含 cluster, domain, repl, trace_events, wasi, constants, node:sea 等) 按 Node 自身的 module.builtinModules 清單直接回傳原生匯出, require, require.resolve, import, process.getBuiltinModule 與 module.isBuiltin 行為與桌面版一致, 僅保留 worker_threads, child_process, inspector 及原生網絡模組的請求級閘控; node:wasi 隨 /proc 邊界的刪除一併放開 (trace_events 在目前未啟用 tracing 的執行庫中與 Node 一樣擲出 ERR_TRACE_EVENTS_UNAVAILABLE)
 * `優化` process 物件僅保留 exit 的生命週期映射與 dlopen 的暫時拒絕, abort, kill, umask, binding, report, features 及 POSIX 身份呼叫均為 Node.js 原生行為; os 模組原生, homedir 與 tmpdir 透過執行環境變數 HOME/TMPDIR 指向工作目錄, userInfo 回傳真實的 Android 應用程式使用者
 * `優化` module 內建模組改為僅覆寫 createRequire 的 Node.js 原生物件, registerHooks, enableCompileCache, findPackageJSON 等可直接使用; 刪除僅在停用原生網絡時可達的 http, https, net, tls, dns 受限實作, 停用時直接回傳 ERR_AUTOJS6_BUILTIN_DISABLED

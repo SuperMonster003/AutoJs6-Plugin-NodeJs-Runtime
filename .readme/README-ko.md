@@ -98,7 +98,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 - 플러그인 ID: `nodejs`, 엔진: `nodejs`.
 - 런타임 서비스 액션: `org.autojs.plugin.nodejs.RUNTIME`.
 - 네이티브 런타임 라이브러리: `libnode.so`, `libautojs6-node.so` 및 `libnodexe.so`.
-- Intl: 영어 로케일 데이터만 포함한 ICU 78 (`--with-intl=small-icu`); `Intl`, 정규식의 유니코드 속성 이스케이프, Node 자체의 stderr 오류 출력이 AutoJs6 터미널에서 동작하며, `NODE_ICU_DATA` 로 전체 ICU 데이터 파일을 지정할 수 있습니다.
+- Intl: 전체 로케일 데이터가 포함된 ICU 78 (`--with-intl=full-icu`, 1.6.0 부터; 1.5.1 ~ 1.5.7 은 영어 전용 small-icu); `Intl`, 로케일 서식, 정규식의 Unicode 속성 이스케이프 및 Node 자체의 stderr 오류 출력이 데스크톱 Node 와 일치하며 `NODE_ICU_DATA` 가 필요하지 않습니다.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 그리고 `universal`.
 - 파일 시스템: Node.js 고유 fs 모듈, Android 권한이 허용하는 모든 기기 경로에 접근할 수 있으며 런타임 자체의 거부는 없습니다.
 - TypeScript: host output을 허용하고 실행 중 생성된 project file에 provider-v3 compilation을 요청할 수 있습니다. direct raw TypeScript는 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`를 반환합니다.
@@ -120,6 +120,8 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `개선` fs, fs/promises 및 node:sqlite 가 Node.js 고유 모듈이 되었습니다: 런타임 자체의 /proc, /sys, /dev 거부와 경로 검증 래퍼를 제거하여 파일 접근 가능 여부는 Android 권한만으로 결정되고, 비동기 파일 API 는 이벤트 루프를 막지 않고 libuv 스레드 풀에서 실행되며, 경로 오류는 Node.js 고유 코드를 반환합니다 (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH 및 ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED 는 더 이상 파일 / 데이터베이스 작업에서 발생하지 않음)
 * `개선` process.cwd 와 process.chdir 가 Node.js 고유 동작이 되어 실행 시작 시 실제 chdir 로 작업 디렉터리에 진입하고 상대 경로는 Node.js 가 직접 해석합니다
 * `개선` node:sqlite 의 ATTACH (바인드 매개변수 및 표현식 파일명 포함), VACUUM INTO, 디렉터리 PRAGMA 및 setAuthorizer 는 SQLite 고유 동작이며, enableLoadExtension 과 allowExtension 은 Node.js 고유 상태 검사를 따릅니다
+* `개선` Node.js 런타임 라이브러리를 전체 ICU 데이터로 빌드 (--with-intl=full-icu) 하여 Intl 및 로케일 서식이 데스크톱 Node.js 와 일치하고 NODE_ICU_DATA 가 더 이상 필요하지 않습니다
+* `개선` crypto.createPrivateKey 및 서명 API 가 file: URL 형식의 OpenSSL STORE 키 입력을 지원합니다 (Android 전용 비활성화 패치 제거)
 * `개선` 모든 Node.js 내장 모듈 (cluster, domain, repl, trace_events, wasi, constants, node:sea 등) 을 Node 자체의 module.builtinModules 목록에서 그대로 반환하여 require, require.resolve, import, process.getBuiltinModule, module.isBuiltin 이 데스크톱과 동일하게 동작합니다; 요청 수준 게이트는 worker_threads, child_process, inspector 및 네이티브 네트워크 모듈에만 남고 node:wasi 는 /proc 경계 제거와 함께 개방되었습니다 (tracing 없이 빌드된 현재 libnode 에서는 trace_events 가 Node 와 동일하게 ERR_TRACE_EVENTS_UNAVAILABLE 을 던집니다)
 * `개선` process 에는 exit 의 수명 주기 매핑과 dlopen 의 임시 거부만 남고 abort, kill, umask, binding, report, features 및 POSIX 신원 호출은 Node.js 고유 동작입니다; os 는 네이티브이며 homedir 와 tmpdir 는 실행 환경 변수 HOME/TMPDIR (작업 디렉터리로 설정) 를 따르고 userInfo 는 실제 Android 앱 사용자를 반환합니다
 * `개선` module 내장 모듈은 createRequire 만 재정의한 Node.js 고유 객체가 되어 registerHooks, enableCompileCache, findPackageJSON 등을 사용할 수 있습니다; 네이티브 네트워크 비활성화 시에만 도달하던 http, https, net, tls, dns 제한 구현을 제거하고 해당 모드에서는 ERR_AUTOJS6_BUILTIN_DISABLED 를 직접 반환합니다

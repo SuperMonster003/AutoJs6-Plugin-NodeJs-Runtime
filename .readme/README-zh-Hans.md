@@ -98,7 +98,7 @@ console.log("AutoJs6 Node.js runtime");
 - 插件 ID: `nodejs`, 引擎: `nodejs`.
 - 运行时服务动作: `org.autojs.plugin.nodejs.RUNTIME`.
 - 原生运行库: `libnode.so`, `libautojs6-node.so` 和 `libnodexe.so`.
-- Intl: ICU 78, 仅含英文区域数据 (`--with-intl=small-icu`); `Intl`, 正则表达式的 Unicode 属性转义以及 Node 自身写到 stderr 的错误输出均可在 AutoJs6 终端中使用, `NODE_ICU_DATA` 可指向完整的 ICU 数据文件.
+- Intl: ICU 78 完整区域数据 (`--with-intl=full-icu`, 1.6.0 起; 1.5.1 至 1.5.7 为仅含英文数据的 small-icu); `Intl`, 区域格式化, 正则表达式的 Unicode 属性转义以及 Node 自身写到 stderr 的错误输出均与桌面版一致, 无需 `NODE_ICU_DATA`.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.
 - 文件系统: Node.js 原生 fs 模块, Android 权限允许范围内可访问任意设备路径, 运行时自身不保留拒绝边界.
 - TypeScript: 接受宿主产物并可通过 provider v3 按需编译运行中创建的项目文件; direct raw TypeScript 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -120,6 +120,8 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` fs, fs/promises 及 node:sqlite 模块改为直接使用 Node.js 原生实现, 移除运行时自设的 /proc, /sys, /dev 拒绝边界与路径校验包装层, 文件可达性完全由 Android 权限决定, 异步文件 API 经 libuv 线程池执行而不再阻塞事件循环, 路径错误返回 Node.js 原生错误码 (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH 及 ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED 不再由文件及数据库操作产生)
 * `优化` process.cwd 与 process.chdir 改为 Node.js 原生行为, 脚本执行开始时以原生 chdir 进入工作目录, 相对路径由 Node.js 自行解析
 * `优化` node:sqlite 的 ATTACH (含绑定参数及表达式形式的文件名), VACUUM INTO, 目录 PRAGMA 及 setAuthorizer 均为 SQLite 原生行为, enableLoadExtension 与 allowExtension 遵循 Node.js 原生状态检查
+* `优化` Node.js 运行库改用完整 ICU 数据构建 (--with-intl=full-icu), Intl 及各区域的格式化行为与桌面版 Node.js 一致, 不再需要 NODE_ICU_DATA
+* `优化` crypto.createPrivateKey 及签名 API 支持 file: URL 形式的 OpenSSL STORE 密钥输入 (移除 Android 构建中的禁用补丁)
 * `优化` 全部 Node.js 内建模块 (含 cluster, domain, repl, trace_events, wasi, constants, node:sea 等) 按 Node 自身的 module.builtinModules 清单直接返回原生导出, require, require.resolve, import, process.getBuiltinModule 与 module.isBuiltin 行为与桌面版一致, 仅保留 worker_threads, child_process, inspector 及原生网络模块的请求级门禁; node:wasi 随 /proc 边界的删除一并放开 (trace_events 在当前未启用 tracing 的运行库中与 Node 一样抛出 ERR_TRACE_EVENTS_UNAVAILABLE)
 * `优化` process 对象仅保留 exit 的生命周期映射与 dlopen 的暂时拒绝, abort, kill, umask, binding, report, features 及 POSIX 身份调用均为 Node.js 原生行为; os 模块原生, homedir 与 tmpdir 通过执行环境变量 HOME/TMPDIR 指向工作目录, userInfo 返回真实的 Android 应用用户
 * `优化` module 内建模块改为仅覆盖 createRequire 的 Node.js 原生对象, registerHooks, enableCompileCache, findPackageJSON 等可直接使用; 删除仅在禁用原生网络时可达的 http, https, net, tls, dns 受限实现, 禁用时直接返回 ERR_AUTOJS6_BUILTIN_DISABLED

@@ -19,11 +19,10 @@
     "headersSha256": "7497abc2fac1d332fae580046b6b39d0de283dfaf267207a32b59753739c1517",
     "nodejsMobileForkCommit": "116bad1dc919702d4a701d49df26d960403ee4a4",
     "patchSeries": "patches/*.patch",
-    "patchSet": "node24.21-android-linux-host-openssl-store-policy-stderr-passthrough",
+    "patchSet": "node24.21-android-linux-host-stderr-passthrough",
     "patchFiles": {
       "0001-nodejs-mobile-android.patch": "2933143f3280dc40c32de05df2a5a9f3dd9c6b8f5586a3e599cf699cdcd330c7",
       "0002-linux-host-trap-handlers.patch": "abf7fa4764c3cfbd0b90e2368a0568b1f75d024aa8ad13e59be5b83354ffd870",
-      "0003-disable-android-openssl-store.patch": "6cd5c1ea30d3bbe8222af862c41101aa6ba8b43d78ba02bf5292fd297ec5c0fa",
       "0004-android-stderr-passthrough.patch": "b141d17c799fbf8d7532d46f538151aba547af8ecaf4ec42b10c5e5bc371115e"
     }
   },
@@ -83,7 +82,7 @@
       "status": "ready",
       "classification": "source_build_with_independent_maintenance_rebuilds",
       "blockedReasons": [],
-      "verifiedOn": "2026-09-15",
+      "verifiedOn": "2026-10-07",
       "baseline": {
         "nodeVersion": "24.20.0",
         "sourceSha256": "2732fc3f588dd335cd6779c06864f7cd424bb1b5ff9a1743059a66c54f9ca4a1",
@@ -163,7 +162,7 @@
         "debugAdditionalChecks": "Inspector and cold start passed on all four devices; raw CLI crypto/SQLite/worker/fetch passed for all three ABIs.",
         "hostIntegration": "6 live async workspace and bridge tests passed on Xiaomi API 35.",
         "pageSizeCoverage": "Physical arm64/armv7 devices use 4 KB pages. x86_64 emulator getconf PAGE_SIZE=16384 simulates 16 KB userspace on a 4 KB kernel. No 16 KB arm64 physical device was tested.",
-        "opensslStore": "Android STORE private-key URLs reject ERR_ACCESS_DENIED after a reproduced /proc/self/fd bypass; file bytes through node:fs remain supported."
+        "opensslStore": "patch removed in M23.1; STORE key URLs load as on desktop Node (BuiltinPassthroughSmokeTest)"
       },
       "icuUpdate": {
         "nodeVersion": "24.21.0",
@@ -197,6 +196,40 @@
             "identical": true
           }
         }
+      },
+      "fullIcuUpdate": {
+        "nodeVersion": "24.21.0",
+        "configureChange": "--with-intl=small-icu -> --with-intl=full-icu",
+        "removedPatch": "0003-disable-android-openssl-store.patch",
+        "reason": "Roadmap M23.1: the runtime's /proc, /sys, /dev boundary is gone, so the OpenSSL STORE key URL patch that protected it is dropped; full ICU locale data replaces the English-only subset.",
+        "method": "One clean source build per ABI in the locked container image with the three remaining patches and --with-intl=full-icu (run-id m23-1-fullicu, --jobs 10); no repeat build was run (Roadmap section five: version plus git tag, not a reproducibility proof chain).",
+        "buildScriptSha256": "c0101e9bfae0618ebfeccd9a8bc4066e7c8e2937848d57e18e0405e685427269",
+        "outputs": {
+          "arm64-v8a": {
+            "sha256": "8acf5da18f6b9ead77a265f932ea79d17abd51c592f1fb07e0c2516a841c3fc1",
+            "buildId": "79d89c792134a3bc23554c329d7cec641bfed946",
+            "size": 110376704,
+            "previousSha256": "bbcf7711df6d074440ca5560a7897672d18d7e0c03d9f57bb29e5c9301ec7a07",
+            "previousSize": 81180416,
+            "embeddingSymbolCount": 37
+          },
+          "armeabi-v7a": {
+            "sha256": "89109535b7992231e373fad3df78f16a1abc1ebb9097f37ddc1e7411757c9cd5",
+            "buildId": "b289832333ef187f08d4d64afa0bf33136cf0d7d",
+            "size": 103604184,
+            "previousSha256": "c37d42059cac42d7760a4598f06a280f2a12fc01f2414ba648b39e9b3c73243c",
+            "previousSize": 74399704,
+            "embeddingSymbolCount": 37
+          },
+          "x86_64": {
+            "sha256": "c8119890f27d7f0d896036f7e63bb86c89d7b6f1eb177b53971f908d5a557925",
+            "buildId": "88c0d736ff13a311737baf3f56a4c90546396013",
+            "size": 115177376,
+            "previousSha256": "6cc279f590f6cf2bd2f2b71faf456838fb2b576ff0b07a3ee0afd8e2c16b1434",
+            "previousSize": 85981088,
+            "embeddingSymbolCount": 37
+          }
+        }
       }
     }
   },
@@ -225,7 +258,7 @@
     }
   },
   "runtimeConfig": {
-    "icu": "small-icu",
+    "icu": "full-icu",
     "openssl": "bundled-node-openssl",
     "libuv": "bundled-node-libuv",
     "snapshot": "node-snapshot-disabled-v8-default",
@@ -243,7 +276,7 @@
     "--without-npm",
     "--without-corepack",
     "--openssl-no-asm",
-    "--with-intl=small-icu"
+    "--with-intl=full-icu"
   ],
   "abis": {
     "arm64-v8a": {
@@ -258,9 +291,9 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": "bbcf7711df6d074440ca5560a7897672d18d7e0c03d9f57bb29e5c9301ec7a07",
-      "expectedBuildId": "18867d35421c2ff62cd51432e7178f359e71999f",
-      "size": 81180416
+      "expectedLibnodeSha256": "8acf5da18f6b9ead77a265f932ea79d17abd51c592f1fb07e0c2516a841c3fc1",
+      "expectedBuildId": "79d89c792134a3bc23554c329d7cec641bfed946",
+      "size": 110376704
     },
     "armeabi-v7a": {
       "targetCpu": "arm",
@@ -274,9 +307,9 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": "c37d42059cac42d7760a4598f06a280f2a12fc01f2414ba648b39e9b3c73243c",
-      "expectedBuildId": "7f24e5b2c34cbe913fde69aa5cf7f49d19d33ab8",
-      "size": 74399704
+      "expectedLibnodeSha256": "89109535b7992231e373fad3df78f16a1abc1ebb9097f37ddc1e7411757c9cd5",
+      "expectedBuildId": "b289832333ef187f08d4d64afa0bf33136cf0d7d",
+      "size": 103604184
     },
     "x86_64": {
       "targetCpu": "x64",
@@ -290,9 +323,9 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": "6cc279f590f6cf2bd2f2b71faf456838fb2b576ff0b07a3ee0afd8e2c16b1434",
-      "expectedBuildId": "9ce12dc223ba5b9f1c227e1b4123394c4cdae37a",
-      "size": 85981088
+      "expectedLibnodeSha256": "c8119890f27d7f0d896036f7e63bb86c89d7b6f1eb177b53971f908d5a557925",
+      "expectedBuildId": "88c0d736ff13a311737baf3f56a4c90546396013",
+      "size": 115177376
     }
   },
   "linker": {

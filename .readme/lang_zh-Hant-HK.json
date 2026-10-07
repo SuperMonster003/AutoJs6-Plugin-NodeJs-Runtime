@@ -37,7 +37,7 @@
     "插件 ID: `nodejs`, 引擎: `nodejs`.",
     "運行時服務動作: `org.autojs.plugin.nodejs.RUNTIME`.",
     "原生運行庫: `libnode.so`, `libautojs6-node.so` 和 `libnodexe.so`.",
-    "Intl: ICU 78, 僅含英文區域資料 (`--with-intl=small-icu`); `Intl`, 正規表示式的 Unicode 屬性跳脫以及 Node 自身寫到 stderr 的錯誤輸出均可在 AutoJs6 終端中使用, `NODE_ICU_DATA` 可指向完整的 ICU 資料檔.",
+    "Intl: ICU 78 完整地區資料 (`--with-intl=full-icu`, 1.6.0 起; 1.5.1 至 1.5.7 為僅含英文資料的 small-icu); `Intl`, 地區格式化, 正規表示式的 Unicode 屬性轉義以及 Node 自身寫到 stderr 的錯誤輸出均與桌面版一致, 無需 `NODE_ICU_DATA`.",
     "ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.",
     "檔案系統: Node.js 原生 fs 模組, Android 權限允許範圍內可存取任意裝置路徑, 執行時自身不保留拒絕邊界.",
     "TypeScript: 接受宿主產物並可透過 provider v3 按需編譯執行期間建立的項目檔案; direct raw TypeScript 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.",

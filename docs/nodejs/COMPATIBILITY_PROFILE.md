@@ -64,9 +64,11 @@ VACUUM INTO, directory PRAGMAs, `setAuthorizer()` and the `allowExtension` /
 `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED` is retired.
 Native Node builtins retain their own names: `events` / `node:events` is EventEmitter;
 Android event observation is exposed as `autojs6:events`. The runtime links ICU 78 with
-English-only locale data (`--with-intl=small-icu`, since v1.5.1): `Intl` exists and
-Unicode property escapes parse, while other locales fall back to English unless
-`NODE_ICU_DATA` supplies a full ICU data file.
+full locale data (`--with-intl=full-icu`, since v1.6.0; v1.5.1 to v1.5.7 shipped the
+English-only small-icu): `Intl`, locale formatting and Unicode property escapes match
+desktop Node.js, and `NODE_ICU_DATA` is not needed. OpenSSL STORE key inputs (`file:` URLs
+passed to `crypto.createPrivateKey` and the signing APIs) are accepted since v1.6.0; the
+Android-only disabling patch is gone.
 
 File streams, gzip/deflate/Brotli streams, and native VM script/context execution
 are stable plugin capabilities. See the runnable `streams-compression` and

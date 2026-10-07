@@ -4,7 +4,7 @@ The plugin's own source is licensed under the [Mozilla Public License 2.0](LICEN
 
 ## Embedded Node.js
 
-The plugin builds `libnode.so` from official [Node.js 24.21.0](https://github.com/nodejs/node/tree/v24.21.0), source commit `955266bfdd854cd280dffd47548673914484e4c0`, with the Android patches described in [runtime-build/README.md](tools/nodejs/runtime-build/README.md). The Android port patch is derived from degaso/nodejs-mobile commit `116bad1dc919702d4a701d49df26d960403ee4a4`; a separate local patch supplies Linux host trap-handler sources for the cross-build tools. A third Android-only patch disables OpenSSL STORE key URLs after a device regression demonstrated that the new loader bypassed the existing filesystem policy; callers can pass key bytes read through node:fs instead. The complete official Node.js [LICENSE](https://github.com/nodejs/node/blob/v24.21.0/LICENSE) is preserved in [nodejs-mobile-LICENSE.txt](app/src/main/assets/licenses/nodejs-mobile-LICENSE.txt) and bundled in every APK under `assets/licenses/`. The existing asset filename is retained.
+The plugin builds `libnode.so` from official [Node.js 24.21.0](https://github.com/nodejs/node/tree/v24.21.0), source commit `955266bfdd854cd280dffd47548673914484e4c0`, with the Android patches described in [runtime-build/README.md](tools/nodejs/runtime-build/README.md). The Android port patch is derived from degaso/nodejs-mobile commit `116bad1dc919702d4a701d49df26d960403ee4a4`; a separate local patch supplies Linux host trap-handler sources for the cross-build tools. Since plugin 1.6.0 (M23.1) no Android-only policy patch is applied: the earlier OpenSSL STORE key URL patch was removed together with the runtime's own filesystem boundary. The complete official Node.js [LICENSE](https://github.com/nodejs/node/blob/v24.21.0/LICENSE) is preserved in [nodejs-mobile-LICENSE.txt](app/src/main/assets/licenses/nodejs-mobile-LICENSE.txt) and bundled in every APK under `assets/licenses/`. The existing asset filename is retained.
 
 The following table summarizes major components. The bundled license file contains the full terms and notices, including the additional third-party components listed by upstream; this table does not replace them.
 
@@ -12,7 +12,7 @@ The following table summarizes major components. The bundled license file contai
 |---|---|
 | Node.js | MIT |
 | V8 | BSD-style; additional third-party notices in the upstream license |
-| ICU 78 (linked since 1.5.1 as `small-icu`, English-only locale data) | Unicode/ICU licenses and third-party data notices retained in the complete upstream license |
+| ICU 78 (linked as `full-icu` since 1.6.0; `small-icu` with English-only locale data from 1.5.1 to 1.5.7) | Unicode/ICU licenses and third-party data notices retained in the complete upstream license |
 | OpenSSL | Apache License 2.0 |
 | zlib | zlib license |
 | libuv | MIT and incorporated third-party notices |
