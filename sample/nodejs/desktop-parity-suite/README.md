@@ -11,7 +11,7 @@ is unavailable, so the output documents what this runtime really does.
 | HTTP/HTTPS | `snippets/http-https.cjs` | native `http`/`https` are available; the snippet only checks their shape |
 | Raw network | `snippets/raw-network.cjs` | native `http`/`https`/`net`/`tls`/`dns` are available; `dgram` and `http2` need the `raw_network` capability |
 | Advanced fs | `snippets/fs-advanced.cjs` | FileHandle, `fs.watch` and `fs/promises` work inside Android file access |
-| WASI | `snippets/wasi.cjs` | `node:wasi` is denied by decision; the snippet prints the denial code, pure WebAssembly is available |
+| WASI | `snippets/wasi.cjs` | `node:wasi` is Node's own module since M23.2; the snippet prints its export keys (`WASI`), pure WebAssembly is available as well |
 | Inspector | `snippets/inspector.cjs` | needs an explicit Debug host request; without it the snippet prints the denial code |
 | npm dependency | `snippets/npm-dependency.cjs` | a checked-in pure JavaScript dependency loads through `require()`; registry installs happen in the host terminal |
 

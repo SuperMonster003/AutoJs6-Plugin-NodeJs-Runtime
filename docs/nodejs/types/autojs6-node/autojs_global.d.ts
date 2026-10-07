@@ -130,7 +130,8 @@ declare namespace AutoJs6Node {
     readonly cjsAliases: "bare_and_node_prefix" | string;
     readonly esmImports: "native_linker" | string;
     readonly shadowing: "builtin_precedence" | string;
-    readonly processGetBuiltinModule: "controlled_main_thread_only" | "denied" | string;
+    /** Since M23.2 `process.getBuiltinModule()` answers from Node's own builtin inventory. */
+    readonly processGetBuiltinModule: "native_inventory" | string;
     readonly androidDifferences: "documented_stable" | string;
     readonly androidUnsupported: readonly string[];
     readonly resourceLimits: "bounded_callbacks_streams_crypto_zlib" | string;
@@ -157,12 +158,12 @@ declare namespace AutoJs6Node {
     readonly cwd: "native" | string;
     readonly chdir: "native" | string;
     readonly exit: "lifecycle_mapped_process_exit" | string;
-    readonly signals: "denied_no_android_signal_delivery" | string;
+    readonly signals: "native" | string;
     readonly versions: "native" | string;
     readonly resourceUsage: "native_with_fallback" | string;
     readonly timing: "native_with_fallback" | string;
     readonly permission: "autojs6_readonly_capability_query" | string;
-    readonly report: "getReport_only_write_denied" | string;
+    readonly report: "native" | string;
     readonly stdio: "bounded_non_tty" | string;
     readonly moduleAliases: readonly string[];
     readonly androidDifferences: "documented_stable" | string;
@@ -619,7 +620,7 @@ declare namespace AutoJs6Node {
 
   export interface WorkerThreadsProcessApis {
     readonly exit: "ends_worker_thread_as_node" | string;
-    readonly getBuiltinModule: "allowlisted_builtins" | string;
+    readonly getBuiltinModule: "native_inventory" | string;
     readonly abort: "unavailable_as_node" | string;
     readonly chdir: "unavailable_as_node" | string;
     readonly kill: "denied_shared_runtime_process" | string;
@@ -816,8 +817,13 @@ declare namespace AutoJs6Node {
     readonly wasiProfile: WasiProfile;
     readonly nativeAddonProfile: NativeAddonProfile;
     readonly childProcessProfile: ChildProcessProfile;
+    /** Every alias (bare and `node:`) of Node's own builtin inventory, mapped to its builtin id (M23.2). */
     readonly directBuiltinAliases: Readonly<Record<string, string>>;
+    /** Builtins that still answer through a thin runtime wrapper: `console` (stdout capture) and `module` (createRequire until M23.3). */
     readonly limitedBuiltins: readonly string[];
+    /** Node's own `module.builtinModules` as seen by this execution. */
+    readonly nativeBuiltins: readonly string[];
+    /** Builtins gated off for this execution: worker_threads / child_process / inspector / raw network modules only. */
     readonly disabledBuiltins: readonly string[];
     readonly networkBuiltins: readonly string[];
     readonly highRiskCapabilities: Readonly<Record<string, boolean>>;

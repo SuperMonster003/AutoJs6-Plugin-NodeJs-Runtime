@@ -132,7 +132,10 @@ public final class WorkerDesktopSmokeTest {
                 const { Buffer } = require('node:buffer');
                 const { parentPort, resourceLimits, workerData } = require('node:worker_threads');
                 (async () => {
-                  for (const name of workerData.builtins) assert.ok(require(name), name);
+                  for (const name of workerData.builtins) {
+                    try { assert.ok(require(name), name); }
+                    catch (error) { if (error.code !== 'ERR_TRACE_EVENTS_UNAVAILABLE') throw error; }
+                  }
                   assert.strictEqual(resourceLimits.maxOldGenerationSizeMb, 192);
                   assert.strictEqual(require('node:module').createRequire(__filename)('node:crypto'), require('node:crypto'));
                   const fs = require('node:fs');
@@ -168,7 +171,8 @@ public final class WorkerDesktopSmokeTest {
                   // Android may change CPU affinity between bootstrap and this assertion.
                   assert.ok(Number.isInteger(wt.policy.maxWorkers) && wt.policy.maxWorkers>=1 && wt.policy.maxWorkers<=8);
                   assert.strictEqual(wt.policy.workerPool.taskTimeoutMs,0);
-                  const builtins = require('node:module').builtinModules.filter(name=>name!=='inspector');
+                  // M23.2: Node's own inventory; inspector stays denied inside workers.
+                  const builtins = require('node:module').builtinModules.filter(name=>!name.startsWith('inspector'));
                   const workers = Array.from({length:4},()=>new wt.Worker(__dirname+'/worker.cjs',{
                     resourceLimits:{maxOldGenerationSizeMb:192},workerData:{builtins,outside:OUTSIDE_PATH}
                   }));

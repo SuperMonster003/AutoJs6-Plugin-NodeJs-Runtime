@@ -52,7 +52,7 @@ The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.21.0 native r
 - Provides the `nodejs` plugin service with plugin ID `nodejs` and engine `nodejs`.
 - Exposes synchronous script execution and runtime prewarm to the host through `org.autojs.plugin.nodejs.RUNTIME`.
 - Added script timeouts covering queueing and execution, returning `ERR_AUTOJS6_SCRIPT_TIMEOUT`; scripts without a timeout can still run indefinitely
-- Enabled `dgram` (UDP) and `http2` by default, with an explicit disabled error for `trace_events`
+- Returns every Node.js builtin as Node exports it, straight from Node's own `module.builtinModules` inventory (`dgram`, `http2`, `trace_events`, `wasi`, `cluster`, `repl` and the rest); only `worker_threads`, `child_process`, `inspector` and the raw network modules keep a request-level gate (since 1.6.0).
 - Added explicitly enabled local `inspector` debugging in Debug builds, listening only on localhost and connecting through `adb forward`
 - Supports CommonJS/ESM source, module sources, working directory, sandbox root, environment variables, and stdout/stderr result payloads.
 - Uses the V8 native linker for ESM entries and dynamic `import()`, preserving cyclic dependencies, mutable exports, and re-export live bindings; CommonJS `require(esm)` retains its synchronous interop boundary.
@@ -120,6 +120,9 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 * `Improvement` fs, fs/promises and node:sqlite are Node.js's own modules: the runtime's /proc, /sys, /dev denial and its path-validating wrapper are gone, file reachability is decided by Android permissions alone, asynchronous file APIs run on the libuv thread pool instead of blocking the event loop, and path errors carry Node.js's own codes (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH and ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED are no longer produced by file or database operations)
 * `Improvement` process.cwd and process.chdir are native Node.js behavior; an execution enters its working directory with a real chdir and relative paths are resolved by Node.js itself
 * `Improvement` node:sqlite ATTACH (including bound-parameter and expression filenames), VACUUM INTO, directory PRAGMAs and setAuthorizer are plain SQLite behavior; enableLoadExtension and allowExtension follow Node.js's own state checks
+* `Improvement` Every Node.js builtin (cluster, domain, repl, trace_events, wasi, constants, node:sea and the rest) is returned as Node exports it, straight from Node's own module.builtinModules inventory; require, require.resolve, import, process.getBuiltinModule and module.isBuiltin behave as on desktop, and only worker_threads, child_process, inspector and the raw network modules keep a request-level gate; node:wasi opens up together with the removed /proc boundary (on the current libnode, built without tracing, trace_events throws ERR_TRACE_EVENTS_UNAVAILABLE exactly as Node does)
+* `Improvement` process keeps only the lifecycle mapping of exit and the temporary dlopen denial; abort, kill, umask, binding, report, features and the POSIX identity calls are Node.js's own; os is native, homedir and tmpdir follow the execution's HOME/TMPDIR (set to the working directory) and userInfo reports the real Android app user
+* `Improvement` The module builtin is Node.js's own object with only createRequire overridden, so registerHooks, enableCompileCache, findPackageJSON and the rest are available; the limited http, https, net, tls and dns implementations that were reachable only with raw networking disabled are removed and that mode now returns ERR_AUTOJS6_BUILTIN_DISABLED directly
 
 # v1.5.7
 

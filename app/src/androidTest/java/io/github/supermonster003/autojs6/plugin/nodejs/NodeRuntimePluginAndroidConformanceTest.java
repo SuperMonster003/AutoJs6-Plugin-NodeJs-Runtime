@@ -88,6 +88,12 @@ public final class NodeRuntimePluginAndroidConformanceTest {
     private static final String OUTPUT_TOMBSTONE_PATH =
             TRANSPORT_PROTOCOL_DIRECTORY + "/deletions-v1.json";
     private static final String NODE_COMPAT_CORPUS_V2_ASSET_ROOT = "node_compat_corpus_v2";
+    /**
+     * M23.2: the limited network facades are gone, so a request with raw networking off no longer
+     * gets a fake http/net/tls/dns shape. The sample projects (M18) therefore run with the host
+     * default of raw networking on; every other conformance case keeps it off.
+     */
+    private static final ThreadLocal<Boolean> RAW_NETWORK_ENABLED = ThreadLocal.withInitial(() -> Boolean.FALSE);
     private static final List<String> NODE_COMPAT_CORPUS_V2_FILES = Arrays.asList(
             "async-esm.mjs",
             "cjs-cycle.cjs",
@@ -453,6 +459,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 "inspector-debug", "cpu-profile", "heap-snapshot", "wasm-basic", "wasm-plugin",
                 "js-plugin-ui", "desktop-parity-suite", "pro-parity-suite"
         };
+        RAW_NETWORK_ENABLED.set(Boolean.TRUE);
+        try {
         for (String name : names) {
             LinkedHashMap<String, String> files = readSampleProject(assets, name);
             JSONObject project = new JSONObject(files.get("project.json"));
@@ -474,6 +482,9 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                     assertTrue(name + " stdout is missing '" + expected + "':" + '\n' + stdout, stdout.contains(expected));
                 }
             }
+        }
+        } finally {
+            RAW_NETWORK_ENABLED.remove();
         }
     }
 
@@ -1291,8 +1302,10 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 assert.strictEqual(process.getBuiltinModule('fs'), require('fs'));
                 assert.strictEqual(process.getBuiltinModule('no-such-builtin'), undefined);
                 assert.throws(() => process.getBuiltinModule('node:inspector'), (e) => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED');
-                assert.throws(() => process.abort(), (e) => e.code === 'ERR_AUTOJS6_PROCESS_API_DISABLED');
-                assert.throws(() => process.kill(process.pid), (e) => e.code === 'ERR_AUTOJS6_PROCESS_API_DISABLED');
+                // M23.2: abort/kill are Node's own; a worker refuses abort itself and kill would signal the slot process.
+                assert.throws(() => process.abort(), (e) => e.code === 'ERR_WORKER_UNSUPPORTED_OPERATION');
+                assert.strictEqual(typeof process.kill, 'function');
+                assert.throws(() => process.dlopen({}, 'x.node'), (e) => e.code === 'ERR_AUTOJS6_PROCESS_API_DISABLED');
                 parentPort.postMessage('before-exit');
                 process.exit(3);
                 parentPort.postMessage('after-exit-must-not-run');
@@ -1303,7 +1316,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 const { Worker } = require('node:worker_threads');
                 const profile = require('autojs6:profile').workerThreadsProfile.processApis;
                 assert.strictEqual(profile.exit, 'ends_worker_thread_as_node');
-                assert.strictEqual(profile.getBuiltinModule, 'allowlisted_builtins');
+                assert.strictEqual(profile.getBuiltinModule, 'native_inventory');
                 (async () => {
                   const messages = [];
                   const worker = new Worker(path.join(__dirname, 'worker.cjs'));
@@ -2381,7 +2394,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         request.putStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCES, new String[0]);
         request.putBoolean(NodeJsRuntimeContract.KEY_ESM_ENABLED, true);
         request.putBoolean(NodeJsRuntimeContract.KEY_DYNAMIC_IMPORT_ENABLED, true);
-        request.putBoolean(NodeJsRuntimeContract.KEY_RAW_NODE_NETWORK_MODULES_ENABLED, false);
+        request.putBoolean(NodeJsRuntimeContract.KEY_RAW_NODE_NETWORK_MODULES_ENABLED, RAW_NETWORK_ENABLED.get());
         request.putBoolean(NodeJsRuntimeContract.KEY_WORKER_THREADS_ENABLED, false);
         request.putBoolean(NodeJsRuntimeContract.KEY_CHILD_PROCESS_ENABLED, false);
         request.putBoolean(NodeJsRuntimeContract.KEY_JAVA_INTEROP_ENABLED, false);

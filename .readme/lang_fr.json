@@ -11,7 +11,7 @@
     "Fournit le service de plugin `nodejs` avec l'ID de plugin `nodejs` et le moteur `nodejs`.",
     "Expose l'execution synchrone de scripts et le prechauffage du runtime a l'hote via `org.autojs.plugin.nodejs.RUNTIME`.",
     "Ajout d’un délai maximal couvrant l’attente et l’exécution des scripts, avec l’erreur `ERR_AUTOJS6_SCRIPT_TIMEOUT`; sans délai défini, les scripts peuvent toujours s’exécuter indéfiniment",
-    "Activation par défaut de `dgram` (UDP) et `http2`, avec une erreur explicite de désactivation pour `trace_events`",
+    "Renvoie chaque module intégré de Node.js tel que Node l'exporte, directement depuis l'inventaire `module.builtinModules` de Node (`dgram`, `http2`, `trace_events`, `wasi`, `cluster`, `repl` et les autres) ; seuls `worker_threads`, `child_process`, `inspector` et les modules réseau bruts conservent un verrou au niveau de la requête (depuis 1.6.0).",
     "Ajout du débogage local `inspector`, activé explicitement dans les versions Debug, avec écoute uniquement sur localhost et connexion via `adb forward`",
     "Prend en charge le code CommonJS/ESM, les sources de modules, le repertoire de travail, la racine de bac a sable, les variables d'environnement et les resultats stdout/stderr.",
     "Utilise le linker natif V8 pour les entrées ESM et dynamic `import()`, en préservant les dépendances cycliques, les exports mutables et les live bindings réexportés; CommonJS `require(esm)` conserve sa frontière d'interop synchrone.",

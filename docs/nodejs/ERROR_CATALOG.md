@@ -62,8 +62,13 @@ compiler module providers have their own relative-path validation. Module-source
 **ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_*** for invalid, denied, cancelled, timed-out,
 or failed requests; `ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED` now only comes from the
 provider transport's shared protocol sizes, the runtime's own module-source budgets are
-gone. Feature boundaries use specific codes for disabled builtins,
-network, process APIs, workers, native addons, or Java interop.
+gone. Feature boundaries use specific codes for request-gated builtins, network, workers,
+native addons, or Java interop. Since M23.2 `ERR_AUTOJS6_BUILTIN_DISABLED` is raised only
+for a builtin the request gates off (`worker_threads`, `child_process`, `inspector`, the raw
+network modules when `rawNodeNetworkModulesEnabled=false`); every other Node builtin,
+`wasi` included, loads as Node exports it. `ERR_AUTOJS6_PROCESS_API_DISABLED` is raised
+only by `process.dlopen` until M23.4 (abort, kill, umask, binding, report and the POSIX
+identity calls are Node's own).
 
 Java interop reports the host's decisions with **ERR_AUTOJS6_JAVA_*** codes (M20.2 batch 15):
 `ERR_AUTOJS6_JAVA_INTEROP_DISABLED` when the capability is off for the request,

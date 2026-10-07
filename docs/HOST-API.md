@@ -16,11 +16,11 @@
 
 ## Node.js 内建模块
 
-以下模块直接返回 Node.js 24.21 的原生导出, 普通名称与 `node:` 前缀名称共享同一模块对象: `buffer`, `events`, `path` (含 posix/win32), `util` (含 types), `url`, `querystring`, `string_decoder`, `assert` (含 strict), `punycode`, `stream` (含 promises/web/consumers), `zlib`, `timers` (含 promises), `perf_hooks`, `async_hooks`, `diagnostics_channel`, `v8`, `vm`, `tty`, `readline` (含 promises), `crypto`, `constants`。异步 crypto、完整 EventEmitter/AsyncLocalStorage、流与序列化遵循对应 Node API, 不再受原子集包装器的方法或输入大小限制。`node:test` 与 `node:test/reporters` 使用原生实现; 普通脚本中的 `test()` 会由默认 spec reporter 输出到 stdout, 失败测试使执行退出码为 1, `node-test-project` 提供可运行样例。
+M23.2 (2026-10-07) 起, Node.js 24.21 的全部内建模块按 Node 自身的 `module.builtinModules` 清单直接返回原生导出 (含 `cluster`, `domain`, `repl`, `trace_events`, `wasi`, `constants`, `node:sea`, `node:sqlite`, `node:test` 等), 普通名称与 `node:` 前缀名称共享同一模块对象, `require` / `require.resolve` / `import` / `process.getBuiltinModule` / `module.isBuiltin` 与桌面 Node 一致 (`require.resolve("node:fs")` 返回 `"node:fs"`); 不再有 allowlist / denylist。仅两个薄包装保留: `console` (stdout/stderr 捕获) 与 `module` (只覆盖 `createRequire`, 待 M23.3 原生 loader; `registerHooks` / `enableCompileCache` / `findPackageJSON` 等均为原生)。仍可被请求级门禁关闭的只有 `worker_threads`, `child_process`, `inspector` (需 debug 构建 + 显式请求, 见 M23.5) 与原生网络模块 (`rawNodeNetworkModulesEnabled=false` 时 `http` / `https` / `net` / `tls` / `dns` / `dgram` / `http2` 直接返回 `ERR_AUTOJS6_BUILTIN_DISABLED`, 原来仅在该模式可达的受限 facade 已删除)。, `readline` (含 promises), `crypto`, `constants`。异步 crypto、完整 EventEmitter/AsyncLocalStorage、流与序列化遵循对应 Node API, 不再受原子集包装器的方法或输入大小限制。`node:test` 与 `node:test/reporters` 使用原生实现; 普通脚本中的 `test()` 会由默认 spec reporter 输出到 stdout, 失败测试使执行退出码为 1, `node-test-project` 提供可运行样例。
 
 文件中的密钥请先使用 `node:fs` 读取字节, 再交给 `crypto.createPrivateKey` 或签名 API。Node 24.21 新增的 OpenSSL STORE 密钥 URL 在 Android 构建中返回 `ERR_ACCESS_DENIED`: 该加载器能绕过既有文件路径检查, 真机已复现通过 `/proc/self/fd` 读取测试密钥。当前保留原有文件系统边界, 不开放 STORE URL; PEM/DER/JWK/KeyObject 等已有密钥输入继续使用 Node 原生实现。
 
-`os` 通过 Proxy 保留应用工作目录形式的 `tmpdir` / `homedir` 及既有 `userInfo` 身份策略, 其余导出 (含 CPU、内存、constants) 来自原生 Node。`fs` / `fs/promises` 自 M23.1 (2026-10-07) 起直接返回 Node 原生模块 (`require("fs") === process.getBuiltinModule("fs")`): 没有包装层, 没有 `/proc`、`/sys`、`/dev` 边界, 异步 API 经 libuv 线程池执行而非在 `setImmediate` 中同步完成; 执行开始时以原生 `process.chdir` 进入工作目录, `process.cwd()` / `process.chdir()` 为原生行为; `url.pathToFileURL` / `fileURLToPath` 均为原生。`process`、`module`、子进程、worker、网络和 inspector 的请求级策略见对应章节。
+`os` 自 M23.2 起为原生模块 (`require("os") === process.getBuiltinModule("os")`): 运行时在引导时把执行环境变量 `HOME` / `TMPDIR` 设为工作目录 (请求提供的 env 优先), `os.homedir()` 经 libuv 读取 `HOME`; `os.tmpdir()` 在 Node 中经 `safeGetenv` 读取, 而 Android 应用进程带 AT_SECURE 标志, Node 会拒绝读取并回答不存在的 `/tmp`, 因此运行时在检测到这种情况时把 Node 自己模块对象上的 `tmpdir` 绑定为 `TMPDIR` (不是 Proxy, 模块身份不变); `os.userInfo()` 返回真实的 Android 应用用户。`process` 仅保留 `exit` 的生命周期映射 (槽进程跨执行复用) 与 `dlopen` 的暂时拒绝 (待 M23.4), `abort` / `kill` / `umask` / `binding` / `_linkedBinding` / `report` / `features` 及 POSIX 身份调用均为 Node 原生 (Android 决定它们能做什么; `process.abort` 会结束当前槽进程并走 M12.5 崩溃报告)。`fs` / `fs/promises` 自 M23.1 (2026-10-07) 起直接返回 Node 原生模块 (`require("fs") === process.getBuiltinModule("fs")`): 没有包装层, 没有 `/proc`、`/sys`、`/dev` 边界, 异步 API 经 libuv 线程池执行而非在 `setImmediate` 中同步完成; 执行开始时以原生 `process.chdir` 进入工作目录, `process.cwd()` / `process.chdir()` 为原生行为; `url.pathToFileURL` / `fileURLToPath` 均为原生。`process`、`module`、子进程、worker、网络和 inspector 的请求级策略见对应章节。
 
 成功结果在 Node 事件循环完成、触发最终 `exit` 时生成, 因此原生异步工作及 `beforeExit` 中追加的任务均可完成, 最终 stdout/stderr 与 `process.exitCode` 会正确回传。
 
@@ -121,7 +121,7 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 | `barcode` | 需 Barcode 外部插件 |
 | `java` | 默认启用; 宿主以声明表 (类 → 可构造 / 静态方法 / 实例方法 / 静态字段 / 实例字段) 定义白名单并按表反射执行, 表经 `getBrokerInfo()` 的 `javaInteropPolicyJson` 公布为 `java.policy`; 反射/ClassLoader/进程与原生库加载继续拒绝 |
 | `rhino` | 默认提供显式迁移入口; 执行请求使用 `explicit: true`, 不会自动安装旧 Rhino 全局对象; `rhino.install` 装入的 `Packages` / `java` / `android` 代理支持静态调用与构造, 并在类路径上提供 `getStatic(field)` / `describe()` (转发 `java.getStatic` / `java.type`, 由宿主白名单裁决) |
-| `worker_threads` | 默认启用; 数量默认 `min(8, os.availableParallelism())`, 使用 Node 默认内存限制, WorkerPool 任务默认不设超时; worker 内 builtin 名单与主线程一致, 网络/文件系统继承执行开关, `process.exit()` 按 Node 语义只结束该 worker 线程, `process.getBuiltinModule()` 走同一 builtin 名单; worker 内 bare 包名按 Node 语义从脚本目录向上查工作区 node_modules (exports 的 require/import 条件与子路径模式、main、index、包自引用; 嵌套 node_modules 优先); worker 内动态 `import()` 经 worker 的 partial ESM 装载器 (相对/绝对路径、file: URL、工作区包、builtin 名单, `with { type: "json" }`), 随执行的动态 import 开关; AutoJs 桥与 inspector 仍拒绝, 嵌套 worker 暂不支持 |
+| `worker_threads` | 默认启用; 数量默认 `min(8, os.availableParallelism())`, 使用 Node 默认内存限制, WorkerPool 任务默认不设超时; worker 内可用的 builtin 与主线程一致 (Node 自身清单减去请求门禁, M23.2), 网络/文件系统继承执行开关, `process.exit()` 按 Node 语义只结束该 worker 线程, `process.getBuiltinModule()` 按 Node 自身的 builtin 清单回答 (M23.2; inspector 与桥模块在 worker 内仍拒绝); worker 内 bare 包名按 Node 语义从脚本目录向上查工作区 node_modules (exports 的 require/import 条件与子路径模式、main、index、包自引用; 嵌套 node_modules 优先); worker 内动态 `import()` 经 worker 的 partial ESM 装载器 (相对/绝对路径、file: URL、工作区包、builtin 名单, `with { type: "json" }`), 随执行的动态 import 开关; AutoJs 桥与 inspector 仍拒绝, 嵌套 worker 暂不支持 |
 | `child_process` | 默认启用并遵循 Node 原生语义; 受 Android UID/SELinux/清单与调用方校验约束，但不继承独立 `shell` 桥的私有可执行文件白名单或资源预算，脚本必须自行校验命令、限制 stdio/超时并回收子进程 |
 
 全局 `fetch`、`Request`、`Response`、`Headers`、`FormData`、`WebSocket` 使用 Node 自带的 Web API (网络实现为内置 Undici)。全局网络请求与 raw Node http/https 一样默认可用, 无需宿主 `network` 声明; 请求设 `rawNodeNetworkModulesEnabled=false` 会拒绝全局 fetch/WebSocket 的网络操作, 非联网的数据类仍可用。需要宿主代理、证书与网络策略时, 显式使用 `require("autojs6:fetch")` 或 `require("autojs6:websocket")`, 这两个桥模块仍独立检查宿主 `network` 能力。桥接版的超时上限、响应体大小、方法集合与 WebSocket 消息 / 队列尺寸由宿主网络提供者决定 (宿主 `ControlledFetchPolicy` / `ControlledWebSocketPolicy`: fetch 超时 ≤ 120 s、响应默认 32 MiB / 上限 64 MiB、仅 GET / POST; WebSocket 连接超时 ≤ 60 s、消息默认 64 KiB / 上限 1 MiB、队列默认 32 / 上限 128), 运行时只填 Node 风格默认值 (fetch 超时 30 s、WebSocket 连接超时 10 s、跟随重定向至多 20 次) 并把调用者选项原样传给宿主, `policy.limitsEnforcedBy` 为 `host_provider`。桥接 fetch 的响应体经 ParcelFileDescriptor 交付 (M20.2 第十三批: 请求带 `binary: true`, 支持的宿主把正文写入缓存文件并以 `bodyTransport: "pfd"` 附带描述符, 运行时 mmap 后挂为 Buffer; 空正文与旧宿主仍内联 base64), 响应体只受宿主 `maxResponseBytes` 约束; 插件到宿主方向 (M20.2 第十四批): fetch 请求正文与 WebSocket 消息超过 256 KiB 时, 运行时把字节写入会话上传目录, 插件服务以只读 ParcelFileDescriptor 随请求 Bundle (`KEY_BRIDGE_REQUEST_BINARY_PFD` / `KEY_BRIDGE_REQUEST_BINARY_BYTE_COUNT`) 交给宿主, 描述符只带 `bodyTransport` / `messageTransport: "pfd"` 与字节数, 宿主 OkHttp 直接流式读取文件 (WebSocket 消息按 maxMessageBytes 校验后读入发送), 上行正文只受宿主 `HARD_MAX_REQUEST_BYTES` (64 MiB) / `maxMessageBytes` 约束; 仅当宿主 `getBrokerInfo()` 公布 `bridgeRequestBinaryTransport=pfd` 时启用, 旧宿主仍走内联 base64 (单次 Binder 事务约 1 MB); 宿主回复超过 Binder 事务尺寸时 (如未带 binary 的旧插件收到 2 MiB 内联响应), 第十三批宿主改为立即回一条小体积 BRIDGE_PROVIDER_FAILED, 脚本不再等到超时。
@@ -260,7 +260,7 @@ try {
 
 ### Debug-only 本地 inspector
 
-`inspectorEnabled` 是默认 false 的请求级实验键, 只有 **debug 宿主 + debug 插件 + 显式 true** 同时成立才有效。插件 Java 层与 native 编译产物各自复核构建类型; release 产物即使收到伪造请求也保留 `kNoCreateInspector` 并拒绝 `require("inspector")`。
+`inspectorEnabled` 是默认 false 的请求级开关 (稳定的契约字段), 只有 **debug 宿主 + debug 插件 + 显式 true** 同时成立才有效。插件 Java 层与 native 编译产物各自复核构建类型; release 产物即使收到伪造请求也保留 `kNoCreateInspector` 并拒绝 `require("inspector")`。
 
 启用后只暴露受控 `inspector` facade: `Session`、`console`、`open`、`close`、`url`; `open` 强制绑定 `127.0.0.1`, 拒绝远程地址与 `wait=true`, `NODE_OPTIONS=--inspect*` 仍被启动环境策略过滤。桌面调试需由用户取得 `inspector.url()` 的设备端口, 手动执行 `adb forward tcp:9229 tcp:<device-port>`, 再在 `chrome://inspect` 配置 `localhost:9229`。自动化证据已覆盖 WebSocket 升级、`Debugger.enable`、断点暂停/恢复、CPU Profiler 与 heap usage Session。
 
@@ -270,11 +270,10 @@ try {
 
 | 项 | 原因 |
 |---|---|
-| `wasi` / `node:wasi` | 暂仍禁用: 原决策 (M13.6) 的依据是 WASI preopens 无法落实 `/proc`、`/sys`、`/dev` 边界, M23.1 删除该边界后依据已不成立, 按 M23.2 放开原生实现; 普通 WebAssembly 与 WASM worker 可用 |
 | accessibility 的 powerDialog / waitFor / rawNode | 此旧入口仍 blocked; 电源菜单通过 keys.powerDialog, swipe/gesture 见第一节 |
 | 硬件标识符 (imei 等) | 隐私 fail-closed |
 | RootAutomator / Shizuku 输入通道 | M15.5 决定不新增; gesture/swipe 用无障碍, 设备有 root 时可显式使用 shell.execRoot |
-| 非白名单 Node builtin | `ERR_AUTOJS6_BUILTIN_DISABLED` |
+| 请求级门禁关闭的 builtin (`worker_threads` / `child_process` / `inspector` / 原生网络模块) | `ERR_AUTOJS6_BUILTIN_DISABLED`; 其余 Node 内建模块 (含 `wasi`, M23.2) 全部可用 |
 
 `media_projection` 已接入 Android 授权和前台服务流程, 不属于 denied; 授权条件及当前验收范围见第二节。
 

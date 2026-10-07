@@ -40,11 +40,13 @@ selection metadata cannot replace either declaration or Android consent. See
 
 Execution cancellation and resource cleanup remain necessary for usable lifecycle
 behavior. Worker message size / queue caps and fs watcher count / event-rate quotas
-were removed in v1.5.5 and the sensitive fs roots (`/proc`, `/sys`, `/dev`) in M23.1;
-remaining custom restrictions include the worker-count default (CPU parallelism,
-adjustable per request), Binder transport limits, the lifecycle-mapped `process.exit` /
-denied `process.kill` / `process.abort` on the shared runtime process, nested workers, and
-Java interop denial inside workers. Their removal is tracked by
+were removed in v1.5.5, the sensitive fs roots (`/proc`, `/sys`, `/dev`) in M23.1 and the
+builtin allowlist / denylist, the process API guards (abort, kill, umask, binding, report,
+features, POSIX identity calls) and the os / module facades in M23.2; remaining custom
+restrictions include the worker-count default (CPU parallelism, adjustable per request),
+Binder transport limits, the lifecycle-mapped `process.exit` on the shared runtime
+process, the `process.dlopen` denial until M23.4, nested workers, and Java interop denial
+inside workers. Their removal is tracked by
 [M23](../../Roadmap.md): the plugin keeps no limit that Android already enforces.
 
 Plugin discovery, caller trust, Binder ownership and grants to remote MCP callers

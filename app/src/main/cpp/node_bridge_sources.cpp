@@ -1154,12 +1154,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     throw signal;
   }
-  function __autojs6_define_disabled_process_api(apiName, exposeWhenMissing) {
-    if (typeof process !== "object" || !process) return;
-    if (exposeWhenMissing || typeof process[apiName] === "function") {
-      __autojs6_define_process_property(apiName, __autojs6_disabled_process_api(apiName), false);
-    }
-  }
   function __autojs6_disabled_fetch() {
     return Promise.reject(__autojs6_error(
       "global fetch is disabled in Embedded Node.js MVP; network access requires an explicit AutoJs6 policy.",
@@ -2388,29 +2382,11 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_define_process_property("resourceUsage", __autojs6_process_resource_usage_fallback, false);
     }
   }
-  function __autojs6_limited_process_umask(mask) {
-    if (arguments.length === 0) {
-      return 0o022;
-    }
-    throw __autojs6_error(
-      "process.umask is disabled in Embedded Node.js MVP.",
-      "ERR_AUTOJS6_PROCESS_API_DISABLED"
-    );
-  }
   function __autojs6_install_process_safety_guards() {
     if (typeof process !== "object" || !process) return;
+    // M23.2: process.exit stays lifecycle-mapped (the slot process outlives one execution);
+    // abort, kill, umask and the POSIX identity calls are Node's own, Android decides what they may do.
     __autojs6_define_process_property("exit", __autojs6_limited_process_exit, false);
-    __autojs6_define_disabled_process_api("abort", true);
-    __autojs6_define_disabled_process_api("kill", true);
-    __autojs6_define_disabled_process_api("reallyExit", false);
-    __autojs6_define_disabled_process_api("_debugProcess", false);
-    __autojs6_define_disabled_process_api("setuid", false);
-    __autojs6_define_disabled_process_api("setgid", false);
-    __autojs6_define_disabled_process_api("seteuid", false);
-    __autojs6_define_disabled_process_api("setegid", false);
-    __autojs6_define_disabled_process_api("setgroups", false);
-    __autojs6_define_disabled_process_api("initgroups", false);
-    __autojs6_define_process_property("umask", __autojs6_limited_process_umask, false);
   }
   var __autojs6_host_message_emitter;
   function __autojs6_host_state(stdin, ready, referenced) {
@@ -2491,94 +2467,6 @@ std::string buildEmbeddedScriptExecutionSource(
     } catch (_) {}
     return Object.freeze(flags);
   }
-  function __autojs6_create_process_features() {
-    return Object.freeze({
-      inspector: __autojs6_inspector_enabled,
-      debug: __autojs6_inspector_enabled,
-      uv: true,
-      ipv6: false,
-      tls: false,
-      tls_alpn: false,
-      tls_sni: false,
-      tls_ocsp: false,
-      cached_builtins: false,
-      require_module: false,
-      typescript: false
-    });
-  }
-  function __autojs6_install_process_features() {
-    const controlledFeatures = __autojs6_create_process_features();
-    if (__autojs6_define_process_property("features", controlledFeatures, false)) {
-      return;
-    }
-    try {
-      if (!process.features || typeof process.features !== "object") {
-        return;
-      }
-      for (const key of Object.keys(controlledFeatures)) {
-        try {
-          Object.defineProperty(process.features, key, {
-            value: controlledFeatures[key],
-            configurable: true,
-            enumerable: true,
-            writable: false
-          });
-        } catch (_) {
-          try {
-            process.features[key] = controlledFeatures[key];
-          } catch (_) {}
-        }
-      }
-      Object.freeze(process.features);
-    } catch (_) {}
-  }
-  function __autojs6_process_report_disabled() {
-    throw __autojs6_error(
-      "process.report.writeReport is disabled in Embedded Node.js MVP.",
-      "ERR_AUTOJS6_PROCESS_API_DISABLED"
-    );
-  }
-  function __autojs6_process_report_get_report(error) {
-    const memory = typeof process.memoryUsage === "function" ? process.memoryUsage() : {};
-    const resource = typeof process.resourceUsage === "function" ? process.resourceUsage() : {};
-    const header = Object.freeze({
-      reportVersion: 1,
-      event: "JavaScript API",
-      trigger: "GetReport",
-      filename: "autojs6-node-report.json",
-      dumpEventTime: new Date().toISOString(),
-      processId: typeof process.pid === "number" ? process.pid : 0,
-      cwd: typeof process.cwd === "function" ? process.cwd() : "",
-      commandLine: Array.isArray(process.argv) ? process.argv.slice() : [],
-      nodejsVersion: typeof process.version === "string" ? process.version : "",
-      arch: typeof process.arch === "string" ? process.arch : "",
-      platform: typeof process.platform === "string" ? process.platform : ""
-    });
-    const stack = error && error.stack ? String(error.stack) : "";
-    const message = error && error.message ? String(error.message) : "";
-    return Object.freeze({
-      header,
-      javascriptStack: Object.freeze({
-        message,
-        stack
-      }),
-      javascriptHeap: Object.freeze({
-        totalMemory: Number(memory.heapTotal) || 0,
-        executableMemory: 0,
-        totalCommittedMemory: Number(memory.heapTotal) || 0,
-        availableMemory: 0,
-        usedMemory: Number(memory.heapUsed) || 0,
-        memoryLimit: 0
-      }),
-      resourceUsage: Object.freeze({
-        rss: Number(memory.rss) || 0,
-        userCpuSeconds: (Number(resource.userCPUTime) || 0) / 1000000,
-        kernelCpuSeconds: (Number(resource.systemCPUTime) || 0) / 1000000,
-        maxRss: Number(resource.maxRSS) || 0
-      }),
-      environmentVariables: Object.freeze(Object.assign(Object.create(null), process.env || {}))
-    });
-  }
   function __autojs6_configure_fatal_error_report() {
     // Roadmap M12.5: a V8 fatal error (JavaScript heap out of memory, a failed CHECK) aborts the slot
     // process. Node writes its own diagnostic report before that abort when asked to; the dispatcher
@@ -2602,27 +2490,6 @@ std::string buildEmbeddedScriptExecutionSource(
       if ("excludeEnv" in report) report.excludeEnv = true;
       report.reportOnFatalError = true;
     } catch (_) {}
-  }
-  function __autojs6_create_process_report() {
-    const report = Object.create(null);
-    Object.defineProperties(report, {
-      compact: { value: false, enumerable: true, writable: true, configurable: true },
-      directory: {
-        value: typeof process.cwd === "function" ? process.cwd() : "",
-        enumerable: true,
-        writable: true,
-        configurable: true
-      },
-      filename: { value: "autojs6-node-report.json", enumerable: true, writable: true, configurable: true },
-      signal: { value: "SIGUSR2", enumerable: true, writable: true, configurable: true },
-      reportOnFatalError: { value: false, enumerable: true, writable: true, configurable: true },
-      reportOnSignal: { value: false, enumerable: true, writable: true, configurable: true },
-      reportOnUncaughtException: { value: false, enumerable: true, writable: true, configurable: true },
-      excludeNetwork: { value: true, enumerable: true, writable: true, configurable: true },
-      getReport: { value: __autojs6_process_report_get_report, enumerable: true },
-      writeReport: { value: __autojs6_process_report_disabled, enumerable: true }
-    });
-    return report;
   }
   function __autojs6_process_env_key(property) {
     if (typeof property === "symbol") {
@@ -2783,6 +2650,16 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       controlledEnv[key] = value;
     }
+    // M23.2: os.homedir() / os.tmpdir() are Node's own and read the real process environment,
+    // so the working directory is published there as HOME / TMPDIR (the former os facade answered
+    // with the same directory) unless the request supplies its own values.
+    const nativeProcessEnv = process.env;
+    for (const key of ["HOME", "TMPDIR"]) {
+      if (!__autojs6_has_own(controlledEnv, key) || !controlledEnv[key]) {
+        controlledEnv[key] = String(__autojs6_current_working_directory || "");
+      }
+      try { nativeProcessEnv[key] = controlledEnv[key]; } catch (_) {}
+    }
     const processEnv = __autojs6_create_process_env(controlledEnv);
     if (!__autojs6_define_process_property("env", processEnv, true)) {
       try {
@@ -2828,7 +2705,6 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_define_process_property("ppid", 0, false);
     }
     __autojs6_define_process_property("stdin", __autojs6_create_process_stdin(), false);
-    __autojs6_install_process_features();
     __autojs6_define_process_property(
       "allowedNodeEnvironmentFlags",
       __autojs6_create_process_allowed_node_environment_flags(),
@@ -2837,8 +2713,6 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_install_process_timing_fallbacks();
     __autojs6_install_process_usage_fallbacks();
     __autojs6_install_process_safety_guards();
-    __autojs6_define_process_property("binding", __autojs6_disabled_process_api("binding"), false);
-    __autojs6_define_process_property("_linkedBinding", __autojs6_disabled_process_api("_linkedBinding"), false);
     __autojs6_define_process_property("dlopen", __autojs6_disabled_process_api("dlopen"), false);
     try {
       process.chdir(__autojs6_current_working_directory);
@@ -2848,7 +2722,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     __autojs6_define_process_property("permission", __autojs6_create_process_permission(), false);
     __autojs6_configure_fatal_error_report();
-    __autojs6_define_process_property("report", __autojs6_create_process_report(), false);
   }
   function __autojs6_limited_tty_color_depth() {
     return 1;
@@ -3372,45 +3245,6 @@ std::string buildEmbeddedScriptExecutionSource(
       });
     }
   }
-  const __autojs6_require_builtin_allowlist = Object.freeze({
-    "path": "path",
-    "node:path": "path",
-    "path/posix": "path/posix",
-    "node:path/posix": "path/posix",
-    "path/win32": "path/win32",
-    "node:path/win32": "path/win32",
-    "util": "util",
-    "node:util": "util",
-    "util/types": "util/types",
-    "node:util/types": "util/types",
-    "events": "events",
-    "node:events": "events",
-    "async_hooks": "async_hooks",
-    "node:async_hooks": "async_hooks",
-    "diagnostics_channel": "diagnostics_channel",
-    "node:diagnostics_channel": "diagnostics_channel",
-    "perf_hooks": "perf_hooks",
-    "node:perf_hooks": "perf_hooks"
-  });
-  const __autojs6_require_builtin_denylist = Object.freeze({
-    "child_process": true,
-    "cluster": true,
-    "constants": true,
-    "domain": true,
-    "inspector": true,
-    "module": true,
-    "process": true,
-    "repl": true,
-    "stream": true,
-    "stream/promises": true,
-    "stream/web": true,
-    "timers": true,
-    "trace_events": true,
-    "wasi": true,
-    "worker_threads": true,
-    "zlib": true,
-    "zlib/promises": true
-  });
   const __autojs6_require_builtin_names = Object.freeze([
     "path",
     "util",
@@ -3424,58 +3258,55 @@ std::string buildEmbeddedScriptExecutionSource(
     "string_decoder",
     "assert"
   ]);
-  const __autojs6_limited_builtin_module_names = Object.freeze([
-    "assert",
-    "assert/strict",
-    "async_hooks",
-    "buffer",
-    "console",
-    "constants",
-    "crypto",
-    "diagnostics_channel",
-    "dns",
-    "dns/promises",
-    "events",
-    "fs",
-    "fs/promises",
-    "http",
-    "https",
-    "module",
-    "net",
-    "os",
-    "path",
-    "path/posix",
-    "path/win32",
-    "perf_hooks",
-    "process",
-    "punycode",
-    "querystring",
-    "readline",
-    "readline/promises",
-    "stream",
-    "stream/consumers",
-    "stream/promises",
-    "stream/web",
-    "string_decoder",
-    "timers",
-    "timers/promises",
-    "tls",
-    "tty",
-    "url",
-    "util",
-    "util/types",
-    "v8",
-    "vm",
-    "zlib"
-  ]);
-  const __autojs6_limited_builtin_module_map = Object.freeze((function() {
-    const values = Object.create(null);
-    for (const name of __autojs6_limited_builtin_module_names) {
-      values[name] = true;
-      values["node:" + name] = true;
+  // M23.2: Node's own builtin inventory (module.builtinModules) is the only list of builtins.
+  // A request can still gate worker_threads, child_process, inspector and the raw network
+  // modules; everything else Node knows is returned exactly as Node exports it.
+  let __autojs6_native_builtin_inventory_cache = null;
+  function __autojs6_native_builtin_inventory() {
+    if (__autojs6_native_builtin_inventory_cache) return __autojs6_native_builtin_inventory_cache;
+    const moduleValue = __autojs6_builtin_module("module");
+    const names = moduleValue && Array.isArray(moduleValue.builtinModules) ? moduleValue.builtinModules : [];
+    __autojs6_native_builtin_inventory_cache = new Set(names);
+    return __autojs6_native_builtin_inventory_cache;
+  }
+  // The builtin id for a require() / import specifier, or null when Node has no such builtin.
+  // Prefix-only builtins (node:sqlite, node:test, node:sea) keep their prefix; their bare
+  // spellings belong to AutoJs6 facades or to packages, as in Node.
+  function __autojs6_native_builtin_id(name) {
+    const requested = name === undefined || name === null ? "" : String(name);
+    if (!requested) return null;
+    const inventory = __autojs6_native_builtin_inventory();
+    if (requested.indexOf("node:") === 0) {
+      if (inventory.has(requested)) return requested;
+      const bare = requested.slice(5);
+      return inventory.has(bare) ? bare : null;
     }
-    return values;
-  })());
+    return inventory.has(requested) ? requested : null;
+  }
+  const __autojs6_network_builtin_ids = Object.freeze(["dgram", "dns", "dns/promises", "http", "http2", "https", "net", "tls"]);
+  // Why a builtin is gated for this execution, or null when it may load.
+  function __autojs6_builtin_gate(id) {
+    if (id === "worker_threads") {
+      return __autojs6_worker_threads_enabled ? null : "worker_threads is disabled for this execution.";
+    }
+    if (id === "child_process") {
+      return __autojs6_child_process_enabled ? null : "child_process is disabled for this execution.";
+    }
+    if (id === "inspector" || id === "inspector/promises") {
+      return __autojs6_inspector_enabled ? null : "inspector requires a debug build and an explicit inspectorEnabled request.";
+    }
+    if (__autojs6_network_builtin_ids.indexOf(id) >= 0) {
+      return __autojs6_raw_node_network_modules_enabled ? null : "raw Node networking is disabled for this execution.";
+    }
+    return null;
+  }
+  function __autojs6_gated_builtin_ids() {
+    const gated = [];
+    for (const id of ["worker_threads", "child_process", "inspector", "inspector/promises"].concat(__autojs6_network_builtin_ids)) {
+      if (__autojs6_builtin_gate(id)) gated.push(id);
+    }
+    return gated;
+  }
   // npm precedence (M2.4, narrowed 2026-09-18): only the runtime modules that stand in for a real
   // npm package yield to an installed package of the same bare name. AutoJs6 capability facades
   // (java, fetch, websocket, device, ...) and the other runtime modules keep answering, like Node
@@ -3497,15 +3328,8 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_object_url_records = new Map();
   let __autojs6_limited_console_cache = null;
   let __autojs6_limited_module_cache = null;
-  let __autojs6_limited_dns_cache = null;
-  let __autojs6_limited_dns_promises_cache = null;
-  let __autojs6_limited_http_cache = null;
-  let __autojs6_limited_https_cache = null;
-  let __autojs6_limited_net_cache = null;
-  let __autojs6_limited_tls_cache = null;
   let __autojs6_limited_web_crypto_cache = null;
   let __autojs6_limited_web_compression_cache = null;
-  let __autojs6_os_facade_cache = null;
   let __autojs6_limited_inspector_cache = null;
   let __autojs6_profile_cache = null;
   let __autojs6_autojs_global_cache = null;
@@ -3682,9 +3506,10 @@ std::string buildEmbeddedScriptExecutionSource(
       if (!limitNames.includes(name) || !Number.isFinite(suppliedLimits[name]) || suppliedLimits[name] <= 0) throw new RangeError("Invalid autojs6:worker-policy.resourceLimits." + name);
       resourceLimits[name] = suppliedLimits[name];
     }
-    const builtins = __autojs6_limited_builtin_module_names.concat(["node:test", "node:test/reporters", "node:sqlite", "worker_threads"]);
-    if (__autojs6_raw_node_network_modules_enabled) builtins.push("dgram", "http2");
-    if (__autojs6_child_process_enabled) builtins.push("child_process");
+    // M23.2: workers see Node's own builtin inventory minus what this execution gates; the
+    // bridge and inspector denials live in the worker bootstrap itself.
+    const gatedBuiltins = __autojs6_gated_builtin_ids();
+    const builtins = Array.from(__autojs6_native_builtin_inventory()).filter((id) => gatedBuiltins.indexOf(id) < 0);
     return Object.freeze({
       maxWorkers,
       startupTimeoutMs: integer("startupTimeoutMs", 5000, 1, 60000),
@@ -3946,31 +3771,11 @@ std::string buildEmbeddedScriptExecutionSource(
     if (__autojs6_profile_cache) {
       return __autojs6_profile_cache;
     }
-    const disabledBuiltins = [];
-    for (const name of Object.keys(__autojs6_require_builtin_denylist)) {
-      if (name === "worker_threads" && __autojs6_worker_threads_enabled) {
-        continue;
-      }
-      if (name === "child_process" && __autojs6_child_process_enabled) {
-        continue;
-      }
-      if (name === "inspector" && __autojs6_inspector_enabled) {
-        continue;
-      }
-      if (
-        !__autojs6_has_own(__autojs6_limited_builtin_module_map, name) &&
-        !__autojs6_has_own(__autojs6_require_builtin_allowlist, name)
-      ) {
-        disabledBuiltins.push(name);
-      }
-    }
-    if (!__autojs6_raw_node_network_modules_enabled) {
-      disabledBuiltins.push("dgram");
-      disabledBuiltins.push("http2");
-    }
+    const disabledBuiltins = __autojs6_gated_builtin_ids();
     const directBuiltinAliases = Object.create(null);
-    for (const name of Object.keys(__autojs6_require_builtin_allowlist)) {
-      directBuiltinAliases[name] = __autojs6_require_builtin_allowlist[name];
+    for (const id of __autojs6_native_builtin_inventory()) {
+      directBuiltinAliases[id] = id;
+      if (id.indexOf("node:") !== 0) directBuiltinAliases["node:" + id] = id;
     }
     const highRiskCapabilities = Object.freeze({
       childProcess: __autojs6_child_process_enabled,
@@ -4353,7 +4158,7 @@ std::string buildEmbeddedScriptExecutionSource(
           zlib: "native",
           buffer: "native",
           url: "native",
-          os: "native_with_host_directory_and_identity_policy",
+          os: "native",
           readline: "native",
           tty: "native",
           perf_hooks: "native",
@@ -4379,7 +4184,7 @@ std::string buildEmbeddedScriptExecutionSource(
         cjsAliases: "bare_and_node_prefix",
         esmImports: "native_linker",
         shadowing: "builtin_precedence",
-        processGetBuiltinModule: "controlled_main_thread_only",
+        processGetBuiltinModule: "native_inventory",
         androidDifferences: "documented_stable",
         androidUnsupported: Object.freeze([
           "tty_interactive_terminal"
@@ -4394,14 +4199,14 @@ std::string buildEmbeddedScriptExecutionSource(
         broadTerminal: false
       }),
       processParityProfile: Object.freeze({
-        status: "native_process_with_android_denied_apis",
+        status: "native_process_with_lifecycle_exit",
         defaultEnabled: true,
         targetProfiles: Object.freeze(["safe_default", "desktop_compat_opt_in"]),
         argv: "autojs6_node_plus_entry",
         env: "controlled_string_map",
         envMutation: "script_local_string_coercing_mutable",
         envSources: "request_map_plus_safe_defaults",
-        envDefaultKeys: Object.freeze(["NODE_ENV", "AUTOJS6_EMBEDDED_NODE", "AUTOJS6_NODE_RUNTIME"]),
+        envDefaultKeys: Object.freeze(["NODE_ENV", "AUTOJS6_EMBEDDED_NODE", "AUTOJS6_NODE_RUNTIME", "HOME", "TMPDIR"]),
         envFilteredKeys: Object.freeze([
           "NODE_OPTIONS",
           "NODE_INSPECT_RESUME_ON_START",
@@ -4416,31 +4221,25 @@ std::string buildEmbeddedScriptExecutionSource(
         cwd: "native",
         chdir: "native",
         exit: "lifecycle_mapped_process_exit",
-        signals: "denied_no_android_signal_delivery",
+        signals: "native",
         versions: "native",
         resourceUsage: "native_with_fallback",
         timing: "native_with_fallback",
         permission: "autojs6_readonly_capability_query",
-        report: "getReport_only_write_denied",
+        report: "native",
         stdio: "bounded_non_tty",
         moduleAliases: Object.freeze(["process", "node:process"]),
         androidDifferences: "documented_stable",
         androidUnsupported: Object.freeze([
-          "process.kill",
-          "process.abort",
           "native_process_exit",
-          "signals",
-          "privilege_posix_apis",
-          "raw_process_binding",
-          "raw_dlopen",
-          "report.writeReport"
+          "raw_dlopen"
         ]),
         packagedBehavior: "not_applicable_no_packaged_runtime",
         rawDesktopParity: false,
         rawEnvInheritance: false,
-        rawSignals: false,
+        rawSignals: true,
         rawProcessHandles: false,
-        nativeBindings: false
+        nativeBindings: true
       }),
       packagedCapabilityProfile: Object.freeze({
         status: "declaration_metadata_enforced",
@@ -4594,7 +4393,7 @@ std::string buildEmbeddedScriptExecutionSource(
         dynamicImport: __autojs6_dynamic_import_enabled,
         processApis: Object.freeze({
           exit: "ends_worker_thread_as_node",
-          getBuiltinModule: "allowlisted_builtins",
+          getBuiltinModule: "native_inventory",
           abort: "unavailable_as_node",
           chdir: "unavailable_as_node",
           kill: "denied_shared_runtime_process",
@@ -4738,11 +4537,9 @@ std::string buildEmbeddedScriptExecutionSource(
       }),
       processPermission: __autojs6_process_permission_query(),
       directBuiltinAliases: Object.freeze(directBuiltinAliases),
-      limitedBuiltins: __autojs6_freeze_sorted_copy(
-        __autojs6_limited_builtin_module_names
-          .concat(__autojs6_raw_node_network_modules_enabled ? ["dgram", "http2"] : [])
-          .concat(__autojs6_worker_threads_enabled ? ["worker_threads"] : [])
-      ),
+      // M23.2: only console (stdout capture) and module (createRequire until M23.3) keep a wrapper.
+      limitedBuiltins: Object.freeze(["console", "module"]),
+      nativeBuiltins: __autojs6_freeze_sorted_copy(Array.from(__autojs6_native_builtin_inventory())),
       disabledBuiltins: __autojs6_freeze_sorted_copy(disabledBuiltins),
       networkBuiltins: Object.freeze(["dgram", "dns", "dns/promises", "http", "http2", "https", "net", "tls"]),
       highRiskCapabilities,
@@ -9288,29 +9085,33 @@ std::string buildEmbeddedScriptExecutionSource(
     if (typeof globalThis.WebSocket === "function") globalThis.WebSocket = new Proxy(globalThis.WebSocket, { construct() { throw networkDisabled(); } });
   }
   if (typeof process === "object" && process) {
-    Object.defineProperty(process, "cwd", { value: () => __root, configurable: true });
-    // process.exit() keeps Node's worker semantics (ends this thread only). abort/chdir are
-    // unavailable in Node workers as well; kill would signal the shared runtime process and
-    // dlopen/binding stay denied with native addons.
-    ["binding", "_linkedBinding", "dlopen", "chdir", "abort", "kill"].forEach(function(name) {
+    // M23.2: dlopen stays denied until M23.4 (native addons); everything else on process is Node's
+    // own (abort and chdir already refuse inside workers, kill signals the shared runtime process).
+    ["dlopen"].forEach(function(name) {
       try { Object.defineProperty(process, name, { value: __disabledProcess(name), configurable: true, writable: false }); }
       catch (_) { try { process[name] = __disabledProcess(name); } catch (_) {} }
     });
-    // process.getBuiltinModule() answers through the same allowlist as require().
+    // process.getBuiltinModule() answers through the same inventory and gates as require().
     const workerGetBuiltinModule = function(id) {
       if (typeof id !== "string") throw new TypeError("The \"id\" argument must be of type string.");
       if (!id) return undefined;
-      if (__builtinAllowed(id)) return __loadBuiltin(id);
-      const bare = __normalBuiltinName(id);
-      if (__networkBuiltins.has(bare) || bare === "inspector" || bare === "child_process" || bare === "sqlite" || bare === "test" || bare === "test/reporters" || bare === "trace_events" || bare === "wasi") {
-        return __deny(id);
-      }
-      return undefined;
+      return __nativeBuiltinId(id) === null ? undefined : __loadBuiltin(id);
     };
     try { Object.defineProperty(process, "getBuiltinModule", { value: workerGetBuiltinModule, configurable: true, writable: false }); }
     catch (_) { try { process.getBuiltinModule = workerGetBuiltinModule; } catch (_) {} }
   }
-  const __allowed = Object.freeze(Object.fromEntries(__descriptor.policy.allowedBuiltins.map(name => [name.replace(/^node:/, ""), name])));
+  const __allowed = new Set(__descriptor.policy.allowedBuiltins);
+  const __nativeBuiltins = new Set(__nativeRequire("module").builtinModules);
+  function __nativeBuiltinId(request) {
+    const raw = String(request || "");
+    if (!raw) return null;
+    if (raw.indexOf("node:") === 0) {
+      if (__nativeBuiltins.has(raw)) return raw;
+      const bare = raw.slice(5);
+      return __nativeBuiltins.has(bare) ? bare : null;
+    }
+    return __nativeBuiltins.has(raw) ? raw : null;
+  }
   const __networkBuiltins = new Set(["net", "http", "https", "tls", "dns", "dns/promises", "dgram", "http2"]);
   const __profilePolicy = (__descriptor.policy && __descriptor.policy.workerProfile) || {};
   const __workerProfile = Object.freeze({
@@ -9401,38 +9202,39 @@ std::string buildEmbeddedScriptExecutionSource(
     return raw.indexOf("node:") === 0 ? raw.slice(5) : raw;
   }
   function __builtinAllowed(request) {
-    const name = __normalBuiltinName(request);
-    if ((name === "sqlite" || name === "test" || name === "test/reporters") && !String(request).startsWith("node:")) return false;
-    return name === "worker_threads" || Object.prototype.hasOwnProperty.call(__allowed, name);
+    return __nativeBuiltinId(request) !== null;
   }
   function __loadBuiltin(request) {
     const raw = String(request || "");
-    const name = __normalBuiltinName(raw);
-    if (name === "worker_threads") return __limitedWorkerThreads;
-    if (name === "fs") return __fs;
-    if (name === "fs/promises") return __fs.promises;
-    if (__networkBuiltins.has(name) && !__descriptor.policy.rawNetwork) throw __error("Raw Node networking is disabled for this execution.", "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED");
-    if (name === "sqlite") return __nativeRequire("node:sqlite");
-    if (name === "module") return __limitedModule;
-    if (name === "process") return process;
-    if (Object.prototype.hasOwnProperty.call(__allowed, name)) return __nativeRequire(__allowed[name]);
-    return __deny(raw);
+    const id = __nativeBuiltinId(raw);
+    if (id === null || id === "inspector" || id === "inspector/promises") return __deny(raw);
+    if (!__allowed.has(id)) {
+      throw __error(
+        __networkBuiltins.has(id) ? "Raw Node networking is disabled for this execution." : "Builtin module '" + raw + "' is disabled for this execution.",
+        "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED"
+      );
+    }
+    if (id === "worker_threads") return __limitedWorkerThreads;
+    if (id === "module") return __limitedModule;
+    if (id === "process") return process;
+    return __nativeRequire(id);
   }
   function __resolveBuiltin(request) {
     const raw = String(request || "");
-    const name = __normalBuiltinName(raw);
-    if (name === "worker_threads") return "worker_threads";
-    if (Object.prototype.hasOwnProperty.call(__allowed, name)) return __allowed[name];
-    return __deny(raw);
+    if (__nativeBuiltinId(raw) === null) return __deny(raw);
+    return raw;
   }
-  const __limitedModule = Object.freeze({
-    createRequire: function(filename) {
-      const path = filename instanceof URL ? __nativeRequire("url").fileURLToPath(filename) : filename;
-      return __createRequire({ filename: __validatePath(__path.resolve(path), "createRequire"), children: [] });
-    },
-    isBuiltin: __builtinAllowed,
-    builtinModules: Object.freeze(__descriptor.policy.allowedBuiltins.slice()),
-    syncBuiltinESMExports: function() {}
+  // M23.2: Node's own module builtin; only createRequire stays with the worker loader until M23.3.
+  const __limitedModule = new Proxy(__nativeRequire("module"), {
+    get(target, key, receiver) {
+      if (key === "createRequire") {
+        return function(filename) {
+          const path = filename instanceof URL ? __nativeRequire("url").fileURLToPath(filename) : filename;
+          return __createRequire({ filename: __validatePath(__path.resolve(path), "createRequire"), children: [] });
+        };
+      }
+      return Reflect.get(target, key, receiver);
+    }
   });
   function __isRelativeModuleName(name) {
     return name === "." || name === ".." || name.indexOf("./") === 0 || name.indexOf("../") === 0;
@@ -26587,15 +26389,6 @@ std::string buildEmbeddedScriptExecutionSource(
       normalized === ".ts" ||
       normalized === ".json";
   }
-  function __autojs6_denied_builtin_module_name(name) {
-    if ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_enabled) {
-      return false;
-    }
-    if ((name === "inspector" || name === "node:inspector") && __autojs6_inspector_enabled) {
-      return false;
-    }
-    return name.indexOf("node:") === 0 || __autojs6_has_own(__autojs6_require_builtin_denylist, name);
-  }
   function __autojs6_protocol_specifier(name) {
     return /^[A-Za-z][A-Za-z0-9+.-]*:/.test(name);
   }
@@ -28933,48 +28726,6 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_limited_web_crypto_cache = Object.freeze(limitedCrypto);
     return __autojs6_limited_web_crypto_cache;
   }
-  function __autojs6_os_facade() {
-    if (__autojs6_os_facade_cache) return __autojs6_os_facade_cache;
-    const directory = () => process.cwd();
-    // Keep writable application directories and the existing host identity policy.
-    // All other exports, including CPU/memory data and constants, come from Node.
-    const overrides = {
-      tmpdir: directory,
-      homedir: directory,
-      userInfo: options => __autojs6_os_user_info(options, directory)
-    };
-    __autojs6_os_facade_cache = new Proxy(__autojs6_os_module(), {
-      get(target, key, receiver) {
-        return __autojs6_has_own(overrides, key) ? overrides[key] : Reflect.get(target, key, receiver);
-      }
-    });
-    return __autojs6_os_facade_cache;
-  }
-  function __autojs6_os_user_info(options, safeDirectory) {
-    let encoding = "utf8";
-    if (typeof options === "string") {
-      encoding = options;
-    } else if (options && typeof options === "object" && options.encoding !== undefined) {
-      encoding = String(options.encoding);
-    }
-    const homedir = safeDirectory();
-    if (encoding === "buffer" && typeof Buffer === "function" && typeof Buffer.from === "function") {
-      return Object.freeze({
-        username: Buffer.from("autojs6"),
-        uid: 0,
-        gid: 0,
-        shell: null,
-        homedir: Buffer.from(homedir)
-      });
-    }
-    return Object.freeze({
-      username: "autojs6",
-      uid: 0,
-      gid: 0,
-      shell: null,
-      homedir
-    });
-  }
   function __autojs6_limited_path_to_file_url(pathValue) {
     const nodeUrl = __autojs6_url_module();
     if (!nodeUrl || typeof nodeUrl.pathToFileURL !== "function") {
@@ -29468,11 +29219,56 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return __autojs6_limited_web_compression_cache;
   }
-  function __autojs6_limited_process() {
-    if (typeof process !== "object" || !process) {
-      throw new Error("require is restricted in Embedded Node.js MVP; limited module 'process' is unavailable.");
+  // M23.2: os is Node's own module. Node's safeGetenv() refuses to read the environment of a
+  // process whose AT_SECURE flag is set, which is the case for Android app processes, so
+  // os.tmpdir() would answer "/tmp" (which does not exist here) although TMPDIR is set; when
+  // that happens tmpdir() is bound to TMPDIR on Node's own module object (no proxy, same
+  // identity as process.getBuiltinModule("os")). homedir() reads HOME through libuv and is fine.
+  let __autojs6_os_builtin_cache = null;
+  function __autojs6_os_builtin() {
+    if (__autojs6_os_builtin_cache) return __autojs6_os_builtin_cache;
+    const osModule = __autojs6_get_builtin_module("os");
+    let wanted = "";
+    try { wanted = String(process.env.TMPDIR || ""); } catch (_) {}
+    let answered = "";
+    try { answered = String(osModule.tmpdir()); } catch (_) {}
+    if (wanted && answered !== wanted && answered !== wanted.replace(/\/+$/, "")) {
+      const boundTmpdir = function tmpdir() {
+        let current = "";
+        try { current = String(process.env.TMPDIR || ""); } catch (_) {}
+        return current ? current.replace(/\/+$/, "") || current : answered;
+      };
+      try {
+        Object.defineProperty(osModule, "tmpdir", { value: boundTmpdir, configurable: true, writable: true, enumerable: true });
+      } catch (_) {}
     }
-    return process;
+    __autojs6_os_builtin_cache = osModule;
+    return osModule;
+  }
+  // M23.2: every Node builtin loads through here. Only an execution-level gate (worker_threads,
+  // child_process, inspector, raw network) can refuse; fs / module / console keep the runtime's
+  // thin wrappers until M23.3 replaces the loader.
+  function __autojs6_require_native_builtin(id, request) {
+    const gate = __autojs6_builtin_gate(id);
+    if (gate) {
+      throw __autojs6_builtin_disabled("require is restricted for this execution; builtin module '" + request + "': " + gate);
+    }
+    if (id === "fs") return __autojs6_fs_module();
+    if (id === "fs/promises") return __autojs6_fs_module().promises;
+    if (id === "console") return __autojs6_limited_console();
+    if (id === "module") return __autojs6_limited_module();
+    if (id === "process") return process;
+    if (id === "os") return __autojs6_os_builtin();
+    if (id === "vm") {
+      const vmValue = __autojs6_vm_module();
+      if (vmValue) return vmValue;
+    }
+    // Node's own loader decides the rest, including its own errors (for example
+    // ERR_TRACE_EVENTS_UNAVAILABLE on a libnode built without tracing).
+    if (typeof __autojs6_get_builtin_module !== "function") {
+      throw __autojs6_builtin_disabled("builtin module '" + request + "' is unavailable in this runtime.");
+    }
+    return __autojs6_get_builtin_module(id);
   }
   function __autojs6_limited_console() {
     if (__autojs6_limited_console_cache) {
@@ -29786,2060 +29582,6 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_limited_console_cache = Object.freeze(limitedConsole);
     return __autojs6_limited_console_cache;
   }
-  let __autojs6_limited_dns_default_result_order = "verbatim";
-  const __autojs6_limited_dns_error_constants = Object.freeze({
-    NODATA: "ENODATA",
-    FORMERR: "EFORMERR",
-    SERVFAIL: "ESERVFAIL",
-    NOTFOUND: "ENOTFOUND",
-    NOTIMP: "ENOTIMP",
-    REFUSED: "EREFUSED",
-    BADQUERY: "EBADQUERY",
-    BADNAME: "EBADNAME",
-    BADFAMILY: "EBADFAMILY",
-    BADRESP: "EBADRESP",
-    CONNREFUSED: "ECONNREFUSED",
-    TIMEOUT: "ETIMEOUT",
-    EOF: "EOF",
-    FILE: "EFILE",
-    NOMEM: "ENOMEM",
-    DESTRUCTION: "EDESTRUCTION",
-    BADSTR: "EBADSTR",
-    BADFLAGS: "EBADFLAGS",
-    NONAME: "ENONAME",
-    BADHINTS: "EBADHINTS",
-    NOTINITIALIZED: "ENOTINITIALIZED",
-    LOADIPHLPAPI: "ELOADIPHLPAPI",
-    ADDRGETNETWORKPARAMS: "EADDRGETNETWORKPARAMS",
-    CANCELLED: "ECANCELLED"
-  });
-  function __autojs6_limited_dns_require_callback(callback, operation) {
-    if (typeof callback !== "function") {
-      throw __autojs6_invalid_arg_type("Embedded Node limited dns." + operation + " callback must be a function.");
-    }
-    return callback;
-  }
-  function __autojs6_limited_dns_hostname(hostname, operation) {
-    if (typeof hostname !== "string") {
-      throw __autojs6_invalid_arg_type("Embedded Node limited dns." + operation + " hostname must be a string.");
-    }
-    return hostname;
-  }
-  function __autojs6_limited_dns_enotfound(hostname, syscall) {
-    const error = __autojs6_with_error_code(new Error((syscall || "getaddrinfo") + " ENOTFOUND " + hostname), "ENOTFOUND");
-    error.errno = "ENOTFOUND";
-    error.syscall = syscall || "getaddrinfo";
-    error.hostname = String(hostname);
-    return error;
-  }
-  function __autojs6_limited_dns_disabled_error(operation, hostname) {
-    const error = __autojs6_with_error_code(
-      new Error("Embedded Node limited dns." + operation + " is disabled; network DNS resolution requires an explicit AutoJs6 policy."),
-      "ERR_AUTOJS6_EMBEDDED_NODE_NETWORK_DISABLED"
-    );
-    error.errno = "ERR_AUTOJS6_EMBEDDED_NODE_NETWORK_DISABLED";
-    error.syscall = String(operation);
-    if (hostname !== undefined) {
-      error.hostname = String(hostname);
-    }
-    return error;
-  }
-  function __autojs6_limited_dns_valid_ipv4(value) {
-    const parts = String(value).split(".");
-    if (parts.length !== 4) {
-      return false;
-    }
-    for (const part of parts) {
-      if (!/^[0-9]+$/.test(part)) {
-        return false;
-      }
-      const number = Number(part);
-      if (!Number.isInteger(number) || number < 0 || number > 255) {
-        return false;
-      }
-    }
-    return true;
-  }
-  function __autojs6_limited_dns_valid_ipv6(value) {
-    const text = String(value);
-    return text.indexOf(":") >= 0 && /^[0-9A-Fa-f:.]+$/.test(text) && /[0-9A-Fa-f]/.test(text);
-  }
-  function __autojs6_limited_dns_is_loopback_address(address) {
-    const text = String(address).toLowerCase();
-    return text === "::1" ||
-      text === "0:0:0:0:0:0:0:1" ||
-      (__autojs6_limited_dns_valid_ipv4(text) && text.split(".")[0] === "127");
-  }
-  function __autojs6_limited_dns_normalize_lookup_options(options) {
-    const normalized = {
-      all: false,
-      family: 0,
-      order: __autojs6_limited_dns_default_result_order
-    };
-    if (options === undefined || options === null) {
-      return normalized;
-    }
-    if (typeof options === "number") {
-      normalized.family = options;
-    } else if (typeof options === "object") {
-      if (options.family !== undefined) {
-        normalized.family = Number(options.family);
-      }
-      normalized.all = Boolean(options.all);
-      if (options.order !== undefined) {
-        normalized.order = String(options.order);
-      } else if (options.verbatim === false) {
-        normalized.order = "ipv4first";
-      } else if (options.verbatim === true) {
-        normalized.order = "verbatim";
-      }
-    } else {
-      throw __autojs6_invalid_arg_type("Embedded Node limited dns.lookup options must be a number or object.");
-    }
-    if (![0, 4, 6].includes(normalized.family)) {
-      throw __autojs6_invalid_arg_value("Embedded Node limited dns.lookup family must be 0, 4, or 6.");
-    }
-    if (!["verbatim", "ipv4first", "ipv6first"].includes(normalized.order)) {
-      throw __autojs6_invalid_arg_value("Embedded Node limited dns.lookup order must be 'verbatim', 'ipv4first', or 'ipv6first'.");
-    }
-    return normalized;
-  }
-  function __autojs6_limited_dns_sort_records(records, order) {
-    const output = records.slice();
-    if (order === "ipv6first") {
-      output.sort(function (a, b) { return b.family - a.family; });
-    } else if (order === "ipv4first") {
-      output.sort(function (a, b) { return a.family - b.family; });
-    }
-    return output;
-  }
-  function __autojs6_limited_dns_lookup_records(hostname, options) {
-    const text = String(hostname);
-    const lowered = text.toLowerCase().replace(/\.$/, "");
-    let records = null;
-    if (lowered === "localhost") {
-      records = [
-        { address: "127.0.0.1", family: 4 },
-        { address: "::1", family: 6 }
-      ];
-    } else if (lowered === "ip6-localhost" || lowered === "ip6-loopback") {
-      records = [{ address: "::1", family: 6 }];
-    } else if (__autojs6_limited_dns_valid_ipv4(text)) {
-      records = [{ address: text, family: 4 }];
-    } else if (__autojs6_limited_dns_valid_ipv6(text)) {
-      records = [{ address: text, family: 6 }];
-    } else {
-      throw __autojs6_limited_dns_enotfound(text, "getaddrinfo");
-    }
-    if (options.family === 4 || options.family === 6) {
-      records = records.filter(function (record) { return record.family === options.family; });
-    }
-    if (!records.length) {
-      throw __autojs6_limited_dns_enotfound(text, "getaddrinfo");
-    }
-    return __autojs6_limited_dns_sort_records(records, options.order).map(function (record) {
-      return { address: record.address, family: record.family };
-    });
-  }
-  function __autojs6_limited_dns_lookup(hostname, options, callback) {
-    if (typeof options === "function") {
-      callback = options;
-      options = undefined;
-    }
-    const checkedHostname = __autojs6_limited_dns_hostname(hostname, "lookup");
-    const checkedOptions = __autojs6_limited_dns_normalize_lookup_options(options);
-    const checkedCallback = __autojs6_limited_dns_require_callback(callback, "lookup");
-    __autojs6_schedule_dns_callback(function () {
-      try {
-        const records = __autojs6_limited_dns_lookup_records(checkedHostname, checkedOptions);
-        if (checkedOptions.all) {
-          checkedCallback(null, records);
-        } else {
-          checkedCallback(null, records[0].address, records[0].family);
-        }
-      } catch (error) {
-        checkedCallback(error);
-      }
-    });
-  }
-  function __autojs6_limited_dns_lookup_promise(hostname, options) {
-    return new Promise(function (resolve, reject) {
-      try {
-        const checkedHostname = __autojs6_limited_dns_hostname(hostname, "lookup");
-        const checkedOptions = __autojs6_limited_dns_normalize_lookup_options(options);
-        __autojs6_schedule_dns_callback(function () {
-          try {
-            const records = __autojs6_limited_dns_lookup_records(checkedHostname, checkedOptions);
-            if (checkedOptions.all) {
-              resolve(records);
-            } else {
-              resolve({ address: records[0].address, family: records[0].family });
-            }
-          } catch (error) {
-            reject(error);
-          }
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-  function __autojs6_limited_dns_normalize_port(port) {
-    const value = Number(port);
-    if (!Number.isInteger(value) || value < 0 || value > 65535) {
-      throw __autojs6_invalid_arg_value("Embedded Node limited dns.lookupService port must be an integer between 0 and 65535.");
-    }
-    return value;
-  }
-  function __autojs6_limited_dns_lookup_service_result(address, port) {
-    if (!__autojs6_limited_dns_is_loopback_address(address)) {
-      throw __autojs6_limited_dns_enotfound(address, "getnameinfo");
-    }
-    return { hostname: "localhost", service: String(port) };
-  }
-  function __autojs6_limited_dns_lookup_service(address, port, callback) {
-    if (typeof address !== "string") {
-      throw __autojs6_invalid_arg_type("Embedded Node limited dns.lookupService address must be a string.");
-    }
-    const checkedPort = __autojs6_limited_dns_normalize_port(port);
-    const checkedCallback = __autojs6_limited_dns_require_callback(callback, "lookupService");
-    __autojs6_schedule_dns_callback(function () {
-      try {
-        const result = __autojs6_limited_dns_lookup_service_result(address, checkedPort);
-        checkedCallback(null, result.hostname, result.service);
-      } catch (error) {
-        checkedCallback(error);
-      }
-    });
-  }
-  function __autojs6_limited_dns_lookup_service_promise(address, port) {
-    return new Promise(function (resolve, reject) {
-      try {
-        if (typeof address !== "string") {
-          throw __autojs6_invalid_arg_type("Embedded Node limited dns.lookupService address must be a string.");
-        }
-        const checkedPort = __autojs6_limited_dns_normalize_port(port);
-        __autojs6_schedule_dns_callback(function () {
-          try {
-            resolve(__autojs6_limited_dns_lookup_service_result(address, checkedPort));
-          } catch (error) {
-            reject(error);
-          }
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-  function __autojs6_limited_dns_disabled_callback(operation) {
-    return function () {
-      const args = Array.prototype.slice.call(arguments);
-      const hostname = __autojs6_limited_dns_hostname(args[0], operation);
-      const callback = __autojs6_limited_dns_require_callback(args[args.length - 1], operation);
-      __autojs6_schedule_dns_callback(function () {
-        callback(__autojs6_limited_dns_disabled_error(operation, hostname));
-      });
-    };
-  }
-  function __autojs6_limited_dns_disabled_promise(operation) {
-    return function (hostname) {
-      return new Promise(function (resolve, reject) {
-        try {
-          const checkedHostname = __autojs6_limited_dns_hostname(hostname, operation);
-          __autojs6_schedule_dns_callback(function () {
-            reject(__autojs6_limited_dns_disabled_error(operation, checkedHostname));
-          });
-        } catch (error) {
-          reject(error);
-        }
-      });
-    };
-  }
-  function __autojs6_limited_dns_get_servers() {
-    return Object.freeze([]);
-  }
-  function __autojs6_limited_dns_set_servers(servers) {
-    if (!Array.isArray(servers)) {
-      throw __autojs6_invalid_arg_type("Embedded Node limited dns.setServers servers must be an array.");
-    }
-    if (servers.length === 0) {
-      return undefined;
-    }
-    throw __autojs6_limited_dns_disabled_error("setServers");
-  }
-  function __autojs6_limited_dns_get_default_result_order() {
-    return __autojs6_limited_dns_default_result_order;
-  }
-  function __autojs6_limited_dns_set_default_result_order(order) {
-    const value = String(order);
-    if (!["verbatim", "ipv4first", "ipv6first"].includes(value)) {
-      throw __autojs6_invalid_arg_value("Embedded Node limited dns.setDefaultResultOrder order must be 'verbatim', 'ipv4first', or 'ipv6first'.");
-    }
-    __autojs6_limited_dns_default_result_order = value;
-    return undefined;
-  }
-  function __autojs6_limited_dns_make_resolver(promiseMode, methods) {
-    function Resolver() {}
-    const descriptors = {
-      cancel: { value: function () { return undefined; }, enumerable: true },
-      getServers: { value: __autojs6_limited_dns_get_servers, enumerable: true },
-      setLocalAddress: { value: function () { return undefined; }, enumerable: true },
-      setServers: { value: __autojs6_limited_dns_set_servers, enumerable: true }
-    };
-    for (const name of Object.keys(methods)) {
-      if (name === "lookup" || name === "lookupService") {
-        continue;
-      }
-      descriptors[name] = { value: methods[name], enumerable: true };
-    }
-    Object.defineProperties(Resolver.prototype, descriptors);
-    Object.freeze(Resolver.prototype);
-    return Object.freeze(Resolver);
-  }
-  function __autojs6_limited_dns_define_error_constants(descriptors) {
-    for (const key of Object.keys(__autojs6_limited_dns_error_constants)) {
-      descriptors[key] = { value: __autojs6_limited_dns_error_constants[key], enumerable: true };
-    }
-    descriptors.ADDRCONFIG = { value: 32, enumerable: true };
-    descriptors.ALL = { value: 16, enumerable: true };
-    descriptors.V4MAPPED = { value: 8, enumerable: true };
-  }
-  function __autojs6_limited_dns() {
-    if (__autojs6_limited_dns_cache) {
-      return __autojs6_limited_dns_cache;
-    }
-    const resolveMethods = {
-      resolve: __autojs6_limited_dns_disabled_callback("resolve"),
-      resolve4: __autojs6_limited_dns_disabled_callback("resolve4"),
-      resolve6: __autojs6_limited_dns_disabled_callback("resolve6"),
-      resolveAny: __autojs6_limited_dns_disabled_callback("resolveAny"),
-      resolveCaa: __autojs6_limited_dns_disabled_callback("resolveCaa"),
-      resolveCname: __autojs6_limited_dns_disabled_callback("resolveCname"),
-      resolveMx: __autojs6_limited_dns_disabled_callback("resolveMx"),
-      resolveNaptr: __autojs6_limited_dns_disabled_callback("resolveNaptr"),
-      resolveNs: __autojs6_limited_dns_disabled_callback("resolveNs"),
-      resolvePtr: __autojs6_limited_dns_disabled_callback("resolvePtr"),
-      resolveSoa: __autojs6_limited_dns_disabled_callback("resolveSoa"),
-      resolveSrv: __autojs6_limited_dns_disabled_callback("resolveSrv"),
-      resolveTlsa: __autojs6_limited_dns_disabled_callback("resolveTlsa"),
-      resolveTxt: __autojs6_limited_dns_disabled_callback("resolveTxt"),
-      reverse: __autojs6_limited_dns_disabled_callback("reverse")
-    };
-    const promiseResolveMethods = {
-      resolve: __autojs6_limited_dns_disabled_promise("resolve"),
-      resolve4: __autojs6_limited_dns_disabled_promise("resolve4"),
-      resolve6: __autojs6_limited_dns_disabled_promise("resolve6"),
-      resolveAny: __autojs6_limited_dns_disabled_promise("resolveAny"),
-      resolveCaa: __autojs6_limited_dns_disabled_promise("resolveCaa"),
-      resolveCname: __autojs6_limited_dns_disabled_promise("resolveCname"),
-      resolveMx: __autojs6_limited_dns_disabled_promise("resolveMx"),
-      resolveNaptr: __autojs6_limited_dns_disabled_promise("resolveNaptr"),
-      resolveNs: __autojs6_limited_dns_disabled_promise("resolveNs"),
-      resolvePtr: __autojs6_limited_dns_disabled_promise("resolvePtr"),
-      resolveSoa: __autojs6_limited_dns_disabled_promise("resolveSoa"),
-      resolveSrv: __autojs6_limited_dns_disabled_promise("resolveSrv"),
-      resolveTlsa: __autojs6_limited_dns_disabled_promise("resolveTlsa"),
-      resolveTxt: __autojs6_limited_dns_disabled_promise("resolveTxt"),
-      reverse: __autojs6_limited_dns_disabled_promise("reverse")
-    };
-    const limitedPromises = Object.create(null);
-    const promiseDescriptors = {
-      Resolver: { value: __autojs6_limited_dns_make_resolver(true, promiseResolveMethods), enumerable: true },
-      getDefaultResultOrder: { value: __autojs6_limited_dns_get_default_result_order, enumerable: true },
-      getServers: { value: __autojs6_limited_dns_get_servers, enumerable: true },
-      lookup: { value: __autojs6_limited_dns_lookup_promise, enumerable: true },
-      lookupService: { value: __autojs6_limited_dns_lookup_service_promise, enumerable: true },
-      setDefaultResultOrder: { value: __autojs6_limited_dns_set_default_result_order, enumerable: true },
-      setServers: { value: __autojs6_limited_dns_set_servers, enumerable: true }
-    };
-    for (const name of Object.keys(promiseResolveMethods)) {
-      promiseDescriptors[name] = { value: promiseResolveMethods[name], enumerable: true };
-    }
-    Object.defineProperties(limitedPromises, promiseDescriptors);
-    __autojs6_limited_dns_promises_cache = Object.freeze(limitedPromises);
-
-    const limitedDns = Object.create(null);
-    const descriptors = {
-      Resolver: { value: __autojs6_limited_dns_make_resolver(false, resolveMethods), enumerable: true },
-      getDefaultResultOrder: { value: __autojs6_limited_dns_get_default_result_order, enumerable: true },
-      getServers: { value: __autojs6_limited_dns_get_servers, enumerable: true },
-      lookup: { value: __autojs6_limited_dns_lookup, enumerable: true },
-      lookupService: { value: __autojs6_limited_dns_lookup_service, enumerable: true },
-      promises: { value: __autojs6_limited_dns_promises_cache, enumerable: true },
-      setDefaultResultOrder: { value: __autojs6_limited_dns_set_default_result_order, enumerable: true },
-      setServers: { value: __autojs6_limited_dns_set_servers, enumerable: true }
-    };
-    for (const name of Object.keys(resolveMethods)) {
-      descriptors[name] = { value: resolveMethods[name], enumerable: true };
-    }
-    __autojs6_limited_dns_define_error_constants(descriptors);
-    Object.defineProperties(limitedDns, descriptors);
-    __autojs6_limited_dns_cache = Object.freeze(limitedDns);
-    return __autojs6_limited_dns_cache;
-  }
-  function __autojs6_limited_dns_promises() {
-    if (__autojs6_limited_dns_promises_cache) {
-      return __autojs6_limited_dns_promises_cache;
-    }
-    return __autojs6_limited_dns().promises;
-  }
-  function __autojs6_limited_net_disabled_error(operation) {
-    const error = __autojs6_with_error_code(
-      new Error("Embedded Node limited net." + operation + " is disabled; network sockets require an explicit AutoJs6 policy."),
-      "ERR_AUTOJS6_EMBEDDED_NODE_NETWORK_DISABLED"
-    );
-    error.errno = "ERR_AUTOJS6_EMBEDDED_NODE_NETWORK_DISABLED";
-    error.syscall = String(operation);
-    return error;
-  }
-  function __autojs6_limited_net_is_ipv4(value) {
-    return typeof value === "string" && __autojs6_limited_dns_valid_ipv4(value);
-  }
-  function __autojs6_limited_net_is_ipv6(value) {
-    return typeof value === "string" &&
-      !__autojs6_limited_net_is_ipv4(value) &&
-      __autojs6_limited_dns_valid_ipv6(value);
-  }
-  function __autojs6_limited_net_is_ip(value) {
-    if (__autojs6_limited_net_is_ipv4(value)) {
-      return 4;
-    }
-    if (__autojs6_limited_net_is_ipv6(value)) {
-      return 6;
-    }
-    return 0;
-  }
-  function __autojs6_limited_net_ipv4_to_number(address) {
-    if (!__autojs6_limited_net_is_ipv4(address)) {
-      return null;
-    }
-    const parts = address.split(".").map(function (part) { return Number(part); });
-    return (((parts[0] * 256 + parts[1]) * 256 + parts[2]) * 256 + parts[3]) >>> 0;
-  }
-  function __autojs6_limited_net_normalize_family(family, address) {
-    const detected = __autojs6_limited_net_is_ip(address);
-    if (family === undefined || family === null || family === "") {
-      if (detected === 4) {
-        return "ipv4";
-      }
-      if (detected === 6) {
-        return "ipv6";
-      }
-      throw __autojs6_invalid_arg_value("Embedded Node limited net address must be an IP literal.");
-    }
-    const value = String(family).toLowerCase();
-    if (value === "4" || value === "ipv4") {
-      if (detected !== 4) {
-        throw __autojs6_invalid_arg_value("Embedded Node limited net family does not match IPv4 address.");
-      }
-      return "ipv4";
-    }
-    if (value === "6" || value === "ipv6") {
-      if (detected !== 6) {
-        throw __autojs6_invalid_arg_value("Embedded Node limited net family does not match IPv6 address.");
-      }
-      return "ipv6";
-    }
-    throw __autojs6_invalid_arg_value("Embedded Node limited net family must be 4, 6, 'ipv4', or 'ipv6'.");
-  }
-  function __autojs6_limited_net_normalize_port(port) {
-    const value = port === undefined || port === null || port === "" ? 0 : Number(port);
-    if (!Number.isInteger(value) || value < 0 || value > 65535) {
-      throw __autojs6_invalid_arg_value("Embedded Node limited net port must be an integer between 0 and 65535.");
-    }
-    return value;
-  }
-  function __autojs6_limited_net_copy_frozen_record(record) {
-    return Object.freeze(Object.assign(Object.create(null), record));
-  }
-  function __autojs6_limited_net() {
-    if (__autojs6_limited_net_cache) {
-      return __autojs6_limited_net_cache;
-    }
-    const nodeEvents = __autojs6_events_module();
-    if (!nodeEvents || typeof nodeEvents.EventEmitter !== "function") {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'net' is unavailable.");
-    }
-    class LimitedSocket extends nodeEvents.EventEmitter {
-      constructor(options) {
-        super();
-        const opts = options && typeof options === "object" ? options : Object.create(null);
-        this.connecting = false;
-        this.destroyed = false;
-        this.pending = false;
-        this.readyState = "closed";
-        this.allowHalfOpen = Boolean(opts.allowHalfOpen);
-        this.remoteAddress = undefined;
-        this.remoteFamily = undefined;
-        this.remotePort = undefined;
-        this.localAddress = undefined;
-        this.localPort = undefined;
-        this.bytesRead = 0;
-        this.bytesWritten = 0;
-      }
-      connect() {
-        throw __autojs6_limited_net_disabled_error("connect");
-      }
-      write(chunk, encoding, callback) {
-        if (typeof encoding === "function") {
-          callback = encoding;
-        }
-        const error = __autojs6_limited_net_disabled_error("write");
-        if (typeof callback === "function") {
-          __autojs6_schedule_task(function () {
-            callback(error);
-          });
-          return false;
-        }
-        throw error;
-      }
-      end(chunk, encoding, callback) {
-        if (typeof chunk === "function") {
-          callback = chunk;
-        } else if (typeof encoding === "function") {
-          callback = encoding;
-        }
-        this.destroyed = true;
-        this.readyState = "closed";
-        if (typeof callback === "function") {
-          __autojs6_schedule_task(callback);
-        }
-        return this;
-      }
-      destroy() {
-        this.destroyed = true;
-        this.readyState = "closed";
-        return this;
-      }
-      pause() {
-        return this;
-      }
-      resume() {
-        return this;
-      }
-      setEncoding() {
-        return this;
-      }
-      setKeepAlive() {
-        return this;
-      }
-      setNoDelay() {
-        return this;
-      }
-      setTimeout(timeout, callback) {
-        if (typeof callback === "function") {
-          this.once("timeout", callback);
-        }
-        return this;
-      }
-      ref() {
-        return this;
-      }
-      unref() {
-        return this;
-      }
-      address() {
-        return __autojs6_limited_net_copy_frozen_record({});
-      }
-    }
-    class LimitedServer extends nodeEvents.EventEmitter {
-      constructor(options, connectionListener) {
-        super();
-        if (typeof options === "function") {
-          connectionListener = options;
-        }
-        this.listening = false;
-        this.maxConnections = 0;
-        this.connections = 0;
-        if (typeof connectionListener === "function") {
-          this.on("connection", connectionListener);
-        }
-      }
-      listen() {
-        throw __autojs6_limited_net_disabled_error("listen");
-      }
-      close(callback) {
-        this.listening = false;
-        if (typeof callback === "function") {
-          __autojs6_schedule_task(function () {
-            callback(null);
-          });
-        }
-        return this;
-      }
-      address() {
-        return null;
-      }
-      getConnections(callback) {
-        if (typeof callback !== "function") {
-          throw __autojs6_invalid_arg_type("Embedded Node limited net.Server.getConnections callback must be a function.");
-        }
-        __autojs6_schedule_task(function () {
-          callback(null, 0);
-        });
-        return this;
-      }
-      ref() {
-        return this;
-      }
-      unref() {
-        return this;
-      }
-    }
-    class LimitedSocketAddress {
-      constructor(options) {
-        const opts = options === undefined || options === null ? Object.create(null) : options;
-        if (typeof opts !== "object") {
-          throw __autojs6_invalid_arg_type("Embedded Node limited net.SocketAddress options must be an object.");
-        }
-        const address = opts.address === undefined ? "127.0.0.1" : String(opts.address);
-        const family = __autojs6_limited_net_normalize_family(opts.family, address);
-        const port = __autojs6_limited_net_normalize_port(opts.port);
-        const flowlabel = opts.flowlabel === undefined ? 0 : Number(opts.flowlabel);
-        if (!Number.isInteger(flowlabel) || flowlabel < 0) {
-          throw __autojs6_invalid_arg_value("Embedded Node limited net.SocketAddress flowlabel must be a non-negative integer.");
-        }
-        Object.defineProperties(this, {
-          address: { value: address, enumerable: true },
-          family: { value: family, enumerable: true },
-          flowlabel: { value: flowlabel, enumerable: true },
-          port: { value: port, enumerable: true }
-        });
-        Object.freeze(this);
-      }
-      static parse(input) {
-        if (typeof input !== "string") {
-          return undefined;
-        }
-        const text = input.trim();
-        let address = "";
-        let portText = "";
-        const bracket = /^\[([^\]]+)\]:(\d+)$/.exec(text);
-        if (bracket) {
-          address = bracket[1];
-          portText = bracket[2];
-        } else {
-          const separator = text.lastIndexOf(":");
-          if (separator <= 0 || text.indexOf(":") !== separator) {
-            return undefined;
-          }
-          address = text.slice(0, separator);
-          portText = text.slice(separator + 1);
-        }
-        try {
-          return new LimitedSocketAddress({
-            address,
-            port: __autojs6_limited_net_normalize_port(portText)
-          });
-        } catch (_) {
-          return undefined;
-        }
-      }
-    }
-    class LimitedBlockList {
-      constructor() {
-        this.__autojs6Rules = [];
-      }
-      addAddress(address, family) {
-        const text = String(address);
-        const normalizedFamily = __autojs6_limited_net_normalize_family(family, text);
-        this.__autojs6Rules.push(Object.freeze({
-          kind: "address",
-          address: text,
-          family: normalizedFamily,
-          rule: "Address: " + text
-        }));
-      }
-      addRange(start, end, family) {
-        const startText = String(start);
-        const endText = String(end);
-        const normalizedFamily = __autojs6_limited_net_normalize_family(family, startText);
-        __autojs6_limited_net_normalize_family(normalizedFamily, endText);
-        const startNumber = normalizedFamily === "ipv4" ? __autojs6_limited_net_ipv4_to_number(startText) : null;
-        const endNumber = normalizedFamily === "ipv4" ? __autojs6_limited_net_ipv4_to_number(endText) : null;
-        if (normalizedFamily === "ipv4" && startNumber > endNumber) {
-          throw __autojs6_invalid_arg_value("Embedded Node limited net.BlockList range start must be <= end.");
-        }
-        this.__autojs6Rules.push(Object.freeze({
-          kind: "range",
-          start: startText,
-          end: endText,
-          startNumber,
-          endNumber,
-          family: normalizedFamily,
-          rule: "Range: " + startText + "-" + endText
-        }));
-      }
-      addSubnet(network, prefix, family) {
-        const networkText = String(network);
-        const normalizedFamily = __autojs6_limited_net_normalize_family(family, networkText);
-        const prefixNumber = Number(prefix);
-        const maxPrefix = normalizedFamily === "ipv4" ? 32 : 128;
-        if (!Number.isInteger(prefixNumber) || prefixNumber < 0 || prefixNumber > maxPrefix) {
-          throw __autojs6_invalid_arg_value("Embedded Node limited net.BlockList subnet prefix is out of range.");
-        }
-        const networkNumber = normalizedFamily === "ipv4" ? __autojs6_limited_net_ipv4_to_number(networkText) : null;
-        const mask = normalizedFamily === "ipv4" && prefixNumber > 0
-          ? (0xffffffff << (32 - prefixNumber)) >>> 0
-          : (normalizedFamily === "ipv4" ? 0 : null);
-        this.__autojs6Rules.push(Object.freeze({
-          kind: "subnet",
-          network: networkText,
-          networkNumber,
-          mask,
-          prefix: prefixNumber,
-          family: normalizedFamily,
-          rule: "Subnet: " + networkText + "/" + prefixNumber
-        }));
-      }
-      check(address, family) {
-        const text = String(address);
-        const normalizedFamily = __autojs6_limited_net_normalize_family(family, text);
-        const addressNumber = normalizedFamily === "ipv4" ? __autojs6_limited_net_ipv4_to_number(text) : null;
-        return this.__autojs6Rules.some(function (rule) {
-          if (rule.family !== normalizedFamily) {
-            return false;
-          }
-          if (rule.kind === "address") {
-            return rule.address === text;
-          }
-          if (rule.kind === "range") {
-            if (normalizedFamily === "ipv4") {
-              return addressNumber >= rule.startNumber && addressNumber <= rule.endNumber;
-            }
-            return rule.start === text || rule.end === text;
-          }
-          if (rule.kind === "subnet") {
-            if (normalizedFamily === "ipv4") {
-              return ((addressNumber & rule.mask) >>> 0) === ((rule.networkNumber & rule.mask) >>> 0);
-            }
-            return rule.prefix === 128 && rule.network === text;
-          }
-          return false;
-        });
-      }
-      get rules() {
-        return Object.freeze(this.__autojs6Rules.map(function (rule) {
-          return rule.rule;
-        }));
-      }
-    }
-    function createServer(options, connectionListener) {
-      return new LimitedServer(options, connectionListener);
-    }
-    function connect() {
-      throw __autojs6_limited_net_disabled_error("connect");
-    }
-    function createConnection() {
-      throw __autojs6_limited_net_disabled_error("createConnection");
-    }
-    function getDefaultAutoSelectFamily() {
-      return false;
-    }
-    function setDefaultAutoSelectFamily(value) {
-      if (typeof value !== "boolean") {
-        throw __autojs6_invalid_arg_type("Embedded Node limited net.setDefaultAutoSelectFamily value must be a boolean.");
-      }
-      return undefined;
-    }
-    let autoSelectFamilyAttemptTimeout = 250;
-    function getDefaultAutoSelectFamilyAttemptTimeout() {
-      return autoSelectFamilyAttemptTimeout;
-    }
-    function setDefaultAutoSelectFamilyAttemptTimeout(value) {
-      const timeout = Number(value);
-      if (!Number.isInteger(timeout) || timeout < 1) {
-        throw __autojs6_invalid_arg_value("Embedded Node limited net.setDefaultAutoSelectFamilyAttemptTimeout value must be a positive integer.");
-      }
-      autoSelectFamilyAttemptTimeout = timeout;
-      return undefined;
-    }
-    Object.freeze(LimitedSocket.prototype);
-    Object.freeze(LimitedServer.prototype);
-    Object.freeze(LimitedBlockList.prototype);
-    Object.freeze(LimitedSocketAddress.prototype);
-    Object.freeze(LimitedSocketAddress);
-    const limitedNet = Object.create(null);
-    Object.defineProperties(limitedNet, {
-      BlockList: { value: Object.freeze(LimitedBlockList), enumerable: true },
-      Server: { value: Object.freeze(LimitedServer), enumerable: true },
-      Socket: { value: Object.freeze(LimitedSocket), enumerable: true },
-      SocketAddress: { value: LimitedSocketAddress, enumerable: true },
-      Stream: { value: LimitedSocket, enumerable: true },
-      connect: { value: connect, enumerable: true },
-      createConnection: { value: createConnection, enumerable: true },
-      createServer: { value: createServer, enumerable: true },
-      getDefaultAutoSelectFamily: { value: getDefaultAutoSelectFamily, enumerable: true },
-      getDefaultAutoSelectFamilyAttemptTimeout: { value: getDefaultAutoSelectFamilyAttemptTimeout, enumerable: true },
-      isIP: { value: __autojs6_limited_net_is_ip, enumerable: true },
-      isIPv4: { value: __autojs6_limited_net_is_ipv4, enumerable: true },
-      isIPv6: { value: __autojs6_limited_net_is_ipv6, enumerable: true },
-      isSocketAddress: {
-        value: function (value) {
-          return value instanceof LimitedSocketAddress;
-        },
-        enumerable: true
-      },
-      setDefaultAutoSelectFamily: { value: setDefaultAutoSelectFamily, enumerable: true },
-      setDefaultAutoSelectFamilyAttemptTimeout: { value: setDefaultAutoSelectFamilyAttemptTimeout, enumerable: true }
-    });
-    __autojs6_limited_net_cache = Object.freeze(limitedNet);
-    return __autojs6_limited_net_cache;
-  }
-  function __autojs6_limited_http_disabled_error(protocol, operation) {
-    const error = __autojs6_with_error_code(
-      new Error("Embedded Node limited " + protocol + "." + operation + " is disabled; HTTP network access requires an explicit AutoJs6 policy."),
-      "ERR_AUTOJS6_EMBEDDED_NODE_NETWORK_DISABLED"
-    );
-    error.errno = "ERR_AUTOJS6_EMBEDDED_NODE_NETWORK_DISABLED";
-    error.syscall = String(operation);
-    return error;
-  }
-  function __autojs6_limited_http_status_codes() {
-    return Object.freeze({
-      100: "Continue",
-      101: "Switching Protocols",
-      102: "Processing",
-      103: "Early Hints",
-      200: "OK",
-      201: "Created",
-      202: "Accepted",
-      203: "Non-Authoritative Information",
-      204: "No Content",
-      205: "Reset Content",
-      206: "Partial Content",
-      207: "Multi-Status",
-      208: "Already Reported",
-      226: "IM Used",
-      300: "Multiple Choices",
-      301: "Moved Permanently",
-      302: "Found",
-      303: "See Other",
-      304: "Not Modified",
-      305: "Use Proxy",
-      307: "Temporary Redirect",
-      308: "Permanent Redirect",
-      400: "Bad Request",
-      401: "Unauthorized",
-      402: "Payment Required",
-      403: "Forbidden",
-      404: "Not Found",
-      405: "Method Not Allowed",
-      406: "Not Acceptable",
-      407: "Proxy Authentication Required",
-      408: "Request Timeout",
-      409: "Conflict",
-      410: "Gone",
-      411: "Length Required",
-      412: "Precondition Failed",
-      413: "Payload Too Large",
-      414: "URI Too Long",
-      415: "Unsupported Media Type",
-      416: "Range Not Satisfiable",
-      417: "Expectation Failed",
-      418: "I'm a Teapot",
-      421: "Misdirected Request",
-      422: "Unprocessable Entity",
-      423: "Locked",
-      424: "Failed Dependency",
-      425: "Too Early",
-      426: "Upgrade Required",
-      428: "Precondition Required",
-      429: "Too Many Requests",
-      431: "Request Header Fields Too Large",
-      451: "Unavailable For Legal Reasons",
-      500: "Internal Server Error",
-      501: "Not Implemented",
-      502: "Bad Gateway",
-      503: "Service Unavailable",
-      504: "Gateway Timeout",
-      505: "HTTP Version Not Supported",
-      506: "Variant Also Negotiates",
-      507: "Insufficient Storage",
-      508: "Loop Detected",
-      509: "Bandwidth Limit Exceeded",
-      510: "Not Extended",
-      511: "Network Authentication Required"
-    });
-  }
-  function __autojs6_limited_http_methods() {
-    return Object.freeze([
-      "ACL",
-      "BIND",
-      "CHECKOUT",
-      "CONNECT",
-      "COPY",
-      "DELETE",
-      "GET",
-      "HEAD",
-      "LINK",
-      "LOCK",
-      "M-SEARCH",
-      "MERGE",
-      "MKACTIVITY",
-      "MKCALENDAR",
-      "MKCOL",
-      "MOVE",
-      "NOTIFY",
-      "OPTIONS",
-      "PATCH",
-      "POST",
-      "PROPFIND",
-      "PROPPATCH",
-      "PURGE",
-      "PUT",
-      "REBIND",
-      "REPORT",
-      "SEARCH",
-      "SOURCE",
-      "SUBSCRIBE",
-      "TRACE",
-      "UNBIND",
-      "UNLINK",
-      "UNLOCK",
-      "UNSUBSCRIBE"
-    ]);
-  }
-  function __autojs6_limited_http_token_error(name) {
-    return __autojs6_with_error_code(
-      new TypeError("Header name must be a valid HTTP token [" + String(name) + "]"),
-      "ERR_INVALID_HTTP_TOKEN"
-    );
-  }
-  function __autojs6_limited_http_header_value_error(name, value, code) {
-    return __autojs6_with_error_code(
-      new TypeError("Invalid value " + String(value) + " for header " + String(name)),
-      code
-    );
-  }
-  function __autojs6_limited_http_validate_header_name(name) {
-    const text = String(name);
-    if (!/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(text)) {
-      throw __autojs6_limited_http_token_error(text);
-    }
-    return undefined;
-  }
-  function __autojs6_limited_http_validate_header_value(name, value) {
-    __autojs6_limited_http_validate_header_name(name);
-    if (value === undefined) {
-      throw __autojs6_limited_http_header_value_error(name, value, "ERR_HTTP_INVALID_HEADER_VALUE");
-    }
-    const values = Array.isArray(value) ? value : [value];
-    for (const entry of values) {
-      if (/[\r\n]/.test(String(entry))) {
-        throw __autojs6_limited_http_header_value_error(name, value, "ERR_INVALID_CHAR");
-      }
-    }
-    return undefined;
-  }
-  function __autojs6_limited_http_schedule_callback(callback) {
-    if (typeof callback === "function") {
-      __autojs6_schedule_task(callback);
-    }
-  }
-  function __autojs6_limited_http_network_capability_declared() {
-    const manifest = __autojs6_bridge_permission_manifest();
-    return manifest.enforced === true &&
-      __autojs6_bridge_declares_capability(manifest.normalizedPermissions, "network");
-  }
-  function __autojs6_limited_http_controlled_client_enabled() {
-    if (!__autojs6_limited_http_network_capability_declared()) {
-      return false;
-    }
-    if (__autojs6_bridge_transport && typeof __autojs6_bridge_transport.postMessage === "function") {
-      return true;
-    }
-    return !!__autojs6_bridge_live_config();
-  }
-  function __autojs6_limited_http_buffer(chunk, encoding) {
-    const BufferCtor = __autojs6_fetch_buffer_constructor();
-    if (!BufferCtor || typeof BufferCtor.from !== "function") {
-      throw __autojs6_fetch_error(
-        "AutoJs6 controlled HTTP client requires Buffer support.",
-        "ERR_AUTOJS6_NETWORK_PERMISSION_DENIED"
-      );
-    }
-    if (chunk === undefined || chunk === null) {
-      return BufferCtor.from([]);
-    }
-    if (BufferCtor.isBuffer && BufferCtor.isBuffer(chunk)) {
-      return chunk;
-    }
-    if (typeof ArrayBuffer === "function" && chunk instanceof ArrayBuffer) {
-      return BufferCtor.from(new Uint8Array(chunk));
-    }
-    if (typeof ArrayBuffer === "function" && ArrayBuffer.isView && ArrayBuffer.isView(chunk)) {
-      return BufferCtor.from(chunk.buffer, chunk.byteOffset, chunk.byteLength);
-    }
-    return BufferCtor.from(String(chunk), typeof encoding === "string" ? encoding : undefined);
-  }
-  function __autojs6_limited_http_concat(buffers) {
-    const BufferCtor = __autojs6_fetch_buffer_constructor();
-    if (!BufferCtor || typeof BufferCtor.concat !== "function") {
-      throw __autojs6_fetch_error(
-        "AutoJs6 controlled HTTP client requires Buffer support.",
-        "ERR_AUTOJS6_NETWORK_PERMISSION_DENIED"
-      );
-    }
-    return BufferCtor.concat(buffers);
-  }
-  function __autojs6_limited_http_apply_headers(message, headers) {
-    if (!headers || typeof headers !== "object") {
-      return;
-    }
-    if (Array.isArray(headers)) {
-      for (const entry of headers) {
-        if (entry && entry.length >= 2) {
-          message.setHeader(entry[0], entry[1]);
-        }
-      }
-      return;
-    }
-    Object.keys(headers).forEach(function(name) {
-      message.setHeader(name, headers[name]);
-    });
-  }
-  function __autojs6_limited_http_response_headers(headers) {
-    const normalized = new Headers(headers || undefined);
-    const object = Object.create(null);
-    const raw = [];
-    normalized.forEach(function(value, name) {
-      const key = String(name).toLowerCase();
-      object[key] = String(value);
-      raw.push(key, String(value));
-    });
-    return { headers: object, rawHeaders: raw };
-  }
-  function __autojs6_limited_http_protocol_error(expected, actual) {
-    const error = __autojs6_with_error_code(
-      new TypeError("Protocol \"" + String(actual) + "\" not supported. Expected \"" + String(expected) + "\"."),
-      "ERR_INVALID_PROTOCOL"
-    );
-    error.expected = String(expected);
-    error.actual = String(actual);
-    return error;
-  }
-  function __autojs6_limited_http_request_url(protocol, options) {
-    const protocolValue = String(options.protocol || (protocol + ":")).toLowerCase();
-    if (protocolValue !== protocol + ":") {
-      throw __autojs6_limited_http_protocol_error(protocol + ":", protocolValue);
-    }
-    let authority = String(options.host || options.hostname || "localhost");
-    const portText = options.port === undefined || options.port === null || options.port === ""
-      ? ""
-      : String(options.port);
-    if (portText && authority.indexOf(":") < 0) {
-      authority += ":" + portText;
-    }
-    const path = options.path === undefined || options.path === null || options.path === ""
-      ? "/"
-      : String(options.path);
-    return new URL(path, protocolValue + "//" + authority).toString();
-  }
-  function __autojs6_limited_http_request_arguments(protocol, values) {
-    const args = Array.prototype.slice.call(values || []);
-    let callback = null;
-    if (args.length > 0 && typeof args[args.length - 1] === "function") {
-      callback = args.pop();
-    }
-    let options;
-    if (args.length === 0) {
-      options = __autojs6_limited_http_request_options(protocol, undefined);
-    } else if (args.length === 1) {
-      options = __autojs6_limited_http_request_options(protocol, args[0]);
-    } else {
-      const base = __autojs6_limited_http_request_options(protocol, args[0]);
-      const extra = args[1] && typeof args[1] === "object" ? args[1] : Object.create(null);
-      options = __autojs6_limited_http_request_options(protocol, Object.assign({}, base, extra, {
-        headers: extra.headers !== undefined ? extra.headers : base.headers
-      }));
-    }
-    return { options, callback };
-  }
-  function __autojs6_limited_https_policy_error(optionName) {
-    return __autojs6_fetch_policy_error(
-      "AutoJs6 controlled HTTPS client rejects TLS option '" + optionName + "'. Certificate customization requires a separate design gate.",
-      "https_" + optionName,
-      "ERR_AUTOJS6_NETWORK_POLICY_DENIED"
-    );
-  }
-  function __autojs6_limited_http_raw_option_error(protocol, optionName) {
-    return __autojs6_fetch_policy_error(
-      "AutoJs6 controlled " + protocol + " client rejects raw socket option '" + optionName + "'. Raw socket customization is unavailable.",
-      protocol + "_" + optionName,
-      "ERR_AUTOJS6_NETWORK_POLICY_DENIED"
-    );
-  }
-  function __autojs6_limited_http_validate_raw_options(protocol, options) {
-    if (!options || typeof options !== "object") {
-      return;
-    }
-    const denied = [
-      "createConnection",
-      "socketPath",
-      "proxy",
-      "proxyUrl",
-      "proxyTunnel",
-      "httpProxy",
-      "httpsProxy",
-      "socksProxy",
-      "tunnel",
-      "upgrade"
-    ];
-    for (const name of denied) {
-      if (__autojs6_has_own(options, name) && options[name] !== undefined && options[name] !== null) {
-        throw __autojs6_limited_http_raw_option_error(protocol, name);
-      }
-    }
-    const method = String(options.method || "").toUpperCase();
-    if (method === "CONNECT") {
-      throw __autojs6_limited_http_raw_option_error(protocol, "method.CONNECT");
-    }
-    const agent = options.agent;
-    if (agent && typeof agent === "object") {
-      if (typeof agent.createConnection === "function" && !agent.__autojs6LimitedAgent) {
-        throw __autojs6_limited_http_raw_option_error(protocol, "agent.createConnection");
-      }
-      if (typeof agent.addRequest === "function" && !agent.__autojs6LimitedAgent) {
-        throw __autojs6_limited_http_raw_option_error(protocol, "agent.addRequest");
-      }
-    }
-  }
-  function __autojs6_limited_https_validate_options(options) {
-    if (!options || typeof options !== "object") {
-      return;
-    }
-    if (options.rejectUnauthorized === false) {
-      throw __autojs6_limited_https_policy_error("rejectUnauthorized");
-    }
-    const denied = [
-      "ca",
-      "cert",
-      "key",
-      "pfx",
-      "passphrase",
-      "secureContext",
-      "secureOptions",
-      "secureProtocol",
-      "ciphers",
-      "minVersion",
-      "maxVersion",
-      "checkServerIdentity",
-      "session",
-      "requestCert",
-      "clientCertEngine",
-      "crl",
-      "ecdhCurve",
-      "honorCipherOrder",
-      "sigalgs",
-      "createConnection"
-    ];
-    for (const name of denied) {
-      if (__autojs6_has_own(options, name) && options[name] !== undefined && options[name] !== null) {
-        throw __autojs6_limited_https_policy_error(name);
-      }
-    }
-    const agent = options.agent;
-    if (agent && typeof agent === "object") {
-      const agentOptions = agent.options && typeof agent.options === "object" ? agent.options : agent;
-      __autojs6_limited_https_validate_options(agentOptions);
-      if (
-        __autojs6_has_own(agent, "createConnection") &&
-        typeof agent.createConnection === "function" &&
-        !agent.__autojs6LimitedAgent
-      ) {
-        throw __autojs6_limited_https_policy_error("agent.createConnection");
-      }
-    }
-  }
-  function __autojs6_limited_http_request_options(protocol, options) {
-    const defaults = {
-      protocol: protocol + ":",
-      host: "localhost",
-      hostname: "localhost",
-      port: protocol === "https" ? 443 : 80,
-      path: "/",
-      method: "GET"
-    };
-    if (options === undefined || options === null) {
-      return defaults;
-    }
-    if (typeof URL === "function" && options instanceof URL) {
-      return Object.assign(defaults, {
-        protocol: options.protocol || defaults.protocol,
-        host: options.host || defaults.host,
-        hostname: options.hostname || defaults.hostname,
-        port: options.port ? Number(options.port) : defaults.port,
-        path: (options.pathname || "/") + (options.search || "")
-      });
-    }
-    if (typeof options === "string") {
-      try {
-        return __autojs6_limited_http_request_options(protocol, new URL(options));
-      } catch (_) {
-        return Object.assign(defaults, { path: options || "/" });
-      }
-    }
-    if (typeof options === "object") {
-      const host = options.host !== undefined ? String(options.host) : (
-        options.hostname !== undefined ? String(options.hostname) : defaults.host
-      );
-      return Object.assign(defaults, options, {
-        host,
-        hostname: options.hostname !== undefined ? String(options.hostname) : host,
-        port: options.port !== undefined ? Number(options.port) : defaults.port,
-        path: options.path !== undefined ? String(options.path) : defaults.path,
-        method: options.method !== undefined ? String(options.method).toUpperCase() : defaults.method
-      });
-    }
-    throw __autojs6_invalid_arg_type("Embedded Node limited " + protocol + ".request options must be a string, URL, or object.");
-  }
-  function __autojs6_limited_http(protocol) {
-    const isHttps = protocol === "https";
-    if (isHttps && __autojs6_limited_https_cache) {
-      return __autojs6_limited_https_cache;
-    }
-    if (!isHttps && __autojs6_limited_http_cache) {
-      return __autojs6_limited_http_cache;
-    }
-    const nodeEvents = __autojs6_events_module();
-    if (!nodeEvents || typeof nodeEvents.EventEmitter !== "function") {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module '" + protocol + "' is unavailable.");
-    }
-    const defaultPort = isHttps ? 443 : 80;
-    const STATUS_CODES = __autojs6_limited_http_status_codes();
-    const METHODS = __autojs6_limited_http_methods();
-    class LimitedOutgoingMessage extends nodeEvents.EventEmitter {
-      constructor() {
-        super();
-        this.finished = false;
-        this.destroyed = false;
-        this.headersSent = false;
-        this.writableEnded = false;
-        this.writableFinished = false;
-        this.socket = null;
-        this.connection = null;
-        this.__autojs6Headers = Object.create(null);
-      }
-      setHeader(name, value) {
-        __autojs6_limited_http_validate_header_value(name, value);
-        const key = String(name).toLowerCase();
-        this.__autojs6Headers[key] = { name: String(name), value };
-        return this;
-      }
-      getHeader(name) {
-        const record = this.__autojs6Headers[String(name).toLowerCase()];
-        return record ? record.value : undefined;
-      }
-      getHeaderNames() {
-        return Object.freeze(Object.keys(this.__autojs6Headers));
-      }
-      getHeaders() {
-        const headers = Object.create(null);
-        for (const key of Object.keys(this.__autojs6Headers)) {
-          headers[key] = this.__autojs6Headers[key].value;
-        }
-        return headers;
-      }
-      hasHeader(name) {
-        return __autojs6_has_own(this.__autojs6Headers, String(name).toLowerCase());
-      }
-      removeHeader(name) {
-        delete this.__autojs6Headers[String(name).toLowerCase()];
-        return undefined;
-      }
-      flushHeaders() {
-        this.headersSent = true;
-        return undefined;
-      }
-      write(chunk, encoding, callback) {
-        if (typeof encoding === "function") {
-          callback = encoding;
-        }
-        __autojs6_limited_http_schedule_callback(callback);
-        return false;
-      }
-      end(chunk, encoding, callback) {
-        if (typeof chunk === "function") {
-          callback = chunk;
-        } else if (typeof encoding === "function") {
-          callback = encoding;
-        }
-        this.finished = true;
-        this.writableEnded = true;
-        this.writableFinished = true;
-        __autojs6_limited_http_schedule_callback(callback);
-        return this;
-      }
-      destroy(error) {
-        this.destroyed = true;
-        if (error && typeof this.listenerCount === "function" && this.listenerCount("error") > 0) {
-          this.emit("error", error);
-        }
-        return this;
-      }
-      cork() {
-        return undefined;
-      }
-      uncork() {
-        return undefined;
-      }
-      addTrailers() {
-        return undefined;
-      }
-      setTimeout(timeout, callback) {
-        if (typeof callback === "function") {
-          this.once("timeout", callback);
-        }
-        return this;
-      }
-    }
-    class LimitedClientRequest extends LimitedOutgoingMessage {
-      constructor(options, callback, autoDispatch) {
-        super();
-        const normalized = __autojs6_limited_http_request_options(protocol, options);
-        __autojs6_limited_http_validate_raw_options(protocol, normalized);
-        if (isHttps) {
-          __autojs6_limited_https_validate_options(normalized);
-        }
-        this.aborted = false;
-        this.agent = normalized.agent || limitedModule.globalAgent;
-        this.method = normalized.method;
-        this.path = normalized.path;
-        this.host = normalized.host;
-        this.protocol = normalized.protocol || protocol + ":";
-        this.__autojs6Options = normalized;
-        this.__autojs6Chunks = [];
-        this.__autojs6Started = false;
-        this.__autojs6AutoDispatch = autoDispatch === true;
-        this.__autojs6TimeoutMs = __autojs6_fetch_timeout_ms(
-          normalized.timeoutMs === undefined ? normalized.timeout : normalized.timeoutMs
-        );
-        this.__autojs6AbortController = typeof AbortController === "function" ? new AbortController() : null;
-        this.__autojs6ExternalSignal = normalized.signal || null;
-        this.__autojs6ExternalAbortListener = null;
-        __autojs6_limited_http_apply_headers(this, normalized.headers);
-        if (typeof callback === "function") {
-          this.once("response", callback);
-        }
-        this.__autojs6AttachSignal();
-      }
-      write(chunk, encoding, callback) {
-        if (typeof encoding === "function") {
-          callback = encoding;
-          encoding = undefined;
-        }
-        if (this.destroyed || this.aborted) {
-          const error = __autojs6_fetch_error(
-            "AutoJs6 controlled HTTP request has been destroyed.",
-            "ERR_AUTOJS6_NETWORK_ABORTED"
-          );
-          __autojs6_limited_http_schedule_callback(function() {
-            if (typeof callback === "function") callback(error);
-          });
-          return false;
-        }
-        try {
-          this.__autojs6Chunks.push(__autojs6_limited_http_buffer(chunk, encoding));
-          __autojs6_limited_http_schedule_callback(callback);
-          return true;
-        } catch (error) {
-          __autojs6_limited_http_schedule_callback(function() {
-            if (typeof callback === "function") callback(error);
-          });
-          throw error;
-        }
-      }
-      end(chunk, encoding, callback) {
-        if (typeof chunk === "function") {
-          callback = chunk;
-          chunk = undefined;
-        } else if (typeof encoding === "function") {
-          callback = encoding;
-          encoding = undefined;
-        }
-        if (chunk !== undefined && chunk !== null) {
-          this.write(chunk, encoding);
-        }
-        this.finished = true;
-        this.writableEnded = true;
-        this.writableFinished = true;
-        __autojs6_limited_http_schedule_callback(callback);
-        if (this.__autojs6AutoDispatch) {
-          this.__autojs6Dispatch();
-        }
-        return this;
-      }
-      abort() {
-        this.aborted = true;
-        this.destroyed = true;
-        if (this.__autojs6AbortController) {
-          try {
-            this.__autojs6AbortController.abort();
-          } catch (_) {}
-        }
-        this.__autojs6DetachSignal();
-        this.emit("abort");
-        this.emit("close");
-        return this;
-      }
-      destroy(error) {
-        if (error && typeof this.listenerCount === "function" && this.listenerCount("error") > 0) {
-          this.emit("error", error);
-        }
-        return this.abort();
-      }
-      setTimeout(timeout, callback) {
-        this.__autojs6TimeoutMs = __autojs6_fetch_timeout_ms(timeout);
-        if (typeof callback === "function") {
-          this.once("timeout", callback);
-        }
-        return this;
-      }
-      __autojs6Dispatch() {
-        if (this.__autojs6Started || this.destroyed || this.aborted) {
-          return;
-        }
-        this.__autojs6Started = true;
-        this.headersSent = true;
-        let url;
-        let body;
-        try {
-          url = __autojs6_limited_http_request_url(protocol, this.__autojs6Options);
-          body = __autojs6_limited_http_concat(this.__autojs6Chunks);
-        } catch (error) {
-          this.emit("error", error);
-          this.emit("close");
-          return;
-        }
-        const fetchInit = {
-          method: this.method,
-          headers: this.getHeaders(),
-          timeoutMs: this.__autojs6TimeoutMs,
-          signal: this.__autojs6AbortController && this.__autojs6AbortController.signal
-        };
-        fetchInit.maxResponseBytes = this.__autojs6Options.maxResponseBytes;
-        if (__autojs6_has_own(this.__autojs6Options, "redirect")) {
-          fetchInit.redirect = this.__autojs6Options.redirect;
-          fetchInit.maxRedirects = this.__autojs6Options.maxRedirects;
-        } else if (__autojs6_has_own(this.__autojs6Options, "maxRedirects")) {
-          fetchInit.redirect = "follow";
-          fetchInit.maxRedirects = this.__autojs6Options.maxRedirects;
-        } else {
-          fetchInit.redirect = "manual";
-          fetchInit.maxRedirects = 0;
-        }
-        if (body.length > 0 || this.method === "POST") {
-          fetchInit.body = body;
-        }
-        const self = this;
-        __autojs6_controlled_fetch(url, fetchInit)
-          .then(function(response) {
-            return response.arrayBuffer().then(function(arrayBuffer) {
-              return { response, body: __autojs6_limited_http_buffer(arrayBuffer) };
-            });
-          })
-          .then(function(result) {
-            if (self.destroyed || self.aborted) {
-              return;
-            }
-            const incoming = new LimitedIncomingMessage();
-            const headerRecord = __autojs6_limited_http_response_headers(result.response.headers);
-            incoming.statusCode = Number(result.response.status);
-            incoming.statusMessage = String(result.response.statusText || STATUS_CODES[incoming.statusCode] || "");
-            incoming.headers = headerRecord.headers;
-            incoming.rawHeaders = headerRecord.rawHeaders;
-            incoming.url = url;
-            __autojs6_schedule_task(function() {
-              self.emit("response", incoming);
-              incoming.__autojs6EmitBody(result.body);
-              self.__autojs6DetachSignal();
-              self.emit("close");
-            });
-          })
-          .catch(function(error) {
-            if (self.destroyed && !(error && (error.autojs6Code || error.code) === "ERR_AUTOJS6_NETWORK_ABORTED")) {
-              return;
-            }
-            const code = error && (error.autojs6Code || error.code);
-            if (code === "ERR_AUTOJS6_NETWORK_TIMEOUT" || code === "ERR_AUTOJS6_BRIDGE_TIMEOUT") {
-              self.emit("timeout");
-            }
-            self.__autojs6DetachSignal();
-            self.emit("error", error);
-            self.emit("close");
-          });
-      }
-      __autojs6AttachSignal() {
-        const signal = this.__autojs6ExternalSignal;
-        if (!signal) {
-          return;
-        }
-        if (!__autojs6_is_abort_signal(signal)) {
-          throw __autojs6_invalid_arg_type("Embedded Node limited " + protocol + ".request signal must be an AbortSignal.");
-        }
-        const self = this;
-        const listener = function() {
-          self.__autojs6AbortFromSignal();
-        };
-        this.__autojs6ExternalAbortListener = listener;
-        if (signal.aborted === true) {
-          const error = this.__autojs6AbortError();
-          this.aborted = true;
-          this.destroyed = true;
-          __autojs6_limited_http_schedule_callback(function() {
-            self.__autojs6DetachSignal();
-            self.emit("error", error);
-            self.emit("close");
-          });
-        } else {
-          signal.addEventListener("abort", listener, { once: true });
-        }
-      }
-      __autojs6DetachSignal() {
-        const signal = this.__autojs6ExternalSignal;
-        const listener = this.__autojs6ExternalAbortListener;
-        if (signal && listener && typeof signal.removeEventListener === "function") {
-          try {
-            signal.removeEventListener("abort", listener);
-          } catch (_) {}
-        }
-        this.__autojs6ExternalAbortListener = null;
-      }
-      __autojs6AbortFromSignal() {
-        if (this.aborted || this.destroyed) {
-          return;
-        }
-        const error = this.__autojs6AbortError();
-        this.aborted = true;
-        this.destroyed = true;
-        if (this.__autojs6AbortController) {
-          try {
-            this.__autojs6AbortController.abort();
-          } catch (_) {}
-        }
-        if (!this.__autojs6Started) {
-          this.__autojs6DetachSignal();
-          this.emit("error", error);
-          this.emit("close");
-        }
-      }
-      __autojs6AbortError() {
-        return __autojs6_fetch_error(
-          "AutoJs6 controlled HTTP request was aborted.",
-          "ERR_AUTOJS6_NETWORK_ABORTED"
-        );
-      }
-    }
-    class LimitedIncomingMessage extends nodeEvents.EventEmitter {
-      constructor(socket) {
-        super();
-        this.socket = socket || null;
-        this.connection = this.socket;
-        this.httpVersion = "1.1";
-        this.httpVersionMajor = 1;
-        this.httpVersionMinor = 1;
-        this.complete = true;
-        this.headers = Object.create(null);
-        this.rawHeaders = [];
-        this.trailers = Object.create(null);
-        this.rawTrailers = [];
-        this.method = null;
-        this.url = "";
-        this.statusCode = null;
-        this.statusMessage = null;
-        this.aborted = false;
-        this.destroyed = false;
-        this.readable = true;
-        this.readableEnded = false;
-        this.__autojs6Encoding = null;
-      }
-      setTimeout(timeout, callback) {
-        if (typeof callback === "function") {
-          this.once("timeout", callback);
-        }
-        return this;
-      }
-      setEncoding(encoding) {
-        this.__autojs6Encoding = encoding === undefined || encoding === null ? "utf8" : String(encoding);
-        return this;
-      }
-      pause() {
-        return this;
-      }
-      resume() {
-        return this;
-      }
-      pipe(destination) {
-        const target = destination;
-        this.on("data", function(chunk) {
-          if (target && typeof target.write === "function") {
-            target.write(chunk);
-          }
-        });
-        this.on("end", function() {
-          if (target && typeof target.end === "function") {
-            target.end();
-          }
-        });
-        return target;
-      }
-      destroy(error) {
-        this.destroyed = true;
-        if (error && typeof this.listenerCount === "function" && this.listenerCount("error") > 0) {
-          this.emit("error", error);
-        }
-        return this;
-      }
-      __autojs6EmitBody(buffer) {
-        const body = buffer || __autojs6_limited_http_buffer("");
-        if (body.length > 0) {
-          this.emit("data", this.__autojs6Encoding ? body.toString(this.__autojs6Encoding) : body);
-        }
-        this.complete = true;
-        this.readableEnded = true;
-        this.emit("end");
-        this.emit("close");
-      }
-    }
-    class LimitedServerResponse extends LimitedOutgoingMessage {
-      constructor(request) {
-        super();
-        this.req = request || null;
-        this.statusCode = 200;
-        this.statusMessage = STATUS_CODES[200];
-      }
-      writeHead(statusCode, statusMessage, headers) {
-        const code = Number(statusCode);
-        if (!Number.isInteger(code) || code < 100 || code > 999) {
-          throw __autojs6_invalid_arg_value("Embedded Node limited " + protocol + ".ServerResponse statusCode is out of range.");
-        }
-        this.statusCode = code;
-        if (typeof statusMessage === "string") {
-          this.statusMessage = statusMessage;
-        } else if (statusMessage && typeof statusMessage === "object") {
-          headers = statusMessage;
-          this.statusMessage = STATUS_CODES[code] || String(code);
-        } else {
-          this.statusMessage = STATUS_CODES[code] || String(code);
-        }
-        if (headers && typeof headers === "object") {
-          for (const key of Object.keys(headers)) {
-            this.setHeader(key, headers[key]);
-          }
-        }
-        this.headersSent = true;
-        return this;
-      }
-    }
-    class LimitedAgent extends nodeEvents.EventEmitter {
-      constructor(options) {
-        super();
-        const opts = options && typeof options === "object" ? options : Object.create(null);
-        __autojs6_limited_http_validate_raw_options(protocol, opts);
-        if (isHttps) {
-          __autojs6_limited_https_validate_options(opts);
-        }
-        Object.defineProperty(this, "__autojs6LimitedAgent", {
-          value: true,
-          enumerable: false
-        });
-        this.options = Object.freeze(Object.assign(Object.create(null), opts));
-        this.requests = Object.create(null);
-        this.sockets = Object.create(null);
-        this.freeSockets = Object.create(null);
-        this.keepAlive = Boolean(opts.keepAlive);
-        this.keepAliveMsecs = opts.keepAliveMsecs === undefined ? 1000 : Number(opts.keepAliveMsecs);
-        this.maxSockets = opts.maxSockets === undefined ? Infinity : Number(opts.maxSockets);
-        this.maxFreeSockets = opts.maxFreeSockets === undefined ? 256 : Number(opts.maxFreeSockets);
-        this.maxTotalSockets = opts.maxTotalSockets === undefined ? Infinity : Number(opts.maxTotalSockets);
-        this.totalSocketCount = 0;
-        this.scheduling = opts.scheduling || "lifo";
-        this.defaultPort = defaultPort;
-        this.protocol = protocol + ":";
-      }
-      createConnection() {
-        throw __autojs6_limited_http_disabled_error(protocol, "createConnection");
-      }
-      addRequest() {
-        throw __autojs6_limited_http_disabled_error(protocol, "addRequest");
-      }
-      getName(options) {
-        const normalized = __autojs6_limited_http_request_options(protocol, options || Object.create(null));
-        return [normalized.host || normalized.hostname || "localhost", normalized.port || defaultPort, "", ""].join(":");
-      }
-      destroy() {
-        this.destroyed = true;
-        return undefined;
-      }
-    }
-    class LimitedServer extends nodeEvents.EventEmitter {
-      constructor(options, requestListener) {
-        super();
-        if (typeof options === "function") {
-          requestListener = options;
-        }
-        this.listening = false;
-        this.maxHeadersCount = null;
-        this.requestTimeout = 300000;
-        this.headersTimeout = 60000;
-        this.keepAliveTimeout = 5000;
-        this.timeout = 0;
-        if (typeof requestListener === "function") {
-          this.on("request", requestListener);
-        }
-      }
-      listen() {
-        throw __autojs6_limited_http_disabled_error(protocol, "listen");
-      }
-      close(callback) {
-        this.listening = false;
-        if (typeof callback === "function") {
-          __autojs6_schedule_task(function () {
-            callback(null);
-          });
-        }
-        return this;
-      }
-      closeAllConnections() {
-        return undefined;
-      }
-      closeIdleConnections() {
-        return undefined;
-      }
-      address() {
-        return null;
-      }
-      setTimeout(timeout, callback) {
-        this.timeout = Number(timeout) || 0;
-        if (typeof callback === "function") {
-          this.once("timeout", callback);
-        }
-        return this;
-      }
-      ref() {
-        return this;
-      }
-      unref() {
-        return this;
-      }
-    }
-    function request() {
-      if (!__autojs6_limited_http_controlled_client_enabled()) {
-        throw __autojs6_limited_http_disabled_error(protocol, "request");
-      }
-      const parsed = __autojs6_limited_http_request_arguments(protocol, arguments);
-      return new LimitedClientRequest(parsed.options, parsed.callback, true);
-    }
-    function get() {
-      if (!__autojs6_limited_http_controlled_client_enabled()) {
-        throw __autojs6_limited_http_disabled_error(protocol, "get");
-      }
-      const parsed = __autojs6_limited_http_request_arguments(protocol, arguments);
-      const req = new LimitedClientRequest(parsed.options, parsed.callback, true);
-      req.end();
-      return req;
-    }
-    function createServer(options, requestListener) {
-      return new LimitedServer(options, requestListener);
-    }
-    function setMaxIdleHTTPParsers(value) {
-      const count = Number(value);
-      if (!Number.isInteger(count) || count < 1) {
-        throw __autojs6_invalid_arg_value("Embedded Node limited " + protocol + ".setMaxIdleHTTPParsers count must be a positive integer.");
-      }
-      return undefined;
-    }
-    Object.freeze(LimitedOutgoingMessage.prototype);
-    Object.freeze(LimitedClientRequest.prototype);
-    Object.freeze(LimitedIncomingMessage.prototype);
-    Object.freeze(LimitedServerResponse.prototype);
-    Object.freeze(LimitedAgent.prototype);
-    Object.freeze(LimitedServer.prototype);
-    Object.freeze(LimitedOutgoingMessage);
-    Object.freeze(LimitedClientRequest);
-    Object.freeze(LimitedIncomingMessage);
-    Object.freeze(LimitedServerResponse);
-    Object.freeze(LimitedAgent);
-    Object.freeze(LimitedServer);
-    const limitedModule = Object.create(null);
-    const globalAgent = new LimitedAgent({ keepAlive: false });
-    Object.defineProperties(limitedModule, {
-      Agent: { value: LimitedAgent, enumerable: true },
-      ClientRequest: { value: LimitedClientRequest, enumerable: true },
-      IncomingMessage: { value: LimitedIncomingMessage, enumerable: true },
-      METHODS: { value: METHODS, enumerable: true },
-      OutgoingMessage: { value: LimitedOutgoingMessage, enumerable: true },
-      STATUS_CODES: { value: STATUS_CODES, enumerable: true },
-      Server: { value: LimitedServer, enumerable: true },
-      ServerResponse: { value: LimitedServerResponse, enumerable: true },
-      createServer: { value: createServer, enumerable: true },
-      get: { value: get, enumerable: true },
-      globalAgent: { value: globalAgent, enumerable: true },
-      maxHeaderSize: { value: 16384, enumerable: true },
-      request: { value: request, enumerable: true },
-      setMaxIdleHTTPParsers: { value: setMaxIdleHTTPParsers, enumerable: true },
-      validateHeaderName: { value: __autojs6_limited_http_validate_header_name, enumerable: true },
-      validateHeaderValue: { value: __autojs6_limited_http_validate_header_value, enumerable: true }
-    });
-    const frozen = Object.freeze(limitedModule);
-    if (isHttps) {
-      __autojs6_limited_https_cache = frozen;
-    } else {
-      __autojs6_limited_http_cache = frozen;
-    }
-    return frozen;
-  }
-  function __autojs6_limited_tls_disabled_error(operation) {
-    const error = __autojs6_with_error_code(
-      new Error("Embedded Node limited tls." + operation + " is disabled; TLS sockets require an explicit AutoJs6 policy."),
-      "ERR_AUTOJS6_EMBEDDED_NODE_NETWORK_DISABLED"
-    );
-    error.errno = "ERR_AUTOJS6_EMBEDDED_NODE_NETWORK_DISABLED";
-    error.syscall = String(operation);
-    return error;
-  }
-  function __autojs6_limited_tls_options(options, operation) {
-    if (options === undefined || options === null) {
-      return Object.create(null);
-    }
-    if (typeof options !== "object") {
-      throw __autojs6_invalid_arg_type("Embedded Node limited tls." + operation + " options must be an object.");
-    }
-    return options;
-  }
-  function __autojs6_limited_tls_frozen_copy(source) {
-    return Object.freeze(Object.assign(Object.create(null), source || Object.create(null)));
-  }
-  function __autojs6_limited_tls_ticket_buffer() {
-    const bufferModule = __autojs6_builtin_module("buffer");
-    const BufferCtor = bufferModule && bufferModule.Buffer;
-    return BufferCtor && typeof BufferCtor.alloc === "function"
-      ? BufferCtor.alloc(48)
-      : new Uint8Array(48);
-  }
-  function __autojs6_limited_tls_certificate_record(detailed) {
-    if (!detailed) {
-      return Object.freeze({});
-    }
-    return Object.freeze({
-      subject: Object.freeze({}),
-      issuer: Object.freeze({}),
-      subjectaltname: undefined,
-      infoAccess: Object.freeze({}),
-      modulus: undefined,
-      bits: 0,
-      exponent: undefined,
-      pubkey: undefined,
-      valid_from: "",
-      valid_to: "",
-      fingerprint: "",
-      fingerprint256: "",
-      fingerprint512: "",
-      serialNumber: "",
-      raw: undefined,
-      ext_key_usage: Object.freeze([])
-    });
-  }
-  function __autojs6_limited_tls() {
-    if (__autojs6_limited_tls_cache) {
-      return __autojs6_limited_tls_cache;
-    }
-    const net = __autojs6_limited_net();
-    const nodeEvents = __autojs6_events_module();
-    if (!net || !nodeEvents || typeof net.Socket !== "function" || typeof net.Server !== "function") {
-      throw new Error("require is restricted in Embedded Node.js MVP; allowlisted module 'tls' is unavailable.");
-    }
-    const rootCertificates = Object.freeze([]);
-    const ciphers = Object.freeze([
-      "TLS_AES_256_GCM_SHA384",
-      "TLS_CHACHA20_POLY1305_SHA256",
-      "TLS_AES_128_GCM_SHA256",
-      "ECDHE-RSA-AES128-GCM-SHA256",
-      "ECDHE-RSA-AES256-GCM-SHA384"
-    ]);
-    class LimitedSecureContext {
-      constructor(options) {
-        const opts = __autojs6_limited_tls_options(options, "SecureContext");
-        Object.defineProperties(this, {
-          context: { value: __autojs6_limited_tls_frozen_copy(opts), enumerable: true },
-          options: { value: __autojs6_limited_tls_frozen_copy(opts), enumerable: true },
-          secureProtocol: { value: opts.secureProtocol || opts.minVersion || "TLS_method", enumerable: true }
-        });
-        Object.freeze(this);
-      }
-    }
-    class LimitedTLSSocket extends net.Socket {
-      constructor(socket, options) {
-        const opts = socket && typeof socket === "object" && options === undefined
-          ? socket
-          : (options || Object.create(null));
-        super(opts);
-        this.encrypted = true;
-        this.authorized = false;
-        this.authorizationError = null;
-        this.alpnProtocol = false;
-        this.servername = opts && opts.servername !== undefined ? String(opts.servername) : undefined;
-        this.ssl = null;
-        this.secureConnecting = false;
-        this._secureEstablished = false;
-        this._securePending = false;
-      }
-      connect() {
-        throw __autojs6_limited_tls_disabled_error("connect");
-      }
-      renegotiate(options, callback) {
-        if (typeof options === "function") {
-          callback = options;
-        }
-        const error = __autojs6_limited_tls_disabled_error("renegotiate");
-        if (typeof callback === "function") {
-          __autojs6_schedule_task(function () {
-            callback(error);
-          });
-          return false;
-        }
-        throw error;
-      }
-      getPeerCertificate(detailed) {
-        return __autojs6_limited_tls_certificate_record(Boolean(detailed));
-      }
-      getCertificate() {
-        return __autojs6_limited_tls_certificate_record(false);
-      }
-      getCipher() {
-        return Object.freeze({
-          name: "TLS_AES_256_GCM_SHA384",
-          standardName: "TLS_AES_256_GCM_SHA384",
-          version: "TLSv1.3"
-        });
-      }
-      getSharedSigalgs() {
-        return Object.freeze([]);
-      }
-      getProtocol() {
-        return null;
-      }
-      getSession() {
-        return undefined;
-      }
-      getTLSTicket() {
-        return undefined;
-      }
-      getEphemeralKeyInfo() {
-        return Object.freeze({});
-      }
-      getFinished() {
-        return undefined;
-      }
-      getPeerFinished() {
-        return undefined;
-      }
-      exportKeyingMaterial() {
-        throw __autojs6_limited_tls_disabled_error("exportKeyingMaterial");
-      }
-      enableTrace() {
-        return undefined;
-      }
-      setMaxSendFragment(size) {
-        const value = Number(size);
-        if (!Number.isInteger(value) || value < 1 || value > 16384) {
-          throw __autojs6_invalid_arg_value("Embedded Node limited tls.TLSSocket setMaxSendFragment size must be between 1 and 16384.");
-        }
-        return true;
-      }
-    }
-    class LimitedServer extends net.Server {
-      constructor(options, secureConnectionListener) {
-        super(options);
-        const opts = typeof options === "function" ? Object.create(null) : __autojs6_limited_tls_options(options, "Server");
-        if (typeof options === "function") {
-          secureConnectionListener = options;
-        }
-        this.requestCert = Boolean(opts.requestCert);
-        this.rejectUnauthorized = opts.rejectUnauthorized !== false;
-        this.secureContext = new LimitedSecureContext(opts);
-        this.__autojs6Contexts = Object.create(null);
-        if (typeof secureConnectionListener === "function") {
-          this.on("secureConnection", secureConnectionListener);
-        }
-      }
-      listen() {
-        throw __autojs6_limited_tls_disabled_error("listen");
-      }
-      setSecureContext(options) {
-        this.secureContext = new LimitedSecureContext(options);
-        return this;
-      }
-      addContext(hostname, context) {
-        if (typeof hostname !== "string" || hostname.length === 0) {
-          throw __autojs6_invalid_arg_type("Embedded Node limited tls.Server.addContext hostname must be a non-empty string.");
-        }
-        this.__autojs6Contexts[hostname] = context instanceof LimitedSecureContext
-          ? context
-          : new LimitedSecureContext(context || Object.create(null));
-        return this;
-      }
-      getTicketKeys() {
-        return __autojs6_limited_tls_ticket_buffer();
-      }
-      setTicketKeys(keys) {
-        const length = keys && typeof keys.length === "number" ? keys.length : -1;
-        if (length !== 48) {
-          throw __autojs6_invalid_arg_value("Embedded Node limited tls.Server.setTicketKeys keys must be 48 bytes.");
-        }
-        return this;
-      }
-    }
-    function createSecureContext(options) {
-      return new LimitedSecureContext(options);
-    }
-    function createServer(options, secureConnectionListener) {
-      return new LimitedServer(options, secureConnectionListener);
-    }
-    function connect() {
-      throw __autojs6_limited_tls_disabled_error("connect");
-    }
-    function createConnection() {
-      throw __autojs6_limited_tls_disabled_error("createConnection");
-    }
-    function checkServerIdentity(hostname, cert) {
-      if (hostname !== undefined && typeof hostname !== "string") {
-        throw __autojs6_invalid_arg_type("Embedded Node limited tls.checkServerIdentity hostname must be a string.");
-      }
-      return undefined;
-    }
-    function getCiphers() {
-      return Object.freeze(ciphers.slice());
-    }
-    Object.freeze(LimitedSecureContext.prototype);
-    Object.freeze(LimitedTLSSocket.prototype);
-    Object.freeze(LimitedServer.prototype);
-    Object.freeze(LimitedSecureContext);
-    Object.freeze(LimitedTLSSocket);
-    Object.freeze(LimitedServer);
-    const limitedTls = Object.create(null);
-    Object.defineProperties(limitedTls, {
-      CLIENT_RENEG_LIMIT: { value: 3, enumerable: true },
-      CLIENT_RENEG_WINDOW: { value: 600, enumerable: true },
-      DEFAULT_CIPHERS: { value: ciphers.join(":"), enumerable: true },
-      DEFAULT_ECDH_CURVE: { value: "auto", enumerable: true },
-      DEFAULT_MAX_VERSION: { value: "TLSv1.3", enumerable: true },
-      DEFAULT_MIN_VERSION: { value: "TLSv1.2", enumerable: true },
-      SecureContext: { value: LimitedSecureContext, enumerable: true },
-      Server: { value: LimitedServer, enumerable: true },
-      TLSSocket: { value: LimitedTLSSocket, enumerable: true },
-      checkServerIdentity: { value: checkServerIdentity, enumerable: true },
-      connect: { value: connect, enumerable: true },
-      createConnection: { value: createConnection, enumerable: true },
-      createSecureContext: { value: createSecureContext, enumerable: true },
-      createServer: { value: createServer, enumerable: true },
-      getCiphers: { value: getCiphers, enumerable: true },
-      rootCertificates: { value: rootCertificates, enumerable: true }
-    });
-    __autojs6_limited_tls_cache = Object.freeze(limitedTls);
-    return __autojs6_limited_tls_cache;
-  }
   function __autojs6_create_require_error(baseValue, reason, code) {
     const message = "module.createRequire rejected '" + String(baseValue) + "': " + reason;
     __autojs6_create_require_last_failure_reason = message;
@@ -31961,74 +29703,20 @@ std::string buildEmbeddedScriptExecutionSource(
     return parentModule.require;
   }
   function __autojs6_limited_module_is_builtin(name) {
-    const key = name === undefined ? "" : String(name);
-    if (key === "node:test" || key === "node:test/reporters" || key === "node:sqlite") {
-      return true;
-    }
-    if (key === "node:worker_threads") {
-      return true;
-    }
-    if (__autojs6_worker_threads_enabled && key === "worker_threads") {
-      return true;
-    }
-    if ((key === "child_process" || key === "node:child_process") && __autojs6_child_process_enabled) {
-      return true;
-    }
-    if ((key === "inspector" || key === "node:inspector") && __autojs6_inspector_enabled) {
-      return true;
-    }
-    if ((key === "dgram" || key === "node:dgram") && __autojs6_raw_node_network_modules_enabled) {
-      return true;
-    }
-    if ((key === "http2" || key === "node:http2") && __autojs6_raw_node_network_modules_enabled) {
-      return true;
-    }
-    return __autojs6_has_own(__autojs6_limited_builtin_module_map, key);
-  }
-  function __autojs6_limited_module_sync_builtin_esm_exports() {
-    return undefined;
+    return __autojs6_native_builtin_id(name) !== null;
   }
   function __autojs6_limited_module() {
     if (__autojs6_limited_module_cache) {
       return __autojs6_limited_module_cache;
     }
-    const limitedModule = Object.create(null);
-    Object.defineProperties(limitedModule, {
-      createRequire: {
-        value: __autojs6_create_require_from_base,
-        enumerable: true
-      },
-      isBuiltin: {
-        value: __autojs6_limited_module_is_builtin,
-        enumerable: true
-      },
-      builtinModules: {
-        value: Object.freeze((function() {
-          const names = __autojs6_limited_builtin_module_names.slice();
-          names.push("node:test", "node:test/reporters", "node:sqlite");
-          if (__autojs6_worker_threads_enabled) {
-            names.push("worker_threads");
-          }
-          if (__autojs6_child_process_enabled) {
-            names.push("child_process");
-          }
-          if (__autojs6_inspector_enabled) {
-            names.push("inspector");
-          }
-          if (__autojs6_raw_node_network_modules_enabled) {
-            names.push("dgram");
-            names.push("http2");
-          }
-          return names;
-        })()),
-        enumerable: true
-      },
-      syncBuiltinESMExports: {
-        value: __autojs6_limited_module_sync_builtin_esm_exports,
-        enumerable: true
+    // M23.2: Node's own module builtin; only createRequire stays with the runtime loader until
+    // M23.3 replaces that loader (it must hand out the same require() the entry module uses).
+    const overrides = Object.freeze({ createRequire: __autojs6_create_require_from_base });
+    __autojs6_limited_module_cache = new Proxy(__autojs6_builtin_module("module"), {
+      get(target, key, receiver) {
+        return __autojs6_has_own(overrides, key) ? overrides[key] : Reflect.get(target, key, receiver);
       }
     });
-    __autojs6_limited_module_cache = Object.freeze(limitedModule);
     return __autojs6_limited_module_cache;
   }
   const __autojs6_module_cache = Object.create(null);
@@ -32438,12 +30126,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return lines;
   }
   function __autojs6_esm_builtin_specifier(name) {
-    return name === "autojs6:host" || name === "node:test" || name === "node:test/reporters" || name === "node:sqlite" ||
-      ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_enabled) ||
-      name === "rhino" ||
-      __autojs6_has_own(__autojs6_require_builtin_allowlist, name) ||
-      __autojs6_has_own(__autojs6_limited_builtin_module_map, name) ||
-      __autojs6_denied_builtin_module_name(name);
+    return name === "autojs6:host" || name === "rhino" || __autojs6_native_builtin_id(name) !== null;
   }
   function __autojs6_esm_facade_specifier(name) {
     return __autojs6_rhino_compat_basic_module_names.indexOf(name) >= 0 ||
@@ -33200,12 +30883,13 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "rhino") {
       return "rhino";
     }
-    if (__autojs6_has_own(__autojs6_limited_builtin_module_map, name)) {
-      return name.indexOf("node:") === 0 ? name : "node:" + name;
-    }
-    if (__autojs6_has_own(__autojs6_require_builtin_allowlist, name)) {
-      const normalized = __autojs6_require_builtin_allowlist[name];
-      return normalized.indexOf("node:") === 0 ? normalized : "node:" + normalized;
+    const builtinId = __autojs6_native_builtin_id(name);
+    if (builtinId !== null) {
+      const gate = __autojs6_builtin_gate(builtinId);
+      if (gate) {
+        throw __autojs6_builtin_disabled("import.meta.resolve is restricted for this execution; builtin module '" + name + "': " + gate);
+      }
+      return builtinId.indexOf("node:") === 0 ? builtinId : "node:" + builtinId;
     }
     return null;
   }
@@ -34590,153 +32274,13 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       return "inspector";
     }
-    if (name === "node:test" || name === "node:test/reporters" || name === "node:sqlite") {
+    const builtinId = __autojs6_native_builtin_id(name);
+    if (builtinId !== null) {
+      const gate = __autojs6_builtin_gate(builtinId);
+      if (gate) {
+        throw __autojs6_builtin_disabled("require.resolve is restricted for this execution; builtin module '" + name + "': " + gate);
+      }
       return name;
-    }
-    if (name === "fs" || name === "node:fs") {
-      return "fs";
-    }
-    if (name === "fs/promises" || name === "node:fs/promises") {
-      return "fs/promises";
-    }
-    if (name === "buffer" || name === "node:buffer") {
-      return "buffer";
-    }
-    if (name === "console" || name === "node:console") {
-      return "console";
-    }
-    if (name === "v8" || name === "node:v8") {
-      return "v8";
-    }
-    if (name === "vm" || name === "node:vm") {
-      return "vm";
-    }
-    if (name === "tty" || name === "node:tty") {
-      return "tty";
-    }
-    if (name === "module" || name === "node:module") {
-      return "module";
-    }
-    if (name === "process" || name === "node:process") {
-      return "process";
-    }
-    if (name === "constants" || name === "node:constants") {
-      return "constants";
-    }
-    if (name === "path" || name === "node:path") {
-      return "path";
-    }
-    if (name === "path/posix" || name === "node:path/posix") {
-      return "path/posix";
-    }
-    if (name === "path/win32" || name === "node:path/win32") {
-      return "path/win32";
-    }
-    if (name === "crypto" || name === "node:crypto") {
-      return "crypto";
-    }
-    if (name === "dgram" || name === "node:dgram") {
-      if (!__autojs6_raw_node_network_modules_enabled) {
-        throw __autojs6_builtin_disabled(
-          "require.resolve is restricted in Embedded Node.js MVP; builtin module '" + name + "' is disabled by raw network policy."
-        );
-      }
-      return "dgram";
-    }
-    if (name === "dns" || name === "node:dns") {
-      return "dns";
-    }
-    if (name === "dns/promises" || name === "node:dns/promises") {
-      return "dns/promises";
-    }
-    if (name === "http" || name === "node:http") {
-      return "http";
-    }
-    if (name === "http2" || name === "node:http2") {
-      if (!__autojs6_raw_node_network_modules_enabled) {
-        throw __autojs6_builtin_disabled(
-          "require.resolve is restricted in Embedded Node.js MVP; builtin module '" + name + "' is disabled by raw network policy."
-        );
-      }
-      return "http2";
-    }
-    if (name === "https" || name === "node:https") {
-      return "https";
-    }
-    if (name === "net" || name === "node:net") {
-      return "net";
-    }
-    if (name === "os" || name === "node:os") {
-      return "os";
-    }
-    if (name === "url" || name === "node:url") {
-      return "url";
-    }
-    if (name === "util" || name === "node:util") {
-      return "util";
-    }
-    if (name === "util/types" || name === "node:util/types") {
-      return "util/types";
-    }
-    if (name === "async_hooks" || name === "node:async_hooks") {
-      return "async_hooks";
-    }
-    if (name === "diagnostics_channel" || name === "node:diagnostics_channel") {
-      return "diagnostics_channel";
-    }
-    if (name === "perf_hooks" || name === "node:perf_hooks") {
-      return "perf_hooks";
-    }
-    if (name === "events" || name === "node:events") {
-      return "events";
-    }
-    if (name === "readline" || name === "node:readline") {
-      return "readline";
-    }
-    if (name === "readline/promises" || name === "node:readline/promises") {
-      return "readline/promises";
-    }
-    if (name === "timers" || name === "node:timers") {
-      return "timers";
-    }
-    if (name === "timers/promises" || name === "node:timers/promises") {
-      return "timers/promises";
-    }
-    if (name === "tls" || name === "node:tls") {
-      return "tls";
-    }
-    if (name === "stream" || name === "node:stream") {
-      return "stream";
-    }
-    if (name === "stream/promises" || name === "node:stream/promises") {
-      return "stream/promises";
-    }
-    if (name === "stream/web" || name === "node:stream/web") {
-      return "stream/web";
-    }
-    if (name === "stream/consumers" || name === "node:stream/consumers") {
-      return "stream/consumers";
-    }
-    if (name === "zlib" || name === "node:zlib") {
-      return "zlib";
-    }
-    if (name === "querystring" || name === "node:querystring") {
-      return "querystring";
-    }
-    if (name === "string_decoder" || name === "node:string_decoder") {
-      return "string_decoder";
-    }
-    if (name === "assert/strict" || name === "node:assert/strict") {
-      return "assert/strict";
-    }
-    if (name === "assert" || name === "node:assert") {
-      return "assert";
-    }
-    if (name === "punycode" || name === "node:punycode") {
-      return "punycode";
-    }
-    if (__autojs6_has_own(__autojs6_require_builtin_allowlist, name)) {
-      return __autojs6_require_builtin_allowlist[name];
     }
     const __autojs6_require_resolution_mode = __autojs6_commonjs_require_resolution_mode();
     if (__autojs6_is_local_module_name(name)) {
@@ -34744,9 +32288,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     if (name.indexOf("#") === 0) {
       return __autojs6_resolve_package_import(name, parentFilename, __autojs6_require_resolution_mode);
-    }
-    if (__autojs6_denied_builtin_module_name(name)) {
-      throw __autojs6_builtin_disabled("require.resolve is restricted in Embedded Node.js MVP; builtin module '" + name + "' is not allowed.");
     }
     if (name) {
       return __autojs6_resolve_node_modules_module(name, parentFilename, __autojs6_require_resolution_mode);
@@ -34972,172 +32513,9 @@ std::string buildEmbeddedScriptExecutionSource(
     if (name === "inspector" || name === "node:inspector") {
       return __autojs6_limited_inspector();
     }
-    if (name === "node:sqlite") return __autojs6_get_builtin_module("node:sqlite");
-    if (name === "node:test" || name === "node:test/reporters") {
-      return __autojs6_get_builtin_module(name);
-    }
-    if (name === "fs" || name === "node:fs") {
-      return __autojs6_fs_module();
-    }
-    if (name === "fs/promises" || name === "node:fs/promises") {
-      return __autojs6_fs_module().promises;
-    }
-    if (name === "buffer" || name === "node:buffer") {
-      return __autojs6_builtin_module("buffer");
-    }
-    if (name === "console" || name === "node:console") {
-      return __autojs6_limited_console();
-    }
-    if (name === "v8" || name === "node:v8") {
-      return __autojs6_builtin_module("v8");
-    }
-    if (name === "vm" || name === "node:vm") {
-      const moduleValue = __autojs6_vm_module();
-      if (moduleValue) return moduleValue;
-      throw __autojs6_builtin_disabled("require is restricted in Embedded Node.js MVP; builtin module '" + name + "' is unavailable.");
-    }
-    if (name === "tty" || name === "node:tty") {
-      return __autojs6_builtin_module("tty");
-    }
-    if (name === "module" || name === "node:module") {
-      return __autojs6_limited_module();
-    }
-    if (name === "process" || name === "node:process") {
-      return __autojs6_limited_process();
-    }
-    if (name === "constants" || name === "node:constants") {
-      return __autojs6_builtin_module("constants");
-    }
-    if (name === "path" || name === "node:path") {
-      return __autojs6_builtin_module("path");
-    }
-    if (name === "path/posix" || name === "node:path/posix") {
-      return __autojs6_builtin_module("path").posix;
-    }
-    if (name === "path/win32" || name === "node:path/win32") {
-      return __autojs6_builtin_module("path").win32;
-    }
-    if (name === "crypto" || name === "node:crypto") {
-      return __autojs6_builtin_module("crypto");
-    }
-    if (name === "dgram" || name === "node:dgram") {
-      const nativeNetwork = __autojs6_raw_node_network_builtin(name);
-      if (nativeNetwork) return nativeNetwork;
-      throw __autojs6_builtin_disabled(
-        "require is restricted in Embedded Node.js MVP; builtin module '" + name + "' is disabled by raw network policy."
-      );
-    }
-    if (name === "dns" || name === "node:dns") {
-      const nativeNetwork = __autojs6_raw_node_network_builtin(name);
-      if (nativeNetwork) return nativeNetwork;
-      return __autojs6_limited_dns();
-    }
-    if (name === "dns/promises" || name === "node:dns/promises") {
-      const nativeNetwork = __autojs6_raw_node_network_builtin(name);
-      if (nativeNetwork) return nativeNetwork;
-      return __autojs6_limited_dns_promises();
-    }
-    if (name === "http" || name === "node:http") {
-      const nativeNetwork = __autojs6_raw_node_network_builtin(name);
-      if (nativeNetwork) return nativeNetwork;
-      return __autojs6_limited_http("http");
-    }
-    if (name === "http2" || name === "node:http2") {
-      const nativeNetwork = __autojs6_raw_node_network_builtin(name);
-      if (nativeNetwork) return nativeNetwork;
-      throw __autojs6_builtin_disabled(
-        "require is restricted in Embedded Node.js MVP; builtin module '" + name + "' is disabled by raw network policy."
-      );
-    }
-    if (name === "https" || name === "node:https") {
-      const nativeNetwork = __autojs6_raw_node_network_builtin(name);
-      if (nativeNetwork) return nativeNetwork;
-      return __autojs6_limited_http("https");
-    }
-    if (name === "net" || name === "node:net") {
-      const nativeNetwork = __autojs6_raw_node_network_builtin(name);
-      if (nativeNetwork) return nativeNetwork;
-      return __autojs6_limited_net();
-    }
-    if (name === "os" || name === "node:os") {
-      return __autojs6_os_facade();
-    }
-    if (name === "url" || name === "node:url") {
-      return __autojs6_builtin_module("url");
-    }
-    if (name === "util" || name === "node:util") {
-      return __autojs6_builtin_module("util");
-    }
-    if (name === "util/types" || name === "node:util/types") {
-      return __autojs6_builtin_module("util").types;
-    }
-    if (name === "async_hooks" || name === "node:async_hooks") {
-      return __autojs6_builtin_module("async_hooks");
-    }
-    if (name === "diagnostics_channel" || name === "node:diagnostics_channel") {
-      return __autojs6_builtin_module("diagnostics_channel");
-    }
-    if (name === "perf_hooks" || name === "node:perf_hooks") {
-      return __autojs6_builtin_module("perf_hooks");
-    }
-    if (name === "events" || name === "node:events") {
-      return __autojs6_builtin_module("events");
-    }
-    if (name === "readline" || name === "node:readline") {
-      return __autojs6_builtin_module("readline");
-    }
-    if (name === "readline/promises" || name === "node:readline/promises") {
-      return __autojs6_builtin_module("readline/promises");
-    }
-    if (name === "timers" || name === "node:timers") {
-      return __autojs6_builtin_module("timers");
-    }
-    if (name === "timers/promises" || name === "node:timers/promises") {
-      return __autojs6_builtin_module("timers/promises");
-    }
-    if (name === "tls" || name === "node:tls") {
-      const nativeNetwork = __autojs6_raw_node_network_builtin(name);
-      if (nativeNetwork) return nativeNetwork;
-      return __autojs6_limited_tls();
-    }
-    if (name === "stream" || name === "node:stream") {
-      return __autojs6_builtin_module("stream");
-    }
-    if (name === "stream/promises" || name === "node:stream/promises") {
-      return __autojs6_builtin_module("stream/promises");
-    }
-    if (name === "stream/web" || name === "node:stream/web") {
-      return __autojs6_builtin_module("stream/web");
-    }
-    if (name === "stream/consumers" || name === "node:stream/consumers") {
-      return __autojs6_builtin_module("stream/consumers");
-    }
-    if (name === "zlib" || name === "node:zlib") {
-      return __autojs6_builtin_module("zlib");
-    }
-    if (name === "querystring" || name === "node:querystring") {
-      return __autojs6_builtin_module("querystring");
-    }
-    if (name === "string_decoder" || name === "node:string_decoder") {
-      return __autojs6_builtin_module("string_decoder");
-    }
-    if (name === "assert/strict" || name === "node:assert/strict") {
-      return __autojs6_builtin_module("assert/strict");
-    }
-    if (name === "assert" || name === "node:assert") {
-      return __autojs6_builtin_module("assert");
-    }
-    if (name === "punycode" || name === "node:punycode") {
-      return __autojs6_builtin_module("punycode");
-    }
-    if (__autojs6_has_own(__autojs6_require_builtin_allowlist, name)) {
-      const builtinName = __autojs6_require_builtin_allowlist[name];
-      if (__autojs6_has_own(__autojs6_require_builtin_cache, builtinName)) {
-        return __autojs6_require_builtin_cache[builtinName];
-      }
-      throw new Error(
-        "require is restricted in Embedded Node.js MVP; allowlisted module '" + name + "' is unavailable."
-      );
+    const builtinId = __autojs6_native_builtin_id(name);
+    if (builtinId !== null) {
+      return __autojs6_require_native_builtin(builtinId, name);
     }
     const __autojs6_require_resolution_mode = __autojs6_commonjs_require_resolution_mode();
     if (__autojs6_is_local_module_name(name)) {
@@ -35145,9 +32523,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     if (name.indexOf("#") === 0) {
       return __autojs6_load_local_module(__autojs6_resolve_package_import(name, parentFilename, __autojs6_require_resolution_mode), parentModule);
-    }
-    if (__autojs6_denied_builtin_module_name(name)) {
-      throw __autojs6_builtin_disabled("require is restricted in Embedded Node.js MVP; builtin module '" + name + "' is not allowed.");
     }
     if (name) {
       return __autojs6_load_local_module(__autojs6_resolve_node_modules_module(name, parentFilename, __autojs6_require_resolution_mode), parentModule);
@@ -35177,25 +32552,9 @@ std::string buildEmbeddedScriptExecutionSource(
     if (typeof moduleName !== "string") {
       throw __autojs6_invalid_arg_type("The \"id\" argument must be of type string.");
     }
-    const name = moduleName;
-    if (!name) return undefined;
-    const bareName = name.indexOf("node:") === 0 ? name.slice("node:".length) : name;
-    const knownControlledBuiltin = __autojs6_limited_module_is_builtin(name);
-    const knownDeniedBuiltin = __autojs6_has_own(__autojs6_require_builtin_denylist, bareName) ||
-      (bareName === "dgram" && !__autojs6_raw_node_network_modules_enabled) ||
-      (bareName === "http2" && !__autojs6_raw_node_network_modules_enabled) ||
-      name === "node:test/reporters";
-    if (!knownControlledBuiltin && !knownDeniedBuiltin) {
-      return undefined;
-    }
-    if (!knownControlledBuiltin && knownDeniedBuiltin) {
-      throw __autojs6_error(
-        "process.getBuiltinModule is restricted in Embedded Node.js MVP; builtin module '" + name + "' is disabled or not allowed.",
-        "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED",
-        "ERR_AUTOJS6_BUILTIN_DISABLED"
-      );
-    }
-    return __autojs6_restricted_require(name, null);
+    if (!moduleName) return undefined;
+    if (__autojs6_native_builtin_id(moduleName) === null) return undefined;
+    return __autojs6_restricted_require(moduleName, null);
   }
   function __autojs6_install_require_guard(mainModule) {
     __autojs6_prime_restricted_require();

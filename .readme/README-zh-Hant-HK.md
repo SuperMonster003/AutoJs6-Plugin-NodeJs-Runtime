@@ -52,7 +52,7 @@ AutoJs6 Node.js Runtime 插件為 AutoJs6 提供內嵌 Node.js 24.21.0 原生運
 - 提供 `nodejs` 插件服務, 插件 ID 為 `nodejs`, 引擎為 `nodejs`.
 - 通過 `org.autojs.plugin.nodejs.RUNTIME` 為宿主提供同步腳本執行和運行時預熱.
 - 支援涵蓋排隊與執行全程的腳本逾時, 逾時回傳 `ERR_AUTOJS6_SCRIPT_TIMEOUT`; 未指定逾時時仍可無限執行
-- 預設啟用 `dgram` (UDP) 與 `http2`, 並對 `trace_events` 回傳明確的停用錯誤
+- 全部 Node.js 內建模組按 Node 自身的 `module.builtinModules` 清單直接回傳原生匯出 (含 `dgram`, `http2`, `trace_events`, `wasi`, `cluster`, `repl` 等), 僅保留 `worker_threads`, `child_process`, `inspector` 與原生網絡模組的請求級閘控 (1.6.0 起).
 - 支援 Debug 建置明確開啟本機 `inspector` 偵錯, 僅監聽 localhost 並透過 `adb forward` 連線
 - 支援 CommonJS/ESM 源碼, 模組源碼, 工作目錄, 沙盒根目錄, 環境變數, stdout/stderr 結果回傳.
 - ESM 入口與 dynamic `import()` 使用 V8 native linker, 支援循環依賴、可變匯出與 re-export live binding; CommonJS `require(esm)` 保留同步互操作邊界.
@@ -120,6 +120,9 @@ console.log("AutoJs6 Node.js runtime");
 * `優化` fs, fs/promises 及 node:sqlite 模組改為直接使用 Node.js 原生實作, 移除執行時自設的 /proc, /sys, /dev 拒絕邊界與路徑校驗包裝層, 檔案可達性完全由 Android 權限決定, 非同步檔案 API 經 libuv 執行緒池執行而不再阻塞事件迴圈, 路徑錯誤回傳 Node.js 原生錯誤碼 (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH 及 ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED 不再由檔案及資料庫操作產生)
 * `優化` process.cwd 與 process.chdir 改為 Node.js 原生行為, 指令碼執行開始時以原生 chdir 進入工作目錄, 相對路徑由 Node.js 自行解析
 * `優化` node:sqlite 的 ATTACH (含繫結參數及運算式形式的檔名), VACUUM INTO, 目錄 PRAGMA 及 setAuthorizer 均為 SQLite 原生行為, enableLoadExtension 與 allowExtension 遵循 Node.js 原生狀態檢查
+* `優化` 全部 Node.js 內建模組 (含 cluster, domain, repl, trace_events, wasi, constants, node:sea 等) 按 Node 自身的 module.builtinModules 清單直接回傳原生匯出, require, require.resolve, import, process.getBuiltinModule 與 module.isBuiltin 行為與桌面版一致, 僅保留 worker_threads, child_process, inspector 及原生網絡模組的請求級閘控; node:wasi 隨 /proc 邊界的刪除一併放開 (trace_events 在目前未啟用 tracing 的執行庫中與 Node 一樣擲出 ERR_TRACE_EVENTS_UNAVAILABLE)
+* `優化` process 物件僅保留 exit 的生命週期映射與 dlopen 的暫時拒絕, abort, kill, umask, binding, report, features 及 POSIX 身份呼叫均為 Node.js 原生行為; os 模組原生, homedir 與 tmpdir 透過執行環境變數 HOME/TMPDIR 指向工作目錄, userInfo 回傳真實的 Android 應用程式使用者
+* `優化` module 內建模組改為僅覆寫 createRequire 的 Node.js 原生物件, registerHooks, enableCompileCache, findPackageJSON 等可直接使用; 刪除僅在停用原生網絡時可達的 http, https, net, tls, dns 受限實作, 停用時直接回傳 ERR_AUTOJS6_BUILTIN_DISABLED
 
 # v1.5.7
 

@@ -74,6 +74,52 @@ public final class BuiltinPassthroughSmokeTest {
                         'stream/promises','stream/web','stream/consumers','zlib','timers','timers/promises',
                         'perf_hooks','async_hooks','diagnostics_channel','v8','vm','tty','readline','readline/promises','crypto','constants'];
                       for (const name of builtins) assert.strictEqual(require(name), require('node:' + name), name);
+                      // M23.2: Node's own builtin inventory, no denylist; only execution gates and two thin wrappers
+                      // (module for createRequire until M23.3, console for stdout capture) remain.
+                      const Module = require('node:module');
+                      const wrapped = new Set(['module', 'console', 'worker_threads', 'child_process', 'inspector', 'inspector/promises']);
+                      for (const id of Module.builtinModules) {
+                        if (wrapped.has(id)) continue;
+                        // A builtin that Node itself refuses (trace_events without tracing support) must refuse
+                        // identically through require() and process.getBuiltinModule(), with Node's own code.
+                        let viaRequire, viaGet, requireError = null, getError = null;
+                        try { viaRequire = require(id); } catch (error) { requireError = error; }
+                        try { viaGet = process.getBuiltinModule(id); } catch (error) { getError = error; }
+                        if (requireError || getError) {
+                          assert.ok(requireError && getError && requireError.code === getError.code && !String(requireError.code).startsWith('ERR_AUTOJS6'),
+                            id + ': ' + String((requireError || getError).message));
+                          continue;
+                        }
+                        assert.strictEqual(viaRequire, viaGet, id);
+                      }
+                      for (const id of ['cluster', 'domain', 'repl', 'wasi', 'constants', 'node:sea']) assert.ok(require(id), id);
+                      try { assert.strictEqual(typeof require('trace_events').createTracing, 'function'); }
+                      catch (error) { assert.strictEqual(error.code, 'ERR_TRACE_EVENTS_UNAVAILABLE'); }
+                      assert.strictEqual(Module.isBuiltin('cluster'), true);
+                      assert.strictEqual(Module.isBuiltin('node:sqlite'), true);
+                      assert.strictEqual(Module.isBuiltin('sqlite'), false);
+                      assert.strictEqual(typeof Module.registerHooks, 'function');
+                      assert.strictEqual(typeof Module.enableCompileCache, 'function');
+                      assert.strictEqual(require.resolve('node:fs'), 'node:fs');
+                      assert.strictEqual(typeof process.umask(), 'number');
+                      assert.strictEqual(typeof process.report.getReport().header.nodejsVersion, 'string');
+                      assert.strictEqual(typeof process.binding, 'function');
+                      assert.strictEqual(typeof process.kill, 'function');
+                      assert.strictEqual(require('os').userInfo().uid, process.getuid());
+                      // HOME / TMPDIR name the working directory; the service may spell it through the
+                      // /data/user/0 alias while the kernel reports /data/data, so compare real paths.
+                      const realpath = (p) => require('fs').realpathSync(p);
+                      assert.strictEqual(realpath(require('os').tmpdir()), realpath(process.cwd()));
+                      assert.strictEqual(realpath(require('os').homedir()), realpath(process.cwd()));
+                      // WASI is Node's own: a minimal module (memory export, empty _start) runs to completion.
+                      const { WASI } = require('node:wasi');
+                      const wasi = new WASI({ version: 'preview1', args: ['wasi-smoke'], env: {}, preopens: { '/sandbox': process.cwd() } });
+                      const wasiBytes = new Uint8Array([0x00,0x61,0x73,0x6d,0x01,0x00,0x00,0x00, 0x01,0x04,0x01,0x60,0x00,0x00, 0x03,0x02,0x01,0x00,
+                        0x05,0x03,0x01,0x00,0x01, 0x07,0x13,0x02,0x06,0x6d,0x65,0x6d,0x6f,0x72,0x79,0x02,0x00,0x06,0x5f,0x73,0x74,0x61,0x72,0x74,0x00,0x00,
+                        0x0a,0x04,0x01,0x02,0x00,0x0b]);
+                      const wasiInstance = (await WebAssembly.instantiate(wasiBytes, wasi.getImportObject())).instance;
+                      const wasiExit = wasi.start(wasiInstance);
+                      assert.ok(wasiExit === 0 || wasiExit === undefined, 'wasi exit ' + wasiExit);
                       assert.strictEqual(require('path/posix'), require('path').posix);
                       assert.strictEqual(require('util/types'), require('util').types);
                       assert.strictEqual(require('stream/web').ReadableStream, globalThis.ReadableStream);
@@ -96,7 +142,7 @@ public final class BuiltinPassthroughSmokeTest {
                       storage.disable();
                       assert.ok(require('os').totalmem() > 0);
                       assert.ok(require('os').availableParallelism() > 0);
-                      assert.strictEqual(require('os').homedir(), process.cwd());
+                      assert.strictEqual(require('fs').realpathSync(require('os').homedir()), require('fs').realpathSync(process.cwd()));
                       // M23.1: fs is Node's own module and /proc follows Android like any other path.
                       assert.strictEqual(require('fs'), process.getBuiltinModule('fs'));
                       assert.match(require('fs').readFileSync('/proc/self/status', 'utf8'), /^Pid:\\s+\\d+/m);

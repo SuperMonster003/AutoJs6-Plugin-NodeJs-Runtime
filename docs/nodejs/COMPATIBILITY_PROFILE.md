@@ -18,8 +18,9 @@ the `node_sandboxed` / `worker_computation` placeholder names are gone, and the
 catalog identity reported by runtimeInfo is derived from the runtime kit. The
 `autojs6:profile` diagnostics describe the runtime as built: Android-bounded file
 access (since M23.1 `fs` is Node's own module and the runtime denies nothing itself),
-the native `process` subset, stable
-worker channels, the two-slot process pool, and the WASI / native addon decisions;
+the native `process` (M23.2: only `exit` is lifecycle-mapped and `dlopen` denied until M23.4),
+Node's own builtin inventory (M23.2: no allowlist or denylist, `wasi` included), stable
+worker channels, the two-slot process pool, and the native addon decision;
 historical partial / reserved / deferred markers are gone. The sample audit
 promoted the ESM, WebAssembly and desktop parity samples, turned both parity
 suites into real runners, and `new Worker(code, { eval: true })` now works as
@@ -106,7 +107,8 @@ by reflection and publishes as `java.policy` (the runtime keeps no class table o
 native addons, arbitrary private bindings and unrestricted Java reflection remain
 unavailable.
 Inside workers `process.exit()` ends the thread as in Node and
-`process.getBuiltinModule()` follows the worker builtin allowlist, and bare package
+`process.getBuiltinModule()` answers from Node's own builtin inventory (M23.2; inspector and
+the bridge modules stay denied in workers, the request's network gate applies), and bare package
 specifiers resolve through the workspace `node_modules` as in Node (exports conditions,
 main, index, self-reference); dynamic `import()` inside workers goes through the worker
 partial ESM loader with `with { type: "json" }` support; nested workers are still

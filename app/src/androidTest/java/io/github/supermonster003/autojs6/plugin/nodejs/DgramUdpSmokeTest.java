@@ -63,14 +63,12 @@ public final class DgramUdpSmokeTest {
 
             Bundle enabledResult = runtime.runScript(
                     request(
-                            "let traceCode = '';\n" +
-                                    "try { require('trace_events'); } catch (error) {\n" +
-                                    "  traceCode = error.autojs6Code || error.code || '';\n" +
-                                    "}\n" +
-                                    "if (traceCode !== 'ERR_AUTOJS6_BUILTIN_DISABLED') {\n" +
-                                    "  throw new Error('unexpected trace_events code: ' + traceCode);\n" +
-                                    "}\n" +
-                                    "console.log('m9.trace_events.code=' + traceCode);\n" +
+                            "// M23.2: trace_events is Node's own module like every other builtin; on a libnode built\n" +
+                                    "// without tracing Node itself throws ERR_TRACE_EVENTS_UNAVAILABLE, never an AutoJs6 code.\n" +
+                                    "let traceState = 'native';\n" +
+                                    "try { if (typeof require('trace_events').createTracing !== 'function') throw new Error('trace_events is not native'); }\n" +
+                                    "catch (error) { if (error.code !== 'ERR_TRACE_EVENTS_UNAVAILABLE') throw error; traceState = error.code; }\n" +
+                                    "console.log('m9.trace_events.native=' + traceState);\n" +
                                     "const Module = require('module');\n" +
                                     "if (!Module.isBuiltin('dgram')) throw new Error('dgram missing from module.isBuiltin');\n" +
                                     "const dgram = require('node:dgram');\n" +
@@ -101,7 +99,7 @@ public final class DgramUdpSmokeTest {
             );
             assertSucceededWith(
                     enabledResult,
-                    "m9.trace_events.code=ERR_AUTOJS6_BUILTIN_DISABLED",
+                    "m9.trace_events.native=",
                     "m9.dgram.reply=m9.udp.pong",
                     "m9.dgram=PASS"
             );

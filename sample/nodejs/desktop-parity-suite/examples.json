@@ -47,7 +47,7 @@
       "title": "controlled WASI profile migration",
       "file": "snippets/wasi.cjs",
       "expectedOutput": "sample.desktop-parity-suite.wasi=PASS",
-      "outcome": "node:wasi is denied by decision (M13.6); the snippet prints the denial code. Pure WebAssembly is available."
+      "outcome": "node:wasi is Node's own module since M23.2; the snippet prints its export keys (WASI). Pure WebAssembly is available as well."
     },
     {
       "id": "inspector",

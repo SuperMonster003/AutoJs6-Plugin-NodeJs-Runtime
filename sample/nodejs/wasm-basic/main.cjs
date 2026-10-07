@@ -13,6 +13,22 @@ const addModuleBytes = new Uint8Array([
   const module = await WebAssembly.compile(addModuleBytes);
   const instance = await WebAssembly.instantiate(module, {});
   console.log("sample.wasm-basic.add=" + instance.exports.add(19, 23));
+  // M23.2: node:wasi is Node's own module. A minimal WASI module (a memory export and an empty
+  // _start) is instantiated with the WASI imports and runs to completion with exit code 0.
+  const { WASI } = require("node:wasi");
+  const wasi = new WASI({ version: "preview1", args: ["wasm-basic"], env: {}, preopens: { "/sandbox": process.cwd() } });
+  const wasiBytes = new Uint8Array([
+    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+    0x01, 0x04, 0x01, 0x60, 0x00, 0x00,
+    0x03, 0x02, 0x01, 0x00,
+    0x05, 0x03, 0x01, 0x00, 0x01,
+    0x07, 0x13, 0x02, 0x06, 0x6d, 0x65, 0x6d, 0x6f, 0x72, 0x79, 0x02, 0x00,
+    0x06, 0x5f, 0x73, 0x74, 0x61, 0x72, 0x74, 0x00, 0x00,
+    0x0a, 0x04, 0x01, 0x02, 0x00, 0x0b
+  ]);
+  const wasiInstance = (await WebAssembly.instantiate(wasiBytes, wasi.getImportObject())).instance;
+  const wasiExit = wasi.start(wasiInstance);
+  console.log("sample.wasm-basic.wasi=" + (wasiExit === undefined ? 0 : wasiExit));
   console.log("sample.wasm-basic=PASS");
 })().catch((error) => {
   console.error(error && (error.stack || error.message) || error);

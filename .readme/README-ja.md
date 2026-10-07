@@ -52,7 +52,7 @@ AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 24.21
 - `nodejs` プラグインサービスを提供し, プラグイン ID は `nodejs`, エンジンは `nodejs` です.
 - `org.autojs.plugin.nodejs.RUNTIME` を通じて同期スクリプト実行とランタイムの事前ロードをホストに公開します.
 - キュー待機と実行の全体を対象とするスクリプトタイムアウトを追加し、超過時に `ERR_AUTOJS6_SCRIPT_TIMEOUT` を返すようにしました。未指定の場合は引き続き無期限で実行できます
-- `dgram` (UDP) と `http2` をデフォルトで有効化し、`trace_events` には明示的な無効化エラーを返すようにしました
+- すべての Node.js 組み込みモジュールを Node 自身の `module.builtinModules` 一覧からそのまま返します (`dgram`, `http2`, `trace_events`, `wasi`, `cluster`, `repl` など); リクエスト単位のゲートが残るのは `worker_threads`, `child_process`, `inspector` とネイティブネットワークモジュールのみです (1.6.0 以降).
 - Debug ビルドで明示的に有効化するローカル `inspector` デバッグを追加しました。localhost のみで待ち受け、`adb forward` 経由で接続します
 - CommonJS/ESM ソース, モジュールソース, 作業ディレクトリ, サンドボックスルート, 環境変数, stdout/stderr 結果ペイロードに対応します.
 - ESM エントリと dynamic `import()` に V8 native linker を使用し, 循環依存, 可変 export, re-export の live binding を保持します; CommonJS `require(esm)` は同期相互運用境界を維持します.
@@ -120,6 +120,9 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `改善` fs, fs/promises および node:sqlite は Node.js 本来のモジュールになりました: ランタイム独自の /proc, /sys, /dev 拒否とパス検証ラッパーを撤去し, ファイルへの到達可否は Android の権限のみで決まり, 非同期ファイル API はイベントループを塞がず libuv スレッドプールで実行され, パスエラーは Node.js 本来のコードを返します (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH および ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED はファイル / データベース操作から発生しなくなりました)
 * `改善` process.cwd と process.chdir は Node.js 本来の動作になり, 実行開始時に実際の chdir で作業ディレクトリへ移動し, 相対パスは Node.js 自身が解決します
 * `改善` node:sqlite の ATTACH (バインドパラメータや式によるファイル名を含む), VACUUM INTO, ディレクトリ PRAGMA および setAuthorizer は SQLite 本来の動作となり, enableLoadExtension と allowExtension は Node.js 本来の状態チェックに従います
+* `改善` すべての Node.js 組み込みモジュール (cluster, domain, repl, trace_events, wasi, constants, node:sea など) を Node 自身の module.builtinModules 一覧からそのまま返すようになり, require, require.resolve, import, process.getBuiltinModule, module.isBuiltin はデスクトップ版と同じ動作になりました; リクエスト単位のゲートが残るのは worker_threads, child_process, inspector とネイティブネットワークモジュールのみで, node:wasi は /proc 境界の撤去とともに開放されました (tracing を含まない現在の libnode では trace_events は Node と同様に ERR_TRACE_EVENTS_UNAVAILABLE を投げます)
+* `改善` process に残るのは exit のライフサイクル対応付けと dlopen の一時的な拒否のみで, abort, kill, umask, binding, report, features と POSIX の ID 呼び出しは Node.js 本来の動作になりました; os はネイティブで, homedir と tmpdir は実行時の環境変数 HOME/TMPDIR (作業ディレクトリに設定) に従い, userInfo は実際の Android アプリユーザーを返します
+* `改善` module 組み込みは createRequire のみを上書きした Node.js 本来のオブジェクトになり, registerHooks, enableCompileCache, findPackageJSON などが利用できます; ネイティブネットワーク無効時にのみ到達できた http, https, net, tls, dns の制限実装を削除し, その場合は ERR_AUTOJS6_BUILTIN_DISABLED を直接返します
 
 # v1.5.7
 
