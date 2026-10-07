@@ -103,7 +103,6 @@ public class NodeJsRuntimePluginService extends Service {
     private static final String CAPABILITY_PERSISTENT_PROCESS_RUNTIME = "persistentProcessRuntime";
     private static final String CAPABILITY_SINGLE_ACTIVE_BACKPRESSURE = "singleActiveBackpressure";
     private static final String CAPABILITY_PROCESS_RESTART_CANCELLATION = "processRestartCancellation";
-    static final String[] SUPPORTED_ABIS = new String[]{"arm64-v8a", "armeabi-v7a", "x86_64"};
     static final String[] CAPABILITIES = new String[]{
             NodeJsRuntimeContract.CAPABILITY_SYNC_SCRIPT_EXECUTION,
             NodeJsRuntimeContract.CAPABILITY_ASYNC_SCRIPT_EXECUTION,

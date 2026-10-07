@@ -70,7 +70,8 @@ final class NodePluginBundles {
         info.putBoolean("runtimeReady", readiness.ready);
         info.putString("runtimeReadinessDetail", readiness.detail);
         info.putString("processAbi", processAbi());
-        info.putStringArray("supportedAbis", NodeJsRuntimePluginService.SUPPORTED_ABIS.clone());
+        info.putStringArray("supportedAbis", NodePluginAbis.supported(service));
+        info.putStringArray("installedAbis", NodePluginAbis.installed(service));
         info.putString("processModel", "persistent");
         info.putInt("maxConcurrentExecutions", 1);
         info.putInt("queueCapacity", NodeRuntimeExecutionGate.QUEUE_CAPACITY);

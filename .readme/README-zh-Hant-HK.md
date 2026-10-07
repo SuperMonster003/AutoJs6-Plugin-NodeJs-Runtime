@@ -123,6 +123,7 @@ console.log("AutoJs6 Node.js runtime");
 * `優化` 全部 Node.js 內建模組 (含 cluster, domain, repl, trace_events, wasi, constants, node:sea 等) 按 Node 自身的 module.builtinModules 清單直接回傳原生匯出, require, require.resolve, import, process.getBuiltinModule 與 module.isBuiltin 行為與桌面版一致, 僅保留 worker_threads, child_process, inspector 及原生網絡模組的請求級閘控; node:wasi 隨 /proc 邊界的刪除一併放開 (trace_events 在目前未啟用 tracing 的執行庫中與 Node 一樣擲出 ERR_TRACE_EVENTS_UNAVAILABLE)
 * `優化` process 物件僅保留 exit 的生命週期映射與 dlopen 的暫時拒絕, abort, kill, umask, binding, report, features 及 POSIX 身份呼叫均為 Node.js 原生行為; os 模組原生, homedir 與 tmpdir 透過執行環境變數 HOME/TMPDIR 指向工作目錄, userInfo 回傳真實的 Android 應用程式使用者
 * `優化` module 內建模組改為僅覆寫 createRequire 的 Node.js 原生物件, registerHooks, enableCompileCache, findPackageJSON 等可直接使用; 刪除僅在停用原生網絡時可達的 http, https, net, tls, dns 受限實作, 停用時直接回傳 ERR_AUTOJS6_BUILTIN_DISABLED
+* `優化` 外掛程式資訊 (INFO) 與執行階段診斷的 supportedAbis 改為讀取建置期寫入資訊清單的 org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (需要 AutoJs6-Gradle-Platform-Versions 1.8.4 起的 nativeAlignment 外掛程式), 表示外掛程式建置支援的全部 ABI 而非已安裝分包; meta-data 缺失時回退為已安裝套件內實際打包的 ABI, 手寫的 ABI 常數已刪除
 
 # v1.5.7
 

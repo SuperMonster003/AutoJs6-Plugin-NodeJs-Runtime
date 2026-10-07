@@ -66,22 +66,17 @@ public final class PluginInfoContractTest {
             assertEquals("nodejs", info.getEngine());
             assertEquals("node24_21", info.getVariant());
             assertTrue(info.getSupportedAbis().length > 0);
-            java.util.List<String> installedPaths = new java.util.ArrayList<>();
-            installedPaths.add(context.getApplicationInfo().sourceDir);
-            if (context.getApplicationInfo().splitSourceDirs != null) {
-                installedPaths.addAll(java.util.Arrays.asList(context.getApplicationInfo().splitSourceDirs));
+            // The advertised set is the project-level support (manifest meta-data written by the
+            // build); a split install packages a subset of it, never an ABI outside it.
+            java.util.List<String> advertised = java.util.Arrays.asList(info.getSupportedAbis());
+            String[] declared = NodePluginAbis.declared(context);
+            if (declared != null) {
+                assertEquals(java.util.Arrays.asList(declared), advertised);
             }
-            for (String abi : info.getSupportedAbis()) {
-                boolean packaged = false;
-                for (String path : installedPaths) {
-                    try (java.util.zip.ZipFile apk = new java.util.zip.ZipFile(path)) {
-                        packaged |= apk.getEntry("lib/" + abi + "/libnode.so") != null;
-                    }
-                }
-                assertTrue("Advertised ABI is not packaged: " + abi, packaged);
+            for (String abi : NodePluginAbis.installed(context)) {
+                assertTrue("Packaged ABI is not advertised: " + abi, advertised.contains(abi));
             }
-            assertTrue(java.util.Arrays.stream(android.os.Build.SUPPORTED_ABIS)
-                    .anyMatch(java.util.Arrays.asList(info.getSupportedAbis())::contains));
+            assertTrue(java.util.Arrays.stream(android.os.Build.SUPPORTED_ABIS).anyMatch(advertised::contains));
             assertNotNull(info.getCapabilities());
             assertEquals(3923, info.getCapabilities().getInt(PluginCapabilityKeys.REQUIRES_HOST_VERSION));
             assertEquals(NodeJsRuntimeContract.CONTRACT_VERSION,

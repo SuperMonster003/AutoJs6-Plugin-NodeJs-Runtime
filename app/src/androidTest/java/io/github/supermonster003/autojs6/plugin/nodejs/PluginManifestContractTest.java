@@ -107,7 +107,7 @@ public final class PluginManifestContractTest {
         int packagedAbis = 0;
         for (String path : installedPaths) {
             try (ZipFile apk = new ZipFile(path)) {
-                for (String abi : NodeJsRuntimePluginService.SUPPORTED_ABIS) {
+                for (String abi : NodePluginAbis.supported(context)) {
                     if (apk.getEntry("lib/" + abi + "/libnode.so") == null) continue;
                     packagedAbis++;
                     assertNotNull("launcher is not packaged for " + abi,
