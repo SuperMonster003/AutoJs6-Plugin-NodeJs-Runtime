@@ -1,18 +1,20 @@
 # compile-cache
 
-Shows the state of Node's on-disk module compile cache in this runtime and that
-in-memory CommonJS module caching behaves as in Node.
+Shows Node's native on-disk module compile cache and in-memory CommonJS module identity.
 
-Since M23.2 `module` is Node's own builtin, so `module.enableCompileCache()` is
-exposed. Project modules still arrive through the workspace transport and are
-compiled by the runtime's own loader (`autojs6:profile` reports
-`compileCache.customLoader=true`) until M23.3 hands them to Node's loader; M23.8
-then enables the on-disk cache for the workspace. Repeated `require()` calls
-return the same module instance.
+The runtime enables `module.enableCompileCache` by default before loading project modules.
+Its portable cache is stored in the plugin's private cache directory and survives the
+per-execution workspace copies. Node handles source/version invalidation and atomic writes.
+Workers inherit the cache. Repeated `require()` calls within one execution still return
+the same module instance.
 
-- Capabilities: CommonJS module cache
-- Expected provider: none (not applicable)
+Set `NODE_DISABLE_COMPILE_CACHE=1` to opt out, or `NODE_COMPILE_CACHE` to choose a directory
+that the plugin can access. Cache setup failures do not prevent execution. Node does not
+expose cache hit/miss counters; `autojs6:profile.compileCache` reports the enabled state
+and `customLoader=false`, without claiming hit rates.
+
+- Capabilities: native CJS/ESM compile cache and CommonJS module cache
+- Expected provider: none
 - Packaged support: not applicable
-- Security limitations: none for the cache itself
 
-Expected output is listed in `expected-output.txt`.
+Expected output is listed in `expected-output.txt` and assumes the default enabled cache.

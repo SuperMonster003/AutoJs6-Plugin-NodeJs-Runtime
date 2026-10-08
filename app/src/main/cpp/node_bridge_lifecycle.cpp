@@ -193,6 +193,8 @@ std::vector<std::string> runEmbeddedScriptExecution(
             "embedded_script.execution_source.bytes",
             static_cast<long long>(wrappedSource.size())
     );
+    putPayload(payload, "embedded_script.execution_source.lines",
+               static_cast<long long>(std::count(wrappedSource.begin(), wrappedSource.end(), '\n') + 1));
     const bool processRuntimePersistent = embeddedProcessRuntimePersistentEnabled();
     EmbeddedProcessRuntimeExecution processExecution;
     void* handle = nullptr;
@@ -1501,7 +1503,10 @@ void runEmbeddedScriptNodeLifecycle(
                 v8::MaybeLocal<v8::Value> result = loadEnvironmentSource(
                         environment,
                         source,
-                        node::EmbedderPreloadCallback{}
+                        [&](node::Environment*, v8::Local<v8::Value>, v8::Local<v8::Value>) {
+                            // Node initialization up to the embedder entry, before compiling our runtime JS.
+                            putPayload(payload, "timing.node_bootstrap.ms", elapsedMs(loadEnvironmentStartedAt));
+                        }
                 );
                 const bool resultEmpty = result.IsEmpty();
                 putPayload(payload, "load_environment.status", resultEmpty ? "failed" : "done");

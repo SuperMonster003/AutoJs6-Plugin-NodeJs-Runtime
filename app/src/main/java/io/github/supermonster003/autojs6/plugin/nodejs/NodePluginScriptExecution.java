@@ -126,6 +126,17 @@ final class NodePluginScriptExecution {
                     request.getStringArray(NodeJsRuntimeContract.KEY_ENV_VALUES)
             );
             env = workspaceSession.mapEnvironment(env);
+            if (!"1".equals(env.get("NODE_DISABLE_COMPILE_CACHE"))
+                    && !"0".equals(env.get("AUTOJS6_NODE_COMPILE_CACHE_ENABLED"))
+                    && !env.containsKey("NODE_COMPILE_CACHE") && !env.containsKey("AUTOJS6_NODE_COMPILE_CACHE_DIR")) {
+                env = new LinkedHashMap<>(env);
+                try {
+                    env.put("AUTOJS6_NODE_COMPILE_CACHE_DIR", workspaceSession.compileCacheDirectory(service.getCacheDir()));
+                } catch (java.io.IOException error) {
+                    // Cache availability must never determine whether a script can run.
+                    env.put("AUTOJS6_NODE_COMPILE_CACHE_PREPARE_ERROR", error.getMessage());
+                }
+            }
             boolean permissionMetadataRequired = nonBlank(
                     runtimeModuleSources.get(NodeBridgePermissionManifest.RUNTIME_MODULE_NAME),
                     null

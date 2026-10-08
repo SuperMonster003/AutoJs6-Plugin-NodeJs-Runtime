@@ -63,6 +63,7 @@ AutoJs6 Node.js Runtime 插件为 AutoJs6 提供内嵌 Node.js 24.21.0 原生运
 - 插件信息, 使用说明, README 与 CHANGELOG 均支持西班牙语/法语/俄语/阿拉伯语/日语/韩语/英语/简体中文/香港繁体/台湾繁体.
 - 附带多入口终端启动器 `libnodexe.so` 与 npm / corepack 资产, 通过 `NODE_CLI_*` manifest meta-data 声明, 使 AutoJs6 终端 (宿主 6.8.0+) 能在自身 uid 的 shell 中运行 `node`, `npm`, `npx`, `corepack`, `yarn` 与 `pnpm`.
 - 插件设置页支持 1-8 个并行执行槽 (默认 2) 与排队上限 (默认不限), 超额脚本按 FIFO 等待, 设置调整保留已接受的任务, idleExitMs 可回收空闲运行进程
+- 减少脚本启动时不必要的 Web API 初始化, 工作区与 Worker 默认启用 Node 原生可移植模块编译缓存, 缓存可跨工作区副本复用并由 Node 自动使变更源码失效
 
 ******
 
@@ -139,6 +140,7 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` 主脚本与 Worker 可通过 Node 加载 Android native addon, process.dlopen 与 .node 扩展恢复原生行为, 不设插件自有签名或哈希白名单; native-addon 示例提供三 ABI 的 16 KB 对齐 Node-API 产物和离线 NDK/CMake 构建; 错 ABI 或损坏二进制返回 ERR_DLOPEN_FAILED 等 Node 错误, 设备端不随包提供 NDK 或 Python
 * `优化` Inspector 在宿主显式允许后支持 Debug 和 Release 构建; inspector 与 inspector/promises 保留 Node 原生模块对象, 主脚本和 Worker 可使用 Session, 监听仅绑定 127.0.0.1 且不支持阻塞等待; 未开启时 url() 返回 undefined, 激活和 Session 创建保持关闭
 * `优化` package_manager 的 install/update/remove 支持 npm 包规格, 在工作区调用随包 npm; npm.cli/exec/runScript/pack 使用真实命令行, registry/代理/生命周期选项遵循 npm 与项目 .npmrc, 输出流式回传并保留 npm 错误码; CLI 资产仅在首次调用时准备, 对象请求保留原宿主本地库契约
+* `优化` 减少脚本启动时不必要的 Web API 初始化, 工作区与 Worker 默认启用 Node 原生可移植模块编译缓存, 缓存可跨工作区副本复用并由 Node 自动使变更源码失效
 
 # v1.5.7
 

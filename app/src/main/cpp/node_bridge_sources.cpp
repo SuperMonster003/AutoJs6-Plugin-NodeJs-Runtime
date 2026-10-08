@@ -448,7 +448,7 @@ std::string buildEmbeddedScriptExecutionSource(
     flushSupported: false,
     flushAttempted: false,
     flushed: false,
-    customLoader: true,
+    customLoader: false,
     hitCount: 0,
     missCount: 0,
     hitMissStatus: "unavailable"
@@ -2773,9 +2773,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_internal_compile_cache_env_key(key) {
     return typeof key === "string" && (
-      key.indexOf("AUTOJS6_NODE_COMPILE_CACHE_") === 0 ||
-      key === "NODE_COMPILE_CACHE" ||
-      key === "NODE_DISABLE_COMPILE_CACHE"
+      key.indexOf("AUTOJS6_NODE_COMPILE_CACHE_") === 0
     );
   }
   function __autojs6_node_startup_env_key(key) {
@@ -2797,17 +2795,19 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_install_compile_cache() {
     const diagnostics = __autojs6_compile_cache_diagnostics;
     diagnostics.schema = __autojs6_internal_request_env_value("AUTOJS6_NODE_COMPILE_CACHE_SCHEMA");
-    diagnostics.directory = __autojs6_internal_request_env_value("AUTOJS6_NODE_COMPILE_CACHE_DIR");
+    const explicitDirectory = __autojs6_internal_request_env_value("NODE_COMPILE_CACHE");
+    diagnostics.directory = explicitDirectory || __autojs6_internal_request_env_value("AUTOJS6_NODE_COMPILE_CACHE_DIR");
     diagnostics.key = __autojs6_internal_request_env_value("AUTOJS6_NODE_COMPILE_CACHE_KEY");
     diagnostics.runtimeKey = __autojs6_internal_request_env_value("AUTOJS6_NODE_COMPILE_CACHE_RUNTIME_KEY");
     diagnostics.projectKey = __autojs6_internal_request_env_value("AUTOJS6_NODE_COMPILE_CACHE_PROJECT_KEY");
-    diagnostics.loader = __autojs6_internal_request_env_value("AUTOJS6_NODE_COMPILE_CACHE_LOADER");
+    diagnostics.loader = "node_native_cjs_esm";
     diagnostics.message = __autojs6_internal_request_env_value("AUTOJS6_NODE_COMPILE_CACHE_PREPARE_ERROR");
     diagnostics.v8Version = typeof process === "object" && process && process.versions
       ? String(process.versions.v8 || "")
       : "";
     const enabled = __autojs6_internal_request_env_value("AUTOJS6_NODE_COMPILE_CACHE_ENABLED");
-    diagnostics.requested = enabled !== "0" && diagnostics.directory.length > 0;
+    diagnostics.requested = enabled !== "0" && diagnostics.directory.length > 0 &&
+      __autojs6_internal_request_env_value("NODE_DISABLE_COMPILE_CACHE") !== "1";
     if (!diagnostics.requested) {
       diagnostics.status = diagnostics.message ? "PREPARE_FAILED" : "disabled";
       return;
@@ -2820,7 +2820,10 @@ std::string buildEmbeddedScriptExecutionSource(
         return;
       }
       const constants = moduleBuiltin.constants && moduleBuiltin.constants.compileCacheStatus;
-      const result = moduleBuiltin.enableCompileCache(diagnostics.directory);
+      const result = moduleBuiltin.enableCompileCache({
+        directory: diagnostics.directory,
+        portable: !explicitDirectory || __autojs6_internal_request_env_value("NODE_COMPILE_CACHE_PORTABLE") === "1"
+      });
       const status = result && result.status !== undefined ? result.status : undefined;
       diagnostics.statusCode = status === undefined || status === null ? "" : String(status);
       diagnostics.status = __autojs6_compile_cache_status_name(status, constants) || "unknown";
@@ -2832,7 +2835,7 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       diagnostics.enabled = diagnostics.status === "ENABLED" || diagnostics.status === "ALREADY_ENABLED";
       diagnostics.flushSupported = typeof moduleBuiltin.flushCompileCache === "function";
-      diagnostics.hitMissStatus = "unavailable_custom_loader";
+      diagnostics.hitMissStatus = "not_exposed_by_node";
     } catch (error) {
       diagnostics.enabled = false;
       diagnostics.status = "FAILED";
@@ -2879,140 +2882,13 @@ std::string buildEmbeddedScriptExecutionSource(
       hitCount: diagnostics.hitCount,
       missCount: diagnostics.missCount,
       hitMissStatus: diagnostics.hitMissStatus,
-      userControlExposed: false,
-      appPrivateOnly: true
+      userControlExposed: true,
+      appPrivateOnly: false
     });
   }
   function __autojs6_install_safe_globals() {
-    const bufferModule = typeof Buffer === "function" ? null : __autojs6_builtin_module("buffer");
-    if (typeof Buffer !== "function" && bufferModule && typeof bufferModule.Buffer === "function") {
-      __autojs6_define_global("Buffer", bufferModule.Buffer);
-    }
-    const urlModule = (
-      typeof URL === "function" &&
-      typeof URLSearchParams === "function" &&
-      typeof URLPattern === "function"
-    )
-      ? null
-      : __autojs6_builtin_module("url");
-    if (typeof URL !== "function" && urlModule && typeof urlModule.URL === "function") {
-      __autojs6_define_global("URL", urlModule.URL);
-    }
-    if (
-      typeof URLSearchParams !== "function" &&
-      urlModule &&
-      typeof urlModule.URLSearchParams === "function"
-    ) {
-      __autojs6_define_global("URLSearchParams", urlModule.URLSearchParams);
-    }
-    const URLConstructor = typeof URL === "function" ? URL : (urlModule && urlModule.URL);
-    const URLPatternConstructor = __autojs6_url_pattern_constructor(URLConstructor, urlModule);
-    if (typeof URLPatternConstructor === "function") {
-      __autojs6_define_global("URLPattern", URLPatternConstructor);
-    }
-    const utilModule = typeof TextEncoder === "function" && typeof TextDecoder === "function"
-      ? null
-      : __autojs6_builtin_module("util");
-    if (typeof TextEncoder !== "function" && utilModule && typeof utilModule.TextEncoder === "function") {
-      __autojs6_define_global("TextEncoder", utilModule.TextEncoder);
-    }
-    const TextDecoderBase = typeof globalThis.TextDecoder === "function"
-      ? globalThis.TextDecoder
-      : (utilModule && typeof utilModule.TextDecoder === "function" ? utilModule.TextDecoder : null);
-    const TextDecoderCompat = __autojs6_text_decoder_compat_constructor(TextDecoderBase);
-    if (typeof TextDecoderCompat === "function" && globalThis.TextDecoder !== TextDecoderCompat) {
-      __autojs6_define_global("TextDecoder", TextDecoderCompat);
-    }
-    const webBufferModule = __autojs6_builtin_module("buffer");
-    if (
-      !__autojs6_define_existing_global_function("Blob") &&
-      webBufferModule &&
-      typeof webBufferModule.Blob === "function"
-    ) {
-      __autojs6_define_global("Blob", webBufferModule.Blob);
-    }
-    if (
-      !__autojs6_define_existing_global_function("File") &&
-      webBufferModule &&
-      typeof webBufferModule.File === "function"
-    ) {
-      __autojs6_define_global("File", webBufferModule.File);
-    }
-    __autojs6_install_url_object_url_fallbacks();
-    // Initialize Node's lazy Undici exports before installing process restrictions.
-    ["fetch", "Request", "Response", "Headers", "FormData", "WebSocket"].forEach(function(name) {
-      void globalThis[name];
-    });
-    const hasAbortController = __autojs6_define_existing_global_function("AbortController");
-    const hasAbortSignal = __autojs6_define_existing_global_function("AbortSignal");
-    if (!hasAbortController || !hasAbortSignal) {
-      const abortClasses = __autojs6_create_limited_abort_classes();
-      __autojs6_define_global("AbortController", abortClasses.AbortController);
-      __autojs6_define_global("AbortSignal", abortClasses.AbortSignal);
-    }
-    __autojs6_install_abort_signal_static_fallbacks();
-    if (!__autojs6_define_existing_global_function("DOMException")) {
-      __autojs6_define_global("DOMException", __autojs6_create_limited_dom_exception());
-    }
-    if (!__autojs6_define_existing_global_function("Event")) {
-      __autojs6_define_global("Event", __autojs6_create_limited_event());
-    }
-    if (!__autojs6_define_existing_global_function("EventTarget")) {
-      __autojs6_define_global("EventTarget", __autojs6_create_limited_event_target());
-    }
-    if (!__autojs6_define_existing_global_function("CustomEvent")) {
-      __autojs6_define_global("CustomEvent", __autojs6_create_limited_custom_event());
-    }
-    if (!__autojs6_define_existing_global_function("MessageEvent")) {
-      __autojs6_define_global("MessageEvent", __autojs6_create_limited_message_event_class());
-    }
-    const hasMessageChannel = __autojs6_define_existing_global_function("MessageChannel");
-    const hasMessagePort = __autojs6_define_existing_global_function("MessagePort");
-    if (!hasMessageChannel || !hasMessagePort) {
-      const messageClasses = __autojs6_create_limited_message_channel_classes();
-      if (!hasMessageChannel) {
-        __autojs6_define_global("MessageChannel", messageClasses.MessageChannel);
-      }
-      if (!hasMessagePort) {
-        __autojs6_define_global("MessagePort", messageClasses.MessagePort);
-      }
-    }
-    if (!__autojs6_define_existing_global_function("BroadcastChannel")) {
-      __autojs6_define_global("BroadcastChannel", __autojs6_create_limited_broadcast_channel());
-    }
-    __autojs6_install_performance_globals();
-    if (!__autojs6_define_existing_global_function("structuredClone")) {
-      __autojs6_define_global("structuredClone", __autojs6_limited_structured_clone);
-    }
-    if (!__autojs6_define_existing_global_function("atob")) {
-      __autojs6_define_global("atob", __autojs6_limited_atob);
-    }
-    if (!__autojs6_define_existing_global_function("btoa")) {
-      __autojs6_define_global("btoa", __autojs6_limited_btoa);
-    }
-    __autojs6_define_global("navigator", __autojs6_create_limited_navigator());
-    const webStreamModule = __autojs6_builtin_module("stream/web");
-    [
-      "ReadableStream",
-      "WritableStream",
-      "TransformStream",
-      "TextEncoderStream",
-      "TextDecoderStream",
-      "ByteLengthQueuingStrategy",
-      "CountQueuingStrategy"
-    ].forEach(function(name) {
-      __autojs6_define_global_function_from_module(name, webStreamModule);
-    });
-    const webCompression = __autojs6_limited_web_compression();
-    if (webCompression) {
-      __autojs6_define_global("CompressionStream", webCompression.CompressionStream);
-      __autojs6_define_global("DecompressionStream", webCompression.DecompressionStream);
-    }
-    const webCrypto = __autojs6_limited_web_crypto();
-    __autojs6_define_global("crypto", webCrypto);
-    if (webCrypto && typeof webCrypto.CryptoKey === "function") {
-      __autojs6_define_global("CryptoKey", webCrypto.CryptoKey);
-    }
+    // Node 24 provides these globals lazily. Reading every getter eagerly loaded Undici,
+    // crypto and streams even for a one-line script; preserve the native lazy descriptors.
     if (!__autojs6_raw_node_network_modules_enabled) {
       const disabled = () => __autojs6_builtin_disabled("Raw Node networking is disabled for this execution; use autojs6:fetch or autojs6:websocket for the declared host network bridge.");
       __autojs6_define_global("fetch", function() { return Promise.reject(disabled()); });
@@ -3021,34 +2897,6 @@ std::string buildEmbeddedScriptExecutionSource(
           construct() { throw disabled(); }
         }));
       }
-    }
-    const timersModule = (
-      typeof setTimeout === "function" &&
-      typeof clearTimeout === "function" &&
-      typeof setInterval === "function" &&
-      typeof clearInterval === "function"
-    ) ? null : __autojs6_builtin_module("timers");
-    if (timersModule) {
-      if (typeof setTimeout !== "function" && typeof timersModule.setTimeout === "function") {
-        __autojs6_define_global("setTimeout", timersModule.setTimeout);
-      }
-      if (typeof clearTimeout !== "function" && typeof timersModule.clearTimeout === "function") {
-        __autojs6_define_global("clearTimeout", timersModule.clearTimeout);
-      }
-      if (typeof setInterval !== "function" && typeof timersModule.setInterval === "function") {
-        __autojs6_define_global("setInterval", timersModule.setInterval);
-      }
-      if (typeof clearInterval !== "function" && typeof timersModule.clearInterval === "function") {
-        __autojs6_define_global("clearInterval", timersModule.clearInterval);
-      }
-    }
-    if (typeof queueMicrotask !== "function" && typeof Promise === "function") {
-      __autojs6_define_global("queueMicrotask", function(callback) {
-        if (typeof callback !== "function") {
-          throw new TypeError("queueMicrotask callback must be a function");
-        }
-        Promise.resolve().then(callback);
-      });
     }
   }
   const __autojs6_pending_timer_handles = {
@@ -7364,10 +7212,10 @@ std::string buildEmbeddedScriptExecutionSource(
     Object.defineProperties(undiciModule, {
       fetch: { value: undiciFetch, enumerable: true },
       request: { value: undiciRequest, enumerable: true },
-      Headers: { value: globalThis.Headers, enumerable: true },
-      Request: { value: globalThis.Request, enumerable: true },
-      Response: { value: globalThis.Response, enumerable: true },
-      FormData: { value: globalThis.FormData, enumerable: true },
+      Headers: { get: () => globalThis.Headers, enumerable: true },
+      Request: { get: () => globalThis.Request, enumerable: true },
+      Response: { get: () => globalThis.Response, enumerable: true },
+      FormData: { get: () => globalThis.FormData, enumerable: true },
       File: { value: globalThis.File, enumerable: true },
       Dispatcher: { value: LimitedDispatcher, enumerable: true },
       Agent: { value: LimitedAgent, enumerable: true },
@@ -8566,6 +8414,10 @@ std::string buildEmbeddedScriptExecutionSource(
     threads.setEnvironmentData("autojs6:worker-runtime", undefined);
     const { config, port } = envelope;
     const moduleApi = nativeRequire("module");
+    if (config.compileCache && process.env.NODE_DISABLE_COMPILE_CACHE !== "1") {
+      moduleApi.enableCompileCache(process.env.NODE_COMPILE_CACHE || config.compileCache);
+      process.once("exit", () => moduleApi.flushCompileCache());
+    }
     const urlApi = nativeRequire("url");
     const path = nativeRequire("path");
     const fs = nativeRequire("fs");
@@ -8631,7 +8483,6 @@ std::string buildEmbeddedScriptExecutionSource(
       const bare = id.startsWith("node:") ? id.slice(5) : id;
       if (gated.has(bare)) throw disabled(id);
     }
-    ["fetch", "Request", "Response", "Headers", "FormData", "WebSocket"].forEach(name => { void globalThis[name]; });
     if (gated.has("http")) {
       globalThis.fetch = () => Promise.reject(disabled("fetch"));
       if (typeof globalThis.WebSocket === "function") {
@@ -8784,6 +8635,11 @@ std::string buildEmbeddedScriptExecutionSource(
           inspectorEnabled: __autojs6_inspector_enabled,
           resourceLimits: __autojs6_worker_threads_policy.resourceLimits,
           workerProfile: __autojs6_worker_threads_policy.workerProfile,
+          compileCache: __autojs6_compile_cache_diagnostics.enabled ? {
+            directory: __autojs6_compile_cache_diagnostics.directory,
+            portable: !__autojs6_internal_request_env_value("NODE_COMPILE_CACHE") ||
+              __autojs6_internal_request_env_value("NODE_COMPILE_CACHE_PORTABLE") === "1"
+          } : null,
           permissions: __autojs6_bridge_permission_report()
         };
       },
@@ -26802,9 +26658,16 @@ std::string buildEmbeddedScriptExecutionSource(
     return __autojs6_native_require_cache(request);
   }
   function __autojs6_pin_entry_source(entryFilename) {
+    let sourceURL = __autojs6_source_name;
+    try {
+      const fs = __autojs6_builtin_module("fs");
+      // Android /data/user/0 and /data/data name the same file. A redundant sourceURL
+      // would bake the per-execution workspace path into Node's portable code-cache content.
+      if (fs.realpathSync(sourceURL) === fs.realpathSync(entryFilename)) sourceURL = "";
+    } catch (_) { /* Virtual or inline source names still need their explicit sourceURL. */ }
     __autojs6_pinned_module_sources[entryFilename] = Object.freeze({
       source: __autojs6_source,
-      sourceURL: __autojs6_source_name
+      sourceURL
     });
   }
   // The entry runs the way Node runs a main module: a Module instance registered as

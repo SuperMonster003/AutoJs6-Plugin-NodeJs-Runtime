@@ -9,9 +9,8 @@ import java.util.Map;
 
 /**
  * Plugin-owned final-dispatch policy for environment variables interpreted by
- * Node before user code starts. The denylist intentionally matches the Host
- * legacy embedded-runtime boundary while that compatibility implementation is
- * still present.
+ * Node before user code starts. Managed process/Inspector startup flags remain
+ * process-owned; compile-cache variables are ordinary request environment values.
  */
 final class NodeStartupEnvironmentPolicy {
 
@@ -20,9 +19,7 @@ final class NodeStartupEnvironmentPolicy {
     static final List<String> DENIED_ENVIRONMENT_NAMES = Collections.unmodifiableList(
             Arrays.asList(
                     "NODE_OPTIONS",
-                    "NODE_INSPECT_RESUME_ON_START",
-                    "NODE_COMPILE_CACHE",
-                    "NODE_DISABLE_COMPILE_CACHE"
+                    "NODE_INSPECT_RESUME_ON_START"
             )
     );
 

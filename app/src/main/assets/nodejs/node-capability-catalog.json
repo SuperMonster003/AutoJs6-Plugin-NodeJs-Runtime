@@ -577,7 +577,16 @@
         "alias": "service",
         "target": "interactive_long_running"
       }
-    ]
+    ],
+    "startup": {
+      "prewarmSlotsRequestKey": "prewarmSlots",
+      "hostPreparation": "overlapped_first_slot_prewarm",
+      "webGlobals": "native",
+      "moduleCompileCache": "native_portable_workspace_and_workers",
+      "compileCacheEnabledByDefault": true,
+      "compileCacheDisableEnv": "NODE_DISABLE_COMPILE_CACHE",
+      "compileCacheInvalidation": "node_native"
+    }
   },
   "bridge": {
     "androidPermissionOrder": [

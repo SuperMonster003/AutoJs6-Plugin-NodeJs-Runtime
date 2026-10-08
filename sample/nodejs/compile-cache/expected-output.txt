@@ -1,4 +1,4 @@
-sample.compile-cache.on-disk=exposed
-sample.compile-cache.runtime-loader=true
+sample.compile-cache.on-disk=enabled
+sample.compile-cache.runtime-loader=false
 sample.compile-cache.same-module=true
 sample.compile-cache=PASS

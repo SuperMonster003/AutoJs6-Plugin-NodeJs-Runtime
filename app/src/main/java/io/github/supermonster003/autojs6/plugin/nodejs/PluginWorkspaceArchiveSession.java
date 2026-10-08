@@ -286,6 +286,21 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
         return runtimeSandboxRoot.getAbsolutePath();
     }
 
+    /** Portable Node cache paths stay stable relative to the sandbox across execution directories. */
+    String compileCacheDirectory(File cacheDirectory) throws IOException {
+        File shared = new File(new File(cacheDirectory, "node-compile-cache"), sha256(requestedSandboxRoot.equals(runtimeSandboxRoot.getAbsolutePath()) ? "direct" : requestedSandboxRoot));
+        ensureDirectory(shared);
+        // This alias sits outside sandbox, so it is never included in the workspace output archive.
+        // Cleanup unlinks it as a symlink and leaves Node's persistent cache untouched.
+        File alias = new File(sessionRoot.getCanonicalFile(), "compile-cache");
+        try {
+            android.system.Os.symlink(shared.getAbsolutePath(), alias.getAbsolutePath());
+        } catch (android.system.ErrnoException error) {
+            throw new IOException("Unable to prepare Node compile cache", error);
+        }
+        return alias.getAbsolutePath();
+    }
+
     String mapHostPathToRuntime(String value) {
         return mapContainedPathAcrossAndroidCredentialAlias(
                 value,

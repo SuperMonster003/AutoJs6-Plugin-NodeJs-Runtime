@@ -56,7 +56,6 @@ public final class RuntimeColdStartMeasurementTest {
 
     private static final long BIND_TIMEOUT_MS = 30_000L;
     private static final int EXECUTION_COUNT = 21;
-    private static final long SNAPSHOT_REVIEW_THRESHOLD_MS = 1_000L;
 
     @Test
     public void recordsColdBindAndFreshIsolateDistribution() throws Exception {
@@ -66,23 +65,19 @@ public final class RuntimeColdStartMeasurementTest {
 
         long bindStartedAt = SystemClock.elapsedRealtime();
         try (BoundRuntime bound = BoundRuntime.bind(context)) {
-            ConcurrentExecutionSmokeTest.assertSucceeded(bound.runtime.prewarmRuntime(new Bundle()));
             Bundle runtimeInfo = bound.runtime.getRuntimeInfo();
-            // Include demand-started workers and explicit prewarm in the existing cold-start total.
-            long bindAndPrewarmWallMs = SystemClock.elapsedRealtime() - bindStartedAt;
+            // Status does not prewarm: run 0 includes demand-started worker/service/native startup.
+            long dispatcherBindAndInfoMs = SystemClock.elapsedRealtime() - bindStartedAt;
             assertNotNull("getRuntimeInfo returned null", runtimeInfo);
-            assertTrue(
-                    runtimeInfo.getString("runtimeReadinessDetail", "runtime not ready"),
-                    runtimeInfo.getBoolean("runtimeReady")
-            );
 
             int runtimePid = runtimeInfo.getInt(NodeJsRuntimeContract.KEY_PID, -1);
-            assertTrue("invalid runtime pid: " + runtimePid, runtimePid > 0);
+
             Map<String, String> readiness = nativeValues(runtimeInfo);
 
             JSONArray runsJson = new JSONArray();
             List<Long> warmWallMs = new ArrayList<>();
             List<Long> warmNativeTotalMs = new ArrayList<>();
+            List<Long> warmFirstOutputMs = new ArrayList<>();
             Map<String, List<Long>> warmPhases = new LinkedHashMap<>();
             warmPhases.put("isolateCreateMs", new ArrayList<>());
             warmPhases.put("environmentCreateMs", new ArrayList<>());
@@ -95,8 +90,12 @@ public final class RuntimeColdStartMeasurementTest {
                 Measurement measurement = execute(bound.runtime, index, runtimePid);
                 if (index == 0) {
                     first = measurement;
+                    runtimeInfo = bound.runtime.getRuntimeInfo();
+                    runtimePid = runtimeInfo.getInt(NodeJsRuntimeContract.KEY_PID);
+                    readiness = nativeValues(runtimeInfo);
                 } else {
                     warmWallMs.add(measurement.wallMs);
+                    warmFirstOutputMs.add(measurement.firstOutputMs);
                     warmNativeTotalMs.add(measurement.nativeTotalMs);
                     warmPhases.get("isolateCreateMs").add(measurement.isolateCreateMs);
                     warmPhases.get("environmentCreateMs").add(measurement.environmentCreateMs);
@@ -110,10 +109,9 @@ public final class RuntimeColdStartMeasurementTest {
 
             long warmWallP95Ms = percentile(warmWallMs, 0.95d);
             long warmNativeP95Ms = percentile(warmNativeTotalMs, 0.95d);
-            boolean snapshotWorthImplementation = warmWallP95Ms >= SNAPSHOT_REVIEW_THRESHOLD_MS;
 
             JSONObject report = new JSONObject();
-            report.put("schema", "autojs6-node-cold-start-measurement-v1");
+            report.put("schema", "autojs6-node-cold-start-measurement-v2");
             report.put("capturedAtUtc", utcTimestamp());
             report.put("device", deviceJson());
 
@@ -126,26 +124,21 @@ public final class RuntimeColdStartMeasurementTest {
             runtime.put("isolatePerExecution", runtimeInfo.getBoolean("isolatePerExecution"));
             runtime.put("servicePrewarmMs", longValue(readiness, "timing.runtime_plugin_prewarm.ms"));
             runtime.put("buildConfiguration", first.buildConfiguration);
+            runtime.put("prewarmTimings", new JSONObject(readiness));
             report.put("runtime", runtime);
 
             JSONObject summary = new JSONObject();
             summary.put("executionCount", EXECUTION_COUNT);
-            summary.put("bindAndPrewarmWallMs", bindAndPrewarmWallMs);
-            summary.put("bindAndFirstExecutionWallMs", bindAndPrewarmWallMs + first.wallMs);
+            summary.put("dispatcherBindAndInfoMs", dispatcherBindAndInfoMs);
+            summary.put("bindAndFirstExecutionWallMs", dispatcherBindAndInfoMs + first.wallMs);
             summary.put("firstExecutionWallMs", first.wallMs);
+            summary.put("coldFirstOutputMs", dispatcherBindAndInfoMs + first.firstOutputMs);
+            summary.put("warmFirstOutput", distribution(warmFirstOutputMs));
             summary.put("firstNativeTotalMs", first.nativeTotalMs);
             summary.put("warmExecutionWallMedianMs", percentile(warmWallMs, 0.50d));
             summary.put("warmExecutionWallP95Ms", warmWallP95Ms);
             summary.put("warmNativeTotalMedianMs", percentile(warmNativeTotalMs, 0.50d));
             summary.put("warmNativeTotalP95Ms", warmNativeP95Ms);
-            summary.put("snapshotReviewThresholdMs", SNAPSHOT_REVIEW_THRESHOLD_MS);
-            summary.put("snapshotWorthImplementation", snapshotWorthImplementation);
-            summary.put(
-                    "recommendation",
-                    snapshotWorthImplementation
-                            ? "continue_startup_snapshot_design"
-                            : "do_not_implement_startup_snapshot"
-            );
             JSONObject phaseSummary = new JSONObject();
             for (Map.Entry<String, List<Long>> entry : warmPhases.entrySet()) {
                 phaseSummary.put(entry.getKey(), distribution(entry.getValue()));
@@ -153,10 +146,19 @@ public final class RuntimeColdStartMeasurementTest {
             summary.put("warmPhaseDistribution", phaseSummary);
             report.put("summary", summary);
             report.put("runs", runsJson);
+            JSONObject nativePhases = new JSONObject();
+            for (String key : new String[]{"timing.pool_connect.ms", "timing.dlopen_node.ms", "timing.platform_create.ms", "timing.v8_initialize.ms", "timing.isolate_create.ms", "timing.environment_create.ms", "timing.node_bootstrap.ms", "timing.load_environment.ms", "timing.bootstrap.ms", "timing.execution_source_build.ms"}) {
+                List<Long> samples = new ArrayList<>();
+                for (int i = 1; i < runsJson.length(); i++) samples.add(runsJson.getJSONObject(i).getJSONObject("timings").optLong(key, -1L));
+                nativePhases.put(key, distribution(samples));
+            }
+            summary.put("nativePhases", nativePhases);
+            summary.put("coldNativeTimings", first.timings);
+            summary.put("runtimePrewarm", new JSONObject(readiness));
             report.put(
                     "method",
                     "Force-stop the package before instrumentation; bind includes dispatcher startup, " +
-                            "explicit worker prewarm and a readiness query; run 0 is the first fresh isolate; " +
+                            "a readiness query without prewarm; run 0 includes worker/native startup; " +
                             "runs 1-" + (EXECUTION_COUNT - 1) +
                             " are fresh isolates in the same persistent process."
             );
@@ -205,9 +207,12 @@ public final class RuntimeColdStartMeasurementTest {
         );
 
         long startedAt = SystemClock.elapsedRealtime();
+        java.util.concurrent.atomic.AtomicLong firstOutputAt = new java.util.concurrent.atomic.AtomicLong();
         Bundle result = runtime.runScript(request, new INodeJsRuntimeCallback.Stub() {
             @Override
             public void onEvent(Bundle event) {
+                if (NodeJsRuntimeContract.EVENT_STDOUT.equals(event.getString(NodeJsRuntimeContract.KEY_EVENT_TYPE)))
+                    firstOutputAt.compareAndSet(0L, SystemClock.elapsedRealtime());
             }
         });
         long wallMs = SystemClock.elapsedRealtime() - startedAt;
@@ -222,7 +227,7 @@ public final class RuntimeColdStartMeasurementTest {
                 "run " + index + " stdout missing runtime pid: " +
                         result.getString(NodeJsRuntimeContract.KEY_STDOUT, ""),
                 result.getString(NodeJsRuntimeContract.KEY_STDOUT, "")
-                        .contains("m10.cold-start=" + expectedRuntimePid)
+                        .contains("m10.cold-start=" + (expectedRuntimePid > 0 ? expectedRuntimePid : result.getInt(NodeJsRuntimeContract.KEY_PID)))
         );
 
         Map<String, String> nativePayload = nativeValues(result);
@@ -232,6 +237,13 @@ public final class RuntimeColdStartMeasurementTest {
                 nativePayload.get("process_runtime.reused")
         );
         Measurement measurement = new Measurement(index, wallMs, result, nativePayload);
+        assertTrue("first stdout not delivered", firstOutputAt.get() > 0L);
+        measurement.firstOutputMs = firstOutputAt.get() - startedAt;
+        measurement.timings = new JSONObject();
+        for (Map.Entry<String, String> entry : nativePayload.entrySet()) {
+            if (entry.getKey().startsWith("timing.") || entry.getKey().startsWith("embedded_script.execution_source."))
+                measurement.timings.put(entry.getKey(), entry.getValue());
+        }
         assertTrue("missing native total timing at run " + index, measurement.nativeTotalMs >= 0L);
         assertTrue("missing isolate timing at run " + index, measurement.isolateCreateMs >= 0L);
         assertTrue("missing environment timing at run " + index, measurement.environmentCreateMs >= 0L);
@@ -324,6 +336,8 @@ public final class RuntimeColdStartMeasurementTest {
         final long scriptExecutionMs;
         final long teardownMs;
         final String buildConfiguration;
+        long firstOutputMs;
+        JSONObject timings;
 
         Measurement(
                 int index,
@@ -349,6 +363,8 @@ public final class RuntimeColdStartMeasurementTest {
             json.put("index", index);
             json.put("kind", index == 0 ? "first_fresh_isolate" : "process_warm_fresh_isolate");
             json.put("wallMs", wallMs);
+            json.put("firstOutputMs", firstOutputMs);
+            json.put("timings", timings);
             json.put("contractElapsedMs", contractElapsedMs);
             json.put("nativeTotalMs", nativeTotalMs);
             json.put("isolateCreateMs", isolateCreateMs);

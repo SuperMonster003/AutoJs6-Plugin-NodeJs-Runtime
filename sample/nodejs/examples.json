@@ -341,14 +341,14 @@
     },
     {
       "name": "compile-cache",
-      "status": "unsupported",
-      "reason": "Node's on-disk compile cache does not apply: project modules go through the runtime's own workspace loader, so module.enableCompileCache() is not exposed and the sample only shows in-memory module caching.",
+      "status": "stable",
+      "reason": "Node's native CJS/ESM loaders use a portable on-disk compile cache in plugin-private cache storage, enabled by default for workspaces and workers.",
       "tags": [
         "main-app",
         "commonjs",
         "compile-cache"
       ],
-      "mainAppSmoke": false,
+      "mainAppSmoke": true,
       "packagedCompatible": false
     },
     {

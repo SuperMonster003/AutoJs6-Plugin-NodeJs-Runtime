@@ -14,6 +14,23 @@ import java.util.concurrent.TimeUnit;
 public final class ConfigurableProcessPoolSmokeTest {
     private static final String RESIDENT = "console.log('ready'); setInterval(() => {}, 1000);";
 
+    @Test public void limitedPrewarmAndConcurrentDispatchCompleteWithoutStarvation() throws Exception {
+        try (PoolSettingsFixture settings = new PoolSettingsFixture(2, -1); Binding binding = new Binding()) {
+            Bundle options = new Bundle();
+            options.putInt(NodeJsRuntimeContract.KEY_PREWARM_SLOTS, 1);
+            java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newSingleThreadExecutor();
+            try {
+                java.util.concurrent.Future<Bundle> warming = executor.submit(() -> binding.runtime.prewarmRuntime(options));
+                Bundle result = binding.runtime.runScript(request("m23-prewarm-adoption", "console.log('prewarm-adoption')"), null);
+                assertSucceeded(result);
+                warming.get(30, TimeUnit.SECONDS);
+                assertSucceeded(binding.runtime.prewarmRuntime(options));
+                assertEquals(0, binding.runtime.getRuntimeInfo().getInt("queuedExecutions"));
+                assertSucceeded(binding.runtime.runScript(request("m23-prewarm-follow-up", "console.log('ready')"), null));
+            } finally { executor.shutdownNow(); }
+        }
+    }
+
     @Test public void fourResidentsLeaveAnUnlimitedQueueWithIndependentCancellationAndTimeout() throws Exception {
         try (PoolSettingsFixture settings = new PoolSettingsFixture(4, -1); Binding binding = new Binding()) {
             INodeJsRuntimePlugin runtime = binding.runtime;

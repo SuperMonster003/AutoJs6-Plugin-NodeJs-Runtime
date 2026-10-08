@@ -193,3 +193,14 @@ and local-store plans/maintenance remain available. The current workspace
 archive does not transfer symlinks: use bin-links=false for projects with bin
 entries that must be copied back to the host. Android may also refuse execution
 of app-data shims/binaries; running JS tool entry points through node is possible.
+
+## Startup and module cache (M23.8)
+
+Native Web APIs retain Node initialization semantics instead of eagerly installing
+compatibility implementations. Workspace modules and Workers use Node's portable
+compile cache by default. The cache survives per-execution workspace copies; Node
+checks source/version changes. Set `NODE_DISABLE_COMPILE_CACHE=1` to opt out or
+`NODE_COMPILE_CACHE` to select an accessible directory. Cache failures remain nonfatal.
+The host starts prewarming its first worker while preparing an execution. Startup
+measurements distinguish process-cold service/native startup, fresh isolates in a
+resident process, and host preparation up to the first stdout callback; see HOST-API.

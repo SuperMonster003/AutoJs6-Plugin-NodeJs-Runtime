@@ -110,6 +110,7 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
         volatile boolean cancelled;
         int pid;
         long dispatchedAtWallMs;
+        long assignedAt;
         Slot slot;
         Job(Bundle request, INodeJsRuntimeCallback callback) {
             this.request = request;
@@ -173,10 +174,13 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
 
     private Slot freeSlot() {
         int count = slotCount(), occupied = 0;
-        for (Slot slot : slots) if (slot.job != null || slot.warming) occupied++;
+        for (Slot slot : slots) if (slot.job != null) occupied++;
         // Shrinking lets active scripts finish before admitting work at the smaller capacity.
         if (occupied >= count) return null;
         for (int i = 0; i < count; i++) if (slots[i].job == null && !slots[i].warming && slots[i].remote != null) return slots[i];
+        // A request can adopt the slot already being started by host prewarm. Both wait on
+        // the same connection; the slot's native readiness is established during onCreate.
+        for (int i = 0; i < count; i++) if (slots[i].job == null && slots[i].warming) return slots[i];
         for (int i = 0; i < count; i++) if (slots[i].job == null && !slots[i].warming) return slots[i];
         return null;
     }
@@ -265,6 +269,7 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
             }
             available.job = next;
             next.slot = available;
+            next.assignedAt = SystemClock.elapsedRealtime();
             executions.execute(() -> runRegistered(next, next.callback));
         }
     }
@@ -290,8 +295,10 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
 
     private Bundle runRegistered(Job job, INodeJsRuntimeCallback callback) {
         Bundle result;
+        long connectingAt = SystemClock.elapsedRealtime(), connectedAt = connectingAt;
         try {
             INodeJsRuntimePlugin remote = awaitRemote(job.slot, job);
+            connectedAt = SystemClock.elapsedRealtime();
             job.pid = remote.getRuntimeInfo().getInt(NodeJsRuntimeContract.KEY_PID);
             job.dispatchedAtWallMs = System.currentTimeMillis();
             if (job.timeout > 0) {
@@ -352,6 +359,11 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
             closeWorkspaceDescriptors(job.request);
             unregister(job);
         }
+        result.putStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD, appendNativePayload(
+                result.getStringArray(NodeJsRuntimeContract.KEY_NATIVE_PAYLOAD), new String[]{
+                        "timing.pool_queue.ms=" + Math.max(0L, job.assignedAt - job.startedAt),
+                        "timing.pool_connect.ms=" + Math.max(0L, connectedAt - connectingAt)
+                }));
         return finish(job, callback, result);
     }
 
@@ -436,8 +448,11 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
 
     Bundle prewarmRuntime(Bundle request) {
         Bundle result = null;
+        int requestedSlots = request == null ? slotCount() : Math.max(1,
+                Math.min(slotCount(), request.getInt(NodeJsRuntimeContract.KEY_PREWARM_SLOTS, slotCount())));
         try {
             for (Slot slot : slots) {
+                if (slot.id >= requestedSlots) break;
                 synchronized (lock) {
                     if (slot.id >= slotCount() || slot.job != null || slot.warming || !queue.isEmpty()) continue;
                     slot.warming = true;

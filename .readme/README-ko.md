@@ -63,6 +63,7 @@ AutoJs6 Node.js Runtime 플러그인은 AutoJs6 에 내장 Node.js 24.21.0 네�
 - 플러그인 정보, 사용 설명, README, CHANGELOG 는 스페인어/프랑스어/러시아어/아랍어/일본어/한국어/영어/간체 중국어/홍콩 번체/대만 번체를 지원합니다.
 - 멀티콜 터미널 런처 `libnodexe.so`와 npm / corepack 자산을 포함하고 `NODE_CLI_*` manifest meta-data로 선언하여, AutoJs6 터미널 (호스트 6.8.0 이상) 이 자신의 uid shell에서 `node`, `npm`, `npx`, `corepack`, `yarn`, `pnpm`을 실행할 수 있습니다.
 - 플러그인 설정에서 동시 실행 슬롯 1-8 개 (기본 2) 및 대기열 한도 (기본 무제한) 설정 지원; 초과 스크립트는 FIFO 로 대기하며 설정 변경 시 수락된 작업을 유지하고 idleExitMs 로 유휴 실행 프로세스 회수
+- 불필요한 Web API 초기화를 줄여 스크립트 시작을 개선하고 작업 공간과 Worker 에 Node 기본 이식 가능한 모듈 컴파일 캐시 활성화; 작업 공간 복사본 간에 재사용하며 소스 변경은 Node 가 무효화
 
 ******
 
@@ -139,6 +140,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `개선` 메인 스크립트와 Worker에서 Node를 통해 Android 네이티브 애드온을 로드 가능; process.dlopen과 .node는 기본 동작을 사용하며 별도 서명 또는 해시 허용 목록이 없음; native-addon은 3개 ABI의 16 KB 정렬 Node-API 바이너리와 오프라인 NDK/CMake 빌드를 제공; ABI 불일치나 손상은 ERR_DLOPEN_FAILED 등의 Node 오류로 반환되며 기기용 NDK 또는 Python는 포함하지 않음
 * `개선` 호스트의 명시적 허용으로 Debug 및 Release 빌드에서 Inspector 사용 가능; inspector와 inspector/promises는 Node 기본 모듈 객체를 유지하고 메인 스크립트와 Worker에서 Session을 지원하며, 수신 주소는 127.0.0.1로 제한되고 블로킹 대기는 지원하지 않음; 허용되지 않으면 url()은 undefined를 반환하고 활성화 및 Session 생성은 비활성화됨
 * `개선` package_manager의 install/update/remove가 npm 패키지 사양을 받아 작업 공간에서 내장 npm 실행; npm.cli/exec/runScript/pack은 실제 CLI를 사용하고 registry/프록시/수명 주기 옵션은 npm 및 프로젝트 .npmrc를 따르며, 출력을 스트리밍하고 npm 오류 코드를 유지; CLI 파일은 최초 사용 시 준비하고 객체 요청은 기존 호스트 로컬 저장소 계약을 유지
+* `개선` 불필요한 Web API 초기화를 줄여 스크립트 시작을 개선하고 작업 공간과 Worker 에 Node 기본 이식 가능한 모듈 컴파일 캐시 활성화; 작업 공간 복사본 간에 재사용하며 소스 변경은 Node 가 무효화
 
 # v1.5.7
 

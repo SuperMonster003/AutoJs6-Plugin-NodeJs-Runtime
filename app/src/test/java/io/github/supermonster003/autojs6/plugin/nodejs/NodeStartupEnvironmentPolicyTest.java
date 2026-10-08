@@ -13,12 +13,10 @@ import static org.junit.Assert.assertTrue;
 public class NodeStartupEnvironmentPolicyTest {
 
     @Test
-    public void denylistExactlyMatchesLegacyStartupEnvironmentBoundary() {
+    public void onlyProcessStartupAndInspectorFlagsAreFiltered() {
         assertEquals(Arrays.asList(
                 "NODE_OPTIONS",
-                "NODE_INSPECT_RESUME_ON_START",
-                "NODE_COMPILE_CACHE",
-                "NODE_DISABLE_COMPILE_CACHE"
+                "NODE_INSPECT_RESUME_ON_START"
         ), NodeStartupEnvironmentPolicy.DENIED_ENVIRONMENT_NAMES);
     }
 
@@ -36,7 +34,7 @@ public class NodeStartupEnvironmentPolicyTest {
                 NodeJsRuntimePluginService.prepareNodeStartupEnvironmentForNative(environment);
 
         assertEquals(
-                Arrays.asList("SAFE_FIRST", "SAFE_SECOND"),
+                Arrays.asList("SAFE_FIRST", "SAFE_SECOND", "Node_Compile_Cache", "NODE_DISABLE_COMPILE_CACHE"),
                 new ArrayList<>(result.environment().keySet())
         );
         assertEquals("1", result.environment().get("SAFE_FIRST"));
@@ -44,7 +42,7 @@ public class NodeStartupEnvironmentPolicyTest {
         assertEquals("6", result.diagnostics().get(
                 "embedded_script.runtime_plugin.startup_env.input_count"
         ));
-        assertEquals("4", result.diagnostics().get(
+        assertEquals("2", result.diagnostics().get(
                 "embedded_script.runtime_plugin.startup_env.filtered_count"
         ));
         assertEquals(Arrays.asList(
@@ -53,17 +51,15 @@ public class NodeStartupEnvironmentPolicyTest {
                 "embedded_script.runtime_plugin.startup_env.detail_count",
                 "embedded_script.runtime_plugin.startup_env.detail_truncated_count",
                 "embedded_script.runtime_plugin.startup_env.filtered.0.name",
-                "embedded_script.runtime_plugin.startup_env.filtered.1.name",
-                "embedded_script.runtime_plugin.startup_env.filtered.2.name",
-                "embedded_script.runtime_plugin.startup_env.filtered.3.name"
+                "embedded_script.runtime_plugin.startup_env.filtered.1.name"
         ), new ArrayList<>(result.diagnostics().keySet()));
         assertEquals("node_options", result.diagnostics().get(
                 "embedded_script.runtime_plugin.startup_env.filtered.0.name"
         ));
-        assertEquals("Node_Compile_Cache", result.diagnostics().get(
+        assertEquals("NODE_INSPECT_RESUME_ON_START", result.diagnostics().get(
                 "embedded_script.runtime_plugin.startup_env.filtered.1.name"
         ));
-        assertEquals("4", result.diagnostics().get(
+        assertEquals("2", result.diagnostics().get(
                 "embedded_script.runtime_plugin.startup_env.detail_count"
         ));
         assertEquals("0", result.diagnostics().get(

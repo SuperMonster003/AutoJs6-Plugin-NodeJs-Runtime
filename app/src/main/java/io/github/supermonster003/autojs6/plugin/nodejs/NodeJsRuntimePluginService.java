@@ -519,7 +519,7 @@ public class NodeJsRuntimePluginService extends Service {
             diagnostics.put("process_runtime.dedicated_process", Boolean.toString(isDedicatedRuntimeProcess()));
             diagnostics.put("process_runtime.cancellation_strategy", CANCELLATION_STRATEGY_COOPERATIVE_STOP);
             try {
-                loadNativeRuntime();
+                loadNativeRuntime(diagnostics);
                 diagnostics.putAll(
                         NativeNodeEmbeddedRuntimeBridge.setProcessRuntimePersistentEnabled(this, true)
                 );
@@ -767,14 +767,20 @@ public class NodeJsRuntimePluginService extends Service {
         }, PROCESS_RESTART_AFTER_CANCEL_DELAY_MS);
     }
 
-    private void loadNativeRuntime() {
+    private void loadNativeRuntime(Map<String, String> diagnostics) {
+        long startedAt = SystemClock.elapsedRealtime();
         try {
             System.loadLibrary("c++_shared");
         } catch (UnsatisfiedLinkError ignored) {
             // Some Android builds load libc++ transitively from the native bridge.
         }
+        diagnostics.put("timing.dlopen_cpp.ms", Long.toString(elapsedSince(startedAt)));
+        startedAt = SystemClock.elapsedRealtime();
         System.loadLibrary(NATIVE_LIBRARY_NAME);
+        diagnostics.put("timing.dlopen_node.ms", Long.toString(elapsedSince(startedAt)));
+        startedAt = SystemClock.elapsedRealtime();
         System.loadLibrary(BRIDGE_LIBRARY_NAME);
+        diagnostics.put("timing.dlopen_bridge.ms", Long.toString(elapsedSince(startedAt)));
     }
 
     @SuppressWarnings("deprecation")

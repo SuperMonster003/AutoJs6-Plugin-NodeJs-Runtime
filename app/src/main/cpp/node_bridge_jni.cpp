@@ -97,6 +97,7 @@ bool keepEmbeddedScriptLifecyclePayloadKey(std::string_view key) {
             "teardown.status",
             "timing.allocator_create.ms",
             "timing.bootstrap.ms",
+            "timing.node_bootstrap.ms",
             "timing.bootstrap_script.ms",
             "timing.completion_drain.ms",
             "timing.embedded_script_result.ms",
