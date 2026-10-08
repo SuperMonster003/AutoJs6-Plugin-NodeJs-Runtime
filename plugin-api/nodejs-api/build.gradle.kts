@@ -16,7 +16,7 @@ plugins {
 }
 
 group = "org.autojs.plugin.nodejs"
-version = "1.6.0"
+version = "1.7.0"
 
 android {
     namespace = "org.autojs.plugin.nodejs.api"
@@ -288,7 +288,7 @@ val verifyNodeJsApiPublication = tasks.register("verifyNodeJsApiPublication") {
         check(lock.getProperty("contract.version") == "2") { "Node.js API contract version drift" }
         check(lock.getProperty("contract.min") == "2") { "Node.js API minimum contract drift" }
         check(lock.getProperty("contract.max") == "3") { "Node.js API maximum contract drift" }
-        check(lock.getProperty("module.source.provider.contract.version") == "2") {
+        check(lock.getProperty("module.source.provider.contract.version") == "3") {
             "Node.js API module-source provider contract version drift"
         }
         check(publishedAar.isFile) { "Published Node.js API AAR is missing: $publishedAar" }
@@ -462,7 +462,7 @@ tasks.register("stageNodeJsApiPublication") {
               |contract.version=2
               |contract.min=2
               |contract.max=3
-              |module.source.provider.contract.version=2
+              |module.source.provider.contract.version=3
               |source.owner=AutoJs6-Plugin-NodeJs-Runtime
               |source.repository=AutoJs6-Plugin-NodeJs-Runtime
               |source.gitBase=${nodeJsApiGit("rev-parse", "HEAD").orEmpty()}

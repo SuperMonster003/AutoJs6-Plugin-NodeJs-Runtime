@@ -29,6 +29,8 @@ public final class NodeBridgePermissionManifest {
     private static final String DIALOGS = "dialogs";
     private static final String ENGINES = "engines";
     private static final String ENGINES_EXEC = "engines.exec";
+    private static final String AGENT = "agent";
+    private static final String AGENT_EXEC = "agent.exec";
     private static final String ACCESSIBILITY = "accessibility";
     private static final String ACCESSIBILITY_GESTURE = "accessibility.gesture";
     private static final String SCREEN_CAPTURE = "screen_capture";
@@ -115,6 +117,8 @@ public final class NodeBridgePermissionManifest {
             DIALOGS,
             ENGINES,
             ENGINES_EXEC,
+            AGENT,
+            AGENT_EXEC,
             ACCESSIBILITY,
             ACCESSIBILITY_GESTURE,
             SCREEN_CAPTURE,

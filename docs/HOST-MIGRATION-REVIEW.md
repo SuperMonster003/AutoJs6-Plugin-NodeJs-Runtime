@@ -52,7 +52,7 @@ provider, 也没有引入第二套跨仓清单或默认构建门禁。
 | `NodeRuntimeBudgetPolicy.kt`、`NodeInteractiveLongRunningStatusStore.kt`、`NodeExecutionQueuePolicy.kt` | 无 | 删除 |
 | `NodeBridgePermissionManifest.kt`、`NodeCapabilityBrokerPolicy`、`NodeBridgeLimits`、androidStatus 探针、模块源传输预算、Compiler 路由、WorkManager 配额、`plugin-api/nodejs-api` 镜像 | 宿主 Android 授权、Binder 与传输 | 保留在实际所有者处 |
 
-仍待后续子批: `NodePrivacyDisclosurePolicy` 的 `policy_partial` 状态与 pending 列表、provider registry 的
+本节为 M19.3 第一批的历史记录。该批当时待办: `NodePrivacyDisclosurePolicy` 的 `policy_partial` 状态与 pending 列表、provider registry 的
 `packagedSupport` 文案、`NodeBridgePermissionManifest` 默认值经既有契约归并; 旧宿主 (master) 与新宿主 (分支)
 的启动、取消、文件回传对照回归。宿主分支是否合并由用户决定。
 

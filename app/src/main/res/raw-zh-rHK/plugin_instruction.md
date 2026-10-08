@@ -10,7 +10,7 @@
 console.log(process.version);
 ```
 
-運行時槽位為 `node24_5`. 支援 `arm64-v8a`, `armeabi-v7a`, `x86_64` 構建, 以及 `universal` 通用包.
+運行時槽位為 `node24_21`. 支援 `arm64-v8a`, `armeabi-v7a`, `x86_64` 構建, 以及 `universal` 通用包.
 
 更多示例位於 `sample/nodejs`.
 

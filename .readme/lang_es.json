@@ -12,7 +12,7 @@
     "Expone ejecucion sincronica de scripts y precalentamiento del runtime al host mediante `org.autojs.plugin.nodejs.RUNTIME`.",
     "Se añadieron tiempos límite que cubren la cola y la ejecución de scripts, con el error `ERR_AUTOJS6_SCRIPT_TIMEOUT`; sin límite definido, los scripts pueden seguir ejecutándose indefinidamente",
     "Devuelve todos los módulos integrados de Node.js tal como Node los exporta, directamente desde el inventario `module.builtinModules` de Node (`dgram`, `http2`, `trace_events`, `wasi`, `cluster`, `repl` y el resto); solo `worker_threads`, `child_process`, `inspector` y los módulos de red nativos conservan una puerta a nivel de solicitud (desde 1.6.0).",
-    "Se añadió depuración local con `inspector`, activada explícitamente en compilaciones Debug, escuchando solo en localhost y conectándose mediante `adb forward`",
+    "Depuración local con Inspector en Debug y Release mediante solicitud explícita del anfitrión, localhost y reenvío ADB",
     "Admite codigo CommonJS/ESM, fuentes de modulos, directorio de trabajo, raiz de sandbox, variables de entorno y resultados stdout/stderr.",
     "Ejecuta los módulos con los loaders CommonJS / ESM nativos de Node.js (`require`, `import()`, `import.meta`, `require(esm)`, exports / imports de paquetes son nativos); el runtime solo registra `module.registerHooks` para los módulos de runtime `autojs6:*`, las fuentes de módulos aportadas por el host y la barrera de builtins por solicitud (desde 1.6.0).",
     "Usa el módulo fs nativo de Node.js; la accesibilidad de los archivos la deciden únicamente los permisos de Android de la aplicación del plugin, sin denegación de `/proc`, `/sys` o `/dev` propia del runtime (desde 1.6.0).",

@@ -8,8 +8,10 @@
 音轨信息。脚本结束后项目文件回传完成, 可在项目目录中找到录音。
 PASS 要求真实录音非空且 MediaInfo 能解析出音轨; 权限拒绝不会算通过。
 
-The sample records three seconds of microphone audio when explicitly run. It stays
-partial until the manual recording and metadata receipt are recorded. Cleanup runs
-on success, failure and script termination.
+The sample records three seconds of microphone audio when explicitly run. It
+requires microphone permission and the host MediaInfo provider. A successful
+device run must produce non-empty audio and readable track metadata; sample
+status alone is not a recording receipt. Cleanup runs on success, failure and
+script termination.
 
 完整步骤见 [人工验收说明](../../../docs/nodejs/MANUAL-ACCEPTANCE.md)。

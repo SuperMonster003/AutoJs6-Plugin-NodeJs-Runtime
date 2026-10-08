@@ -28,18 +28,18 @@
   "contract": {
     "min": 2,
     "max": 3,
-    "moduleSourceProvider": 2
+    "moduleSourceProvider": 3
   },
   "nodeJsApi": {
-    "coordinate": "org.autojs.plugin.nodejs:nodejs-api:1.6.0",
-    "version": "1.6.0",
-    "sha256": "3ce2737758b33e634b294cffc3a55ba3424d8c8cb6dbfd82a6ac488463a50770",
+    "coordinate": "org.autojs.plugin.nodejs:nodejs-api:1.7.0",
+    "version": "1.7.0",
+    "sha256": "dc49f5ec4230acfb183e815426eb50a53fb6ee1956c537d5a2461c2ef72694e0",
     "aidlTransactionsSha256": "c781e229418850724100564332b83141e461259b1356bae5b100a01481ca7323"
   },
   "capabilityCatalog": {
     "schema": "autojs6-node-capability-catalog-v1",
     "version": "1.6.0",
-    "sha256": "8d2feabe9906cb23a855e7c00cfdacd8016e48f9700e37291ec5596945061fbf"
+    "sha256": "1c5bf666d1a47b101bb46569ee3efbdb0d73bea37359cd11759537e711d712b9"
   },
   "reproducibility": {
     "artifactMaterialization": "source_build",
@@ -47,14 +47,12 @@
     "sourceBuild": "source_build_with_independent_maintenance_rebuilds",
     "sourceBuildStatus": "ready",
     "kitUsable": true,
-    "releaseReady": false,
-    "blockedReasons": [
-      "development_version_not_release_accepted"
-    ]
+    "releaseReady": true,
+    "blockedReasons": []
   },
   "buildProvenance": {
     "sourceRepository": "AutoJs6-Plugin-NodeJs-Runtime",
-    "sourceGitBase": "f2790c64dad66f7b622bc5296c048617025e216a",
+    "sourceGitBase": "04d9245341e66a2884a42c444f4b815ae651742e",
     "runtimeBuildPlan": {
       "lockFile": "tools/nodejs/runtime-build/runtime-build.lock.json",
       "lockSha256": "b60d3714de7af422d5261f990ca3c51cf35618baa347abce650bf7b9c13620fa",
@@ -83,7 +81,7 @@
       "variant": "release_universal",
       "gradleTask": ":app:assembleRelease",
       "cmakeFile": "app/src/main/cpp/CMakeLists.txt",
-      "cmakeSha256": "609c1ce5112fb6cb54d6afb3014d066655fa81fa7a9d7b43507b4731c1d1c52a",
+      "cmakeSha256": "6fde966f9c3ccde4ea5ac63485686d042f8bc2ed5306694585b6fd98d1dfac68",
       "runtimeSlotArgument": "node24_21"
     },
     "sourceBuildEnvironment": {
@@ -108,8 +106,8 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "source_tree",
       "required": true,
-      "size": 76772,
-      "sha256": "8d2feabe9906cb23a855e7c00cfdacd8016e48f9700e37291ec5596945061fbf",
+      "size": 78076,
+      "sha256": "1c5bf666d1a47b101bb46569ee3efbdb0d73bea37359cd11759537e711d712b9",
       "buildId": null
     },
     {
@@ -122,9 +120,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 2575400,
-      "sha256": "d0ce92ccf40b4a54013fb05f0c021b4af9f6db020c2257be1990954d5e085137",
-      "buildId": "837e1af6045277564755f643feb4f9b2867251fd"
+      "size": 2041240,
+      "sha256": "3269aa70e313e89ea86018a0bca02efc525324eab4f0e7120fe518e2f5b01a90",
+      "buildId": "17531fc3a7164a8d87339db2651570f73b956398"
     },
     {
       "id": "libautojs6-node-armeabi-v7a",
@@ -136,9 +134,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 2241380,
-      "sha256": "2d3d4f8661d2cff73a6612bfae399874cf18257e3a0ee379e7f1c0d422dac4a8",
-      "buildId": "18ba7a641b106a51524159c3a8cccfaf7a1e4bd5"
+      "size": 1697436,
+      "sha256": "302e1e03ecdeffa503190d60192365bd21c1750f3979e4880d574089176b3db0",
+      "buildId": "310296c398be670c87cbc1e37e6936e8f9e7eed4"
     },
     {
       "id": "libautojs6-node-x86_64",
@@ -150,9 +148,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 2602504,
-      "sha256": "0652568795e17feffd0187a409ca67c740b3631f0cf9bbe12d498e0318db4e31",
-      "buildId": "232c9ab3548fbc8580b13a314357270d0af2568b"
+      "size": 2067248,
+      "sha256": "7e50f7004f919957383e11f8073e06fe2151de0f81107561a3b16ab20337bfb0",
+      "buildId": "179a95640511503a30ea0de550a3c20045b00720"
     },
     {
       "id": "libc++_shared-arm64-v8a",

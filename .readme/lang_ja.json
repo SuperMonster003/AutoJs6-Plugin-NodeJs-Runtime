@@ -12,7 +12,7 @@
     "`org.autojs.plugin.nodejs.RUNTIME` を通じて同期スクリプト実行とランタイムの事前ロードをホストに公開します.",
     "キュー待機と実行の全体を対象とするスクリプトタイムアウトを追加し、超過時に `ERR_AUTOJS6_SCRIPT_TIMEOUT` を返すようにしました。未指定の場合は引き続き無期限で実行できます",
     "すべての Node.js 組み込みモジュールを Node 自身の `module.builtinModules` 一覧からそのまま返します (`dgram`, `http2`, `trace_events`, `wasi`, `cluster`, `repl` など); リクエスト単位のゲートが残るのは `worker_threads`, `child_process`, `inspector` とネイティブネットワークモジュールのみです (1.6.0 以降).",
-    "Debug ビルドで明示的に有効化するローカル `inspector` デバッグを追加しました。localhost のみで待ち受け、`adb forward` 経由で接続します",
+    "ホストの明示的な要求で Debug と Release のローカル Inspector を有効化し, localhost と ADB 転送で接続",
     "CommonJS/ESM ソース, モジュールソース, 作業ディレクトリ, サンドボックスルート, 環境変数, stdout/stderr 結果ペイロードに対応します.",
     "モジュールは Node.js 自身の CommonJS / ESM ローダーで実行されます (`require`, `import()`, `import.meta`, `require(esm)`, パッケージ exports / imports はネイティブ); ランタイムは `autojs6:*` ランタイムモジュール, ホスト提供のモジュールソース, リクエスト単位の builtin ゲートのための `module.registerHooks` のみ登録します (1.6.0 以降).",
     "Node.js 本来の fs モジュールを使用し, ファイルへの到達可否はプラグインアプリの Android 権限のみで決まります; ランタイム独自の `/proc`, `/sys`, `/dev` 拒否はありません (1.6.0 以降).",

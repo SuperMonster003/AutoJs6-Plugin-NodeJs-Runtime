@@ -223,69 +223,80 @@ val verifyNodeProjectWizard = tasks.register("verifyNodeProjectWizard") {
         )
         assertNodeProjectWizardIssueCodes(invalidPackageNameReport, "PACKAGE_NAME_INVALID")
 
-        val unsafeDependency = workRoot.resolve("invalid/unsafe-dependency")
+        val nativeDependency = workRoot.resolve("valid/native-dependency")
         nodeProjectWizardJson(
             tool,
             listOf(
                 "create",
                 "--template", "commonjs-app",
-                "--out", unsafeDependency.absolutePath,
-                "--name", "unsafe-dependency",
+                "--out", nativeDependency.absolutePath,
+                "--name", "native-dependency",
                 "--force",
             ),
         )
-        unsafeDependency.resolve("node_modules/native-dep").mkdirs()
-        unsafeDependency.resolve("node_modules/native-dep/package.json").writeText(
+        nativeDependency.resolve("node_modules/native-dep").mkdirs()
+        nativeDependency.resolve("node_modules/native-dep/package.json").writeText(
             """
             {
               "name": "native-dep",
               "version": "1.0.0",
+              "exports": {"node": "./index.cjs", "default": "./index.cjs"},
+              "gypfile": true,
               "scripts": {
                 "install": "node-gyp rebuild"
               }
             }
             """.trimIndent() + "\n",
         )
-        unsafeDependency.resolve("node_modules/native-dep/addon.node").writeText("native-placeholder\n")
-        val unsafeDependencyReport = nodeProjectWizardJson(
+        nativeDependency.resolve("node_modules/native-dep/addon.node").writeText("native-placeholder\n")
+        nativeDependency.resolve("node_modules/native-dep/binding.gyp").writeText("{}\n")
+        nativeDependency.resolve("node_modules/native-dep/index.cjs").writeText("module.exports = require('./addon.node');\n")
+        nativeDependency.resolve("main.cjs").appendText("require('vm'); void process.dlopen;\n")
+        val nativeDependencyReport = nodeProjectWizardJson(
             tool,
-            listOf("validate", unsafeDependency.absolutePath),
-            expectSuccess = false,
+            listOf("validate", nativeDependency.absolutePath),
         )
-        assertNodeProjectWizardIssueCodes(
-            unsafeDependencyReport,
-            "DEPENDENCY_LIFECYCLE_SCRIPT_UNSUPPORTED",
-            "NATIVE_ADDON_DISABLED",
-        )
+        val nativeCompatibility = nativeDependencyReport["compatibility"] as? Map<*, *>
+            ?: throw GradleException("Native dependency fixture did not include compatibility analysis.")
+        if (nativeCompatibility["status"] != "compatible") {
+            throw GradleException("Native addons, npm scripts and exports must not be rejected: $nativeCompatibility")
+        }
 
-        val unsupportedSource = workRoot.resolve("invalid/unsupported-source")
+        val inspectorSource = workRoot.resolve("valid/inspector-source")
         nodeProjectWizardJson(
             tool,
             listOf(
                 "create",
                 "--template", "commonjs-app",
-                "--out", unsupportedSource.absolutePath,
-                "--name", "unsupported-source",
+                "--out", inspectorSource.absolutePath,
+                "--name", "inspector-source",
                 "--force",
             ),
         )
-        unsupportedSource.resolve("main.cjs").appendText(
+        inspectorSource.resolve("main.cjs").appendText(
             """
             const inspector = require("inspector");
             void inspector;
             """.trimIndent() + "\n",
         )
-        val unsupportedSourceReport = nodeProjectWizardJson(
+        val inspectorSourceReport = nodeProjectWizardJson(
             tool,
-            listOf("validate", unsupportedSource.absolutePath),
+            listOf("validate", inspectorSource.absolutePath),
+        )
+        val inspectorCompatibility = inspectorSourceReport["compatibility"] as? Map<*, *>
+            ?: throw GradleException("Inspector fixture did not include compatibility analysis.")
+        val inspectorSignals = inspectorCompatibility["signals"] as? List<*> ?: emptyList<Any>()
+        if (inspectorCompatibility["status"] != "compatible with capability" ||
+            inspectorSignals.none { (it as? Map<*, *>)?.get("code") == "INSPECTOR_REQUEST_REQUIRED" }) {
+            throw GradleException("Inspector must report its explicit request requirement: $inspectorCompatibility")
+        }
+        inspectorSource.resolve("main.cjs").appendText("require('device');\n")
+        val missingHostCapabilityReport = nodeProjectWizardJson(
+            tool,
+            listOf("validate", inspectorSource.absolutePath),
             expectSuccess = false,
         )
-        assertNodeProjectWizardIssueCodes(unsupportedSourceReport, "CAPABILITY_UNSUPPORTED")
-        val unsupportedCompatibility = unsupportedSourceReport["compatibility"] as? Map<*, *>
-            ?: throw GradleException("Unsupported source fixture did not include compatibility analysis.")
-        if (unsupportedCompatibility["status"] != "unsupported") {
-            throw GradleException("Unsupported source fixture should report unsupported compatibility: $unsupportedCompatibility")
-        }
+        assertNodeProjectWizardIssueCodes(missingHostCapabilityReport, "CAPABILITY_DECLARATION_MISSING")
 
         val androidFsSource = workRoot.resolve("valid/android-fs-paths")
         nodeProjectWizardJson(
@@ -345,14 +356,15 @@ val verifyNodeProjectWizard = tasks.register("verifyNodeProjectWizard") {
             "templateCount" to rows.size,
             "templates" to rows,
             "validFixtures" to listOf(
+                linkedMapOf("name" to "native-dependency", "status" to nativeCompatibility["status"]),
+                linkedMapOf("name" to "inspector-source", "status" to inspectorCompatibility["status"]),
                 linkedMapOf("name" to "android-fs-paths", "status" to androidFsCompatibility["status"]),
             ),
             "invalidFixtures" to listOf(
                 linkedMapOf("name" to "missing-entry", "issueCodes" to missingEntryReport.nodeProjectWizardIssueCodes().sorted()),
                 linkedMapOf("name" to "unknown-permission", "issueCodes" to unknownPermissionReport.nodeProjectWizardIssueCodes().sorted()),
                 linkedMapOf("name" to "invalid-package-name", "issueCodes" to invalidPackageNameReport.nodeProjectWizardIssueCodes().sorted()),
-                linkedMapOf("name" to "unsafe-dependency", "issueCodes" to unsafeDependencyReport.nodeProjectWizardIssueCodes().sorted()),
-                linkedMapOf("name" to "unsupported-source", "issueCodes" to unsupportedSourceReport.nodeProjectWizardIssueCodes().sorted()),
+                linkedMapOf("name" to "missing-host-capability", "issueCodes" to missingHostCapabilityReport.nodeProjectWizardIssueCodes().sorted()),
                 linkedMapOf("name" to "unsupported-tsx-entry", "issueCodes" to unsupportedTsxReport.nodeProjectWizardIssueCodes().sorted()),
             ),
         )

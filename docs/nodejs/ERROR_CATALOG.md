@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Error Catalog
 
-Last reviewed: 2026-10-07.
+Last reviewed: 2026-10-09.
 
 Errors may originate in either process. The host owns routing, trust, bridge,
 permission, workspace, provider, queue, and scheduling failures. The runtime plugin
@@ -22,8 +22,8 @@ message, request ID, and execution ID when reporting a failure.
 - **ERR_AUTOJS6_NODE_PLUGIN_CONTRACT_MISMATCH**: host and plugin contract ranges do
   not overlap.
 - **ERR_AUTOJS6_NODE_PLUGIN_EXECUTION_LOST**: an in-flight plugin execution was lost.
-- **ERR_AUTOJS6_NODE_PLUGIN_BUSY**, **ERR_AUTOJS6_NODE_ENGINE_BUSY**: bounded
-  concurrency rejected the request.
+- **ERR_AUTOJS6_NODE_PLUGIN_BUSY**, **ERR_AUTOJS6_NODE_ENGINE_BUSY**: an explicitly configured queue limit is full or an execution ID is duplicated.
+  Default pool waiting is unlimited.
 - **ERR_AUTOJS6_NODE_QUEUE_FULL**, **ERR_AUTOJS6_NODE_QUEUE_TIMEOUT**,
   **ERR_AUTOJS6_NODE_QUEUE_CANCELLED**: queue policy ended the request.
 
@@ -52,7 +52,7 @@ filesystem failures carry Node/Android codes such as ENOENT, EACCES or
 ERR_INVALID_ARG_VALUE (NUL bytes), and `/proc`, `/sys`, `/dev` follow Android like every
 other path. The scoped fs wrapper and its policy codes are retired and no longer
 produced by fs: `ERR_AUTOJS6_FS_NUL_BYTE`, `ERR_AUTOJS6_FS_PATH_ESCAPE`,
-`ERR_AUTOJS6_FS_SCOPED_PATH` (plus the older `FS_*` names still listed in the catalog).
+`ERR_AUTOJS6_FS_SCOPED_PATH`. The catalog keeps retired names separately from current error constants.
 Since M23.3 (2026-10-08) Node's own CommonJS / ESM loaders run the module graph and the
 runtime only registers `module.registerHooks`, so module failures carry Node's codes
 (`MODULE_NOT_FOUND`, `ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED`,
@@ -124,3 +124,18 @@ Command failures preserve npm stdout/stderr and its reported code (for example
 ENOTCACHED, E404 or ECONNREFUSED), with exitCode/signal on the rejected error.
 Spawn and AbortSignal errors come from Node. The object-based host local-store
 mutation errors and permission requirements are unchanged.
+
+## Retired runtime policy errors in 1.6.0
+
+| Former codes | Current behavior |
+|---|---|
+| ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED / FS_REALPATH_ESCAPE / FS_SYMLINK_ESCAPE / FS_NUL_BYTE / FS_PATH_ESCAPE / FS_SCOPED_PATH | Native Node/Android path semantics and errors |
+| ERR_AUTOJS6_FS_WATCH_LIMIT / FS_WATCH_RATE_LIMITED | Native watcher behavior |
+| ERR_AUTOJS6_NATIVE_ADDON_DISABLED / PROCESS_API_DISABLED | Native Android addon/process operations |
+| ERR_AUTOJS6_WORKER_LIMIT_EXCEEDED / WORKER_TIMEOUT | Native Worker behavior; caller-selected WorkerPool limits remain |
+| ERR_AUTOJS6_NPM_CLI_DENIED / NPM_REGISTRY_DENIED | Bundled npm CLI with native npm errors; setup failures use NPM_CLI_SETUP_FAILED |
+| ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED / REQUIRE_ESM_UNSUPPORTED / DYNAMIC_IMPORT_UNSUPPORTED | Native Node module loading errors |
+
+Names shortened after a slash share the ERR_AUTOJS6_ prefix. Old peers or historical
+reports can contain these names. They are not current ordinary builtin policy failures.
+Current host broker and workspace/provider transport errors retain their own contracts.

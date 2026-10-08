@@ -1,4 +1,22 @@
 declare namespace AutoJs6Node {
+  /** Native module compile-cache diagnostics; Node does not expose hit/miss statistics. */
+  export interface CompileCacheProfile {
+    readonly requested: boolean;
+    readonly enabled: boolean;
+    readonly status: string;
+    readonly statusCode: string;
+    readonly directory: string;
+    readonly loader: "node_native_cjs_esm";
+    readonly customLoader: false;
+    readonly flushSupported: boolean;
+    readonly flushAttempted: boolean;
+    readonly flushed: boolean;
+    readonly hitMissStatus: "not_exposed_by_node" | "unavailable" | string;
+    readonly userControlExposed: true;
+    readonly appPrivateOnly: false;
+    readonly [key: string]: unknown;
+  }
+
   export interface FeatureFlagDescriptor {
     readonly id: string;
     readonly diagnosticName: string;
@@ -828,7 +846,7 @@ declare namespace AutoJs6Node {
     readonly enabledFeatures: readonly string[];
     readonly deniedFeatureFlags: readonly string[];
     readonly errorCodes: Readonly<Record<string, string | Readonly<Record<string, string>>>>;
-    readonly compileCache: Readonly<Record<string, unknown>>;
+    readonly compileCache: Readonly<CompileCacheProfile>;
     readonly profileSelection: ProfileSelectionDiagnostics;
     readonly profileRollbackPolicy: ProfileRollbackPolicy;
     readonly privacyDisclosurePolicy: PrivacyDisclosurePolicy;

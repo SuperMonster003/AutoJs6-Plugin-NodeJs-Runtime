@@ -12,7 +12,7 @@
     "通过 `org.autojs.plugin.nodejs.RUNTIME` 为宿主提供同步脚本执行和运行时预热.",
     "支持覆盖排队与执行全过程的脚本超时, 超时返回 `ERR_AUTOJS6_SCRIPT_TIMEOUT`; 未指定超时时仍可无限运行",
     "全部 Node.js 内建模块按 Node 自身的 `module.builtinModules` 清单直接返回原生导出 (含 `dgram`, `http2`, `trace_events`, `wasi`, `cluster`, `repl` 等), 仅保留 `worker_threads`, `child_process`, `inspector` 与原生网络模块的请求级门禁 (1.6.0 起).",
-    "支持 Debug 构建显式开启本地 `inspector` 调试, 仅监听 localhost 并通过 `adb forward` 连接",
+    "本地 Inspector 调试支持 Debug 和 Release, 由宿主显式请求启用, 使用 localhost 与 ADB 转发",
     "支持 CommonJS/ESM 源码, 模块源码, 工作目录, 沙盒根目录, 环境变量, stdout/stderr 结果回传.",
     "模块加载由 Node.js 自身的 CommonJS / ESM loader 承担 (`require`, `import()`, `import.meta`, `require(esm)`, package exports / imports 均为原生); 运行时只注册 `module.registerHooks` 提供 `autojs6:*` 运行时模块、宿主提供的模块源码与请求级 builtin 门禁 (1.6.0 起).",
     "文件系统使用 Node.js 原生 fs 模块, 文件可达性完全由插件自身的 Android 权限决定; 运行时不再保留 `/proc`, `/sys`, `/dev` 等拒绝边界 (1.6.0 起).",

@@ -164,6 +164,6 @@ WorkManager 定时运行器实际拉起 Node 项目:
 2026-09-17 自动化回执: 宿主分支 instrumentation `NodeMediaBridgeInstrumentationTest` 在小米 968e9f18 (arm64, API 35, 插件 Debug 194)
 上以同一调用链验证了会话播放 (play/pause/seekTo/resume/过期 id/stop/looping, 通知随执行结束撤下) 与 MediaStore 往返
 (capabilities/insert/query/get/update/exportFile/scanFile/delete), 以及经真实 Binder 的插件脚本 (`media.session`/`media.store`/
-`media.mutate`/`media.compat` 四行) — 9/10 通过 (连续 4 次一致), 唯一失败 `realMediainfoQueriesPreservePathsAndSelectSecondAudioTrack` 为设备上 MediaInfo 插件 2.0.0 未宣告 streamCount 的环境限制, 与本批无关; 同机 `NodeBridgeProviderRegistryInstrumentationTest` 5/5、`NodeBridgeConformanceInstrumentationTest` 5/5、`NodeBridgePermissionManifestInstrumentationTest` 11/11。上述两个样例的人工可听/可见复核当时尚未进行, 因此暂保持 partial。
+`media.mutate`/`media.compat` 四行) — 9/10 通过 (连续 4 次一致), 唯一失败 `realMediainfoQueriesPreservePathsAndSelectSecondAudioTrack` 为设备上 MediaInfo 插件 2.0.0 未宣告 streamCount 的环境限制, 与本批无关; 同机 `NodeBridgeProviderRegistryInstrumentationTest` 5/5、`NodeBridgeConformanceInstrumentationTest` 5/5、`NodeBridgePermissionManifestInstrumentationTest` 11/11。上述两个样例的人工可听/可见复核当时尚未进行, 本记录不作为该项人工验收回执。
 
 2026-09-17 人工回执: 用户回执 media-playback 与 media-library 两个项目在其验收设备上验收通过, 宿主媒体 provider 分支已合并进宿主 master; 两个样例转为 stable。

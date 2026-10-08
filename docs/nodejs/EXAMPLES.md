@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Example Projects
 
-Last reviewed: 2026-09-10.
+Last reviewed: 2026-10-09.
 
 Examples live only under **sample/nodejs** in the runtime-plugin repository. Keeping
 one copy prevents host/plugin drift and keeps runtime-specific assets out of the host
@@ -32,7 +32,9 @@ dispatch. Exhaustive runtime/sample conformance remains plugin-owned.
 Legacy packaged-compatible metadata remains readable for historical catalogs, but
 the current host does not embed Node into exported APKs.
 
-The current collection contains 49 projects. See [the sample collection](../../sample/nodejs)
+The current collection contains 55 projects. See [the sample collection](../../sample/nodejs)
 and [manual acceptance](MANUAL-ACCEPTANCE.md) for complete screen capture, OCR,
-Android event and audio recording projects. A `partial` sample status records
-outstanding acceptance; merely loading a module is not a successful device test.
+Android event and audio recording projects. Status is `stable` or
+`host_provider_required`; the latter identifies a host provider and Android
+permission dependency. Device acceptance records remain separate from sample
+status: merely loading a module is not a successful device test.

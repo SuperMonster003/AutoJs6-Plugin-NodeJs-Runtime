@@ -53,7 +53,7 @@ AutoJs6 Node.js Runtime 插件为 AutoJs6 提供内嵌 Node.js 24.21.0 原生运
 - 通过 `org.autojs.plugin.nodejs.RUNTIME` 为宿主提供同步脚本执行和运行时预热.
 - 支持覆盖排队与执行全过程的脚本超时, 超时返回 `ERR_AUTOJS6_SCRIPT_TIMEOUT`; 未指定超时时仍可无限运行
 - 全部 Node.js 内建模块按 Node 自身的 `module.builtinModules` 清单直接返回原生导出 (含 `dgram`, `http2`, `trace_events`, `wasi`, `cluster`, `repl` 等), 仅保留 `worker_threads`, `child_process`, `inspector` 与原生网络模块的请求级门禁 (1.6.0 起).
-- 支持 Debug 构建显式开启本地 `inspector` 调试, 仅监听 localhost 并通过 `adb forward` 连接
+- 本地 Inspector 调试支持 Debug 和 Release, 由宿主显式请求启用, 使用 localhost 与 ADB 转发
 - 支持 CommonJS/ESM 源码, 模块源码, 工作目录, 沙盒根目录, 环境变量, stdout/stderr 结果回传.
 - 模块加载由 Node.js 自身的 CommonJS / ESM loader 承担 (`require`, `import()`, `import.meta`, `require(esm)`, package exports / imports 均为原生); 运行时只注册 `module.registerHooks` 提供 `autojs6:*` 运行时模块、宿主提供的模块源码与请求级 builtin 门禁 (1.6.0 起).
 - 文件系统使用 Node.js 原生 fs 模块, 文件可达性完全由插件自身的 Android 权限决定; 运行时不再保留 `/proc`, `/sys`, `/dev` 等拒绝边界 (1.6.0 起).
@@ -124,6 +124,7 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/09
 
 * `新增` 插件设置页支持 1-8 个并行执行槽 (默认 2) 与排队上限 (默认不限), 超额脚本按 FIFO 等待, 设置调整保留已接受的任务, idleExitMs 可回收空闲运行进程
+* `修复` 项目向导不再将已支持的原生依赖, npm 安装脚本, package exports 和 Inspector 误判为不可用, 保留宿主权限声明检查
 * `优化` fs, fs/promises 及 node:sqlite 模块改为直接使用 Node.js 原生实现, 移除运行时自设的 /proc, /sys, /dev 拒绝边界与路径校验包装层, 文件可达性完全由 Android 权限决定, 异步文件 API 经 libuv 线程池执行而不再阻塞事件循环, 路径错误返回 Node.js 原生错误码 (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH 及 ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED 不再由文件及数据库操作产生)
 * `优化` process.cwd 与 process.chdir 改为 Node.js 原生行为, 脚本执行开始时以原生 chdir 进入工作目录, 相对路径由 Node.js 自行解析
 * `优化` node:sqlite 的 ATTACH (含绑定参数及表达式形式的文件名), VACUUM INTO, 目录 PRAGMA 及 setAuthorizer 均为 SQLite 原生行为, enableLoadExtension 与 allowExtension 遵循 Node.js 原生状态检查
@@ -131,7 +132,6 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` crypto.createPrivateKey 及签名 API 支持 file: URL 形式的 OpenSSL STORE 密钥输入 (移除 Android 构建中的禁用补丁)
 * `优化` 全部 Node.js 内建模块 (含 cluster, domain, repl, trace_events, wasi, constants, node:sea 等) 按 Node 自身的 module.builtinModules 清单直接返回原生导出, require, require.resolve, import, process.getBuiltinModule 与 module.isBuiltin 行为与桌面版一致, 仅保留 worker_threads, child_process, inspector 及原生网络模块的请求级门禁; node:wasi 随 /proc 边界的删除一并放开 (trace_events 在当前未启用 tracing 的运行库中与 Node 一样抛出 ERR_TRACE_EVENTS_UNAVAILABLE)
 * `优化` process 仅保留 exit 的生命周期映射; dlopen, abort, kill, umask, binding, report, features 及 POSIX 身份调用使用 Node 原生实现; os 为原生模块, homedir 与 tmpdir 遵循 HOME/TMPDIR, userInfo 返回 Android 应用用户
-* `优化` module 内建模块改为仅覆盖 createRequire 的 Node.js 原生对象, registerHooks, enableCompileCache, findPackageJSON 等可直接使用; 删除仅在禁用原生网络时可达的 http, https, net, tls, dns 受限实现, 禁用时直接返回 ERR_AUTOJS6_BUILTIN_DISABLED
 * `优化` 插件信息 (INFO) 与运行时诊断的 supportedAbis 改为读取构建期写入清单的 org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (需要 AutoJs6-Gradle-Platform-Versions 1.9.0 起的 nativeAlignment 插件), 表示插件构建支持的全部 ABI 而非已安装分包; meta-data 缺失时回退为已安装包内实际打包的 ABI, 手写的 ABI 常量已删除
 * `优化` 模块加载改为 Node.js 原生 CommonJS / ESM loader: require, require.resolve, require.cache, require.extensions, Module._resolveFilename, module.register, import(), import.meta 与 require(esm) 全部为 Node 原生行为, 入口按 Node 主模块方式运行 (require.main === module, __filename / process.argv[1] 为 realpath); 运行时只注册 module.registerHooks 提供 autojs6:* 运行时模块与兼容 shim (autojs6: scheme, 同名 npm 包仍优先于 shim)、请求级 builtin 门禁、请求随附 / provider 物化 / TypeScript 快照的模块源码与入口内联源码; vm.SourceTextModule 自管 linker, 自定义 resolver, 动态 import 改写与 eval / Function 守卫全部移除, esmEnabled / dynamicImportEnabled 请求键不再起作用
 * `优化` 原生 Worker 支持嵌套, MessagePort API, stdio, argv, execArgv 与预加载继承; 删除插件自设的 Worker 数量和启动时限, 请求 resourceLimits 仅作可覆盖的默认值, WorkerPool 默认不限制排队数量或任务时长; Inspector 会话遵循执行请求与当前构建支持

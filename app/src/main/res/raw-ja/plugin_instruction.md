@@ -10,7 +10,7 @@ AutoJs6 プラグインセンターでインストールして有効化し, 次�
 console.log(process.version);
 ```
 
-ランタイムスロットは `node24_5` です. `arm64-v8a`, `armeabi-v7a`, `x86_64` ビルドと `universal` APK をサポートします.
+ランタイムスロットは `node24_21` です. `arm64-v8a`, `armeabi-v7a`, `x86_64` ビルドと `universal` APK をサポートします.
 
 サンプルプロジェクトは `sample/nodejs` にあります.
 

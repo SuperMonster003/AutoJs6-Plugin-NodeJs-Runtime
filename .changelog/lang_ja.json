@@ -15,7 +15,6 @@
         "crypto.createPrivateKey と署名 API が file: URL 形式の OpenSSL STORE 鍵入力を受け付けます (Android 向けの無効化パッチを撤去)",
         "すべての Node.js 組み込みモジュール (cluster, domain, repl, trace_events, wasi, constants, node:sea など) を Node 自身の module.builtinModules 一覧からそのまま返すようになり, require, require.resolve, import, process.getBuiltinModule, module.isBuiltin はデスクトップ版と同じ動作になりました; リクエスト単位のゲートが残るのは worker_threads, child_process, inspector とネイティブネットワークモジュールのみで, node:wasi は /proc 境界の撤去とともに開放されました (tracing を含まない現在の libnode では trace_events は Node と同様に ERR_TRACE_EVENTS_UNAVAILABLE を投げます)",
         "process は exit のライフサイクル処理のみを保持; dlopen, abort, kill, umask, binding, report, features と POSIX ID 呼び出しは Node 本来の実装を使用; os はネイティブで homedir と tmpdir は HOME/TMPDIR に従い, userInfo は Android アプリのユーザーを返す",
-        "module 組み込みは createRequire のみを上書きした Node.js 本来のオブジェクトになり, registerHooks, enableCompileCache, findPackageJSON などが利用できます; ネイティブネットワーク無効時にのみ到達できた http, https, net, tls, dns の制限実装を削除し, その場合は ERR_AUTOJS6_BUILTIN_DISABLED を直接返します",
         "プラグイン情報 (INFO) とランタイム診断の supportedAbis は, ビルド時にマニフェストへ書き込まれる org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (AutoJs6-Gradle-Platform-Versions 1.9.0 以降の nativeAlignment プラグイン) から取得するようになり, インストール済みの split ではなくプラグインがビルドされた全 ABI を表します; meta-data がない場合はインストール済み APK にパッケージされた ABI にフォールバックし, 手書きの ABI 定数は削除",
         "モジュール読み込みは Node.js 自身の CommonJS / ESM ローダーになり, require, require.resolve, require.cache, require.extensions, Module._resolveFilename, module.register, import(), import.meta, require(esm) はすべてネイティブ, エントリは Node のメインモジュールとして実行 (require.main === module, __filename / process.argv[1] は realpath); ランタイムは module.registerHooks のみ登録し, autojs6:* ランタイムモジュールと互換 shim (autojs6: scheme, 同名の npm パッケージは引き続き shim より優先), リクエスト単位の builtin ゲート, リクエスト添付 / provider 実体化 / TypeScript スナップショットのモジュールソースとエントリのインラインソースを提供; vm.SourceTextModule 自前リンカー, 独自 resolver, 動的 import() の書き換え, eval / Function ガードは撤去, esmEnabled / dynamicImportEnabled リクエストキーは無効化",
         "ネイティブ Worker がネスト, MessagePort API, stdio, argv, execArgv とプリロードの継承に対応; プラグイン独自の Worker 数と起動時間の上限を削除し, resourceLimits は上書き可能な既定値に変更; WorkerPool のキュー数とタスク時間は既定で無制限, Inspector セッションは実行要求と現在のビルドに従う",
@@ -29,6 +28,9 @@
       ],
       "feature": [
         "プラグイン設定で同時実行スロットを 1-8 (既定 2), 待機キューの上限を設定可能 (既定は無制限); 超過分は FIFO で待機し, 設定変更後も受理済みの処理を保持, idleExitMs でアイドル状態の実行プロセスを解放"
+      ],
+      "fix": [
+        "プロジェクトウィザードが対応済みのネイティブ依存関係, npm ライフサイクルスクリプト, package exports と Inspector を利用不可と誤判定する問題を修正し, ホスト権限宣言の確認は維持"
       ]
     },
     "v1.5.7": {

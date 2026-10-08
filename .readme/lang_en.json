@@ -12,7 +12,7 @@
     "Exposes synchronous script execution and runtime prewarm to the host through `org.autojs.plugin.nodejs.RUNTIME`.",
     "Added script timeouts covering queueing and execution, returning `ERR_AUTOJS6_SCRIPT_TIMEOUT`; scripts without a timeout can still run indefinitely",
     "Returns every Node.js builtin as Node exports it, straight from Node's own `module.builtinModules` inventory (`dgram`, `http2`, `trace_events`, `wasi`, `cluster`, `repl` and the rest); only `worker_threads`, `child_process`, `inspector` and the raw network modules keep a request-level gate (since 1.6.0).",
-    "Added explicitly enabled local `inspector` debugging in Debug builds, listening only on localhost and connecting through `adb forward`",
+    "Local Inspector debugging works in Debug and Release after an explicit host request, using localhost and ADB forwarding",
     "Supports CommonJS/ESM source, module sources, working directory, sandbox root, environment variables, and stdout/stderr result payloads.",
     "Runs modules through Node.js's own CommonJS / ESM loaders (`require`, `import()`, `import.meta`, `require(esm)`, package exports / imports are native); the runtime only registers `module.registerHooks` for the `autojs6:*` runtime modules, host-provided module sources and the request-level builtin gate (since 1.6.0).",
     "Uses Node.js's own fs module; file reachability is decided solely by the plugin app's Android permissions, with no runtime-owned denial of `/proc`, `/sys` or `/dev` (since 1.6.0).",

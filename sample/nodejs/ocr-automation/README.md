@@ -4,9 +4,9 @@ Requests Android screen capture consent, captures the screen, and recognizes its
 
 - Capabilities: `screen_capture`, `ocr`, `image`
 - Expected provider: Android OCR provider over opaque image handles
-- Packaged support: model assets and live OCR provider policy are future gated
+- Packaged support: exported APK integration is tracked by Roadmap M24
 - Security limitations: raw bitmap, OCR engine, and native model objects are never exposed to Node
 
 Expected output is listed in `expected-output.txt`.
 
-Denied consent or an unavailable recognition plugin produces a readable skip; other failures stop the sample. Known host UI text and QR recognition have device coverage using instrumentation screenshots. The MediaProjection acceptance test still awaits manual consent, so this example remains partial.
+Denied consent or an unavailable recognition plugin produces a readable skip; other failures stop the sample. Known host UI text and QR recognition have device coverage using instrumentation screenshots. A real screen-capture run requires user consent and is accepted only when the expected capture and recognition results are produced; a skipped run is not acceptance evidence.

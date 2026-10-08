@@ -1,10 +1,10 @@
 # AutoJs6 Node Project Wizard
 
-Last reviewed: 2026-09-10.
+Last reviewed: 2026-10-09.
 
 `tools/nodejs/project/autojs6-node-project.js` is a runtime-plugin helper for
-creating and validating Safe Node Profile project directories. It does not run
-inside Android and does not loosen runtime policy.
+creating and validating Node project directories. It runs on the desktop;
+it does not execute install scripts, load native binaries or grant permissions.
 For the current runtime status behind these templates, see
 [COMPATIBILITY_PROFILE.md](COMPATIBILITY_PROFILE.md).
 
@@ -59,7 +59,7 @@ compiled on the desktop/build stage.
 
 ## Validate
 
-Validate a project before running or packaging it:
+Validate a project before running it:
 
 ```powershell
 node tools/nodejs/project/autojs6-node-project.js validate D:\work\my-node-app
@@ -86,14 +86,14 @@ as one of:
 
 - `compatible`
 - `compatible with capability`
-- `partial`
 - `unsupported`
-- `unsafe`
 
 It records the entry format, required Node builtins, declared bridge
 capabilities, capability requirements, package format/export-condition usage,
-expected packaged graph size, and signals used by the APK builder preflight
-gate. `unsupported` and `unsafe` signals are surfaced as validator issues.
+dependency graph size, and runtime/request requirements. `unsupported` signals
+are surfaced as validator issues. Inspector activation requires an explicit host
+request, while importing the module is allowed. Exported APK support remains M24
+work; this validator does not certify an APK builder integration.
 
 ## Validator Coverage
 
@@ -106,14 +106,18 @@ The validator checks:
 - The declared entry file exists, stays inside the project root, and uses a
   supported `.js`, `.cjs`, `.mjs`, `.ts`, `.cts`, or `.mts` extension. `.tsx`
   entries are rejected with an explicit diagnostic.
-- Bridge permission arrays are JSON string arrays and use known Safe Node
-  Profile capabilities or explicit `plugin.<id>` capabilities.
-- `node_modules` dependency bundles do not contain `.node` files, common native
-  library/object files, `binding.gyp`, unsafe lifecycle scripts, symlinks, or
-  generated `.bin` shims.
+- Bridge permission arrays are JSON string arrays and use known host bridge
+  capabilities or explicit `plugin.<id>` capabilities.
+- Native addons, `binding.gyp`, npm lifecycle scripts and ordinary `.bin` files
+  are accepted. Addons still need an Android binary for the installed ABI;
+  the plugin does not bundle native build tools. The validator does not execute
+  scripts or verify binary compatibility.
+- Dependency transfer still checks unsupported package-manager layouts,
+  symlinks and the desktop scan budget. Dependencies installed on the device by
+  bundled npm follow the runtime's native filesystem behavior.
 - Source analysis classifies ESM/CJS entry format, required builtins, raw
-  network, `child_process`, `worker_threads`, fs literal path escapes, and
-  bridge capability requirements before packaging.
+  network, `child_process`, `worker_threads`, Inspector request requirements,
+  native package exports/imports, and host bridge capability declarations.
 
 Common actionable error codes:
 
@@ -124,15 +128,11 @@ Common actionable error codes:
 - `ENTRY_DECLARATION_MISSING`
 - `ENTRY_FILE_MISSING`
 - `ENTRY_EXTENSION_UNSUPPORTED`
-- `ENTRY_TYPESCRIPT_TSX_UNSUPPORTED`
+- `ENTRY_TYPESCRIPT_COMPILER_REQUIRED`
 - `ENTRY_PATH_UNSAFE`
 - `PERMISSIONS_SHAPE`
 - `UNKNOWN_PERMISSION`
-- `NATIVE_ADDON_DISABLED`
-- `NODE_GYP_ARTIFACT_UNSUPPORTED`
-- `DEPENDENCY_LIFECYCLE_SCRIPT_UNSUPPORTED`
 - `DEPENDENCY_SYMLINK_UNSUPPORTED`
-- `DEPENDENCY_BIN_ENTRY_UNSUPPORTED`
 - `DEPENDENCY_BUNDLE_TOO_LARGE`
 - `CAPABILITY_DECLARATION_MISSING`
 - `UNSUPPORTED_PACKAGE_MANAGER_LAYOUT`
@@ -141,9 +141,9 @@ Common actionable error codes:
 
 The checked-in Gradle gate exercises every template and representative invalid
 projects for missing entries, invalid package names, unknown permissions,
-unsupported TSX entries, and unsafe dependency bundles. It also verifies every
-template has a non-blocking compatibility status, checks the analyzed entry
-format, and exercises source-level unsupported/unsafe analyzer fixtures:
+unsupported TSX entries and missing host declarations. It also checks native
+addon/lifecycle-script/package-exports acceptance, Inspector request reporting,
+ordinary filesystem paths and each template's entry format:
 
 ```powershell
 .\gradlew.bat --console=plain verifyNodeProjectWizard
@@ -160,5 +160,5 @@ The validator accepts ordinary absolute and parent-directory fs paths. Actual fi
 access is determined by Android under the runtime plugin's UID. The validator does
 not open these files or grant Android storage permissions. Project entry and archive
 paths remain relative because they identify files to transfer between applications.
-Remaining runtime-specific limits are tracked in [Roadmap M20.2](../../Roadmap.md).
+Current runtime behavior is recorded in [Roadmap M23](../../Roadmap.md).
 TypeScript templates require the host Compiler; runtime regex stripping is unavailable.

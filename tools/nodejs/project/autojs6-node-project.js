@@ -5,91 +5,175 @@ const fs = require("fs");
 const path = require("path");
 
 const KNOWN_CAPABILITIES = new Set([
-  "toast",
+  "accessibility",
+  "accessibility.gesture",
+  "agent",
+  "agent.exec",
   "app",
-  "app.launch",
-  "app.settings",
   "app.activity",
+  "app.launch",
   "app.query",
+  "app.settings",
+  "barcode",
+  "clipboard",
+  "console",
+  "database",
+  "device",
+  "device.power",
   "dialogs",
   "engines",
   "engines.exec",
-  "accessibility",
-  "screen_capture",
+  "events",
+  "events.key",
+  "events.notification",
+  "events.toast",
+  "files",
+  "files.delete",
+  "files.write",
+  "floaty.raw",
+  "floaty.touch",
   "image",
-  "ocr",
-  "barcode",
+  "input_observer",
+  "input_observer.intercept",
+  "input_observer.keys",
+  "input_observer.touch",
+  "java_interop",
+  "keys",
   "media",
   "media.audio",
+  "media.library",
+  "media.library.mutate",
   "media.metadata",
+  "media.playback",
   "media.recording",
-  "storage",
+  "network",
   "notifications",
   "notifications.settings",
+  "ocr",
+  "package_manager",
+  "package_manager.mutate",
+  "pinyin",
+  "pinyin4j",
+  "raw_network",
+  "rhino",
+  "screen_capture",
   "sensors",
-  "ui",
-  "clipboard",
-  "device",
-  "device.power",
   "shell",
   "shell.root",
   "shell.shizuku",
-  "network",
-  "raw_network",
-  "work_manager",
-  "java_interop"
+  "storage",
+  "toast",
+  "ui",
+  "ui.overlay",
+  "ui.overlay.foreground",
+  "ui.overlay.packaged",
+  "ui.overlay.permission",
+  "work_manager"
 ]);
 
 const CAPABILITY_ALIASES = new Map([
-  ["media_projection", "screen_capture"],
-  ["media.projection", "screen_capture"],
-  ["screen.capture", "screen_capture"],
-  ["screencapture", "screen_capture"],
-  ["engines:exec", "engines.exec"],
-  ["engine.exec", "engines.exec"],
   ["app-query", "app.query"],
   ["app:query", "app.query"],
   ["package-query", "app.query"],
   ["package.query", "app.query"],
-  ["shell:root", "shell.root"],
-  ["shell-shizuku", "shell.shizuku"],
-  ["shell:shizuku", "shell.shizuku"],
-  ["storages", "storage"],
-  ["notification", "notifications"],
-  ["notification.settings", "notifications.settings"],
-  ["notifications:settings", "notifications.settings"],
-  ["notifications-settings", "notifications.settings"],
+  ["barcode.detect", "barcode"],
+  ["barcode.detectall", "barcode"],
+  ["barcode.recognizetext", "barcode"],
+  ["barcode.recognizetexts", "barcode"],
+  ["qr-code", "barcode"],
+  ["qr_code", "barcode"],
+  ["qrcode", "barcode"],
+  ["qrcode.detect", "barcode"],
+  ["qrcode.detectall", "barcode"],
+  ["qrcode.recognizetext", "barcode"],
+  ["qrcode.recognizetexts", "barcode"],
+  ["sqlite", "database"],
   ["device-power", "device.power"],
   ["device:power", "device.power"],
   ["power-manager", "device.power"],
   ["power_manager", "device.power"],
+  ["engine.exec", "engines.exec"],
+  ["engines:exec", "engines.exec"],
+  ["input-observer", "input_observer"],
+  ["input.observer", "input_observer"],
+  ["inputobserver", "input_observer"],
+  ["input-observer.intercept", "input_observer.intercept"],
+  ["input.observer.intercept", "input_observer.intercept"],
+  ["input-observer.keys", "input_observer.keys"],
+  ["input.observer.keys", "input_observer.keys"],
+  ["input-observer.touch", "input_observer.touch"],
+  ["input.observer.touch", "input_observer.touch"],
   ["java", "java_interop"],
-  ["raw.network", "raw_network"],
-  ["raw-network", "raw_network"],
-  ["raw.node.network", "raw_network"],
-  ["raw-node-network", "raw_network"],
-  ["raw_node_network_modules", "raw_network"],
-  ["qrcode", "barcode"],
-  ["qr_code", "barcode"],
   ["audio", "media.audio"],
-  ["media:audio", "media.audio"],
   ["media-audio", "media.audio"],
-  ["mediainfo", "media.metadata"],
-  ["media.info", "media.metadata"],
+  ["media:audio", "media.audio"],
+  ["media-library", "media.library"],
+  ["media-store", "media.library"],
+  ["media:library", "media.library"],
+  ["media_store", "media.library"],
+  ["mediastore", "media.library"],
+  ["media-library.mutate", "media.library.mutate"],
+  ["media-store.mutate", "media.library.mutate"],
+  ["media:library.mutate", "media.library.mutate"],
+  ["media_store.mutate", "media.library.mutate"],
+  ["mediastore.mutate", "media.library.mutate"],
   ["media-info", "media.metadata"],
-  ["media_info", "media.metadata"],
+  ["media.metadata", "media.metadata"],
   ["media:metadata", "media.metadata"],
-  ["recorder", "media.recording"],
+  ["media_info", "media.metadata"],
+  ["mediainfo", "media.metadata"],
+  ["media-playback", "media.playback"],
+  ["media.play", "media.playback"],
+  ["media:playback", "media.playback"],
+  ["music", "media.playback"],
+  ["audio.recording", "media.recording"],
+  ["media-recording", "media.recording"],
   ["media.record", "media.recording"],
   ["media:recording", "media.recording"],
-  ["media-recording", "media.recording"],
-  ["audio.recording", "media.recording"]
+  ["recorder", "media.recording"],
+  ["notification", "notifications"],
+  ["notification.settings", "notifications.settings"],
+  ["notifications-settings", "notifications.settings"],
+  ["notifications:settings", "notifications.settings"],
+  ["android-package-manager", "package_manager"],
+  ["android_package_manager", "package_manager"],
+  ["package-manager", "package_manager"],
+  ["package.manager", "package_manager"],
+  ["android-package-manager.mutate", "package_manager.mutate"],
+  ["android_package_manager.mutate", "package_manager.mutate"],
+  ["package-manager.mutate", "package_manager.mutate"],
+  ["package.manager.mutate", "package_manager.mutate"],
+  ["raw-network", "raw_network"],
+  ["raw-node-network", "raw_network"],
+  ["raw.network", "raw_network"],
+  ["raw.node.network", "raw_network"],
+  ["raw_node_network_modules", "raw_network"],
+  ["rhino.run", "rhino"],
+  ["media.projection", "screen_capture"],
+  ["media_projection", "screen_capture"],
+  ["screen.capture", "screen_capture"],
+  ["screencapture", "screen_capture"],
+  ["shell-root", "shell.root"],
+  ["shell:root", "shell.root"],
+  ["shell-shizuku", "shell.shizuku"],
+  ["shell:shizuku", "shell.shizuku"],
+  ["storages", "storage"],
+  ["overlay", "ui.overlay"],
+  ["ui-overlay", "ui.overlay"],
+  ["ui:overlay", "ui.overlay"],
+  ["overlay.foreground", "ui.overlay.foreground"],
+  ["ui-overlay.foreground", "ui.overlay.foreground"],
+  ["overlay.packaged", "ui.overlay.packaged"],
+  ["ui-overlay.packaged", "ui.overlay.packaged"],
+  ["overlay.permission", "ui.overlay.permission"],
+  ["ui-overlay.permission", "ui.overlay.permission"],
+  ["ui:overlay.permission", "ui.overlay.permission"]
 ]);
 
 const SUPPORTED_ENTRY_EXTENSIONS = new Set([".js", ".cjs", ".mjs", ".ts", ".cts", ".mts"]);
 const MAX_DEPENDENCY_SCAN_ENTRIES = 5000;
 const MAX_COMPATIBILITY_SOURCE_BYTES = 256 * 1024;
-const UNSAFE_DEPENDENCY_SCRIPT_NAMES = new Set([
+const DEPENDENCY_LIFECYCLE_SCRIPT_NAMES = new Set([
   "preinstall",
   "install",
   "postinstall",
@@ -117,8 +201,10 @@ const KNOWN_NODE_BUILTINS = new Set([
   "fs",
   "fs/promises",
   "http",
+  "http2",
   "https",
   "inspector",
+  "inspector/promises",
   "module",
   "net",
   "os",
@@ -135,6 +221,14 @@ const KNOWN_NODE_BUILTINS = new Set([
   "stream/web",
   "string_decoder",
   "test",
+  "test/reporters",
+  "sqlite",
+  "sea",
+  "trace_events",
+  "domain",
+  "readline/promises",
+  "path/posix",
+  "path/win32",
   "timers",
   "timers/promises",
   "tls",
@@ -151,12 +245,11 @@ const KNOWN_NODE_BUILTINS = new Set([
 const COMPATIBILITY_STATUS_RANK = new Map([
   ["compatible", 0],
   ["compatible with capability", 1],
-  ["partial", 2],
-  ["unsupported", 3],
-  ["unsafe", 4]
+  ["unsupported", 3]
 ]);
 const NODE_BUILTIN_CAPABILITIES = new Map([
   ["http", "raw_network"],
+  ["http2", "raw_network"],
   ["https", "raw_network"],
   ["net", "raw_network"],
   ["tls", "raw_network"],
@@ -166,7 +259,8 @@ const NODE_BUILTIN_CAPABILITIES = new Map([
   ["child_process", "child_process"],
   ["worker_threads", "worker_threads"],
   ["vm", "vm"],
-  ["inspector", "inspector"]
+  ["inspector", "inspector"],
+  ["inspector/promises", "inspector"]
 ]);
 const BRIDGE_MODULE_CAPABILITIES = new Map([
   ["toast", "toast"],
@@ -191,7 +285,7 @@ const BRIDGE_MODULE_CAPABILITIES = new Map([
 
 const TEMPLATES = {
   "commonjs-app": {
-    description: "CommonJS Safe Node Profile app",
+    description: "CommonJS Node app",
     entry: "main.cjs",
     packageType: "commonjs",
     permissions: [],
@@ -205,7 +299,7 @@ console.log("entry=" + path.basename(__filename));
 `
   },
   "esm-app": {
-    description: "ESM Safe Node Profile app",
+    description: "ESM Node app",
     entry: "main.mjs",
     packageType: "module",
     permissions: [],
@@ -698,7 +792,7 @@ function validateEntry(root, projectJson, packageJson, issues) {
   if (!entryPath) return;
   const extension = path.extname(entryPath).toLowerCase();
   if (extension === ".node") {
-    issue(issues, "ENTRY_NATIVE_ADDON_DISABLED", entryPath, "Native addon entry files are disabled.", "Use a JavaScript or TypeScript .js, .cjs, .mjs, .ts, .cts, or .mts entry file.");
+    issue(issues, "ENTRY_EXTENSION_UNSUPPORTED", entryPath, "A native addon must be loaded by a JavaScript entry.", "Use a JavaScript or TypeScript .js, .cjs, .mjs, .ts, .cts, or .mts entry file.");
   } else if (extension === ".tsx") {
     issue(issues, "ENTRY_TYPESCRIPT_COMPILER_REQUIRED", entryPath, "Raw TypeScript entry files require compiler output.", "Compile TSX to JavaScript before packaging or running it.");
   } else if (!SUPPORTED_ENTRY_EXTENSIONS.has(extension)) {
@@ -778,7 +872,7 @@ function validateDependencyBundle(root, issues) {
       "UNSUPPORTED_PACKAGE_MANAGER_LAYOUT",
       root,
       "Project uses an unsupported package-manager layout such as Yarn Plug'n'Play or pnpm virtual store.",
-      "Use a flat npm node_modules layout prepared with the Safe Node Profile npm ci gate."
+      "Prepare a transferable node_modules directory, or install dependencies with bundled npm on the device."
     );
   }
   if (!fs.existsSync(nodeModules)) return scan;
@@ -789,10 +883,6 @@ function validateDependencyBundle(root, issues) {
       issue(issues, "DEPENDENCY_SYMLINK_UNSUPPORTED", file, "Dependency bundle contains a symlink: " + relative, "Replace symlinks with real files before packaging.");
       return false;
     }
-    if (stat.isDirectory() && path.basename(file) === ".bin") {
-      issue(issues, "DEPENDENCY_BIN_ENTRY_UNSUPPORTED", file, "Dependency bundle contains node_modules/.bin entries.", "Remove generated .bin shims before bundling dependencies.");
-      return false;
-    }
     if (stat.isFile()) {
       const name = path.basename(file);
       const extension = path.extname(name).toLowerCase();
@@ -800,10 +890,6 @@ function validateDependencyBundle(root, issues) {
       scan.totalBytes += stat.size;
       if (NATIVE_EXTENSIONS.has(extension)) {
         scan.nativeAddonCount += 1;
-        issue(issues, "NATIVE_ADDON_DISABLED", file, "Dependency bundle contains native file " + relative + ".", "Use pure JavaScript dependencies only; .node and native libraries are disabled.");
-      }
-      if (name === "binding.gyp") {
-        issue(issues, "NODE_GYP_ARTIFACT_UNSUPPORTED", file, "Dependency bundle contains binding.gyp.", "Remove native addon packages or replace them with pure JavaScript alternatives.");
       }
       if (name === "package.json") {
         validateDependencyPackageJson(file, issues, scan);
@@ -831,19 +917,9 @@ function validateDependencyPackageJson(file, issues, scan) {
     ? json.scripts
     : {};
   for (const scriptName of Object.keys(scripts)) {
-    if (UNSAFE_DEPENDENCY_SCRIPT_NAMES.has(scriptName)) {
+    if (DEPENDENCY_LIFECYCLE_SCRIPT_NAMES.has(scriptName)) {
       scan.lifecycleScriptCount += 1;
-      issue(
-        issues,
-        "DEPENDENCY_LIFECYCLE_SCRIPT_UNSUPPORTED",
-        file,
-        "Dependency package declares unsafe lifecycle script '" + scriptName + "'.",
-        "Remove lifecycle scripts before packaging or vendor a sanitized dependency bundle."
-      );
     }
-  }
-  if (json.gypfile === true) {
-    issue(issues, "NODE_GYP_ARTIFACT_UNSUPPORTED", file, "Dependency package declares gypfile=true.", "Use pure JavaScript dependencies only.");
   }
 }
 
@@ -862,10 +938,10 @@ function analyzeCompatibility(root, projectJson, packageJson, dependencyScan) {
   }
 
   if (dependencyScan.nativeAddonCount > 0) {
-    signal(signals, "native-addon", "unsafe", "NATIVE_ADDON_DISABLED", "node_modules", "Dependency graph contains native addon or native binary files.");
+    signal(signals, "native-addon", "compatible", "NATIVE_ADDON_ANDROID_ABI_REQUIRED", "node_modules", "Native dependencies must target Android and the installed ABI; NDK and node-gyp are not bundled.");
   }
   if (dependencyScan.lifecycleScriptCount > 0) {
-    signal(signals, "postinstall", "unsafe", "DEPENDENCY_LIFECYCLE_SCRIPT_UNSUPPORTED", "node_modules", "Dependency graph contains install/postinstall lifecycle scripts.");
+    signal(signals, "postinstall", "compatible", "NPM_LIFECYCLE_SCRIPTS", "node_modules", "Lifecycle scripts follow npm/.npmrc; native build tools must be supplied separately.");
   }
   if (dependencyScan.unsupportedPackageManagerLayout) {
     signal(signals, "package-manager-layout", "unsupported", "UNSUPPORTED_PACKAGE_MANAGER_LAYOUT", root, "Dependency graph uses an unsupported package-manager layout.");
@@ -874,10 +950,10 @@ function analyzeCompatibility(root, projectJson, packageJson, dependencyScan) {
     signal(
       signals,
       "package-exports",
-      "partial",
-      "PACKAGE_EXPORTS_CONDITIONS_PARTIAL",
+      "compatible",
+      "PACKAGE_EXPORTS_NATIVE",
       "node_modules",
-      "Dependency graph uses package exports/imports conditions covered by the current partial resolver."
+      "Package exports/imports conditions are resolved by the native Node loader."
     );
   }
   if (dependencyScan.fileCount > MAX_DEPENDENCY_SCAN_ENTRIES) {
@@ -886,33 +962,23 @@ function analyzeCompatibility(root, projectJson, packageJson, dependencyScan) {
 
   for (const [capability, modules] of capabilityRequirements) {
     const declared = declaredCapabilities.has(capability);
-    const baseStatus = capability === "inspector"
-      ? "unsupported"
-      : capability === "vm"
-        ? "partial"
-        : capability === "raw_network" || capability === "child_process" || capability === "worker_threads"
-          ? "compatible"
-          : "compatible with capability";
-    const declarationRequired = baseStatus === "compatible with capability";
-    const unsupported = baseStatus === "unsupported";
-    const status = !declared && declarationRequired ? "unsupported" : baseStatus;
+    const runtimeCapability = ["inspector", "vm", "raw_network", "child_process", "worker_threads"].includes(capability);
+    const status = runtimeCapability
+      ? (capability === "inspector" ? "compatible with capability" : "compatible")
+      : (declared ? "compatible with capability" : "unsupported");
     signal(
       signals,
       "capability",
       status,
-      unsupported
-        ? "CAPABILITY_UNSUPPORTED"
-        : !declarationRequired
-          ? "RUNTIME_CAPABILITY_AVAILABLE"
-          : declared
-            ? "CAPABILITY_REQUIRED"
-            : "CAPABILITY_DECLARATION_MISSING",
+      runtimeCapability
+        ? (capability === "inspector" ? "INSPECTOR_REQUEST_REQUIRED" : "RUNTIME_CAPABILITY_AVAILABLE")
+        : (declared ? "CAPABILITY_REQUIRED" : "CAPABILITY_DECLARATION_MISSING"),
       root,
-      unsupported
-        ? "Runtime capability '" + capability + "' is unsupported for " + Array.from(modules).sort().join(", ") + "."
-        : declarationRequired
-          ? "Project requires capability '" + capability + "' from " + Array.from(modules).sort().join(", ") + "."
-          : "Runtime capability '" + capability + "' is available for " + Array.from(modules).sort().join(", ") + ".",
+      runtimeCapability
+        ? (capability === "inspector"
+          ? "Inspector activation and Session creation require the inspectorEnabled request; importing is allowed."
+          : "Runtime capability '" + capability + "' is available for " + Array.from(modules).sort().join(", ") + ".")
+        : "Project requires host capability '" + capability + "' from " + Array.from(modules).sort().join(", ") + ".",
       { capability, declared, modules: Array.from(modules).sort() }
     );
   }
@@ -954,9 +1020,10 @@ function analyzeCompatibility(root, projectJson, packageJson, dependencyScan) {
       packageExportConditions: Array.from(dependencyScan.packageExportConditions).sort()
     },
     apkBuilder: {
-      gate: "validate-before-directory-packaging",
+      gate: "project-validation-only",
       packagedAssetRoot: "assets/project",
-      reportFile: "dependency-compatibility.json"
+      reportFile: "dependency-compatibility.json",
+      supported: false
     },
     signals: signals.sort((left, right) => {
       const statusDelta = COMPATIBILITY_STATUS_RANK.get(right.status) - COMPATIBILITY_STATUS_RANK.get(left.status);
@@ -981,7 +1048,7 @@ function analyzeEntryFormat(root, projectJson, packageJson, signals) {
       ? "cjs"
       : "unknown";
   if (format === "esm") {
-    signal(signals, "module-format", "compatible", "ESM_ENTRY_STABLE", entryValue || root, "ESM entry support is stable in Node Profile v1.2.");
+    signal(signals, "module-format", "compatible", "ESM_ENTRY_STABLE", entryValue || root, "ESM entries use the native Node loader.");
   }
   return {
     path: entryValue,
@@ -1019,16 +1086,16 @@ function analyzeSourceText(text, relative, requiredBuiltins, capabilityRequireme
     mapAddSet(capabilityRequirements, "network", null, null, "fetch");
   }
   if (/\bprocess\.(binding|dlopen)\s*\(/.test(text)) {
-    signal(signals, "native-process-api", "unsafe", "PROCESS_NATIVE_API_DISABLED", relative, "process.binding/process.dlopen are disabled.");
+    signal(signals, "native-process-api", "compatible", "NATIVE_PROCESS_API", relative, "Native process APIs follow Node and Android behavior.");
   }
   if (/\.node["']/.test(text)) {
-    signal(signals, "native-addon", "unsafe", "NATIVE_ADDON_DISABLED", relative, "Source references a native .node addon.");
+    signal(signals, "native-addon", "compatible", "NATIVE_ADDON_ANDROID_ABI_REQUIRED", relative, "Supply an Android addon for the installed ABI.");
   }
 }
 
 function addCompatibilityValidationIssues(compatibility, issues) {
   for (const item of compatibility.signals) {
-    if (item.status !== "unsafe" && item.status !== "unsupported") {
+    if (item.status !== "unsupported") {
       continue;
     }
     if (item.code === "CAPABILITY_REQUIRED") {
@@ -1156,18 +1223,15 @@ function worseCompatibilityStatus(left, right) {
 
 function compatibilityHint(code, status) {
   if (code === "CAPABILITY_DECLARATION_MISSING") {
-    return "Declare the required Safe Node Profile capability in project.json or package.json.";
+    return "Declare the required host bridge capability in project.json or package.json.";
   }
-  if (code === "PACKAGE_EXPORTS_CONDITIONS_PARTIAL") {
-    return "Retain CommonJS fallback coverage for package condition combinations outside the current resolver subset.";
-  }
-  if (status === "unsafe") {
-    return "Remove the unsafe native/process/fs behavior before packaging.";
+  if (code === "INSPECTOR_REQUEST_REQUIRED") {
+    return "Enable Inspector in the host execution request before opening a localhost endpoint or Session.";
   }
   if (status === "unsupported") {
-    return "Replace this dependency or API use with a Safe Node Profile supported surface.";
+    return "Resolve the reported project or transfer requirement before running it.";
   }
-  return "No action required unless the target gate disallows this compatibility level.";
+  return "Check the target device and host provider requirements before running the project.";
 }
 
 function walk(root, issues, visitor) {

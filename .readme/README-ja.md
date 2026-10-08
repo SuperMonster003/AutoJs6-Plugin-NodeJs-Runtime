@@ -53,7 +53,7 @@ AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 24.21
 - `org.autojs.plugin.nodejs.RUNTIME` を通じて同期スクリプト実行とランタイムの事前ロードをホストに公開します.
 - キュー待機と実行の全体を対象とするスクリプトタイムアウトを追加し、超過時に `ERR_AUTOJS6_SCRIPT_TIMEOUT` を返すようにしました。未指定の場合は引き続き無期限で実行できます
 - すべての Node.js 組み込みモジュールを Node 自身の `module.builtinModules` 一覧からそのまま返します (`dgram`, `http2`, `trace_events`, `wasi`, `cluster`, `repl` など); リクエスト単位のゲートが残るのは `worker_threads`, `child_process`, `inspector` とネイティブネットワークモジュールのみです (1.6.0 以降).
-- Debug ビルドで明示的に有効化するローカル `inspector` デバッグを追加しました。localhost のみで待ち受け、`adb forward` 経由で接続します
+- ホストの明示的な要求で Debug と Release のローカル Inspector を有効化し, localhost と ADB 転送で接続
 - CommonJS/ESM ソース, モジュールソース, 作業ディレクトリ, サンドボックスルート, 環境変数, stdout/stderr 結果ペイロードに対応します.
 - モジュールは Node.js 自身の CommonJS / ESM ローダーで実行されます (`require`, `import()`, `import.meta`, `require(esm)`, パッケージ exports / imports はネイティブ); ランタイムは `autojs6:*` ランタイムモジュール, ホスト提供のモジュールソース, リクエスト単位の builtin ゲートのための `module.registerHooks` のみ登録します (1.6.0 以降).
 - Node.js 本来の fs モジュールを使用し, ファイルへの到達可否はプラグインアプリの Android 権限のみで決まります; ランタイム独自の `/proc`, `/sys`, `/dev` 拒否はありません (1.6.0 以降).
@@ -124,6 +124,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 ###### 2026/10/09
 
 * `追加` プラグイン設定で同時実行スロットを 1-8 (既定 2), 待機キューの上限を設定可能 (既定は無制限); 超過分は FIFO で待機し, 設定変更後も受理済みの処理を保持, idleExitMs でアイドル状態の実行プロセスを解放
+* `修正` プロジェクトウィザードが対応済みのネイティブ依存関係, npm ライフサイクルスクリプト, package exports と Inspector を利用不可と誤判定する問題を修正し, ホスト権限宣言の確認は維持
 * `改善` fs, fs/promises および node:sqlite は Node.js 本来のモジュールになりました: ランタイム独自の /proc, /sys, /dev 拒否とパス検証ラッパーを撤去し, ファイルへの到達可否は Android の権限のみで決まり, 非同期ファイル API はイベントループを塞がず libuv スレッドプールで実行され, パスエラーは Node.js 本来のコードを返します (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH および ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED はファイル / データベース操作から発生しなくなりました)
 * `改善` process.cwd と process.chdir は Node.js 本来の動作になり, 実行開始時に実際の chdir で作業ディレクトリへ移動し, 相対パスは Node.js 自身が解決します
 * `改善` node:sqlite の ATTACH (バインドパラメータや式によるファイル名を含む), VACUUM INTO, ディレクトリ PRAGMA および setAuthorizer は SQLite 本来の動作となり, enableLoadExtension と allowExtension は Node.js 本来の状態チェックに従います
@@ -131,7 +132,6 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `改善` crypto.createPrivateKey と署名 API が file: URL 形式の OpenSSL STORE 鍵入力を受け付けます (Android 向けの無効化パッチを撤去)
 * `改善` すべての Node.js 組み込みモジュール (cluster, domain, repl, trace_events, wasi, constants, node:sea など) を Node 自身の module.builtinModules 一覧からそのまま返すようになり, require, require.resolve, import, process.getBuiltinModule, module.isBuiltin はデスクトップ版と同じ動作になりました; リクエスト単位のゲートが残るのは worker_threads, child_process, inspector とネイティブネットワークモジュールのみで, node:wasi は /proc 境界の撤去とともに開放されました (tracing を含まない現在の libnode では trace_events は Node と同様に ERR_TRACE_EVENTS_UNAVAILABLE を投げます)
 * `改善` process は exit のライフサイクル処理のみを保持; dlopen, abort, kill, umask, binding, report, features と POSIX ID 呼び出しは Node 本来の実装を使用; os はネイティブで homedir と tmpdir は HOME/TMPDIR に従い, userInfo は Android アプリのユーザーを返す
-* `改善` module 組み込みは createRequire のみを上書きした Node.js 本来のオブジェクトになり, registerHooks, enableCompileCache, findPackageJSON などが利用できます; ネイティブネットワーク無効時にのみ到達できた http, https, net, tls, dns の制限実装を削除し, その場合は ERR_AUTOJS6_BUILTIN_DISABLED を直接返します
 * `改善` プラグイン情報 (INFO) とランタイム診断の supportedAbis は, ビルド時にマニフェストへ書き込まれる org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (AutoJs6-Gradle-Platform-Versions 1.9.0 以降の nativeAlignment プラグイン) から取得するようになり, インストール済みの split ではなくプラグインがビルドされた全 ABI を表します; meta-data がない場合はインストール済み APK にパッケージされた ABI にフォールバックし, 手書きの ABI 定数は削除
 * `改善` モジュール読み込みは Node.js 自身の CommonJS / ESM ローダーになり, require, require.resolve, require.cache, require.extensions, Module._resolveFilename, module.register, import(), import.meta, require(esm) はすべてネイティブ, エントリは Node のメインモジュールとして実行 (require.main === module, __filename / process.argv[1] は realpath); ランタイムは module.registerHooks のみ登録し, autojs6:* ランタイムモジュールと互換 shim (autojs6: scheme, 同名の npm パッケージは引き続き shim より優先), リクエスト単位の builtin ゲート, リクエスト添付 / provider 実体化 / TypeScript スナップショットのモジュールソースとエントリのインラインソースを提供; vm.SourceTextModule 自前リンカー, 独自 resolver, 動的 import() の書き換え, eval / Function ガードは撤去, esmEnabled / dynamicImportEnabled リクエストキーは無効化
 * `改善` ネイティブ Worker がネスト, MessagePort API, stdio, argv, execArgv とプリロードの継承に対応; プラグイン独自の Worker 数と起動時間の上限を削除し, resourceLimits は上書き可能な既定値に変更; WorkerPool のキュー数とタスク時間は既定で無制限, Inspector セッションは実行要求と現在のビルドに従う

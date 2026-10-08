@@ -1,5 +1,7 @@
 # 2026-09-10 人工验收回执
 
+> Historical device receipt for 2026-09-10. Status labels below describe that test date; current sample status is maintained in examples.json.
+
 用户在既有验收项目目录 `/sdcard/Scripts/nodejs-roadmap-acceptance-20260910/sample/nodejs/` 运行样例并回报结果。设备 QV770340J7 实读为 Sony XQ-DQ72 / Android 13 (API 33), 宿主 6.8.0 / build5279, Node 插件 1.3.0 / build146。以下人工回执与既有自动化回归共同补充 [Roadmap](../../Roadmap.md)。
 
 ## 截屏、找图与 OCR

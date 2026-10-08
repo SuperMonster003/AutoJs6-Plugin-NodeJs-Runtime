@@ -12,7 +12,7 @@
     "Expose l'execution synchrone de scripts et le prechauffage du runtime a l'hote via `org.autojs.plugin.nodejs.RUNTIME`.",
     "Ajout d’un délai maximal couvrant l’attente et l’exécution des scripts, avec l’erreur `ERR_AUTOJS6_SCRIPT_TIMEOUT`; sans délai défini, les scripts peuvent toujours s’exécuter indéfiniment",
     "Renvoie chaque module intégré de Node.js tel que Node l'exporte, directement depuis l'inventaire `module.builtinModules` de Node (`dgram`, `http2`, `trace_events`, `wasi`, `cluster`, `repl` et les autres) ; seuls `worker_threads`, `child_process`, `inspector` et les modules réseau bruts conservent un verrou au niveau de la requête (depuis 1.6.0).",
-    "Ajout du débogage local `inspector`, activé explicitement dans les versions Debug, avec écoute uniquement sur localhost et connexion via `adb forward`",
+    "Débogage Inspector local dans Debug et Release sur demande explicite de l'hôte, via localhost et transfert ADB",
     "Prend en charge le code CommonJS/ESM, les sources de modules, le repertoire de travail, la racine de bac a sable, les variables d'environnement et les resultats stdout/stderr.",
     "Exécute les modules via les loaders CommonJS / ESM natifs de Node.js (`require`, `import()`, `import.meta`, `require(esm)`, exports / imports de paquets sont natifs) ; le runtime n'enregistre que des `module.registerHooks` pour les modules runtime `autojs6:*`, les sources de modules fournies par l'hôte et la barrière de builtins au niveau de la requête (depuis 1.6.0).",
     "Utilise le module fs natif de Node.js ; l'accessibilité des fichiers dépend uniquement des permissions Android de l'application du plugin, sans refus de `/proc`, `/sys` ou `/dev` propre au runtime (depuis 1.6.0).",

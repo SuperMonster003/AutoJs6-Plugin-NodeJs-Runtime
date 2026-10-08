@@ -22,12 +22,11 @@
   },
   "budgets": {
     "checkpointMaxBytes": 65536,
-    "moduleSourceMaxBytes": 16777216,
-    "moduleSourceMaxCount": 8192,
-    "moduleSourcesMaxBytes": 67108864,
-    "scriptSourceMaxBytes": 524288,
-    "stopGraceMs": 1500,
-    "stopPollIntervalMs": 50
+    "providerFallbackSourceMaxBytes": 16777216,
+    "providerFallbackTotalMaxBytes": 67108864,
+    "providerFallbackRequestMaxCount": 139264,
+    "cooperativeStopFallbackGraceMs": 3000,
+    "restartAfterCancelDelayMs": 150
   },
   "routing": {
     "backendSwitches": [
@@ -356,15 +355,19 @@
       "console",
       "constants",
       "crypto",
+      "dgram",
       "diagnostics_channel",
       "dns",
+      "dns/promises",
       "domain",
       "events",
       "fs",
       "fs/promises",
       "http",
+      "http2",
       "https",
       "inspector",
+      "inspector/promises",
       "module",
       "net",
       "os",
@@ -375,13 +378,19 @@
       "querystring",
       "readline",
       "repl",
+      "sqlite",
       "stream",
+      "stream/promises",
+      "stream/web",
       "string_decoder",
       "timers",
+      "timers/promises",
       "tls",
+      "trace_events",
       "tty",
       "url",
       "util",
+      "util/types",
       "v8",
       "vm",
       "wasi",
@@ -486,9 +495,11 @@
       "console"
     ],
     "network": [
+      "dgram",
       "dns",
       "dns/promises",
       "http",
+      "http2",
       "https",
       "net",
       "tls"
@@ -2350,6 +2361,16 @@
         "androidPermissions": []
       },
       {
+        "id": "agent",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "agent.exec",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
         "id": "app",
         "aliases": [],
         "androidPermissions": []
@@ -2914,38 +2935,6 @@
         "code": "ERR_AUTOJS6_FOREGROUND_SERVICE_TYPE_INVALID"
       },
       {
-        "name": "FS_ABSOLUTE_PATH_DENIED",
-        "code": "ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED"
-      },
-      {
-        "name": "FS_NUL_BYTE",
-        "code": "ERR_AUTOJS6_FS_NUL_BYTE"
-      },
-      {
-        "name": "FS_PATH_ESCAPE",
-        "code": "ERR_AUTOJS6_FS_PATH_ESCAPE"
-      },
-      {
-        "name": "FS_REALPATH_ESCAPE",
-        "code": "ERR_AUTOJS6_FS_REALPATH_ESCAPE"
-      },
-      {
-        "name": "FS_SCOPED_PATH",
-        "code": "ERR_AUTOJS6_FS_SCOPED_PATH"
-      },
-      {
-        "name": "FS_SYMLINK_ESCAPE",
-        "code": "ERR_AUTOJS6_FS_SYMLINK_ESCAPE"
-      },
-      {
-        "name": "FS_WATCH_LIMIT",
-        "code": "ERR_AUTOJS6_FS_WATCH_LIMIT"
-      },
-      {
-        "name": "FS_WATCH_RATE_LIMITED",
-        "code": "ERR_AUTOJS6_FS_WATCH_RATE_LIMITED"
-      },
-      {
         "name": "JAVA_CALL_FAILED",
         "code": "ERR_AUTOJS6_JAVA_CALL_FAILED"
       },
@@ -3286,6 +3275,56 @@
       {
         "code": "ERR_AUTOJS6_EMBEDDED_NODE_SCRIPT_TIMEOUT",
         "canonicalCode": "ERR_AUTOJS6_SCRIPT_TIMEOUT"
+      }
+    ],
+    "retired": [
+      {
+        "name": "FS_ABSOLUTE_PATH_DENIED",
+        "code": "ERR_AUTOJS6_FS_ABSOLUTE_PATH_DENIED",
+        "since": "1.6.0",
+        "replacement": "Native Node/Android behavior; see ERROR_CATALOG.md"
+      },
+      {
+        "name": "FS_NUL_BYTE",
+        "code": "ERR_AUTOJS6_FS_NUL_BYTE",
+        "since": "1.6.0",
+        "replacement": "Native Node/Android behavior; see ERROR_CATALOG.md"
+      },
+      {
+        "name": "FS_PATH_ESCAPE",
+        "code": "ERR_AUTOJS6_FS_PATH_ESCAPE",
+        "since": "1.6.0",
+        "replacement": "Native Node/Android behavior; see ERROR_CATALOG.md"
+      },
+      {
+        "name": "FS_REALPATH_ESCAPE",
+        "code": "ERR_AUTOJS6_FS_REALPATH_ESCAPE",
+        "since": "1.6.0",
+        "replacement": "Native Node/Android behavior; see ERROR_CATALOG.md"
+      },
+      {
+        "name": "FS_SCOPED_PATH",
+        "code": "ERR_AUTOJS6_FS_SCOPED_PATH",
+        "since": "1.6.0",
+        "replacement": "Native Node/Android behavior; see ERROR_CATALOG.md"
+      },
+      {
+        "name": "FS_SYMLINK_ESCAPE",
+        "code": "ERR_AUTOJS6_FS_SYMLINK_ESCAPE",
+        "since": "1.6.0",
+        "replacement": "Native Node/Android behavior; see ERROR_CATALOG.md"
+      },
+      {
+        "name": "FS_WATCH_LIMIT",
+        "code": "ERR_AUTOJS6_FS_WATCH_LIMIT",
+        "since": "1.6.0",
+        "replacement": "Native Node/Android behavior; see ERROR_CATALOG.md"
+      },
+      {
+        "name": "FS_WATCH_RATE_LIMITED",
+        "code": "ERR_AUTOJS6_FS_WATCH_RATE_LIMITED",
+        "since": "1.6.0",
+        "replacement": "Native Node/Android behavior; see ERROR_CATALOG.md"
       }
     ]
   },

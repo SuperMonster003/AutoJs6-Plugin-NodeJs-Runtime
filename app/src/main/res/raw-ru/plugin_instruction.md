@@ -10,7 +10,7 @@
 console.log(process.version);
 ```
 
-Слот среды выполнения: `node24_5`. Поддерживаются сборки `arm64-v8a`, `armeabi-v7a` и `x86_64`, а также APK `universal`.
+Слот среды выполнения: `node24_21`. Поддерживаются сборки `arm64-v8a`, `armeabi-v7a` и `x86_64`, а также APK `universal`.
 
 Примеры проектов находятся в `sample/nodejs`.
 

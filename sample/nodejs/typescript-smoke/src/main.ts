@@ -818,7 +818,7 @@ async function smoke(): Promise<void> {
   const safeToastMode: AutoJs6Node.ProfileModuleModeFor<"toast", "safe_default"> = "available";
   const safeJavaMode: AutoJs6Node.ProfileModuleModeFor<"java", "safe_default"> = "available";
   const proJavaMode: AutoJs6Node.ProfileModuleModeFor<"java", "pro_compat_opt_in"> = "available";
-  const proOverlayMode: AutoJs6Node.ProfileModuleModeFor<"ui.overlay", "pro_compat_opt_in"> = "profile_gated";
+  const proOverlayMode: AutoJs6Node.ProfileModuleModeFor<"ui.overlay", "pro_compat_opt_in"> = "host_provider_required";
   const safeWorkerMode: AutoJs6Node.ProfileModuleModeFor<"worker_threads", "safe_default"> = "available";
   const desktopWorkerMode: AutoJs6Node.ProfileModuleModeFor<"worker_threads", "desktop_compat_opt_in"> = "available";
   const desktopHttpMode: AutoJs6Node.ProfileModuleModeFor<"http", "desktop_compat_opt_in"> = "available";
@@ -831,7 +831,7 @@ async function smoke(): Promise<void> {
   const packageManagerSafeMode: AutoJs6Node.SafeDefaultModeFor<"package_manager"> = "available";
   const packageManagerTargetMode: AutoJs6Node.TargetProfileModeFor<"package_manager"> = "available";
   const packageManagerPackagedBehavior: AutoJs6Node.PackagedBehaviorFor<"package_manager"> = "not_applicable_no_packaged_runtime";
-  const autojsJavaPackagedBehavior: AutoJs6Node.PackagedBehaviorFor<"$autojs.java"> = "supported";
+  const autojsJavaPackagedBehavior: AutoJs6Node.PackagedBehaviorFor<"$autojs.java"> = "not_applicable_no_packaged_runtime";
   const npmPureJsSafeMode: AutoJs6Node.SafeDefaultModeFor<"npm.pure_js"> = "available";
   const workerRequiresDeclaration: AutoJs6Node.ProfileModuleRequiresDeclaration<"worker_threads"> = false;
   const toastRequiresDeclaration: AutoJs6Node.ProfileModuleRequiresDeclaration<"toast"> = false;

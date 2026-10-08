@@ -1,6 +1,6 @@
-# Node 脚本可用的宿主 API 清单 (M3.1)
+# Node 脚本可用的宿主 API 清单
 
-> 盘点日期: 2026-08-29。基于插件 `node_bridge_sources.cpp` 的 require 拦截链与宿主 `NodeBridgeProtocol.kt` 的 dispatch 路由逐条核对。
+> 盘点日期: 2026-10-09。Node builtin 使用原生加载器; 以下清单区分插件运行时模块与宿主 `NodeBridgeProtocol.kt` 的 dispatch 路由。
 >
 > 用法: Node 脚本内 `const toast = require("toast")` 即可, 无需 import 前缀; 也可以 `require("autojs6:bridge").callAutoJs({ module, method, args })` 直接发底层调用。
 
@@ -9,7 +9,7 @@
 | 状态 | 含义 |
 |---|---|
 | **bridged** | 经 live bridge 到宿主真实实现, 默认可用 |
-| **bridged-partial** | 模块可用但部分方法被宿主 fail-closed |
+| **bridged-host-provider** | 模块可用但部分方法被宿主 fail-closed |
 | **bridged-policy** | 能力已稳定启用, 但仍受宿主权限、声明或外部插件可用性约束 |
 | **local-shim** | 插件内纯 JS 实现, 不出进程 |
 | **denied** | 结构性拒绝 |
@@ -28,9 +28,9 @@ M23.3 (2026-10-08) 起, 模块加载由 Node 自身的 CommonJS / ESM loader 承
 
 文件流、gzip/deflate/Brotli 压缩流和基础 VM 脚本/上下文能力已正式化; 显式启用的 Inspector 在 Debug/Release 的 localhost 范围内均可用。可运行项目见 `sample/nodejs/streams-compression` 和 `sample/nodejs/vm-context`。这里的 stable 表示插件对文档范围内能力的支持, 不改变 Node 上游 API 稳定性; VM Modules 仍属于上游实验 API。
 
-嵌入执行使用 `--disable-warning=ExperimentalWarning`, 因此正常 ESM 运行不会再把内部 VM Modules 提示输出到 stderr。`process.on('warning')` 事件、普通警告、弃用警告、异常和显式 stderr 输出均保留。宿主终端直接启动的 `node` 保持上游默认行为, 可由用户显式传入同一参数。清单中的 partial 或缺失 provider 不会因为关闭提示而自动晋级。
+嵌入执行使用 `--disable-warning=ExperimentalWarning`, 因此正常 ESM 运行不会再把内部 VM Modules 提示输出到 stderr。`process.on('warning')` 事件、普通警告、弃用警告、异常和显式 stderr 输出均保留。宿主终端直接启动的 `node` 保持上游默认行为, 可由用户显式传入同一参数。宿主 API 仍需要相应 provider 和 Android 权限。
 
-`node:sqlite` 提供 Node 原生同步 SQLite 引擎, 支持 `DatabaseSync`、预编译语句、CRUD、事务、函数与备份, 主线程和 worker 均可使用。普通名 `sqlite` 继续表示宿主异步数据库桥。数据库构造、重新打开和 `backup` 目标经过既有 fs 路径及符号链接检查; 支持字符串/Buffer 文件路径、file URL 对象、SQLite `file:` URI 字符串、`:memory:` 与空字符串 (私有临时库)。Node 24.21 的 SQLite API 标为 release candidate; 原生 API 的稳定性级别跟随该 Node 版本, 嵌入执行的实验提示输出遵循上面的统一策略。
+`node:sqlite` 提供 Node 原生同步 SQLite 引擎, 支持 `DatabaseSync`、预编译语句、CRUD、事务、函数与备份, 主线程和 worker 均可使用。普通名 `sqlite` 继续表示宿主异步数据库桥。数据库路径、`ATTACH`、`VACUUM INTO`、PRAGMA 和 `backup` 遵循 Node/SQLite 原生行为, 文件访问由 Android 按插件 UID 裁决。原生 API 的稳定性级别跟随随包 Node 版本, 嵌入执行的上游提示输出遵循上面的统一策略。
 
 SQL 里的文件操作完全交给原生 SQLite (M23.1, 2026-10-07; 取代 M20.2 第九批的 authorizer 边界): `node:sqlite` 直接返回 Node 原生模块, `ATTACH` (字面量、绑定参数或表达式给出的文件名)、`VACUUM INTO`、`PRAGMA temp_store_directory` / `data_store_directory`、只读打开与相对路径解析 (按进程工作目录) 均为 SQLite 自身行为, 路径可达性由 Android 决定, 系统路径上的失败是 SQLite 自己的 `ERR_SQLITE_ERROR` (如 procfs 文件 "file is not a database", `/sys` `/dev` 下无法创建); `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED` 退役。`db.setAuthorizer()` 为 Node 原生实现 (不再有运行时边界回调, 对未打开连接的行为随 Node 上游); `enableLoadExtension` / `allowExtension` 按 Node 原生状态机 (构造时未开启 `allowExtension` 则 `ERR_INVALID_STATE`), 扩展本身的加载随 M23.4 原生扩展放开。
 
@@ -93,7 +93,7 @@ M23.4 起, 主线程和 Worker 的 `process.dlopen` / `Module._extensions[".node
 
 `keys.takeScreenshot()` 触发系统截图操作, 不返回像素, 图片处理请用 images。`keys.powerDialog()` 的决策为开放 Android 电源菜单, 后续关机/重启仍由菜单中的用户选择。无障碍关闭返回 permission-denied; 服务可用但设备不支持或拒绝某个全局动作时返回 false。
 
-## 二. 部分可用 (bridged-partial)
+## 二. 依赖宿主提供方和 Android 授权 (bridged)
 
 | 模块 | live 方法 | blocked 方法 |
 |---|---|---|
@@ -152,28 +152,18 @@ Worker 中使用 `require("autojs6:bridge").callAutoJs("device", "info", [], {ti
 
 注意 (M2.4 语义, 2026-09-18 收窄): 只有代替真实 npm 包的运行时模块 (`axios`、`colors`、`mime`、`nanoid`、`opencc`、`undici`) 会被工作区 node_modules 里安装的同名包覆盖 (桌面 Node 语义, 未安装时 shim 照常回答); 其余运行时模块与宿主能力 facade (`java`、`fetch`、`websocket`、`device`、`files` 等)、Node builtin 以及 `node:` / `autojs6:` 前缀不受同名包影响, `require` / `require.resolve` / ESM `import` 三处规则一致 (ESM 裸名 import 现覆盖全部运行时模块名); 策略经 `autojs6:profile` 的 `moduleResolutionProfile` 公布 (`npmPrecedence: "npm_shims_only"`, `npmShadowableModules`)。
 
-## 五. fs 访问模式
+## 五. 文件访问与工作区传输
 
-当前 1.2.0 构建以 `AUTOJS6_NODE_UNRESTRICTED_FS_ACCESS=1` 编译, Node `fs` / `fs/promises` 采用**桌面式可达范围**:
+`fs`, `fs/promises` 与 `node:sqlite` 直接使用 Node 原生实现. 普通文件访问的权限边界由 Android 的应用 UID, SELinux, 存储授权和动态链接器决定; 插件不再叠加路径沙盒或敏感目录拒绝表. `/proc`, `/sys`, `/dev` 和其他目录一样, 能否访问以 Android 实际结果为准.
 
-- `workingDirectory` / `sandboxRoot` 继续约束入口、`require()`、`node_modules`、本地 ESM 图与 `./plugins` 扫描, 但**不再作为 fs 授权根**。绝对路径与工作区外路径可以交给 Android 正常判权。
-- 插件 APK 使用独立 applicationId/UID, 不继承 AutoJs6 宿主的存储授权。Android 11+ 访问共享存储前, 用户需在系统设置为本插件授予“所有文件访问” (`MANAGE_EXTERNAL_STORAGE`); 未授权时 Node 返回 `EACCES` 属预期行为。
-- Android UID、清单权限、SELinux 与文件自身权限仍是实际边界。插件不能借此读取其他应用的私有目录。
-- `/proc`、`/sys`、`/dev` 自 M23.1 (2026-10-07) 起不再是运行时保留的拒绝边界: 本进程的 procfs 条目、`/dev/null` 等按 Android 允许的范围正常读写, Android 拒绝的路径返回 Node 原生错误码 (`EACCES` / `ENOENT`), 没有 AutoJs6 策略码; 下文 M20.2 各批次记录中提到的 "硬边界" 与 "包装层只保留路径校验" 为历史状态, scoped fs 包装层已整体删除。
-- fs 包装层不再自设选项拦截 (M20.2 第六批, 2026-09-17): `createReadStream` / `createWriteStream` / `Utf8Stream` / `FileHandle.createReadStream` 的 `fs` 选项、原型继承的 `fd` / `dest`、任意 `flags`, `fs.watch` / `fs.promises.watch` 的 `recursive: true`, `fs.cp` / `fs.promises.cp` 的异步 `filter` (`cpSync` 遇到 Promise 与 Node 一样抛 `ERR_INVALID_RETURN_VALUE`), glob 的绝对路径 / 父目录 / `!` 字面模式与 `exclude` 数组, `FileHandle.readableWebStream` 的 `type` / `encoding` (与 Node 一样忽略), 以及 `fs.Stats` / `fs.Dirent` / `fs.Dir` 构造器均按 Node 24 原生语义处理; 包装层只保留路径校验 (硬边界 + NUL) 与 fd 归属跟踪, `autojs6:profile` 的 `filesystemProfile.advancedApis.recursiveWatch` 报告 `native`。
-- readdir / opendir 的递归遍历交给原生 (M20.2 第七批, 2026-09-17): 原包装层自行递归并设 4096 条目上限 (超出抛 ERR_OUT_OF_RANGE), 并对每个条目做 realpath 校验, 现直接调用原生 `readdirSync(..., { recursive })`, 只把 `parentPath` 映射回调用者传入的路径写法; `readdirSync('/')` 与 Node 一样列出 `proc` / `sys` / `dev` 的名称, 读取其内容仍被拒绝。fs 策略错误码收敛为三个: NUL 字节 `ERR_AUTOJS6_FS_NUL_BYTE`、`/proc` `/sys` `/dev` 硬边界 `ERR_AUTOJS6_FS_PATH_ESCAPE` (与模块 loader / worker fs 一致; 原 `FS_ABSOLUTE_PATH_DENIED` / `FS_REALPATH_ESCAPE` / `FS_SYMLINK_ESCAPE` 退役, 不再产生)、删除可达根 `ERR_AUTOJS6_FS_SCOPED_PATH`; 其他 fs 失败只带 Node / Android 码, 不再附带 `autojs6Code`。readlink / chmod / chown / utimes 不再拒绝绝对路径, chmod / utimes 经符号链接作用于目标 (与 Node 一致)。目录 1.5.5 快照已发布, 其中退役的 FS_* 常量 (含 FS_WATCH_*) 待下次目录版本清理。
-- loader 残余: 模块源预算与入口路径 (M20.2 第八批, 2026-09-18): 移除运行时自设的模块源预算 — 单模块 16 MiB、总量 64 MiB、8192 个模块与 provider 请求计数 139264 四项上限连同 `ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED` 在运行时内的全部产生点一并删除 (Node 无此类限制), 直接经 fs 读取的明文模块、内嵌 runtime 模块与 `data:` URL 模块只受设备内存约束; 宿主 provider 传输通道 (插件 `PluginModuleSourceProviderFileTransportSession` 与宿主镜像的同组常量) 仍保留这些协议尺寸, 属宿主/插件共享协议 (第十三批起改为采用宿主公布值, 见下)。CommonJS 入口的 `__filename` / `require.main.filename` / `process.argv[1]` 改为 Node 语义的绝对路径 (原为宿主传入的原始 sourceName, 如 `<plugin-node-script.js>` 或相对写法; ESM 入口早已如此), `require.main.id` 为 `.`; 栈帧与宿主 source map 仍使用原始 sourceName。`fs.mkdtemp*` 交给原生: 返回值保留调用者的前缀写法加原生后缀 (原一律返回相对 cwd 的路径, 即使前缀是绝对路径), 支持 `buffer` / `hex` 等编码, 前缀父目录为符号链接时不再拒绝, 父目录不存在由原生返回 ENOENT。顺带修正: 诊断字段 `esmModuleGraphModules` 原把整个 ESM 模块图逐条拼进完成事件, 数千模块时会超出 Binder 事务缓冲导致完成事件丢失、脚本直到超时才结束 (小米实测 8300 个 `data:` 模块), 现只带前 64 条与剩余计数 (`esmModuleGraphSize` 仍是全量)。
-- 运行时模块 npm 优先豁免 (M20.2 补记, 2026-09-18; 用户回执“接下来请开始运行时模块 npm 优先豁免”): 第十五批发现 M2.4 的“已安装 npm 包优先于同名 shim”在实现上覆盖了所有非 builtin 裸名 (`__autojs6_compat_shim_shadowable` 只排除 Node builtin 与 `node:` / `autojs6:` 前缀), 项目带 `node_modules/java` (或 app / device / fetch / websocket …) 时宿主能力 facade 被静默替换, 且 `require.resolve` 从不参与这条规则 (返回运行时名而 `require` 已加载包)。现把可被覆盖的集合改为显式常量 `__autojs6_npm_shadowable_module_names = [axios, colors, mime, nanoid, opencc, undici]` (代替真实 npm 包的运行时模块), `require` / `require.resolve` / ESM `import` 三处同用该谓词; ESM 裸名 import 的 facade 名单从 Rhino compat 基础名扩到全部运行时模块名 (`__autojs6_runtime_facade_module_names`), 于是 `import java from "java"` 与 `require("java")` 一致; `autojs6:profile` 新增 `moduleResolutionProfile` (`npmPrecedence`, `npmShadowableModules`, `runtimeModulesShadowable` / `hostBridgeModulesShadowable` / `nodeBuiltinsShadowable` = false, `reservedPrefixes`, `appliesTo`), `errorCodes` 补 `javaCallFailed`; 顺带把 Rhino `Packages` 代理接上第十五批的 `getStatic` / `describe`。conformance x3d_09 改为 ESM app / mime / java 与 CJS java / fetch / websocket / device / files / mime / colors 七个同名包并存: 只有 mime / colors 被覆盖, `require.resolve` 对 mime / colors 返回包路径、对 java / device 返回运行时名; BridgeLatencySmokeTest 假宿主用例经 `Packages.java.lang.Math.describe()` / `android.os.Build$VERSION.getStatic('SDK_INT')` 验证代理转发。
-- Java 互操作白名单交给宿主 (M20.2 第十五批, 2026-09-18; 宿主分支 `node-m20-2-binder-body-pfd`; 用户选择题回执“Java 互操作白名单”→“宿主反射执行 + 数据驱动白名单”): 此前宿主 `ControlledJavaInteropPolicy` 只手写了 Math / UUID / Rect 三个类的少数成员, 插件运行时又镜像同一张允许表与拒绝前缀并在转发前再验一遍。现宿主把白名单改成声明表 `JavaInteropClassSpec(className, constructable, staticMethods, instanceMethods, staticFields, instanceFields)` (默认覆盖 `java.lang.Math`、`java.util.UUID`、`android.graphics.Rect` / `Point` / `Color`、`java.util.Locale`、`android.os.Build` / `Build$VERSION`、`java.util.concurrent.TimeUnit`), broker 按表反射执行: 只解析公开成员 (`getMethods` / `getConstructors` / `getField`, 不 `setAccessible`), 按参数个数与 JSON 原始值 / 句柄的强制转换评分选重载 (int 精确匹配优先于 long / double 拓宽), 结果按 null / 布尔 / 字符串 / 整型→整数 / 浮点 (非有限值转字符串) / 原始与字符串数组→JSON 数组 / 枚举→句柄或名字 / 表内类对象→句柄 `{__autojs6JavaHandle, className, value:{string, name?, ...实例字段}}` 转换, 表外类的对象结果直接拒绝 (JAVA_CLASS_DENIED) 而不是泄漏; 新增桥方法 `java.getStatic {className, field}`; 成员自身抛出的异常以新错误码 `ERR_AUTOJS6_JAVA_CALL_FAILED` 报告 (消息含 Java 异常类名); 反射 / ClassLoader / 进程 / `java.io` 等拒绝仍在宿主; 策略 JSON `{limitsEnforcedBy:"host_provider", allowedClasses, deniedClassPrefixes, classes:{...}}` 经 `getBrokerInfo()` 新键 `javaInteropPolicyJson` 公布。插件侧删除自设允许表与拒绝前缀 (类名只查非空后转发), `PluginNodeBridgeFileTransportSession` 把宿主表放进 `autojs6:bridge-live-config` 的 `javaInteropPolicy`, 运行时深冻结后作为 `java.policy` (`enabled` / `limitsEnforcedBy` / `published` / `allowedClasses` / `deniedClassPrefixes` / `classes`) 暴露; 参数接受对象句柄 (以 `{__autojs6JavaHandle}` 转发), `callStatic` / `call` / `getField` 的对象结果也包装为句柄; 新增 `getStatic(classOrName, field)` 与 `describe(classOrName)` (后者转发 `java.type`, 返回宿主表项或宿主拒绝码), 类描述符与 `$autojs.java` 同步; d.ts 新增 `AutoJsJavaClassSpec` / `AutoJsJavaArgument`; 目录补 `java.getStatic` 与 `JAVA_CALL_FAILED`。宿主新增用例 `NodeJavaInteropBridgeInstrumentationTest` (policy 公布、provider 直连反射各类成员与拒绝码、真机 JS 端到端), 插件 BridgeLatencySmokeTest 以假宿主验证曾被本地拒绝的类名现已转发、句柄参数、getStatic / describe 与 policy 读回。
-- 插件到宿主方向的描述符上行 (M20.2 第十四批, 2026-09-18; 宿主分支 `node-m20-2-binder-body-pfd`; 用户选择题回执“B2 反向 PFD + 宿主旧 fetch 用例修订”): 桥接 fetch 的请求正文与 WebSocket 消息超过会话内联阈值 (`uploadInlineMaxBytes`, 256 KiB) 时, 运行时把字节写入 `autojs6:bridge-live-config` 公布的会话上传目录 (`uploadDir`, cacheDir/nodejs-bridge-live/<executionId>/uploads), 请求 JSON 只带 `upload: {path, byteCount}`, 描述符改带 `bodyTransport: "pfd"` / `bodyBytes` (WebSocket: `messageTransport: "pfd"` / `messageKind` / `messageBytes`); 插件服务 `PluginNodeBridgeFileTransportSession` 校验路径在上传目录内且文件长度等于声明字节数后以只读 ParcelFileDescriptor 随请求 Bundle 交给宿主 (`KEY_BRIDGE_REQUEST_BINARY_PFD` / `KEY_BRIDGE_REQUEST_BINARY_BYTE_COUNT`, 转发的 JSON 中 upload 只剩 byteCount), 校验失败回 ERR_AUTOJS6_BRIDGE_INVALID_REQUEST, dispatch 返回后关闭本侧副本; 运行时在调用结束 (含重定向链) 后删除文件, 303 / 301 / 302→GET 时不再附带, 307 / 308 重放同一文件。宿主 `NodeJsHostCapabilityBroker` 从 Bundle 取出描述符挂到 `NodeBridgeRequest.upload`, 回应后关闭; `ControlledFetchRequest` 以 `DescriptorRequestBody` 流式发送 (每次 writeTo 重新从文件头读, OkHttp 重试安全; 上限 `HARD_MAX_REQUEST_BYTES` 64 MiB → ERR_AUTOJS6_NETWORK_POLICY_DENIED; bodyBytes 与描述符不符 → ERR_AUTOJS6_BRIDGE_INVALID_REQUEST; GET 带描述符正文 → ERR_AUTOJS6_NETWORK_PERMISSION_DENIED), `ControlledWebSocketSendMessage` 按会话 `maxMessageBytes` 校验后一次读入发送。仅当宿主 `getBrokerInfo()` 公布 `bridgeRequestBinaryTransport=pfd` 时启用 (插件诊断 `embedded_script.bridge_live_upload_transport=pfd|inline`、`bridge_live_upload_count`), 旧宿主与 `bridge.__test` 假传输仍走内联 base64。宿主 5 个陈旧 fetch 用例同批修订到现行契约 (全局 fetch 已是原生 Node → 改用 `require("fetch")`; maxResponseBytes / GET 正文规则由假传输模拟宿主策略; 退役的 `policy.maxConcurrentRequests` 改为验证 20 个并发全部到达传输层; raw http/https/net 检查改在 `rawNodeNetworkModulesEnabled=false` 下运行, 或在真机用例里关闭所开的原生 server / socket)。第二轮真机回归 (宿主分支 f4a2a5c46) 又清出三处与本批无关的陈旧假设并一并处理: (1) `rawNodeNetworkModulesEnabled=false` 且声明了 network 能力时, `http` / `https` 是受控客户端 (`request()` 返回 LimitedClientRequest 而非抛错), 旧用例以 `https.request()` 探测 “raw 已禁用” 只能得到空码, 改为探测 `net.connect` / `tls.connect` (同步抛 ERR_AUTOJS6_NETWORK_DISABLED); (2) 受控 fetch 返回原生 `Response`, 旧用例的 `body.stream()` 改为 `clone().body`; 同时发现 ResponseInit 不含 url 导致 `Response.url` 恒为空串, 这是插件侧缺口, 本批在 `__autojs6_fetch_to_response` 以实例属性暴露 provider 的最终 URL (已写入 changelog); (3) WebSocket MVP 用例仍期待 profile 报告 WebSocket 未启用、运行时自行执行 maxConnections / maxMessageBytes (第十一批已移交宿主), 改由假宿主镜像连接配额 2 与每连接消息上限, `websocket.policy` 改记 `10000|undefined|undefined`; 真机用例的 net/tls 探测改在 raw 关闭下运行, 事件经回调推送后不再有 drainEvents 轮询, 期望派发次数改为 ≥ 6; 修订后的断言均附带脚本输出。另修复宿主 `androidWebSocketProviderClosesActiveLiveConnectionOnDestroy` 长期失败背后的真实缺陷: `destroy()` 经资源注册表以 1001 关闭活动 WebSocket 后立即 `dispatcher.cancelAll()` / `connectionPool.evictAll()`, 而 OkHttp 只是把关闭帧排入 TaskRunner 写队列 (读线程正跑在 dispatcher 上), 套接字先被撤销, 对端只见到异常断开; 现 `ControlledWebSocketSession` 记录 onClosed / onFailure, `destroy()` 对刚关闭的会话最多等待 500 ms (`WEBSOCKET_DESTROY_CLOSE_WAIT_MS`) 再继续撤销。宿主四个类 NodeFetchBridge 11 + NodeWebSocketBridge 4 + NodeCapabilityBrokerV2 4 + NodeImageBytes 2 = 21/21 全绿。
-- provider 传输协议尺寸与 Binder 事务尺寸 (M20.2 第十三批, 2026-09-18; 宿主分支 `node-m20-2-binder-body-pfd`): (A) 插件 `PluginModuleSourceProviderFileTransportSession` 不再自设单源 16 MiB / 总量 64 MiB / 请求计数 139264 (传输侧 ×2) 的镜像常量, 会话首次需要时经 `INodeJsModuleSourceProvider.getNativeDiagnostics()` 读取宿主公布的 `moduleSourceProviderSourceMaxBytes` / `moduleSourceProviderTotalMaxBytes` / `moduleSourceProviderRequestMaxCount` 并以之为准 (诊断 `embedded_script.module_provider.transport_limits_source=host|default` 与三项 `transport_*_limit` 回显生效值), 只在宿主未公布或值无效时回退到同名默认值; 64 KiB 请求 JSON (Binder 事务) 与 PFD 声明字节数校验保留。(B1) 桥接 fetch 的响应体改经 `KEY_BRIDGE_BINARY_PFD` 交付: 运行时对 `fetch.request` 置 `binary: true` (描述符槽位不足时该次自动退回内联), 宿主 `dispatchFetch` 把正文写入 cacheDir 临时文件并以只读 PFD 随 `bodyTransport: "pfd"` / `bodyBytes` 交付 (空正文与旧宿主仍内联 base64), 插件 mmap 后挂为 `result.body` Buffer, 长度不符则 ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED; 响应体大小只受宿主 `maxResponseBytes` 约束, Binder 约 1 MB 的事务尺寸不再限制下行正文。(B3) 宿主 `NodeJsHostCapabilityBroker.sendResponse` 捕获 `TransactionTooLargeException` 后改回一条小体积 BRIDGE_PROVIDER_FAILED (带 module / method 与 JSON 长度; 事件推送超尺寸则记日志丢弃), 脚本立即得 ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED 而非等到桥超时。未做 (留下一批): 插件到宿主方向 (fetch 请求正文、WebSocket 消息) 仍为内联 base64 JSON (第十四批已做, 见上)。
-- opendir 改为原生惰性 Dir、删除可达根守卫退役 (M20.2 第十二批, 2026-09-18): `fs.opendir` / `opendirSync` / `fsp.opendir` 原在 readdir 结果上即时枚举并伪造 Dir 对象 (bufferSize 校验后丢弃), 现直接返回原生 `fs.Dir` (惰性读取, bufferSize / encoding / recursive 交给原生, ENOENT / ENOTDIR / ERR_OUT_OF_RANGE / ERR_DIR_CLOSED 均为 Node 原生错误且不带 autojs6Code), 包装层只把 `dir.path` 与 dirent.parentPath 映射回调用者写法 (与 readdir 一致); 删除可达根的 `rejectRoot` 守卫 (`rmSync('/')` / `rmdirSync('/')` 等原以 ERR_AUTOJS6_FS_SCOPED_PATH 拒绝) 退役, 与其他路径一样交给 Node / Android (非递归 rm 目录得 ERR_FS_EISDIR, rmdir 非空根得 ENOTEMPTY / EACCES 等原生码), fs 策略码只剩 NUL_BYTE 与 PATH_ESCAPE 两个 (`ERR_AUTOJS6_FS_SCOPED_PATH` 仅 worker_threads 非本地脚本名仍在使用)。
-- 网络 facade 硬上限交给宿主 (M20.2 第十一批, 2026-09-18): 见上文全局 Web API 一段 — 桥接 fetch / WebSocket / axios 的运行时自设上限 (超时 120 s / 60 s、响应 32 MiB 默认与 64 MiB 上限、重定向 10 次、消息 64 KiB 默认与 1 MiB 上限、队列 32 / 128、仅 GET / POST、GET 不得带正文、响应体二次校验) 全部删除, 调用者选项原样传给宿主 (未指定时不注入默认值, 由宿主默认值生效), 重定向默认跟随 20 次; `policy` 的 hard* / defaultMaxResponseBytes / defaultMaxMessageBytes / defaultMaxQueueSize 字段退役, 新增 `limitsEnforcedBy`。
-- 桥配额交给宿主 (M20.2 第十批, 2026-09-18): 见上文“实时桥传输”一节 — 运行时只保留 `maxPendingBridgeCalls` 作为在途窗口且超出改为排队而非拒绝; 图像句柄数、受控 fetch 并发数、受控 WebSocket 连接数的运行时自设拦截删除 (宿主 broker 继续按 `autojs6:bridge-limits` 执行), `require("fetch").policy.maxConcurrentRequests` 与 `require("websocket").policy.maxConnections` 字段退役; maxShellCommands / accessibilityQueriesPerSecond 在运行时本无执行点。
-- sqlite facade 的文件操作拦截 (M20.2 第九批, 2026-09-18): 见上文 `node:sqlite` 一节 — SQL 词法扫描 (`checkSql`) 与 `ERR_AUTOJS6_SQLITE_PATH_UNSUPPORTED` 退役, ATTACH (含 VACUUM INTO 的内部 ATTACH) 改经 SQLite authorizer 做硬边界校验, `file:` URI / 空临时库 / 目录 PRAGMA / 只读打开缺失文件交给原生。
-- 项目清单中的 `filesystemRoots` 保留为兼容性诊断元数据 (`metadataOnly=true`, `grantsAuthority=false`), 不会授予、扩大或收窄 fs 权限。
+- 绝对路径, 相对路径, 父目录, 符号链接以及原生 fd 操作遵循 Node 24 语义. 进入执行时进行真实 chdir, `process.cwd` / `process.chdir` 返回或改变实际工作目录.
+- 异步文件操作由 libuv 线程池执行; stream, watch, glob, Dir/FileHandle/Stats/Dirent 保持原生对象和选项. 错误保留 `ENOENT`, `EACCES`, `ERR_INVALID_ARG_VALUE` 等 Node/Android 代码.
+- SQLite ATTACH, VACUUM INTO 和目录 PRAGMA 使用 SQLite 原生行为, 不设置运行时 authorizer 路径规则. `enableLoadExtension` 与 `allowExtension` 仍遵循 Node 的 API 配置.
+- Node 文件操作使用插件 UID; MediaInfo, 图片, 录音, 媒体播放等宿主桥使用宿主 UID. 一方有权限的路径不保证另一方可访问, `filesystemRoots` 等项目字段是兼容元数据, 不授予 Android 权限.
+- 宿主私有项目通过工作区归档或 module-source provider 交付. 归档条目, 描述符, 字节数, tombstone 与输出提交校验属于跨进程传输契约, 不定义普通 `fs` 的访问范围. 输出归档当前不传递符号链接; npm 项目需要回传 bin 入口时使用 `bin-links=false` 或 `--no-bin-links`.
+- 大正文桥接使用 PFD: 宿主大响应可通过响应体描述符交付, 支持对应协议的宿主接收超过内联阈值的 fetch/WebSocket 上传描述符. 请求上限由实际宿主 provider 决定, 运行时不把这些桥协议上限套到 Node 原生网络或文件 API.
 
-因此“沙盒根”与“文件系统可达根”是两个概念。需要可移植脚本时仍建议优先使用工作目录相对路径; 需要共享存储时再显式使用设备路径并处理 `EACCES`。
+退役路径策略码见 [错误目录](nodejs/ERROR_CATALOG.md). 旧实现的演进记录保存在 [历史说明](nodejs/history/FILESYSTEM_M20_NOTES.md).
 
 ## 六. TypeScript 编译要求
 
@@ -305,7 +295,7 @@ CDP 按 Node 原生协议提供源码路径、运行时值、CPU profile 与 hea
 
 2026-09-08 特权输入决策: 保留 `shell.execRoot(command)` 和显式 `shell.root` 声明, 由已有 shell provider 执行用户提供的 input/sendevent 命令并遵循设备 root 授权。当前没有需要另建 RootAutomator 的已复现输入缺口, 因此不增加设备事件节点映射、注入会话或额外取消机制。Shizuku 需要另一套授权与服务依赖, 本阶段不接入, `shell.execShizuku()` 继续拒绝。常规触摸自动化使用已实现的无障碍 gesture/swipe。
 
-2026-09-08 WASI 决策: [Node.js 24.5 官方 WASI 文档](https://nodejs.org/download/release/v24.5.0/docs/api/wasi.html#security) 说明其能力参数不构成安全隔离, 文件系统范围可被绕过。由此, 若仅在适配器中检查 preopens 根目录, 仍不足以覆盖运行中的全部文件调用, 本版继续拒绝原生 WASI, 不引入新的隔离层。已删除仅打印禁用状态的 controlled-wasi / wasi-scoped-fs 样例; wasm-basic 与 wasm-worker 继续展示可执行能力。
+`node:wasi` 使用 Node 原生实现, 可在 Android 权限范围内访问资源. WASI 的 preopens 等参数不是 Android 权限替代品; `wasm-basic` 与 `wasm-worker` 提供可运行示例.
 
 ## 九. 真机验证矩阵
 
@@ -402,6 +392,6 @@ npm 在执行中创建的 .bin 链接保持原样. 现有工作区归档协议�
 
 ### 本地 JS 插件与能力状态 (1.6.0)
 
-`pluginSystemProfile` 描述当前本地 JS 插件管理器及生命周期; Android provider 插件, 远程市场, 签名归档分发与更新渠道属于未规划产品方向, 不再作为 deferred 能力字段输出. `packageIntegrityProfile` 描述现有宿主本地存储的校验与恢复流程. `rhino` 安装状态的 shadowing 为 not_installed / installed, child_process 被请求关闭时 stdin 为 denied_with_child_process. 这些标记说明实际行为, 不扩大宿主授权.
+`pluginSystemProfile` 描述当前本地 JS 插件管理器及生命周期; Android provider 插件, 远程市场, 签名归档分发与更新渠道属于未规划产品方向, 不作为运行时能力字段输出. `packageIntegrityProfile` 描述现有宿主本地存储的校验与恢复流程. `rhino` 安装状态的 shadowing 为 not_installed / installed, child_process 被请求关闭时 stdin 为 denied_with_child_process. 这些标记说明实际行为, 不扩大宿主授权.
 
 样例状态仅使用 stable 与 host_provider_required. 后者说明需要真实宿主 provider 和相应 Android 权限, 不表示样例 API 未完成. 旧 Phase 14/15 声明矩阵保留在类型目录 history 下, 仅供旧代码类型兼容, 不代表当前能力. Node 自身的 ExperimentalWarning 和上游 VM Modules 状态不属于插件的暂定标记.

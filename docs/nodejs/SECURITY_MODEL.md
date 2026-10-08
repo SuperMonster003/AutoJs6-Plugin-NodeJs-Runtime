@@ -1,87 +1,71 @@
-# AutoJs6 Node.js File Access and Android Permissions
+# AutoJs6 Node.js Runtime: Android Authority and Host Integration
 
-Last reviewed: 2026-10-08.
+Last reviewed: 2026-10-09. Applies to the local 1.6.0 release candidate.
 
-Node/V8 runs in the runtime plugin's Android application. Automation providers run
-in the host application. These applications have different UIDs: `fs` accesses
-files as the plugin, while `mediainfo`, image file methods, the recorder, media
-playback and MediaStore import/export access files as the host. A path readable by one application may be denied to the other.
-Android permissions, storage access and private application directories apply.
+## Ordinary Node access
 
-Since M23.1 (2026-10-07) `fs` is Node's own module: there is no wrapper, no path
-validation and no `/proc`, `/sys`, `/dev` denial. Whatever Android lets the plugin
-process open, Node opens; whatever Android refuses comes back as a plain Node
-error. The execution enters its working directory with a real `process.chdir`, so
-relative paths, `process.cwd()` and `process.chdir()` behave as on desktop Node.
+Android is the operating-system permission boundary for Node code. The runtime
+plugin uses its own application UID, SELinux context, storage permissions and
+linker namespace. fs, fs/promises, node:sqlite, native networking, addons and
+child processes use Node implementations within that Android environment.
+The runtime adds no filesystem sandbox, sensitive-directory denylist, addon
+signature allowlist or second memory quota enforced instead of Android lmkd.
 
-Ordinary Node fs paths may be absolute or relative. The v1.4.0 development update
-also accepts absolute paths, parents and symlinks for host media/image/recording
-files; matching host code is required. Empty and NUL paths remain invalid, and
-these methods take file paths rather than content URIs. `media_store` compiles
-structured JSON filters into parameterised MediaStore selections, only modifies
-items AutoJs6 created on Android 10+, and never passes cursors, Uri objects or
-descriptors across the bridge. `media_store` compiles
-structured JSON filters into parameterised MediaStore selections, only modifies
-items AutoJs6 created on Android 10+, and never passes cursors, Uri objects or
-descriptors across the bridge. Permission failures from
-Android are reported to the script. The detailed contract is in
-[HOST-API](../HOST-API.md).
+Absolute paths, parent directories, symlinks, /proc, /sys and /dev follow Android
+access decisions. Node reports its own failures such as EACCES or ENOENT. The
+execution enters its working directory with a real chdir. This does not promise
+that every desktop facility exists on Android: binaries, dependencies and
+executable locations must work on this OS and ABI.
 
-Project archives and output writeback are a separate transport. Their entry paths,
-size and count are checked when crossing application boundaries. Compiler-backed
-module providers select project inputs and check byte counts, file identities and
-generated module paths. These transport rules do not define ordinary fs access.
+## Explicit runtime options and lifecycle
 
-M23.3 replaces the custom CJS resolver and `vm.SourceTextModule` graph with Node's
-native loaders. Synchronous `module.registerHooks` supplies request-attached and
-provider-owned sources, compiler output, runtime modules and compatibility shims.
-Raw TypeScript still goes through the host Compiler; loader migration does not
-enable Node type stripping as a fallback. Existing request-level builtin switches
-and worker lifecycle controls remain until their respective Roadmap items finish.
+Requests can disable raw networking, child processes or Worker threads.
+Inspector activation and Sessions require an explicit request, work in Debug
+and Release, and bind to 127.0.0.1 for ADB forwarding. Blocking debugger waits
+remain unavailable. Profile names and project metadata grant no Android authority.
 
-Host capabilities currently require `node.permissions`, then Android permissions
-and an available provider. Screen capture requires the system consent flow;
-recording requires microphone permission and a visible foreground service. Profile
-selection metadata cannot replace either declaration or Android consent. See
-[the manual guide](MANUAL-ACCEPTANCE.md) for runnable projects.
+The pool defaults to two slots and unlimited FIFO waiting. Users may select
+1-8 slots and a queue limit. Cancellation, explicit timeouts and optional
+idleExitMs control lifecycle. Android exit records and Node crash reports explain
+unexpected slot deaths; the runtime does not replay scripts automatically.
 
-Execution cancellation and resource cleanup remain necessary for usable lifecycle
-behavior. Worker message size / queue caps and fs watcher count / event-rate quotas
-were removed in v1.5.5, the sensitive fs roots (`/proc`, `/sys`, `/dev`) in M23.1 and the
-builtin allowlist / denylist, the process API guards (abort, kill, umask, binding, report,
-features, POSIX identity calls) and the os / module facades in M23.2/M23.3. M23.3
-also removes Worker count and startup caps, nested-worker denial and resource-limit
-ceilings imposed by the plugin. WorkerPool retains only caller-selected scheduling
-limits; its queue and task duration are unbounded by default. Node and Android
-manage worker memory and thread resources.
+## Host capabilities and cross-process transport
 
-Worker host calls use a private parent MessagePort. All hops reach the root
-execution's existing capability broker, so declarations and Android permissions
-apply as before. This avoids registering process-global JNI callbacks separately
-for each isolate. The preload file contains plugin code only; request sources and
-bridge ports are cloned/transferred in memory.
+Automation providers run under the host UID. A path readable by the runtime
+plugin may be unreadable by the host, or vice versa. Host operations still
+require their node.permissions declarations, an available provider and the
+relevant Android authorization. Screen capture uses MediaProjection consent;
+microphone recording uses permission and a visible foreground service. These
+host contracts are distinct from ordinary native Node access.
 
-M23.4 restores Node's native addon loader in both main scripts and workers, with
-no plugin-specific addon signature/ABI allowlist. Android's UID, SELinux and
-linker namespace rules still govern library access. Binary `.node` files must be
-Android-compatible and match the process architecture; dependencies and page
-alignment must also match the device. Addon code runs in the runtime slot
-process, and native faults are reported by the existing process-exit/crash path.
-M23.5 allows Inspector in Debug and signed Release after an explicit request.
-The host developer setting defaults off. Both Inspector modules retain native
-exports with activation/Session entry points gated; url() is readable while
-inactive. Root scripts and Workers bind only 127.0.0.1, without blocking waits.
-Desktop clients use ADB forwarding and see the native Node protocol data.
+Workspace ZIPs, source providers and binary PFD messages cross process boundaries.
+Entry names, file identities, byte counts and output receipts remain validated.
+The workspace root is a transport location, not a Node fs sandbox. Output archives
+do not transfer symlinks; npm projects needing bin entries copied back should use
+bin-links=false. Android decides whether app-data executables can run. Raw
+TypeScript is compiled by the host Compiler before dispatch, without a stripping
+fallback in the runtime.
 
-Plugin discovery, caller trust, Binder ownership and grants to remote MCP callers
-remain host integration responsibilities. Shared Android providers do not make a
-Node script's settings into MCP authorization. The host has no embedded runtime;
-legacy `backend="embedded"` and `embedded_script.*` are compatibility wire names.
+## npm, addons and caches
 
-M23.6 executes the bundled npm launcher under the runtime plugin UID. Registry,
-proxy and lifecycle configuration follow npm/.npmrc, with explicit call options
-when requested. The plugin does not add signature or hash allowlists for registry
-packages; npm owns their resolution, lockfile and cache integrity. The existing
-CLI asset lock verifies only the plugin-owned npm/corepack archive at extraction.
-Lifecycle scripts have that child process's Android permissions and filesystem
-access. The old host local-store path retains its own explicit mutation contract.
+Bundled npm follows npm/.npmrc registry, proxy, lockfile and lifecycle settings.
+Lifecycle scripts run with the plugin UID. The CLI archive digest verifies the
+plugin-owned npm/corepack distribution, not a registry package allowlist.
+Object-based local-store operations retain their host mutation contract.
+
+Android-compatible .node addons load through Node in root scripts and Workers.
+Node/Android report ABI, symbol and dependency errors. Native code shares its
+runtime process authority; a Worker is not process isolation.
+
+Portable module caching defaults on for workspaces and Workers. Its default
+storage is plugin-private; Node handles source/version invalidation. Cache failure
+does not prevent execution. NODE_DISABLE_COMPILE_CACHE opts out and
+NODE_COMPILE_CACHE chooses an accessible directory.
+
+Caller trust and Binder access remain host integration concerns. RUNTIME and INFO
+require org.autojs.permission.PLUGIN; the current AutoJs6 host declares it as a
+signature permission. Independently signed packaged apps remain M24 work and are
+not advertised here. Remote MCP authorization is also a host responsibility.
+
+See [HOST-API](../HOST-API.md), [compatibility](COMPATIBILITY_PROFILE.md) and
+[error ownership](ERROR_CATALOG.md) for the API contracts.

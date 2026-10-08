@@ -10,7 +10,7 @@
 console.log(process.version);
 ```
 
-فتحة بيئة التشغيل هي `node24_5`. يدعم builds `arm64-v8a`, `armeabi-v7a`, و `x86_64`, اضافة الى APK `universal`.
+فتحة بيئة التشغيل هي `node24_21`. يدعم builds `arm64-v8a`, `armeabi-v7a`, و `x86_64`, اضافة الى APK `universal`.
 
 توجد مشاريع الامثلة في `sample/nodejs`.
 

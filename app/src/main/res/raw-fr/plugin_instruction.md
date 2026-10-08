@@ -10,7 +10,7 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 console.log(process.version);
 ```
 
-Le slot de runtime est `node24_5`. Il prend en charge les builds `arm64-v8a`, `armeabi-v7a` et `x86_64`, ainsi qu'un APK `universal`.
+Le slot de runtime est `node24_21`. Il prend en charge les builds `arm64-v8a`, `armeabi-v7a` et `x86_64`, ainsi qu'un APK `universal`.
 
 Les exemples de projets se trouvent dans `sample/nodejs`.
 
