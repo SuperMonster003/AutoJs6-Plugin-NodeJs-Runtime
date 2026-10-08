@@ -715,7 +715,12 @@
       {
         "id": "package_manager",
         "aliases": [],
-        "providerOwner": "host_capability_provider"
+        "providerOwner": "host_capability_provider",
+        "runtimeInstall": "bundled_npm_cli",
+        "registryDownload": true,
+        "lifecycleScripts": "npm_default",
+        "npmVersion": "11.19.0",
+        "legacyObjectRequests": "host_capability_provider"
       },
       {
         "id": "pinyin",
@@ -3125,12 +3130,8 @@
         "code": "ERR_AUTOJS6_NODE_WORKING_DIRECTORY"
       },
       {
-        "name": "NPM_CLI_DENIED",
-        "code": "ERR_AUTOJS6_NPM_CLI_DENIED"
-      },
-      {
-        "name": "NPM_REGISTRY_DENIED",
-        "code": "ERR_AUTOJS6_NPM_REGISTRY_DENIED"
+        "name": "NPM_CLI_SETUP_FAILED",
+        "code": "ERR_AUTOJS6_NPM_CLI_SETUP_FAILED"
       },
       {
         "name": "PACKAGED_RUNTIME_VERSION_MISMATCH",

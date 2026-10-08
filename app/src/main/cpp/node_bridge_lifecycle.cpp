@@ -1403,6 +1403,7 @@ void runEmbeddedScriptNodeLifecycle(
                     __android_log_print(ANDROID_LOG_WARN, kLogTag, "environment.create.failed elapsed=%lldms result=null", elapsedMs(environmentCreateStartedAt));
                 } else {
                     if (scriptExecution) {
+                        installNodeCliPreparation(isolate, context);
                         bridgeChannel = createNativeBridgeChannel(isolate, context, eventLoop.get());
                         // Publish for cooperative cancellation; a stop that
                         // arrived before the environment existed fires now.

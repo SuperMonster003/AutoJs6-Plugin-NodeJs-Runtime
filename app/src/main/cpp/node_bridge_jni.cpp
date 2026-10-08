@@ -17,6 +17,37 @@ using namespace autojs6::node_bridge::internal;
 
 namespace {
 
+JavaVM* nodeCliVm = nullptr;
+jclass nodeCliBridgeClass = nullptr;
+jmethodID nodeCliPrepareMethod = nullptr;
+
+void prepareNodeCliCallback(const v8::FunctionCallbackInfo<v8::Value>& args) {
+    v8::Isolate* isolate = args.GetIsolate();
+    JNIEnv* env = nullptr;
+    auto fail = [&]() {
+        isolate->ThrowException(v8::Exception::Error(v8::String::NewFromUtf8Literal(
+                isolate, "Bundled npm preparation is unavailable on this runtime thread.")));
+    };
+    // Root script JS runs on the JNI execution thread. Workers use their native Node APIs.
+    if (nodeCliVm == nullptr || nodeCliBridgeClass == nullptr || nodeCliPrepareMethod == nullptr ||
+            nodeCliVm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
+        fail();
+        return;
+    }
+    auto result = static_cast<jbyteArray>(env->CallStaticObjectMethod(nodeCliBridgeClass, nodeCliPrepareMethod));
+    if (env->ExceptionCheck() || result == nullptr) {
+        env->ExceptionClear();
+        if (result != nullptr) env->DeleteLocalRef(result);
+        fail();
+        return;
+    }
+    const jsize length = env->GetArrayLength(result);
+    std::string json(static_cast<size_t>(length), '\0');
+    env->GetByteArrayRegion(result, 0, length, reinterpret_cast<jbyte*>(json.data()));
+    env->DeleteLocalRef(result);
+    args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, json.data(), v8::NewStringType::kNormal, length).ToLocalChecked());
+}
+
 constexpr const char* kNativePhaseTimingSchema = "autojs6-node-native-lifecycle-timing-v1";
 constexpr const char* kNativePhaseTimingSemantics = "nested_non_additive";
 constexpr const char* kNativeScriptExecutionSemantics = "entry_to_terminal_completion";
@@ -464,6 +495,23 @@ void appendNativePhaseTimingMetadata(
 }
 
 }  // namespace
+
+void autojs6::node_bridge::internal::installNodeCliPreparation(
+        v8::Isolate* isolate, v8::Local<v8::Context> context) {
+    auto function = v8::Function::New(context, prepareNodeCliCallback).ToLocalChecked();
+    context->Global()->Set(context, v8::String::NewFromUtf8Literal(isolate, "__autojs6_prepare_node_cli"), function).Check();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_org_autojs_autojs_engine_NativeNodeEmbeddedRuntimeBridge_nativeConfigureNodeCli(
+        JNIEnv* env, jobject bridge) {
+    if (nodeCliBridgeClass != nullptr) return;
+    env->GetJavaVM(&nodeCliVm);
+    jclass cls = env->GetObjectClass(bridge);
+    nodeCliPrepareMethod = env->GetStaticMethodID(cls, "prepareNodeCli", "()[B");
+    if (nodeCliPrepareMethod != nullptr) nodeCliBridgeClass = static_cast<jclass>(env->NewGlobalRef(cls));
+    env->DeleteLocalRef(cls);
+}
 
 extern "C" JNIEXPORT jint JNICALL
 Java_org_autojs_autojs_engine_NativeNodeRuntimeBridge_nativeRunMain(

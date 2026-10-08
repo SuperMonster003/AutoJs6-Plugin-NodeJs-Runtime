@@ -77,3 +77,11 @@ Plugin discovery, caller trust, Binder ownership and grants to remote MCP caller
 remain host integration responsibilities. Shared Android providers do not make a
 Node script's settings into MCP authorization. The host has no embedded runtime;
 legacy `backend="embedded"` and `embedded_script.*` are compatibility wire names.
+
+M23.6 executes the bundled npm launcher under the runtime plugin UID. Registry,
+proxy and lifecycle configuration follow npm/.npmrc, with explicit call options
+when requested. The plugin does not add signature or hash allowlists for registry
+packages; npm owns their resolution, lockfile and cache integrity. The existing
+CLI asset lock verifies only the plugin-owned npm/corepack archive at extraction.
+Lifecycle scripts have that child process's Android permissions and filesystem
+access. The old host local-store path retains its own explicit mutation contract.

@@ -3534,7 +3534,7 @@ std::string buildEmbeddedScriptExecutionSource(
       nativeAddon: true,
       network: true,
       rawNodeNetworkModules: __autojs6_raw_node_network_modules_enabled,
-      npmInstall: false,
+      npmInstall: true,
       webSocket: true,
       workerThreads: __autojs6_worker_threads_enabled,
       vm: true,
@@ -3853,49 +3853,49 @@ std::string buildEmbeddedScriptExecutionSource(
         appliesTo: Object.freeze(["require", "require.resolve", "import"])
       }),
       packageManagerProfile: Object.freeze({
-        status: "android_substrate_partial",
-        defaultEnabled: false,
-        targetProfiles: Object.freeze(["desktop_compat_opt_in"]),
+        status: "npm_cli_and_host_store",
+        defaultEnabled: true,
+        targetProfiles: Object.freeze(["safe_default"]),
         hostPackageManager: "available",
         androidStore: "local_app_private_partial",
-        androidRuntimeInstall: "local_unpacked_only",
-        npmCli: "denied",
+        androidRuntimeInstall: "bundled_npm_cli",
+        npmCli: "available",
         terminalCli: "host_terminal_node_npm_corepack_launcher",
-        npmFacade: "guarded_package_manager_alias",
-        requireNpm: "guarded_package_manager_alias",
-        npmInstallEquivalent: "host_managed_plus_android_store_substrate",
-        registryDownload: "denied_by_policy",
-        tarballInstall: "host_side_only",
-        lockfile: "autojs6_lock_host_managed",
-        integrity: "sha512_required",
-        lifecycleScripts: "denied",
-        debugLifecycleScripts: "not_promoted",
-        binLinks: "denied",
-        symlinks: "denied",
-        nativeBuild: "denied",
-        nativePayloads: "denied",
-        postinstallDownload: "denied",
-        nodeModulesMutation: "transactional_store_only",
-        transaction: "locked_cancellable_atomic",
-        sourcePolicy: "guarded_local_unpacked_mutation",
-        sourceAuthority: "local_unpacked_host_managed_only",
-        installAuthority: "package_manager_mutate_explicit_local_unpacked",
-        allowedSources: Object.freeze(["local_unpacked_host_managed"]),
-        deniedSources: Object.freeze(["raw_registry", "remote_tarball", "git", "http_url", "file_url", "workspace_symlink", "unverified_cache"]),
+        npmFacade: "bundled_npm_cli",
+        requireNpm: "bundled_npm_cli",
+        npmInstallEquivalent: "npm_install_in_workspace",
+        registryDownload: "npm_native",
+        tarballInstall: "npm_native",
+        lockfile: "package_lock_or_host_store_lock",
+        integrity: "npm_or_host_store",
+        lifecycleScripts: "npm_default",
+        debugLifecycleScripts: "same_as_release",
+        binLinks: "npm_default_android_exec_rules",
+        symlinks: "npm_default",
+        nativeBuild: "external_toolchain_required",
+        nativePayloads: "android_compatible",
+        postinstallDownload: "npm_default",
+        nodeModulesMutation: "npm_cli",
+        transaction: "npm_native_or_host_store_transaction",
+        sourcePolicy: "npm_cli_and_host_store",
+        sourceAuthority: "npm_specifier_or_host_store",
+        installAuthority: "npm_cli_or_host_package_manager",
+        allowedSources: Object.freeze(["npm_specifier", "local_unpacked_host_managed"]),
+        deniedSources: Object.freeze([]),
         planOperations: Object.freeze(["planInstall", "planUpdate", "planRemove", "planRegistryInstall", "planTarballInstall"]),
         mutationOperations: Object.freeze(["install", "update", "remove"]),
-        npmFacadeOperations: Object.freeze(["status", "policy", "sourcePolicy", "packageManager", "planInstall", "planUpdate", "planRemove", "planRegistryInstall", "planTarballInstall", "install", "update", "remove", "list", "verify", "prune", "cli", "exec", "runScript"]),
+        npmFacadeOperations: Object.freeze(["status", "policy", "sourcePolicy", "packageManager", "planInstall", "planUpdate", "planRemove", "planRegistryInstall", "planTarballInstall", "install", "update", "remove", "list", "verify", "prune", "cli", "exec", "runScript", "installFromRegistry", "pack", "publish"]),
         mutationCapability: "package_manager.mutate",
-        mutationConfirmation: "allowMutation_required",
+        mutationConfirmation: "allowMutation_for_host_store_only",
         operations: Object.freeze(["install", "update", "remove", "list", "verify", "prune"]),
         packageKinds: Object.freeze(["dependency", "plugin", "project"]),
         jsBridge: "guarded_mutation_partial",
-        requirePackageManager: "guarded_mutation_partial",
+        requirePackageManager: "available",
         diagnosticFacade: "available",
         packagedBehavior: "not_applicable_no_packaged_runtime",
-        androidNetwork: "denied",
-        rawExecutables: false,
-        rawRegistryAccess: false
+        androidNetwork: "npm_default",
+        rawExecutables: true,
+        rawRegistryAccess: true
       }),
       stdlibProfile: Object.freeze({
         status: "native_builtins_with_host_policies",
@@ -4092,11 +4092,11 @@ std::string buildEmbeddedScriptExecutionSource(
           "plugin_packages"
         ]),
         unsafePackageExecution: false,
-        rawRegistryInstall: false,
+        rawRegistryInstall: true,
         unsignedPluginInstall: false,
         unsignedNativeAddonLoad: true,
-        lifecycleScripts: false,
-        postinstallDownloads: false,
+        lifecycleScripts: true,
+        postinstallDownloads: true,
         unverifiedCacheReuse: false
       }),
       filesystemProfile: Object.freeze({
@@ -4241,7 +4241,7 @@ std::string buildEmbeddedScriptExecutionSource(
         requireExtension: "native",
         processDlopen: "native",
         processBinding: "native",
-        nodeGyp: "not_bundled",
+        nodeGyp: "npm_bundled_scripts",
         downloadedArtifacts: "android_compatible_prebuilds",
         abiSelection: "process_arch",
         dependencyResolution: "android_dynamic_linker",
@@ -21751,24 +21751,58 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return __autojs6_limited_plugins_cache;
   }
-  const __autojs6_package_manager_allowed_sources = Object.freeze(["local_unpacked_host_managed"]);
-  const __autojs6_package_manager_denied_sources = Object.freeze([
-    "raw_registry",
-    "remote_tarball",
-    "git",
-    "http_url",
-    "file_url",
-    "workspace_symlink",
-    "unverified_cache"
-  ]);
-  const __autojs6_package_manager_future_promotion_requirements = Object.freeze([
-    "signed_or_host_managed_source_manifest",
-    "sha512_integrity_lock",
-    "transaction_rollback_evidence",
-    "cache_corruption_recovery",
-    "packaged_distribution_evidence",
-    "user_visible_install_authority"
-  ]);
+  let __autojs6_npm_cli_metadata = null;
+  function __autojs6_npm_specs(value) {
+    if (value === undefined) return [];
+    return Array.isArray(value) ? value : [value];
+  }
+  function __autojs6_is_npm_request(value) {
+    return value === undefined || typeof value === "string" || Array.isArray(value);
+  }
+  async function __autojs6_npm_command(arguments_, options = {}) {
+    // Use the real child_process object, including its existing request opt-out.
+    const childProcess = __autojs6_native_require("node:child_process");
+    if (!Array.isArray(arguments_) || arguments_.some(value => typeof value !== "string")) {
+      throw Object.assign(new TypeError("npm arguments must be an array of strings."), { code: "ERR_INVALID_ARG_TYPE" });
+    }
+    if (!__autojs6_npm_cli_metadata) {
+      const metadata = JSON.parse(globalThis.__autojs6_prepare_node_cli());
+      if (metadata.error) throw Object.assign(new Error(metadata.error), { code: "ERR_AUTOJS6_NPM_CLI_SETUP_FAILED" });
+      __autojs6_npm_cli_metadata = metadata;
+    }
+    const cli = __autojs6_npm_cli_metadata;
+    const env = { ...process.env, ...options.env, AUTOJS6_NODE_CLI_ROOT: cli.root };
+    env.PATH = cli.bin + ":" + (env.PATH || "/system/bin");
+    if (options.registry !== undefined) env.npm_config_registry = String(options.registry);
+    if (options.ignoreScripts !== undefined) env.npm_config_ignore_scripts = String(options.ignoreScripts);
+    if (options.offline !== undefined) env.npm_config_offline = String(options.offline);
+    const cwd = options.cwd === undefined ? process.cwd() : options.cwd;
+    const args = [...(options.npmArgs || []), ...arguments_];
+    return new Promise((resolve, reject) => {
+      const child = childProcess.spawn(cli.executable, args, {
+        argv0: "npm", cwd, env, stdio: ["ignore", "pipe", "pipe"],
+        signal: options.signal, timeout: options.timeoutMs
+      });
+      let stdout = "", stderr = "";
+      child.stdout.setEncoding("utf8");
+      child.stderr.setEncoding("utf8");
+      child.stdout.on("data", text => { stdout += text; process.stdout.write(text); });
+      child.stderr.on("data", text => { stderr += text; process.stderr.write(text); });
+      child.once("error", reject);
+      child.once("close", (exitCode, signal) => {
+        const result = { command: arguments_[0] || "", args, cwd, exitCode, signal, stdout, stderr, npmVersion: cli.npmVersion };
+        if (exitCode === 0) { resolve(result); return; }
+        // Keep npm's own diagnostic and error code; spawn errors already reject natively above.
+        const code = /npm (?:error|ERR!) code ([^\s]+)/.exec(stderr);
+        const error = new Error(stderr.trim() || stdout.trim() || ("npm exited with " + (signal || exitCode)));
+        Object.assign(error, result, { code: code ? code[1] : signal || exitCode });
+        reject(error);
+      });
+    });
+  }
+  const __autojs6_package_manager_allowed_sources = Object.freeze(["npm_specifier", "local_unpacked_host_managed"]);
+  const __autojs6_package_manager_denied_sources = Object.freeze([]);
+  const __autojs6_package_manager_future_promotion_requirements = Object.freeze([]);
   const __autojs6_package_manager_plan_operations = Object.freeze(["planInstall", "planUpdate", "planRemove", "planRegistryInstall", "planTarballInstall"]);
   const __autojs6_package_manager_mutation_operations = Object.freeze(["install", "update", "remove"]);
   const __autojs6_npm_facade_operations = Object.freeze([
@@ -21789,13 +21823,16 @@ std::string buildEmbeddedScriptExecutionSource(
     "prune",
     "cli",
     "exec",
-    "runScript"
+    "runScript",
+    "installFromRegistry",
+    "pack",
+    "publish"
   ]);
-  const __autojs6_package_manager_install_authority = "package_manager_mutate_explicit_local_unpacked";
+  const __autojs6_package_manager_install_authority = "npm_cli_or_host_package_manager";
   const __autojs6_package_manager_source_policy = Object.freeze({
     schema: "autojs6-node-package-manager-source-policy-v1",
-    status: "guarded_local_unpacked_mutation",
-    sourceAuthority: "local_unpacked_host_managed_only",
+    status: "npm_cli_and_host_store",
+    sourceAuthority: "npm_specifier_or_host_store",
     installAuthority: __autojs6_package_manager_install_authority,
     grantsInstallAuthority: true,
     allowedSources: __autojs6_package_manager_allowed_sources,
@@ -21803,8 +21840,8 @@ std::string buildEmbeddedScriptExecutionSource(
     planOperations: __autojs6_package_manager_plan_operations,
     mutationOperations: __autojs6_package_manager_mutation_operations,
     mutationCapability: "package_manager.mutate",
-    mutationConfirmation: "allowMutation_required",
-    requiresExpectedIntegrity: true,
+    mutationConfirmation: "allowMutation_for_host_store_only",
+    requiresExpectedIntegrity: false,
     localUnpacked: Object.freeze({
       status: "allowed_substrate",
       source: "host_managed_unpacked_directory",
@@ -21819,49 +21856,49 @@ std::string buildEmbeddedScriptExecutionSource(
       pathEscapes: "denied"
     }),
     registry: Object.freeze({
-      status: "deferred",
-      rawRegistryAccess: false,
-      networkInstall: "denied",
-      metadataDownload: "deferred",
-      cacheReuse: "unverified_cache_denied"
+      status: "available",
+      rawRegistryAccess: true,
+      networkInstall: "npm_native",
+      metadataDownload: "npm_native",
+      cacheReuse: "npm_native"
     }),
     tarball: Object.freeze({
-      status: "host_side_only",
-      androidDownload: "denied",
-      androidExtraction: "deferred",
-      integrity: "sha512_required"
+      status: "available",
+      androidDownload: "npm_native",
+      androidExtraction: "npm_native",
+      integrity: "npm_or_host_store"
     }),
     npmCli: Object.freeze({
-      status: "denied",
-      lifecycleScripts: "denied",
-      nativeBuild: "denied"
+      status: "available",
+      lifecycleScripts: "npm_default",
+      nativeBuild: "external_toolchain_required"
     }),
     futurePromotionRequires: __autojs6_package_manager_future_promotion_requirements
   });
   const __autojs6_package_manager_policy = Object.freeze({
     schema: "autojs6-node-package-manager-policy-v1",
-    status: "guarded_mutation_partial",
+    status: "npm_cli_and_host_store",
     androidStore: "local_app_private_partial",
-    androidRuntimeInstall: "local_unpacked_only",
-    npmCli: "denied",
-    npmFacade: "guarded_package_manager_alias",
-    requireNpm: "guarded_package_manager_alias",
-    npmInstallEquivalent: "host_managed_plus_android_store_substrate",
-    registryDownload: "deferred",
-    tarballInstall: "host_side_only",
-    lockfile: "autojs6_lock_host_managed",
-    integrity: "sha512_required",
-    lifecycleScripts: "denied",
-    debugLifecycleScripts: "not_promoted",
-    binLinks: "denied",
-    symlinks: "denied",
-    nativeBuild: "denied",
-    nativePayloads: "denied",
-    postinstallDownload: "denied",
-    nodeModulesMutation: "transactional_store_only",
-    transaction: "locked_cancellable_atomic",
-    sourcePolicy: "guarded_local_unpacked_mutation",
-    sourceAuthority: "local_unpacked_host_managed_only",
+    androidRuntimeInstall: "bundled_npm_cli",
+    npmCli: "available",
+    npmFacade: "bundled_npm_cli",
+    requireNpm: "bundled_npm_cli",
+    npmInstallEquivalent: "npm_install_in_workspace",
+    registryDownload: "npm_native",
+    tarballInstall: "npm_native",
+    lockfile: "package_lock_or_host_store_lock",
+    integrity: "npm_or_host_store",
+    lifecycleScripts: "npm_default",
+    debugLifecycleScripts: "same_as_release",
+    binLinks: "npm_default_android_exec_rules",
+    symlinks: "npm_default",
+    nativeBuild: "external_toolchain_required",
+    nativePayloads: "android_compatible",
+    postinstallDownload: "npm_default",
+    nodeModulesMutation: "npm_cli",
+    transaction: "npm_native_or_host_store_transaction",
+    sourcePolicy: "npm_cli_and_host_store",
+    sourceAuthority: "npm_specifier_or_host_store",
     installAuthority: __autojs6_package_manager_install_authority,
     allowedSources: __autojs6_package_manager_allowed_sources,
     deniedSources: __autojs6_package_manager_denied_sources,
@@ -21869,13 +21906,13 @@ std::string buildEmbeddedScriptExecutionSource(
     mutationOperations: __autojs6_package_manager_mutation_operations,
     npmFacadeOperations: __autojs6_npm_facade_operations,
     mutationCapability: "package_manager.mutate",
-    mutationConfirmation: "allowMutation_required",
-    requiresExpectedIntegrity: true,
+    mutationConfirmation: "allowMutation_for_host_store_only",
+    requiresExpectedIntegrity: false,
     operations: Object.freeze(["install", "update", "remove", "list", "verify", "prune"]),
     packageKinds: Object.freeze(["dependency", "plugin", "project"]),
-    androidNetwork: "denied",
-    rawExecutables: false,
-    rawRegistryAccess: false,
+    androidNetwork: "npm_default",
+    rawExecutables: true,
+    rawRegistryAccess: true,
     grantsInstallAuthority: true
   });
   function __autojs6_package_manager_options(value) {
@@ -22285,10 +22322,10 @@ std::string buildEmbeddedScriptExecutionSource(
     return Object.freeze({
       schema: "autojs6-node-package-manager-remote-plan-v1",
       operation,
-      status: "blocked_by_policy",
+      status: "metadata_only",
       dryRun: true,
       source: sourceKind,
-      sourceAuthority: sourceKind === "raw_registry" ? "raw_registry_denied" : "remote_tarball_denied",
+      sourceAuthority: "supplied_metadata",
       installAuthority: "none",
       grantsInstallAuthority: false,
       networkAccess: false,
@@ -22296,7 +22333,7 @@ std::string buildEmbeddedScriptExecutionSource(
       lifecycleScripts: "denied",
       binLinks: "denied",
       nativePayloads: "denied",
-      requiresExpectedIntegrity: true,
+      requiresExpectedIntegrity: false,
       message,
       request: Object.freeze(normalizedRequest),
       resolution: Object.freeze(resolution || {}),
@@ -22487,7 +22524,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const profile = __autojs6_profile().packageManagerProfile;
       return Object.freeze({
         schema: "autojs6-node-package-manager-status-v1",
-        status: "guarded_mutation_partial",
+        status: "npm_cli_and_host_store",
         profileStatus: profile.status,
         hostPackageManager: profile.hostPackageManager,
         androidStore: profile.androidStore,
@@ -22504,7 +22541,7 @@ std::string buildEmbeddedScriptExecutionSource(
         mutationOperations: __autojs6_package_manager_mutation_operations,
         mutationCapability: __autojs6_package_manager_policy.mutationCapability,
         mutationConfirmation: __autojs6_package_manager_policy.mutationConfirmation,
-        requiresExpectedIntegrity: true,
+        requiresExpectedIntegrity: false,
         operations: __autojs6_package_manager_policy.operations,
         packageKinds: __autojs6_package_manager_policy.packageKinds,
         npmCli: profile.npmCli,
@@ -22587,7 +22624,7 @@ std::string buildEmbeddedScriptExecutionSource(
         payload,
         __autojs6_package_manager_source_policy.registry,
         resolution,
-        "Android registry metadata download and install remain blocked by package_manager source policy."
+        "This plan describes supplied metadata only; install a package specifier to resolve and download with npm."
       ));
     }
     function planTarballInstall(request) {
@@ -22605,10 +22642,13 @@ std::string buildEmbeddedScriptExecutionSource(
         payload,
         __autojs6_package_manager_source_policy.tarball,
         resolution,
-        "Android remote tarball download and extraction remain blocked by package_manager source policy."
+        "This plan describes the tarball URL only; install the URL with npm to download and extract it."
       ));
     }
-    function install(request) {
+    function install(request, options) {
+      if (__autojs6_is_npm_request(request)) {
+        return __autojs6_npm_command(["install", ...__autojs6_npm_specs(request)], options);
+      }
       let payload;
       try {
         payload = __autojs6_package_manager_mutation_source_request("install", request);
@@ -22623,7 +22663,10 @@ std::string buildEmbeddedScriptExecutionSource(
         __autojs6_package_manager_mutation_bridge_options(input, 15000)
       ).then(__autojs6_package_manager_operation_result);
     }
-    function update(request) {
+    function update(request, options) {
+      if (__autojs6_is_npm_request(request)) {
+        return __autojs6_npm_command(["update", ...__autojs6_npm_specs(request)], options);
+      }
       let payload;
       try {
         payload = __autojs6_package_manager_mutation_source_request("update", request);
@@ -22638,7 +22681,10 @@ std::string buildEmbeddedScriptExecutionSource(
         __autojs6_package_manager_mutation_bridge_options(input, 15000)
       ).then(__autojs6_package_manager_operation_result);
     }
-    function remove(request) {
+    function remove(request, options) {
+      if (__autojs6_is_npm_request(request)) {
+        return __autojs6_npm_command(["uninstall", ...__autojs6_npm_specs(request)], options);
+      }
       let payload;
       try {
         payload = __autojs6_package_manager_mutation_remove_request("remove", request);
@@ -22711,16 +22757,6 @@ std::string buildEmbeddedScriptExecutionSource(
       prune
     });
     return __autojs6_limited_package_manager_cache;
-  }
-  function __autojs6_npm_facade_denied(methodName, message, code) {
-    return function() {
-      throw __autojs6_bridge_error(
-        message,
-        code || "ERR_AUTOJS6_NPM_CLI_DENIED",
-        "npm",
-        methodName
-      );
-    };
   }
   function __autojs6_limited_npm() {
     if (__autojs6_limited_npm_cache) {
@@ -22811,33 +22847,12 @@ std::string buildEmbeddedScriptExecutionSource(
       list: packageManager.list,
       verify: packageManager.verify,
       prune: packageManager.prune,
-      cli: __autojs6_npm_facade_denied(
-        "cli",
-        "npm.cli is not promoted in the current AutoJs6 Node profile; Android npm CLI execution remains denied."
-      ),
-      exec: __autojs6_npm_facade_denied(
-        "exec",
-        "npm.exec is not promoted in the current AutoJs6 Node profile; use guarded local package_manager operations instead."
-      ),
-      runScript: __autojs6_npm_facade_denied(
-        "runScript",
-        "npm.runScript is not promoted in the current AutoJs6 Node profile; package lifecycle scripts remain denied."
-      ),
-      installFromRegistry: __autojs6_npm_facade_denied(
-        "installFromRegistry",
-        "npm.installFromRegistry is not promoted in the current AutoJs6 Node profile; Android registry installation remains denied.",
-        "ERR_AUTOJS6_NPM_REGISTRY_DENIED"
-      ),
-      publish: __autojs6_npm_facade_denied(
-        "publish",
-        "npm.publish is not promoted in the current AutoJs6 Node profile; registry publishing remains denied.",
-        "ERR_AUTOJS6_NPM_REGISTRY_DENIED"
-      ),
-      pack: __autojs6_npm_facade_denied(
-        "pack",
-        "npm.pack is not promoted in the current AutoJs6 Node profile; package tarball creation remains host-managed.",
-        "ERR_AUTOJS6_NPM_CLI_DENIED"
-      )
+      cli: __autojs6_npm_command,
+      exec: (args = [], options) => __autojs6_npm_command(["exec", "--", ...args], options),
+      runScript: (name, args = [], options) => __autojs6_npm_command(["run", name, "--", ...args], options),
+      installFromRegistry: packageManager.install,
+      publish: (spec, options) => __autojs6_npm_command(["publish", ...__autojs6_npm_specs(spec)], options),
+      pack: (spec, options) => __autojs6_npm_command(["pack", ...__autojs6_npm_specs(spec)], options)
     });
     return __autojs6_limited_npm_cache;
   }

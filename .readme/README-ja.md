@@ -107,8 +107,9 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 - ファイルストリーム、gzip/deflate/Brotli ストリームと基本 VM 実行を正式サポート; 明示的に有効化した Inspector (Debug/Release) は localhost の範囲で正式サポート.
 - 組み込み実行で ExperimentalWarning の表示を停止し、warning イベント、通常の警告、非推奨警告とエラーを維持; Node 上流 API の安定性と端末の既定動作は変更なし.
 - ネイティブ Worker がネスト, MessagePort API, stdio, argv, execArgv とプリロードの継承に対応; プラグイン独自の Worker 数と起動時間の上限を削除し, resourceLimits は上書き可能な既定値に変更; WorkerPool のキュー数とタスク時間は既定で無制限, Inspector セッションは実行要求と現在のビルドに従う
-- メインスクリプトと Worker で Android ネイティブアドオンを Node からロード可能; process.dlopen と .node はネイティブ動作となり, 独自の署名やハッシュ許可リストを設けない; native-addon は 3 ABI の 16 KB アラインメント済み Node-API バイナリとオフライン NDK/CMake ビルドを提供; ABI 不一致や破損は ERR_DLOPEN_FAILED などの Node エラーとなり, 端末用 node-gyp や NDK は同梱しない
+- メインスクリプトと Worker で Android ネイティブアドオンを Node からロード可能; process.dlopen と .node はネイティブ動作となり, 独自の署名やハッシュ許可リストを設けない; native-addon は 3 ABI の 16 KB アラインメント済み Node-API バイナリとオフライン NDK/CMake ビルドを提供; ABI 不一致や破損は ERR_DLOPEN_FAILED などの Node エラーとなり, 端末用 NDK や Python は同梱しない
 - ホストの明示的な許可により Debug と Release ビルドで Inspector を利用可能; inspector と inspector/promises は Node のネイティブモジュールを維持し, メインスクリプトと Worker で Session を使用可能, 待受は 127.0.0.1 のみでブロッキング待機は不可; 未許可時は url() が undefined を返し, 有効化と Session 作成は無効
+- package_manager の install/update/remove が npm パッケージ指定を受け取り, 同梱 npm を作業領域で実行; npm.cli/exec/runScript/pack は実際の CLI を使用し, registry/プロキシ/ライフサイクル設定は npm とプロジェクトの .npmrc に従う, 出力を逐次転送して npm エラーコードを保持; CLI 資産は初回使用時のみ準備し, オブジェクト形式の要求は既存のホストローカルストア契約を維持
 
 ******
 
@@ -133,8 +134,9 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `改善` ネイティブ Worker がネスト, MessagePort API, stdio, argv, execArgv とプリロードの継承に対応; プラグイン独自の Worker 数と起動時間の上限を削除し, resourceLimits は上書き可能な既定値に変更; WorkerPool のキュー数とタスク時間は既定で無制限, Inspector セッションは実行要求と現在のビルドに従う
 * `改善` Worker とネストした Worker から親の MessagePort 経由で autojs6:bridge.callAutoJs を利用可能; ホスト broker の権限検査, エラー, タイムアウトとキャンセルを維持し, worker-host-bridge で実際のホスト端末情報の取得を示す; ブリッジ API の TypeScript 宣言を提供
 * `改善` 未コンパイルの .ts / .mts / .cts のエントリーとインポート先は、引き続きホスト Compiler が生成した JavaScript を必要とします。スナップショットの対応付けと provider v3 のオンデマンドコンパイルを維持し、従来の AutoJs6 ESM / 動的インポートエラーコードを Node 本来のエラーに置き換えました。
-* `改善` メインスクリプトと Worker で Android ネイティブアドオンを Node からロード可能; process.dlopen と .node はネイティブ動作となり, 独自の署名やハッシュ許可リストを設けない; native-addon は 3 ABI の 16 KB アラインメント済み Node-API バイナリとオフライン NDK/CMake ビルドを提供; ABI 不一致や破損は ERR_DLOPEN_FAILED などの Node エラーとなり, 端末用 node-gyp や NDK は同梱しない
+* `改善` メインスクリプトと Worker で Android ネイティブアドオンを Node からロード可能; process.dlopen と .node はネイティブ動作となり, 独自の署名やハッシュ許可リストを設けない; native-addon は 3 ABI の 16 KB アラインメント済み Node-API バイナリとオフライン NDK/CMake ビルドを提供; ABI 不一致や破損は ERR_DLOPEN_FAILED などの Node エラーとなり, 端末用 NDK や Python は同梱しない
 * `改善` ホストの明示的な許可により Debug と Release ビルドで Inspector を利用可能; inspector と inspector/promises は Node のネイティブモジュールを維持し, メインスクリプトと Worker で Session を使用可能, 待受は 127.0.0.1 のみでブロッキング待機は不可; 未許可時は url() が undefined を返し, 有効化と Session 作成は無効
+* `改善` package_manager の install/update/remove が npm パッケージ指定を受け取り, 同梱 npm を作業領域で実行; npm.cli/exec/runScript/pack は実際の CLI を使用し, registry/プロキシ/ライフサイクル設定は npm とプロジェクトの .npmrc に従う, 出力を逐次転送して npm エラーコードを保持; CLI 資産は初回使用時のみ準備し, オブジェクト形式の要求は既存のホストローカルストア契約を維持
 
 # v1.5.7
 

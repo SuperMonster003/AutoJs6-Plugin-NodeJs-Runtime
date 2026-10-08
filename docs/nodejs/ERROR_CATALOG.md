@@ -117,3 +117,10 @@ Since M23.5, importing Inspector is allowed even without permission; url() then
 returns undefined. Opening an endpoint or constructing a Session without the
 explicit request still reports `ERR_AUTOJS6_BUILTIN_DISABLED`. Remote addresses
 and blocking waits report `ERR_INVALID_ARG_VALUE` in Debug and Release alike.
+
+M23.6 retires ERR_AUTOJS6_NPM_CLI_DENIED and ERR_AUTOJS6_NPM_REGISTRY_DENIED.
+Bundled CLI extraction/setup failures use ERR_AUTOJS6_NPM_CLI_SETUP_FAILED.
+Command failures preserve npm stdout/stderr and its reported code (for example
+ENOTCACHED, E404 or ECONNREFUSED), with exitCode/signal on the rejected error.
+Spawn and AbortSignal errors come from Node. The object-based host local-store
+mutation errors and permission requirements are unchanged.

@@ -21,8 +21,9 @@
 * `개선` 네이티브 Worker가 중첩, MessagePort API, stdio, argv, execArgv 및 사전 로드 상속을 지원; 플러그인의 Worker 수와 시작 시간 제한을 제거하고 요청 resourceLimits를 재정의 가능한 기본값으로 변경; WorkerPool은 기본 대기열 및 작업 시간 제한이 없으며 Inspector 세션은 실행 요청과 현재 빌드 지원을 따름
 * `개선` Worker와 중첩 Worker에서 부모 MessagePort를 통해 autojs6:bridge.callAutoJs를 사용 가능; 호스트 broker의 권한 검사, 오류, 시간 초과 및 취소를 유지하며 worker-host-bridge 예제로 실제 호스트 기기 정보 조회를 제공; 브리지 API의 TypeScript 선언도 제공
 * `개선` 원본 .ts / .mts / .cts 진입점과 가져온 모듈에는 여전히 호스트 Compiler가 생성한 JavaScript가 필요합니다. 스냅샷 매핑과 provider v3의 요청 시 컴파일을 유지하고, 기존 AutoJs6 ESM 및 동적 가져오기 오류 코드를 Node 기본 오류로 대체했습니다.
-* `개선` 메인 스크립트와 Worker에서 Node를 통해 Android 네이티브 애드온을 로드 가능; process.dlopen과 .node는 기본 동작을 사용하며 별도 서명 또는 해시 허용 목록이 없음; native-addon은 3개 ABI의 16 KB 정렬 Node-API 바이너리와 오프라인 NDK/CMake 빌드를 제공; ABI 불일치나 손상은 ERR_DLOPEN_FAILED 등의 Node 오류로 반환되며 기기용 node-gyp 또는 NDK는 포함하지 않음
+* `개선` 메인 스크립트와 Worker에서 Node를 통해 Android 네이티브 애드온을 로드 가능; process.dlopen과 .node는 기본 동작을 사용하며 별도 서명 또는 해시 허용 목록이 없음; native-addon은 3개 ABI의 16 KB 정렬 Node-API 바이너리와 오프라인 NDK/CMake 빌드를 제공; ABI 불일치나 손상은 ERR_DLOPEN_FAILED 등의 Node 오류로 반환되며 기기용 NDK 또는 Python는 포함하지 않음
 * `개선` 호스트의 명시적 허용으로 Debug 및 Release 빌드에서 Inspector 사용 가능; inspector와 inspector/promises는 Node 기본 모듈 객체를 유지하고 메인 스크립트와 Worker에서 Session을 지원하며, 수신 주소는 127.0.0.1로 제한되고 블로킹 대기는 지원하지 않음; 허용되지 않으면 url()은 undefined를 반환하고 활성화 및 Session 생성은 비활성화됨
+* `개선` package_manager의 install/update/remove가 npm 패키지 사양을 받아 작업 공간에서 내장 npm 실행; npm.cli/exec/runScript/pack은 실제 CLI를 사용하고 registry/프록시/수명 주기 옵션은 npm 및 프로젝트 .npmrc를 따르며, 출력을 스트리밍하고 npm 오류 코드를 유지; CLI 파일은 최초 사용 시 준비하고 객체 요청은 기존 호스트 로컬 저장소 계약을 유지
 
 # v1.5.7
 

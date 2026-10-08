@@ -18,6 +18,6 @@ can initialize in separate workers and repeated script executions. See the
 The linker uses `-Wl,-z,max-page-size=16384` for Android's
 [16 KB page support](https://developer.android.com/guide/practices/page-sizes).
 
-This is a cross-compilation example. The runtime plugin does not bundle node-gyp,
-CMake or an NDK on the device. Other addons need Android-compatible prebuilt
+This is a cross-compilation example. Bundled npm includes node-gyp JavaScript, but the runtime plugin does not
+provide CMake, an NDK or Python on the device. Other addons need Android-compatible prebuilt
 binaries or a corresponding cross-build, including compatible native dependencies.

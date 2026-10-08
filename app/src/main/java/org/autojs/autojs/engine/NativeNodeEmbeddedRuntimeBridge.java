@@ -1,6 +1,9 @@
 package org.autojs.autojs.engine;
 
 import android.content.Context;
+import io.github.supermonster003.autojs6.plugin.nodejs.NodeRuntimeCli;
+import org.json.JSONObject;
+import java.nio.charset.StandardCharsets;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,6 +13,7 @@ public final class NativeNodeEmbeddedRuntimeBridge {
 
     private static final NativeNodeEmbeddedRuntimeBridge INSTANCE = new NativeNodeEmbeddedRuntimeBridge();
     private static volatile boolean librariesLoaded;
+    private static Context applicationContext;
 
     private NativeNodeEmbeddedRuntimeBridge() {
     }
@@ -83,8 +87,21 @@ public final class NativeNodeEmbeddedRuntimeBridge {
         }
         System.loadLibrary("node");
         System.loadLibrary("autojs6-node");
+        applicationContext = context.getApplicationContext();
+        INSTANCE.nativeConfigureNodeCli();
         librariesLoaded = true;
     }
+
+    // Called by the V8 preparation callback only when a script first uses npm.
+    private static byte[] prepareNodeCli() {
+        try {
+            return NodeRuntimeCli.prepare(applicationContext).toString().getBytes(StandardCharsets.UTF_8);
+        } catch (Exception error) {
+            return ("{\"error\":" + JSONObject.quote(error.toString()) + "}").getBytes(StandardCharsets.UTF_8);
+        }
+    }
+
+    private native void nativeConfigureNodeCli();
 
     @FunctionalInterface
     private interface NativePayloadCall {

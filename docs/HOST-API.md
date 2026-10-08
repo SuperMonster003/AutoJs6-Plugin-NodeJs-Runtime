@@ -36,9 +36,9 @@ SQL 里的文件操作完全交给原生 SQLite (M23.1, 2026-10-07; 取代 M20.2
 
 M23.4 起, 主线程和 Worker 的 `process.dlopen` / `Module._extensions[".node"]` 使用 Node 原生实现, Node Environment 不再设置 kNoNativeAddons. 通过 require 或 createRequire 加载磁盘上的 Android addon; 二进制不进入 JavaScript module-source provider, 扩展名省略时也保留 Node 对 .node 的查找. JS 插件可携带并 require 原生依赖, JS 插件本身的入口仍遵循 .js/.cjs 契约.
 
-`sample/nodejs/native-addon` 提供三 ABI 的真实 Node-API 示例, 按 process.arch 选择文件; `tools/nodejs/addon` 提供源码与离线 NDK/CMake 构建命令. addon 及依赖须匹配 Android、运行进程 ABI 和设备页大小, 示例以 16 KB 对齐构建并链接随包 libnode.so. 插件不随包 node-gyp / NDK, 应在桌面交叉编译或使用 Android 预编译分发. 直接 ESM import .node 的处理仍由 Node 决定, ESM 项目可使用 createRequire.
+`sample/nodejs/native-addon` 提供三 ABI 的真实 Node-API 示例, 按 process.arch 选择文件; `tools/nodejs/addon` 提供源码与离线 NDK/CMake 构建命令. addon 及依赖须匹配 Android、运行进程 ABI 和设备页大小, 示例以 16 KB 对齐构建并链接随包 libnode.so. 随包 npm 含 node-gyp 的 JavaScript 脚本, 但插件不提供 NDK/Python 编译环境; addon 通常在桌面交叉编译或使用 Android 预编译分发. 直接 ESM import .node 的处理仍由 Node 决定, ESM 项目可使用 createRequire.
 
-错 ABI、缺依赖、损坏二进制由 Node/Android 动态链接器报告 (例如 ERR_DLOPEN_FAILED), 不再返回 ERR_AUTOJS6_NATIVE_ADDON_DISABLED 或 ERR_AUTOJS6_PROCESS_API_DISABLED. 原生代码在运行时槽进程中执行, 崩溃走既有 M12.5 slotExit / 系统 tombstone 报告. 设备端 npm registry 安装流程仍单独属于 M23.6, 本项不等于在设备内提供编译工具链.
+错 ABI、缺依赖、损坏二进制由 Node/Android 动态链接器报告 (例如 ERR_DLOPEN_FAILED), 不再返回 ERR_AUTOJS6_NATIVE_ADDON_DISABLED 或 ERR_AUTOJS6_PROCESS_API_DISABLED. 原生代码在运行时槽进程中执行, 崩溃走既有 M12.5 slotExit / 系统 tombstone 报告. 设备端 npm registry 安装见 M23.6 下方说明; 插件不在设备内提供编译工具链.
 
 ## MediaInfo 多流查询
 
@@ -104,7 +104,7 @@ M23.4 起, 主线程和 Worker 的 `process.dlopen` / `Module._extensions[".node
 | `mediainfo` | read, get, countGet, capabilities (Android 可访问的文件路径; 缺省保持 Node v1, 插件明确宣告后可显式请求插件 v1/v2) | — |
 | `media_store` | capabilities, query, get, insert, update, delete, scanFile, exportFile | 读需 media + media.library (Android 13+ 为 READ_MEDIA_AUDIO/IMAGES/VIDEO, 更早为 READ_EXTERNAL_STORAGE); insert/update/delete 另需 media.library.mutate, Android 10+ 只能改本应用创建的记录, Android 9- 需 WRITE_EXTERNAL_STORAGE; 需含媒体 provider 的宿主 (2026-09-17 已合并进宿主 master) |
 | `ui.overlay` | show, update, drainEvents, close, closeAll, hasPermission, openPermissionSettings | 需 SYSTEM_ALERT_WINDOW; 真实窗口、属性更新、拖动、推送与退出清理 |
-| `package_manager` (`npm` 为其别名) | list, verify, prune, planInstall/Update/Remove, install, update, remove (app 私有本地库) | npm CLI / registry 下载 / 生命周期脚本 |
+| `package_manager` / `npm` | 字符串/字符串数组 install/update/remove 通过随包 npm 在工作区运行, 支持 registry 下载与生命周期脚本; npm.cli/exec/runScript/pack 提供原生命令行; 对象请求及 list/verify/prune/plan* 保留宿主本地库兼容路径 | 设备未内置 node-gyp/NDK; 下载后文件的执行由 Android 裁决 |
 | `input_observer` | observeKeys, drainEvents, close, getAvailableSources (fake/accessibility) | 实源需可运行的无障碍服务; 不拦截按键, touch/intercept 仍拒绝 |
 
 截屏需声明 `screen_capture` 与 `image`。`await images.requestScreenCapture()` 打开宿主既有 Android 授权流程, 授权后才启动 mediaProjection 前台服务; `captureScreen` / `media_projection.nextImage` 返回宿主图片句柄。`saveImage(handle, path, {format, quality})` 保存 PNG/JPEG/WebP, 默认 PNG, quality 为 0..100。`images.stopScreenCapture()` / capturer.stop、系统撤销和脚本结束释放会话; 未授权捕获返回 `permission-denied`。图片延续每次执行默认 32 个活跃句柄的既有限制, recycle 或执行结束释放。M14.1 未授权回归与真实授权链均已验收: 2026-09-10 Sony XQ-DQ72 返回 1096x2560 截图, PNG 尺寸与设备分辨率一致, 裁剪模板回读匹配到 (468,1220), 偏差 0 px。
@@ -364,3 +364,26 @@ M3.2 原定 "补齐 toast / app.launch / click / swipe / text 查找 / 剪贴板
 `media_store` 只经 JSON 行交换数据: `capabilities()` 报告 `sdkInt`、`scopedStorage`、集合 (`audio`/`images`/`video`, Android 10+ 另有 `downloads`)、各集合可用列、读权限状态与 `queryPolicy`/`mutatePolicy`; `query(collection, { filter, sort, limit, offset, columns })` 的 filter 是结构化 JSON (标量 eq、null 为 IS NULL、数组为 IN, 运算符 eq/ne/gt/gte/lt/lte/like/contains/startsWith/endsWith/in/isNull, `ownedOnly` 在 Android 10+ 限定本应用创建的记录), 由宿主编译为参数化 selection, 脚本不能提交 SQL; `sort` 接受 `"-dateAdded"` / `"dateAdded desc"` 形式, `limit` 1..1000 (默认 100)。`get` 返回 `autojs6-node-media-store-item-v1` 记录或 `null`; `insert(collection, { displayName, mimeType, source, relativePath })` 把宿主可读文件复制为新记录 (Android 10+ 走 IS_PENDING, 更早版本写公共目录并需 WRITE_EXTERNAL_STORAGE); `update` 只接受 `displayName` 与 `relativePath` (TITLE 等元数据列由 MediaProvider 推导, 桥拒绝而不是假装写入); `delete`、`scanFile(path, { mimeType })` 与 `exportFile(collection, id, destination)` 同样只返回 JSON。游标、Uri、描述符、Context 等原生对象不跨桥 (rawObjectPolicy)。
 
 `autojs6:compat.media` 在 Node 媒体模块之上补充 Rhino 风格别名 `playMusic(path, volume, looping)`、`pauseMusic`、`resumeMusic`、`stopMusic`、`musicSeekTo`、`isMusicPlaying`、`getMusicDuration` (无会话时 0)、`getMusicCurrentPosition` (无会话时 -1) 与 `scanFile` (返回布尔)。这些方法在插件私有工作区副本中运行时, 相对路径按宿主的项目目录解析, 因此样例把 `tone.wav` 作为项目资产随目录一起复制; 宿主侧的隐私披露 `media_library` 面已登记, 插件侧的 `__autojs6_privacy_disclosure_policy_report` 未同步扩展。
+
+## npm registry 与命令行
+
+M23.6 起, `await require("package_manager").install("is-number@7.0.0")` 在当前工作目录运行随包 npm, 安装后可以直接 `require("is-number")`. 字符串、字符串数组或不传参数的 install/update/remove 分别调用 npm install/update/uninstall; update 遵循 package.json 中的版本范围, 改到指定范围可使用 install. 若已加载模块再更新文件, require.cache 仍遵循 Node 行为, 不会自动清空.
+
+```javascript
+const pm = require("package_manager");
+await pm.install("is-number@7.0.0");
+await pm.update("is-number");
+const npm = require("npm");
+await npm.cli(["ls", "--json"]);
+await npm.runScript("build", ["--verbose"]);
+```
+
+第二个参数可传 cwd、registry、ignoreScripts、offline、env、npmArgs、signal、timeoutMs. npmArgs 是额外的 npm 参数, 放在命令前; npm.runScript 的第二个参数是脚本参数数组, 选项放在第三个参数. 不传时遵循 npm 默认值和工作区 .npmrc, 包括代理、registry、ignore-scripts 与 bin-links. 选项中的 registry/ignoreScripts/offline 显式覆盖相应 npm 配置. CLI 路径仍遵循 child_process 请求开关, 不需要宿主 package_manager.mutate 权限或 allowMutation 确认字段.
+
+CLI 首次调用时才在插件 filesDir 解压既有 npm/corepack 资产, 按现有资产 lock 的摘要、条目数及字节数校验并原子提交; 槽进程共享该目录. 通过安装目录内的 libnodexe.so (argv0=npm) 启动 npm, PATH 中提供指向该启动器的 node/npm 等命令链接, 供生命周期脚本使用. 普通脚本不承担解压开销. 既有 npm 11.19.0 资产内含 node-gyp 12.4.0 的 JavaScript 脚本, 不额外安装 NDK、Python、git 或编译器; 依赖设备编译工具链的包由 npm/系统给出实际错误.
+
+返回结果含 command/args/cwd、exitCode=0、stdout/stderr 与 npmVersion; 输出同时通过既有执行回调流式回传. 失败的 Promise 保留 npm 输出、exitCode、signal, 并从 npm 错误行提供 E404、ENOTCACHED 等原生 code; 无该错误行时使用退出码或信号. spawn/AbortSignal 错误保持 Node 自身行为, CLI 资产准备失败报告 ERR_AUTOJS6_NPM_CLI_SETUP_FAILED. 不设额外默认超时; 可用 timeoutMs/signal 控制此次子进程.
+
+带 sourceDir/name/version 等字段的对象请求保留旧宿主本地库路径, 继续使用原来的权限、allowMutation 与 expectedIntegrity 契约. list/verify/prune 和本地 plan* 同样属于该路径. planRegistryInstall/planTarballInstall 仅解释传入元数据, 不联网、不修改文件, status 为 metadata_only; 实际解析、缓存、下载和解包全部由 npm 执行.
+
+npm 在执行中创建的 .bin 链接保持原样. 现有工作区归档协议不支持符号链接回传; 需要回写宿主项目且依赖带 bin 入口时, 在 .npmrc 设置 bin-links=false 或显式传 npmArgs: ["--no-bin-links"]. 这不是 npm 调用的默认覆盖. Android 也可能拒绝执行 app data 中的脚本或下载二进制; JS 工具可显式通过 node 读取入口文件. 可运行项目见 sample/nodejs/npm-registry. 真正外网验收单独运行 NpmRegistryDeviceTest 并传 nodeNpmOnline=true; 常规 NpmCliSmokeTest 只访问回环测试 registry.

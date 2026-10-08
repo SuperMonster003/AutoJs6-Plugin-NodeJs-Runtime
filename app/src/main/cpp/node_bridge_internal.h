@@ -368,6 +368,7 @@ private:
 // set → run → clear window free of cross-execution races.
 std::shared_ptr<JavaOutputSink> currentOutputStreamSink();
 void setCurrentOutputStreamSink(std::shared_ptr<JavaOutputSink> sink);
+void installNodeCliPreparation(v8::Isolate* isolate, v8::Local<v8::Context> context);
 
 // Cooperative cancellation (M2.2): the service opens a stop scope tagged with
 // the execution id before dispatching natively; the lifecycle publishes the

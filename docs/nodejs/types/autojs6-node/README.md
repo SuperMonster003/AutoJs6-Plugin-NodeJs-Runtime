@@ -189,23 +189,13 @@ It also records raw loader hooks, raw
 `node:module` loader authority, network/file/unrestricted URL imports,
 working-directory escapes, and raw Node loader handles as denied.
 
-P13-42 extends the `autojs6:profile` declaration with
-`packageManagerProfile`. The field reports the current partial Android package
-manager boundary: host-managed package validation is available, the Android
-runtime has a local app-private store substrate for already-unpacked packages,
-and the `package_manager` module exposes status/policy/sourcePolicy,
-dry-run `planInstall`/`planUpdate`/`planRemove`, policy-only
-`planRegistryInstall`/`planTarballInstall` returning `RemotePackagePlan` with
-frozen remote plan dist-tag/semver/tarball/integrity resolution diagnostics,
-guarded `install`/`update`/`remove`, plus `list`, `verify`, and `prune` for
-the app-private store. The `npm` module is also declared as a guarded
-package-manager alias facade; it exposes the same local-store plan/mutation,
-remote source-boundary plan, and maintenance calls while keeping
-CLI/registry/lifecycle APIs denied. The source policy records
-`local_unpacked_host_managed` as the only allowed substrate.
-npm CLI, registry download, remote tarball install, lifecycle scripts, bin
-links, symlinks, native builds, native payloads, postinstall downloads,
-unrestricted mutation, raw executables, and raw registry access remain denied.
+M23.6 adds bundled npm execution to package_manager and npm. String/array
+install, update and remove calls return Promise<NpmCliResult>; the existing
+object overloads and store maintenance keep their host-managed contract.
+npm.cli, exec, runScript and pack expose the real CLI, with explicit cwd,
+registry, ignoreScripts, offline, env, npmArgs, signal and timeoutMs options.
+Output streams through the execution callback and failures retain npm errors.
+Remote plan calls remain metadata-only and do not access the network.
 
 P13-43 extends the `autojs6:profile` declaration with `stdlibProfile`. The
 field reports the current partial Safe Node stdlib conformance subset for

@@ -709,7 +709,8 @@ async function smoke(): Promise<void> {
   const npmPlanTarballInstall: (request: npm.PlanTarballInstallRequest) => Promise<npm.RemotePackagePlan> = npm.planTarballInstall;
   const npmInstall: (request: npm.MutationSourceRequest) => Promise<npm.OperationResult> = npm.install;
   const npmList: (options?: npm.ListOptions) => Promise<readonly npm.PackageRecord[]> = npm.list;
-  const npmCliDenied: (...args: readonly unknown[]) => never = npm.cli;
+  const npmCli: (args: readonly string[], options?: npm.NpmCliOptions) => Promise<npm.NpmCliResult> = npm.cli;
+  const npmRegistryInstall: (spec?: packageManager.NpmPackageSpec, options?: packageManager.NpmCliOptions) => Promise<packageManager.NpmCliResult> = packageManager.install;
   const pluginInfo: plugins.PluginManifest = plugins.manifest("org.example.types");
   const pluginEntry: string = plugins.resolve("org.example.types");
   const typedPlugin: TypeSmokePlugin = plugins.load<TypeSmokePlugin>("org.example.types");
@@ -1364,7 +1365,8 @@ async function smoke(): Promise<void> {
   void npmPlanTarballInstall;
   void npmInstall;
   void npmList;
-  void npmCliDenied;
+  void npmCli;
+  void npmRegistryInstall;
   void autojsVersionCode;
   void autojsPackageName;
   void autojsContextAvailable;

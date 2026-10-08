@@ -441,7 +441,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 assert.equal(profile.esmLoaderProfile.dataUrlImports, 'native');
                 assert.equal(profile.esmLoaderProfile.status, 'node_native_loader');
                 assert.equal(profile.esmLoaderProfile.loaderHooks, 'module_register_hooks');
-                assert.equal(profile.packageManagerProfile.registryDownload, 'denied_by_policy');
+                assert.equal(profile.packageManagerProfile.registryDownload, 'npm_native');
                 assert.equal(profile.packageManagerProfile.terminalCli, 'host_terminal_node_npm_corepack_launcher');
                 for (const name of ['processParityProfile', 'packagedCapabilityProfile', 'processWorkerReplacementProfile', 'wasiProfile', 'nativeAddonProfile']) {
                   assert.ok(!/(_partial|_reserved|closed_by_p)/.test(profile[name].status), name + '=' + profile[name].status);

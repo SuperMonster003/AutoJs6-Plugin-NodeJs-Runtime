@@ -5,6 +5,33 @@ declare module "package_manager" {
     export type MutationOperation = "install" | "update" | "remove";
     export type PackageKind = "dependency" | "plugin" | "project";
 
+    /** npm's package spec syntax, including registry names, directories and tarball URLs. */
+    export type NpmPackageSpec = string | readonly string[];
+
+    export interface NpmCliOptions {
+      readonly cwd?: string;
+      readonly registry?: string;
+      readonly ignoreScripts?: boolean;
+      readonly offline?: boolean;
+      readonly env?: Readonly<Record<string, string | undefined>>;
+      readonly npmArgs?: readonly string[];
+      /** Pass the execution environment's native AbortSignal. */
+      readonly signal?: unknown;
+      /** Native child_process timeout; absent means no additional CLI deadline. */
+      readonly timeoutMs?: number;
+    }
+
+    export interface NpmCliResult {
+      readonly command: string;
+      readonly args: readonly string[];
+      readonly cwd: string;
+      readonly exitCode: 0;
+      readonly signal: null;
+      readonly stdout: string;
+      readonly stderr: string;
+      readonly npmVersion: string;
+    }
+
     export interface BridgeOptions {
       readonly timeoutMs?: number;
       readonly signal?: unknown;
@@ -210,10 +237,10 @@ declare module "package_manager" {
     export interface RemotePackagePlan {
       readonly schema: "autojs6-node-package-manager-remote-plan-v1";
       readonly operation: "planRegistryInstall" | "planTarballInstall" | string;
-      readonly status: "blocked_by_policy" | string;
+      readonly status: "metadata_only" | string;
       readonly dryRun: true;
       readonly source: "raw_registry" | "remote_tarball" | string;
-      readonly sourceAuthority: "raw_registry_denied" | "remote_tarball_denied" | string;
+      readonly sourceAuthority: "supplied_metadata" | string;
       readonly installAuthority: "none" | string;
       readonly grantsInstallAuthority: false;
       readonly networkAccess: false;
@@ -229,10 +256,10 @@ declare module "package_manager" {
       readonly futurePromotionRequires: readonly string[];
     }
 
-    export type SourceAuthority = "local_unpacked_host_managed_only" | string;
-    export type InstallAuthority = "package_manager_mutate_explicit_local_unpacked" | "internal_substrate_only" | string;
-    export type SourcePolicyStatus = "guarded_local_unpacked_mutation" | "decision_only_no_install_authority" | string;
-    export type AllowedSource = "local_unpacked_host_managed" | string;
+    export type SourceAuthority = "npm_specifier_or_host_store" | string;
+    export type InstallAuthority = "npm_cli_or_host_package_manager" | "internal_substrate_only" | string;
+    export type SourcePolicyStatus = "npm_cli_and_host_store" | "decision_only_no_install_authority" | string;
+    export type AllowedSource = "npm_specifier" | "local_unpacked_host_managed" | string;
     export type DeniedSource =
       | "raw_registry"
       | "remote_tarball"
@@ -258,24 +285,24 @@ declare module "package_manager" {
     }
 
     export interface RegistrySourcePolicy {
-      readonly status: "deferred" | string;
+      readonly status: "available" | string;
       readonly rawRegistryAccess: boolean;
-      readonly networkInstall: "denied" | string;
-      readonly metadataDownload: "deferred" | string;
-      readonly cacheReuse: "unverified_cache_denied" | string;
+      readonly networkInstall: "npm_native" | string;
+      readonly metadataDownload: "npm_native" | string;
+      readonly cacheReuse: "npm_native" | string;
     }
 
     export interface TarballSourcePolicy {
-      readonly status: "host_side_only" | string;
-      readonly androidDownload: "denied" | string;
-      readonly androidExtraction: "deferred" | string;
-      readonly integrity: "sha512_required" | string;
+      readonly status: "available" | string;
+      readonly androidDownload: "npm_native" | string;
+      readonly androidExtraction: "npm_native" | string;
+      readonly integrity: "npm_or_host_store" | string;
     }
 
     export interface NpmCliSourcePolicy {
-      readonly status: "denied" | string;
-      readonly lifecycleScripts: "denied" | string;
-      readonly nativeBuild: "denied" | string;
+      readonly status: "available" | string;
+      readonly lifecycleScripts: "npm_default" | string;
+      readonly nativeBuild: "external_toolchain_required" | string;
     }
 
     export interface SourcePolicy {
@@ -289,7 +316,7 @@ declare module "package_manager" {
       readonly planOperations: readonly PlanOperation[];
       readonly mutationOperations: readonly MutationOperation[];
       readonly mutationCapability: "package_manager.mutate" | string;
-      readonly mutationConfirmation: "allowMutation_required" | string;
+      readonly mutationConfirmation: "allowMutation_for_host_store_only" | string;
       readonly requiresExpectedIntegrity: boolean;
       readonly localUnpacked: LocalUnpackedSourcePolicy;
       readonly registry: RegistrySourcePolicy;
@@ -300,13 +327,13 @@ declare module "package_manager" {
 
     export interface DiagnosticStatus {
       readonly schema: "autojs6-node-package-manager-status-v1";
-      readonly status: "guarded_mutation_partial" | "read_maintenance_partial" | "diagnostic_only" | string;
-      readonly profileStatus: "android_substrate_partial" | string;
+      readonly status: "npm_cli_and_host_store" | "read_maintenance_partial" | "diagnostic_only" | string;
+      readonly profileStatus: "npm_cli_and_host_store" | string;
       readonly hostPackageManager: "available" | string;
       readonly androidStore: "local_app_private_partial" | string;
-      readonly androidRuntimeInstall: "local_unpacked_only" | string;
-      readonly jsBridge: "guarded_mutation_partial" | "read_maintenance_partial" | "diagnostic_only" | string;
-      readonly requirePackageManager: "guarded_mutation_partial" | "read_maintenance_partial" | "diagnostic_only" | string;
+      readonly androidRuntimeInstall: "bundled_npm_cli" | string;
+      readonly jsBridge: "npm_cli_and_host_store" | "read_maintenance_partial" | "diagnostic_only" | string;
+      readonly requirePackageManager: "npm_cli_and_host_store" | "read_maintenance_partial" | "diagnostic_only" | string;
       readonly diagnosticFacade: "available" | string;
       readonly sourcePolicy: SourcePolicyStatus;
       readonly sourceAuthority: SourceAuthority;
@@ -316,19 +343,19 @@ declare module "package_manager" {
       readonly planOperations: readonly PlanOperation[];
       readonly mutationOperations: readonly MutationOperation[];
       readonly mutationCapability: "package_manager.mutate" | string;
-      readonly mutationConfirmation: "allowMutation_required" | string;
+      readonly mutationConfirmation: "allowMutation_for_host_store_only" | string;
       readonly requiresExpectedIntegrity: boolean;
       readonly operations: readonly Operation[];
       readonly packageKinds: readonly PackageKind[];
-      readonly npmCli: "denied" | string;
-      readonly npmFacade: "guarded_package_manager_alias" | string;
-      readonly requireNpm: "guarded_package_manager_alias" | string;
+      readonly npmCli: "available" | string;
+      readonly npmFacade: "bundled_npm_cli" | string;
+      readonly requireNpm: "bundled_npm_cli" | string;
       readonly npmFacadeOperations: readonly string[];
-      readonly registryDownload: "deferred" | string;
-      readonly lifecycleScripts: "denied" | string;
-      readonly binLinks: "denied" | string;
-      readonly nativePayloads: "denied" | string;
-      readonly androidNetwork: "denied" | string;
+      readonly registryDownload: "npm_native" | string;
+      readonly lifecycleScripts: "npm_default" | string;
+      readonly binLinks: "npm_default_android_exec_rules" | string;
+      readonly nativePayloads: "android_compatible" | string;
+      readonly androidNetwork: "npm_default" | string;
       readonly rawExecutables: boolean;
       readonly rawRegistryAccess: boolean;
       readonly grantsInstallAuthority: boolean;
@@ -336,26 +363,26 @@ declare module "package_manager" {
 
     export interface DiagnosticPolicy {
       readonly schema: "autojs6-node-package-manager-policy-v1";
-      readonly status: "guarded_mutation_partial" | "read_maintenance_partial" | "diagnostic_only" | string;
+      readonly status: "npm_cli_and_host_store" | "read_maintenance_partial" | "diagnostic_only" | string;
       readonly androidStore: "local_app_private_partial" | string;
-      readonly androidRuntimeInstall: "local_unpacked_only" | string;
-      readonly npmCli: "denied" | string;
-      readonly npmFacade: "guarded_package_manager_alias" | string;
-      readonly requireNpm: "guarded_package_manager_alias" | string;
-      readonly npmInstallEquivalent: "host_managed_plus_android_store_substrate" | string;
-      readonly registryDownload: "deferred" | string;
-      readonly tarballInstall: "host_side_only" | string;
-      readonly lockfile: "autojs6_lock_host_managed" | string;
+      readonly androidRuntimeInstall: "bundled_npm_cli" | string;
+      readonly npmCli: "available" | string;
+      readonly npmFacade: "bundled_npm_cli" | string;
+      readonly requireNpm: "bundled_npm_cli" | string;
+      readonly npmInstallEquivalent: "npm_install_in_workspace" | string;
+      readonly registryDownload: "npm_native" | string;
+      readonly tarballInstall: "npm_native" | string;
+      readonly lockfile: "package_lock_or_host_store_lock" | string;
       readonly integrity: "sha512_required" | string;
-      readonly lifecycleScripts: "denied" | string;
-      readonly debugLifecycleScripts: "not_promoted" | string;
-      readonly binLinks: "denied" | string;
-      readonly symlinks: "denied" | string;
-      readonly nativeBuild: "denied" | string;
-      readonly nativePayloads: "denied" | string;
-      readonly postinstallDownload: "denied" | string;
-      readonly nodeModulesMutation: "transactional_store_only" | string;
-      readonly transaction: "locked_cancellable_atomic" | string;
+      readonly lifecycleScripts: "npm_default" | string;
+      readonly debugLifecycleScripts: "same_as_release" | string;
+      readonly binLinks: "npm_default_android_exec_rules" | string;
+      readonly symlinks: "npm_default" | string;
+      readonly nativeBuild: "external_toolchain_required" | string;
+      readonly nativePayloads: "android_compatible" | string;
+      readonly postinstallDownload: "npm_default" | string;
+      readonly nodeModulesMutation: "npm_cli" | string;
+      readonly transaction: "npm_native_or_host_store_transaction" | string;
       readonly sourcePolicy: SourcePolicyStatus;
       readonly sourceAuthority: SourceAuthority;
       readonly installAuthority: InstallAuthority;
@@ -365,11 +392,11 @@ declare module "package_manager" {
       readonly mutationOperations: readonly MutationOperation[];
       readonly npmFacadeOperations: readonly string[];
       readonly mutationCapability: "package_manager.mutate" | string;
-      readonly mutationConfirmation: "allowMutation_required" | string;
+      readonly mutationConfirmation: "allowMutation_for_host_store_only" | string;
       readonly requiresExpectedIntegrity: boolean;
       readonly operations: readonly Operation[];
       readonly packageKinds: readonly PackageKind[];
-      readonly androidNetwork: "denied" | string;
+      readonly androidNetwork: "npm_default" | string;
       readonly rawExecutables: boolean;
       readonly rawRegistryAccess: boolean;
       readonly grantsInstallAuthority: boolean;
@@ -384,8 +411,11 @@ declare module "package_manager" {
       planRemove(request: PlanRemoveRequest): Promise<PackagePlan>;
       planRegistryInstall(request: PlanRegistryInstallRequest): Promise<RemotePackagePlan>;
       planTarballInstall(request: PlanTarballInstallRequest): Promise<RemotePackagePlan>;
+      install(spec?: NpmPackageSpec, options?: NpmCliOptions): Promise<NpmCliResult>;
       install(request: MutationSourceRequest): Promise<OperationResult>;
+      update(spec?: NpmPackageSpec, options?: NpmCliOptions): Promise<NpmCliResult>;
       update(request: MutationSourceRequest): Promise<OperationResult>;
+      remove(spec?: NpmPackageSpec, options?: NpmCliOptions): Promise<NpmCliResult>;
       remove(request: MutationRemoveRequest): Promise<OperationResult>;
       list(options?: ListOptions): Promise<readonly PackageRecord[]>;
       verify(request: VerifyRequest): Promise<OperationResult>;

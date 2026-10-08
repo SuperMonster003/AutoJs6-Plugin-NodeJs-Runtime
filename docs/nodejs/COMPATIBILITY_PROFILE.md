@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Compatibility Profile
 
-Last reviewed: 2026-10-08. Published plugin: v1.5.7; subsequent local work: v1.6.0 (M23.5, Release Inspector).
+Last reviewed: 2026-10-08. Published plugin: v1.5.7; subsequent local work: v1.6.0 (M23.6, bundled npm installs).
 
 The external runtime plugin supplies Node.js 24.21.0 / V8 / libuv for arm64-v8a,
 armeabi-v7a and x86_64. The host contains no libnode or Node JNI implementation.
@@ -175,8 +175,8 @@ including `ERR_DLOPEN_FAILED`; the plugin does not impose a signature or hash
 allowlist. Binary addon files bypass JavaScript source-provider hooks.
 
 See the [`native-addon` project](../../sample/nodejs/native-addon) and
-[NDK build instructions](../../tools/nodejs/addon). The plugin does not include
-node-gyp or a device NDK. Native faults affect the runtime slot process and use
+[NDK build instructions](../../tools/nodejs/addon). The bundled npm includes node-gyp JavaScript, but the plugin supplies no
+device NDK or Python build environment. Native faults affect the runtime slot process and use
 its existing crash reporting; worker threads do not add process isolation.
 
 M23.5 makes Inspector activation independent of build type. The host developer
@@ -184,3 +184,12 @@ setting is off by default; explicit internal request values override it. Without
 permission the native module and url() remain readable, but open and Session
 creation are gated. Root scripts and Workers share the localhost/nonblocking
 policy, including inspector/promises and ESM imports.
+
+M23.6 runs the bundled npm from package_manager string/array install, update
+and remove calls. npm configuration and lifecycle behavior follow npm defaults
+and project .npmrc; options can explicitly override registry/ignoreScripts.
+The CLI is extracted lazily, and output is streamed. Host-managed object calls
+and local-store plans/maintenance remain available. The current workspace
+archive does not transfer symlinks: use bin-links=false for projects with bin
+entries that must be copied back to the host. Android may also refuse execution
+of app-data shims/binaries; running JS tool entry points through node is possible.

@@ -1,17 +1,17 @@
 # Terminal launcher (node / npm / corepack for 3-Shell Terminal)
 
-Last reviewed: 2026-10-05.
+Last reviewed: 2026-10-08.
 
 The independent [3-Shell Terminal plugin](https://github.com/SuperMonster003/AutoJs6-Plugin-Three-Shell-Terminal)
 provides the terminal used by AutoJs6 6.8.0 and runs `/system/bin/sh` under the **terminal plugin** uid.
 This runtime plugin makes `node`, `npm`, `npx`, `corepack`, `yarn` and
 `pnpm` available inside that shell without any Binder traffic: the terminal plugin reads a small
 manifest contract, executes the packaged launcher directly and extracts the npm / corepack
-archive from the plugin assets. The Node runtime service, its AIDL contract and the script
-execution path are untouched.
+archive from the plugin assets. M23.6 also reuses this launcher and archive from runtime package_manager calls,
+with lazy extraction under the runtime plugin UID; the terminal contract is unchanged.
 
 中文: 3-Shell Terminal 以终端插件自己的 uid 运行 shell; 本插件通过 manifest 契约, 可直接执行的启动器和 npm /
-corepack 资产为该 shell 提供 `node` / `npm` 等命令, 不经过 Binder, 也不改变运行时服务与脚本执行链路.
+corepack 资产为该 shell 提供 `node` / `npm` 等命令, 终端命令不经过 Binder. M23.6 的运行时 package_manager 也复用同一启动器与资产, 在运行时插件 uid 下按需解压.
 
 ## Contract (schema 1)
 
@@ -99,17 +99,15 @@ and refresh links, or remove stale command links and use a plain shell. The sche
   binaries fetched by npm packages fail with `EACCES`. The terminal sets
   `npm_config_bin_links=false`; run tools as `node node_modules/<pkg>/<entry>.js`.
   `npx` can fetch packages but cannot execute their unavailable bin shims (typically exit 127).
-- Native addons (`.node`) are not loadable (unchanged runtime policy).
+- Native addons must be Android binaries matching the process ABI. The embedded
+  runtime also uses Node's native addon loader since M23.4.
 - corepack downloads Yarn / pnpm on first use; the registry and network are the user's
-  choice in the terminal plugin settings. The runtime facade still performs no registry
-  download (Roadmap M9.3 stays as decided). pnpm 12 and later ship as native binaries
+  choice in the terminal plugin settings. The runtime package_manager can invoke the bundled npm for registry installs
+  since M23.6, using its own workspace/configuration. pnpm 12 and later ship as native binaries
   without an Android build, so the terminal pins corepack to its bundled defaults
   (`COREPACK_DEFAULT_TO_LATEST=0`: pnpm 11.x, Yarn 1.x) unless a version is named.
-- Intl: since 1.5.1 `libnode.so` is built with `--with-intl=small-icu` (ICU 78 with
-  English-only locale data). `Intl`, `String.prototype.normalize` and Unicode property
-  escapes (`\p{...}`) work, which pnpm 11 and Yarn Berry require; other locales fall
-  back to English unless `NODE_ICU_DATA` points at a full `icudt78l.dat`. 1.5.0 had no
-  ICU at all, so those package managers exited without output there.
+- Intl: since M23.1 (1.6.0), libnode uses full ICU, including locale data.
+  The earlier 1.5.x small-ICU restriction no longer applies to current builds.
 - Node's own fatal-error and warning text (uncaught exceptions, `--trace-*`) reaches
   the real stderr as well as logcat (tag `nodejs`) since 1.5.1 (patch
   `0004-android-stderr-passthrough.patch`); 1.5.0 wrote it to logcat only.

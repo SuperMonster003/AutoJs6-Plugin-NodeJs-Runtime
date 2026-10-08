@@ -624,6 +624,17 @@
       ],
       "mainAppSmoke": false,
       "packagedCompatible": false
+    },
+    {
+      "name": "npm-registry",
+      "status": "stable",
+      "tags": [
+        "main-app",
+        "commonjs",
+        "desktop-parity"
+      ],
+      "mainAppSmoke": false,
+      "packagedCompatible": false
     }
   ]
 }

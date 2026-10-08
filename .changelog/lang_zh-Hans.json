@@ -21,8 +21,9 @@
         "原生 Worker 支持嵌套, MessagePort API, stdio, argv, execArgv 与预加载继承; 删除插件自设的 Worker 数量和启动时限, 请求 resourceLimits 仅作可覆盖的默认值, WorkerPool 默认不限制排队数量或任务时长; Inspector 会话遵循执行请求与当前构建支持",
         "Worker 与嵌套 Worker 可通过父线程 MessagePort 使用 autojs6:bridge.callAutoJs, 复用宿主 broker 的权限检查, 错误, 超时与取消; worker-host-bridge 示例演示读取真实宿主设备信息, 并提供桥 API 的 TypeScript 声明",
         "原始 .ts / .mts / .cts 入口与导入模块仍须由宿主 Compiler 编译为 JavaScript; 保留快照映射与 provider v3 按需编译。模块加载失败使用 Node 原生错误码, 原 AutoJs6 ESM 与动态导入错误码退役。",
-        "主脚本与 Worker 可通过 Node 加载 Android native addon, process.dlopen 与 .node 扩展恢复原生行为, 不设插件自有签名或哈希白名单; native-addon 示例提供三 ABI 的 16 KB 对齐 Node-API 产物和离线 NDK/CMake 构建; 错 ABI 或损坏二进制返回 ERR_DLOPEN_FAILED 等 Node 错误, 设备端不随包提供 node-gyp 或 NDK",
-        "Inspector 在宿主显式允许后支持 Debug 和 Release 构建; inspector 与 inspector/promises 保留 Node 原生模块对象, 主脚本和 Worker 可使用 Session, 监听仅绑定 127.0.0.1 且不支持阻塞等待; 未开启时 url() 返回 undefined, 激活和 Session 创建保持关闭"
+        "主脚本与 Worker 可通过 Node 加载 Android native addon, process.dlopen 与 .node 扩展恢复原生行为, 不设插件自有签名或哈希白名单; native-addon 示例提供三 ABI 的 16 KB 对齐 Node-API 产物和离线 NDK/CMake 构建; 错 ABI 或损坏二进制返回 ERR_DLOPEN_FAILED 等 Node 错误, 设备端不随包提供 NDK 或 Python",
+        "Inspector 在宿主显式允许后支持 Debug 和 Release 构建; inspector 与 inspector/promises 保留 Node 原生模块对象, 主脚本和 Worker 可使用 Session, 监听仅绑定 127.0.0.1 且不支持阻塞等待; 未开启时 url() 返回 undefined, 激活和 Session 创建保持关闭",
+        "package_manager 的 install/update/remove 支持 npm 包规格, 在工作区调用随包 npm; npm.cli/exec/runScript/pack 使用真实命令行, registry/代理/生命周期选项遵循 npm 与项目 .npmrc, 输出流式回传并保留 npm 错误码; CLI 资产仅在首次调用时准备, 对象请求保留原宿主本地库契约"
       ]
     },
     "v1.5.7": {
