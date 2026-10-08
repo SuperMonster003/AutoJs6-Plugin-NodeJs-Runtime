@@ -23,7 +23,7 @@ export const summary = {
   customCondition: customCondition.value,
   tsMixed,
   metaResolve: localResolved.endsWith("/meta-target.mjs") &&
-    packageResolved.endsWith("/auto.mjs") &&
+    packageResolved.endsWith("/import.mjs") &&
     builtinResolved === "node:path" &&
     deniedResolve,
 };

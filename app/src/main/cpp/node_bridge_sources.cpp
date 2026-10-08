@@ -394,9 +394,9 @@ std::string buildEmbeddedScriptExecutionSource(
     lastTypeModuleFilename: ""
   };
   const __autojs6_esm_diagnostics = {
-    enabled: __autojs6_esm_enabled,
-    linker: __autojs6_esm_enabled ? "vm_source_text_module" : "disabled_by_request",
-    liveBindings: __autojs6_esm_enabled,
+    enabled: true,
+    linker: "node_native_loader",
+    liveBindings: true,
     entry: false,
     graphRoot: "",
     graphSize: 0,
@@ -460,9 +460,6 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_module_source_provider_wait_array = null;
   const __autojs6_module_source_provider_results = Object.create(null);
   const __autojs6_plaintext_module_source_records = Object.create(null);
-  const __autojs6_native_function = Function;
-  const __autojs6_native_async_function = Object.getPrototypeOf(async function() {}).constructor;
-  const __autojs6_native_eval = eval;
   const __autojs6_started_at = __autojs6_phase_clock_available
     ? __autojs6_phase_now()
     : null;
@@ -1154,13 +1151,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     throw signal;
   }
-  function __autojs6_disabled_fetch() {
-    return Promise.reject(__autojs6_error(
-      "global fetch is disabled in Embedded Node.js MVP; network access requires an explicit AutoJs6 policy.",
-      "ERR_AUTOJS6_EMBEDDED_NODE_FETCH_DISABLED",
-      "ERR_AUTOJS6_NETWORK_DISABLED"
-    ));
-  }
   function __autojs6_fetch_error(message, code) {
     return __autojs6_error(message, code);
   }
@@ -1358,19 +1348,6 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_limited_revoke_object_url(url) {
     __autojs6_object_url_records.delete(String(url));
-  }
-  function __autojs6_body_blob(body) {
-    const BlobCtor = __autojs6_blob_constructor();
-    if (!BlobCtor) {
-      throw new Error("Embedded Node Web body support requires Blob.");
-    }
-    if (body === undefined || body === null) {
-      return new BlobCtor([]);
-    }
-    if (body instanceof BlobCtor) {
-      return body;
-    }
-    return new BlobCtor([body]);
   }
   function __autojs6_web_global_buffer_constructor() {
     if (typeof Buffer === "function") {
@@ -1629,7 +1606,7 @@ std::string buildEmbeddedScriptExecutionSource(
         try {
           state.onabort.call(signal, eventObject);
         } catch (error) {
-          __autojs6_schedule_task(function() { throw error; });
+          setImmediate(function() { throw error; });
         }
       }
       state.listeners = state.listeners.filter(function(record) {
@@ -1639,7 +1616,7 @@ std::string buildEmbeddedScriptExecutionSource(
         try {
           __autojs6_call_abort_listener(record.listener, signal, eventObject);
         } catch (error) {
-          __autojs6_schedule_task(function() { throw error; });
+          setImmediate(function() { throw error; });
         }
       }
     }
@@ -1905,14 +1882,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return eventObject;
   }
-  function __autojs6_message_listener_state() {
-    return Object.freeze({
-      listeners: Object.create(null),
-      onmessage: null,
-      onmessageerror: null,
-      closed: false
-    });
-  }
   function __autojs6_message_listener_add(state, type, listener, once) {
     if (typeof listener !== "function") {
       return;
@@ -1944,7 +1913,7 @@ std::string buildEmbeddedScriptExecutionSource(
       try {
         propertyListener.call(target, eventObject);
       } catch (error) {
-        __autojs6_schedule_task(function() { throw error; });
+        setImmediate(function() { throw error; });
       }
     }
     if (bucket.length === 0) {
@@ -1957,7 +1926,7 @@ std::string buildEmbeddedScriptExecutionSource(
       try {
         record.listener.call(target, eventObject);
       } catch (error) {
-        __autojs6_schedule_task(function() { throw error; });
+        setImmediate(function() { throw error; });
       }
     }
     return true;
@@ -2058,7 +2027,7 @@ std::string buildEmbeddedScriptExecutionSource(
             return undefined;
           }
           const data = __autojs6_limited_message_clone(message);
-          __autojs6_schedule_task(function() {
+          setImmediate(function() {
             if (!peerState.closed && peerState.started) {
               __autojs6_message_listener_dispatch(
                 peer,
@@ -2167,7 +2136,7 @@ std::string buildEmbeddedScriptExecutionSource(
           }
           const peers = (__autojs6_limited_broadcast_channels[sourceState.name] || []).slice();
           const data = __autojs6_limited_message_clone(message);
-          __autojs6_schedule_task(function() {
+          setImmediate(function() {
             for (const peer of peers) {
               if (peer === this) {
                 continue;
@@ -2767,42 +2736,6 @@ std::string buildEmbeddedScriptExecutionSource(
     } catch (_) {}
     return null;
   }
-  function __autojs6_raw_node_network_builtin(name) {
-    if (!__autojs6_raw_node_network_modules_enabled) {
-      return null;
-    }
-    const request = name === undefined ? "" : String(name);
-    const normalized = request.indexOf("node:") === 0 ? request.slice(5) : request;
-    if (
-      normalized !== "dgram" &&
-      normalized !== "dns" &&
-      normalized !== "dns/promises" &&
-      normalized !== "http" &&
-      normalized !== "http2" &&
-      normalized !== "https" &&
-      normalized !== "net" &&
-      normalized !== "tls"
-    ) {
-      return null;
-    }
-    let moduleValue = null;
-    if (normalized === "dns/promises") {
-      const dnsValue = __autojs6_builtin_module("dns");
-      if (dnsValue && dnsValue.promises) {
-        moduleValue = dnsValue.promises;
-      }
-    }
-    if (!moduleValue) {
-      moduleValue = __autojs6_builtin_module(normalized);
-    }
-    if (!moduleValue) {
-      throw __autojs6_error(
-        "Embedded Node raw network module '" + normalized + "' is unavailable.",
-        "ERR_AUTOJS6_BUILTIN_DISABLED"
-      );
-    }
-    return moduleValue;
-  }
   function __autojs6_limited_inspector() {
     if (__autojs6_limited_inspector_cache) {
       return __autojs6_limited_inspector_cache;
@@ -3245,19 +3178,6 @@ std::string buildEmbeddedScriptExecutionSource(
       });
     }
   }
-  const __autojs6_require_builtin_names = Object.freeze([
-    "path",
-    "util",
-    "events",
-    "fs",
-    "buffer",
-    "crypto",
-    "os",
-    "url",
-    "querystring",
-    "string_decoder",
-    "assert"
-  ]);
   // M23.2: Node's own builtin inventory (module.builtinModules) is the only list of builtins.
   // A request can still gate worker_threads, child_process, inspector and the raw network
   // modules; everything else Node knows is returned exactly as Node exports it.
@@ -3313,21 +3233,11 @@ std::string buildEmbeddedScriptExecutionSource(
   // builtins and the node: / autojs6: prefixes do. The same set drives require, require.resolve
   // and ESM import; autojs6:profile publishes it as moduleResolutionProfile.
   const __autojs6_npm_shadowable_module_names = Object.freeze(["axios", "colors", "mime", "nanoid", "opencc", "undici"]);
-  // Bare runtime module names served by require(); ESM import accepts the same names.
-  const __autojs6_runtime_facade_module_names = Object.freeze([
-    "rhino", "files", "base64", "colors", "formatter", "fmt", "converter", "cvt", "s13n", "mime", "nanoid",
-    "opencc", "pinyin", "pinyin4j", "jsox", "jsox.mathx", "jsox.arrayx", "jsox.numberx", "toast", "app",
-    "engines", "dialogs", "accessibility", "media_projection", "image", "images", "ocr", "barcode", "media",
-    "mediainfo", "recorder", "media_store", "storage", "storages", "database", "sqlite", "notifications",
-    "sensors", "ui", "ui.overlay", "input_observer", "clipboard", "device", "shell", "fetch", "keys", "undici",
-    "axios", "websocket", "work_manager", "package_manager", "npm", "plugins", "java"
-  ]);
   const __autojs6_require_builtin_cache = Object.create(null);
   const __autojs6_resolve_trace_stack = [];
   let __autojs6_object_url_counter = 0;
   const __autojs6_object_url_records = new Map();
   let __autojs6_limited_console_cache = null;
-  let __autojs6_limited_module_cache = null;
   let __autojs6_limited_web_crypto_cache = null;
   let __autojs6_limited_web_compression_cache = null;
   let __autojs6_limited_inspector_cache = null;
@@ -3622,12 +3532,6 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_module_not_found(message) {
     return __autojs6_error(message, "MODULE_NOT_FOUND");
   }
-  function __autojs6_package_path_not_exported(message) {
-    return __autojs6_error(message, "ERR_PACKAGE_PATH_NOT_EXPORTED");
-  }
-  function __autojs6_package_import_not_defined(message) {
-    return __autojs6_error(message, "ERR_PACKAGE_IMPORT_NOT_DEFINED");
-  }
   function __autojs6_builtin_disabled(message) {
     return __autojs6_error(message, "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED");
   }
@@ -3636,12 +3540,6 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_require_esm_unsupported(message) {
     return __autojs6_error(message, "ERR_AUTOJS6_REQUIRE_ESM_UNSUPPORTED");
-  }
-  function __autojs6_require_async_module(message) {
-    return __autojs6_error(message, "ERR_REQUIRE_ASYNC_MODULE");
-  }
-  function __autojs6_dynamic_import_unsupported(message) {
-    return __autojs6_error(message, "ERR_AUTOJS6_EMBEDDED_NODE_DYNAMIC_IMPORT_UNSUPPORTED");
   }
   function __autojs6_typescript_snapshot_error(message, code) {
     return __autojs6_error(message, code);
@@ -3667,24 +3565,6 @@ std::string buildEmbeddedScriptExecutionSource(
       ? __autojs6_resolve_trace_stack[__autojs6_resolve_trace_stack.length - 1]
       : null;
   }
-  function __autojs6_resolve_trace_begin(request, from) {
-    if (!__autojs6_resolve_trace_enabled()) return null;
-    const record = {
-      request: String(request === undefined ? "" : request),
-      from: String(from === undefined || from === null ? "" : from),
-      events: [],
-      lines: []
-    };
-    __autojs6_resolve_trace_stack.push(record);
-    return record;
-  }
-  function __autojs6_resolve_trace_end(record) {
-    if (!record) return;
-    const index = __autojs6_resolve_trace_stack.lastIndexOf(record);
-    if (index >= 0) {
-      __autojs6_resolve_trace_stack.splice(index, 1);
-    }
-  }
   function __autojs6_resolve_trace(event, fields) {
     if (!__autojs6_resolve_trace_enabled()) return;
     const parts = [];
@@ -3708,60 +3588,6 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     } catch (_) {}
   }
-  function __autojs6_resolve_trace_join(values) {
-    return values.length ? values.join("|") : "none observed";
-  }
-  function __autojs6_resolve_trace_report(record, error) {
-    if (!record || !record.lines || !record.lines.length) return "";
-    const events = record.events || [];
-    const searchPaths = [];
-    const packageJsonFiles = [];
-    const packageBranches = [];
-    const nullBlocking = [];
-    for (const item of events) {
-      const fields = item.fields || {};
-      if (item.event === "node_modules search" && fields.paths) {
-        searchPaths.push(fields.paths);
-      }
-      if (item.event === "package.json found" || item.event === "package scope") {
-        packageJsonFiles.push(fields.file || fields.packageDir || "");
-      }
-      if (
-        item.event.indexOf("exports") === 0 ||
-        item.event.indexOf("imports") === 0 ||
-        item.event === "main matched" ||
-        item.event === "index matched" ||
-        item.event === "self-reference matched"
-      ) {
-        packageBranches.push(item.line);
-      }
-      if (item.event.indexOf("blocked") >= 0 || fields.target === "null") {
-        nullBlocking.push(item.line);
-      }
-    }
-    const message = error && error.message ? String(error.message).replace(/[\r\n]+/g, " ") : String(error);
-    const code = error && error.code ? String(error.code) : "";
-    const autojs6Code = error && error.autojs6Code ? String(error.autojs6Code) : "";
-    return [
-      "AutoJs6 resolver explanation:",
-      "request='" + __autojs6_diagnostic_path(record.request) + "'",
-      "parent='" + __autojs6_diagnostic_path(record.from) + "'",
-      "search paths='" + __autojs6_resolve_trace_join(searchPaths) + "'",
-      "package.json fields read='" + __autojs6_resolve_trace_join(packageJsonFiles) + "'",
-      "package branch selected='" + __autojs6_resolve_trace_join(packageBranches) + "'",
-      "null blocking='" + __autojs6_resolve_trace_join(nullBlocking) + "'",
-      "final error code='" + __autojs6_diagnostic_path(code || autojs6Code) + "'",
-      "final error message='" + __autojs6_diagnostic_path(message) + "'",
-      "trace:\n" + record.lines.map(function(line) { return "  " + line; }).join("\n")
-    ].join("\n");
-  }
-  function __autojs6_attach_resolve_trace(error, record) {
-    return __autojs6_append_error_context(
-      error,
-      __autojs6_resolve_trace_report(record, error),
-      "__autojs6ResolveTraceContext"
-    );
-  }
   function __autojs6_freeze_sorted_copy(values) {
     const copy = Array.prototype.slice.call(values || []);
     copy.sort();
@@ -3779,8 +3605,8 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const highRiskCapabilities = Object.freeze({
       childProcess: __autojs6_child_process_enabled,
-      dynamicImport: __autojs6_dynamic_import_enabled,
-      esm: __autojs6_esm_enabled,
+      dynamicImport: true,
+      esm: true,
       nativeAddon: false,
       network: true,
       rawNodeNetworkModules: __autojs6_raw_node_network_modules_enabled,
@@ -3792,8 +3618,8 @@ std::string buildEmbeddedScriptExecutionSource(
       inspector: __autojs6_inspector_enabled
     });
     const featureStates = Object.freeze({
-      esm: __autojs6_esm_enabled,
-      dynamicImport: __autojs6_dynamic_import_enabled,
+      esm: true,
+      dynamicImport: true,
       network: true,
       rawNodeNetworkModules: __autojs6_raw_node_network_modules_enabled,
       webSocket: true,
@@ -3808,7 +3634,7 @@ std::string buildEmbeddedScriptExecutionSource(
         diagnosticName: "esm",
         gradleProperty: null,
         defaultEnabled: true,
-        enabled: __autojs6_esm_enabled,
+        enabled: true,
         buildTimeOverrideAllowed: false,
         projectJsonOverrideAllowed: false,
         packagedApkOverrideAllowed: false,
@@ -3825,7 +3651,7 @@ std::string buildEmbeddedScriptExecutionSource(
         diagnosticName: "dynamicImport",
         gradleProperty: null,
         defaultEnabled: true,
-        enabled: __autojs6_dynamic_import_enabled,
+        enabled: true,
         buildTimeOverrideAllowed: false,
         projectJsonOverrideAllowed: false,
         packagedApkOverrideAllowed: false,
@@ -4046,8 +3872,8 @@ std::string buildEmbeddedScriptExecutionSource(
       engineVersion: "autojs6-node-profile-v1.3",
       node: typeof process === "object" && process ? process.version : "",
       cjs: true,
-      esm: __autojs6_esm_enabled,
-      dynamicImport: __autojs6_dynamic_import_enabled,
+      esm: true,
+      dynamicImport: true,
       network: true,
       workerThreads: __autojs6_worker_threads_enabled,
       javaInterop: __autojs6_java_interop_enabled,
@@ -4055,45 +3881,45 @@ std::string buildEmbeddedScriptExecutionSource(
       nativeAddon: false,
       scopedFs: false,
       esmLoaderProfile: Object.freeze({
-        status: __autojs6_esm_enabled ? "native_linker" : "disabled_by_request",
+        status: "node_native_loader",
         defaultEnabled: true,
-        requestEnabled: __autojs6_esm_enabled,
+        requestEnabled: true,
         dynamicImportDefaultEnabled: true,
-        dynamicImportEnabled: __autojs6_dynamic_import_enabled,
-        implementation: "v8_vm_source_text_module",
-        mjsEntry: "native_linker",
-        packageTypeModuleEntry: "native_linker",
-        topLevelAwait: "native_linker",
-        staticImport: "local_scoped_native_linker",
-        dynamicImport: "local_scoped_native_linker",
-        liveBindings: "native_linker",
-        cyclicDependencies: "native_linker",
-        packageExports: "controlled_resolver",
-        packageImports: "controlled_resolver",
-        jsonImportAttributes: "native_linker",
-        importMeta: "scoped_native_linker",
-        cjsInterop: "sync_esm_only",
-        moduleSources: "controlled_snapshot",
+        dynamicImportEnabled: true,
+        implementation: "node_esm_loader_with_module_register_hooks",
+        mjsEntry: "native",
+        packageTypeModuleEntry: "native",
+        topLevelAwait: "native",
+        staticImport: "native",
+        dynamicImport: "native",
+        liveBindings: "native",
+        cyclicDependencies: "native",
+        packageExports: "native",
+        packageImports: "native",
+        jsonImportAttributes: "native",
+        importMeta: "native",
+        cjsInterop: "native_require_esm",
+        moduleSources: "served_by_register_hooks",
         packagedBehavior: "real_package_corpus",
         sourceMaps: "sourceURL_stack_only",
-        loaderHooks: "denied",
-        rawNodeModuleLoader: "denied",
-        networkImports: "denied",
+        loaderHooks: "module_register_hooks",
+        rawNodeModuleLoader: "native",
+        networkImports: "unavailable_as_node",
         fileUrlImports: "local_file_urls",
-        dataUrlImports: "inline_js_json_only",
+        dataUrlImports: "native",
         absolutePathImports: "allowed_within_android_app_permissions",
         workingDirectoryEscape: "allowed_within_android_app_permissions",
-        disabledBuiltinImports: "denied",
-        encryptedGraphParity: "not_promoted",
-        pendingEvaluationCleanup: "not_proven",
+        disabledBuiltinImports: "request_gated",
+        encryptedGraphParity: "provider_served_by_register_hooks",
+        pendingEvaluationCleanup: "native",
         realEsmCorpus: "complete",
-        rawNodeLoader: false,
-        customConditions: false
+        rawNodeLoader: true,
+        customConditions: "native"
       }),
       moduleResolutionProfile: Object.freeze({
         schema: "autojs6-node-module-resolution-v1",
         status: "stable",
-        nodeModulesLookup: "workspace_anchored_node_resolution",
+        nodeModulesLookup: "node_native_resolution",
         npmPrecedence: "npm_shims_only",
         npmShadowableModules: __autojs6_npm_shadowable_module_names,
         runtimeModulesShadowable: false,
@@ -4182,7 +4008,7 @@ std::string buildEmbeddedScriptExecutionSource(
           "async_hooks"
         ]),
         cjsAliases: "bare_and_node_prefix",
-        esmImports: "native_linker",
+        esmImports: "native",
         shadowing: "builtin_precedence",
         processGetBuiltinModule: "native_inventory",
         androidDifferences: "documented_stable",
@@ -4390,7 +4216,7 @@ std::string buildEmbeddedScriptExecutionSource(
         rawNativeHandles: false,
         packagedBehavior: "native_available_only",
         packageResolution: "workspace_node_modules",
-        dynamicImport: __autojs6_dynamic_import_enabled,
+        dynamicImport: true,
         processApis: Object.freeze({
           exit: "ends_worker_thread_as_node",
           getBuiltinModule: "native_inventory",
@@ -4537,8 +4363,8 @@ std::string buildEmbeddedScriptExecutionSource(
       }),
       processPermission: __autojs6_process_permission_query(),
       directBuiltinAliases: Object.freeze(directBuiltinAliases),
-      // M23.2: only console (stdout capture) and module (createRequire until M23.3) keep a wrapper.
-      limitedBuiltins: Object.freeze(["console", "module"]),
+      // M23.3: module, including createRequire, is Node's original object.
+      limitedBuiltins: Object.freeze(["console"]),
       nativeBuiltins: __autojs6_freeze_sorted_copy(Array.from(__autojs6_native_builtin_inventory())),
       disabledBuiltins: __autojs6_freeze_sorted_copy(disabledBuiltins),
       networkBuiltins: Object.freeze(["dgram", "dns", "dns/promises", "http", "http2", "https", "net", "tls"]),
@@ -7356,7 +7182,7 @@ std::string buildEmbeddedScriptExecutionSource(
       close(callback) {
         this.closed = true;
         if (typeof callback === "function") {
-          __autojs6_schedule_task(function() {
+          setImmediate(function() {
             callback(null);
           });
           return undefined;
@@ -7372,7 +7198,7 @@ std::string buildEmbeddedScriptExecutionSource(
         this.closed = true;
         if (typeof callback === "function") {
           const callbackError = error || null;
-          __autojs6_schedule_task(function() {
+          setImmediate(function() {
             callback(callbackError);
           });
         }
@@ -8451,7 +8277,7 @@ std::string buildEmbeddedScriptExecutionSource(
         return false;
       }
       state.closed = true;
-      __autojs6_schedule_task(function() {
+      setImmediate(function() {
         disabledWorkerEmit(worker, "exit", 0);
       });
       return true;
@@ -8837,7 +8663,7 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_worker_threads_entry_kind(resolved) {
     const extension = __autojs6_source_extension(resolved);
     if (__autojs6_is_esm_extension(extension)) return "esm";
-    if (extension === ".js" && __autojs6_package_type_module_for_file(resolved)) return "esm";
+    if (extension === ".js" && __autojs6_package_type_module(resolved)) return "esm";
     if (extension === ".js" || extension === ".cjs") return "cjs";
     return "";
   }
@@ -8859,42 +8685,17 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return snapshot;
   }
-  function __autojs6_assert_worker_source_supported(source, sourceName, entryKind) {
-    const sourceText = String(source || "");
-    const masked = __autojs6_mask_non_code(sourceText);
-    if (entryKind === "esm") {
-      return;
+  function __autojs6_disk_module_record(filename) {
+    const fs = __autojs6_fs_module();
+    try {
+      if (!fs.statSync(filename).isFile()) return null;
+      return { source: fs.readFileSync(filename, "utf8"), sourceURL: filename };
+    } catch (_) {
+      return null;
     }
-    if (/(^|[\r\n;{}])\s*import\b\s*(["'{*]|[A-Za-z_$])/.test(masked) ||
-        /(^|[\r\n;{}])\s*export\b\s*([{*]|default\b|class\b|function\b|const\b|let\b|var\b|[A-Za-z_$])/.test(masked)) {
-      throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 worker_threads disables ESM syntax in workers: " + sourceName,
-        "esm_syntax",
-        "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED"
-      );
-    }
-  }
-  function __autojs6_worker_threads_script_unreachable(name) {
-    return __autojs6_worker_threads_policy_error(
-      "AutoJs6 worker_threads script path is outside Android file access or under a sensitive root (/proc, /sys, /dev): " + name,
-      "script_path",
-      "ERR_AUTOJS6_FS_PATH_ESCAPE"
-    );
   }
   function __autojs6_worker_threads_resolve_script(filename, parentFilename) {
     const path = __autojs6_path_module();
-    if (
-      !path ||
-      typeof path.resolve !== "function" ||
-      typeof path.extname !== "function" ||
-      typeof path.isAbsolute !== "function"
-    ) {
-      throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 worker_threads needs the allowlisted path module.",
-        "path_module",
-        "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
-      );
-    }
     const name = filename instanceof URL
       ? __autojs6_builtin_module("url").fileURLToPath(filename)
       : (filename === undefined || filename === null ? "" : String(filename));
@@ -8902,80 +8703,48 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_worker_threads_policy_error(
         "AutoJs6 worker_threads requires a local relative path, absolute path or file URL.",
         "non_local_script",
-        "ERR_AUTOJS6_FS_SCOPED_PATH"
+        "ERR_WORKER_PATH"
       );
     }
     if (name.indexOf("\u0000") >= 0) {
       throw __autojs6_worker_threads_policy_error(
         "AutoJs6 worker_threads rejects NUL worker script paths.",
         "nul_script",
-        "ERR_AUTOJS6_FS_NUL_BYTE"
+        "ERR_INVALID_ARG_VALUE"
       );
     }
-    const root = __autojs6_module_resolution_root(parentFilename || __autojs6_source_name);
-    const reach = __autojs6_module_reach_root(path);
-    const parentDir = __autojs6_module_dirname(parentFilename || __autojs6_source_name);
-    const base = path.resolve(parentDir || root, name);
-    if (!__autojs6_module_path_reachable(base, reach)) {
-      throw __autojs6_worker_threads_script_unreachable(name);
-    }
+    const parentDir = path.dirname(parentFilename || __autojs6_entry_filename());
+    const base = path.resolve(parentDir, name);
     const extension = __autojs6_normalized_extension(path.extname(base));
-    __autojs6_throw_if_native_addon_extension(
-      extension,
-      name,
-      "AutoJs6 worker_threads script",
-      "Unsupported AutoJs6 worker script extension: " + name
-    );
-    if (extension && extension !== ".js" && extension !== ".cjs" && extension !== ".mjs") {
-      throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 worker_threads accepts only .js, .cjs, and .mjs worker scripts: " + name,
-        "unsupported_extension",
-        "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
-      );
-    }
+    // Node accepts an existing file as the worker script; the hooks serve bundled sources too.
     const candidates = extension ? [base] : [base, base + ".js", base + ".cjs", base + ".mjs"];
-    let resolved;
-    let record;
+    let resolved = null;
+    let record = null;
     for (const candidate of candidates) {
-      const candidateResolved = path.resolve(candidate);
-      if (!__autojs6_module_path_reachable(candidateResolved, reach)) {
-        throw __autojs6_worker_threads_script_unreachable(name);
-      }
-      record = __autojs6_module_record(candidateResolved, true);
+      record = __autojs6_served_module_record(candidate) || __autojs6_disk_module_record(candidate);
       if (record && typeof record.source === "string") {
-        resolved = candidateResolved;
+        resolved = candidate;
         break;
       }
     }
-    if (!record || typeof record.source !== "string") {
+    if (!resolved) {
       throw __autojs6_worker_threads_policy_error(
         "Cannot find AutoJs6 worker script: " + name,
         "missing_script",
         "ERR_AUTOJS6_MODULE_NOT_FOUND"
       );
     }
-    const entryKind = __autojs6_worker_threads_entry_kind(resolved);
-    if (!entryKind) {
-      throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 worker_threads accepts only CommonJS or partial ESM worker scripts: " + name,
-        "unsupported_entry_kind",
-        "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
-      );
-    }
-    __autojs6_assert_worker_source_supported(record.source, resolved, entryKind);
+    const entryKind = __autojs6_worker_threads_entry_kind(resolved) || "cjs";
     return {
-      root,
+      root: path.dirname(resolved),
       filename: resolved,
-      dirname: __autojs6_module_dirname(resolved),
+      dirname: path.dirname(resolved),
       format: entryKind,
       source: record.source,
       sourceURL: record.sourceURL || resolved,
       moduleSources: __autojs6_worker_threads_module_sources_snapshot(
         resolved,
-        {
-          source: record.source,
-          sourceURL: record.sourceURL || resolved
-        }
+        { source: record.source, sourceURL: record.sourceURL || resolved }
       )
     };
   }
@@ -8985,12 +8754,10 @@ std::string buildEmbeddedScriptExecutionSource(
     // is shared so the code can still require() project modules.
     const path = __autojs6_path_module();
     const code = source === undefined || source === null ? "" : String(source);
-    const root = __autojs6_module_resolution_root(parentFilename || __autojs6_source_name);
-    const parentDir = __autojs6_module_dirname(parentFilename || __autojs6_source_name) || root;
+    const parentDir = path.dirname(parentFilename || __autojs6_entry_filename());
     const filename = path.resolve(parentDir, "[worker eval].cjs");
-    __autojs6_assert_worker_source_supported(code, "[worker eval]", "cjs");
     return {
-      root,
+      root: parentDir,
       filename,
       dirname: parentDir,
       format: "cjs",
@@ -9012,11 +8779,11 @@ std::string buildEmbeddedScriptExecutionSource(
         allowedBuiltins: __autojs6_worker_threads_policy.allowedBuiltins,
         rawNetwork: __autojs6_raw_node_network_modules_enabled,
         unrestrictedFs: __autojs6_unrestricted_fs_access_enabled,
-        facadeModules: __autojs6_rhino_compat_basic_module_names,
-        dynamicImport: __autojs6_dynamic_import_enabled,
+        dynamicImport: true,
         workerProfile: __autojs6_worker_threads_policy_snapshot().workerProfile
       },
-      moduleSources: descriptor.moduleSources || Object.create(null)
+      moduleSources: descriptor.moduleSources || Object.create(null),
+      pathAliases: __autojs6_path_aliases()
     });
     return "\"use strict\";\n" +
       "(function() {\n" +
@@ -9030,11 +8797,7 @@ std::string buildEmbeddedScriptExecutionSource(
   const __workerDataEnvelope = __workerThreads.workerData || {};
   const __workerData = __workerDataEnvelope.__autojs6UserWorkerData;
   const __moduleSources = __descriptor.moduleSources || Object.create(null);
-  const __moduleCache = Object.create(null);
-  const __esmModuleCache = Object.create(null);
-  const __root = __path.resolve(__descriptor.root || ".");
   const __entryFilename = __path.resolve(__descriptor.filename);
-  const __AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
   function __defineErrorProperty(error, name, value) {
     try {
       Object.defineProperty(error, name, { value, enumerable: true, configurable: true });
@@ -9050,27 +8813,6 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __deny(moduleName) {
     throw __error("AutoJs6 worker_threads denies module '" + moduleName + "' in workers.", "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
-  }
-  function __nativeAddonDisabled(moduleName) {
-    throw __error(
-      "Native addon loading is disabled in AutoJs6 worker_threads: " + moduleName,
-      "ERR_AUTOJS6_NATIVE_ADDON_DISABLED"
-    );
-  }
-  function __requireEsmUnsupported(moduleName) {
-    throw __error(
-      "CommonJS require() cannot load AutoJs6 partial ESM worker module: " + moduleName,
-      "ERR_AUTOJS6_REQUIRE_ESM_UNSUPPORTED"
-    );
-  }
-  function __dynamicImportUnsupported(filename) {
-    throw __error(
-      "AutoJs6 worker_threads disables dynamic import in workers: " + filename,
-      "ERR_AUTOJS6_DYNAMIC_IMPORT_UNSUPPORTED"
-    );
-  }
-  function __esmUnsupported(message) {
-    throw __error(message, "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED");
   }
   function __disabledProcess(name) {
     return function() {
@@ -9215,911 +8957,168 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
     if (id === "worker_threads") return __limitedWorkerThreads;
-    if (id === "module") return __limitedModule;
     if (id === "process") return process;
     return __nativeRequire(id);
   }
-  function __resolveBuiltin(request) {
-    const raw = String(request || "");
-    if (__nativeBuiltinId(raw) === null) return __deny(raw);
-    return raw;
-  }
-  // M23.2: Node's own module builtin; only createRequire stays with the worker loader until M23.3.
-  const __limitedModule = new Proxy(__nativeRequire("module"), {
-    get(target, key, receiver) {
-      if (key === "createRequire") {
-        return function(filename) {
-          const path = filename instanceof URL ? __nativeRequire("url").fileURLToPath(filename) : filename;
-          return __createRequire({ filename: __validatePath(__path.resolve(path), "createRequire"), children: [] });
-        };
-      }
-      return Reflect.get(target, key, receiver);
-    }
-  });
+  // M23.3: Node's own loaders run the worker's module graph. The hooks serve the request's
+  // module sources (workspace bundle, worker entry, eval source), the worker_threads facade and
+  // the builtin gate; everything else resolves and compiles natively, ESM included.
+  const __moduleApi = __nativeRequire("module");
+  const __urlApi = __nativeRequire("url");
+  const __workerModuleScheme = "autojs6-worker:";
   function __isRelativeModuleName(name) {
     return name === "." || name === ".." || name.indexOf("./") === 0 || name.indexOf("../") === 0;
   }
   function __normalizedExtension(filename) {
     return String(__path.extname(filename || "") || "").toLowerCase();
   }
-  function __withinRoot(pathValue, root) {
-    const relative = __path.relative(root, pathValue);
-    return relative === "" || (!!relative && relative.indexOf("..") !== 0 && !__path.isAbsolute(relative));
+  const __workerModuleExports = Object.create(null);
+  function __workerModuleFor(url) {
+    const id = String(url).slice(__workerModuleScheme.length);
+    if (!Object.prototype.hasOwnProperty.call(__workerModuleExports, id)) {
+      __workerModuleExports[id] = __loadBuiltin(id);
+    }
+    return __workerModuleExports[id];
   }
-  function __validatePath(resolved, label) {
-    return __path.resolve(resolved);
+  try {
+    Object.defineProperty(globalThis, "__autojs6_worker_module_exports", {
+      value: __workerModuleFor, enumerable: false, configurable: false, writable: false
+    });
+  } catch (_) {}
+  function __notFound(error) {
+    return !!error && (error.code === "MODULE_NOT_FOUND" || error.code === "ERR_MODULE_NOT_FOUND");
   }
-  function __supportedSourceExtension(extension, allowEsm) {
-    return extension === ".js" || extension === ".cjs" || extension === ".json" || (allowEsm && extension === ".mjs");
+  // Node resolves files through realpath while the snapshot is keyed by the host's spelling.
+  const __pathAliases = Array.isArray(__descriptor.pathAliases) ? __descriptor.pathAliases : null;
+  function __sourceKey(filename) {
+    if (Object.prototype.hasOwnProperty.call(__moduleSources, filename)) return filename;
+    if (!__pathAliases) return undefined;
+    for (const [from, to] of [[__pathAliases[1], __pathAliases[0]], [__pathAliases[0], __pathAliases[1]]]) {
+      if (filename === from || filename.indexOf(from + "/") === 0) {
+        const alias = to + filename.slice(from.length);
+        if (Object.prototype.hasOwnProperty.call(__moduleSources, alias)) return alias;
+      }
+    }
+    return undefined;
   }
-  function __embeddedRecord(resolved) {
-    if (!Object.prototype.hasOwnProperty.call(__moduleSources, resolved)) return null;
-    const record = __moduleSources[resolved];
-    if (!record || typeof record.source !== "string") return null;
-    return {
-      source: String(record.source),
-      sourceURL: record.sourceURL ? String(record.sourceURL) : resolved
-    };
-  }
-  function __recordExists(resolved, allowEsm) {
-    const absolute = __validatePath(resolved, "module path");
-    const extension = __normalizedExtension(absolute);
-    if (extension === ".node") __nativeAddonDisabled(absolute);
-    if (!__supportedSourceExtension(extension, allowEsm)) return false;
-    if (__embeddedRecord(absolute)) return true;
+  function __packageTypeModule(filename) {
     try {
-      const stat = __fs.statSync(absolute);
-      return !!(stat && typeof stat.isFile === "function" && stat.isFile());
+      const packageJson = typeof __moduleApi.findPackageJSON === "function"
+        ? __moduleApi.findPackageJSON(__urlApi.pathToFileURL(filename).href)
+        : undefined;
+      return !!packageJson && JSON.parse(__fs.readFileSync(packageJson, "utf8")).type === "module";
     } catch (_) {
       return false;
     }
   }
-  function __moduleRecord(resolved, allowEsm) {
-    const absolute = __validatePath(resolved, "module path");
-    const extension = __normalizedExtension(absolute);
-    if (extension === ".node") __nativeAddonDisabled(absolute);
-    if (!__supportedSourceExtension(extension, allowEsm)) {
-      throw __error(
-        "Unsupported AutoJs6 worker module extension: " + absolute,
-        "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
-      );
-    }
-    const embedded = __embeddedRecord(absolute);
-    if (embedded) return embedded;
-    try {
-      return {
-        source: String(__fs.readFileSync(absolute, "utf8")),
-        sourceURL: absolute
-      };
-    } catch (error) {
-      throw __error(
-        "Cannot find AutoJs6 worker module: " + absolute,
-        "ERR_AUTOJS6_MODULE_NOT_FOUND",
-        error && error.code ? error.code : undefined
-      );
-    }
+  function __servedFormat(filename, context) {
+    const extension = __normalizedExtension(filename);
+    if (extension === ".mjs" || extension === ".mts") return "module";
+    if (extension === ".cjs" || extension === ".cts") return "commonjs";
+    if (extension === ".json") return "json";
+    if (context && typeof context.format === "string" && context.format) return context.format;
+    return __packageTypeModule(filename) ? "module" : "commonjs";
   }
-  function __packageJsonRecord(packageJsonPath) {
-    const absolute = __validatePath(packageJsonPath, "package.json path");
-    const embedded = __embeddedRecord(absolute);
-    if (embedded) return embedded;
-    try {
-      const stat = __fs.statSync(absolute);
-      if (!stat || typeof stat.isFile !== "function" || !stat.isFile()) return null;
-      return {
-        source: String(__fs.readFileSync(absolute, "utf8")),
-        sourceURL: absolute
-      };
-    } catch (_) {
+  function __virtualResolution(specifier, parentURL) {
+    let base;
+    if (/^file:/i.test(specifier)) {
+      base = __urlApi.fileURLToPath(specifier);
+    } else if (__path.isAbsolute(specifier)) {
+      base = specifier;
+    } else if (__isRelativeModuleName(specifier)) {
+      const parent = parentURL && /^file:/i.test(parentURL) ? __urlApi.fileURLToPath(parentURL) : __entryFilename;
+      base = __path.resolve(__path.dirname(parent), specifier);
+    } else {
       return null;
     }
-  }
-  function __packageTypeModuleForFile(filename) {
-    let current = __path.resolve(__path.dirname(filename));
-    while (__withinRoot(current, __root)) {
-      const record = __packageJsonRecord(__path.resolve(current, "package.json"));
-      if (record) {
-        let data;
-        try {
-          data = JSON.parse(record.source);
-        } catch (error) {
-          throw __error(
-            "Invalid AutoJs6 worker package.json: " + record.sourceURL,
-            "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
-          );
-        }
-        return !!(data && typeof data === "object" && data.type === "module");
-      }
-      if (current === __root) break;
-      const parent = __path.dirname(current);
-      if (!parent || parent === current) break;
-      current = parent;
-    }
-    return false;
-  }
-  function __moduleKind(resolved) {
-    const extension = __normalizedExtension(resolved);
-    if (extension === ".mjs") return "esm";
-    if (extension === ".js" && __packageTypeModuleForFile(resolved)) return "esm";
-    if (extension === ".js" || extension === ".cjs" || extension === ".json") return "cjs";
-    return "";
-  }
-  function __resolveLocal(request, parentFilename, mode) {
-    const raw = String(request || "");
-    if (!raw || raw.indexOf("\u0000") >= 0) {
-      throw __error("AutoJs6 worker_threads rejects invalid local module path: " + raw, "ERR_AUTOJS6_FS_NUL_BYTE");
-    }
-    if (!__isRelativeModuleName(raw) && !__path.isAbsolute(raw)) {
-      return __deny(raw);
-    }
-    if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(raw)) {
-      throw __error("AutoJs6 worker_threads rejects protocol module path: " + raw, "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
-    }
-    const parentDir = __path.dirname(parentFilename || __entryFilename);
-    const base = __validatePath(__path.resolve(parentDir, raw), "local module path");
-    const extension = __normalizedExtension(base);
-    if (extension === ".node") __nativeAddonDisabled(raw);
-    if (extension && !__supportedSourceExtension(extension, true)) {
-      throw __error("Unsupported AutoJs6 worker module extension: " + raw, "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
-    }
-    const candidates = extension ? [base] : [base, base + ".js", base + ".cjs", base + ".mjs", base + ".json"];
+    base = __path.resolve(base);
+    const candidates = [
+      base, base + ".js", base + ".cjs", base + ".mjs", base + ".json",
+      __path.join(base, "index.js"), __path.join(base, "index.cjs"), __path.join(base, "index.mjs"), __path.join(base, "index.json")
+    ];
     for (const candidate of candidates) {
-      const resolved = __validatePath(candidate, "local module path");
-      const kind = __moduleKind(resolved);
-      if (!kind) continue;
-      if (!__recordExists(resolved, true)) continue;
-      if (mode === "cjs" && kind === "esm") __requireEsmUnsupported(raw);
-      return { resolved, kind };
-    }
-    throw __error(
-      "Cannot find AutoJs6 worker module '" + raw + "' from '" + parentFilename + "'.",
-      "ERR_AUTOJS6_MODULE_NOT_FOUND"
-    );
-  }
-  function __isWhitespace(ch) {
-    return ch === " " || ch === "\t" || ch === "\n" || ch === "\r" || ch === "\f" || ch === "\v";
-  }
-  function __isIdentifierStart(ch) {
-    return !!ch && /[A-Za-z_$]/.test(ch);
-  }
-  function __isIdentifierPart(ch) {
-    return !!ch && /[A-Za-z0-9_$]/.test(ch);
-  }
-  function __skipWhitespace(text, index) {
-    let cursor = index;
-    while (cursor < text.length && __isWhitespace(text.charAt(cursor))) cursor += 1;
-    return cursor;
-  }
-  function __isIdentifierTokenAt(text, index, token) {
-    if (text.slice(index, index + token.length) !== token) return false;
-    const before = index > 0 ? text.charAt(index - 1) : "";
-    const after = text.charAt(index + token.length);
-    if (before === "." || __isIdentifierPart(before)) return false;
-    return !__isIdentifierPart(after);
-  }
-  function __regexLiteralAllowed(previous) {
-    return !previous || "([{=:;,!&|?+-*~^<>".indexOf(previous) >= 0;
-  }
-  function __maskNonCode(source) {
-    const text = String(source || "");
-    const templateQuote = String.fromCharCode(96);
-    // Emit runs, not characters (see __autojs6_mask_non_code in the main bootstrap).
-    const parts = [];
-    let codeStart = -1;
-    let blanks = 0;
-    const keep = function(index) {
-      if (codeStart >= 0) return;
-      if (blanks > 0) { parts.push(" ".repeat(blanks)); blanks = 0; }
-      codeStart = index;
-    };
-    const mask = function(index, count) {
-      if (codeStart >= 0) { parts.push(text.slice(codeStart, index)); codeStart = -1; }
-      blanks += count;
-    };
-    const maskKeepingNewline = function(index, ch) {
-      if (ch === "\n" || ch === "\r") keep(index); else mask(index, 1);
-    };
-    let state = "normal";
-    let previous = "";
-    let escaped = false;
-    for (let index = 0; index < text.length; index += 1) {
-      const ch = text.charAt(index);
-      const next = text.charAt(index + 1);
-      if (state === "line_comment") {
-        if (ch === "\n" || ch === "\r") { keep(index); state = "normal"; } else { mask(index, 1); }
-        continue;
+      const key = __sourceKey(candidate);
+      if (key !== undefined) {
+        return { url: __urlApi.pathToFileURL(key).href, shortCircuit: true };
       }
-      if (state === "block_comment") {
-        if (ch === "*" && next === "/") { mask(index, 2); index += 1; state = "normal"; } else { maskKeepingNewline(index, ch); }
-        continue;
-      }
-      if (state === "string") {
-        maskKeepingNewline(index, ch);
-        if (escaped) { escaped = false; continue; }
-        if (ch === "\\") { escaped = true; continue; }
-        if (ch === previous) state = "normal";
-        continue;
-      }
-      if (state === "template") {
-        maskKeepingNewline(index, ch);
-        if (escaped) { escaped = false; continue; }
-        if (ch === "\\") { escaped = true; continue; }
-        if (ch === templateQuote) state = "normal";
-        continue;
-      }
-      if (state === "regex") {
-        maskKeepingNewline(index, ch);
-        if (escaped) { escaped = false; continue; }
-        if (ch === "\\") { escaped = true; continue; }
-        if (ch === "/") state = "normal";
-        continue;
-      }
-      if (ch === "/" && next === "/") { mask(index, 2); index += 1; state = "line_comment"; continue; }
-      if (ch === "/" && next === "*") { mask(index, 2); index += 1; state = "block_comment"; continue; }
-      if (ch === "\"" || ch === "'") { mask(index, 1); previous = ch; state = "string"; escaped = false; continue; }
-      if (ch === templateQuote) { mask(index, 1); state = "template"; escaped = false; continue; }
-      if (ch === "/" && __regexLiteralAllowed(previous)) { mask(index, 1); state = "regex"; escaped = false; continue; }
-      keep(index);
-      if (!__isWhitespace(ch)) previous = ch;
-    }
-    if (codeStart >= 0) parts.push(text.slice(codeStart));
-    if (blanks > 0) parts.push(" ".repeat(blanks));
-    return parts.join("");
-  }
-  // import() calls become __autojs6_dynamic_import(__filename, ...) so they go through the
-  // worker partial ESM loader (local paths, file: URLs, workspace packages, allowed builtins,
-  // with { type: "json" }) instead of Node's native loader, which would bypass the worker
-  // file boundary and the bridge/inspector denials.
-  function __transformDynamicImportCalls(source, filename) {
-    const sourceText = String(source || "");
-    if (sourceText.indexOf("import") < 0) return sourceText;
-    const masked = __maskNonCode(sourceText);
-    let output = "";
-    let cursor = 0;
-    for (let index = 0; index < masked.length; index += 1) {
-      if (!__isIdentifierTokenAt(masked, index, "import")) continue;
-      const nextIndex = __skipWhitespace(masked, index + "import".length);
-      if (masked.charAt(nextIndex) !== "(") continue;
-      if (!__descriptor.policy.dynamicImport) __dynamicImportUnsupported(filename);
-      output += sourceText.slice(cursor, index);
-      output += "__autojs6_dynamic_import(__filename, ";
-      cursor = nextIndex + 1;
-    }
-    return output + sourceText.slice(cursor);
-  }
-  function __importAttributeError(message, legacyCode) {
-    return __error(message, "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED", legacyCode);
-  }
-  function __parseDynamicImportAttributes(options, parentFilename, specifier) {
-    if (options === undefined || options === null) return { type: "" };
-    if (typeof options !== "object") {
-      throw __importAttributeError(
-        "AutoJs6 worker dynamic import options must be an object for '" + specifier + "' from '" + parentFilename + "'.",
-        "ERR_INVALID_ARG_TYPE"
-      );
-    }
-    const optionKeys = Object.keys(options);
-    if (optionKeys.length === 0) return { type: "" };
-    if (optionKeys.length !== 1 || optionKeys[0] !== "with") {
-      throw __importAttributeError(
-        "Unsupported AutoJs6 worker dynamic import options for '" + specifier + "' from '" + parentFilename +
-          "'. Only { with: { type: \"json\" } } is supported.",
-        "ERR_IMPORT_ATTRIBUTE_UNSUPPORTED"
-      );
-    }
-    const withAttributes = options.with;
-    if (!withAttributes || typeof withAttributes !== "object" || Array.isArray(withAttributes)) {
-      throw __importAttributeError(
-        "AutoJs6 worker dynamic import attributes must use { with: { type: \"json\" } } for '" + specifier + "' from '" + parentFilename + "'.",
-        "ERR_INVALID_ARG_TYPE"
-      );
-    }
-    const attributeKeys = Object.keys(withAttributes);
-    if (attributeKeys.length === 0) return { type: "" };
-    if (attributeKeys.length !== 1 || attributeKeys[0] !== "type" || withAttributes.type !== "json") {
-      throw __importAttributeError(
-        "Unsupported AutoJs6 worker dynamic import attributes for '" + specifier + "' from '" + parentFilename +
-          "'. Only { with: { type: \"json\" } } is supported.",
-        "ERR_IMPORT_ATTRIBUTE_UNSUPPORTED"
-      );
-    }
-    return { type: "json" };
-  }
-  function __validateImportAttributes(resolved, attributes, specifier, parentFilename) {
-    if (!attributes) return;
-    const isJson = __normalizedExtension(resolved.resolved) === ".json";
-    if (attributes.type === "json" && !isJson) {
-      throw __importAttributeError(
-        "AutoJs6 worker dynamic import attribute type \"json\" does not match module '" + specifier + "' from '" + parentFilename + "'.",
-        "ERR_IMPORT_ATTRIBUTE_TYPE_INCOMPATIBLE"
-      );
-    }
-    if (attributes.type !== "json" && isJson) {
-      throw __importAttributeError(
-        "AutoJs6 worker dynamic import of JSON module '" + specifier + "' from '" + parentFilename + "' requires with { type: \"json\" }.",
-        "ERR_IMPORT_ATTRIBUTE_MISSING"
-      );
-    }
-  }
-  function __dynamicImport(parentFilename, specifier, options) {
-    return Promise.resolve().then(function() {
-      if (!__descriptor.policy.dynamicImport) __dynamicImportUnsupported(parentFilename);
-      const name = specifier === undefined || specifier === null ? "" : String(specifier);
-      if (name.indexOf("\u0000") >= 0) {
-        throw __error("AutoJs6 worker dynamic import rejects NUL byte in specifier: " + parentFilename, "ERR_AUTOJS6_FS_NUL_BYTE");
-      }
-      const attributes = __parseDynamicImportAttributes(options, parentFilename, name);
-      return __loadEsmModule(name, parentFilename, attributes);
-    });
-  }
-  function __assertCjsSourceSupported(source, filename) {
-    const sourceText = String(source || "");
-    const masked = __maskNonCode(sourceText);
-    if (/(^|[\r\n;{}])\s*import\b\s*(["'{*]|[A-Za-z_$])/.test(masked) ||
-        /(^|[\r\n;{}])\s*export\b\s*([{*]|default\b|class\b|function\b|const\b|let\b|var\b|[A-Za-z_$])/.test(masked)) {
-      __esmUnsupported("AutoJs6 worker_threads disables ESM syntax in CommonJS workers: " + filename);
-    }
-  }
-  // Bare package specifiers resolve like Node: from the requesting file upward through the
-  // workspace node_modules directories (exports with require/import conditions, main, index,
-  // self-reference). Node builtins outside the worker allowlist, protocol specifiers and the
-  // AutoJs6 facades stay denied in workers.
-  const __facadeModules = new Set((__descriptor.policy && __descriptor.policy.facadeModules) || []);
-  const __nativeModule = __nativeRequire("module");
-  function __packageNotFound(message) {
-    return __error(message, "ERR_AUTOJS6_MODULE_NOT_FOUND", "MODULE_NOT_FOUND");
-  }
-  function __packageNotExported(moduleName, key) {
-    return __error(
-      "AutoJs6 worker package exports does not define subpath '" + key + "' for '" + moduleName + "'.",
-      "ERR_AUTOJS6_MODULE_NOT_FOUND",
-      "ERR_PACKAGE_PATH_NOT_EXPORTED"
-    );
-  }
-  function __invalidPackageTarget(message) {
-    return __error(message, "ERR_AUTOJS6_MODULE_NOT_FOUND", "ERR_INVALID_PACKAGE_TARGET");
-  }
-  function __parsePackageSpecifier(raw) {
-    if (!raw || raw.indexOf("\u0000") >= 0) return null;
-    const normalized = raw.charAt(raw.length - 1) === "/" ? raw.slice(0, -1) : raw;
-    const parts = normalized.split("/");
-    for (const part of parts) {
-      if (part === "" || part === "." || part === "..") return null;
-    }
-    if (parts[0].charAt(0) === "@") {
-      if (parts.length < 2 || parts[0].length <= 1 || parts[1].charAt(0) === "@") return null;
-      return { packageName: parts[0] + "/" + parts[1], subpath: parts.slice(2).join("/") };
-    }
-    return { packageName: parts[0], subpath: parts.slice(1).join("/") };
-  }
-  function __packageData(packageDir) {
-    const record = __packageJsonRecord(__path.resolve(packageDir, "package.json"));
-    if (!record) return null;
-    let data;
-    try {
-      data = JSON.parse(record.source);
-    } catch (error) {
-      throw __error("Invalid AutoJs6 worker package.json: " + record.sourceURL, "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
-    }
-    return data && typeof data === "object" && !Array.isArray(data) ? data : null;
-  }
-  function __directoryExists(directory) {
-    try {
-      const stat = __fs.statSync(directory);
-      if (stat && typeof stat.isDirectory === "function" && stat.isDirectory()) return true;
-    } catch (_) {}
-    const prefix = directory + "/";
-    for (const key of Object.keys(__moduleSources)) {
-      if (key.indexOf(prefix) === 0) return true;
-    }
-    return false;
-  }
-  function __activeConditions(mode) {
-    return mode === "esm" ? ["autojs6", "import", "node", "default"] : ["autojs6", "require", "node", "default"];
-  }
-  function __conditionTarget(entry, mode) {
-    if (typeof entry === "string") return { target: entry, blocked: false };
-    if (entry === null) return { target: null, blocked: true };
-    if (Array.isArray(entry)) {
-      for (const item of entry) {
-        const selected = __conditionTarget(item, mode);
-        if (selected !== null) return selected;
-      }
-      return null;
-    }
-    if (entry && typeof entry === "object") {
-      const active = __activeConditions(mode);
-      for (const key of Object.keys(entry)) {
-        if (active.indexOf(key) < 0) continue;
-        const selected = __conditionTarget(entry[key], mode);
-        if (selected !== null) return selected;
-      }
-      return null;
     }
     return null;
   }
-  function __patternReplacement(patternKey, key) {
-    const star = patternKey.indexOf("*");
-    if (star < 0) return null;
-    if (patternKey.indexOf("*", star + 1) >= 0) {
-      throw __invalidPackageTarget("Unsupported AutoJs6 worker package exports multiple wildcard pattern: " + patternKey);
+  function __workerModuleSource(url, context) {
+    const exportsValue = __workerModuleFor(url);
+    const conditions = context && context.conditions;
+    const imported = Array.isArray(conditions) ? conditions.indexOf("import") >= 0 && conditions.indexOf("require") < 0 : false;
+    const accessor = "globalThis.__autojs6_worker_module_exports(" + JSON.stringify(url) + ")";
+    if (!imported) {
+      return { format: "commonjs", source: "module.exports = " + accessor + ";", shortCircuit: true };
     }
-    const prefix = patternKey.slice(0, star);
-    const suffix = patternKey.slice(star + 1);
-    if (key.indexOf(prefix) !== 0) return null;
-    if (suffix && key.slice(-suffix.length) !== suffix) return null;
-    if (key.length < prefix.length + suffix.length) return null;
-    const replacement = key.slice(prefix.length, suffix ? -suffix.length : undefined);
-    if (!replacement || replacement.indexOf("\u0000") >= 0 || __path.isAbsolute(replacement)) return null;
-    for (const part of replacement.split("/")) {
-      if (part === "" || part === "." || part === "..") return null;
-    }
-    return replacement;
-  }
-  function __patternKeyCompare(left, right) {
-    const leftStar = left.indexOf("*");
-    const rightStar = right.indexOf("*");
-    const leftBaseLength = leftStar < 0 ? left.length : leftStar + 1;
-    const rightBaseLength = rightStar < 0 ? right.length : rightStar + 1;
-    if (leftBaseLength > rightBaseLength) return -1;
-    if (rightBaseLength > leftBaseLength) return 1;
-    if (leftStar < 0) return 1;
-    if (rightStar < 0) return -1;
-    if (left.length > right.length) return -1;
-    if (right.length > left.length) return 1;
-    return 0;
-  }
-  function __bestPatternMatch(entries, key) {
-    let bestKey = null;
-    let bestReplacement = null;
-    for (const patternKey of Object.keys(entries)) {
-      const replacement = __patternReplacement(patternKey, key);
-      if (replacement === null) continue;
-      if (bestKey === null || __patternKeyCompare(patternKey, bestKey) < 0) {
-        bestKey = patternKey;
-        bestReplacement = replacement;
+    const lines = ["const __autojs6_module = " + accessor + ";", "export default __autojs6_module;"];
+    if (exportsValue !== null && (typeof exportsValue === "object" || typeof exportsValue === "function")) {
+      for (const key of Object.keys(exportsValue)) {
+        if (key === "default" || !/^[A-Za-z_$][0-9A-Za-z_$]*$/.test(key)) continue;
+        lines.push("export const " + key + " = __autojs6_module[" + JSON.stringify(key) + "];");
       }
     }
-    return bestKey === null ? null : { key: bestKey, replacement: bestReplacement };
+    return { format: "module", source: lines.join("\n"), shortCircuit: true };
   }
-  function __exportsTarget(packageData, subpath, mode, moduleName) {
-    if (!packageData || !Object.prototype.hasOwnProperty.call(packageData, "exports")) return { present: false, target: null };
-    const exportsValue = packageData.exports;
-    const key = subpath ? "./" + subpath : ".";
-    if (typeof exportsValue === "string") {
-      if (subpath) throw __packageNotExported(moduleName, key);
-      return { present: true, target: exportsValue };
-    }
-    let entry = null;
-    let replacement = null;
-    let matched = false;
-    if (Array.isArray(exportsValue)) {
-      if (!subpath) {
-        entry = exportsValue;
-        matched = true;
-      }
-    } else if (exportsValue && typeof exportsValue === "object") {
-      const keys = Object.keys(exportsValue);
-      const subpathShape = keys.length > 0 && keys[0].charAt(0) === ".";
-      if (subpathShape) {
-        if (Object.prototype.hasOwnProperty.call(exportsValue, key)) {
-          entry = exportsValue[key];
-          matched = true;
-        } else {
-          const pattern = __bestPatternMatch(exportsValue, key);
-          if (pattern !== null) {
-            entry = exportsValue[pattern.key];
-            replacement = pattern.replacement;
-            matched = true;
-          }
+  __moduleApi.registerHooks({
+    resolve(specifier, context, nextResolve) {
+      const name = String(specifier === undefined ? "" : specifier);
+      const id = __nativeBuiltinId(name);
+      if (id !== null) {
+        // The worker_threads facade, the inspector denial and the builtin gate all answer
+        // through __loadBuiltin; other builtins are Node's own.
+        if (id === "worker_threads" || id === "inspector" || id === "inspector/promises" || !__allowed.has(id)) {
+          return { url: __workerModuleScheme + id, shortCircuit: true };
         }
-      } else if (!subpath) {
-        entry = exportsValue;
-        matched = true;
+        return nextResolve(name, context);
       }
-    }
-    if (!matched) throw __packageNotExported(moduleName, key);
-    const selected = __conditionTarget(entry, mode);
-    if (selected === null || selected.blocked) throw __packageNotExported(moduleName, key);
-    let target = selected.target;
-    if (replacement !== null) {
-      if ((String(target).match(/\*/g) || []).length !== 1) {
-        throw __invalidPackageTarget("AutoJs6 worker package exports pattern target must contain exactly one '*' for '" + moduleName + "': " + target);
-      }
-      target = target.replace("*", replacement);
-    }
-    return { present: true, target };
-  }
-  function __fileCandidates(base, mode) {
-    return mode === "esm"
-      ? [base, base + ".mjs", base + ".js", base + ".cjs", base + ".json"]
-      : [base, base + ".js", base + ".cjs", base + ".json"];
-  }
-  function __indexCandidates(directory, mode) {
-    return __fileCandidates(__path.resolve(directory, "index"), mode).slice(1);
-  }
-  function __firstExisting(candidates, boundary, label) {
-    for (const candidate of candidates) {
-      const absolute = __validatePath(candidate, label);
-      if (boundary && !__withinRoot(absolute, boundary)) continue;
-      if (__normalizedExtension(absolute) === ".node") __nativeAddonDisabled(absolute);
-      if (__recordExists(absolute, true)) return absolute;
-    }
-    return null;
-  }
-  function __resolvePackageTarget(packageDir, target, mode, fieldName, moduleName) {
-    if (typeof target !== "string" || target.length === 0 || target.indexOf("\u0000") >= 0 || __path.isAbsolute(target)) {
-      throw __invalidPackageTarget("Invalid AutoJs6 worker package " + fieldName + " target for '" + moduleName + "': " + String(target));
-    }
-    if (fieldName === "exports" && target.indexOf("./") !== 0) {
-      throw __invalidPackageTarget("AutoJs6 worker package exports target must start with './' for '" + moduleName + "': " + target);
-    }
-    const base = __path.resolve(packageDir, target);
-    if (!__withinRoot(base, packageDir)) {
-      throw __invalidPackageTarget("AutoJs6 worker package " + fieldName + " escapes the package directory for '" + moduleName + "': " + target);
-    }
-    const extension = __normalizedExtension(base);
-    if (extension === ".node") __nativeAddonDisabled(target);
-    if (extension && !__supportedSourceExtension(extension, true)) {
-      throw __invalidPackageTarget("Unsupported AutoJs6 worker package " + fieldName + " extension for '" + moduleName + "': " + target);
-    }
-    const resolved = __firstExisting(extension ? [base] : __fileCandidates(base, mode), packageDir, "package " + fieldName + " target");
-    if (resolved) return resolved;
-    if (!extension && fieldName === "main") {
-      const index = __firstExisting(__indexCandidates(base, mode), packageDir, "package main directory");
-      if (index) return index;
-    }
-    throw __packageNotFound("Cannot find AutoJs6 worker package " + fieldName + " target '" + target + "' for '" + moduleName + "'.");
-  }
-  function __resolvePackageDirectory(packageDir, subpath, mode, moduleName) {
-    const packageData = __packageData(packageDir);
-    if (packageData) {
-      const exported = __exportsTarget(packageData, subpath, mode, moduleName);
-      if (exported.present) return __resolvePackageTarget(packageDir, exported.target, mode, "exports", moduleName);
-    }
-    if (subpath) {
-      const base = __path.resolve(packageDir, subpath);
-      if (!__withinRoot(base, packageDir)) {
-        throw __packageNotFound("AutoJs6 worker package subpath escapes the package directory for '" + moduleName + "'.");
-      }
-      const extension = __normalizedExtension(base);
-      if (extension === ".node") __nativeAddonDisabled(subpath);
-      const file = __firstExisting(extension ? [base] : __fileCandidates(base, mode), packageDir, "package subpath");
-      if (file) return file;
-      if (!extension && __directoryExists(base)) return __resolvePackageDirectory(base, "", mode, moduleName);
-      throw __packageNotFound("Cannot find module '" + moduleName + "' in AutoJs6 worker package directory " + packageDir + ".");
-    }
-    if (packageData && typeof packageData.main === "string" && packageData.main.length > 0) {
+      const virtual = __virtualResolution(name, context && context.parentURL);
+      if (virtual) return virtual;
       try {
-        return __resolvePackageTarget(packageDir, packageData.main, mode, "main", moduleName);
+        return nextResolve(name, context);
       } catch (error) {
-        if (!error || error.code !== "MODULE_NOT_FOUND") throw error;
+        if (!__notFound(error)) throw error;
+        const virtual = __virtualResolution(name, context && context.parentURL);
+        if (!virtual) throw error;
+        return virtual;
       }
-    }
-    const index = __firstExisting(__indexCandidates(packageDir, mode), packageDir, "package index");
-    if (index) return index;
-    throw __packageNotFound("Cannot find module '" + moduleName + "' in AutoJs6 worker package directory " + packageDir + ".");
-  }
-  function __nodeModulesSearchDirs(parentFilename) {
-    const dirs = [];
-    let current = __path.resolve(__path.dirname(parentFilename || __entryFilename));
-    if (!__withinRoot(current, __root)) current = __root;
-    while (__withinRoot(current, __root)) {
-      if (__path.basename(current) !== "node_modules") dirs.push(__path.resolve(current, "node_modules"));
-      if (current === __root) break;
-      const parent = __path.dirname(current);
-      if (!parent || parent === current) break;
-      current = __withinRoot(parent, __root) ? parent : __root;
-    }
-    return dirs;
-  }
-  function __resolveSelfReference(specifier, parentFilename, mode, moduleName) {
-    let current = __path.resolve(__path.dirname(parentFilename || __entryFilename));
-    if (!__withinRoot(current, __root)) return null;
-    while (__withinRoot(current, __root)) {
-      const packageData = __packageData(current);
-      if (packageData) {
-        if (packageData.name !== specifier.packageName || !Object.prototype.hasOwnProperty.call(packageData, "exports")) return null;
-        const exported = __exportsTarget(packageData, specifier.subpath, mode, moduleName);
-        return exported.present ? __resolvePackageTarget(current, exported.target, mode, "exports", moduleName) : null;
+    },
+    load(url, context, nextLoad) {
+      const target = String(url);
+      if (target.indexOf(__workerModuleScheme) === 0) {
+        return __workerModuleSource(target, context);
       }
-      if (current === __root) break;
-      const parent = __path.dirname(current);
-      if (!parent || parent === current) break;
-      current = parent;
-    }
-    return null;
-  }
-  function __resolveBare(raw, parentFilename, mode) {
-    if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(raw)) return __deny(raw);
-    if (__nativeModule.isBuiltin(raw)) return __deny(raw);
-    const specifier = __parsePackageSpecifier(raw);
-    if (!specifier) throw __packageNotFound("Invalid AutoJs6 worker package specifier: " + raw);
-    const selfResolved = __resolveSelfReference(specifier, parentFilename, mode, raw);
-    if (selfResolved) return { resolved: selfResolved, kind: __moduleKind(selfResolved) };
-    const searchDirs = __nodeModulesSearchDirs(parentFilename);
-    for (const nodeModulesDir of searchDirs) {
-      const packageDir = __path.resolve(nodeModulesDir, specifier.packageName);
-      if (!__withinRoot(packageDir, __root) || !__directoryExists(packageDir)) continue;
-      const resolved = __resolvePackageDirectory(packageDir, specifier.subpath, mode, raw);
-      return { resolved, kind: __moduleKind(resolved) };
-    }
-    if (__facadeModules.has(raw)) return __deny(raw);
-    throw __packageNotFound(
-      "Cannot find module '" + raw + "' from '" + (parentFilename || __entryFilename) +
-        "'. node_modules search paths='" + searchDirs.join("|") + "'."
-    );
-  }
-  function __resolveModule(raw, parentFilename, mode) {
-    return __isRelativeModuleName(raw) || __path.isAbsolute(raw)
-      ? __resolveLocal(raw, parentFilename, mode)
-      : __resolveBare(raw, parentFilename, mode);
-  }
-  function __createRequire(parentModule) {
-    const parentFilename = parentModule ? parentModule.filename : __entryFilename;
-    function workerRequire(request) {
-      const raw = String(request || "");
-      if (__builtinAllowed(raw)) return __loadBuiltin(raw);
-      const resolved = __resolveModule(raw, parentFilename, "cjs");
-      if (resolved.kind === "esm") __requireEsmUnsupported(raw);
-      return __loadCjsModule(resolved.resolved, parentModule);
-    }
-    workerRequire.resolve = function(request) {
-      const raw = String(request || "");
-      if (__builtinAllowed(raw)) return __resolveBuiltin(raw);
-      return __resolveModule(raw, parentFilename, "cjs").resolved;
-    };
-    return workerRequire;
-  }
-  function __loadCjsModule(resolved, parentModule) {
-    const filename = __validatePath(resolved, "CommonJS module path");
-    if (Object.prototype.hasOwnProperty.call(__moduleCache, filename)) {
-      return __moduleCache[filename].exports;
-    }
-    const kind = __moduleKind(filename);
-    if (kind === "esm") __requireEsmUnsupported(filename);
-    const record = __moduleRecord(filename, false);
-    const module = {
-      id: filename,
-      filename,
-      dirname: __path.dirname(filename),
-      exports: {},
-      loaded: false,
-      parent: parentModule || null,
-      children: []
-    };
-    if (parentModule && parentModule.children) parentModule.children.push(module);
-    __moduleCache[filename] = module;
-    if (__normalizedExtension(filename) === ".json") {
-      try {
-        module.exports = JSON.parse(record.source);
-      } catch (error) {
-        throw new SyntaxError("Invalid AutoJs6 worker JSON module '" + filename + "': " + (error && error.message ? error.message : String(error)));
+      if (/^file:/i.test(target)) {
+        const filename = __urlApi.fileURLToPath(target);
+        const key = __sourceKey(filename);
+        if (key !== undefined) {
+          const record = __moduleSources[key];
+          const format = __servedFormat(filename, context);
+          const source = String(record.source);
+          const sourceURL = record.sourceURL && String(record.sourceURL) !== filename
+            ? String(record.sourceURL).replace(/[\r\n]/g, " ")
+            : "";
+          return {
+            format,
+            source: format === "json" || !sourceURL ? source : source + "\n//# sourceURL=" + sourceURL,
+            shortCircuit: true
+          };
+        }
       }
-      module.loaded = true;
-      return module.exports;
+      return nextLoad(url, context);
     }
-    __assertCjsSourceSupported(record.source, filename);
-    const workerRequire = __createRequire(module);
-    module.require = workerRequire;
-    const sourceURL = String(record.sourceURL || filename).replace(/[\r\n]/g, " ");
-    const run = new Function(
-      "require",
-      "exports",
-      "module",
-      "__filename",
-      "__dirname",
-      "__autojs6_dynamic_import",
-      "\"use strict\";\n" + __transformDynamicImportCalls(record.source, filename) + "\n//# sourceURL=" + sourceURL
-    );
-    run(workerRequire, module.exports, module, module.filename, module.dirname, __dynamicImport);
-    module.loaded = true;
-    return module.exports;
-  }
-  function __splitNamedList(sourceName, text) {
-    const parts = String(text || "").split(",");
-    const output = [];
-    for (const rawPart of parts) {
-      const part = rawPart.trim();
-      if (!part) continue;
-      const match = /^([A-Za-z_$][0-9A-Za-z_$]*)(?:\s+as\s+([A-Za-z_$][0-9A-Za-z_$]*))?$/.exec(part);
-      if (!match) __esmUnsupported("Unsupported AutoJs6 worker ESM named binding in " + sourceName + ": " + part);
-      output.push({ exported: match[1], local: match[2] || match[1] });
-    }
-    return output;
-  }
-  function __parseImportBindings(bindingText, importVar, sourceName) {
-    let text = String(bindingText || "").trim();
-    const lines = [];
-    function bindDefault(value) {
-      const name = value.trim();
-      if (!/^[A-Za-z_$][0-9A-Za-z_$]*$/.test(name)) __esmUnsupported("Unsupported AutoJs6 worker ESM default import binding in " + sourceName + ": " + value);
-      lines.push("const " + name + " = " + importVar + "[\"default\"];");
-    }
-    function bindNamespace(value) {
-      const match = /^\*\s+as\s+([A-Za-z_$][0-9A-Za-z_$]*)$/.exec(value.trim());
-      if (!match) __esmUnsupported("Unsupported AutoJs6 worker ESM namespace import binding in " + sourceName + ": " + value);
-      lines.push("const " + match[1] + " = " + importVar + ";");
-    }
-    function bindNamed(value) {
-      const body = value.trim();
-      if (body.charAt(0) !== "{" || body.charAt(body.length - 1) !== "}") {
-        __esmUnsupported("Unsupported AutoJs6 worker ESM import binding in " + sourceName + ": " + value);
-      }
-      for (const item of __splitNamedList(sourceName, body.slice(1, -1))) {
-        lines.push("const " + item.local + " = " + importVar + "[" + JSON.stringify(item.exported) + "];");
-      }
-    }
-    const comma = text.indexOf(",");
-    if (comma >= 0 && text.charAt(0) !== "{" && text.charAt(0) !== "*") {
-      bindDefault(text.slice(0, comma));
-      text = text.slice(comma + 1).trim();
-    }
-    if (!text) return lines;
-    if (text.charAt(0) === "{") bindNamed(text);
-    else if (text.charAt(0) === "*") bindNamespace(text);
-    else bindDefault(text);
-    return lines;
-  }
-  function __transformExports(source, sourceName) {
-    let body = String(source || "");
-    const namedExports = [];
-    let hasDefault = false;
-    const masked = __maskNonCode(body);
-    if (/(^|[\r\n;{}])\s*export\s+(?:\*|\{[^}]*\}\s+from\b)/.test(masked)) {
-      __esmUnsupported("AutoJs6 worker partial ESM does not support re-export syntax in " + sourceName + ".");
-    }
-    body = body.replace(/\bexport\s+default\s+/g, function() {
-      if (hasDefault) __esmUnsupported("AutoJs6 worker partial ESM module has more than one default export: " + sourceName);
-      hasDefault = true;
-      return "const __autojs6_esm_default = ";
-    });
-    body = body.replace(/\bexport\s+(const|let|var)\s+([A-Za-z_$][0-9A-Za-z_$]*)\b/g, function(_, kind, name) {
-      namedExports.push({ exported: name, local: name });
-      return kind + " " + name;
-    });
-    body = body.replace(/\bexport\s+(async\s+)?function\s+([A-Za-z_$][0-9A-Za-z_$]*)\s*\(/g, function(_, asyncPrefix, name) {
-      namedExports.push({ exported: name, local: name });
-      return (asyncPrefix || "") + "function " + name + "(";
-    });
-    body = body.replace(/\bexport\s+class\s+([A-Za-z_$][0-9A-Za-z_$]*)\b/g, function(_, name) {
-      namedExports.push({ exported: name, local: name });
-      return "class " + name;
-    });
-    body = body.replace(/(^|[\r\n;{}])\s*export\s*\{([^}]*)\}\s*;?/g, function(match, prefix, list) {
-      for (const item of __splitNamedList(sourceName, list)) namedExports.push(item);
-      return prefix || "";
-    });
-    const tail = [];
-    if (hasDefault) tail.push("__autojs6_esm_namespace[\"default\"] = __autojs6_esm_default;");
-    for (const item of namedExports) tail.push("__autojs6_esm_namespace[" + JSON.stringify(item.exported) + "] = " + item.local + ";");
-    return { body, tail: tail.join("\n") };
-  }
-  function __transformEsmSource(source, filename) {
-    const sourceText = String(source || "");
-    const masked = __maskNonCode(sourceText);
-    for (let index = 0; index < masked.length; index += 1) {
-      if (!__isIdentifierTokenAt(masked, index, "import")) continue;
-      const nextIndex = __skipWhitespace(masked, index + "import".length);
-      const next = masked.charAt(nextIndex);
-      if (next === "(") continue;
-      if (next === "." && masked.slice(nextIndex, nextIndex + 5) === ".meta") {
-        __esmUnsupported("import.meta is disabled for AutoJs6 worker partial ESM module '" + filename + "'.");
-      }
-    }
-    const importPattern = /(^|[\r\n;])\s*import\b\s*(?![.(])(?:(["'])([^"'\r\n]+)\2|([\s\S]*?)\s*from\s*(["'])([^"'\r\n]+)\5)[ \t]*(?=;|[\r\n]|$|\/\/|\/\*)/g;
-    const bindingLines = [];
-    let body = "";
-    let cursor = 0;
-    let importIndex = 0;
-    let match;
-    while ((match = importPattern.exec(sourceText)) !== null) {
-      const statementStart = match.index + match[1].length;
-      const statementEnd = importPattern.lastIndex;
-      body += sourceText.slice(cursor, statementStart);
-      cursor = statementEnd;
-      const importVar = "__autojs6_esm_import_" + importIndex++;
-      const specifier = match[3] || match[6];
-      bindingLines.push(
-        "const " + importVar + " = await __autojs6_load_esm_module(" +
-          JSON.stringify(specifier) + ", " + JSON.stringify(filename) + ");"
-      );
-      const specifierText = match[4] === undefined ? "" : match[4];
-      Array.prototype.push.apply(bindingLines, __parseImportBindings(specifierText, importVar, filename));
-    }
-    body += sourceText.slice(cursor);
-    const exportTransform = __transformExports(body, filename);
-    const remaining = __maskNonCode(exportTransform.body);
-    if (/(^|[\r\n;{}])\s*import\b/.test(remaining) || /(^|[\r\n;{}])\s*export\b/.test(remaining)) {
-      __esmUnsupported("AutoJs6 worker partial ESM found unsupported import/export syntax in " + filename + ".");
-    }
-    return bindingLines.join("\n") + "\n" + exportTransform.body + "\n" + exportTransform.tail;
-  }
-  function __namespaceFromCommonJs(value) {
-    const namespace = Object.create(null);
-    namespace.default = value;
-    if (value !== null && (typeof value === "object" || typeof value === "function")) {
-      for (const key of Object.getOwnPropertyNames(value)) {
-        if (key === "default") continue;
-        try { namespace[key] = value[key]; } catch (_) {}
-      }
-    }
-    return Object.freeze(namespace);
-  }
-  function __loadEsmModule(specifier, parentFilename, attributes) {
-    const raw = String(specifier || "");
-    if (__builtinAllowed(raw)) {
-      if (attributes && attributes.type) {
-        return Promise.reject(__importAttributeError(
-          "AutoJs6 worker dynamic import attributes are only supported for JSON modules: " + raw,
-          "ERR_IMPORT_ATTRIBUTE_UNSUPPORTED"
-        ));
-      }
-      return Promise.resolve(__namespaceFromCommonJs(__loadBuiltin(raw)));
-    }
-    let localName = raw;
-    if (/^file:/i.test(raw)) {
-      try { localName = __nativeRequire("url").fileURLToPath(raw); } catch (error) { return Promise.reject(error); }
-    }
-    let resolved;
-    try {
-      resolved = __resolveModule(localName, parentFilename, "esm");
-      __validateImportAttributes(resolved, attributes, raw, parentFilename);
-    } catch (error) {
-      return Promise.reject(error);
-    }
-    if (resolved.kind === "cjs") {
-      return Promise.resolve(__namespaceFromCommonJs(__loadCjsModule(resolved.resolved, null)));
-    }
-    return __executeEsmModule(resolved.resolved);
-  }
-  function __executeEsmModule(resolved) {
-    const filename = __validatePath(resolved, "ESM module path");
-    if (Object.prototype.hasOwnProperty.call(__esmModuleCache, filename)) {
-      return __esmModuleCache[filename].promise;
-    }
-    const record = __moduleRecord(filename, true);
-    const namespace = Object.create(null);
-    const cacheRecord = { namespace, promise: null };
-    __esmModuleCache[filename] = cacheRecord;
-    cacheRecord.promise = (async function() {
-      const transformed = __transformDynamicImportCalls(__transformEsmSource(record.source, filename), filename);
-      const sourceURL = String(record.sourceURL || filename).replace(/[\r\n]/g, " ");
-      const moduleFunction = __AsyncFunction(
-        "__autojs6_load_esm_module",
-        "__autojs6_esm_namespace",
-        "require",
-        "exports",
-        "module",
-        "__filename",
-        "__dirname",
-        "__autojs6_dynamic_import",
-        "\"use strict\";\n" + transformed + "\n//# sourceURL=" + sourceURL
-      );
-      await moduleFunction.call(
-        undefined,
-        __loadEsmModule,
-        namespace,
-        undefined,
-        undefined,
-        undefined,
-        filename,
-        __path.dirname(filename),
-        __dynamicImport
-      );
-      return Object.freeze(namespace);
-    })();
-    return cacheRecord.promise;
-  }
+  });
+  const __entryUrl = __urlApi.pathToFileURL(__entryFilename).href;
   if (__descriptor.format === "esm") {
-    __executeEsmModule(__entryFilename).then(
+    import(__entryUrl).then(
       function() {},
       function(error) {
         setImmediate(function() { throw error; });
       }
     );
   } else {
-    __loadCjsModule(__entryFilename, null);
+    __moduleApi.createRequire(__entryFilename)(__entryFilename);
   }
 })();
 `;
@@ -14919,8 +13918,6 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_rhino_selector_builder_names = Object.freeze(["text", "desc", "id", "className", "textContains", "descContains", "textMatches", "descMatches", "idMatches", "classNameMatches", "clickable", "enabled", "scrollable", "depth", "boundsInside", "boundsContains"]);
   const __autojs6_rhino_selector_alias_names = Object.freeze(["description", "descriptionContains", "descriptionMatches", "idContains", "classNameContains"]);
   const __autojs6_rhino_selector_chain_names = Object.freeze(__autojs6_rhino_selector_builder_names.concat(__autojs6_rhino_selector_alias_names));
-  const __autojs6_rhino_selector_action_names = Object.freeze(["click", "back", "home", "recentApps", "recents"]);
-  const __autojs6_rhino_selector_global_names = Object.freeze(["selector", "text", "desc", "id", "className", "textContains", "descContains", "textMatches", "descMatches", "idMatches", "classNameMatches", "clickable", "enabled", "scrollable", "depth", "boundsInside", "boundsContains", "description", "descriptionContains", "descriptionMatches", "idContains", "classNameContains", "click", "back", "home", "recentApps", "recents"]);
   let __autojs6_rhino_selector_dsl_cache = null;
   let __autojs6_rhino_compat_shell_cache = null;
   let __autojs6_rhino_compat_images_cache = null;
@@ -23308,7 +22305,7 @@ std::string buildEmbeddedScriptExecutionSource(
     });
   }
   function __autojs6_plugin_main_exports(record) {
-    const moduleRecord = __autojs6_module_cache[record.descriptor.entryPath];
+    const moduleRecord = __autojs6_builtin_module("module")._cache[record.descriptor.entryPath];
     return moduleRecord && moduleRecord.exports !== undefined ? moduleRecord.exports : null;
   }
   function __autojs6_plugin_call_lifecycle_hook(record, exported, hookName, options) {
@@ -23445,10 +22442,11 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_plugin_clear_module_cache(record) {
     const descriptor = record.descriptor;
-    const keys = Object.keys(__autojs6_module_cache);
+    const moduleCache = __autojs6_builtin_module("module")._cache;
+    const keys = Object.keys(moduleCache);
     for (const key of keys) {
       if (__autojs6_path_within_root(key, descriptor.pluginDir)) {
-        delete __autojs6_module_cache[key];
+        delete moduleCache[key];
       }
     }
     record.loaded = false;
@@ -23510,8 +22508,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const descriptor = record.descriptor;
       __autojs6_plugins_assert_capabilities(descriptor, "load");
       const entryPath = __autojs6_plugin_export_entry_path(descriptor, "load", exportName);
-      __autojs6_plugin_module_roots[descriptor.pluginDir] = true;
-      const exported = __autojs6_load_local_module(entryPath, null);
+      const exported = __autojs6_native_require(entryPath);
       record.loaded = true;
       record.loadedPaths.add(entryPath);
       return exported;
@@ -24736,9 +23733,6 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return __autojs6_limited_npm_cache;
   }
-  function __autojs6_invalid_package_target(message) {
-    return __autojs6_error(message, "ERR_INVALID_PACKAGE_TARGET");
-  }
   function __autojs6_invalid_arg_type(message) {
     return __autojs6_with_error_code(new TypeError(message), "ERR_INVALID_ARG_TYPE");
   }
@@ -24747,38 +23741,6 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_out_of_range(message) {
     return __autojs6_with_error_code(new RangeError(message), "ERR_OUT_OF_RANGE");
-  }
-  function __autojs6_append_error_context(error, context, flagName) {
-    if (!error || typeof error !== "object" || !context) return error;
-    const flag = flagName || "__autojs6DiagnosticsContext";
-    if (error[flag]) return error;
-    const message = error.message ? String(error.message) : String(error);
-    const separator = message && /[.!?]$/.test(message) ? " " : ". ";
-    try {
-      error.message = message + separator + context;
-    } catch (_) {}
-    try {
-      Object.defineProperty(error, flag, {
-        value: true,
-        configurable: true,
-        enumerable: false,
-        writable: false
-      });
-    } catch (_) {
-      try {
-        error[flag] = true;
-      } catch (_) {}
-    }
-    return error;
-  }
-  function __autojs6_prime_restricted_require() {
-    for (const builtinName of __autojs6_require_builtin_names) {
-      if (__autojs6_has_own(__autojs6_require_builtin_cache, builtinName)) continue;
-      const moduleValue = __autojs6_builtin_module(builtinName);
-      if (moduleValue) {
-        __autojs6_require_builtin_cache[builtinName] = moduleValue;
-      }
-    }
   }
   function __autojs6_path_module() {
     if (__autojs6_has_own(__autojs6_require_builtin_cache, "path")) {
@@ -24802,14 +23764,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return null;
   }
-  function __autojs6_fs_promises_module() {
-    const moduleValue = __autojs6_builtin_module("fs/promises");
-    if (moduleValue) {
-      return moduleValue;
-    }
-    const fsModule = __autojs6_fs_module();
-    return fsModule && fsModule.promises ? fsModule.promises : null;
-  }
   function __autojs6_buffer_module() {
     if (__autojs6_has_own(__autojs6_require_builtin_cache, "buffer")) {
       return __autojs6_require_builtin_cache.buffer;
@@ -24832,17 +23786,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return null;
   }
-  function __autojs6_os_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "os")) {
-      return __autojs6_require_builtin_cache.os;
-    }
-    const moduleValue = __autojs6_builtin_module("os");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache.os = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
   function __autojs6_url_module() {
     if (__autojs6_has_own(__autojs6_require_builtin_cache, "url")) {
       return __autojs6_require_builtin_cache.url;
@@ -24861,28 +23804,6 @@ std::string buildEmbeddedScriptExecutionSource(
     const moduleValue = __autojs6_builtin_module("events");
     if (moduleValue) {
       __autojs6_require_builtin_cache.events = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
-  function __autojs6_readline_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "readline")) {
-      return __autojs6_require_builtin_cache.readline;
-    }
-    const moduleValue = __autojs6_builtin_module("readline");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache.readline = moduleValue;
-      return moduleValue;
-    }
-    return null;
-  }
-  function __autojs6_stream_module() {
-    if (__autojs6_has_own(__autojs6_require_builtin_cache, "stream")) {
-      return __autojs6_require_builtin_cache.stream;
-    }
-    const moduleValue = __autojs6_builtin_module("stream");
-    if (moduleValue) {
-      __autojs6_require_builtin_cache.stream = moduleValue;
       return moduleValue;
     }
     return null;
@@ -24926,19 +23847,6 @@ std::string buildEmbeddedScriptExecutionSource(
       name.indexOf("./") === 0 ||
       name.indexOf("../") === 0;
   }
-  function __autojs6_is_absolute_module_name(name) {
-    const path = __autojs6_path_module();
-    return path && typeof path.isAbsolute === "function"
-      ? path.isAbsolute(name)
-      : name.charAt(0) === "/";
-  }
-  // Relative and absolute specifiers both load from disk, as in Node. Android
-  // file access (with the sensitive roots denied) decides whether the target is
-  // readable; node_modules lookup and package scopes stay anchored to the
-  // workspace root.
-  function __autojs6_is_local_module_name(name) {
-    return __autojs6_is_relative_module_name(name) || __autojs6_is_absolute_module_name(name);
-  }
   function __autojs6_module_dirname(filename) {
     if (__autojs6_is_data_url_module_id(filename)) {
       return "";
@@ -24966,7 +23874,7 @@ std::string buildEmbeddedScriptExecutionSource(
       name.indexOf("$remote\\") === 0 ||
       (/^<[^<>]+>$/.test(name));
   }
-  function __autojs6_entry_filename() {
+  function __autojs6_requested_entry_filename() {
     const path = __autojs6_path_module();
     const name = String(__autojs6_source_name || "");
     if (!path || typeof path.resolve !== "function" || typeof path.isAbsolute !== "function") {
@@ -24984,53 +23892,8 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_diagnostic_path(value) {
     return value === undefined || value === null ? "" : String(value);
   }
-  function __autojs6_diagnostic_cwd() {
-    try {
-      return __autojs6_process_cwd();
-    } catch (_) {
-      return __autojs6_current_working_directory || __autojs6_sandbox_root || "";
-    }
-  }
-  function __autojs6_diagnostic_sandbox_root() {
-    try {
-      return __autojs6_resolved_sandbox_root(__autojs6_path_module());
-    } catch (_) {
-      return __autojs6_sandbox_root || __autojs6_module_root || "";
-    }
-  }
-  function __autojs6_record_require_failure_request(request, referrer) {
-    __autojs6_runtime_module_diagnostics.lastRequest = __autojs6_diagnostic_path(request);
-    __autojs6_runtime_module_diagnostics.lastReferrer = __autojs6_diagnostic_path(referrer);
-  }
   function __autojs6_record_runtime_module_candidate(candidate) {
     __autojs6_runtime_module_diagnostics.lastCandidate = __autojs6_diagnostic_path(candidate);
-  }
-  function __autojs6_require_failure_context(request, referrer) {
-    // Fallback request/referrer always equal the primary request/referrer, so
-    // they are omitted to keep user-facing errors on one readable line.
-    const diagnostics = __autojs6_runtime_module_diagnostics;
-    return "Embedded Node require diagnostics: request='" + __autojs6_diagnostic_path(request) +
-      "'; referrer='" + __autojs6_diagnostic_path(referrer) +
-      "'; cwd='" + __autojs6_diagnostic_cwd() +
-      "'; sandboxRoot='" + __autojs6_diagnostic_sandbox_root() +
-      "'; dynamic require fallback candidate='" + diagnostics.lastCandidate +
-      "'; dynamic require fallback denied='" + diagnostics.lastDeniedReason + "'";
-  }
-  function __autojs6_enrich_require_error(error, request, referrer) {
-    __autojs6_record_require_failure_request(request, referrer);
-    if (!__autojs6_runtime_module_diagnostics.lastDeniedReason) {
-      // Do not embed the full error message here: it is appended to the same
-      // error right below, and nesting it produced unreadable message walls.
-      __autojs6_record_runtime_module_denial(
-        "dynamic require fallback denied for request '" + __autojs6_diagnostic_path(request) +
-          "' from '" + __autojs6_diagnostic_path(referrer) + "'"
-      );
-    }
-    return __autojs6_append_error_context(
-      error,
-      __autojs6_require_failure_context(request, referrer),
-      "__autojs6RequireDiagnosticsContext"
-    );
   }
   function __autojs6_path_within_root(pathValue, rootValue) {
     if (!rootValue) return false;
@@ -25519,6 +24382,9 @@ std::string buildEmbeddedScriptExecutionSource(
     );
   }
   function __autojs6_request_module_source(readable, operation) {
+    // Provider receipts use the host's workspace spelling, while Node resolves
+    // /data/user/0 through /data/data. Keep both sides of the transport identical.
+    readable = __autojs6_host_module_path(readable);
     const requestOperation = operation === "materialize_missing_plaintext"
       ? "materialize_missing_plaintext"
       : operation === "compile_missing_typescript"
@@ -26392,96 +25258,6 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_protocol_specifier(name) {
     return /^[A-Za-z][A-Za-z0-9+.-]*:/.test(name);
   }
-  function __autojs6_parse_package_specifier(name) {
-    const path = __autojs6_path_module();
-    if (!path || typeof path.isAbsolute !== "function") {
-      throw __autojs6_module_not_found("Embedded Node.js node_modules require needs the allowlisted path module.");
-    }
-    if (!name) return null;
-    if (name.indexOf("\u0000") >= 0) {
-      throw new Error("Embedded Node node_modules require rejects NUL specifier.");
-    }
-    if (path.isAbsolute(name)) {
-      throw new Error("Embedded Node node_modules require rejects absolute specifier: " + name);
-    }
-    if (__autojs6_protocol_specifier(name)) {
-      throw new Error("Embedded Node node_modules require rejects protocol specifier: " + name);
-    }
-    const normalizedName = name.charAt(name.length - 1) === "/"
-      ? name.slice(0, -1)
-      : name;
-    const parts = normalizedName.split("/");
-    if (!parts.length) return null;
-    for (const part of parts) {
-      if (part === "") {
-        throw new Error("Invalid Embedded Node package specifier: " + name);
-      }
-      if (part === "." || part === "..") {
-        throw new Error("Embedded Node node_modules package subpath escapes working directory: " + name);
-      }
-    }
-    if (parts[0].charAt(0) === "@") {
-      if (parts.length < 2 || parts[0].length <= 1 || parts[1].charAt(0) === "@") {
-        throw new Error("Invalid Embedded Node scoped package specifier: " + name);
-      }
-      return {
-        packageName: parts[0] + "/" + parts[1],
-        subpath: parts.slice(2).join("/")
-      };
-    }
-    if (parts[0].charAt(0) === ".") {
-      throw new Error("Invalid Embedded Node package specifier: " + name);
-    }
-    return {
-      packageName: parts[0],
-      subpath: parts.slice(1).join("/")
-    };
-  }
-  function __autojs6_local_module_unreachable(moduleName) {
-    return __autojs6_error(
-      "Embedded Node local require cannot reach '" + moduleName +
-        "': the path is outside Android file access or under a sensitive root (/proc, /sys, /dev).",
-      "ERR_AUTOJS6_FS_PATH_ESCAPE"
-    );
-  }
-  function __autojs6_first_local_module_candidate(
-    candidates,
-    root,
-    moduleName,
-    allowEsm,
-    materializeMissingPlaintext
-  ) {
-    const path = __autojs6_path_module();
-    for (const candidate of candidates) {
-      const resolved = path.resolve(candidate);
-      if (!__autojs6_path_within_root(resolved, root)) {
-        throw __autojs6_local_module_unreachable(moduleName);
-      }
-      // Node's LOAD_AS_FILE probes the literal path first even when its
-      // "extension" is bogus (require('./util.inspect') → file
-      // util.inspect.js). A candidate with an unloadable extension is simply
-      // not a match — fall through to the suffixed candidates instead of
-      // failing the whole resolution.
-      const candidateExtension = path.extname(resolved);
-      if (
-        candidateExtension &&
-        !__autojs6_supported_local_module_extension(candidateExtension) &&
-        !(allowEsm && __autojs6_is_esm_extension(candidateExtension)) &&
-        candidates.length > 1
-      ) {
-        continue;
-      }
-      if (__autojs6_module_record(
-        resolved,
-        allowEsm,
-        materializeMissingPlaintext === true,
-        true
-      )) {
-        return resolved;
-      }
-    }
-    return null;
-  }
   function __autojs6_package_data(packageJsonResolved, moduleName) {
     const record = __autojs6_module_metadata_record(packageJsonResolved);
     if (!record) return null;
@@ -26497,13 +25273,6 @@ std::string buildEmbeddedScriptExecutionSource(
     if (!packageData || typeof packageData !== "object" || Array.isArray(packageData)) return null;
     return packageData;
   }
-  function __autojs6_package_main(packageData, moduleName) {
-    if (!packageData || typeof packageData !== "object" || !__autojs6_has_own(packageData, "main")) return null;
-    if (typeof packageData.main !== "string" || packageData.main.length === 0) {
-      throw new Error("Embedded Node package.json main must be a non-empty string for '" + moduleName + "'.");
-    }
-    return packageData.main;
-  }
   function __autojs6_package_name(packageData) {
     return packageData &&
       typeof packageData === "object" &&
@@ -26512,48 +25281,18 @@ std::string buildEmbeddedScriptExecutionSource(
         ? packageData.name
         : null;
   }
-  function __autojs6_package_type_is_module(packageData) {
-    return packageData &&
-      typeof packageData === "object" &&
-      packageData.type === "module";
-  }
-  function __autojs6_package_json_path(packageDir) {
-    const path = __autojs6_path_module();
-    return path && typeof path.resolve === "function"
-      ? path.resolve(packageDir, "package.json")
-      : String(packageDir || "") + "/package.json";
-  }
   function __autojs6_package_condition_keys(entry) {
     return entry && typeof entry === "object" && !Array.isArray(entry)
       ? Object.keys(entry).join("|")
       : "";
   }
-  function __autojs6_package_ignored_fields(packageData) {
-    if (!packageData || typeof packageData !== "object") return "";
-    const ignored = [];
-    for (const field of ["module", "browser", "types", "typings"]) {
-      if (__autojs6_has_own(packageData, field)) {
-        ignored.push(field);
-      }
-    }
-    return ignored.join("|");
-  }
   function __autojs6_package_condition_mode(mode) {
     return mode === "esm" ? "esm" : "cjs";
-  }
-  function __autojs6_package_target_allows_esm(mode) {
-    return mode === "esm" || mode === "cjs_require_esm";
-  }
-  function __autojs6_commonjs_require_resolution_mode() {
-    return __autojs6_esm_enabled ? "cjs_require_esm" : "cjs";
   }
   function __autojs6_package_active_conditions(mode) {
     return __autojs6_package_condition_mode(mode) === "esm"
       ? ["autojs6", "import", "node", "default"]
       : ["autojs6", "require", "node", "default"];
-  }
-  function __autojs6_package_mode_label(mode) {
-    return __autojs6_package_condition_mode(mode) === "esm" ? "ESM" : "CommonJS";
   }
   function __autojs6_unsupported_package_conditions(entry, mode) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) return "";
@@ -26565,288 +25304,6 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     }
     return ignored.join("|");
-  }
-  function __autojs6_package_known_condition_key(key) {
-    return key === "require" ||
-      key === "node" ||
-      key === "default" ||
-      key === "import" ||
-      key === "autojs6" ||
-      key === "browser" ||
-      key === "development" ||
-      key === "production" ||
-      key === "react-native" ||
-      key === "worker" ||
-      key === "deno" ||
-      key === "types";
-  }
-  function __autojs6_package_condition_map(entry) {
-    return !!(
-      entry &&
-      typeof entry === "object" &&
-      !Array.isArray(entry) &&
-      Object.keys(entry).some(__autojs6_package_known_condition_key)
-    );
-  }
-  function __autojs6_attach_package_error_details(error, details) {
-    if (!error || typeof error !== "object" || !details) return error;
-    for (const key of Object.keys(details)) {
-      try {
-        Object.defineProperty(error, key, {
-          value: details[key],
-          configurable: true,
-          enumerable: false,
-          writable: true
-        });
-      } catch (_) {
-        try {
-          error[key] = details[key];
-        } catch (_) {}
-      }
-    }
-    return error;
-  }
-  function __autojs6_record_package_resolution(
-    packageDir,
-    moduleName,
-    fieldName,
-    request,
-    target,
-    conditionKeys,
-    selectedCondition,
-    reason,
-    ignoredFields,
-    ignoredConditions
-  ) {
-    __autojs6_package_diagnostics.lastPackageName = __autojs6_diagnostic_path(moduleName);
-    __autojs6_package_diagnostics.lastPackageJson = __autojs6_package_json_path(packageDir);
-    __autojs6_package_diagnostics.lastField = __autojs6_diagnostic_path(fieldName);
-    __autojs6_package_diagnostics.lastRequest = __autojs6_diagnostic_path(request);
-    __autojs6_package_diagnostics.lastTarget = target === undefined ? "" : __autojs6_diagnostic_path(target);
-    __autojs6_package_diagnostics.lastConditionKeys = __autojs6_diagnostic_path(conditionKeys);
-    __autojs6_package_diagnostics.lastSelectedCondition = __autojs6_diagnostic_path(selectedCondition);
-    __autojs6_package_diagnostics.lastIgnoredFields = __autojs6_diagnostic_path(ignoredFields);
-    __autojs6_package_diagnostics.lastIgnoredConditions = __autojs6_diagnostic_path(ignoredConditions);
-    __autojs6_package_diagnostics.lastReason = __autojs6_diagnostic_path(reason);
-  }
-  function __autojs6_enrich_package_error(
-    error,
-    packageDir,
-    moduleName,
-    fieldName,
-    request,
-    target,
-    conditionKeys,
-    selectedCondition,
-    ignoredFields,
-    ignoredConditions
-  ) {
-    if (target === undefined && error && error.__autojs6PackageTarget !== undefined) {
-      target = error.__autojs6PackageTarget;
-    }
-    if (!conditionKeys && error && error.__autojs6PackageConditionKeys) {
-      conditionKeys = error.__autojs6PackageConditionKeys;
-    }
-    if (!selectedCondition && error && error.__autojs6PackageSelectedCondition) {
-      selectedCondition = error.__autojs6PackageSelectedCondition;
-    }
-    if (!ignoredFields && error && error.__autojs6PackageIgnoredFields) {
-      ignoredFields = error.__autojs6PackageIgnoredFields;
-    }
-    if (!ignoredConditions && error && error.__autojs6PackageIgnoredConditions) {
-      ignoredConditions = error.__autojs6PackageIgnoredConditions;
-    }
-    const reason = error && error.message ? String(error.message) : String(error);
-    __autojs6_record_package_resolution(
-      packageDir,
-      moduleName,
-      fieldName,
-      request,
-      target,
-      conditionKeys,
-      selectedCondition,
-      reason,
-      ignoredFields,
-      ignoredConditions
-    );
-    let context = "Embedded Node package diagnostics: package='" + __autojs6_diagnostic_path(moduleName) +
-      "'; package.json='" + __autojs6_package_json_path(packageDir) +
-      "'; field='" + __autojs6_diagnostic_path(fieldName) +
-      "'; request='" + __autojs6_diagnostic_path(request) + "'";
-    if (target !== undefined) {
-      context += "; target='" + __autojs6_diagnostic_path(target) + "'";
-    }
-    if (conditionKeys) {
-      context += "; conditionKeys='" + __autojs6_diagnostic_path(conditionKeys) + "'";
-    }
-    if (selectedCondition) {
-      context += "; selectedCondition='" + __autojs6_diagnostic_path(selectedCondition) + "'";
-    }
-    if (ignoredFields) {
-      context += "; ignoredFields='" + __autojs6_diagnostic_path(ignoredFields) + "'";
-    }
-    if (ignoredConditions) {
-      context += "; unsupported condition ignored='" + __autojs6_diagnostic_path(ignoredConditions) + "'";
-    }
-    return __autojs6_append_error_context(error, context, "__autojs6PackageDiagnosticsContext");
-  }
-  function __autojs6_resolve_package_path_target(packageDir, target, root, moduleName, fieldName, mode) {
-    const path = __autojs6_path_module();
-    if (typeof target !== "string" || target.length === 0) {
-      throw __autojs6_invalid_package_target("Embedded Node package.json " + fieldName + " target must be a non-empty string for '" + moduleName + "'.");
-    }
-    if (target.indexOf("\u0000") >= 0) {
-      throw __autojs6_invalid_package_target("Embedded Node package.json " + fieldName + " rejects NUL path for '" + moduleName + "'.");
-    }
-    if (path.isAbsolute(target)) {
-      throw __autojs6_invalid_package_target("Embedded Node package.json " + fieldName + " rejects absolute path for '" + moduleName + "': " + target);
-    }
-    if ((fieldName === "exports" || fieldName === "imports") && target.indexOf("./") !== 0) {
-      throw __autojs6_invalid_package_target("Embedded Node package.json " + fieldName + " target must start with './' for '" + moduleName + "': " + target);
-    }
-    const base = path.resolve(packageDir, target);
-    if (!__autojs6_path_within_root(base, packageDir)) {
-      throw __autojs6_invalid_package_target(
-        "Package " + fieldName + " escapes Embedded Node package directory for '" + moduleName + "': " + target
-      );
-    }
-    const extension = path.extname(base);
-    const allowEsm = __autojs6_package_target_allows_esm(mode);
-    __autojs6_throw_if_raw_typescript_extension(
-      extension,
-      target,
-      "Embedded Node package " + fieldName + " target"
-    );
-    if (!allowEsm) {
-      __autojs6_throw_if_esm_extension(extension, moduleName, "Embedded Node package " + fieldName + " target");
-    }
-    __autojs6_throw_if_native_addon_extension(
-      extension,
-      moduleName,
-      "Embedded Node package " + fieldName + " target",
-      "Unsupported Embedded Node package " + fieldName + " extension in MVP: " + target
-    );
-    if (extension && !__autojs6_supported_local_module_extension(extension) && !(allowEsm && __autojs6_is_esm_extension(extension))) {
-      throw __autojs6_invalid_package_target("Unsupported Embedded Node package " + fieldName + " extension in MVP: " + target);
-    }
-    const candidates = extension
-      ? [base]
-      : __autojs6_package_condition_mode(mode) === "esm"
-        ? [base, base + ".mts", base + ".ts", base + ".mjs", base + ".js", base + ".cts", base + ".cjs", base + ".json"]
-        : [base, base + ".js", base + ".cjs", base + ".cts", base + ".ts", base + ".json"];
-    const resolved = __autojs6_first_local_module_candidate(candidates, root, moduleName, allowEsm, true);
-    if (resolved && __autojs6_path_within_root(resolved, packageDir)) {
-      return resolved;
-    }
-    throw __autojs6_module_not_found("Cannot find Embedded Node package " + fieldName + " target '" + target + "' for '" + moduleName + "'.");
-  }
-  function __autojs6_resolve_package_main(packageDir, packageMain, root, moduleName, ignoredFields, mode) {
-    try {
-      return __autojs6_resolve_package_path_target(packageDir, packageMain, root, moduleName, "main", mode || "cjs");
-    } catch (error) {
-      throw __autojs6_enrich_package_error(error, packageDir, moduleName, "main", moduleName, packageMain, "", "", ignoredFields);
-    }
-  }
-  function __autojs6_star_count(value) {
-    return (String(value).match(/\*/g) || []).length;
-  }
-  function __autojs6_validate_package_pattern_replacement(replacement, moduleName, fieldName) {
-    const path = __autojs6_path_module();
-    if (replacement.length === 0) {
-      throw __autojs6_invalid_package_target("Embedded Node package " + fieldName + " wildcard replacement must be non-empty for '" + moduleName + "'.");
-    }
-    if (replacement.indexOf("\u0000") >= 0) {
-      throw __autojs6_invalid_package_target("Embedded Node package " + fieldName + " wildcard replacement rejects NUL for '" + moduleName + "'.");
-    }
-    if (path.isAbsolute(replacement)) {
-      throw __autojs6_invalid_package_target("Embedded Node package " + fieldName + " wildcard replacement rejects absolute path for '" + moduleName + "'.");
-    }
-    for (const part of replacement.split("/")) {
-      if (part === "" || part === "." || part === "..") {
-        throw __autojs6_invalid_package_target("Embedded Node package " + fieldName + " wildcard replacement rejects unsafe segment for '" + moduleName + "'.");
-      }
-    }
-    return replacement;
-  }
-  function __autojs6_package_pattern_replacement(patternKey, key, moduleName, fieldName) {
-    const starCount = __autojs6_star_count(patternKey);
-    if (starCount === 0) return null;
-    const firstStar = patternKey.indexOf("*");
-    const prefix = patternKey.slice(0, firstStar);
-    if (key.indexOf(prefix) !== 0) return null;
-    if (starCount !== 1) {
-      throw __autojs6_invalid_package_target("Unsupported Embedded Node package " + fieldName + " multiple wildcard pattern in MVP for '" + moduleName + "': " + patternKey);
-    }
-    const suffix = patternKey.slice(firstStar + 1);
-    if (suffix && key.slice(-suffix.length) !== suffix) return null;
-    if (key.length < prefix.length + suffix.length) return null;
-    return __autojs6_validate_package_pattern_replacement(
-      key.slice(prefix.length, suffix ? -suffix.length : undefined),
-      moduleName,
-      fieldName
-    );
-  }
-  function __autojs6_validate_package_exports_keys(exportsValue, moduleName) {
-    const keys = Object.keys(exportsValue);
-    let subpathShape = null;
-    for (const key of keys) {
-      const currentSubpathShape = key.length > 0 && key[0] === ".";
-      if (subpathShape === null) {
-        subpathShape = currentSubpathShape;
-      } else if (subpathShape !== currentSubpathShape) {
-        throw __autojs6_invalid_package_target(
-          "Embedded Node package exports cannot mix subpath keys and condition keys for '" + moduleName + "'."
-        );
-      }
-      if (currentSubpathShape && key !== "." && key.indexOf("./") !== 0) {
-        throw __autojs6_invalid_package_target(
-          "Embedded Node package exports contains an invalid subpath key for '" + moduleName + "': " + key
-        );
-      }
-    }
-    return subpathShape === false;
-  }
-  function __autojs6_validate_package_imports_keys(importsValue, moduleName) {
-    for (const key of Object.keys(importsValue)) {
-      if (key === "#" || key.indexOf("#/") === 0 || key.indexOf("#") !== 0 || key.indexOf("\u0000") >= 0) {
-        throw __autojs6_invalid_package_target(
-          "Embedded Node package imports contains an invalid internal specifier key for '" + moduleName + "': " + key
-        );
-      }
-    }
-  }
-  function __autojs6_package_pattern_key_compare(left, right) {
-    const leftStar = left.indexOf("*");
-    const rightStar = right.indexOf("*");
-    const leftBaseLength = leftStar < 0 ? left.length : leftStar + 1;
-    const rightBaseLength = rightStar < 0 ? right.length : rightStar + 1;
-    if (leftBaseLength > rightBaseLength) return -1;
-    if (rightBaseLength > leftBaseLength) return 1;
-    if (leftStar < 0) return 1;
-    if (rightStar < 0) return -1;
-    if (left.length > right.length) return -1;
-    if (right.length > left.length) return 1;
-    return 0;
-  }
-  function __autojs6_best_package_pattern_match(entries, key, moduleName, fieldName) {
-    let bestKey = null;
-    let bestReplacement = null;
-    for (const patternKey of Object.keys(entries)) {
-      const replacement = __autojs6_package_pattern_replacement(patternKey, key, moduleName, fieldName);
-      if (replacement === null) continue;
-      if (bestKey === null || __autojs6_package_pattern_key_compare(patternKey, bestKey) < 0) {
-        bestKey = patternKey;
-        bestReplacement = replacement;
-      }
-    }
-    return bestKey === null ? null : { key: bestKey, replacement: bestReplacement };
-  }
-  function __autojs6_apply_package_pattern_target(target, replacement, moduleName, fieldName) {
-    if (replacement === null) return target;
-    if (__autojs6_star_count(target) !== 1) {
-      throw __autojs6_invalid_package_target("Embedded Node package " + fieldName + " pattern target must contain exactly one '*' for '" + moduleName + "': " + target);
-    }
-    return target.replace("*", replacement);
   }
   function __autojs6_package_condition_target(entry, moduleName, fieldName, mode) {
     if (typeof entry === "string") {
@@ -26916,640 +25373,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return null;
   }
-  function __autojs6_package_exports_target(packageData, subpath, moduleName, mode) {
-    if (!packageData || typeof packageData !== "object" || !__autojs6_has_own(packageData, "exports")) {
-      return { present: false, target: null };
-    }
-    const exportsValue = packageData.exports;
-    const key = subpath ? "./" + subpath : ".";
-    if (typeof exportsValue === "string") {
-      if (subpath) {
-        throw __autojs6_package_path_not_exported("Embedded Node package exports does not define subpath '" + key + "' for '" + moduleName + "'.");
-      }
-      return { present: true, target: exportsValue, conditionKeys: "", selectedCondition: "", ignoredConditions: "" };
-    }
-    if (exportsValue && typeof exportsValue === "object" && !Array.isArray(exportsValue)) {
-      const conditionalMainShape = __autojs6_validate_package_exports_keys(exportsValue, moduleName);
-      let entry = null;
-      let replacement = null;
-      let matched = false;
-      if (__autojs6_has_own(exportsValue, key)) {
-        entry = exportsValue[key];
-        matched = true;
-      } else if (!subpath && conditionalMainShape && __autojs6_package_condition_map(exportsValue)) {
-        entry = exportsValue;
-        matched = true;
-      } else {
-        const patternMatch = __autojs6_best_package_pattern_match(exportsValue, key, moduleName, "exports");
-        if (patternMatch !== null) {
-          entry = exportsValue[patternMatch.key];
-          replacement = patternMatch.replacement;
-          matched = true;
-        }
-      }
-      if (!matched) {
-        throw __autojs6_package_path_not_exported("Embedded Node package exports does not define subpath '" + key + "' for '" + moduleName + "'.");
-      }
-      const selected = __autojs6_package_condition_target(entry, moduleName, "exports", mode);
-      if (selected === null) {
-        const conditionKeys = __autojs6_package_condition_keys(entry);
-        const ignoredConditions = __autojs6_unsupported_package_conditions(entry, mode);
-        if (conditionKeys) {
-          throw __autojs6_attach_package_error_details(
-            __autojs6_package_path_not_exported(
-              "Embedded Node package exports unsupported condition ignored in " + __autojs6_package_mode_label(mode) + " MVP for '" + moduleName +
-                "'; condition keys=" + conditionKeys +
-                (ignoredConditions ? "; unsupported condition ignored=" + ignoredConditions : "") + "."
-            ),
-            {
-              __autojs6PackageConditionKeys: conditionKeys,
-              __autojs6PackageIgnoredConditions: ignoredConditions
-            }
-          );
-        }
-        throw __autojs6_invalid_package_target("Unsupported Embedded Node package exports target in MVP for '" + moduleName + "'.");
-      }
-      if (selected.blocked) {
-        __autojs6_resolve_trace("exports blocked", {
-          request: key,
-          module: moduleName,
-          target: "null",
-          selectedCondition: selected.selectedCondition,
-          conditionKeys: selected.conditionKeys,
-          ignoredConditions: selected.ignoredConditions
-        });
-        throw __autojs6_attach_package_error_details(
-          __autojs6_package_path_not_exported("Embedded Node package subpath is not exported '" + key + "' for '" + moduleName + "': target=null."),
-          {
-            __autojs6PackageConditionKeys: selected.conditionKeys,
-            __autojs6PackageSelectedCondition: selected.selectedCondition,
-            __autojs6PackageIgnoredConditions: selected.ignoredConditions
-          }
-        );
-      }
-      return {
-        present: true,
-        target: __autojs6_apply_package_pattern_target(selected.target, replacement, moduleName, "exports"),
-        conditionKeys: selected.conditionKeys,
-        selectedCondition: selected.selectedCondition,
-        ignoredConditions: selected.ignoredConditions
-      };
-    }
-    if (exportsValue === null) {
-      throw __autojs6_package_path_not_exported("Embedded Node package exports null targets are not supported in MVP for '" + moduleName + "'.");
-    }
-    throw __autojs6_invalid_package_target("Unsupported Embedded Node package exports shape in MVP for '" + moduleName + "'.");
-  }
-  function __autojs6_package_imports_target(packageData, specifier, moduleName, mode) {
-    if (!packageData || typeof packageData !== "object" || !__autojs6_has_own(packageData, "imports")) {
-      return { present: false, target: null };
-    }
-    if (specifier === "#" || specifier.indexOf("#/") === 0 || specifier.indexOf("\u0000") >= 0) {
-      throw __autojs6_invalid_package_target("Invalid Embedded Node package imports specifier: " + specifier);
-    }
-    const importsValue = packageData.imports;
-    if (importsValue && typeof importsValue === "object" && !Array.isArray(importsValue)) {
-      __autojs6_validate_package_imports_keys(importsValue, moduleName);
-      let entry = null;
-      let replacement = null;
-      let matched = false;
-      if (__autojs6_has_own(importsValue, specifier)) {
-        entry = importsValue[specifier];
-        matched = true;
-      } else {
-        const patternMatch = __autojs6_best_package_pattern_match(importsValue, specifier, moduleName, "imports");
-        if (patternMatch !== null) {
-          entry = importsValue[patternMatch.key];
-          replacement = patternMatch.replacement;
-          matched = true;
-        }
-      }
-      if (!matched) {
-        throw __autojs6_package_import_not_defined("Embedded Node package imports does not define alias '" + specifier + "' for '" + moduleName + "'.");
-      }
-      const selected = __autojs6_package_condition_target(entry, moduleName, "imports", mode);
-      if (selected === null) {
-        const conditionKeys = __autojs6_package_condition_keys(entry);
-        const ignoredConditions = __autojs6_unsupported_package_conditions(entry, mode);
-        if (conditionKeys) {
-          throw __autojs6_attach_package_error_details(
-            __autojs6_package_import_not_defined(
-              "Embedded Node package imports unsupported condition ignored in " + __autojs6_package_mode_label(mode) + " MVP for '" + moduleName +
-                "'; condition keys=" + conditionKeys +
-                (ignoredConditions ? "; unsupported condition ignored=" + ignoredConditions : "") + "."
-            ),
-            {
-              __autojs6PackageConditionKeys: conditionKeys,
-              __autojs6PackageIgnoredConditions: ignoredConditions
-            }
-          );
-        }
-        throw __autojs6_invalid_package_target("Unsupported Embedded Node package imports target in MVP for '" + moduleName + "'.");
-      }
-      if (selected.blocked) {
-        __autojs6_resolve_trace("imports blocked", {
-          request: specifier,
-          module: moduleName,
-          target: "null",
-          selectedCondition: selected.selectedCondition,
-          conditionKeys: selected.conditionKeys,
-          ignoredConditions: selected.ignoredConditions
-        });
-        throw __autojs6_attach_package_error_details(
-          __autojs6_package_import_not_defined("Embedded Node package import is blocked '" + specifier + "' for '" + moduleName + "': target=null."),
-          {
-            __autojs6PackageConditionKeys: selected.conditionKeys,
-            __autojs6PackageSelectedCondition: selected.selectedCondition,
-            __autojs6PackageIgnoredConditions: selected.ignoredConditions
-          }
-        );
-      }
-      return {
-        present: true,
-        target: __autojs6_apply_package_pattern_target(selected.target, replacement, moduleName, "imports"),
-        conditionKeys: selected.conditionKeys,
-        selectedCondition: selected.selectedCondition,
-        ignoredConditions: selected.ignoredConditions
-      };
-    }
-    if (importsValue === null) {
-      throw __autojs6_package_import_not_defined("Embedded Node package imports null targets are not supported in MVP for '" + moduleName + "'.");
-    }
-    throw __autojs6_invalid_package_target("Unsupported Embedded Node package imports shape in MVP for '" + moduleName + "'.");
-  }
-  function __autojs6_resolve_package_exports(packageDir, packageData, subpath, root, moduleName, ignoredFields, mode) {
-    let packageExports;
-    const request = subpath ? "./" + subpath : ".";
-    try {
-      packageExports = __autojs6_package_exports_target(packageData, subpath, moduleName, mode);
-    } catch (error) {
-      throw __autojs6_enrich_package_error(error, packageDir, moduleName, "exports", request, undefined, "", "", ignoredFields);
-    }
-    if (!packageExports.present) return null;
-    try {
-      const resolved = __autojs6_resolve_package_path_target(packageDir, packageExports.target, root, moduleName, "exports", mode);
-      __autojs6_resolve_trace("exports matched", {
-        request,
-        packageDir,
-        target: packageExports.target,
-        final: resolved,
-        selectedCondition: packageExports.selectedCondition,
-        ignoredConditions: packageExports.ignoredConditions
-      });
-      __autojs6_record_package_resolution(
-        packageDir,
-        moduleName,
-        "exports",
-        request,
-        packageExports.target,
-        packageExports.conditionKeys,
-        packageExports.selectedCondition,
-        "",
-        ignoredFields,
-        packageExports.ignoredConditions
-      );
-      return resolved;
-    } catch (error) {
-      throw __autojs6_enrich_package_error(
-        error,
-        packageDir,
-        moduleName,
-        "exports",
-        request,
-        packageExports.target,
-        packageExports.conditionKeys,
-        packageExports.selectedCondition,
-        ignoredFields,
-        packageExports.ignoredConditions
-      );
-    }
-  }
-  function __autojs6_resolve_package_imports(packageDir, packageData, specifier, root, moduleName, ignoredFields, mode) {
-    let packageImports;
-    try {
-      packageImports = __autojs6_package_imports_target(packageData, specifier, moduleName, mode);
-    } catch (error) {
-      throw __autojs6_enrich_package_error(error, packageDir, moduleName, "imports", specifier, undefined, "", "", ignoredFields);
-    }
-    if (!packageImports.present) return null;
-    try {
-      const resolved = __autojs6_resolve_package_path_target(packageDir, packageImports.target, root, moduleName, "imports", mode);
-      __autojs6_resolve_trace("imports matched", {
-        request: specifier,
-        packageDir,
-        target: packageImports.target,
-        final: resolved,
-        selectedCondition: packageImports.selectedCondition,
-        ignoredConditions: packageImports.ignoredConditions
-      });
-      __autojs6_record_package_resolution(
-        packageDir,
-        moduleName,
-        "imports",
-        specifier,
-        packageImports.target,
-        packageImports.conditionKeys,
-        packageImports.selectedCondition,
-        "",
-        ignoredFields,
-        packageImports.ignoredConditions
-      );
-      return resolved;
-    } catch (error) {
-      throw __autojs6_enrich_package_error(
-        error,
-        packageDir,
-        moduleName,
-        "imports",
-        specifier,
-        packageImports.target,
-        packageImports.conditionKeys,
-        packageImports.selectedCondition,
-        ignoredFields,
-        packageImports.ignoredConditions
-      );
-    }
-  }
-  function __autojs6_resolve_package_directory(packageDir, root, moduleName, mode) {
-    const path = __autojs6_path_module();
-    const packageJsonResolved = path.resolve(packageDir, "package.json");
-    const packageData = __autojs6_path_within_root(packageJsonResolved, root)
-      ? __autojs6_package_data(packageJsonResolved, moduleName)
-      : null;
-    let ignoredFields = "";
-    if (packageData) {
-      __autojs6_resolve_trace("package.json found", {
-        request: moduleName,
-        packageDir,
-        file: packageJsonResolved
-      });
-      ignoredFields = __autojs6_package_ignored_fields(packageData);
-      const packageExports = __autojs6_resolve_package_exports(packageDir, packageData, "", root, moduleName, ignoredFields, mode);
-      if (packageExports !== null) {
-        return packageExports;
-      }
-      const packageMain = __autojs6_package_main(packageData, moduleName);
-      if (packageMain !== null) {
-        try {
-          const resolved = __autojs6_resolve_package_main(packageDir, packageMain, root, moduleName, ignoredFields, mode);
-          __autojs6_resolve_trace("main matched", {
-            request: moduleName,
-            packageDir,
-            target: packageMain,
-            final: resolved
-          });
-          return resolved;
-        } catch (error) {
-          if (error && error.__autojs6ModuleSourceProviderRecorded) {
-            throw error;
-          }
-          if (!error || error.code !== "MODULE_NOT_FOUND") {
-            throw error;
-          }
-        }
-      }
-    }
-    const indexCandidates = __autojs6_package_condition_mode(mode) === "esm"
-      ? [
-          path.resolve(packageDir, "index.mts"),
-          path.resolve(packageDir, "index.ts"),
-          path.resolve(packageDir, "index.mjs"),
-          path.resolve(packageDir, "index.js"),
-          path.resolve(packageDir, "index.cts"),
-          path.resolve(packageDir, "index.cjs"),
-          path.resolve(packageDir, "index.json")
-        ]
-      : [
-          path.resolve(packageDir, "index.js"),
-          path.resolve(packageDir, "index.cjs"),
-          path.resolve(packageDir, "index.cts"),
-          path.resolve(packageDir, "index.ts"),
-          path.resolve(packageDir, "index.json")
-        ];
-    const indexResolved = __autojs6_first_local_module_candidate(
-      indexCandidates,
-      root,
-      moduleName,
-      __autojs6_package_condition_mode(mode) === "esm",
-      true
-    );
-    if (indexResolved && packageData) {
-      __autojs6_resolve_trace("index matched", {
-        request: moduleName,
-        packageDir,
-        target: indexResolved,
-        final: indexResolved
-      });
-      __autojs6_record_package_resolution(
-        packageDir,
-        moduleName,
-        "index",
-        moduleName,
-        indexResolved,
-        "",
-        "",
-        "",
-        ignoredFields,
-        ""
-      );
-    }
-    return indexResolved;
-  }
-  function __autojs6_resolve_local_module(moduleName, parentFilename, mode) {
-    const path = __autojs6_path_module();
-    if (
-      !path ||
-      typeof path.resolve !== "function" ||
-      typeof path.extname !== "function" ||
-      typeof path.isAbsolute !== "function"
-    ) {
-      throw new Error("Embedded Node.js local require needs the allowlisted path module.");
-    }
-    if (moduleName.indexOf("\u0000") >= 0) {
-      throw new Error("Embedded Node local require rejects NUL path: " + moduleName);
-    }
-    // Node accepts absolute and relative specifiers alike; Android file access
-    // (with the sensitive roots denied) decides whether the target is readable.
-    const root = __autojs6_module_reach_root(path);
-    const parentDir = __autojs6_module_dirname(parentFilename);
-    const base = path.isAbsolute(moduleName)
-      ? path.resolve(moduleName)
-      : path.resolve(parentDir || __autojs6_module_resolution_root(parentFilename), moduleName);
-    if (!__autojs6_module_path_reachable(base, root)) {
-      throw __autojs6_local_module_unreachable(moduleName);
-    }
-    const resolutionMode = mode || "cjs";
-    const allowEsm = __autojs6_package_target_allows_esm(resolutionMode);
-    const extension = path.extname(base);
-    __autojs6_throw_if_raw_typescript_extension(
-      extension,
-      moduleName,
-      "Embedded Node local module"
-    );
-    if (!allowEsm) {
-      __autojs6_throw_if_esm_extension(extension, moduleName, "Embedded Node local module");
-    }
-    __autojs6_throw_if_native_addon_extension(
-      extension,
-      moduleName,
-      "Embedded Node local module",
-      "Unsupported Embedded Node local module extension in MVP: " + moduleName
-    );
-    // Unknown extensions (e.g. require('./util.inspect') → util.inspect.js)
-    // follow Node's LOAD_AS_FILE: try the exact path, then append the
-    // standard suffixes. Only TS/native/ESM rejections above stay hard.
-    const treatAsExtensionless =
-      !extension ||
-      (!__autojs6_supported_local_module_extension(extension) &&
-        !(allowEsm && __autojs6_is_esm_extension(extension)));
-    const fileResolved = __autojs6_first_local_module_candidate(
-      treatAsExtensionless
-        ? [base, base + ".js", base + ".cjs", base + ".cts", base + ".ts", base + ".json"]
-        : [base],
-      root,
-      moduleName,
-      allowEsm,
-      true
-    );
-    if (fileResolved) {
-      __autojs6_resolve_trace("final", {
-        kind: "local",
-        request: moduleName,
-        from: parentFilename,
-        final: fileResolved
-      });
-      return fileResolved;
-    }
-    if (treatAsExtensionless) {
-      const directoryResolved = __autojs6_resolve_package_directory(base, root, moduleName, resolutionMode);
-      if (directoryResolved) {
-        __autojs6_resolve_trace("final", {
-          kind: "local-directory",
-          request: moduleName,
-          from: parentFilename,
-          final: directoryResolved
-        });
-        return directoryResolved;
-      }
-    }
-    throw __autojs6_module_not_found("Cannot find module '" + moduleName + "' from '" + parentFilename + "'.");
-  }
-  function __autojs6_is_package_dir_in_node_modules(directory, root) {
-    const path = __autojs6_path_module();
-    const parent = path.dirname(directory);
-    if (!parent || parent === directory) return false;
-    if (typeof path.basename === "function" && path.basename(parent) === "node_modules") {
-      return true;
-    }
-    const grandParent = path.dirname(parent);
-    return !!(
-      grandParent &&
-      grandParent !== parent &&
-      typeof path.basename === "function" &&
-      path.basename(parent).charAt(0) === "@" &&
-      path.basename(grandParent) === "node_modules"
-    );
-  }
-  function __autojs6_find_package_scope(parentFilename, root) {
-    const path = __autojs6_path_module();
-    let current = path.resolve(__autojs6_module_dirname(parentFilename) || root);
-    let boundary = root;
-    if (!__autojs6_path_within_root(current, root)) {
-      // A module loaded from outside the workspace (absolute require/import)
-      // keeps Node's walk-up semantics inside Android file access instead of
-      // borrowing the workspace package.json.
-      const reach = __autojs6_module_reach_root(path);
-      if (__autojs6_module_path_reachable(current, reach)) {
-        boundary = reach;
-      } else {
-        current = root;
-      }
-    }
-    while (__autojs6_path_within_root(current, boundary)) {
-      const packageJsonResolved = path.resolve(current, "package.json");
-      let packageData = null;
-      try {
-        packageData = __autojs6_path_within_root(packageJsonResolved, boundary)
-          ? __autojs6_package_data(packageJsonResolved, parentFilename)
-          : null;
-      } catch (error) {
-        // Outside the workspace an unreadable ancestor is simply not a package scope.
-        if (boundary === root || (error && error.__autojs6ModuleSourceProviderRecorded)) throw error;
-      }
-      if (packageData) {
-        return { packageDir: current, packageJsonResolved };
-      }
-      if (current !== boundary && __autojs6_is_package_dir_in_node_modules(current, boundary)) {
-        break;
-      }
-      if (current === boundary) break;
-      const parent = path.dirname(current);
-      if (!parent || parent === current) break;
-      current = __autojs6_path_within_root(parent, boundary) ? parent : boundary;
-    }
-    return null;
-  }
-  function __autojs6_resolve_package_import(moduleName, parentFilename, mode) {
-    const path = __autojs6_path_module();
-    if (
-      !path ||
-      typeof path.resolve !== "function" ||
-      typeof path.dirname !== "function" ||
-      typeof path.isAbsolute !== "function"
-    ) {
-      throw new Error("Embedded Node.js package imports require needs the allowlisted path module.");
-    }
-    const root = __autojs6_module_resolution_root(parentFilename);
-    const scope = __autojs6_find_package_scope(parentFilename, root);
-    if (!scope) {
-      throw __autojs6_package_import_not_defined("Cannot find Embedded Node package imports scope for '" + moduleName + "' from '" + parentFilename + "'.");
-    }
-    __autojs6_resolve_trace("package scope", {
-      request: moduleName,
-      packageDir: scope.packageDir,
-      file: scope.packageJsonResolved
-    });
-    const packageData = __autojs6_package_data(scope.packageJsonResolved, moduleName);
-    const resolved = __autojs6_resolve_package_imports(
-      scope.packageDir,
-      packageData,
-      moduleName,
-      root,
-      moduleName,
-      __autojs6_package_ignored_fields(packageData),
-      mode
-    );
-    if (resolved !== null) {
-      return resolved;
-    }
-    throw __autojs6_enrich_package_error(
-      __autojs6_package_import_not_defined(
-        "Embedded Node package imports does not define alias '" + moduleName +
-          "' in package scope '" + scope.packageDir + "'."
-      ),
-      scope.packageDir,
-      moduleName,
-      "imports",
-      moduleName,
-      undefined,
-      "",
-      "",
-      __autojs6_package_ignored_fields(packageData)
-    );
-  }
-  function __autojs6_resolve_package_self_reference(specifier, parentFilename, root, moduleName, mode) {
-    const scope = __autojs6_find_package_scope(parentFilename, root);
-    if (!scope) return null;
-    const packageData = __autojs6_package_data(scope.packageJsonResolved, moduleName);
-    if (__autojs6_package_name(packageData) !== specifier.packageName) {
-      return null;
-    }
-    const resolved = __autojs6_resolve_package_exports(
-      scope.packageDir,
-      packageData,
-      specifier.subpath,
-      root,
-      moduleName,
-      __autojs6_package_ignored_fields(packageData),
-      mode
-    );
-    if (resolved !== null) {
-      __autojs6_resolve_trace("self-reference matched", {
-        request: moduleName,
-        packageDir: scope.packageDir,
-        final: resolved
-      });
-    }
-    return resolved;
-  }
-  function __autojs6_node_modules_search_dirs(parentFilename, root) {
-    const path = __autojs6_path_module();
-    const searchDirs = [];
-    let current = path.resolve(__autojs6_module_dirname(parentFilename) || root);
-    if (!__autojs6_path_within_root(current, root)) {
-      current = root;
-    }
-    while (__autojs6_path_within_root(current, root)) {
-      if (typeof path.basename !== "function" || path.basename(current) !== "node_modules") {
-        searchDirs.push(path.resolve(current, "node_modules"));
-      }
-      if (current === root) break;
-      const parent = path.dirname(current);
-      if (!parent || parent === current) break;
-      current = __autojs6_path_within_root(parent, root) ? parent : root;
-    }
-    return searchDirs;
-  }
-  function __autojs6_resolve_node_modules_subpath(packageDir, subpath, root, moduleName, mode) {
-    const path = __autojs6_path_module();
-    if (!subpath) {
-      return __autojs6_resolve_package_directory(packageDir, root, moduleName, mode);
-    }
-    const packageJsonResolved = path.resolve(packageDir, "package.json");
-    const packageData = __autojs6_path_within_root(packageJsonResolved, root)
-      ? __autojs6_package_data(packageJsonResolved, moduleName)
-      : null;
-    if (packageData) {
-      const packageExports = __autojs6_resolve_package_exports(
-        packageDir,
-        packageData,
-        subpath,
-        root,
-        moduleName,
-        __autojs6_package_ignored_fields(packageData),
-        mode
-      );
-      if (packageExports !== null) {
-        return packageExports;
-      }
-    }
-    const base = path.resolve(packageDir, subpath);
-    if (!__autojs6_path_within_root(base, packageDir)) {
-      throw new Error("Embedded Node node_modules package subpath escapes package directory: " + moduleName);
-    }
-    const allowEsm = __autojs6_package_target_allows_esm(mode);
-    const extension = path.extname(base);
-    __autojs6_throw_if_raw_typescript_extension(
-      extension,
-      moduleName,
-      "Embedded Node node_modules module"
-    );
-    if (!allowEsm) {
-      __autojs6_throw_if_esm_extension(extension, moduleName, "Embedded Node node_modules module");
-    }
-    __autojs6_throw_if_native_addon_extension(
-      extension,
-      moduleName,
-      "Embedded Node node_modules module",
-      "Unsupported Embedded Node node_modules module extension in MVP: " + moduleName
-    );
-    // Subpaths with unloadable "extensions" (get-proto/Object.getPrototypeOf
-    // → Object.getPrototypeOf.js) follow LOAD_AS_FILE: exact path first,
-    // standard suffixes next. Only TS/native/ESM rejections above stay hard.
-    const subpathExtensionless =
-      !extension ||
-      (!__autojs6_supported_local_module_extension(extension) &&
-        !(allowEsm && __autojs6_is_esm_extension(extension)));
-    const fileResolved = __autojs6_first_local_module_candidate(
-      subpathExtensionless
-        ? [base, base + ".js", base + ".cjs", base + ".cts", base + ".ts", base + ".json"]
-        : [base],
-      root,
-      moduleName,
-      allowEsm,
-      true
-    );
-    if (fileResolved && __autojs6_path_within_root(fileResolved, packageDir)) {
-      return fileResolved;
-    }
-    if (subpathExtensionless) {
-      const directoryResolved = __autojs6_resolve_package_directory(base, root, moduleName, mode);
-      if (directoryResolved && __autojs6_path_within_root(directoryResolved, packageDir)) {
-        return directoryResolved;
-      }
-    }
-    return null;
-  }
   function __autojs6_compat_shim_shadowable(name) {
     // Only the runtime modules that stand in for a real npm package (mime, nanoid, ...) yield to
     // an installed package of the same name; Node builtin ids, "node:"/"autojs6:" prefixed ids,
@@ -27560,93 +25383,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return __autojs6_npm_shadowable_module_names.indexOf(name) >= 0;
   }
-  function __autojs6_try_resolve_node_modules_module(moduleName, parentFilename, mode) {
-    try {
-      return __autojs6_resolve_node_modules_module(moduleName, parentFilename, mode);
-    } catch (error) {
-      if (error && error.code === "MODULE_NOT_FOUND") {
-        return null;
-      }
-      throw error;
-    }
-  }
-  function __autojs6_resolve_node_modules_module(moduleName, parentFilename, mode) {
-    const path = __autojs6_path_module();
-    if (
-      !path ||
-      typeof path.resolve !== "function" ||
-      typeof path.extname !== "function" ||
-      typeof path.dirname !== "function" ||
-      typeof path.isAbsolute !== "function"
-    ) {
-      throw new Error("Embedded Node.js node_modules require needs the allowlisted path module.");
-    }
-    const specifier = __autojs6_parse_package_specifier(moduleName);
-    if (!specifier) {
-      throw new Error("Invalid Embedded Node package specifier: " + moduleName);
-    }
-    const root = __autojs6_module_resolution_root(parentFilename);
-    const selfReference = __autojs6_resolve_package_self_reference(specifier, parentFilename, root, moduleName, mode);
-    if (selfReference !== null) {
-      return selfReference;
-    }
-    const searchDirs = __autojs6_node_modules_search_dirs(parentFilename, root);
-    __autojs6_resolve_trace("node_modules search", {
-      request: moduleName,
-      from: parentFilename,
-      paths: searchDirs.join("|")
-    });
-    for (const nodeModulesDir of searchDirs) {
-      if (!__autojs6_path_within_root(nodeModulesDir, root)) {
-        continue;
-      }
-      const packageDir = path.resolve(nodeModulesDir, specifier.packageName);
-      if (!__autojs6_path_within_root(packageDir, root)) {
-        continue;
-      }
-      const resolved = __autojs6_resolve_node_modules_subpath(
-        packageDir,
-        specifier.subpath,
-        root,
-        moduleName,
-        mode
-      );
-      if (resolved) {
-        __autojs6_resolve_trace("final", {
-          kind: "node_modules",
-          request: moduleName,
-          packageDir,
-          final: resolved
-        });
-        return resolved;
-      }
-    }
-    throw __autojs6_module_not_found(
-      "Cannot find module '" + moduleName + "' from '" + parentFilename +
-        "'. node_modules search paths='" + searchDirs.join("|") + "'."
-    );
-  }
-  function __autojs6_record_type_module_commonjs_policy(filename) {
-    const path = __autojs6_path_module();
-    if (!path || typeof path.resolve !== "function") return;
-    try {
-      const root = __autojs6_module_resolution_root(filename);
-      const scope = __autojs6_find_package_scope(filename, root);
-      if (!scope) return;
-      const packageData = __autojs6_package_data(scope.packageJsonResolved, filename);
-      if (!__autojs6_package_type_is_module(packageData)) return;
-      __autojs6_package_diagnostics.lastTypeModulePolicy =
-        "type=module ignored by Embedded Node CommonJS MVP";
-      __autojs6_package_diagnostics.lastTypeModulePackage =
-        __autojs6_package_name(packageData) || __autojs6_diagnostic_path(scope.packageDir);
-      __autojs6_package_diagnostics.lastTypeModulePackageJson =
-        __autojs6_diagnostic_path(scope.packageJsonResolved);
-      __autojs6_package_diagnostics.lastTypeModuleFilename =
-        __autojs6_diagnostic_path(filename);
-    } catch (error) {
-      if (error && error.__autojs6ModuleSourceProviderRecorded) throw error;
-    }
-  }
   function __autojs6_resolved_sandbox_root(path) {
     return path && typeof path.resolve === "function"
       ? path.resolve(__autojs6_sandbox_root || ".")
@@ -27654,14 +25390,6 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_resolved_fs_access_root(path) {
     return "/";
-  }
-  // Module files are read through the same reach as fs: any path Android lets
-  // the app read.
-  function __autojs6_module_reach_root(path) {
-    return __autojs6_resolved_fs_access_root(path || __autojs6_path_module());
-  }
-  function __autojs6_module_path_reachable(pathValue, reach) {
-    return __autojs6_path_within_root(pathValue, reach);
   }
   function __autojs6_resolved_current_working_directory(path) {
     return process.cwd();
@@ -27710,122 +25438,6 @@ std::string buildEmbeddedScriptExecutionSource(
       throw __autojs6_invalid_arg_type("Embedded Node scoped fs Buffer path for " + operation + " must be a Buffer.");
     }
     return value.toString("utf8");
-  }
-  function __autojs6_url_constructor() {
-    if (typeof URL === "function") {
-      return URL;
-    }
-    const nodeUrl = __autojs6_url_module();
-    return nodeUrl && typeof nodeUrl.URL === "function" ? nodeUrl.URL : null;
-  }
-  function __autojs6_parse_file_url(value, operation) {
-    const URLConstructor = __autojs6_url_constructor();
-    if (typeof URLConstructor !== "function") {
-      throw new Error("Embedded Node " + operation + " needs allowlisted URL support.");
-    }
-    let urlObject;
-    if (typeof value === "string") {
-      try {
-        urlObject = new URLConstructor(value);
-      } catch (error) {
-        throw __autojs6_error(
-          "Embedded Node " + operation + " rejects invalid file URL '" + String(value) + "': " +
-            (error && error.message ? error.message : String(error)),
-          "ERR_INVALID_ARG_TYPE"
-        );
-      }
-    } else if (value && typeof value === "object" && typeof value.protocol === "string") {
-      urlObject = value;
-    } else {
-      throw __autojs6_invalid_arg_type("Embedded Node " + operation + " expects a file URL object or string.");
-    }
-    const protocol = String(urlObject.protocol || "");
-    if (protocol !== "file:") {
-      throw __autojs6_error(
-        "Embedded Node " + operation + " rejects non-file URL protocol '" + protocol + "': " +
-          __autojs6_path_value_display(value),
-        "ERR_INVALID_ARG_TYPE"
-      );
-    }
-    const host = String(urlObject.hostname || "");
-    if (host && host !== "localhost") {
-      throw __autojs6_error(
-        "Embedded Node " + operation + " rejects file URL host '" + host + "': " +
-          __autojs6_path_value_display(value),
-        "EPERM"
-      );
-    }
-    return urlObject;
-  }
-  function __autojs6_file_url_to_absolute_path(value, operation) {
-    const urlObject = __autojs6_parse_file_url(value, operation);
-    let pathname = String(urlObject.pathname || "");
-    let decoded;
-    try {
-      decoded = decodeURIComponent(pathname);
-    } catch (error) {
-      throw __autojs6_error(
-        "Embedded Node " + operation + " rejects undecodable file URL '" +
-          __autojs6_path_value_display(value) + "': " +
-          (error && error.message ? error.message : String(error)),
-        "ERR_INVALID_ARG_TYPE"
-      );
-    }
-    if (decoded.indexOf("\u0000") >= 0) {
-      throw __autojs6_error(
-        "Embedded Node " + operation + " rejects NUL in file URL: " +
-          __autojs6_path_value_display(value),
-        "ERR_INVALID_ARG_TYPE"
-      );
-    }
-    return decoded;
-  }
-  function __autojs6_source_line_at(text, index) {
-    const source = String(text || "");
-    const limit = Math.min(Math.max(0, Number(index || 0)), source.length);
-    let line = 1;
-    for (let i = 0; i < limit; i += 1) {
-      if (source.charAt(i) === "\n") {
-        line += 1;
-      }
-    }
-    return line;
-  }
-  function __autojs6_create_generated_line_map_builder(sourceText) {
-    const source = String(sourceText || "");
-    let text = "";
-    const lineMap = [];
-    let generatedLineIndex = 0;
-    let currentLineHasContent = false;
-    function setCurrentLine(sourceLine) {
-      if (!currentLineHasContent || !lineMap[generatedLineIndex]) {
-        lineMap[generatedLineIndex] = Math.max(1, Number(sourceLine || 1));
-      }
-    }
-    return {
-      append(start, end) {
-        const from = Math.max(0, Number(start || 0));
-        const to = Math.max(from, Math.min(Number(end || 0), source.length));
-        let sourceLine = __autojs6_source_line_at(source, from);
-        for (let index = from; index < to; index += 1) {
-          const ch = source.charAt(index);
-          setCurrentLine(sourceLine);
-          text += ch;
-          currentLineHasContent = true;
-          if (ch === "\n") {
-            sourceLine += 1;
-            generatedLineIndex += 1;
-            currentLineHasContent = false;
-          }
-        }
-      },
-      text() {
-        return text;
-      },
-      lineMap() {
-        return lineMap.slice();
-      }
-    };
   }
   function __autojs6_count_lines(text) {
     return String(text || "").split("\n").length;
@@ -28190,43 +25802,6 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_pending_zlib_streams.length +
       __autojs6_pending_node_test_callbacks;
   }
-  function __autojs6_schedule_task(callback) {
-    if (typeof setImmediate === "function") {
-      setImmediate(callback);
-      return;
-    }
-    if (typeof process === "object" && process && typeof process.nextTick === "function") {
-      process.nextTick(callback);
-      return;
-    }
-    if (typeof Promise === "function") {
-      Promise.resolve().then(callback);
-      return;
-    }
-    callback();
-  }
-  function __autojs6_adjust_pending_callback(kind, delta) {
-    if (kind === "crypto") {
-      __autojs6_pending_crypto_callbacks = Math.max(0, __autojs6_pending_crypto_callbacks + delta);
-    } else if (kind === "dns") {
-      __autojs6_pending_dns_callbacks = Math.max(0, __autojs6_pending_dns_callbacks + delta);
-    } else if (kind === "zlib") {
-      __autojs6_pending_zlib_callbacks = Math.max(0, __autojs6_pending_zlib_callbacks + delta);
-    }
-  }
-  function __autojs6_schedule_pending_callback(kind, action) {
-    __autojs6_adjust_pending_callback(kind, 1);
-    __autojs6_schedule_task(function () {
-      try {
-        action();
-      } finally {
-        __autojs6_adjust_pending_callback(kind, -1);
-      }
-    });
-  }
-  function __autojs6_schedule_dns_callback(action) {
-    __autojs6_schedule_pending_callback("dns", action);
-  }
   function __autojs6_destroy_all_zlib_streams(reason) {
     const records = __autojs6_pending_zlib_streams.slice();
     if (records.length <= 0) {
@@ -28246,12 +25821,6 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     }
   }
-  function __autojs6_require_callback(callback, operation) {
-    if (typeof callback !== "function") {
-      throw __autojs6_invalid_arg_type("Embedded Node scoped fs " + operation + " callback must be a function.");
-    }
-    return callback;
-  }
   function __autojs6_blob_constructor() {
     if (typeof Blob === "function") {
       return Blob;
@@ -28259,65 +25828,8 @@ std::string buildEmbeddedScriptExecutionSource(
     const bufferModule = __autojs6_buffer_module();
     return bufferModule && typeof bufferModule.Blob === "function" ? bufferModule.Blob : null;
   }
-  function __autojs6_crypto_binary_size(value, label) {
-    if (typeof Buffer === "function" && Buffer.isBuffer(value)) {
-      return value.length;
-    }
-    if (typeof ArrayBuffer !== "undefined") {
-      if (value instanceof ArrayBuffer) {
-        return value.byteLength;
-      }
-      if (ArrayBuffer.isView && ArrayBuffer.isView(value)) {
-        return value.byteLength;
-      }
-    }
-    throw __autojs6_invalid_arg_type("Embedded Node limited crypto " + label + " must be a Buffer, ArrayBuffer, TypedArray, or DataView.");
-  }
   function __autojs6_crypto_base64_url(buffer) {
     return buffer.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-  }
-  function __autojs6_crypto_data_size(value, label) {
-    if (typeof value === "string") {
-      return typeof Buffer === "function" && typeof Buffer.byteLength === "function"
-        ? Buffer.byteLength(value)
-        : value.length;
-    }
-    return __autojs6_crypto_binary_size(value, label);
-  }
-  function __autojs6_validate_crypto_data(value, label, maxBytes) {
-    const size = __autojs6_crypto_data_size(value, label);
-    if (size > maxBytes) {
-      throw __autojs6_out_of_range("Embedded Node limited crypto " + label + " must be at most " + maxBytes + " bytes.");
-    }
-    return value;
-  }
-  function __autojs6_validate_crypto_integer(value, label, min, max) {
-    if (typeof value !== "number") {
-      throw __autojs6_invalid_arg_type("Embedded Node limited crypto " + label + " must be a number.");
-    }
-    if (!Number.isSafeInteger(value) || value < min || value > max) {
-      throw __autojs6_out_of_range(
-        "Embedded Node limited crypto " + label + " must be an integer between " + min + " and " + max + "."
-      );
-    }
-    return value;
-  }
-  function __autojs6_validate_crypto_algorithm(allowedHashes, algorithm, operation) {
-    const normalized = String(algorithm).toLowerCase();
-    if (allowedHashes.indexOf(normalized) < 0) {
-      throw __autojs6_invalid_arg_type("Embedded Node limited crypto " + operation + " algorithm is not allowed: " + algorithm);
-    }
-    return normalized;
-  }
-  function __autojs6_validate_crypto_hkdf(allowedHashes, digest, ikm, salt, info, keylen) {
-    const normalizedDigest = __autojs6_validate_crypto_algorithm(allowedHashes, digest, "hkdf");
-    __autojs6_validate_crypto_data(ikm, "hkdf input key material", 65536);
-    __autojs6_validate_crypto_data(salt, "hkdf salt", 65536);
-    __autojs6_validate_crypto_data(info, "hkdf info", 1024);
-    return {
-      digest: normalizedDigest,
-      keylen: __autojs6_validate_crypto_integer(keylen, "hkdf key length", 0, 65536)
-    };
   }
   function __autojs6_dom_exception(message, name) {
     if (typeof DOMException === "function") {
@@ -28726,13 +26238,6 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_limited_web_crypto_cache = Object.freeze(limitedCrypto);
     return __autojs6_limited_web_crypto_cache;
   }
-  function __autojs6_limited_path_to_file_url(pathValue) {
-    const nodeUrl = __autojs6_url_module();
-    if (!nodeUrl || typeof nodeUrl.pathToFileURL !== "function") {
-      throw new Error("Embedded Node pathToFileURL needs url.pathToFileURL.");
-    }
-    return nodeUrl.pathToFileURL(pathValue);
-  }
   function __autojs6_escape_url_pattern_regex(value) {
     return String(value).replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
   }
@@ -28941,63 +26446,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return __autojs6_create_limited_url_pattern(URLConstructor);
   }
-  function __autojs6_timers_promises_abort_error() {
-    const error = new Error("The operation was aborted");
-    error.name = "AbortError";
-    return __autojs6_with_error_code(error, "ABORT_ERR");
-  }
-  function __autojs6_timers_promises_add_abort_listener(signal, listener) {
-    if (!signal || typeof signal.addEventListener !== "function") {
-      return false;
-    }
-    try {
-      signal.addEventListener("abort", listener, { once: true });
-      return true;
-    } catch (_) {
-      try {
-        signal.addEventListener("abort", listener);
-        return true;
-      } catch (_) {
-        return false;
-      }
-    }
-  }
-  function __autojs6_timers_promises_remove_abort_listener(signal, listener) {
-    if (!signal || typeof signal.removeEventListener !== "function") {
-      return;
-    }
-    try {
-      signal.removeEventListener("abort", listener);
-    } catch (_) {}
-  }
-  const __autojs6_util_system_error_entries = Object.freeze([
-    [-2, Object.freeze(["ENOENT", "no such file or directory"])],
-    [-13, Object.freeze(["EACCES", "permission denied"])],
-    [-17, Object.freeze(["EEXIST", "file already exists"])],
-    [-20, Object.freeze(["ENOTDIR", "not a directory"])],
-    [-21, Object.freeze(["EISDIR", "illegal operation on a directory"])],
-    [-22, Object.freeze(["EINVAL", "invalid argument"])],
-    [-32, Object.freeze(["EPIPE", "broken pipe"])]
-  ]);
-  const __autojs6_util_style_codes = Object.freeze({
-    reset: Object.freeze([0, 0]),
-    bold: Object.freeze([1, 22]),
-    dim: Object.freeze([2, 22]),
-    italic: Object.freeze([3, 23]),
-    underline: Object.freeze([4, 24]),
-    inverse: Object.freeze([7, 27]),
-    strikethrough: Object.freeze([9, 29]),
-    black: Object.freeze([30, 39]),
-    red: Object.freeze([31, 39]),
-    green: Object.freeze([32, 39]),
-    yellow: Object.freeze([33, 39]),
-    blue: Object.freeze([34, 39]),
-    magenta: Object.freeze([35, 39]),
-    cyan: Object.freeze([36, 39]),
-    white: Object.freeze([37, 39]),
-    gray: Object.freeze([90, 39]),
-    grey: Object.freeze([90, 39])
-  });
   function __autojs6_diagnostics_safe_value(value) {
     const type = typeof value;
     if (
@@ -29244,31 +26692,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     __autojs6_os_builtin_cache = osModule;
     return osModule;
-  }
-  // M23.2: every Node builtin loads through here. Only an execution-level gate (worker_threads,
-  // child_process, inspector, raw network) can refuse; fs / module / console keep the runtime's
-  // thin wrappers until M23.3 replaces the loader.
-  function __autojs6_require_native_builtin(id, request) {
-    const gate = __autojs6_builtin_gate(id);
-    if (gate) {
-      throw __autojs6_builtin_disabled("require is restricted for this execution; builtin module '" + request + "': " + gate);
-    }
-    if (id === "fs") return __autojs6_fs_module();
-    if (id === "fs/promises") return __autojs6_fs_module().promises;
-    if (id === "console") return __autojs6_limited_console();
-    if (id === "module") return __autojs6_limited_module();
-    if (id === "process") return process;
-    if (id === "os") return __autojs6_os_builtin();
-    if (id === "vm") {
-      const vmValue = __autojs6_vm_module();
-      if (vmValue) return vmValue;
-    }
-    // Node's own loader decides the rest, including its own errors (for example
-    // ERR_TRACE_EVENTS_UNAVAILABLE on a libnode built without tracing).
-    if (typeof __autojs6_get_builtin_module !== "function") {
-      throw __autojs6_builtin_disabled("builtin module '" + request + "' is unavailable in this runtime.");
-    }
-    return __autojs6_get_builtin_module(id);
   }
   function __autojs6_limited_console() {
     if (__autojs6_limited_console_cache) {
@@ -29582,299 +27005,9 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_limited_console_cache = Object.freeze(limitedConsole);
     return __autojs6_limited_console_cache;
   }
-  function __autojs6_create_require_error(baseValue, reason, code) {
-    const message = "module.createRequire rejected '" + String(baseValue) + "': " + reason;
-    __autojs6_create_require_last_failure_reason = message;
-    return __autojs6_error(message, code || "EPERM");
-  }
-  function __autojs6_create_require_base_filename(baseValue) {
-    if (typeof baseValue !== "string") {
-      const message = "module.createRequire base must be a string path in Embedded Node.js MVP.";
-      __autojs6_create_require_last_failure_reason = message;
-      throw __autojs6_invalid_arg_type(message);
-    }
-    if (baseValue.length === 0) {
-      throw __autojs6_create_require_error(baseValue, "base path must be non-empty.", "ERR_INVALID_ARG_TYPE");
-    }
-    if (baseValue.indexOf("\u0000") >= 0) {
-      throw __autojs6_create_require_error(baseValue, "NUL paths are not allowed.", "ERR_INVALID_ARG_TYPE");
-    }
-    let basePathValue = baseValue;
-    if (__autojs6_protocol_specifier(baseValue)) {
-      if (/^file:/i.test(baseValue)) {
-        basePathValue = __autojs6_file_url_to_absolute_path(baseValue, "module.createRequire");
-      } else {
-        throw __autojs6_create_require_error(
-          baseValue,
-          "protocol bases other than file URLs are not supported in Embedded Node.js MVP.",
-          "ERR_INVALID_ARG_TYPE"
-        );
-      }
-    }
-    const path = __autojs6_path_module();
-    const fs = __autojs6_fs_module();
-    if (
-      !path ||
-      !fs ||
-      typeof path.resolve !== "function" ||
-      typeof path.dirname !== "function" ||
-      typeof path.isAbsolute !== "function" ||
-      typeof fs.existsSync !== "function" ||
-      typeof fs.lstatSync !== "function" ||
-      typeof fs.realpathSync !== "function"
-    ) {
-      throw __autojs6_create_require_error(baseValue, "allowlisted path and fs modules are required.", "EPERM");
-    }
-    const scope = __autojs6_fs_root(path, fs);
-    const target = path.resolve(path.isAbsolute(basePathValue) ? basePathValue : path.resolve(scope.cwd, basePathValue));
-    if (!__autojs6_path_within_root(target, scope.root)) {
-      throw __autojs6_create_require_error(baseValue, "base escapes sandboxRoot.", "EPERM");
-    }
-    let lstat = null;
-    try {
-      lstat = fs.lstatSync(target);
-    } catch (error) {
-      if (!error || (error.code !== "ENOENT" && error.code !== "ENOTDIR")) {
-        throw __autojs6_create_require_error(
-          baseValue,
-          "base stat failed: " + (error && error.message ? error.message : String(error)),
-          "EPERM"
-        );
-      }
-    }
-    if (lstat) {
-      let real;
-      try {
-        real = fs.realpathSync(target);
-      } catch (error) {
-        throw __autojs6_create_require_error(
-          baseValue,
-          "base realpath cannot be resolved: " + (error && error.message ? error.message : String(error)),
-          "ENOENT"
-        );
-      }
-      if (!__autojs6_path_within_root(real, scope.realRoot)) {
-        throw __autojs6_create_require_error(baseValue, "base symlink escapes sandboxRoot.", "EPERM");
-      }
-      if (typeof lstat.isDirectory === "function" && lstat.isDirectory()) {
-        throw __autojs6_create_require_error(baseValue, "base must be a file path, not a directory.", "ENOTDIR");
-      }
-    } else {
-      let parent = path.dirname(target);
-      while (parent && parent !== path.dirname(parent) && !fs.existsSync(parent)) {
-        parent = path.dirname(parent);
-      }
-      if (!parent || !__autojs6_path_within_root(parent, scope.root)) {
-        throw __autojs6_create_require_error(baseValue, "base parent escapes sandboxRoot.", "EPERM");
-      }
-      let realParent;
-      try {
-        realParent = fs.realpathSync(parent);
-      } catch (error) {
-        throw __autojs6_create_require_error(
-          baseValue,
-          "base parent realpath cannot be resolved: " + (error && error.message ? error.message : String(error)),
-          "ENOENT"
-        );
-      }
-      if (!__autojs6_path_within_root(realParent, scope.realRoot)) {
-        throw __autojs6_create_require_error(baseValue, "base parent symlink escapes sandboxRoot.", "EPERM");
-      }
-    }
-    __autojs6_create_require_last_failure_reason = "";
-    return target;
-  }
-  function __autojs6_create_require_from_base(baseValue) {
-    const filename = __autojs6_create_require_base_filename(baseValue);
-    const path = __autojs6_path_module();
-    const dirname = path.dirname(filename);
-    const parentModule = {
-      id: filename,
-      filename,
-      dirname,
-      path: dirname,
-      exports: {},
-      parent: __autojs6_main_module_ref,
-      children: [],
-      paths: __autojs6_module_paths(filename),
-      loaded: true
-    };
-    parentModule.require = __autojs6_create_module_require(parentModule);
-    return parentModule.require;
-  }
-  function __autojs6_limited_module_is_builtin(name) {
-    return __autojs6_native_builtin_id(name) !== null;
-  }
-  function __autojs6_limited_module() {
-    if (__autojs6_limited_module_cache) {
-      return __autojs6_limited_module_cache;
-    }
-    // M23.2: Node's own module builtin; only createRequire stays with the runtime loader until
-    // M23.3 replaces that loader (it must hand out the same require() the entry module uses).
-    const overrides = Object.freeze({ createRequire: __autojs6_create_require_from_base });
-    __autojs6_limited_module_cache = new Proxy(__autojs6_builtin_module("module"), {
-      get(target, key, receiver) {
-        return __autojs6_has_own(overrides, key) ? overrides[key] : Reflect.get(target, key, receiver);
-      }
-    });
-    return __autojs6_limited_module_cache;
-  }
-  const __autojs6_module_cache = Object.create(null);
-  const __autojs6_plugin_module_roots = Object.create(null);
-  const __autojs6_esm_module_cache = Object.create(null);
-  const __autojs6_native_esm_module_cache = Object.create(null);
-  const __autojs6_native_esm_module_records = new WeakMap();
-  const __autojs6_esm_data_url_records = Object.create(null);
-  let __autojs6_native_esm_api_cache = null;
   let __autojs6_main_module_ref = null;
-  function __autojs6_module_resolution_root(filename) {
-    const path = __autojs6_path_module();
-    if (!path || typeof path.resolve !== "function") {
-      return __autojs6_module_root || __autojs6_module_dirname(filename);
-    }
-    const fallbackRoot = __autojs6_resolved_sandbox_root(path);
-    const resolvedFilename = path.resolve(filename || fallbackRoot);
-    for (const root of Object.keys(__autojs6_plugin_module_roots)) {
-      if (__autojs6_path_within_root(resolvedFilename, root)) {
-        return root;
-      }
-    }
-    return fallbackRoot;
-  }
-  function __autojs6_module_paths(filename) {
-    const path = __autojs6_path_module();
-    if (!path || typeof path.resolve !== "function") {
-      return [];
-    }
-    const root = __autojs6_module_resolution_root(filename);
-    return __autojs6_node_modules_search_dirs(filename, root).slice();
-  }
-  function __autojs6_create_module(filename, parentModule) {
-    const dirname = __autojs6_module_dirname(filename);
-    const module = {
-      id: filename,
-      filename,
-      dirname,
-      path: dirname,
-      exports: {},
-      parent: parentModule || null,
-      children: [],
-      paths: __autojs6_module_paths(filename),
-      loaded: false
-    };
-    module.require = __autojs6_create_module_require(module);
-    return module;
-  }
-  function __autojs6_attach_child_module(parentModule, childModule) {
-    if (!parentModule || !childModule || parentModule === childModule) return;
-    if (!Array.isArray(parentModule.children)) {
-      parentModule.children = [];
-    }
-    if (parentModule.children.indexOf(childModule) < 0) {
-      parentModule.children.push(childModule);
-    }
-  }
-  let __autojs6_require_extensions_ref = null;
-  function __autojs6_disabled_require_extension() {}
-  function __autojs6_require_extensions() {
-    if (__autojs6_require_extensions_ref) return __autojs6_require_extensions_ref;
-    const extensions = Object.create(null);
-    Object.defineProperties(extensions, {
-      ".js": {
-        value: __autojs6_disabled_require_extension,
-        enumerable: true
-      },
-      ".cjs": {
-        value: __autojs6_disabled_require_extension,
-        enumerable: true
-      },
-      ".cts": {
-        value: __autojs6_disabled_require_extension,
-        enumerable: true
-      },
-      ".ts": {
-        value: __autojs6_disabled_require_extension,
-        enumerable: true
-      },
-      ".json": {
-        value: __autojs6_disabled_require_extension,
-        enumerable: true
-      }
-    });
-    __autojs6_require_extensions_ref = Object.freeze(extensions);
-    return __autojs6_require_extensions_ref;
-  }
-  function __autojs6_create_module_require(parentModule) {
-    const requireFunction = function(moduleName) {
-      return __autojs6_restricted_require(moduleName, parentModule);
-    };
-    requireFunction.resolve = function(moduleName) {
-      return __autojs6_restricted_require_resolve(
-        moduleName,
-        parentModule ? parentModule.filename : __autojs6_source_name
-      );
-    };
-    requireFunction.cache = __autojs6_module_cache;
-    requireFunction.main = __autojs6_main_module_ref || (parentModule && parentModule.parent === null ? parentModule : null);
-    Object.defineProperty(requireFunction, "extensions", {
-      value: __autojs6_require_extensions(),
-      configurable: false,
-      enumerable: true,
-      writable: false
-    });
-    return requireFunction;
-  }
-  function __autojs6_esm_record_denial(message) {
-    __autojs6_esm_diagnostics.deniedCount += 1;
-    __autojs6_esm_diagnostics.lastDeniedReason = String(message || "");
-  }
-  function __autojs6_esm_error(message, code) {
-    __autojs6_esm_record_denial(message);
-    return __autojs6_error(message, code || "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED");
-  }
-  function __autojs6_esm_unreachable(specifier) {
-    return __autojs6_esm_error(
-      "Embedded Node partial ESM import cannot reach '" + specifier +
-        "': the path is outside Android file access or under a sensitive root (/proc, /sys, /dev).",
-      "ERR_AUTOJS6_FS_PATH_ESCAPE"
-    );
-  }
-  // Absolute paths and file: URLs name a local module directly, as in Node.
-  function __autojs6_esm_local_specifier_path(name) {
-    const path = __autojs6_path_module();
-    if (path && typeof path.isAbsolute === "function" && path.isAbsolute(name)) return name;
-    if (!/^file:/i.test(name)) return null;
-    const nodeUrl = __autojs6_url_module();
-    if (!nodeUrl || typeof nodeUrl.fileURLToPath !== "function") {
-      throw __autojs6_esm_error("Embedded Node partial ESM file: import needs allowlisted url.fileURLToPath.");
-    }
-    return nodeUrl.fileURLToPath(name);
-  }
   function __autojs6_esm_entry_filename() {
     return __autojs6_entry_filename();
-  }
-  function __autojs6_package_type_module_for_file(filename) {
-    const path = __autojs6_path_module();
-    if (!path || typeof path.resolve !== "function") return false;
-    try {
-      const root = __autojs6_module_resolution_root(filename);
-      const scope = __autojs6_find_package_scope(filename, root);
-      if (!scope) return false;
-      const packageData = __autojs6_package_data(scope.packageJsonResolved, filename);
-      if (!__autojs6_package_type_is_module(packageData)) return false;
-      __autojs6_package_diagnostics.lastTypeModulePolicy =
-        "type=module accepted by Embedded Node partial ESM";
-      __autojs6_package_diagnostics.lastTypeModulePackage =
-        __autojs6_package_name(packageData) || __autojs6_diagnostic_path(scope.packageDir);
-      __autojs6_package_diagnostics.lastTypeModulePackageJson =
-        __autojs6_diagnostic_path(scope.packageJsonResolved);
-      __autojs6_package_diagnostics.lastTypeModuleFilename =
-        __autojs6_diagnostic_path(filename);
-      return true;
-    } catch (error) {
-      if (error && error.__autojs6ModuleSourceProviderRecorded) throw error;
-      return false;
-    }
   }
   function __autojs6_entry_source_has_esm_syntax(source) {
     const code = __autojs6_mask_non_code(source);
@@ -29891,266 +27024,11 @@ std::string buildEmbeddedScriptExecutionSource(
     return /(^|[\r\n;{}])\s*export\b\s*([{*]|default\b|class\b|function\b|const\b|let\b|var\b|[A-Za-z_$])/.test(code);
   }
   function __autojs6_should_run_entry_as_esm() {
-    if (!__autojs6_esm_enabled) return false;
     const entry = __autojs6_esm_entry_filename();
     const extension = __autojs6_source_extension(entry);
     return __autojs6_is_esm_extension(extension) ||
-      ((extension === ".js" || extension === ".ts") && __autojs6_package_type_module_for_file(entry)) ||
+      ((extension === ".js" || extension === ".ts") && __autojs6_package_type_module(entry)) ||
       __autojs6_entry_source_has_esm_syntax(__autojs6_source);
-  }
-  function __autojs6_esm_validate_identifier(name, context) {
-    const value = String(name || "").trim();
-    if (!/^[A-Za-z_$][0-9A-Za-z_$]*$/.test(value)) {
-      throw __autojs6_esm_error("Unsupported Embedded Node partial ESM identifier in " + context + ": " + value);
-    }
-    return value;
-  }
-  function __autojs6_esm_strip_named_list_comments(text) {
-    return String(text || "")
-      .replace(/\/\*[\s\S]*?\*\//g, " ")
-      .replace(/\/\/[^\r\n]*/g, " ");
-  }
-  function __autojs6_esm_split_named_list(sourceName, text) {
-    const values = [];
-    const entries = __autojs6_esm_strip_named_list_comments(text).split(",");
-    for (const entry of entries) {
-      const trimmed = entry.trim();
-      if (!trimmed) continue;
-      const parts = trimmed.split(/\s+as\s+/);
-      const exported = __autojs6_esm_validate_identifier(parts[0], sourceName);
-      const local = __autojs6_esm_validate_identifier(parts.length > 1 ? parts[1] : parts[0], sourceName);
-      values.push({ exported, local });
-    }
-    return values;
-  }
-  function __autojs6_esm_split_export_named_list(sourceName, text) {
-    const values = [];
-    const entries = __autojs6_esm_strip_named_list_comments(text).split(",");
-    for (const entry of entries) {
-      const trimmed = entry.trim();
-      if (!trimmed) continue;
-      const parts = trimmed.split(/\s+as\s+/);
-      const local = __autojs6_esm_validate_identifier(parts[0], sourceName);
-      const exported = __autojs6_esm_validate_identifier(parts.length > 1 ? parts[1] : parts[0], sourceName);
-      values.push({ exported, local });
-    }
-    return values;
-  }
-  function __autojs6_esm_split_top_level(text, separator) {
-    const source = String(text || "");
-    const masked = __autojs6_mask_non_code(source);
-    const values = [];
-    let cursor = 0;
-    let braceDepth = 0;
-    let bracketDepth = 0;
-    let parenDepth = 0;
-    for (let index = 0; index < masked.length; index += 1) {
-      const ch = masked.charAt(index);
-      if (ch === "{") braceDepth += 1;
-      else if (ch === "}") braceDepth = Math.max(0, braceDepth - 1);
-      else if (ch === "[") bracketDepth += 1;
-      else if (ch === "]") bracketDepth = Math.max(0, bracketDepth - 1);
-      else if (ch === "(") parenDepth += 1;
-      else if (ch === ")") parenDepth = Math.max(0, parenDepth - 1);
-      else if (ch === separator && braceDepth === 0 && bracketDepth === 0 && parenDepth === 0) {
-        values.push(source.slice(cursor, index));
-        cursor = index + 1;
-      }
-    }
-    values.push(source.slice(cursor));
-    return values;
-  }
-  function __autojs6_esm_find_top_level_char(text, target) {
-    const source = String(text || "");
-    const masked = __autojs6_mask_non_code(source);
-    let braceDepth = 0;
-    let bracketDepth = 0;
-    let parenDepth = 0;
-    for (let index = 0; index < masked.length; index += 1) {
-      const ch = masked.charAt(index);
-      if (ch === "{") braceDepth += 1;
-      else if (ch === "}") braceDepth = Math.max(0, braceDepth - 1);
-      else if (ch === "[") bracketDepth += 1;
-      else if (ch === "]") bracketDepth = Math.max(0, bracketDepth - 1);
-      else if (ch === "(") parenDepth += 1;
-      else if (ch === ")") parenDepth = Math.max(0, parenDepth - 1);
-      else if (ch === target && braceDepth === 0 && bracketDepth === 0 && parenDepth === 0) {
-        return index;
-      }
-    }
-    return -1;
-  }
-  function __autojs6_esm_collect_binding_identifiers(pattern, sourceName) {
-    const names = [];
-    function add(name) {
-      const value = String(name || "").trim();
-      if (!value) return;
-      names.push(__autojs6_esm_validate_identifier(value, sourceName));
-    }
-    function collect(value) {
-      let text = String(value || "").trim();
-      if (!text) return;
-      if (text.slice(0, 3) === "...") {
-        text = text.slice(3).trim();
-      }
-      const equalIndex = __autojs6_esm_find_top_level_char(text, "=");
-      if (equalIndex >= 0) {
-        text = text.slice(0, equalIndex).trim();
-      }
-      if (!text) return;
-      const first = text.charAt(0);
-      if (first === "{" && text.charAt(text.length - 1) === "}") {
-        collectObject(text.slice(1, -1));
-        return;
-      }
-      if (first === "[" && text.charAt(text.length - 1) === "]") {
-        collectArray(text.slice(1, -1));
-        return;
-      }
-      const match = /^([A-Za-z_$][0-9A-Za-z_$]*)$/.exec(text);
-      if (match) {
-        add(match[1]);
-      }
-    }
-    function collectObject(body) {
-      const entries = __autojs6_esm_split_top_level(body, ",");
-      for (const entry of entries) {
-        let text = String(entry || "").trim();
-        if (!text) continue;
-        if (text.slice(0, 3) === "...") {
-          collect(text);
-          continue;
-        }
-        const colonIndex = __autojs6_esm_find_top_level_char(text, ":");
-        if (colonIndex >= 0) {
-          collect(text.slice(colonIndex + 1));
-        } else {
-          collect(text);
-        }
-      }
-    }
-    function collectArray(body) {
-      const entries = __autojs6_esm_split_top_level(body, ",");
-      for (const entry of entries) {
-        collect(entry);
-      }
-    }
-    collect(pattern);
-    return names;
-  }
-  function __autojs6_esm_find_matching_delimiter(text, openIndex) {
-    const source = String(text || "");
-    const open = source.charAt(openIndex);
-    const close = open === "{" ? "}" : open === "[" ? "]" : open === "(" ? ")" : "";
-    if (!close) return -1;
-    let depth = 0;
-    for (let index = openIndex; index < source.length; index += 1) {
-      const ch = source.charAt(index);
-      if (ch === open) depth += 1;
-      else if (ch === close) {
-        depth -= 1;
-        if (depth === 0) return index;
-      }
-    }
-    return -1;
-  }
-  function __autojs6_esm_transform_destructured_declaration_exports(body, sourceName, namedExports) {
-    const source = String(body || "");
-    const masked = __autojs6_mask_non_code(source);
-    let output = "";
-    let cursor = 0;
-    for (let index = 0; index < masked.length; index += 1) {
-      if (!__autojs6_is_identifier_token_at(masked, index, "export")) continue;
-      const exportEnd = index + "export".length;
-      const kindStart = __autojs6_skip_whitespace(masked, exportEnd);
-      const kindMatch = /^(const|let|var)\b/.exec(masked.slice(kindStart));
-      if (!kindMatch) continue;
-      const afterKind = kindStart + kindMatch[1].length;
-      const patternStart = __autojs6_skip_whitespace(masked, afterKind);
-      const opener = masked.charAt(patternStart);
-      if (opener !== "{" && opener !== "[") continue;
-      const patternEnd = __autojs6_esm_find_matching_delimiter(masked, patternStart);
-      if (patternEnd < 0) continue;
-      const afterPattern = __autojs6_skip_whitespace(masked, patternEnd + 1);
-      if (masked.charAt(afterPattern) !== "=") continue;
-      const names = __autojs6_esm_collect_binding_identifiers(
-        source.slice(patternStart, patternEnd + 1),
-        sourceName
-      );
-      for (const name of names) {
-        namedExports.push({ exported: name, local: name });
-      }
-      output += source.slice(cursor, index);
-      cursor = kindStart;
-      index = kindStart;
-    }
-    return output + source.slice(cursor);
-  }
-  function __autojs6_esm_parse_import_bindings(specifierText, importVar, sourceName) {
-    const lines = [];
-    let text = String(specifierText || "").trim();
-    if (!text) return lines;
-    function bindDefault(value) {
-      const local = __autojs6_esm_validate_identifier(value, sourceName);
-      lines.push("const " + local + " = " + importVar + "[\"default\"];");
-    }
-    function bindNamespace(value) {
-      const match = /^\*\s+as\s+([A-Za-z_$][0-9A-Za-z_$]*)$/.exec(value.trim());
-      if (!match) {
-        throw __autojs6_esm_error("Unsupported Embedded Node partial ESM namespace import in " + sourceName + ": " + value);
-      }
-      lines.push("const " + match[1] + " = " + importVar + ";");
-    }
-    function bindNamed(value) {
-      const body = value.trim();
-      if (body.charAt(0) !== "{" || body.charAt(body.length - 1) !== "}") {
-        throw __autojs6_esm_error("Unsupported Embedded Node partial ESM import binding in " + sourceName + ": " + value);
-      }
-      for (const item of __autojs6_esm_split_named_list(sourceName, body.slice(1, -1))) {
-        lines.push("const " + item.local + " = " + importVar + "[" + JSON.stringify(item.exported) + "];");
-      }
-    }
-    const comma = text.indexOf(",");
-    if (comma >= 0 && text.charAt(0) !== "{" && text.charAt(0) !== "*") {
-      bindDefault(text.slice(0, comma));
-      text = text.slice(comma + 1).trim();
-    }
-    if (!text) return lines;
-    if (text.charAt(0) === "{") {
-      bindNamed(text);
-    } else if (text.charAt(0) === "*") {
-      bindNamespace(text);
-    } else {
-      bindDefault(text);
-    }
-    return lines;
-  }
-  function __autojs6_esm_builtin_specifier(name) {
-    return name === "autojs6:host" || name === "rhino" || __autojs6_native_builtin_id(name) !== null;
-  }
-  function __autojs6_esm_facade_specifier(name) {
-    return __autojs6_rhino_compat_basic_module_names.indexOf(name) >= 0 ||
-      __autojs6_runtime_facade_module_names.indexOf(name) >= 0;
-  }
-  function __autojs6_esm_namespace_from_commonjs(value) {
-    const namespace = Object.create(null);
-    namespace.default = value;
-    if (value !== null && (typeof value === "object" || typeof value === "function")) {
-      for (const key of Object.getOwnPropertyNames(value)) {
-        if (key === "default") continue;
-        try {
-          namespace[key] = value[key];
-        } catch (_) {}
-      }
-    }
-    return Object.freeze(namespace);
-  }
-  function __autojs6_esm_module_kind(resolved) {
-    const extension = __autojs6_source_extension(resolved);
-    if (__autojs6_is_esm_extension(extension)) return "esm";
-    if ((extension === ".js" || extension === ".ts") && __autojs6_package_type_module_for_file(resolved)) return "esm";
-    if (__autojs6_supported_local_module_extension(extension)) return "cjs";
-    return "";
   }
   function __autojs6_typescript_generated_extension(extension) {
     const normalized = __autojs6_normalized_extension(extension);
@@ -30158,20 +27036,6 @@ std::string buildEmbeddedScriptExecutionSource(
     if (normalized === ".mts") return ".mjs";
     if (normalized === ".cts") return ".cjs";
     return "";
-  }
-  function __autojs6_reject_typescript_snapshot_module(code, specifier, source, generated, parentFilename, detail) {
-    __autojs6_typescript_snapshot_diagnostics.rejectedCount += 1;
-    if (code === "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_AMBIGUOUS") {
-      __autojs6_typescript_snapshot_diagnostics.ambiguousCount += 1;
-    }
-    __autojs6_typescript_snapshot_diagnostics.lastSpecifier = String(specifier || "");
-    __autojs6_typescript_snapshot_diagnostics.lastSource = String(source || "");
-    __autojs6_typescript_snapshot_diagnostics.lastGenerated = String(generated || "");
-    __autojs6_typescript_snapshot_diagnostics.lastErrorCode = code;
-    throw __autojs6_typescript_snapshot_error(
-      detail + " The target must come from the initial snapshot or the execution-scoped on-demand compiler.",
-      code
-    );
   }
   function __autojs6_compile_missing_typescript_source(
     source,
@@ -30214,1311 +27078,8 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return true;
   }
-  function __autojs6_resolve_precompiled_typescript_source(source, extension, specifier, parentFilename) {
-    if (!__autojs6_typescript_precompiled_snapshot) return null;
-    const generatedExtension = __autojs6_typescript_generated_extension(extension);
-    if (!generatedExtension) return null;
-    const generated = source.slice(0, source.length - String(extension || "").length) + generatedExtension;
-    if (
-      !__autojs6_has_own(__autojs6_typescript_precompiled_source_names, source) &&
-      __autojs6_has_own(__autojs6_module_sources, generated)
-    ) {
-      __autojs6_reject_typescript_snapshot_module(
-        "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_AMBIGUOUS",
-        specifier,
-        source,
-        generated,
-        parentFilename,
-        "TypeScript dynamic import target '" + specifier + "' collides with an existing generated or runtime-support module."
-      );
-    }
-    if (
-      (!__autojs6_has_own(__autojs6_typescript_precompiled_source_names, source) ||
-        !__autojs6_has_own(__autojs6_module_sources, generated)) &&
-      !__autojs6_compile_missing_typescript_source(
-        source,
-        extension,
-        generated,
-        specifier,
-        parentFilename
-      )
-    ) {
-      __autojs6_reject_typescript_snapshot_module(
-        "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND",
-        specifier,
-        source,
-        generated,
-        parentFilename,
-        "TypeScript dynamic import target '" + specifier + "' from '" + parentFilename + "' was not emitted and could not be compiled on demand."
-      );
-    }
-    if (!__autojs6_has_own(__autojs6_module_sources, generated)) {
-      __autojs6_reject_typescript_snapshot_module(
-        "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND",
-        specifier,
-        source,
-        generated,
-        parentFilename,
-        "TypeScript dynamic import target '" + specifier + "' has no matching generated module in the precompiled snapshot."
-      );
-    }
-    const kind = __autojs6_esm_module_kind(generated);
-    if (!kind) {
-      __autojs6_reject_typescript_snapshot_module(
-        "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND",
-        specifier,
-        source,
-        generated,
-        parentFilename,
-        "TypeScript dynamic import target '" + specifier + "' mapped to an unsupported generated module."
-      );
-    }
-    __autojs6_typescript_snapshot_diagnostics.mappedCount += 1;
-    __autojs6_typescript_snapshot_diagnostics.lastSpecifier = String(specifier || "");
-    __autojs6_typescript_snapshot_diagnostics.lastSource = source;
-    __autojs6_typescript_snapshot_diagnostics.lastGenerated = generated;
-    __autojs6_typescript_snapshot_diagnostics.lastErrorCode = "";
-    __autojs6_resolve_trace("typescript snapshot mapping matched", {
-      request: specifier,
-      from: parentFilename,
-      source,
-      final: generated,
-      kind
-    });
-    return { kind, resolved: generated };
-  }
-  function __autojs6_resolve_precompiled_typescript_extensionless(base, specifier, parentFilename) {
-    if (!__autojs6_typescript_precompiled_snapshot) return null;
-    const candidates = [
-      { source: base + ".mts", extension: ".mts" },
-      { source: base + ".ts", extension: ".ts" },
-      { source: base + ".cts", extension: ".cts" }
-    ].filter(function(candidate) {
-      return __autojs6_has_own(__autojs6_typescript_precompiled_source_names, candidate.source) ||
-        __autojs6_validate_runtime_module_path(candidate.source, true, true) !== null;
-    });
-    if (candidates.length > 1) {
-      __autojs6_reject_typescript_snapshot_module(
-        "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_AMBIGUOUS",
-        specifier,
-        candidates.map(function(candidate) { return candidate.source; }).join("|"),
-        "",
-        parentFilename,
-        "Extensionless TypeScript dynamic import target '" + specifier + "' from '" + parentFilename + "' is ambiguous."
-      );
-    }
-    if (candidates.length === 1) {
-      return __autojs6_resolve_precompiled_typescript_source(
-        candidates[0].source,
-        candidates[0].extension,
-        specifier,
-        parentFilename
-      );
-    }
-    return null;
-  }
   function __autojs6_is_data_url_module_id(value) {
     return /^data:/i.test(String(value || ""));
-  }
-  function __autojs6_esm_data_url_media_type(header) {
-    const first = String(header || "").split(";")[0].trim().toLowerCase();
-    return first;
-  }
-  function __autojs6_esm_data_url_is_base64(header) {
-    const parts = String(header || "").split(";");
-    for (let index = 1; index < parts.length; index += 1) {
-      if (parts[index].trim().toLowerCase() === "base64") return true;
-    }
-    return false;
-  }
-  function __autojs6_esm_data_url_format(mediaType, specifier) {
-    const type = String(mediaType || "").toLowerCase();
-    if (
-      type === "text/javascript" ||
-      type === "application/javascript" ||
-      type === "text/ecmascript" ||
-      type === "application/ecmascript"
-    ) {
-      return "module";
-    }
-    if (type === "application/json" || /\+json$/.test(type)) {
-      return "json";
-    }
-    throw __autojs6_esm_error(
-      "Embedded Node partial ESM supports only JavaScript or JSON data URL imports: " + specifier,
-      "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED"
-    );
-  }
-  function __autojs6_esm_decode_data_url_body(body, isBase64, specifier) {
-    if (isBase64) {
-      const BufferCtor = __autojs6_buffer_constructor();
-      if (!BufferCtor || typeof BufferCtor.from !== "function") {
-        throw __autojs6_esm_error("Embedded Node partial ESM data URL import needs Buffer support.");
-      }
-      try {
-        return BufferCtor.from(String(body || ""), "base64").toString("utf8");
-      } catch (error) {
-        throw __autojs6_esm_error(
-          "Embedded Node partial ESM rejects malformed base64 data URL import: " + specifier,
-          "ERR_INVALID_ARG_TYPE"
-        );
-      }
-    }
-    try {
-      return decodeURIComponent(String(body || ""));
-    } catch (error) {
-      throw __autojs6_esm_error(
-        "Embedded Node partial ESM rejects malformed percent-encoded data URL import: " + specifier,
-        "ERR_INVALID_ARG_TYPE"
-      );
-    }
-  }
-  function __autojs6_resolve_esm_data_url(specifier) {
-    const id = String(specifier || "");
-    if (__autojs6_has_own(__autojs6_esm_data_url_records, id)) {
-      return __autojs6_esm_data_url_records[id];
-    }
-    const comma = id.indexOf(",");
-    if (comma < 0) {
-      throw __autojs6_esm_error(
-        "Embedded Node partial ESM rejects malformed data URL import: " + id,
-        "ERR_INVALID_ARG_TYPE"
-      );
-    }
-    const header = id.slice("data:".length, comma);
-    const mediaType = __autojs6_esm_data_url_media_type(header);
-    const format = __autojs6_esm_data_url_format(mediaType, id);
-    const source = __autojs6_esm_decode_data_url_body(
-      id.slice(comma + 1),
-      __autojs6_esm_data_url_is_base64(header),
-      id
-    );
-    const resolved = Object.freeze({
-      kind: format === "json" ? "data-json" : "data",
-      resolved: id,
-      mediaType,
-      record: Object.freeze({
-        source,
-        sourceURL: id.replace(/[\r\n]/g, " ")
-      })
-    });
-    __autojs6_esm_data_url_records[id] = resolved;
-    return resolved;
-  }
-  function __autojs6_resolve_esm_file_candidate(
-    candidates,
-    root,
-    specifier,
-    parentFilename,
-    packageDir,
-    materializeMissingPlaintext
-  ) {
-    const path = __autojs6_path_module();
-    for (const candidate of candidates) {
-      const resolved = path.resolve(candidate);
-      if (!__autojs6_path_within_root(resolved, root)) {
-        throw __autojs6_esm_unreachable(specifier);
-      }
-      if (packageDir && !__autojs6_path_within_root(resolved, packageDir)) {
-        throw __autojs6_esm_error("Embedded Node partial ESM package import escapes package directory: " + specifier, "ERR_AUTOJS6_FS_PATH_ESCAPE");
-      }
-      const record = __autojs6_module_record(
-        resolved,
-        true,
-        materializeMissingPlaintext === true,
-        true
-      );
-      if (!record) continue;
-      const kind = __autojs6_esm_module_kind(resolved);
-      if (!kind) {
-        const extension = __autojs6_source_extension(resolved);
-        __autojs6_throw_if_native_addon_extension(
-          extension,
-          specifier,
-          "Embedded Node partial ESM import",
-          "Unsupported Embedded Node partial ESM import extension: " + specifier
-        );
-        throw __autojs6_esm_error("Unsupported Embedded Node partial ESM import extension: " + specifier);
-      }
-      __autojs6_resolve_trace("esm import matched", {
-        request: specifier,
-        from: parentFilename,
-        final: resolved,
-        kind
-      });
-      return { kind, resolved };
-    }
-    return null;
-  }
-  function __autojs6_resolve_esm_module(specifier, parentFilename) {
-    const path = __autojs6_path_module();
-    if (!path || typeof path.resolve !== "function" || typeof path.extname !== "function" || typeof path.isAbsolute !== "function") {
-      throw __autojs6_esm_error("Embedded Node partial ESM needs the allowlisted path module.");
-    }
-    const name = String(specifier || "");
-    if (name.indexOf("\u0000") >= 0) {
-      throw __autojs6_esm_error("Embedded Node partial ESM rejects NUL import specifier.", "ERR_AUTOJS6_FS_NUL_BYTE");
-    }
-    // Node accepts absolute paths and file: URLs for local modules; Android
-    // file access (with the sensitive roots denied) decides readability.
-    const localName = __autojs6_esm_local_specifier_path(name);
-    if (__autojs6_esm_builtin_specifier(name)) {
-      __autojs6_resolve_trace("esm builtin matched", {
-        request: name,
-        from: parentFilename,
-        final: name
-      });
-      return { kind: "builtin", name };
-    }
-    if (__autojs6_is_data_url_module_id(name)) {
-      const resolvedData = __autojs6_resolve_esm_data_url(name);
-      __autojs6_resolve_trace("esm data url matched", {
-        request: "data:",
-        from: parentFilename,
-        format: resolvedData.kind
-      });
-      return resolvedData;
-    }
-    if (localName === null && __autojs6_protocol_specifier(name)) {
-      const code = /^https?:/i.test(name) ? "ERR_AUTOJS6_NETWORK_DISABLED" : "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED";
-      throw __autojs6_esm_error("Embedded Node partial ESM rejects protocol import: " + name, code);
-    }
-    if (localName === null && __autojs6_is_data_url_module_id(parentFilename)) {
-      throw __autojs6_esm_error(
-        "Embedded Node partial ESM data URL modules cannot resolve scoped package or relative imports: " + name,
-        "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED"
-      );
-    }
-    const root = __autojs6_module_resolution_root(parentFilename);
-    if (name.indexOf("#") === 0) {
-      const resolved = __autojs6_resolve_package_import(name, parentFilename, "esm");
-      return {
-        kind: __autojs6_esm_module_kind(resolved) || "cjs",
-        resolved
-      };
-    }
-    if (localName === null && !__autojs6_is_relative_module_name(name)) {
-      // Keep the CommonJS M2.4 rule for ESM: an installed npm package wins
-      // over the same-named runtime module only for the npm shims (mime,
-      // nanoid, ...); bare imports of the other runtime modules such as
-      // app/device/java become synthetic namespaces backed by the controlled
-      // facade implementation even when a same-named package is installed.
-      if (__autojs6_esm_facade_specifier(name)) {
-        const packageResolved = __autojs6_compat_shim_shadowable(name)
-          ? __autojs6_try_resolve_node_modules_module(name, parentFilename, "esm")
-          : null;
-        if (packageResolved) {
-          return {
-            kind: __autojs6_esm_module_kind(packageResolved) || "cjs",
-            resolved: packageResolved
-          };
-        }
-        __autojs6_resolve_trace("esm facade matched", {
-          request: name,
-          from: parentFilename,
-          final: name
-        });
-        return { kind: "builtin", name };
-      }
-      const resolved = __autojs6_resolve_node_modules_module(name, parentFilename, "esm");
-      return {
-        kind: __autojs6_esm_module_kind(resolved) || "cjs",
-        resolved
-      };
-    }
-    const reach = __autojs6_module_reach_root(path);
-    const parentDir = __autojs6_module_dirname(parentFilename);
-    const base = localName !== null
-      ? path.resolve(localName)
-      : path.resolve(parentDir || root, name);
-    if (!__autojs6_module_path_reachable(base, reach)) {
-      throw __autojs6_esm_unreachable(name);
-    }
-    const extension = __autojs6_normalized_extension(path.extname(base));
-    if (__autojs6_typescript_precompiled_snapshot) {
-      const mappedTypeScript = extension
-        ? __autojs6_resolve_precompiled_typescript_source(base, extension, name, parentFilename)
-        : __autojs6_resolve_precompiled_typescript_extensionless(base, name, parentFilename);
-      if (mappedTypeScript) return mappedTypeScript;
-    }
-    __autojs6_throw_if_raw_typescript_extension(
-      extension,
-      name,
-      "Embedded Node partial ESM import"
-    );
-    __autojs6_throw_if_native_addon_extension(
-      extension,
-      name,
-      "Embedded Node partial ESM import",
-      "Unsupported Embedded Node partial ESM import extension: " + name
-    );
-    if (extension && !__autojs6_is_esm_extension(extension) && !__autojs6_supported_local_module_extension(extension)) {
-      throw __autojs6_esm_error("Unsupported Embedded Node partial ESM import extension: " + name);
-    }
-    const candidates = extension
-      ? [base]
-      : (__autojs6_typescript_precompiled_snapshot
-          ? [base + ".mjs", base + ".js", base + ".cjs", base + ".json"]
-          : [base + ".mts", base + ".ts", base + ".mjs", base + ".js", base + ".cts", base + ".cjs", base + ".json"]);
-    const resolved = __autojs6_resolve_esm_file_candidate(
-      candidates,
-      reach,
-      name,
-      parentFilename,
-      undefined,
-      true
-    );
-    if (resolved) {
-      return resolved;
-    }
-    throw __autojs6_module_not_found("Cannot find Embedded Node partial ESM module '" + name + "' from '" + parentFilename + "'.");
-  }
-  function __autojs6_esm_copy_star_exports(source, target) {
-    if (source === null || source === undefined) return;
-    const type = typeof source;
-    if (type !== "object" && type !== "function") return;
-    for (const key of Object.keys(source)) {
-      if (key === "default") continue;
-      if (!__autojs6_has_own(target, key)) {
-        target[key] = source[key];
-      }
-    }
-  }
-  function __autojs6_esm_transform_exports(source, sourceName, syncMode, importState) {
-    let body = String(source || "");
-    const namedExports = [];
-    const reExportTail = [];
-    let hasDefault = false;
-    let defaultLocal = "";
-    const state = importState || { nextIndex: 0, bindingLines: [] };
-    if (!Array.isArray(state.bindingLines)) state.bindingLines = [];
-    if (!Array.isArray(state.bindingLineMap)) state.bindingLineMap = [];
-    if (typeof state.nextIndex !== "number") state.nextIndex = 0;
-    const reExportPattern = /(^|[\r\n;{}])\s*export\s*(?:(\*)\s*(?:as\s+([A-Za-z_$][0-9A-Za-z_$]*))?|(\{[^}]*\}))\s*from\s*(["'])([^"'\r\n]+)\5(?:\s+(with|assert)\s*\{([^}]*)\})?\s*;?/g;
-    body = body.replace(reExportPattern, function(match, prefix, star, namespaceName, namedList, quote, specifier, attributeKind, attributeBody) {
-      const importVar = "__autojs6_esm_import_" + state.nextIndex++;
-      const attributes = __autojs6_esm_parse_static_import_attributes(attributeKind, attributeBody, sourceName, specifier);
-      state.bindingLines.push(
-        "const " + importVar + " = " + (syncMode ? "__autojs6_load_esm_module_sync" : "await __autojs6_load_esm_module") + "(" +
-          JSON.stringify(specifier) + ", " + JSON.stringify(sourceName) + ", " + JSON.stringify(attributes) + ");"
-      );
-      state.bindingLineMap.push(0);
-      if (star) {
-        if (namespaceName) {
-          const exportedName = __autojs6_esm_validate_identifier(namespaceName, sourceName);
-          reExportTail.push("__autojs6_esm_namespace[" + JSON.stringify(exportedName) + "] = " + importVar + ";");
-        } else {
-          reExportTail.push("__autojs6_esm_copy_star_exports(" + importVar + ", __autojs6_esm_namespace);");
-        }
-      } else {
-        for (const item of __autojs6_esm_split_export_named_list(sourceName, String(namedList || "").slice(1, -1))) {
-          reExportTail.push(
-            "__autojs6_esm_namespace[" + JSON.stringify(item.exported) + "] = " +
-              importVar + "[" + JSON.stringify(item.local) + "];"
-          );
-        }
-      }
-      return prefix || "";
-    });
-    body = body.replace(/\bexport\s+default\s+(async\s+)?function(\s*\*)?\s+([A-Za-z_$][0-9A-Za-z_$]*)\s*\(/g, function(_, asyncPrefix, starPrefix, name) {
-      if (hasDefault) {
-        throw __autojs6_esm_error("Embedded Node partial ESM module has more than one default export: " + sourceName);
-      }
-      hasDefault = true;
-      defaultLocal = name;
-      return (asyncPrefix || "") + "function" + (starPrefix || " ") + name + "(";
-    });
-    body = body.replace(/\bexport\s+default\s+class\s+([A-Za-z_$][0-9A-Za-z_$]*)\b/g, function(_, name) {
-      if (hasDefault) {
-        throw __autojs6_esm_error("Embedded Node partial ESM module has more than one default export: " + sourceName);
-      }
-      hasDefault = true;
-      defaultLocal = name;
-      return "class " + name;
-    });
-    body = body.replace(/\bexport\s+default\s+/g, function() {
-      if (hasDefault) {
-        throw __autojs6_esm_error("Embedded Node partial ESM module has more than one default export: " + sourceName);
-      }
-      hasDefault = true;
-      return "const __autojs6_esm_default = ";
-    });
-    body = __autojs6_esm_transform_destructured_declaration_exports(body, sourceName, namedExports);
-    body = body.replace(/\bexport\s+(const|let|var)\s+([A-Za-z_$][0-9A-Za-z_$]*)\b/g, function(_, kind, name) {
-      namedExports.push({ exported: name, local: name });
-      return kind + " " + name;
-    });
-    body = body.replace(/\bexport\s+(async\s+)?function(\s*\*)?\s+([A-Za-z_$][0-9A-Za-z_$]*)\s*\(/g, function(_, asyncPrefix, starPrefix, name) {
-      namedExports.push({ exported: name, local: name });
-      return (asyncPrefix || "") + "function" + (starPrefix || " ") + name + "(";
-    });
-    body = body.replace(/\bexport\s+class\s+([A-Za-z_$][0-9A-Za-z_$]*)\b/g, function(_, name) {
-      namedExports.push({ exported: name, local: name });
-      return "class " + name;
-    });
-    body = body.replace(/(^|[\r\n;{}])\s*export\s*\{([^}]*)\}\s*;?/g, function(match, prefix, list) {
-      for (const item of __autojs6_esm_split_export_named_list(sourceName, list)) {
-        namedExports.push(item);
-      }
-      return prefix || "";
-    });
-    const tail = [];
-    if (hasDefault) {
-      tail.push("__autojs6_esm_namespace[\"default\"] = " + (defaultLocal || "__autojs6_esm_default") + ";");
-    }
-    for (const item of namedExports) {
-      tail.push("__autojs6_esm_namespace[" + JSON.stringify(item.exported) + "] = " + item.local + ";");
-    }
-    Array.prototype.push.apply(tail, reExportTail);
-    return {
-      body,
-      tail: tail.join("\n")
-    };
-  }
-  function __autojs6_contains_dynamic_import(source) {
-    const sourceText = String(source || "");
-    if (sourceText.indexOf("import") < 0) {
-      return false;
-    }
-    const masked = __autojs6_mask_non_code(sourceText);
-    for (
-      let index = __autojs6_next_identifier_token(masked, "import", 0);
-      index >= 0;
-      index = __autojs6_next_identifier_token(masked, "import", index + 1)
-    ) {
-      const nextIndex = __autojs6_skip_whitespace(masked, index + "import".length);
-      if (masked.charAt(nextIndex) === "(") {
-        return true;
-      }
-    }
-    return false;
-  }
-  function __autojs6_contains_await_token(source) {
-    const sourceText = String(source || "");
-    if (sourceText.indexOf("await") < 0) {
-      return false;
-    }
-    const masked = __autojs6_mask_non_code(sourceText);
-    for (let index = 0; index < masked.length; index += 1) {
-      if (__autojs6_is_identifier_token_at(masked, index, "await")) {
-        return true;
-      }
-    }
-    return false;
-  }
-  function __autojs6_esm_has_residual_import_export(source) {
-    const sourceText = String(source || "");
-    if (sourceText.indexOf("import") < 0 && sourceText.indexOf("export") < 0) {
-      return false;
-    }
-    const masked = __autojs6_mask_non_code(sourceText);
-    let braceDepth = 0;
-    let bracketDepth = 0;
-    let parenDepth = 0;
-    for (let index = 0; index < masked.length; index += 1) {
-      if (
-        braceDepth === 0 &&
-        bracketDepth === 0 &&
-        parenDepth === 0 &&
-        (
-          __autojs6_is_identifier_token_at(masked, index, "import") ||
-          __autojs6_is_identifier_token_at(masked, index, "export")
-        )
-      ) {
-        return true;
-      }
-      const ch = masked.charAt(index);
-      if (ch === "{") braceDepth += 1;
-      else if (ch === "}") braceDepth = Math.max(0, braceDepth - 1);
-      else if (ch === "[") bracketDepth += 1;
-      else if (ch === "]") bracketDepth = Math.max(0, bracketDepth - 1);
-      else if (ch === "(") parenDepth += 1;
-      else if (ch === ")") parenDepth = Math.max(0, parenDepth - 1);
-    }
-    return false;
-  }
-  function __autojs6_transform_dynamic_import_calls(source, sourceName, parentExpression) {
-    const sourceText = String(source || "");
-    if (sourceText.indexOf("import") < 0) {
-      return sourceText;
-    }
-    const masked = __autojs6_mask_non_code(sourceText);
-    let output = "";
-    let cursor = 0;
-    const parent = parentExpression || "__filename";
-    for (
-      let index = __autojs6_next_identifier_token(masked, "import", 0);
-      index >= 0;
-      index = __autojs6_next_identifier_token(masked, "import", index + 1)
-    ) {
-      const nextIndex = __autojs6_skip_whitespace(masked, index + "import".length);
-      if (masked.charAt(nextIndex) !== "(") continue;
-      if (!__autojs6_dynamic_import_enabled) {
-        throw __autojs6_dynamic_import_unsupported(
-          __autojs6_esm_unsupported_message("dynamic import is disabled for '" + sourceName + "'.")
-        );
-      }
-      output += sourceText.slice(cursor, index);
-      output += "__autojs6_dynamic_import(" + parent + ", ";
-      cursor = nextIndex + 1;
-    }
-    return output + sourceText.slice(cursor);
-  }
-  function __autojs6_esm_empty_import_attributes() {
-    return { type: "" };
-  }
-  function __autojs6_esm_parse_static_import_attributes(kind, body, sourceName, specifier) {
-    if (!kind) {
-      return __autojs6_esm_empty_import_attributes();
-    }
-    if (kind !== "with") {
-      throw __autojs6_esm_error(
-        "Embedded Node partial ESM import assertions are not supported in " +
-          sourceName + " for '" + specifier + "'. Use import attributes with { type: \"json\" } for JSON."
-      );
-    }
-    const text = String(body || "").trim();
-    const match = /^type\s*:\s*(["'])json\1\s*,?$/.exec(text);
-    if (!match) {
-      throw __autojs6_esm_error(
-        "Unsupported Embedded Node partial ESM import attributes in " +
-          sourceName + " for '" + specifier + "'. Only with { type: \"json\" } is supported."
-      );
-    }
-    return { type: "json" };
-  }
-  function __autojs6_esm_parse_dynamic_import_attributes(options, parentFilename, specifier) {
-    if (options === undefined || options === null) {
-      return __autojs6_esm_empty_import_attributes();
-    }
-    if (typeof options !== "object") {
-      throw __autojs6_esm_error(
-        "Embedded Node local dynamic import attributes must be an object for '" + specifier + "' from '" + parentFilename + "'."
-      );
-    }
-    const optionKeys = Object.keys(options);
-    if (optionKeys.length !== 1 || optionKeys[0] !== "with") {
-      throw __autojs6_esm_error(
-        "Unsupported Embedded Node local dynamic import options for '" + specifier + "' from '" + parentFilename +
-          "'. Only { with: { type: \"json\" } } is supported."
-      );
-    }
-    const withAttributes = options.with;
-    if (!withAttributes || typeof withAttributes !== "object" || Array.isArray(withAttributes)) {
-      throw __autojs6_esm_error(
-        "Embedded Node local dynamic import attributes must use { with: { type: \"json\" } } for '" +
-          specifier + "' from '" + parentFilename + "'."
-      );
-    }
-    const attributeKeys = Object.keys(withAttributes);
-    if (attributeKeys.length !== 1 || attributeKeys[0] !== "type" || withAttributes.type !== "json") {
-      throw __autojs6_esm_error(
-        "Unsupported Embedded Node local dynamic import attributes for '" + specifier + "' from '" + parentFilename +
-          "'. Only { with: { type: \"json\" } } is supported."
-      );
-    }
-    return { type: "json" };
-  }
-  function __autojs6_esm_validate_import_attributes(resolved, attributes, specifier, parentFilename) {
-    const attributeType = attributes && attributes.type ? String(attributes.type) : "";
-    if (resolved.kind === "builtin") {
-      if (attributeType) {
-        throw __autojs6_esm_error(
-          "Embedded Node partial ESM import attributes are only supported for JSON modules: " + specifier
-        );
-      }
-      return;
-    }
-    if (resolved.kind === "data-json") {
-      if (attributeType !== "json") {
-        throw __autojs6_esm_error(
-          "Embedded Node partial ESM JSON data URL import requires with { type: \"json\" } for '" +
-            specifier + "' from '" + parentFilename + "'."
-        );
-      }
-      return;
-    }
-    if (resolved.kind === "data") {
-      if (attributeType) {
-        throw __autojs6_esm_error(
-          "Embedded Node partial ESM import attributes are only supported for JSON modules: " + specifier
-        );
-      }
-      return;
-    }
-    const extension = __autojs6_source_extension(resolved.resolved);
-    const isJson = extension === ".json";
-    if (isJson) {
-      if (attributeType !== "json") {
-        throw __autojs6_esm_error(
-          "Embedded Node partial ESM JSON import requires with { type: \"json\" } for '" +
-            specifier + "' from '" + parentFilename + "'."
-        );
-      }
-      return;
-    }
-    if (attributeType) {
-      throw __autojs6_esm_error(
-        "Embedded Node partial ESM import attributes are only supported for JSON modules: " + specifier
-      );
-    }
-  }
-  function __autojs6_import_meta_file_url(filename) {
-    const url = __autojs6_limited_path_to_file_url(filename);
-    return url && typeof url.href === "string" ? url.href : String(url);
-  }
-  function __autojs6_import_meta_builtin_url(name) {
-    if (name === "node:test" || name === "node:test/reporters" || name === "node:sqlite") {
-      return name;
-    }
-    if (name === "node:worker_threads") {
-      return "node:worker_threads";
-    }
-    if ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_enabled) {
-      return "node:child_process";
-    }
-    if ((name === "inspector" || name === "node:inspector") && __autojs6_inspector_enabled) {
-      return "node:inspector";
-    }
-    if (name === "rhino") {
-      return "rhino";
-    }
-    const builtinId = __autojs6_native_builtin_id(name);
-    if (builtinId !== null) {
-      const gate = __autojs6_builtin_gate(builtinId);
-      if (gate) {
-        throw __autojs6_builtin_disabled("import.meta.resolve is restricted for this execution; builtin module '" + name + "': " + gate);
-      }
-      return builtinId.indexOf("node:") === 0 ? builtinId : "node:" + builtinId;
-    }
-    return null;
-  }
-  function __autojs6_import_meta_resolve(specifier, parentFilename) {
-    const name = specifier === undefined || specifier === null ? "" : String(specifier);
-    const resolved = __autojs6_resolve_esm_module(name, parentFilename);
-    if (resolved.kind === "builtin") {
-      const builtinUrl = __autojs6_import_meta_builtin_url(resolved.name);
-      if (builtinUrl) {
-        return builtinUrl;
-      }
-      throw __autojs6_builtin_disabled(
-        "import.meta.resolve is restricted in Embedded Node partial ESM; builtin module '" + name + "' is not allowed."
-      );
-    }
-    return __autojs6_import_meta_file_url(resolved.resolved);
-  }
-  function __autojs6_import_meta_for_module(filename) {
-    const path = __autojs6_path_module();
-    const resolvedFilename = path && typeof path.resolve === "function"
-      ? (__autojs6_is_data_url_module_id(filename) ? String(filename || "") : path.resolve(filename))
-      : String(filename || "");
-    const entryFilename = path && typeof path.resolve === "function"
-      ? path.resolve(__autojs6_esm_entry_filename())
-      : String(__autojs6_esm_entry_filename() || "");
-    const dataUrlModule = __autojs6_is_data_url_module_id(resolvedFilename);
-    const meta = Object.create(null);
-    Object.defineProperties(meta, {
-      url: {
-        value: dataUrlModule ? resolvedFilename : __autojs6_import_meta_file_url(resolvedFilename),
-        enumerable: true
-      },
-      filename: {
-        value: dataUrlModule ? "" : resolvedFilename,
-        enumerable: true
-      },
-      dirname: {
-        value: dataUrlModule ? "" : __autojs6_module_dirname(resolvedFilename),
-        enumerable: true
-      },
-      main: {
-        value: !dataUrlModule && resolvedFilename === entryFilename,
-        enumerable: true
-      },
-      resolve: {
-        value: function(specifier) {
-          return __autojs6_import_meta_resolve(specifier, resolvedFilename);
-        },
-        enumerable: true
-      }
-    });
-    return Object.freeze(meta);
-  }
-  function __autojs6_transform_import_meta(source, sourceName) {
-    const sourceText = String(source || "");
-    if (sourceText.indexOf("import.meta") < 0) {
-      return sourceText;
-    }
-    const masked = __autojs6_mask_non_code(sourceText);
-    let output = "";
-    let cursor = 0;
-    for (let index = 0; index < masked.length; index += 1) {
-      if (!__autojs6_is_identifier_token_at(masked, index, "import")) continue;
-      const nextIndex = index + "import".length;
-      if (masked.slice(nextIndex, nextIndex + 5) !== ".meta") continue;
-      if (__autojs6_is_identifier_part(masked.charAt(nextIndex + 5))) continue;
-      output += sourceText.slice(cursor, index);
-      output += "__autojs6_import_meta";
-      cursor = nextIndex + 5;
-    }
-    return output + sourceText.slice(cursor);
-  }
-  function __autojs6_esm_transform_module_source(source, filename, syncMode) {
-    const sourceText = String(source || "");
-    if (syncMode && __autojs6_contains_await_token(sourceText)) {
-      throw __autojs6_require_async_module(
-        "CommonJS require() cannot synchronously load AutoJs6 partial ESM module '" +
-          filename + "' because it contains await syntax."
-      );
-    }
-    const masked = __autojs6_mask_non_code(sourceText);
-    for (let index = 0; index < masked.length; index += 1) {
-      if (!__autojs6_is_identifier_token_at(masked, index, "import")) continue;
-      const nextIndex = __autojs6_skip_whitespace(masked, index + "import".length);
-      const next = masked.charAt(nextIndex);
-      if (next === "(") {
-        if (syncMode) {
-          throw __autojs6_require_async_module(
-            "CommonJS require() cannot synchronously load AutoJs6 partial ESM module '" +
-              filename + "' because it contains dynamic import()."
-          );
-        }
-        if (!__autojs6_dynamic_import_enabled) {
-          throw __autojs6_dynamic_import_unsupported(
-            __autojs6_esm_unsupported_message("dynamic import is disabled for partial ESM module '" + filename + "'.")
-          );
-        }
-        continue;
-      }
-    }
-    const importPattern = /(^|[\r\n;])\s*import\b\s*(?![.(])(?:(["'])([^"'\r\n]+)\2|([\s\S]*?)\s*from\s*(["'])([^"'\r\n]+)\5)(?:\s+(with|assert)\s*\{([^}]*)\})?[ \t]*(?=;|[\r\n]|$|\/\/|\/\*)/g;
-    const bindingLines = [];
-    const bindingLineMap = [];
-    const bodyBuilder = __autojs6_create_generated_line_map_builder(sourceText);
-    let cursor = 0;
-    let importIndex = 0;
-    let match;
-    while ((match = importPattern.exec(sourceText)) !== null) {
-      const statementStart = match.index + match[1].length;
-      const statementEnd = importPattern.lastIndex;
-      bodyBuilder.append(cursor, statementStart);
-      cursor = statementEnd;
-      const importVar = "__autojs6_esm_import_" + importIndex++;
-      const specifier = match[3] || match[6];
-      const statementOriginalLine = __autojs6_source_line_at(sourceText, statementStart);
-      const attributes = __autojs6_esm_parse_static_import_attributes(match[7], match[8], filename, specifier);
-      bindingLines.push(
-        "const " + importVar + " = " + (syncMode ? "__autojs6_load_esm_module_sync" : "await __autojs6_load_esm_module") + "(" +
-          JSON.stringify(specifier) + ", " + JSON.stringify(filename) + ", " + JSON.stringify(attributes) + ");"
-      );
-      bindingLineMap.push(statementOriginalLine);
-      const specifierText = match[4] === undefined ? "" : match[4];
-      const parsedBindingLines = __autojs6_esm_parse_import_bindings(specifierText, importVar, filename);
-      Array.prototype.push.apply(bindingLines, parsedBindingLines);
-      for (let i = 0; i < parsedBindingLines.length; i += 1) {
-        bindingLineMap.push(statementOriginalLine);
-      }
-    }
-    bodyBuilder.append(cursor, sourceText.length);
-    const body = bodyBuilder.text();
-    const exportTransform = __autojs6_esm_transform_exports(body, filename, syncMode, {
-      bindingLines,
-      bindingLineMap,
-      nextIndex: importIndex
-    });
-    const importMetaBody = __autojs6_transform_import_meta(exportTransform.body, filename);
-    const transformedBody = __autojs6_transform_unsupported_unicode_identifier_regex_literals(
-      __autojs6_transform_dynamic_import_calls(importMetaBody, filename, "__filename")
-    );
-    if (__autojs6_esm_has_residual_import_export(transformedBody)) {
-      throw __autojs6_esm_error("Embedded Node partial ESM v1 found unsupported import/export syntax in " + filename + ".");
-    }
-    while (bindingLineMap.length < bindingLines.length) {
-      bindingLineMap.push(0);
-    }
-    const transformedLineMap = bindingLineMap.slice();
-    const bodyLineMap = bodyBuilder.lineMap();
-    const transformedBodyLineCount = __autojs6_count_lines(transformedBody);
-    for (let i = 0; i < transformedBodyLineCount; i += 1) {
-      transformedLineMap.push(bodyLineMap[Math.min(i, bodyLineMap.length - 1)] || 0);
-    }
-    const tailLineCount = exportTransform.tail ? __autojs6_count_lines(exportTransform.tail) : 0;
-    for (let i = 0; i < tailLineCount; i += 1) {
-      transformedLineMap.push(0);
-    }
-    // The emitted module text always inserts one leading newline before the transformed body.
-    // Keep the stack line map aligned with that physical line instead of shifting every body
-    // location forward by one source line.
-    transformedLineMap.unshift(0);
-    return {
-      source: bindingLines.join("\n") + "\n" + transformedBody + "\n" + exportTransform.tail,
-      lineMap: transformedLineMap
-    };
-  }
-  function __autojs6_native_esm_api() {
-    if (__autojs6_native_esm_api_cache) {
-      return __autojs6_native_esm_api_cache;
-    }
-    const vm = __autojs6_builtin_module("vm");
-    if (!vm || typeof vm.SourceTextModule !== "function" || typeof vm.SyntheticModule !== "function") {
-      throw __autojs6_esm_error(
-        "Embedded Node full ESM linker requires vm.SourceTextModule and vm.SyntheticModule."
-      );
-    }
-    __autojs6_native_esm_api_cache = Object.freeze({
-      SourceTextModule: vm.SourceTextModule,
-      SyntheticModule: vm.SyntheticModule
-    });
-    return __autojs6_native_esm_api_cache;
-  }
-  function __autojs6_native_esm_import_attributes(value, specifier, parentFilename) {
-    let attributes = value;
-    if (attributes && typeof attributes === "object") {
-      if (__autojs6_has_own(attributes, "attributes")) {
-        attributes = attributes.attributes;
-      } else if (__autojs6_has_own(attributes, "assert")) {
-        attributes = attributes.assert;
-      }
-    }
-    if (attributes === undefined || attributes === null) {
-      return __autojs6_esm_empty_import_attributes();
-    }
-    if (typeof attributes !== "object" || Array.isArray(attributes)) {
-      throw __autojs6_esm_error(
-        "Embedded Node full ESM linker received invalid import attributes for '" +
-          specifier + "' from '" + parentFilename + "'."
-      );
-    }
-    const keys = Object.keys(attributes);
-    if (keys.length === 0) {
-      return __autojs6_esm_empty_import_attributes();
-    }
-    if (keys.length === 1 && keys[0] === "type" && attributes.type === "json") {
-      return { type: "json" };
-    }
-    throw __autojs6_esm_error(
-      "Unsupported Embedded Node full ESM import attributes for '" + specifier +
-        "' from '" + parentFilename + "'. Only { type: \"json\" } is supported."
-    );
-  }
-  function __autojs6_native_esm_cache_key(resolved) {
-    if (resolved.kind === "builtin") {
-      return "builtin:" + String(resolved.name || "");
-    }
-    return String(resolved.resolved || "");
-  }
-  function __autojs6_native_esm_track_module(record) {
-    __autojs6_native_esm_module_records.set(record.module, record);
-    __autojs6_native_esm_module_cache[record.key] = record;
-    __autojs6_esm_diagnostics.graphSize += 1;
-    __autojs6_esm_diagnostics.graphModules.push(record.resolved);
-    return record;
-  }
-  function __autojs6_native_esm_synthetic_record(key, resolved, namespace) {
-    const api = __autojs6_native_esm_api();
-    const names = Object.keys(namespace);
-    let module;
-    module = new api.SyntheticModule(names, function() {
-      for (const name of names) {
-        module.setExport(name, namespace[name]);
-      }
-    }, {
-      identifier: resolved
-    });
-    return __autojs6_native_esm_track_module({
-      key,
-      resolved,
-      module,
-      linkPromise: null,
-      evaluationPromise: null,
-      synthetic: true
-    });
-  }
-  function __autojs6_native_esm_source_record(key, resolved, sourceRecord) {
-    const api = __autojs6_native_esm_api();
-    let module;
-    module = new api.SourceTextModule(String(sourceRecord.source || ""), {
-      identifier: String(sourceRecord.sourceURL || resolved),
-      initializeImportMeta: function(meta) {
-        const values = __autojs6_import_meta_for_module(resolved);
-        for (const name of Object.keys(values)) {
-          Object.defineProperty(meta, name, {
-            value: values[name],
-            configurable: false,
-            enumerable: true,
-            writable: false
-          });
-        }
-      },
-      importModuleDynamically: async function(specifier, referencingModule, importAttributes) {
-        if (!__autojs6_dynamic_import_enabled) {
-          throw __autojs6_dynamic_import_unsupported(
-            __autojs6_esm_unsupported_message(
-              "dynamic import is disabled for '" + resolved + "'."
-            )
-          );
-        }
-        const referencingRecord = __autojs6_native_esm_module_records.get(referencingModule);
-        const parent = referencingRecord ? referencingRecord.resolved : resolved;
-        const attributes = __autojs6_native_esm_import_attributes(
-          importAttributes,
-          specifier,
-          parent
-        );
-        const imported = __autojs6_native_esm_resolve_record(specifier, parent, attributes, null);
-        await __autojs6_native_esm_evaluate_record(imported);
-        return imported.module;
-      }
-    });
-    return __autojs6_native_esm_track_module({
-      key,
-      resolved,
-      module,
-      linkPromise: null,
-      evaluationPromise: null,
-      synthetic: false
-    });
-  }
-  function __autojs6_native_esm_resolve_record(
-    specifier,
-    parentFilename,
-    importAttributes,
-    entryRecord
-  ) {
-    const resolved = entryRecord
-      ? { kind: "esm", resolved: parentFilename }
-      : __autojs6_resolve_esm_module(specifier, parentFilename);
-    __autojs6_esm_validate_import_attributes(
-      resolved,
-      importAttributes,
-      specifier,
-      parentFilename
-    );
-    const key = __autojs6_native_esm_cache_key(resolved);
-    if (__autojs6_has_own(__autojs6_native_esm_module_cache, key)) {
-      return __autojs6_native_esm_module_cache[key];
-    }
-    if (resolved.kind === "builtin") {
-      return __autojs6_native_esm_synthetic_record(
-        key,
-        "autojs6:builtin:" + resolved.name,
-        __autojs6_esm_namespace_from_commonjs(
-          __autojs6_restricted_require(resolved.name, null)
-        )
-      );
-    }
-    if (resolved.kind === "data-json") {
-      let value;
-      try {
-        value = JSON.parse(String(resolved.record && resolved.record.source || ""));
-      } catch (error) {
-        throw __autojs6_esm_error(
-          "Invalid Embedded Node full ESM JSON data URL module '" + resolved.resolved + "': " +
-            (error && error.message ? error.message : String(error)),
-          "ERR_INVALID_ARG_TYPE"
-        );
-      }
-      return __autojs6_native_esm_synthetic_record(
-        key,
-        resolved.resolved,
-        __autojs6_esm_namespace_from_commonjs(value)
-      );
-    }
-    if (resolved.kind === "cjs") {
-      return __autojs6_native_esm_synthetic_record(
-        key,
-        resolved.resolved,
-        __autojs6_esm_namespace_from_commonjs(
-          __autojs6_load_local_module(resolved.resolved, null)
-        )
-      );
-    }
-    const sourceRecord = entryRecord ||
-      (resolved.kind === "data" ? resolved.record : __autojs6_module_record(resolved.resolved, true));
-    if (!sourceRecord) {
-      throw __autojs6_module_not_found(
-        "Cannot find Embedded Node full ESM module '" + resolved.resolved + "'."
-      );
-    }
-    return __autojs6_native_esm_source_record(key, resolved.resolved, sourceRecord);
-  }
-  function __autojs6_native_esm_linker(specifier, referencingModule, importAttributes) {
-    const referencingRecord = __autojs6_native_esm_module_records.get(referencingModule);
-    const parent = referencingRecord
-      ? referencingRecord.resolved
-      : String(referencingModule && referencingModule.identifier || __autojs6_source_name);
-    const attributes = __autojs6_native_esm_import_attributes(
-      importAttributes,
-      specifier,
-      parent
-    );
-    return __autojs6_native_esm_resolve_record(specifier, parent, attributes, null).module;
-  }
-  async function __autojs6_native_esm_link_record(record) {
-    if (record.module.status === "unlinked") {
-      if (!record.linkPromise) {
-        record.linkPromise = record.module.link(__autojs6_native_esm_linker);
-      }
-      await record.linkPromise;
-    } else if (record.module.status === "linking" && record.linkPromise) {
-      await record.linkPromise;
-    }
-    return record;
-  }
-  async function __autojs6_native_esm_evaluate_record(record) {
-    await __autojs6_native_esm_link_record(record);
-    if (record.module.status === "evaluated") {
-      return record.module.namespace;
-    }
-    if (!record.evaluationPromise) {
-      record.evaluationPromise = record.module.evaluate();
-    }
-    await record.evaluationPromise;
-    return record.module.namespace;
-  }
-  function __autojs6_native_esm_import(specifier, parentFilename, importAttributes) {
-    const record = __autojs6_native_esm_resolve_record(
-      specifier,
-      parentFilename,
-      importAttributes,
-      null
-    );
-    return __autojs6_native_esm_evaluate_record(record);
-  }
-  function __autojs6_native_esm_run_entry(entry, entryRecord) {
-    const record = __autojs6_native_esm_resolve_record(
-      entry,
-      entry,
-      __autojs6_esm_empty_import_attributes(),
-      entryRecord
-    );
-    return __autojs6_native_esm_evaluate_record(record);
-  }
-  function __autojs6_load_esm_module_sync(specifier, parentFilename, importAttributes) {
-    const resolved = __autojs6_resolve_esm_module(specifier, parentFilename);
-    __autojs6_esm_validate_import_attributes(resolved, importAttributes, specifier, parentFilename);
-    if (resolved.kind === "builtin") {
-      return __autojs6_esm_namespace_from_commonjs(__autojs6_restricted_require(resolved.name, null));
-    }
-    if (resolved.kind === "data-json") {
-      return __autojs6_load_esm_data_json_module(resolved);
-    }
-    if (resolved.kind === "data") {
-      return __autojs6_execute_esm_module_sync(resolved.resolved, resolved.record);
-    }
-    if (resolved.kind === "cjs") {
-      return __autojs6_esm_namespace_from_commonjs(__autojs6_load_local_module(resolved.resolved, null));
-    }
-    return __autojs6_execute_esm_module_sync(resolved.resolved, null);
-  }
-  function __autojs6_load_esm_module(specifier, parentFilename, importAttributes) {
-    const resolved = __autojs6_resolve_esm_module(specifier, parentFilename);
-    __autojs6_esm_validate_import_attributes(resolved, importAttributes, specifier, parentFilename);
-    if (resolved.kind === "builtin") {
-      return Promise.resolve(__autojs6_esm_namespace_from_commonjs(__autojs6_restricted_require(resolved.name, null)));
-    }
-    if (resolved.kind === "data-json") {
-      return Promise.resolve(__autojs6_load_esm_data_json_module(resolved));
-    }
-    if (resolved.kind === "data") {
-      return __autojs6_execute_esm_module(resolved.resolved, resolved.record);
-    }
-    if (resolved.kind === "cjs") {
-      return Promise.resolve(__autojs6_esm_namespace_from_commonjs(__autojs6_load_local_module(resolved.resolved, null)));
-    }
-    return __autojs6_execute_esm_module(resolved.resolved, null);
-  }
-  function __autojs6_load_esm_data_json_module(resolved) {
-    const id = resolved && resolved.resolved ? String(resolved.resolved) : "";
-    if (__autojs6_has_own(__autojs6_esm_module_cache, id)) {
-      const cached = __autojs6_esm_module_cache[id];
-      if (cached.evaluated) return cached.namespace;
-    }
-    let value;
-    try {
-      value = JSON.parse(String(resolved.record && resolved.record.source || ""));
-    } catch (error) {
-      throw __autojs6_esm_error(
-        "Invalid Embedded Node partial ESM JSON data URL module '" + id + "': " +
-          (error && error.message ? error.message : String(error)),
-        "ERR_INVALID_ARG_TYPE"
-      );
-    }
-    const namespace = __autojs6_esm_namespace_from_commonjs(value);
-    __autojs6_esm_module_cache[id] = {
-      namespace,
-      promise: null,
-      evaluated: true,
-      evaluating: false,
-      sync: true
-    };
-    __autojs6_esm_diagnostics.graphSize += 1;
-    __autojs6_esm_diagnostics.graphModules.push(id);
-    return namespace;
-  }
-  function __autojs6_dynamic_import(parentFilename, specifier, options) {
-    return Promise.resolve().then(function() {
-      if (!__autojs6_dynamic_import_enabled) {
-        throw __autojs6_dynamic_import_unsupported(
-          __autojs6_esm_unsupported_message("dynamic import is disabled for '" + parentFilename + "'.")
-        );
-      }
-      if (!__autojs6_esm_enabled) {
-        throw __autojs6_esm_unsupported(
-          __autojs6_esm_unsupported_message("dynamic import requires partial ESM to be enabled.")
-        );
-      }
-      const name = specifier === undefined || specifier === null ? "" : String(specifier);
-      const importAttributes = __autojs6_esm_parse_dynamic_import_attributes(options, parentFilename || __autojs6_source_name, name);
-      if (name.indexOf("\0") >= 0) {
-        throw __autojs6_esm_error("Embedded Node local dynamic import rejects NUL byte in specifier.", "ERR_AUTOJS6_FS_NUL_BYTE");
-      }
-      const protocolMatch = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(name);
-      if (protocolMatch && !__autojs6_esm_builtin_specifier(name) && !__autojs6_is_data_url_module_id(name)) {
-        const protocol = protocolMatch[1].toLowerCase();
-        if (protocol === "http" || protocol === "https") {
-          throw __autojs6_error("Embedded Node local dynamic import rejects network URL imports: " + name, "ERR_AUTOJS6_NETWORK_DISABLED");
-        }
-        // file: URLs (like absolute paths) resolve as in Node inside Android file access.
-        if (protocol !== "file") {
-          throw __autojs6_dynamic_import_unsupported("Embedded Node local dynamic import rejects URL/protocol imports: " + name);
-        }
-      }
-      return __autojs6_native_esm_import(
-        name,
-        parentFilename || __autojs6_source_name,
-        importAttributes
-      );
-    });
-  }
-  function __autojs6_execute_esm_module(resolved, entryRecord) {
-    if (__autojs6_has_own(__autojs6_esm_module_cache, resolved)) {
-      const cached = __autojs6_esm_module_cache[resolved];
-      if (cached.promise) return cached.promise;
-      if (cached.evaluated) return Promise.resolve(cached.namespace);
-      return Promise.resolve(cached.namespace);
-    }
-    const record = entryRecord || __autojs6_module_record(resolved, true);
-    if (!record) {
-      throw __autojs6_module_not_found("Cannot find Embedded Node partial ESM module '" + resolved + "'.");
-    }
-    const namespace = Object.create(null);
-    const cacheRecord = {
-      namespace,
-      promise: null,
-      evaluated: false,
-      evaluating: true,
-      sync: false
-    };
-    __autojs6_esm_module_cache[resolved] = cacheRecord;
-    __autojs6_esm_diagnostics.graphSize += 1;
-    __autojs6_esm_diagnostics.graphModules.push(resolved);
-    cacheRecord.promise = (async function() {
-      const transformedModule = __autojs6_esm_transform_module_source(record.source, resolved);
-      const transformed = transformedModule.source;
-      __autojs6_register_generated_stack_mapping(record.sourceURL || resolved, resolved, transformedModule.lineMap, 4);
-      const moduleFunction = __autojs6_native_async_function(
-        "__autojs6_load_esm_module",
-        "__autojs6_dynamic_import",
-        "__autojs6_import_meta",
-        "__autojs6_esm_copy_star_exports",
-        "__autojs6_esm_namespace",
-        "require",
-        "exports",
-        "module",
-        "__filename",
-        "__dirname",
-        "\"use strict\";\n{\n" + transformed + "\n}\n//# sourceURL=" + (record.sourceURL || resolved)
-      );
-      await moduleFunction.call(
-        undefined,
-        __autojs6_load_esm_module,
-        __autojs6_dynamic_import,
-        __autojs6_import_meta_for_module(resolved),
-        __autojs6_esm_copy_star_exports,
-        namespace,
-        undefined,
-        undefined,
-        undefined,
-        resolved,
-        __autojs6_module_dirname(resolved)
-      );
-      cacheRecord.evaluating = false;
-      cacheRecord.evaluated = true;
-      return Object.freeze(namespace);
-    })();
-    return cacheRecord.promise;
-  }
-  function __autojs6_execute_esm_module_sync(resolved, entryRecord) {
-    if (__autojs6_has_own(__autojs6_esm_module_cache, resolved)) {
-      const cached = __autojs6_esm_module_cache[resolved];
-      if (cached.evaluated || cached.evaluating && cached.sync) {
-        return cached.namespace;
-      }
-      throw __autojs6_require_async_module(
-        "CommonJS require() cannot synchronously load AutoJs6 partial ESM module '" +
-          resolved + "' while it is already evaluating asynchronously."
-      );
-    }
-    const record = entryRecord || __autojs6_module_record(resolved, true);
-    if (!record) {
-      throw __autojs6_module_not_found("Cannot find Embedded Node partial ESM module '" + resolved + "'.");
-    }
-    const namespace = Object.create(null);
-    const cacheRecord = {
-      namespace,
-      promise: null,
-      evaluated: false,
-      evaluating: true,
-      sync: true
-    };
-    __autojs6_esm_module_cache[resolved] = cacheRecord;
-    __autojs6_esm_diagnostics.graphSize += 1;
-    __autojs6_esm_diagnostics.graphModules.push(resolved);
-    try {
-      const transformedModule = __autojs6_esm_transform_module_source(record.source, resolved, true);
-      const transformed = transformedModule.source;
-      __autojs6_register_generated_stack_mapping(record.sourceURL || resolved, resolved, transformedModule.lineMap, 4);
-      const moduleFunction = __autojs6_native_function(
-        "__autojs6_load_esm_module_sync",
-        "__autojs6_import_meta",
-        "__autojs6_esm_copy_star_exports",
-        "__autojs6_esm_namespace",
-        "require",
-        "exports",
-        "module",
-        "__filename",
-        "__dirname",
-        "\"use strict\";\n{\n" + transformed + "\n}\n//# sourceURL=" + (record.sourceURL || resolved)
-      );
-      moduleFunction.call(
-        undefined,
-        __autojs6_load_esm_module_sync,
-        __autojs6_import_meta_for_module(resolved),
-        __autojs6_esm_copy_star_exports,
-        namespace,
-        undefined,
-        undefined,
-        undefined,
-        resolved,
-        __autojs6_module_dirname(resolved)
-      );
-      cacheRecord.evaluating = false;
-      cacheRecord.evaluated = true;
-      return Object.freeze(namespace);
-    } catch (error) {
-      delete __autojs6_esm_module_cache[resolved];
-      throw error;
-    }
-  }
-  function __autojs6_run_esm_entry() {
-    const entry = __autojs6_esm_entry_filename();
-    __autojs6_esm_diagnostics.entry = true;
-    __autojs6_esm_diagnostics.graphRoot = entry;
-    const entryRecord = {
-      source: __autojs6_source,
-      sourceURL: __autojs6_source_name
-    };
-    return __autojs6_native_esm_run_entry(entry, entryRecord);
   }
   function __autojs6_is_whitespace(ch) {
     return ch === " " || ch === "\t" || ch === "\n" || ch === "\r" || ch === "\f" || ch === "\v";
@@ -31543,213 +27104,8 @@ std::string buildEmbeddedScriptExecutionSource(
     if (before === "." || __autojs6_is_identifier_part(before)) return false;
     return !__autojs6_is_identifier_part(after);
   }
-  function __autojs6_next_identifier_token(text, token, from) {
-    // indexOf jumps between candidates instead of testing every character of the source.
-    let index = text.indexOf(token, from);
-    while (index >= 0 && !__autojs6_is_identifier_token_at(text, index, token)) {
-      index = text.indexOf(token, index + 1);
-    }
-    return index;
-  }
   function __autojs6_regex_literal_allowed(previous) {
     return !previous || "([{=:;,!&|?+-*~^<>".indexOf(previous) >= 0;
-  }
-  let __autojs6_unicode_property_regex_supported_cache = undefined;
-  function __autojs6_unicode_property_regex_supported() {
-    if (__autojs6_unicode_property_regex_supported_cache !== undefined) {
-      return __autojs6_unicode_property_regex_supported_cache;
-    }
-    try {
-      new RegExp("\\p{ID_Start}", "u");
-      new RegExp("\\p{ID_Continue}", "u");
-      new RegExp("\\p{ASCII}", "u");
-      new RegExp("\\P{ASCII}", "u");
-      __autojs6_unicode_property_regex_supported_cache = true;
-    } catch (_) {
-      __autojs6_unicode_property_regex_supported_cache = false;
-    }
-    return __autojs6_unicode_property_regex_supported_cache;
-  }
-  function __autojs6_regex_literal_close_index(text, start) {
-    let escaped = false;
-    let inClass = false;
-    for (let index = start + 1; index < text.length; index += 1) {
-      const ch = text.charAt(index);
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (ch === "\\") {
-        escaped = true;
-        continue;
-      }
-      if (ch === "[") {
-        inClass = true;
-        continue;
-      }
-      if (ch === "]") {
-        inClass = false;
-        continue;
-      }
-      if ((ch === "\n" || ch === "\r") && !inClass) {
-        return -1;
-      }
-      if (ch === "/" && !inClass) {
-        return index;
-      }
-    }
-    return -1;
-  }
-  function __autojs6_regex_literal_end_index(text, start) {
-    const close = __autojs6_regex_literal_close_index(text, start);
-    if (close < 0) return -1;
-    let end = close + 1;
-    while (end < text.length && /[A-Za-z]/.test(text.charAt(end))) {
-      end += 1;
-    }
-    return end;
-  }
-  function __autojs6_unicode_property_regex_replacement(token, inClass) {
-    if (token === "\\p{ID_Start}") {
-      return inClass ? "A-Za-z" : "[A-Za-z]";
-    }
-    if (token === "\\p{ID_Continue}") {
-      return inClass ? "0-9A-Za-z" : "[0-9A-Za-z]";
-    }
-    if (token === "\\p{ASCII}") {
-      return inClass ? "\\x00-\\x7F" : "[\\x00-\\x7F]";
-    }
-    if (token === "\\P{ASCII}") {
-      return inClass ? "\\x80-\\uFFFF" : "[\\x80-\\uFFFF]";
-    }
-    return null;
-  }
-  function __autojs6_source_needs_unicode_property_regex_rewrite(text) {
-    return text.indexOf("\\p{ID_") >= 0 ||
-      text.indexOf("\\p{ASCII}") >= 0 ||
-      text.indexOf("\\P{ASCII}") >= 0;
-  }
-  function __autojs6_rewrite_unicode_property_regex_literal(literal) {
-    const close = __autojs6_regex_literal_close_index(literal, 0);
-    if (close < 0) return literal;
-    const body = literal.slice(1, close);
-    let rewritten = "";
-    let inClass = false;
-    for (let index = 0; index < body.length; index += 1) {
-      const replacementTokens = ["\\p{ID_Start}", "\\p{ID_Continue}", "\\p{ASCII}", "\\P{ASCII}"];
-      let replaced = false;
-      for (const token of replacementTokens) {
-        if (body.slice(index, index + token.length) === token) {
-          rewritten += __autojs6_unicode_property_regex_replacement(token, inClass);
-          index += token.length - 1;
-          replaced = true;
-          break;
-        }
-      }
-      if (replaced) {
-        continue;
-      }
-      const ch = body.charAt(index);
-      if (ch === "\\") {
-        rewritten += body.slice(index, index + 2);
-        index += 1;
-        continue;
-      }
-      if (ch === "[") {
-        inClass = true;
-      } else if (ch === "]") {
-        inClass = false;
-      }
-      rewritten += ch;
-    }
-    return "/" + rewritten + literal.slice(close);
-  }
-  function __autojs6_transform_unsupported_unicode_identifier_regex_literals(source) {
-    const text = String(source || "");
-    if (!__autojs6_source_needs_unicode_property_regex_rewrite(text) || __autojs6_unicode_property_regex_supported()) {
-      return text;
-    }
-    let output = "";
-    let cursor = 0;
-    let state = "normal";
-    let previous = "";
-    let escaped = false;
-    for (let index = 0; index < text.length; index += 1) {
-      const ch = text.charAt(index);
-      const next = text.charAt(index + 1);
-      if (state === "line_comment") {
-        if (ch === "\n" || ch === "\r") state = "normal";
-        continue;
-      }
-      if (state === "block_comment") {
-        if (ch === "*" && next === "/") {
-          index += 1;
-          state = "normal";
-        }
-        continue;
-      }
-      if (state === "single" || state === "double" || state === "template") {
-        if (escaped) {
-          escaped = false;
-          continue;
-        }
-        if (ch === "\\") {
-          escaped = true;
-          continue;
-        }
-        if (
-          (state === "single" && ch === "'") ||
-          (state === "double" && ch === "\"") ||
-          (state === "template" && ch === "`")
-        ) {
-          state = "normal";
-        }
-        continue;
-      }
-      if (ch === "/" && next === "/") {
-        index += 1;
-        state = "line_comment";
-        continue;
-      }
-      if (ch === "/" && next === "*") {
-        index += 1;
-        state = "block_comment";
-        continue;
-      }
-      if (ch === "'") {
-        state = "single";
-        escaped = false;
-        continue;
-      }
-      if (ch === "\"") {
-        state = "double";
-        escaped = false;
-        continue;
-      }
-      if (ch === "`") {
-        state = "template";
-        escaped = false;
-        continue;
-      }
-      if (ch === "/" && __autojs6_regex_literal_allowed(previous)) {
-        const end = __autojs6_regex_literal_end_index(text, index);
-        if (end > index) {
-          const literal = text.slice(index, end);
-          if (__autojs6_source_needs_unicode_property_regex_rewrite(literal)) {
-            output += text.slice(cursor, index);
-            output += __autojs6_rewrite_unicode_property_regex_literal(literal);
-            cursor = end;
-          }
-          index = end - 1;
-          previous = "/";
-          continue;
-        }
-      }
-      if (!__autojs6_is_whitespace(ch)) {
-        previous = ch;
-      }
-    }
-    return output + text.slice(cursor);
   }
   function __autojs6_mask_non_code(source) {
     const text = String(source || "");
@@ -31873,719 +27229,508 @@ std::string buildEmbeddedScriptExecutionSource(
     if (blanks > 0) parts.push(" ".repeat(blanks));
     return parts.join("");
   }
-  function __autojs6_assert_common_js_source_supported(source, sourceName) {
-    if (__autojs6_is_esm_extension(__autojs6_source_extension(sourceName))) {
-      throw __autojs6_esm_unsupported(
-        __autojs6_esm_unsupported_message(
-          __autojs6_mjs_unsupported_detail("Entry or module source '" + sourceName + "' uses the .mjs extension.")
-        )
-      );
-    }
-    const text = String(source || "");
-    // require() runs this for every CommonJS module; only sources that mention the tokens need the masked scan.
-    if (text.indexOf("import") < 0 && text.indexOf("export") < 0) return;
-    const code = __autojs6_mask_non_code(text);
-    for (
-      let index = __autojs6_next_identifier_token(code, "import", 0);
-      index >= 0;
-      index = __autojs6_next_identifier_token(code, "import", index + 1)
-    ) {
-      const nextIndex = __autojs6_skip_whitespace(code, index + "import".length);
-      const next = code.charAt(nextIndex);
-      if (next === "(") {
-        if (!__autojs6_dynamic_import_enabled) {
-          throw __autojs6_dynamic_import_unsupported(
-            __autojs6_esm_unsupported_message("dynamic import is disabled for '" + sourceName + "'.")
-          );
-        }
-        continue;
+  // ---------------------------------------------------------------------------
+  // M23.3: Node's own CommonJS and ESM loaders own the module graph. The runtime only
+  // registers synchronous module.registerHooks that serve the AutoJs6 runtime modules and
+  // compat shims, apply the request-level builtin gate, hand out host-provided module sources
+  // (request bundle, module-source provider, on-demand TypeScript compilation) and pin the
+  // entry's inline source; everything else is resolved and compiled by Node.
+  // ---------------------------------------------------------------------------
+  const __autojs6_runtime_module_scheme = "autojs6:";
+  // Secondary names of a runtime module resolve to one canonical url so require.cache holds one entry.
+  const __autojs6_runtime_module_aliases = Object.freeze(Object.assign(Object.create(null), {
+    fmt: "formatter",
+    cvt: "converter",
+    "autojs6:fetch": "fetch",
+    "autojs6:websocket": "websocket",
+    "node:console": "console",
+    "node:inspector": "inspector"
+  }));
+  const __autojs6_runtime_module_factories = Object.freeze(Object.assign(Object.create(null), {
+    "autojs6:host": function() { return __autojs6_host_module(); },
+    "autojs6:profile": function() { return __autojs6_profile(); },
+    "autojs6:bridge": function() { return __autojs6_bridge_module(); },
+    "autojs6:compat": function() { return __autojs6_limited_rhino_compat(); },
+    "autojs6:lifecycle": function() { return __autojs6_limited_lifecycle(); },
+    "autojs6:events": function() { return __autojs6_host_events(); },
+    rhino: function() { return __autojs6_limited_rhino(); },
+    files: function() { return __autojs6_limited_files(); },
+    base64: function() { return __autojs6_limited_base64(); },
+    colors: function() { return __autojs6_limited_colors(); },
+    formatter: function() { return __autojs6_limited_formatter(); },
+    converter: function() { return __autojs6_limited_converter(); },
+    s13n: function() { return __autojs6_limited_s13n(); },
+    mime: function() { return __autojs6_limited_mime(); },
+    nanoid: function() { return __autojs6_limited_nanoid(); },
+    opencc: function() { return __autojs6_limited_opencc(); },
+    pinyin: function() { return __autojs6_limited_pinyin(); },
+    pinyin4j: function() { return __autojs6_limited_pinyin4j(); },
+    jsox: function() { return __autojs6_limited_jsox(); },
+    "jsox.mathx": function() { return __autojs6_limited_jsox_mathx(); },
+    "jsox.arrayx": function() { return __autojs6_limited_jsox_arrayx(); },
+    "jsox.numberx": function() { return __autojs6_limited_jsox_numberx(); },
+    toast: function() { return __autojs6_limited_toast(); },
+    app: function() { return __autojs6_limited_app(); },
+    engines: function() { return __autojs6_limited_engines(); },
+    dialogs: function() { return __autojs6_limited_dialogs(); },
+    accessibility: function() { return __autojs6_limited_accessibility(); },
+    media_projection: function() { return __autojs6_limited_media_projection(); },
+    image: function() { return __autojs6_limited_image("image"); },
+    images: function() { return __autojs6_limited_image("images"); },
+    ocr: function() { return __autojs6_limited_ocr(); },
+    barcode: function() { return __autojs6_limited_barcode(); },
+    media: function() { return __autojs6_limited_media(); },
+    mediainfo: function() { return __autojs6_limited_mediainfo(); },
+    recorder: function() { return __autojs6_limited_recorder(); },
+    media_store: function() { return __autojs6_limited_media_store(); },
+    storage: function() { return __autojs6_limited_storage("storage"); },
+    storages: function() { return __autojs6_limited_storage("storages"); },
+    database: function() { return __autojs6_limited_database("database"); },
+    sqlite: function() { return __autojs6_limited_database("sqlite"); },
+    notifications: function() { return __autojs6_limited_notifications(); },
+    sensors: function() { return __autojs6_limited_sensors(); },
+    ui: function() { return __autojs6_limited_ui(); },
+    "ui.overlay": function() { return __autojs6_limited_ui_overlay(); },
+    input_observer: function() { return __autojs6_limited_input_observer(); },
+    clipboard: function() { return __autojs6_limited_clipboard(); },
+    device: function() { return __autojs6_limited_device(); },
+    shell: function() { return __autojs6_limited_shell(); },
+    fetch: function() { return __autojs6_limited_fetch(); },
+    keys: function() { return __autojs6_keys(); },
+    undici: function() { return __autojs6_limited_undici(); },
+    axios: function() { return __autojs6_limited_axios(); },
+    websocket: function() { return __autojs6_limited_websocket(); },
+    work_manager: function() { return __autojs6_limited_work_manager(); },
+    package_manager: function() { return __autojs6_limited_package_manager(); },
+    npm: function() { return __autojs6_limited_npm(); },
+    plugins: function() { return __autojs6_limited_plugins(); },
+    java: function() { return __autojs6_limited_java(); },
+    // Builtin facades: console keeps stdout capture, inspector stays request-gated, the worker and
+    // child_process facades wrap the native modules while a request enables them.
+    console: function() { return __autojs6_limited_console(); },
+    inspector: function() { return __autojs6_limited_inspector(); },
+    worker_threads: function() { return __autojs6_limited_worker_threads(); },
+    worker_threads_shape: function() { return __autojs6_worker_threads_shape_facade(); },
+    child_process: function() { return __autojs6_child_process_builtin("child_process"); }
+  }));
+  const __autojs6_runtime_module_exports_cache = Object.create(null);
+  function __autojs6_runtime_module_exports(url) {
+    const name = String(url).slice(__autojs6_runtime_module_scheme.length);
+    if (!__autojs6_has_own(__autojs6_runtime_module_exports_cache, name)) {
+      const factory = __autojs6_runtime_module_factories[name];
+      if (typeof factory !== "function") {
+        throw __autojs6_module_not_found("Cannot find module '" + url + "'.");
       }
-      if (next === "." && code.slice(nextIndex, nextIndex + 5) === ".meta") {
-        throw __autojs6_esm_unsupported(
-          __autojs6_esm_unsupported_message("import.meta is disabled for '" + sourceName + "'.")
-        );
-      }
+      __autojs6_runtime_module_exports_cache[name] = factory();
     }
-    if (/(^|[\r\n;{}])\s*import\b\s*(["'{*]|[A-Za-z_$])/.test(code)) {
-      throw __autojs6_esm_unsupported(
-        __autojs6_esm_unsupported_message("static import syntax is disabled for '" + sourceName + "'.")
-      );
-    }
-    if (/(^|[\r\n;{}])\s*export\b\s*([{*]|default\b|class\b|function\b|const\b|let\b|var\b|[A-Za-z_$])/.test(code)) {
-      throw __autojs6_esm_unsupported(
-        __autojs6_esm_unsupported_message("export syntax is disabled for '" + sourceName + "'.")
-      );
-    }
+    return __autojs6_runtime_module_exports_cache[name];
   }
-  function __autojs6_install_dynamic_code_guard() {
-    const guardedEval = function(source) {
-      if (arguments.length === 0) return undefined;
-      if (typeof source !== "string") return source;
-      __autojs6_assert_common_js_source_supported(source, "<embedded-eval-source.js>");
-      if (__autojs6_dynamic_import_enabled && __autojs6_contains_dynamic_import(source)) {
-        throw __autojs6_dynamic_import_unsupported(
-          "Embedded Node dynamic import is disabled for eval sources."
-        );
-      }
-      return __autojs6_native_eval(source);
-    };
-    const guardedConstructor = function(nativeConstructor, sourceName) {
-      return function() {
-        const args = Array.prototype.slice.call(arguments);
-        const body = args.length > 0 ? String(args[args.length - 1]) : "";
-        __autojs6_assert_common_js_source_supported(body, sourceName);
-        if (__autojs6_dynamic_import_enabled && __autojs6_contains_dynamic_import(body)) {
-          throw __autojs6_dynamic_import_unsupported(
-            "Embedded Node dynamic import is disabled for Function constructor sources."
-          );
-        }
-        return nativeConstructor.apply(this, args);
-      };
-    };
-    const guardedFunction = guardedConstructor(__autojs6_native_function, "<embedded-function-source.js>");
-    try {
-      Object.defineProperty(guardedFunction, "prototype", {
-        value: __autojs6_native_function.prototype,
-        configurable: false,
-        enumerable: false,
-        writable: false
-      });
-    } catch (_) {}
-    try {
-      Object.defineProperty(__autojs6_native_function.prototype, "constructor", {
-        value: guardedFunction,
-        configurable: true,
-        enumerable: false,
-        writable: false
-      });
-    } catch (_) {}
-    [
-      [Object.getPrototypeOf(async function() {}).constructor, "<embedded-async-function-source.js>"],
-      [Object.getPrototypeOf(function*() {}).constructor, "<embedded-generator-function-source.js>"],
-      [Object.getPrototypeOf(async function*() {}).constructor, "<embedded-async-generator-function-source.js>"]
-    ].forEach(function(entry) {
-      const nativeConstructor = entry[0];
-      if (typeof nativeConstructor !== "function" || !nativeConstructor.prototype) return;
-      const guarded = guardedConstructor(nativeConstructor, entry[1]);
-      try {
-        Object.defineProperty(guarded, "prototype", {
-          value: nativeConstructor.prototype,
-          configurable: false,
-          enumerable: false,
-          writable: false
-        });
-      } catch (_) {}
-      try {
-        Object.defineProperty(nativeConstructor.prototype, "constructor", {
-          value: guarded,
-          configurable: true,
-          enumerable: false,
-          writable: false
-        });
-      } catch (_) {}
-    });
-    __autojs6_define_global("eval", guardedEval);
-    __autojs6_define_global("Function", guardedFunction);
+  // The canonical runtime module name a specifier denotes, or null when Node should resolve it.
+  function __autojs6_runtime_module_name(specifier) {
+    if (specifier === "worker_threads" || specifier === "node:worker_threads") {
+      if (__autojs6_worker_threads_enabled) return "worker_threads";
+      // node:worker_threads keeps the shape facade of a disabled request; the bare name is gated below.
+      return specifier === "node:worker_threads" ? "worker_threads_shape" : null;
+    }
+    if (specifier === "child_process" || specifier === "node:child_process") {
+      return __autojs6_child_process_enabled ? "child_process" : null;
+    }
+    const name = __autojs6_has_own(__autojs6_runtime_module_aliases, specifier)
+      ? __autojs6_runtime_module_aliases[specifier]
+      : specifier;
+    return __autojs6_has_own(__autojs6_runtime_module_factories, name) ? name : null;
   }
-  function __autojs6_load_local_module(resolved, parentModule) {
-    if (__autojs6_has_own(__autojs6_module_cache, resolved)) {
-      const cachedModule = __autojs6_module_cache[resolved];
-      __autojs6_attach_child_module(parentModule, cachedModule);
-      return cachedModule.exports;
+  function __autojs6_runtime_module_resolution(name) {
+    return { url: __autojs6_runtime_module_scheme + name, shortCircuit: true };
+  }
+  function __autojs6_module_not_found_error(error) {
+    return !!error && (error.code === "MODULE_NOT_FOUND" || error.code === "ERR_MODULE_NOT_FOUND");
+  }
+  // Node resolves the main module and every file through realpath (/data/user/0 -> /data/data on
+  // Android), while the host spells request paths with the sandbox root it was given. Tables keyed
+  // by host spellings are therefore looked up under both spellings.
+  // var: the bootstrap may ask for the entry path before this section's statements have run.
+  var __autojs6_entry_filename_cache = null;
+  function __autojs6_entry_filename() {
+    if (__autojs6_entry_filename_cache == null) {
+      const requested = __autojs6_requested_entry_filename();
+      try {
+        __autojs6_entry_filename_cache = __autojs6_fs_module().realpathSync(requested);
+      } catch (_) {
+        __autojs6_entry_filename_cache = requested;
+      }
     }
-    const kind = __autojs6_esm_enabled ? __autojs6_esm_module_kind(resolved) : "";
-    const isEsmModule = kind === "esm";
-    const record = __autojs6_module_record(resolved, isEsmModule);
-    if (!record) {
-      throw __autojs6_module_not_found("Cannot find module '" + resolved + "'.");
+    return __autojs6_entry_filename_cache;
+  }
+  var __autojs6_path_alias_cache;
+  function __autojs6_path_aliases() {
+    if (__autojs6_path_alias_cache === undefined) {
+      __autojs6_path_alias_cache = null;
+      try {
+        const path = __autojs6_path_module();
+        const spelled = path.resolve(__autojs6_resolved_sandbox_root(path));
+        const real = __autojs6_fs_module().realpathSync(spelled);
+        if (real !== spelled) __autojs6_path_alias_cache = [spelled, real];
+      } catch (_) {}
     }
-    if (isEsmModule) {
-      return __autojs6_execute_esm_module_sync(resolved, record);
+    return __autojs6_path_alias_cache;
+  }
+  function __autojs6_path_spellings(filename) {
+    const aliases = __autojs6_path_aliases();
+    if (!aliases) return [filename];
+    for (const [from, to] of [[aliases[1], aliases[0]], [aliases[0], aliases[1]]]) {
+      if (filename === from || filename.indexOf(from + "/") === 0) return [filename, to + filename.slice(from.length)];
     }
-    const module = __autojs6_create_module(resolved, parentModule);
-    __autojs6_module_cache[resolved] = module;
-    __autojs6_attach_child_module(parentModule, module);
-    const extension = __autojs6_source_extension(resolved);
-    __autojs6_throw_if_esm_extension(extension, resolved, "Embedded Node local module");
-    if (extension === ".ts" && __autojs6_package_type_module_for_file(resolved)) {
-      throw __autojs6_require_esm_unsupported(
-        "CommonJS require() cannot load AutoJs6 partial ESM TypeScript modules in AutoJs6 Safe Node Profile: " + resolved
+    return [filename];
+  }
+  // The key under which `table` holds `filename`, in either spelling; undefined when absent.
+  function __autojs6_source_table_key(table, filename) {
+    for (const key of __autojs6_path_spellings(filename)) {
+      if (__autojs6_has_own(table, key)) return key;
+    }
+    return undefined;
+  }
+  function __autojs6_host_module_path(filename) {
+    const aliases = __autojs6_path_aliases();
+    if (aliases && (filename === aliases[1] || filename.indexOf(aliases[1] + "/") === 0)) {
+      return aliases[0] + filename.slice(aliases[1].length);
+    }
+    return filename;
+  }
+  // Sources the hooks serve by absolute path: the entry's inline source first, then the request
+  // bundle (also where on-demand TypeScript output lands), then the module-source provider.
+  const __autojs6_pinned_module_sources = Object.create(null);
+  var __autojs6_module_source_provider_available;
+  function __autojs6_module_source_provider_enabled() {
+    if (__autojs6_module_source_provider_available === undefined) {
+      try {
+        __autojs6_module_source_provider_available = !!__autojs6_module_source_provider_config();
+      } catch (_) {
+        __autojs6_module_source_provider_available = true;
+      }
+    }
+    return __autojs6_module_source_provider_available;
+  }
+  function __autojs6_served_module_record(filename) {
+    const pinned = __autojs6_source_table_key(__autojs6_pinned_module_sources, filename);
+    if (pinned !== undefined) return __autojs6_pinned_module_sources[pinned];
+    const bundled = __autojs6_source_table_key(__autojs6_module_sources, filename);
+    if (bundled !== undefined) return __autojs6_module_sources[bundled];
+    if (!__autojs6_module_source_provider_enabled()) return null;
+    return __autojs6_module_record(filename, true, true, false);
+  }
+  function __autojs6_typescript_generated_path(filename) {
+    const path = __autojs6_path_module();
+    const extension = path.extname(filename);
+    const generatedExtension = __autojs6_typescript_generated_extension(extension);
+    return generatedExtension ? filename.slice(0, filename.length - extension.length) + generatedExtension : null;
+  }
+  function __autojs6_typescript_snapshot_error(message, code) {
+    return __autojs6_error(message, code);
+  }
+  function __autojs6_reject_typescript_snapshot_module(code, specifier, source, generated, detail) {
+    __autojs6_typescript_snapshot_diagnostics.rejectedCount += 1;
+    if (code === "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_AMBIGUOUS") {
+      __autojs6_typescript_snapshot_diagnostics.ambiguousCount += 1;
+    }
+    __autojs6_typescript_snapshot_diagnostics.lastSpecifier = String(specifier || "");
+    __autojs6_typescript_snapshot_diagnostics.lastSource = String(source || "");
+    __autojs6_typescript_snapshot_diagnostics.lastGenerated = String(generated || "");
+    __autojs6_typescript_snapshot_diagnostics.lastErrorCode = code;
+    throw __autojs6_typescript_snapshot_error(
+      detail + " The target must come from the initial snapshot or the execution-scoped on-demand compiler.",
+      code
+    );
+  }
+  // A raw TypeScript path maps to its compiler output under the host's precompiled snapshot
+  // (initial snapshot or execution-scoped on-demand compilation). Raw TypeScript
+  // continues to require the host compiler, including modules discovered at runtime.
+  function __autojs6_typescript_output_path(filename, specifier, parentFilename) {
+    if (!__autojs6_typescript_precompiled_snapshot) return null;
+    // Snapshot tables use the host's spelling of the sandbox root.
+    const source = __autojs6_source_table_key(__autojs6_typescript_precompiled_source_names, filename) || filename;
+    const generated = __autojs6_typescript_generated_path(source);
+    if (!generated) return null;
+    const known = __autojs6_has_own(__autojs6_typescript_precompiled_source_names, source);
+    const generatedKey = __autojs6_source_table_key(__autojs6_module_sources, generated);
+    if (!known && generatedKey !== undefined) {
+      __autojs6_reject_typescript_snapshot_module(
+        "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_AMBIGUOUS", specifier, source, generated,
+        "TypeScript dynamic import target '" + specifier + "' collides with an existing generated or runtime-support module."
       );
     }
-    if (extension === ".json") {
-      try {
-        module.exports = JSON.parse(record.source);
-      } catch (error) {
-        const jsonError = new SyntaxError(
-          "Invalid Embedded Node JSON module '" + resolved + "': " +
-            (error && error.message ? error.message : String(error))
+    if (!known || generatedKey === undefined) {
+      const path = __autojs6_path_module();
+      if (!__autojs6_compile_missing_typescript_source(source, path.extname(source), generated, specifier, parentFilename)) {
+        __autojs6_reject_typescript_snapshot_module(
+          "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND", specifier, source, generated,
+          "TypeScript dynamic import target '" + specifier + "' from '" + parentFilename + "' was not emitted and could not be compiled on demand."
         );
+      }
+    }
+    const served = __autojs6_source_table_key(__autojs6_module_sources, generated);
+    if (served === undefined) {
+      __autojs6_reject_typescript_snapshot_module(
+        "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND", specifier, source, generated,
+        "TypeScript dynamic import target '" + specifier + "' has no matching generated module in the precompiled snapshot."
+      );
+    }
+    __autojs6_typescript_snapshot_diagnostics.mappedCount += 1;
+    return served;
+  }
+  function __autojs6_virtual_module_candidates(base) {
+    const path = __autojs6_path_module();
+    return [
+      base, base + ".js", base + ".cjs", base + ".mjs", base + ".json", base + ".ts", base + ".mts", base + ".cts",
+      path.join(base, "index.js"), path.join(base, "index.cjs"), path.join(base, "index.mjs"),
+      path.join(base, "index.json"), path.join(base, "index.ts")
+    ];
+  }
+  function __autojs6_served_module_path(candidate, specifier, parentFilename, knownOnly) {
+    const pinned = __autojs6_source_table_key(__autojs6_pinned_module_sources, candidate);
+    if (pinned !== undefined) return pinned;
+    const bundled = __autojs6_source_table_key(__autojs6_module_sources, candidate);
+    if (bundled !== undefined) return bundled;
+    if (__autojs6_is_raw_typescript_source(candidate)) {
+      const generated = __autojs6_typescript_output_path(candidate, specifier, parentFilename);
+      if (generated) return generated;
+      return null;
+    }
+    if (knownOnly) return null;
+    if (!__autojs6_module_source_provider_enabled()) return null;
+    try {
+      if (__autojs6_fs_module().statSync(candidate).isFile()) return null;
+    } catch (error) {
+      if (error.code !== "ENOENT" && error.code !== "ENOTDIR") throw error;
+    }
+    const probed = __autojs6_probe_missing_module_candidate(candidate, true);
+    return probed ? probed.readable : null;
+  }
+  // Look up sources owned by the hooks without first invoking Node's default
+  // resolver. Disk-only paths still go to Node with no resolution override.
+  function __autojs6_virtual_module_resolution(specifier, parentURL, knownOnly) {
+    const path = __autojs6_path_module();
+    const url = __autojs6_url_module();
+    const parentFilename = parentURL && /^file:/i.test(parentURL) ? url.fileURLToPath(parentURL) : __autojs6_entry_filename();
+    let base;
+    if (/^file:/i.test(specifier)) {
+      base = url.fileURLToPath(specifier);
+    } else if (path.isAbsolute(specifier)) {
+      base = specifier;
+    } else if (__autojs6_is_relative_module_name(specifier)) {
+      base = path.resolve(path.dirname(parentFilename), specifier);
+    } else {
+      return null;
+    }
+    base = path.resolve(base);
+    if (!knownOnly) {
+      const fs = __autojs6_fs_module();
+      if (__autojs6_virtual_module_candidates(base).some(candidate => fs.existsSync(candidate))) return null;
+    }
+    if (__autojs6_is_raw_typescript_source(base) && !__autojs6_typescript_precompiled_snapshot) {
+      __autojs6_throw_if_raw_typescript_extension(path.extname(base), base, "Node module source");
+    }
+    if (__autojs6_typescript_precompiled_snapshot && !path.extname(base)) {
+      const sources = [".ts", ".mts", ".cts"].map(extension => base + extension).filter(candidate =>
+        __autojs6_source_table_key(__autojs6_typescript_precompiled_source_names, candidate) !== undefined);
+      if (sources.length > 1) {
+        __autojs6_reject_typescript_snapshot_module(
+          "ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_AMBIGUOUS", specifier, base, "",
+          "TypeScript module target '" + specifier + "' matches multiple snapshot sources."
+        );
+      }
+      if (sources.length === 1) {
+        const served = __autojs6_typescript_output_path(sources[0], specifier, parentFilename);
+        return { url: url.pathToFileURL(served).href, shortCircuit: true };
+      }
+    }
+    for (const candidate of __autojs6_virtual_module_candidates(base)) {
+      // Only explicitly named TS sources (or the snapshot lookup above) go to
+      // the compiler. Guessed suffixes must not hide Node's missing-module error.
+      if (candidate !== base && __autojs6_is_raw_typescript_source(candidate)) continue;
+      const served = __autojs6_served_module_path(candidate, specifier, parentFilename, knownOnly);
+      if (served) return { url: url.pathToFileURL(served).href, shortCircuit: true };
+    }
+    return null;
+  }
+  function __autojs6_native_loader_resolve(specifier, context, nextResolve) {
+    const name = String(specifier === undefined ? "" : specifier);
+    const runtimeModule = __autojs6_runtime_module_name(name);
+    if (runtimeModule !== null) {
+      // An installed npm package shadows the compat shim of the same bare name, as on desktop.
+      if (__autojs6_compat_shim_shadowable(name)) {
         try {
-          jsonError.stack = jsonError.name + ": " + jsonError.message + "\n    at " + resolved;
-        } catch (_) {}
-        throw jsonError;
+          return nextResolve(name, context);
+        } catch (error) {
+          if (!__autojs6_module_not_found_error(error)) throw error;
+        }
       }
-      module.loaded = true;
-      return module.exports;
-    }
-    if (extension === ".js" || extension === ".ts") {
-      __autojs6_record_type_module_commonjs_policy(resolved);
-    }
-    __autojs6_assert_common_js_source_supported(record.source, resolved);
-    const transformedSource = __autojs6_transform_unsupported_unicode_identifier_regex_literals(
-      __autojs6_transform_dynamic_import_calls(record.source, resolved, "__filename")
-    );
-    const localCommonJsLineMap = [];
-    const localCommonJsLineCount = __autojs6_count_lines(transformedSource);
-    for (let line = 1; line <= localCommonJsLineCount; line += 1) {
-      localCommonJsLineMap.push(line);
-    }
-    // Function() contributes two wrapper lines and this body contributes one strict-mode line.
-    // Normalize every imported CommonJS module, not just the entry, before the host composes its
-    // compiler-owned TypeScript source maps across the project graph.
-    __autojs6_register_generated_stack_mapping(
-      record.sourceURL || resolved,
-      resolved,
-      localCommonJsLineMap,
-      3
-    );
-    const moduleFunction = __autojs6_native_function(
-      "exports",
-      "require",
-      "module",
-      "__filename",
-      "__dirname",
-      "__autojs6_dynamic_import",
-      "\"use strict\";\n" + transformedSource + "\n//# sourceURL=" + record.sourceURL
-    );
-    moduleFunction.call(
-      module.exports,
-      module.exports,
-      __autojs6_create_module_require(module),
-      module,
-      module.filename,
-      module.dirname,
-      __autojs6_dynamic_import
-    );
-    module.loaded = true;
-    return module.exports;
-  }
-  function __autojs6_restricted_require_resolve(moduleName, parentFilename) {
-    const name = moduleName === undefined ? "" : String(moduleName);
-    if (name === "autojs6:host") return "autojs6:host";
-    const traceRecord = __autojs6_resolve_trace_begin(name, parentFilename);
-    __autojs6_resolve_trace("request", {
-      request: name,
-      from: parentFilename
-    });
-    try {
-    if (name === "autojs6:profile") {
-      return "autojs6:profile";
-    }
-    if (name === "autojs6:bridge") {
-      return "autojs6:bridge";
-    }
-    if (name === "autojs6:compat") {
-      return "autojs6:compat";
-    }
-    // require.resolve mirrors require: an installed package shadows the npm shims only.
-    if (__autojs6_compat_shim_shadowable(name)) {
-      const packageResolved = __autojs6_try_resolve_node_modules_module(
-        name,
-        parentFilename,
-        __autojs6_commonjs_require_resolution_mode()
-      );
-      if (packageResolved) {
-        return packageResolved;
-      }
-    }
-    if (name === "rhino") {
-      return "rhino";
-    }
-    if (name === "files") {
-      return "files";
-    }
-    if (name === "base64") {
-      return "base64";
-    }
-    if (name === "colors") {
-      return "colors";
-    }
-    if (name === "formatter" || name === "fmt") {
-      return "formatter";
-    }
-    if (name === "converter" || name === "cvt") {
-      return "converter";
-    }
-    if (name === "s13n") {
-      return "s13n";
-    }
-    if (name === "mime") {
-      return "mime";
-    }
-    if (name === "nanoid") {
-      return "nanoid";
-    }
-    if (name === "opencc") {
-      return "opencc";
-    }
-    if (name === "pinyin") {
-      return "pinyin";
-    }
-    if (name === "pinyin4j") {
-      return "pinyin4j";
-    }
-    if (name === "jsox") {
-      return "jsox";
-    }
-    if (name === "jsox.mathx") {
-      return "jsox.mathx";
-    }
-    if (name === "jsox.arrayx") {
-      return "jsox.arrayx";
-    }
-    if (name === "jsox.numberx") {
-      return "jsox.numberx";
-    }
-    if (name === "autojs6:lifecycle") {
-      return "autojs6:lifecycle";
-    }
-    if (name === "toast") {
-      return "toast";
-    }
-    if (name === "app") {
-      return "app";
-    }
-    if (name === "engines") {
-      return "engines";
-    }
-    if (name === "dialogs") {
-      return "dialogs";
-    }
-    if (name === "accessibility") {
-      return "accessibility";
-    }
-    if (name === "media_projection") {
-      return "media_projection";
-    }
-    if (name === "image") {
-      return "image";
-    }
-    if (name === "images") {
-      return "images";
-    }
-    if (name === "ocr") {
-      return "ocr";
-    }
-    if (name === "barcode") {
-      return "barcode";
-    }
-    if (name === "media") {
-      return "media";
-    }
-    if (name === "mediainfo") {
-      return "mediainfo";
-    }
-    if (name === "recorder") {
-      return "recorder";
-    }
-    if (name === "media_store") {
-      return "media_store";
-    }
-    if (name === "storage") {
-      return "storage";
-    }
-    if (name === "storages") {
-      return "storages";
-    }
-    if (name === "database") {
-      return "database";
-    }
-    if (name === "sqlite") {
-      return "sqlite";
-    }
-    if (name === "notifications") {
-      return "notifications";
-    }
-    if (name === "sensors") {
-      return "sensors";
-    }
-    if (name === "ui") {
-      return "ui";
-    }
-    if (name === "ui.overlay") {
-      return "ui.overlay";
-    }
-    if (name === "input_observer") {
-      return "input_observer";
-    }
-    if (name === "clipboard") {
-      return "clipboard";
-    }
-    if (name === "device") {
-      return "device";
-    }
-    if (name === "shell") {
-      return "shell";
-    }
-    if (name === "fetch" || name === "autojs6:fetch") {
-      return "fetch";
-    }
-    if (name === "autojs6:events") return "autojs6:events";
-    if (name === "keys") return "keys";
-    if (name === "axios") {
-      return "axios";
-    }
-    if (name === "websocket" || name === "autojs6:websocket") {
-      return "websocket";
-    }
-    if (name === "work_manager") {
-      return "work_manager";
-    }
-    if (name === "package_manager") {
-      return "package_manager";
-    }
-    if (name === "npm") {
-      return "npm";
-    }
-    if (name === "plugins") {
-      return "plugins";
-    }
-    if (name === "java") {
-      if (!__autojs6_java_interop_enabled) {
-        throw __autojs6_java_interop_disabled_error();
-      }
-      return "java";
-    }
-    if (name === "node:worker_threads") {
-      return "worker_threads";
-    }
-    if (name === "worker_threads" && __autojs6_worker_threads_enabled) {
-      return "worker_threads";
-    }
-    if ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_enabled) {
-      return "child_process";
-    }
-    if (name === "inspector" || name === "node:inspector") {
-      if (!__autojs6_inspector_enabled) {
-        throw __autojs6_builtin_disabled(
-          "require.resolve is restricted in Embedded Node.js MVP; inspector requires a debug build and an explicit inspectorEnabled request."
-        );
-      }
-      return "inspector";
+      return __autojs6_runtime_module_resolution(runtimeModule);
     }
     const builtinId = __autojs6_native_builtin_id(name);
     if (builtinId !== null) {
       const gate = __autojs6_builtin_gate(builtinId);
       if (gate) {
-        throw __autojs6_builtin_disabled("require.resolve is restricted for this execution; builtin module '" + name + "': " + gate);
+        throw __autojs6_builtin_disabled("require is restricted for this execution; builtin module '" + name + "': " + gate);
       }
-      return name;
+      return nextResolve(name, context);
     }
-    const __autojs6_require_resolution_mode = __autojs6_commonjs_require_resolution_mode();
-    if (__autojs6_is_local_module_name(name)) {
-      return __autojs6_resolve_local_module(name, parentFilename, __autojs6_require_resolution_mode);
+    // Short-circuit owned sources before invoking nextResolve. Node 24.21 tracks
+    // whether the default resolver ran, even if it threw; calling it first makes
+    // imported virtual CJS get resolved again with hooks skipped (and no disk file).
+    const virtual = __autojs6_virtual_module_resolution(name, context && context.parentURL, true);
+    if (virtual) return virtual;
+    if (__autojs6_module_source_provider_enabled()) {
+      const provided = __autojs6_virtual_module_resolution(name, context && context.parentURL, false);
+      if (provided) return provided;
     }
-    if (name.indexOf("#") === 0) {
-      return __autojs6_resolve_package_import(name, parentFilename, __autojs6_require_resolution_mode);
+    const resolved = nextResolve(name, context);
+    // A TypeScript file on disk loads through the host compiler output when one exists.
+    if (resolved && typeof resolved.url === "string" && /^file:/i.test(resolved.url)) {
+      const url = __autojs6_url_module();
+      const filename = url.fileURLToPath(resolved.url);
+      if (__autojs6_is_raw_typescript_source(filename)) {
+        const parentFilename = context && context.parentURL && /^file:/i.test(context.parentURL)
+          ? url.fileURLToPath(context.parentURL)
+          : __autojs6_entry_filename();
+        const generated = __autojs6_typescript_output_path(filename, name, parentFilename);
+        if (generated) return { url: url.pathToFileURL(generated).href, shortCircuit: true };
+      }
     }
-    if (name) {
-      return __autojs6_resolve_node_modules_module(name, parentFilename, __autojs6_require_resolution_mode);
-    }
-    throw new Error("require.resolve is restricted in Embedded Node.js MVP; module name must be non-empty.");
-    } catch (error) {
-      __autojs6_resolve_trace("error", {
-        request: name,
-        from: parentFilename,
-        code: error && error.code,
-        autojs6Code: error && error.autojs6Code,
-        message: error && error.message
-      });
-      throw __autojs6_attach_resolve_trace(
-        __autojs6_enrich_require_error(error, name, parentFilename),
-        traceRecord
-      );
-    } finally {
-      __autojs6_resolve_trace_end(traceRecord);
+    return resolved;
+  }
+  function __autojs6_package_type_module(filename) {
+    const moduleValue = __autojs6_builtin_module("module");
+    const fs = __autojs6_fs_module();
+    const url = __autojs6_url_module();
+    try {
+      const packageJson = typeof moduleValue.findPackageJSON === "function"
+        ? moduleValue.findPackageJSON(url.pathToFileURL(filename).href)
+        : undefined;
+      if (!packageJson) return false;
+      return JSON.parse(fs.readFileSync(packageJson, "utf8")).type === "module";
+    } catch (_) {
+      return false;
     }
   }
-  function __autojs6_restricted_require(moduleName, parentModule) {
-    const name = moduleName === undefined ? "" : String(moduleName);
-    if (name === "autojs6:host") return __autojs6_host_module();
-    const parentFilename = parentModule ? parentModule.filename : __autojs6_source_name;
-    const traceRecord = __autojs6_resolve_trace_begin(name, parentFilename);
-    __autojs6_resolve_trace("request", {
-      request: name,
-      from: parentFilename
+  function __autojs6_served_module_format(filename, context) {
+    const extension = __autojs6_source_extension(filename);
+    if (extension === ".mjs" || extension === ".mts") return "module";
+    if (extension === ".cjs" || extension === ".cts") return "commonjs";
+    if (extension === ".json") return "json";
+    if (context && typeof context.format === "string" && context.format) return context.format;
+    return __autojs6_package_type_module(filename) ? "module" : "commonjs";
+  }
+  function __autojs6_runtime_module_source(url, context) {
+    const exportsValue = __autojs6_runtime_module_exports(url);
+    const conditions = context && context.conditions;
+    const imported = Array.isArray(conditions) ? conditions.indexOf("import") >= 0 && conditions.indexOf("require") < 0 : false;
+    const accessor = "globalThis.__autojs6_runtime_module_exports(" + JSON.stringify(url) + ")";
+    if (!imported) {
+      return { format: "commonjs", source: "module.exports = " + accessor + ";", shortCircuit: true };
+    }
+    // import { name } from "autojs6:..." gets the object's own enumerable keys as named exports.
+    const lines = ["const __autojs6_module = " + accessor + ";", "export default __autojs6_module;"];
+    if (exportsValue !== null && (typeof exportsValue === "object" || typeof exportsValue === "function")) {
+      for (const key of Object.keys(exportsValue)) {
+        if (key === "default" || !/^[A-Za-z_$][0-9A-Za-z_$]*$/.test(key)) continue;
+        lines.push("export const " + key + " = __autojs6_module[" + JSON.stringify(key) + "];");
+      }
+    }
+    return { format: "module", source: lines.join("\n"), shortCircuit: true };
+  }
+  function __autojs6_served_module_source(filename, record, format) {
+    const sourceURL = record.sourceURL && String(record.sourceURL) !== filename ? String(record.sourceURL) : "";
+    const source = String(record.source === undefined || record.source === null ? "" : record.source);
+    const lineMap = [];
+    const lineCount = __autojs6_count_lines(source);
+    for (let line = 1; line <= lineCount; line += 1) lineMap.push(line);
+    // Node compiles the module in place (no wrapper lines), so V8 positions already match the
+    // supplied source before the host applies its compiler-owned TypeScript source maps.
+    __autojs6_register_generated_stack_mapping(sourceURL || filename, filename, lineMap, 0);
+    if (format === "json" || !sourceURL) return source;
+    return source + "\n//# sourceURL=" + sourceURL.replace(/[\r\n]/g, " ");
+  }
+  function __autojs6_native_loader_load(url, context, nextLoad) {
+    const target = String(url);
+    if (target.indexOf(__autojs6_runtime_module_scheme) === 0) {
+      return __autojs6_runtime_module_source(target, context);
+    }
+    if (/^file:/i.test(target)) {
+      const filename = __autojs6_url_module().fileURLToPath(target);
+      const record = __autojs6_served_module_record(filename);
+      if (record) {
+        // The entry's module kind was decided from its source (ESM syntax, .mjs, package type).
+        const format = __autojs6_has_own(__autojs6_pinned_module_sources, filename) && __autojs6_esm_entry_format_pin
+          ? __autojs6_esm_entry_format_pin
+          : __autojs6_served_module_format(filename, context);
+        return { format, source: __autojs6_served_module_source(filename, record, format), shortCircuit: true };
+      }
+    }
+    return nextLoad(url, context);
+  }
+  var __autojs6_esm_entry_format_pin = "";
+  function __autojs6_install_native_loader() {
+    const moduleValue = __autojs6_builtin_module("module");
+    if (!moduleValue || typeof moduleValue.registerHooks !== "function") {
+      throw __autojs6_error("Node.js module.registerHooks is unavailable in this runtime.", "ERR_AUTOJS6_EMBEDDED_NODE_LOADER_UNAVAILABLE");
+    }
+    try {
+      Object.defineProperty(globalThis, "__autojs6_runtime_module_exports", {
+        value: __autojs6_runtime_module_exports,
+        enumerable: false,
+        configurable: false,
+        writable: false
+      });
+    } catch (_) {}
+    // os.tmpdir() is bound to TMPDIR on the native module object once (M23.2).
+    __autojs6_os_builtin();
+    moduleValue.registerHooks({ resolve: __autojs6_native_loader_resolve, load: __autojs6_native_loader_load });
+  }
+  // require() rooted at the entry, for runtime facades that load project modules (plugins.load).
+  var __autojs6_native_require_cache = null;
+  function __autojs6_native_require(request) {
+    if (!__autojs6_native_require_cache) {
+      __autojs6_native_require_cache = __autojs6_builtin_module("module").createRequire(__autojs6_entry_filename());
+    }
+    return __autojs6_native_require_cache(request);
+  }
+  function __autojs6_pin_entry_source(entryFilename) {
+    __autojs6_pinned_module_sources[entryFilename] = Object.freeze({
+      source: __autojs6_source,
+      sourceURL: __autojs6_source_name
     });
+  }
+  // The entry runs the way Node runs a main module: a Module instance registered as
+  // require.main, compiled with Node's wrapper parameters and import() going through the
+  // default loader. The wrapper's return value is kept so a top-level `return promise` still
+  // delays completion, as every earlier runtime version allowed.
+  function __autojs6_run_native_cjs_entry(entryFilename) {
+    const moduleValue = __autojs6_builtin_module("module");
+    const compile = moduleValue.prototype._compile;
+    let result;
+    // Preserve the plugin's top-level return-value API while Node creates the
+    // main module, its require function, parent/children links and cache entries.
+    // Restore _compile before user code starts so package hooks see Node's method.
+    moduleValue.prototype._compile = function(source, filename, format) {
+      moduleValue.prototype._compile = compile;
+      __autojs6_main_module_ref = this;
+      result = compile.call(this, source, filename, format);
+      return result;
+    };
     try {
-    if (name === "autojs6:profile") {
-      return __autojs6_profile();
-    }
-    if (name === "autojs6:bridge") {
-      return __autojs6_bridge_module();
-    }
-    if (name === "autojs6:compat") {
-      return __autojs6_limited_rhino_compat();
-    }
-    // M2.4 npm precedence: an installed node_modules package wins over the
-    // AutoJs6 compat shim of the same bare name (mime, colors, util, ...) —
-    // matching desktop Node, where npm packages shadow nothing and shims do
-    // not exist. Node builtin ids (fs, path, "node:*"…) never take this path,
-    // and when no package is installed the shim still answers.
-    if (__autojs6_compat_shim_shadowable(name)) {
-      const packageResolved = __autojs6_try_resolve_node_modules_module(
-        name,
-        parentFilename,
-        __autojs6_commonjs_require_resolution_mode()
-      );
-      if (packageResolved) {
-        return __autojs6_load_local_module(packageResolved, parentModule);
+      moduleValue.runMain(entryFilename);
+    } finally {
+      if (moduleValue.prototype._compile !== compile && !__autojs6_main_module_ref) {
+        moduleValue.prototype._compile = compile;
       }
     }
-    if (name === "rhino") {
-      return __autojs6_limited_rhino();
-    }
-    if (name === "files") {
-      return __autojs6_limited_files();
-    }
-    if (name === "base64") {
-      return __autojs6_limited_base64();
-    }
-    if (name === "colors") {
-      return __autojs6_limited_colors();
-    }
-    if (name === "formatter" || name === "fmt") {
-      return __autojs6_limited_formatter();
-    }
-    if (name === "converter" || name === "cvt") {
-      return __autojs6_limited_converter();
-    }
-    if (name === "s13n") {
-      return __autojs6_limited_s13n();
-    }
-    if (name === "mime") {
-      return __autojs6_limited_mime();
-    }
-    if (name === "nanoid") {
-      return __autojs6_limited_nanoid();
-    }
-    if (name === "opencc") {
-      return __autojs6_limited_opencc();
-    }
-    if (name === "pinyin") {
-      return __autojs6_limited_pinyin();
-    }
-    if (name === "pinyin4j") {
-      return __autojs6_limited_pinyin4j();
-    }
-    if (name === "jsox") {
-      return __autojs6_limited_jsox();
-    }
-    if (name === "jsox.mathx") {
-      return __autojs6_limited_jsox_mathx();
-    }
-    if (name === "jsox.arrayx") {
-      return __autojs6_limited_jsox_arrayx();
-    }
-    if (name === "jsox.numberx") {
-      return __autojs6_limited_jsox_numberx();
-    }
-    if (name === "autojs6:lifecycle") {
-      return __autojs6_limited_lifecycle();
-    }
-    if (name === "toast") {
-      return __autojs6_limited_toast();
-    }
-    if (name === "app") {
-      return __autojs6_limited_app();
-    }
-    if (name === "engines") {
-      return __autojs6_limited_engines();
-    }
-    if (name === "dialogs") {
-      return __autojs6_limited_dialogs();
-    }
-    if (name === "accessibility") {
-      return __autojs6_limited_accessibility();
-    }
-    if (name === "media_projection") {
-      return __autojs6_limited_media_projection();
-    }
-    if (name === "image") {
-      return __autojs6_limited_image("image");
-    }
-    if (name === "images") {
-      return __autojs6_limited_image("images");
-    }
-    if (name === "ocr") {
-      return __autojs6_limited_ocr();
-    }
-    if (name === "barcode") {
-      return __autojs6_limited_barcode();
-    }
-    if (name === "media") {
-      return __autojs6_limited_media();
-    }
-    if (name === "mediainfo") {
-      return __autojs6_limited_mediainfo();
-    }
-    if (name === "recorder") {
-      return __autojs6_limited_recorder();
-    }
-    if (name === "media_store") {
-      return __autojs6_limited_media_store();
-    }
-    if (name === "storage") {
-      return __autojs6_limited_storage("storage");
-    }
-    if (name === "storages") {
-      return __autojs6_limited_storage("storages");
-    }
-    if (name === "database") {
-      return __autojs6_limited_database("database");
-    }
-    if (name === "sqlite") {
-      return __autojs6_limited_database("sqlite");
-    }
-    if (name === "notifications") {
-      return __autojs6_limited_notifications();
-    }
-    if (name === "sensors") {
-      return __autojs6_limited_sensors();
-    }
-    if (name === "ui") {
-      return __autojs6_limited_ui();
-    }
-    if (name === "ui.overlay") {
-      return __autojs6_limited_ui_overlay();
-    }
-    if (name === "input_observer") {
-      return __autojs6_limited_input_observer();
-    }
-    if (name === "clipboard") {
-      return __autojs6_limited_clipboard();
-    }
-    if (name === "device") {
-      return __autojs6_limited_device();
-    }
-    if (name === "shell") {
-      return __autojs6_limited_shell();
-    }
-    if (name === "fetch" || name === "autojs6:fetch") {
-      return __autojs6_limited_fetch();
-    }
-    if (name === "autojs6:events") return __autojs6_host_events();
-    if (name === "keys") return __autojs6_keys();
-    if (name === "undici") {
-      return __autojs6_limited_undici();
-    }
-    if (name === "axios") {
-      return __autojs6_limited_axios();
-    }
-    if (name === "websocket" || name === "autojs6:websocket") {
-      return __autojs6_limited_websocket();
-    }
-    if (name === "work_manager") {
-      return __autojs6_limited_work_manager();
-    }
-    if (name === "package_manager") {
-      return __autojs6_limited_package_manager();
-    }
-    if (name === "npm") {
-      return __autojs6_limited_npm();
-    }
-    if (name === "plugins") {
-      return __autojs6_limited_plugins();
-    }
-    if (name === "java") {
-      return __autojs6_limited_java();
-    }
-    if (name === "node:worker_threads" && !__autojs6_worker_threads_enabled) {
-      return __autojs6_worker_threads_shape_facade();
-    }
-    if ((name === "worker_threads" || name === "node:worker_threads") && __autojs6_worker_threads_enabled) {
-      return __autojs6_limited_worker_threads();
-    }
-    if ((name === "child_process" || name === "node:child_process") && __autojs6_child_process_enabled) {
-      return __autojs6_child_process_builtin(name);
-    }
-    if (name === "inspector" || name === "node:inspector") {
-      return __autojs6_limited_inspector();
-    }
-    const builtinId = __autojs6_native_builtin_id(name);
-    if (builtinId !== null) {
-      return __autojs6_require_native_builtin(builtinId, name);
-    }
-    const __autojs6_require_resolution_mode = __autojs6_commonjs_require_resolution_mode();
-    if (__autojs6_is_local_module_name(name)) {
-      return __autojs6_load_local_module(__autojs6_resolve_local_module(name, parentFilename, __autojs6_require_resolution_mode), parentModule);
-    }
-    if (name.indexOf("#") === 0) {
-      return __autojs6_load_local_module(__autojs6_resolve_package_import(name, parentFilename, __autojs6_require_resolution_mode), parentModule);
-    }
-    if (name) {
-      return __autojs6_load_local_module(__autojs6_resolve_node_modules_module(name, parentFilename, __autojs6_require_resolution_mode), parentModule);
-    }
-    throw new Error(
-      name
-        ? "require is restricted in Embedded Node.js MVP; module '" + name + "' is not allowed."
-        : "require is restricted in Embedded Node.js MVP; only allowlisted built-in modules are available."
-    );
-    } catch (error) {
-      __autojs6_resolve_trace("error", {
-        request: name,
-        from: parentFilename,
-        code: error && error.code,
-        autojs6Code: error && error.autojs6Code,
-        message: error && error.message
-      });
-      throw __autojs6_attach_resolve_trace(
-        __autojs6_enrich_require_error(error, name, parentFilename),
-        traceRecord
-      );
-    } finally {
-      __autojs6_resolve_trace_end(traceRecord);
-    }
+    return result;
   }
-  function __autojs6_process_get_builtin_module(moduleName) {
-    if (typeof moduleName !== "string") {
-      throw __autojs6_invalid_arg_type("The \"id\" argument must be of type string.");
-    }
-    if (!moduleName) return undefined;
-    if (__autojs6_native_builtin_id(moduleName) === null) return undefined;
-    return __autojs6_restricted_require(moduleName, null);
-  }
-  function __autojs6_install_require_guard(mainModule) {
-    __autojs6_prime_restricted_require();
-    const mainRequire = __autojs6_create_module_require(mainModule);
-    try {
-      Object.defineProperty(globalThis, "require", {
-        value: mainRequire,
-        configurable: true,
-        enumerable: false,
-        writable: false
-      });
-    } catch (_) {
-      try {
-        globalThis.require = mainRequire;
-      } catch (_) {}
-    }
-  }
-  function __autojs6_install_builtin_module_guard() {
-    if (typeof process !== "object" || !process) return;
-    try {
-      Object.defineProperty(process, "getBuiltinModule", {
-        value: __autojs6_process_get_builtin_module,
-        configurable: true,
-        enumerable: false,
-        writable: false
-      });
-    } catch (_) {
-      try {
-        process.getBuiltinModule = __autojs6_process_get_builtin_module;
-      } catch (_) {}
-    }
+  function __autojs6_run_native_esm_entry(entryFilename) {
+    __autojs6_esm_entry_format_pin = "module";
+    // runMain marks import.meta.main and lets Node own top-level await and exit.
+    __autojs6_builtin_module("module").runMain(entryFilename);
   }
   let __autojs6_finished = false;
   function __autojs6_pending_summary() {
@@ -32725,7 +27870,7 @@ std::string buildEmbeddedScriptExecutionSource(
     fields.esmModuleGraphModules = __autojs6_bounded_module_list(__autojs6_esm_diagnostics.graphModules);
     fields.esmDeniedCount = __autojs6_esm_diagnostics.deniedCount;
     fields.esmLastDeniedReason = __autojs6_esm_diagnostics.lastDeniedReason;
-    fields.dynamicImportEnabled = __autojs6_dynamic_import_enabled;
+    fields.dynamicImportEnabled = true;
     fields.typeScriptPrecompiledSnapshotEnabled = __autojs6_typescript_snapshot_diagnostics.enabled;
     fields.typeScriptPrecompiledSnapshotSourceCount = __autojs6_typescript_snapshot_diagnostics.sourceCount;
     fields.typeScriptDynamicSpecifierMappedCount = __autojs6_typescript_snapshot_diagnostics.mappedCount;
@@ -32888,63 +28033,14 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_install_compile_cache();
     __autojs6_install_output_capture();
     __autojs6_install_tty_stdio_helpers();
-    const __autojs6_main_module = __autojs6_create_module(__autojs6_main_filename, null);
-    // Node identifies the main module as "." (require.main.id).
-    __autojs6_main_module.id = ".";
-    __autojs6_main_module_ref = __autojs6_main_module;
-    __autojs6_module_cache[__autojs6_main_module.filename] = __autojs6_main_module;
-    __autojs6_install_require_guard(__autojs6_main_module);
-    __autojs6_install_builtin_module_guard();
+    __autojs6_install_native_loader();
+    __autojs6_pin_entry_source(__autojs6_main_filename);
     __autojs6_install_autojs_global();
     __autojs6_install_error_handlers();
-    __autojs6_install_dynamic_code_guard();
     __autojs6_start_script_execution_timing();
-    let __autojs6_user_result;
-    if (__autojs6_run_entry_as_esm) {
-      __autojs6_user_result = __autojs6_run_esm_entry();
-    } else {
-      __autojs6_assert_common_js_source_supported(__autojs6_source, __autojs6_source_name);
-      const __autojs6_transformed_source = __autojs6_transform_unsupported_unicode_identifier_regex_literals(
-        __autojs6_transform_dynamic_import_calls(
-          __autojs6_source,
-          __autojs6_source_name,
-          "__filename"
-        )
-      );
-      const __autojs6_commonjs_line_map = [];
-      const __autojs6_commonjs_line_count = __autojs6_count_lines(__autojs6_transformed_source);
-      for (let line = 1; line <= __autojs6_commonjs_line_count; line += 1) {
-        __autojs6_commonjs_line_map.push(line);
-      }
-      // Function() contributes two wrapper lines and this body contributes one strict-mode line.
-      // Normalize V8 locations back to the supplied CommonJS source before the host applies the
-      // compiler-owned TypeScript source map.
-      __autojs6_register_generated_stack_mapping(
-        __autojs6_source_name,
-        __autojs6_source_name,
-        __autojs6_commonjs_line_map,
-        3
-      );
-      const __autojs6_user_function = __autojs6_native_function(
-        "exports",
-        "require",
-        "module",
-        "__filename",
-        "__dirname",
-        "__autojs6_dynamic_import",
-        "\"use strict\";\n" + __autojs6_transformed_source + "\n//# sourceURL=" + __autojs6_source_name
-      );
-      __autojs6_user_result = __autojs6_user_function.call(
-        globalThis,
-        __autojs6_main_module.exports,
-        __autojs6_create_module_require(__autojs6_main_module),
-        __autojs6_main_module,
-        __autojs6_main_module.filename,
-        __autojs6_main_module.dirname,
-        __autojs6_dynamic_import
-      );
-    }
-    __autojs6_main_module.loaded = true;
+    const __autojs6_user_result = __autojs6_run_entry_as_esm
+      ? __autojs6_run_native_esm_entry(__autojs6_main_filename)
+      : __autojs6_run_native_cjs_entry(__autojs6_main_filename);
     if (__autojs6_user_result && typeof __autojs6_user_result.then === "function") {
       __autojs6_user_result.then(__autojs6_defer_success, __autojs6_finish_error);
     } else {

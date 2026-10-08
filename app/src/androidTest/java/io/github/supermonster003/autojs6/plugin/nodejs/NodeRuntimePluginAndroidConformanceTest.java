@@ -437,7 +437,10 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 assert.equal(profile.wasiProfile.status, 'denied_by_decision');
                 assert.deepEqual(profile.wasiProfile.targetProfiles, []);
                 assert.equal(profile.nativeAddonProfile.status, 'unsupported_by_policy');
-                assert.equal(profile.esmLoaderProfile.dataUrlImports, 'inline_js_json_only');
+                // M23.3: Node's own ESM loader serves data: URLs (JavaScript, JSON, WebAssembly).
+                assert.equal(profile.esmLoaderProfile.dataUrlImports, 'native');
+                assert.equal(profile.esmLoaderProfile.status, 'node_native_loader');
+                assert.equal(profile.esmLoaderProfile.loaderHooks, 'module_register_hooks');
                 assert.equal(profile.packageManagerProfile.registryDownload, 'denied_by_policy');
                 assert.equal(profile.packageManagerProfile.terminalCli, 'host_terminal_node_npm_corepack_launcher');
                 for (const name of ['processParityProfile', 'packagedCapabilityProfile', 'processWorkerReplacementProfile', 'wasiProfile', 'nativeAddonProfile']) {
@@ -1162,6 +1165,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
             assertFalse("2 KiB source unexpectedly passed a host-advertised 1 KiB limit",
                     invocation.result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED));
             assertEquals(
+                    invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, "") + "\n" +
+                            invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_STACK, ""),
                     NodeJsRuntimeContract.ERROR_MODULE_SOURCE_PROVIDER_BUDGET_EXCEEDED,
                     invocation.result.getString(NodeJsRuntimeContract.KEY_ERROR_CODE)
             );
@@ -1389,8 +1394,13 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 assert.ok(require.resolve('plain-cjs').endsWith('/node_modules/plain-cjs/lib/entry.js'), require.resolve('plain-cjs'));
                 assert.throws(() => require('@scope/cond/hidden'), (e) => e.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED');
                 assert.throws(() => require('no-such-package'), (e) => e.code === 'MODULE_NOT_FOUND');
-                assert.throws(() => require('type-module-pkg'), (e) => e.code === 'ERR_AUTOJS6_REQUIRE_ESM_UNSUPPORTED');
-                for (const name of ['ui', 'sqlite', 'autojs6:fetch', 'node:inspector', 'inspector']) {
+                // M23.3: Node's own loader runs in workers, so require(esm) works and host facades are
+                // simply absent (MODULE_NOT_FOUND); only the inspector stays denied inside workers.
+                assert.equal(require('type-module-pkg').kind, 'esm-js');
+                for (const name of ['ui', 'sqlite', 'autojs6:fetch']) {
+                  assert.throws(() => require(name), (e) => e.code === 'MODULE_NOT_FOUND', name);
+                }
+                for (const name of ['node:inspector', 'inspector']) {
                   assert.throws(() => require(name), (e) => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED', name);
                 }
                 parentPort.postMessage('cjs-ok');
@@ -1479,9 +1489,10 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                   await assert.rejects(import('./dep.mjs', { with: { type: 'json' } }), (e) => e.code === 'ERR_IMPORT_ATTRIBUTE_TYPE_INCOMPATIBLE');
                   await assert.rejects(import('./dep.mjs', { with: { type: 'css' } }), (e) => e.code === 'ERR_IMPORT_ATTRIBUTE_UNSUPPORTED');
                   await assert.rejects(import('node:inspector'), (e) => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED');
-                  await assert.rejects(import('autojs6:fetch'), (e) => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED');
-                  await assert.rejects(import('./missing.mjs'), (e) => e.code === 'ERR_AUTOJS6_MODULE_NOT_FOUND');
-                  await assert.rejects(import('no-such-dyn-package'), (e) => e.code === 'MODULE_NOT_FOUND');
+                  // M23.3: Node's ESM loader answers for everything that is not a worker facade.
+                  await assert.rejects(import('autojs6:fetch'), (e) => e.code === 'ERR_UNSUPPORTED_ESM_URL_SCHEME');
+                  await assert.rejects(import('./missing.mjs'), (e) => e.code === 'ERR_MODULE_NOT_FOUND');
+                  await assert.rejects(import('no-such-dyn-package'), (e) => e.code === 'ERR_MODULE_NOT_FOUND');
                   await assert.rejects(import('/proc/self/status'), (e) => !String(e.code).startsWith('ERR_AUTOJS6_FS_'));
                   parentPort.postMessage('cjs-ok');
                 })().catch((error) => { parentPort.postMessage('cjs-fail:' + (error && (error.stack || error.message))); });
@@ -1531,6 +1542,81 @@ public final class NodeRuntimePluginAndroidConformanceTest {
             }) {
                 assertTrue("stdout is missing '" + expected + "': " + stdout, stdout.contains(expected));
             }
+        }
+    }
+
+    @Test
+    public void m23_importsProviderCommonJsWithoutWritingDecryptedSourceToDisk() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.mjs", """
+                import assert from 'node:assert/strict';
+                import { existsSync } from 'node:fs';
+                import { createRequire } from 'node:module';
+                const secretUrl = new URL('./secret.cjs', import.meta.url);
+                assert.equal(existsSync(secretUrl), false);
+                const secret = await import('./secret.cjs');
+                assert.equal(secret.value, 42);
+                assert.equal(createRequire(import.meta.url)('./secret.cjs'), secret.default);
+                assert.equal(existsSync(secretUrl), false);
+                console.log('m23.provider.cjs=PASS');
+                """);
+        LinkedHashMap<String, ProviderAction> actions = new LinkedHashMap<>();
+        actions.put("project.json", ProviderAction.notFound());
+        actions.put("package.json", ProviderAction.notFound());
+        actions.put("secret.cjs", ProviderAction.decrypted("exports.value = 42;\n"));
+        try (WorkspaceInvocation invocation = execute("provider-native-cjs", "main.mjs", files,
+                new LinkedHashMap<>(), false, null, actions, SCRIPT_TIMEOUT_MS)) {
+            assertSucceeded(invocation.result, "m23.provider.cjs=PASS");
+            String resolve = NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_RESOLVE_EXISTING;
+            String notFound = NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_STATUS_NOT_FOUND;
+            invocation.exactGraphProvider.assertHealthyAndExactEvents(Arrays.asList(
+                    resolve + ":project.json:" + notFound,
+                    resolve + ":package.json:" + notFound,
+                    resolve + ":secret.cjs:" + NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_STATUS_DECRYPTED));
+        }
+    }
+
+    @Test
+    public void m23_nativeLoaderSupportsSynchronousAndAsynchronousHooks() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.mjs", """
+                import assert from 'node:assert/strict';
+                import { register, registerHooks, createRequire } from 'node:module';
+                import { fileURLToPath } from 'node:url';
+                assert.equal(import.meta.main, true);
+                assert.equal(import.meta.filename, fileURLToPath(import.meta.url));
+                const virtual = new URL('./virtual.cjs', import.meta.url).href;
+                const hooks = registerHooks({
+                  resolve(s, c, next) {
+                    if (s === 'fixture:sync') return { url: virtual, shortCircuit: true };
+                    return next(s, c);
+                  },
+                  load(u, c, next) {
+                    if (u === virtual) return { format: 'commonjs', source: 'exports.value = 42;', shortCircuit: true };
+                    return next(u, c);
+                  }
+                });
+                const ns = await import('fixture:sync');
+                const require = createRequire(import.meta.url);
+                assert.equal(ns.value, 42);
+                assert.equal(ns.default, require('fixture:sync'));
+                assert.equal(require.cache[require.resolve('fixture:sync')].exports, ns.default);
+                hooks.deregister();
+                register('./async-hooks.mjs', import.meta.url);
+                assert.equal((await import('fixture:async')).default, 43);
+                console.log('m23.loader.hooks=PASS');
+                """);
+        files.put("async-hooks.mjs", """
+                export function resolve(s, c, next) {
+                  if (s === 'fixture:async') return {
+                    url: 'data:text/javascript,export default 43', shortCircuit: true
+                  };
+                  return next(s, c);
+                }
+                """);
+        try (WorkspaceInvocation invocation = execute("native-loader-hooks", "main.mjs", files, true)) {
+            assertSucceeded(invocation.result, "m23.loader.hooks=PASS");
+            invocation.callback.assertOneStartedAndOneTerminalEvent();
         }
     }
 
@@ -1640,9 +1726,9 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         files.put("value.mts", "export const value: number = 20;\n");
         files.put("value.cts", "export const value: number = 12;\n");
         LinkedHashMap<String, String> generatedModules = new LinkedHashMap<>();
-        generatedModules.put("value.js", "module.exports = { value: 10 };\n");
+        generatedModules.put("value.js", "exports.value = 10;\n");
         generatedModules.put("value.mjs", "export const value = 20;\n");
-        generatedModules.put("value.cjs", "module.exports = { value: 12 };\n");
+        generatedModules.put("value.cjs", "exports.value = 12;\n");
 
         try (WorkspaceInvocation invocation = executeWithTypeScriptSnapshot(
                 "typescript-snapshot-positive",
@@ -1791,7 +1877,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
             assertNativeValue(
                     invocation.result,
                     "embedded_script.esm_linker",
-                    "vm_source_text_module"
+                    "node_native_loader"
             );
             assertNativeValue(
                     invocation.result,
@@ -1917,7 +2003,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 false
         )) {
             assertSucceeded(invocation.result, "x3d.cjs.facade-shadow=function,function,function,function,function,npm,npm");
-            assertSucceeded(invocation.result, "x3d.cjs.facade-resolve=sensors,device,true,true");
+            assertSucceeded(invocation.result, "x3d.cjs.facade-resolve=autojs6:sensors,autojs6:device,true,true");
             assertSucceeded(
                     invocation.result,
                     "x3d.cjs.facade-profile=npm_shims_only,axios+colors+mime+nanoid+opencc+undici,false,require+require.resolve+import"
@@ -2053,16 +2139,12 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 "  }\n" +
                 "  assert.strictEqual(asyncRejected, true);\n" +
                 "  console.log('compat.v2.tla_rejection=PASS');\n" +
-                "  const cycle = require('./cjs-cycle.cjs');\n" +
-                "  assert.deepStrictEqual(cycle.result(), {\n" +
-                "    fromEsm: 'esm-cycle', esmSawCjs: 'cjs-cycle', esmSawDone: false,\n" +
-                "    seen: 'esm-cycle', done: true,\n" +
-                "  });\n" +
+                "  assert.throws(() => require('./cjs-cycle.cjs'), { code: 'ERR_REQUIRE_CYCLE_MODULE' });\n" +
                 "  console.log('compat.v2.esm_cjs_cycle=PASS');\n" +
                 "  const harness = await import('./esm-harness.mjs');\n" +
                 "  assert.strictEqual(harness.default.json, 'json-attrs/dynamic-json');\n" +
                 "  assert.strictEqual(harness.default.jsonCacheShared, true);\n" +
-                "  assert.strictEqual(harness.default.customCondition, 'autojs6');\n" +
+                "  assert.strictEqual(harness.default.customCondition, 'import');\n" +
                 "  assert.strictEqual(harness.default.tsMixed, 'mts/cts');\n" +
                 "  assert.strictEqual(harness.default.metaResolve, true);\n" +
                 "  console.log('compat.v2.json_attributes=PASS');\n" +
@@ -2472,6 +2554,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         );
         assertTrue(
                 result.getString(NodeJsRuntimeContract.KEY_ERROR_MESSAGE, "") + "\n" +
+                        result.getString(NodeJsRuntimeContract.KEY_ERROR_STACK, "") + "\n" +
                         result.getString(NodeJsRuntimeContract.KEY_STDERR, "") + "\n" +
                         "native diagnostics=" + nativeValues(result),
                 result.getBoolean(NodeJsRuntimeContract.KEY_SUCCEEDED)

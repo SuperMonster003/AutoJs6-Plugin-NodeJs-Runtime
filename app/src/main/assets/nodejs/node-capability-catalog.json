@@ -77,7 +77,9 @@
     ],
     "unsupportedTypeScriptModuleExtensions": [
       "tsx"
-    ]
+    ],
+    "typeScriptModulePolicy": "host_compiler_output_required",
+    "moduleLoader": "node_native_loader_with_module_register_hooks"
   },
   "features": [
     {
@@ -111,7 +113,9 @@
       },
       "requestKey": "dynamicImportEnabled",
       "requestFallbackEnabled": true,
-      "effectiveScope": "local_scoped"
+      "effectiveScope": "native",
+      "loader": "node_native_loader",
+      "requestKeyHonored": false
     },
     {
       "id": "esm",
@@ -128,7 +132,9 @@
       },
       "requestKey": "esmEnabled",
       "requestFallbackEnabled": true,
-      "effectiveScope": "local_scoped"
+      "effectiveScope": "native",
+      "loader": "node_native_loader",
+      "requestKeyHonored": false
     },
     {
       "id": "fs_streams",
@@ -262,7 +268,9 @@
       "onDemandCompilationOperation": "compile_missing_typescript",
       "onDemandCompilationProviderVersion": 3,
       "compilationFailureCode": "ERR_AUTOJS6_TYPESCRIPT_COMPILATION_FAILED",
-      "sourceMapOwner": "host_compiler"
+      "sourceMapOwner": "host_compiler",
+      "modulePolicy": "host_compiler_output_required",
+      "entryPolicy": "compiler_output_required"
     },
     {
       "id": "vm",
@@ -462,8 +470,7 @@
       "exit"
     ],
     "limited": [
-      "console",
-      "module"
+      "console"
     ],
     "network": [
       "dns",
@@ -2861,14 +2868,6 @@
         "code": "ERR_AUTOJS6_BUILTIN_DISABLED"
       },
       {
-        "name": "DYNAMIC_IMPORT_UNSUPPORTED",
-        "code": "ERR_AUTOJS6_DYNAMIC_IMPORT_UNSUPPORTED"
-      },
-      {
-        "name": "EMBEDDED_NODE_ESM_UNSUPPORTED",
-        "code": "ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED"
-      },
-      {
         "name": "EMBEDDED_NODE_INVALID_STATE",
         "code": "ERR_AUTOJS6_EMBEDDED_NODE_INVALID_STATE"
       },
@@ -2939,10 +2938,6 @@
       {
         "name": "LEGACY_BUILTIN_DISABLED",
         "code": "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED"
-      },
-      {
-        "name": "LEGACY_DYNAMIC_IMPORT_UNSUPPORTED",
-        "code": "ERR_AUTOJS6_EMBEDDED_NODE_DYNAMIC_IMPORT_UNSUPPORTED"
       },
       {
         "name": "LEGACY_FETCH_DISABLED",
@@ -3143,10 +3138,6 @@
       {
         "name": "PROCESS_EXIT",
         "code": "ERR_AUTOJS6_PROCESS_EXIT"
-      },
-      {
-        "name": "REQUIRE_ESM_UNSUPPORTED",
-        "code": "ERR_AUTOJS6_REQUIRE_ESM_UNSUPPORTED"
       },
       {
         "name": "RHINO_COMPAT_BLOCKED_BY_DESIGN",

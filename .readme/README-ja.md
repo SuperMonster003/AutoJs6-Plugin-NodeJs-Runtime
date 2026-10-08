@@ -55,7 +55,7 @@ AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 24.21
 - すべての Node.js 組み込みモジュールを Node 自身の `module.builtinModules` 一覧からそのまま返します (`dgram`, `http2`, `trace_events`, `wasi`, `cluster`, `repl` など); リクエスト単位のゲートが残るのは `worker_threads`, `child_process`, `inspector` とネイティブネットワークモジュールのみです (1.6.0 以降).
 - Debug ビルドで明示的に有効化するローカル `inspector` デバッグを追加しました。localhost のみで待ち受け、`adb forward` 経由で接続します
 - CommonJS/ESM ソース, モジュールソース, 作業ディレクトリ, サンドボックスルート, 環境変数, stdout/stderr 結果ペイロードに対応します.
-- ESM エントリと dynamic `import()` に V8 native linker を使用し, 循環依存, 可変 export, re-export の live binding を保持します; CommonJS `require(esm)` は同期相互運用境界を維持します.
+- モジュールは Node.js 自身の CommonJS / ESM ローダーで実行されます (`require`, `import()`, `import.meta`, `require(esm)`, パッケージ exports / imports はネイティブ); ランタイムは `autojs6:*` ランタイムモジュール, ホスト提供のモジュールソース, リクエスト単位の builtin ゲートのための `module.registerHooks` のみ登録します (1.6.0 以降).
 - Node.js 本来の fs モジュールを使用し, ファイルへの到達可否はプラグインアプリの Android 権限のみで決まります; ランタイム独自の `/proc`, `/sys`, `/dev` 拒否はありません (1.6.0 以降).
 - ホストが提供する TypeScript 出力を実行し, 実行中に作成された project `.ts`/`.mts`/`.cts` には provider-v3 compilation を要求できます. runtime 型消去 fallback と互換スイッチは削除され, direct raw dispatch は常に fail-closed です.
 - ホスト能力ブローカーと live bridge を提供し, `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` などのランタイムモジュールを注入できます.
@@ -101,8 +101,8 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 - Intl: 完全なロケールデータ付き ICU 78 (`--with-intl=full-icu`, 1.6.0 以降; 1.5.1 から 1.5.7 は英語のみの small-icu); `Intl`, ロケール書式, 正規表現の Unicode プロパティエスケープ, Node 自身の stderr へのエラー出力はデスクトップ版 Node と一致し, `NODE_ICU_DATA` は不要です.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, および `universal`.
 - ファイルシステム: Node.js 本来の fs モジュール, Android 権限で許可された任意のデバイスパスに到達でき, ランタイム独自の拒否はありません.
-- TypeScript: host output を受け入れ, 実行中に作成された project file には provider-v3 compilation を要求できます. direct raw TypeScript は `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` を返します.
-- ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, ネイティブ live binding と循環依存に対応します.
+- TypeScript: ホストの出力を受け入れ, プリコンパイル済みスナップショットを対応付け, provider v3 のコンパイルを要求可能; ディスク上の raw TypeScript モジュールは Node 自身の型除去で読み込まれ, 直接ディスパッチされた raw TypeScript エントリは引き続き `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` を返します.
+- ESM: `module.registerHooks` 付きの Node.js ネイティブローダー; ライブバインディング, 循環依存, `import.meta`, `data:` URL, `require(esm)` はデスクトップと同じ.
 - 能力: 同期スクリプト実行, bundle transport, ネイティブ組み込みランタイム, ホスト能力ブローカー, host capability live bridge.
 - ファイルストリーム、gzip/deflate/Brotli ストリームと基本 VM 実行を正式サポート; 明示的に有効化した Debug Inspector は localhost の範囲で正式サポート.
 - 組み込み実行で ExperimentalWarning の表示を停止し、warning イベント、通常の警告、非推奨警告とエラーを維持; Node 上流 API の安定性と端末の既定動作は変更なし.
@@ -126,6 +126,9 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `改善` process に残るのは exit のライフサイクル対応付けと dlopen の一時的な拒否のみで, abort, kill, umask, binding, report, features と POSIX の ID 呼び出しは Node.js 本来の動作になりました; os はネイティブで, homedir と tmpdir は実行時の環境変数 HOME/TMPDIR (作業ディレクトリに設定) に従い, userInfo は実際の Android アプリユーザーを返します
 * `改善` module 組み込みは createRequire のみを上書きした Node.js 本来のオブジェクトになり, registerHooks, enableCompileCache, findPackageJSON などが利用できます; ネイティブネットワーク無効時にのみ到達できた http, https, net, tls, dns の制限実装を削除し, その場合は ERR_AUTOJS6_BUILTIN_DISABLED を直接返します
 * `改善` プラグイン情報 (INFO) とランタイム診断の supportedAbis は, ビルド時にマニフェストへ書き込まれる org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (AutoJs6-Gradle-Platform-Versions 1.9.0 以降の nativeAlignment プラグイン) から取得するようになり, インストール済みの split ではなくプラグインがビルドされた全 ABI を表します; meta-data がない場合はインストール済み APK にパッケージされた ABI にフォールバックし, 手書きの ABI 定数は削除
+* `改善` モジュール読み込みは Node.js 自身の CommonJS / ESM ローダーになり, require, require.resolve, require.cache, require.extensions, Module._resolveFilename, module.register, import(), import.meta, require(esm) はすべてネイティブ, エントリは Node のメインモジュールとして実行 (require.main === module, __filename / process.argv[1] は realpath); ランタイムは module.registerHooks のみ登録し, autojs6:* ランタイムモジュールと互換 shim (autojs6: scheme, 同名の npm パッケージは引き続き shim より優先), リクエスト単位の builtin ゲート, リクエスト添付 / provider 実体化 / TypeScript スナップショットのモジュールソースとエントリのインラインソースを提供; vm.SourceTextModule 自前リンカー, 独自 resolver, 動的 import() の書き換え, eval / Function ガードは撤去, esmEnabled / dynamicImportEnabled リクエストキーは無効化
+* `改善` worker 内のモジュール読み込みも Node ローダー (静的 / 動的 import, require(esm), with { type: "json" }, ワークスペースパッケージ解決) になり, worker ブートストラップは添付モジュールソースと worker_threads ファサードのフックのみ登録; ホストファサードは worker 内では MODULE_NOT_FOUND, 欠落モジュールと未対応 scheme は Node 自身の ERR_MODULE_NOT_FOUND / ERR_UNSUPPORTED_ESM_URL_SCHEME, inspector は引き続き拒否
+* `改善` 未コンパイルの .ts / .mts / .cts のエントリーとインポート先は、引き続きホスト Compiler が生成した JavaScript を必要とします。スナップショットの対応付けと provider v3 のオンデマンドコンパイルを維持し、従来の AutoJs6 ESM / 動的インポートエラーコードを Node 本来のエラーに置き換えました。
 
 # v1.5.7
 

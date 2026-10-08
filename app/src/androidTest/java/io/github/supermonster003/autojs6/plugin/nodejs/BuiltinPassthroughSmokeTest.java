@@ -74,10 +74,10 @@ public final class BuiltinPassthroughSmokeTest {
                         'stream/promises','stream/web','stream/consumers','zlib','timers','timers/promises',
                         'perf_hooks','async_hooks','diagnostics_channel','v8','vm','tty','readline','readline/promises','crypto','constants'];
                       for (const name of builtins) assert.strictEqual(require(name), require('node:' + name), name);
-                      // M23.2: Node's own builtin inventory, no denylist; only execution gates and two thin wrappers
-                      // (module for createRequire until M23.3, console for stdout capture) remain.
+                      // M23.3: module (including createRequire) is also Node's own object.
+                      // Execution gates and the console capture wrapper remain.
                       const Module = require('node:module');
-                      const wrapped = new Set(['module', 'console', 'worker_threads', 'child_process', 'inspector', 'inspector/promises']);
+                      const wrapped = new Set(['console', 'worker_threads', 'child_process', 'inspector', 'inspector/promises']);
                       for (const id of Module.builtinModules) {
                         if (wrapped.has(id)) continue;
                         // A builtin that Node itself refuses (trace_events without tracing support) must refuse

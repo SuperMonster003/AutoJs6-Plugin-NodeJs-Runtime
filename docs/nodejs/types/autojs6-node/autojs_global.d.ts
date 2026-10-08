@@ -18,41 +18,48 @@ declare namespace AutoJs6Node {
     readonly status: "stable" | "partial" | "disabled" | "unsupported" | string;
   }
 
+  /**
+   * Since M23.3 Node's own CommonJS / ESM loaders run the module graph; the runtime only registers
+   * synchronous `module.registerHooks` for the `autojs6:*` runtime modules, the request-level
+   * builtin gate, host-provided module sources and the entry's inline source. The request keys
+   * `esmEnabled` / `dynamicImportEnabled` no longer gate anything.
+   */
   export interface EsmLoaderProfile {
-    readonly status: "native_linker" | "disabled_by_request" | string;
-    readonly defaultEnabled: boolean;
-    readonly requestEnabled: boolean;
-    readonly dynamicImportDefaultEnabled: boolean;
-    readonly dynamicImportEnabled: boolean;
-    readonly implementation: "v8_vm_source_text_module" | string;
-    readonly mjsEntry: "native_linker" | "unsupported" | string;
-    readonly packageTypeModuleEntry: "native_linker" | "unsupported" | string;
-    readonly topLevelAwait: "native_linker" | "unsupported" | string;
-    readonly staticImport: "local_scoped_native_linker" | string;
-    readonly dynamicImport: "local_scoped_native_linker" | string;
-    readonly liveBindings: "native_linker" | string;
-    readonly cyclicDependencies: "native_linker" | string;
-    readonly packageExports: "controlled_resolver" | string;
-    readonly packageImports: "controlled_resolver" | string;
-    readonly jsonImportAttributes: "native_linker" | string;
-    readonly importMeta: "scoped_native_linker" | string;
-    readonly cjsInterop: "sync_esm_only" | string;
-    readonly moduleSources: "controlled_snapshot" | string;
+    readonly status: "node_native_loader" | string;
+    readonly defaultEnabled: true;
+    readonly requestEnabled: true;
+    readonly dynamicImportDefaultEnabled: true;
+    readonly dynamicImportEnabled: true;
+    readonly implementation: "node_esm_loader_with_module_register_hooks" | string;
+    readonly mjsEntry: "native" | string;
+    readonly packageTypeModuleEntry: "native" | string;
+    readonly topLevelAwait: "native" | string;
+    readonly staticImport: "native" | string;
+    readonly dynamicImport: "native" | string;
+    readonly liveBindings: "native" | string;
+    readonly cyclicDependencies: "native" | string;
+    readonly packageExports: "native" | string;
+    readonly packageImports: "native" | string;
+    readonly jsonImportAttributes: "native" | string;
+    readonly importMeta: "native" | string;
+    /** `require(esm)` is Node's own. */
+    readonly cjsInterop: "native_require_esm" | string;
+    readonly moduleSources: "served_by_register_hooks" | string;
     readonly packagedBehavior: "real_package_corpus" | string;
     readonly sourceMaps: "sourceURL_stack_only" | string;
-    readonly loaderHooks: "denied" | string;
-    readonly rawNodeModuleLoader: "denied" | string;
-    readonly networkImports: "denied" | string;
-    readonly fileUrlImports: "local_file_urls" | "denied" | string;
-    readonly dataUrlImports: "inline_js_json_only" | "denied" | string;
-    readonly absolutePathImports: "allowed_within_android_app_permissions" | "denied" | string;
-    readonly workingDirectoryEscape: "allowed_within_android_app_permissions" | "denied" | string;
-    readonly disabledBuiltinImports: "denied" | string;
-    readonly encryptedGraphParity: "not_promoted" | string;
-    readonly pendingEvaluationCleanup: "not_proven" | string;
+    readonly loaderHooks: "module_register_hooks" | string;
+    readonly rawNodeModuleLoader: "native" | string;
+    readonly networkImports: "unavailable_as_node" | string;
+    readonly fileUrlImports: "local_file_urls" | string;
+    readonly dataUrlImports: "native" | string;
+    readonly absolutePathImports: "allowed_within_android_app_permissions" | string;
+    readonly workingDirectoryEscape: "allowed_within_android_app_permissions" | string;
+    readonly disabledBuiltinImports: "request_gated" | string;
+    readonly encryptedGraphParity: "provider_served_by_register_hooks" | string;
+    readonly pendingEvaluationCleanup: "native" | string;
     readonly realEsmCorpus: "complete" | string;
-    readonly rawNodeLoader: boolean;
-    readonly customConditions: boolean;
+    readonly rawNodeLoader: true;
+    readonly customConditions: "native" | string;
   }
 
   /**
@@ -64,7 +71,8 @@ declare namespace AutoJs6Node {
   export interface ModuleResolutionProfile {
     readonly schema: "autojs6-node-module-resolution-v1";
     readonly status: "stable" | string;
-    readonly nodeModulesLookup: "workspace_anchored_node_resolution" | string;
+    /** Since M23.3 Node's own resolver walks node_modules; the hooks only add host-served sources. */
+    readonly nodeModulesLookup: "node_native_resolution" | string;
     readonly npmPrecedence: "npm_shims_only" | string;
     readonly npmShadowableModules: readonly string[];
     readonly runtimeModulesShadowable: false;
@@ -128,7 +136,7 @@ declare namespace AutoJs6Node {
     readonly moduleStatus: Readonly<Record<string, "partial" | "limited_network_gated" | "disabled" | string>>;
     readonly conformanceModules: readonly string[];
     readonly cjsAliases: "bare_and_node_prefix" | string;
-    readonly esmImports: "native_linker" | string;
+    readonly esmImports: "native" | string;
     readonly shadowing: "builtin_precedence" | string;
     /** Since M23.2 `process.getBuiltinModule()` answers from Node's own builtin inventory. */
     readonly processGetBuiltinModule: "native_inventory" | string;
@@ -641,8 +649,8 @@ declare namespace AutoJs6Node {
     readonly packagedBehavior: "native_available_only" | "partial" | string;
     /** Bare package specifiers resolve through the workspace node_modules as in Node. */
     readonly packageResolution: "workspace_node_modules" | string;
-    /** import() inside workers goes through the worker partial ESM loader when the execution enables dynamic import. */
-    readonly dynamicImport: boolean;
+    /** Since M23.3 import() inside workers is Node's own loader; always true. */
+    readonly dynamicImport: true;
     /** process APIs inside workers: exit ends the thread as in Node; abort/chdir are unavailable as in Node. */
     readonly processApis: WorkerThreadsProcessApis;
     readonly policy: WorkerThreadsPolicy;

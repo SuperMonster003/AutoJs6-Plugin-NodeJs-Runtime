@@ -143,7 +143,10 @@ public final class WorkerDesktopSmokeTest {
                   assert.strictEqual(fs, process.getBuiltinModule('fs'));
                   assert.match(fs.readFileSync('/proc/self/status', 'utf8'), /^Pid:\\s+\\d+/m);
                   assert.strictEqual(fs.readFileSync(workerData.outside,'utf8'),'outside');
-                  for (const name of ['autojs6:fetch','autojs6:websocket','sqlite','ui','inspector','node:inspector']) {
+                  for (const name of ['autojs6:fetch','autojs6:websocket','sqlite','ui']) {
+                    assert.throws(() => require(name), e => e.code === 'MODULE_NOT_FOUND');
+                  }
+                  for (const name of ['inspector','node:inspector']) {
                     assert.throws(() => require(name), e => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED');
                   }
                   const {DatabaseSync}=require('node:sqlite');

@@ -17,6 +17,9 @@
 * `優化` process 物件僅保留 exit 的生命週期映射與 dlopen 的暫時拒絕, abort, kill, umask, binding, report, features 及 POSIX 身份呼叫均為 Node.js 原生行為; os 模組原生, homedir 與 tmpdir 透過執行環境變數 HOME/TMPDIR 指向工作目錄, userInfo 回傳真實的 Android 應用程式使用者
 * `優化` module 內建模組改為僅覆寫 createRequire 的 Node.js 原生物件, registerHooks, enableCompileCache, findPackageJSON 等可直接使用; 刪除僅在停用原生網絡時可達的 http, https, net, tls, dns 受限實作, 停用時直接回傳 ERR_AUTOJS6_BUILTIN_DISABLED
 * `優化` 外掛程式資訊 (INFO) 與執行階段診斷的 supportedAbis 改為讀取建置期寫入資訊清單的 org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (需要 AutoJs6-Gradle-Platform-Versions 1.9.0 起的 nativeAlignment 外掛程式), 表示外掛程式建置支援的全部 ABI 而非已安裝分包; meta-data 缺失時回退為已安裝套件內實際打包的 ABI, 手寫的 ABI 常數已刪除
+* `優化` 模組載入改為 Node.js 原生 CommonJS / ESM loader: require, require.resolve, require.cache, require.extensions, Module._resolveFilename, module.register, import(), import.meta 與 require(esm) 全部為 Node 原生行為, 入口按 Node 主模組方式執行 (require.main === module, __filename / process.argv[1] 為 realpath); 執行階段只註冊 module.registerHooks 提供 autojs6:* 執行階段模組與相容 shim (autojs6: scheme, 同名 npm 套件仍優先於 shim)、請求級 builtin 閘門、請求隨附 / provider 具現化 / TypeScript 快照的模組原始碼與入口內嵌原始碼; vm.SourceTextModule 自管 linker, 自訂 resolver, 動態 import 改寫與 eval / Function 守衛全部移除, esmEnabled / dynamicImportEnabled 請求鍵不再生效
+* `優化` worker 內模組載入同樣由 Node 原生 loader 承擔 (靜態 / 動態 import, require(esm), with { type: "json" }, 工作區套件解析), worker 引導只註冊鉤子提供隨附模組原始碼與 worker_threads facade; 宿主 facade 在 worker 內為 MODULE_NOT_FOUND, 缺失模組與 scheme 錯誤為 Node 自身的 ERR_MODULE_NOT_FOUND / ERR_UNSUPPORTED_ESM_URL_SCHEME, inspector 仍拒絕
+* `優化` 原始 .ts / .mts / .cts 入口與匯入模組仍須由宿主 Compiler 編譯為 JavaScript; 保留快照對應與 provider v3 按需編譯。模組載入失敗使用 Node 原生錯誤碼, 原 AutoJs6 ESM 與動態匯入錯誤碼退役。
 
 # v1.5.7
 

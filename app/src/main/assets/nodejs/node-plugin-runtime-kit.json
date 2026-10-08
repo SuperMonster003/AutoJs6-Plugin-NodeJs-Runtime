@@ -39,7 +39,7 @@
   "capabilityCatalog": {
     "schema": "autojs6-node-capability-catalog-v1",
     "version": "1.6.0",
-    "sha256": "2c2415b3ea45bdccf555c94fd304c2f91880fa1dc56205bc0833ed236762e300"
+    "sha256": "f71fede3b874399cbe4867494ff8e419843eb27cf2417a926e3c62210a72091b"
   },
   "reproducibility": {
     "artifactMaterialization": "source_build",
@@ -108,8 +108,8 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "source_tree",
       "required": true,
-      "size": 76165,
-      "sha256": "2c2415b3ea45bdccf555c94fd304c2f91880fa1dc56205bc0833ed236762e300",
+      "size": 76016,
+      "sha256": "f71fede3b874399cbe4867494ff8e419843eb27cf2417a926e3c62210a72091b",
       "buildId": null
     },
     {

@@ -122,11 +122,9 @@ std::vector<std::string> runEmbeddedScriptExecution(
     putPayload(
             payload,
             "embedded_script.request.require_mode",
-            request.esmEnabled
-                    ? "restricted_commonjs_with_native_esm_linker"
-                    : "restricted_commonjs_mvp"
+            "node_native_loader_with_register_hooks"
     );
-    putPayload(payload, "embedded_script.request.fs_allowed", "scoped_working_directory_sync_mvp");
+    putPayload(payload, "embedded_script.request.fs_allowed", "android_file_access");
     putPayload(payload, "embedded_script.request.import_allowed", request.esmEnabled);
     putPayload(payload, "embedded_script.request.esm_enabled", request.esmEnabled);
     putPayload(payload, "embedded_script.request.dynamic_import_enabled", request.dynamicImportEnabled);
@@ -138,7 +136,7 @@ std::vector<std::string> runEmbeddedScriptExecution(
     putPayload(payload, "embedded_script.request.child_process_enabled", request.childProcessEnabled);
     putPayload(payload, "embedded_script.request.java_interop_enabled", request.javaInteropEnabled);
     putPayload(payload, "embedded_script.request.max_old_generation_size_mb", static_cast<long long>(request.maxOldGenerationSizeMb));
-    putPayload(payload, "embedded_script.request.node_modules_allowed", "working_directory_commonjs_mvp");
+    putPayload(payload, "embedded_script.request.node_modules_allowed", "node_native_resolution");
     putPayload(payload, "embedded_script.request.autojs_api_allowed", false);
     putPayload(payload, "embedded_script.request.android_bridge_allowed", false);
     if (runtimeAdapterPath != nullptr && std::strlen(runtimeAdapterPath) > 0) {

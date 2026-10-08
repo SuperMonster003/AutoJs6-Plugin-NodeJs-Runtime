@@ -43,7 +43,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Roadmap M2.4/M9.2/M13.4/M14.3: twenty-one real npm packages run inside the plugin runtime.
+ * Roadmap M2.4/M9.2/M13.4/M14.3/M23.3: twenty-three real npm packages run inside the plugin runtime.
  * The original high-frequency CommonJS corpus is extended with axios and
  * Express loopback probes plus three ESM-only packages (nanoid, p-limit and
  * yocto-queue). The genuine npm-install tree is shipped as androidTest assets
@@ -62,7 +62,7 @@ public final class NpmEcosystemSmokeTest {
             "lodash", "dayjs", "ms", "semver", "uuid",
             "debug", "mime", "qs", "js-yaml", "ajv",
             "axios", "express", "nanoid", "p-limit", "yocto-queue",
-            "zod", "cheerio", "date-fns", "mqtt", "ws", "pngjs"
+            "zod", "cheerio", "date-fns", "mqtt", "ws", "pngjs", "pirates", "mock-require"
     );
 
     @Test

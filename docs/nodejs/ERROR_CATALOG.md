@@ -53,9 +53,20 @@ ERR_INVALID_ARG_VALUE (NUL bytes), and `/proc`, `/sys`, `/dev` follow Android li
 other path. The scoped fs wrapper and its policy codes are retired and no longer
 produced by fs: `ERR_AUTOJS6_FS_NUL_BYTE`, `ERR_AUTOJS6_FS_PATH_ESCAPE`,
 `ERR_AUTOJS6_FS_SCOPED_PATH` (plus the older `FS_*` names still listed in the catalog).
-Until M23.3 replaces the module loader, `ERR_AUTOJS6_FS_NUL_BYTE` / `ERR_AUTOJS6_FS_PATH_ESCAPE`
-can still be raised by the loader for a NUL byte in a specifier or a package `imports` /
-`exports` target that escapes its package directory. `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED`
+Since M23.3 (2026-10-08) Node's own CommonJS / ESM loaders run the module graph and the
+runtime only registers `module.registerHooks`, so module failures carry Node's codes
+(`MODULE_NOT_FOUND`, `ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED`,
+`ERR_UNSUPPORTED_ESM_URL_SCHEME`, `ERR_IMPORT_ATTRIBUTE_*`, `ERR_REQUIRE_ASYNC_MODULE`,
+`ERR_REQUIRE_CYCLE_MODULE`); the loader's own codes are retired and never produced
+any more: `ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED`, `ERR_AUTOJS6_REQUIRE_ESM_UNSUPPORTED`,
+`ERR_AUTOJS6_DYNAMIC_IMPORT_UNSUPPORTED`, `ERR_AUTOJS6_EMBEDDED_NODE_DYNAMIC_IMPORT_UNSUPPORTED`,
+`ERR_AUTOJS6_MODULE_NOT_FOUND` (main thread) and the loader uses of `ERR_AUTOJS6_FS_NUL_BYTE` /
+`ERR_AUTOJS6_FS_PATH_ESCAPE`. `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` remains in use for raw
+TypeScript entries, request-attached sources and modules reached through require/import.
+TypeScript modules must be mapped to host compiler output; the snapshot codes
+`ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND` / `_AMBIGUOUS` still apply. Workers keep
+`ERR_AUTOJS6_WORKER_BRIDGE_DENIED` only for the inspector and the request's builtin gate.
+`ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED`
 and `ERR_AUTOJS6_SQLITE_PATH_UNSUPPORTED` are retired: ATTACH (literal, bound or computed),
 VACUUM INTO and directory PRAGMAs are plain SQLite. Workspace transfer and
 compiler module providers have their own relative-path validation. Module-source providers use

@@ -57,6 +57,11 @@ function httpGet(port, path) {
   });
 }
 
+// M23.3: real packages exercise require.extensions, Module._resolveFilename
+// and require.cache. Run the same fixture on desktop Node for the baseline.
+check("pirates", () => require("./loader-hooks.cjs").pirates());
+check("mock-require", () => require("./loader-hooks.cjs").mockRequire());
+
 check("lodash", () => {
   const _ = require("lodash");
   return _.chunk([1, 2, 3, 4], 2).length === 2 &&

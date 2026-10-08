@@ -55,7 +55,7 @@ AutoJs6 Node.js Runtime 插件为 AutoJs6 提供内嵌 Node.js 24.21.0 原生运
 - 全部 Node.js 内建模块按 Node 自身的 `module.builtinModules` 清单直接返回原生导出 (含 `dgram`, `http2`, `trace_events`, `wasi`, `cluster`, `repl` 等), 仅保留 `worker_threads`, `child_process`, `inspector` 与原生网络模块的请求级门禁 (1.6.0 起).
 - 支持 Debug 构建显式开启本地 `inspector` 调试, 仅监听 localhost 并通过 `adb forward` 连接
 - 支持 CommonJS/ESM 源码, 模块源码, 工作目录, 沙盒根目录, 环境变量, stdout/stderr 结果回传.
-- ESM 入口与 dynamic `import()` 使用 V8 native linker, 支持循环依赖、可变导出与 re-export live binding; CommonJS `require(esm)` 保留同步互操作边界.
+- 模块加载由 Node.js 自身的 CommonJS / ESM loader 承担 (`require`, `import()`, `import.meta`, `require(esm)`, package exports / imports 均为原生); 运行时只注册 `module.registerHooks` 提供 `autojs6:*` 运行时模块、宿主提供的模块源码与请求级 builtin 门禁 (1.6.0 起).
 - 文件系统使用 Node.js 原生 fs 模块, 文件可达性完全由插件自身的 Android 权限决定; 运行时不再保留 `/proc`, `/sys`, `/dev` 等拒绝边界 (1.6.0 起).
 - 执行宿主提供的 TypeScript 编译产物, 并可通过 provider v3 请求按需编译运行中创建的项目 `.ts`/`.mts`/`.cts`; 运行时类型剥离 fallback 与兼容开关已删除, direct raw dispatch 始终 fail-closed.
 - 提供宿主能力代理与 live bridge, 可注入 `autojs6:host-app-info`, `autojs6:device-info`, `autojs6:engine-info`, `autojs6:lifecycle-config`, `autojs6:bridge-permissions` 等运行时模块.
@@ -101,8 +101,8 @@ console.log("AutoJs6 Node.js runtime");
 - Intl: ICU 78 完整区域数据 (`--with-intl=full-icu`, 1.6.0 起; 1.5.1 至 1.5.7 为仅含英文数据的 small-icu); `Intl`, 区域格式化, 正则表达式的 Unicode 属性转义以及 Node 自身写到 stderr 的错误输出均与桌面版一致, 无需 `NODE_ICU_DATA`.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.
 - 文件系统: Node.js 原生 fs 模块, Android 权限允许范围内可访问任意设备路径, 运行时自身不保留拒绝边界.
-- TypeScript: 接受宿主产物并可通过 provider v3 按需编译运行中创建的项目文件; direct raw TypeScript 返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
-- ESM linker: `vm.SourceTextModule` / `vm.SyntheticModule`, 原生 live binding 与循环依赖.
+- TypeScript: 接受宿主编译产物, 映射预编译快照并可请求 provider v3 按需编译; 磁盘上的 raw TypeScript 模块经 Node 自身的类型剥离加载, 直接派发的 raw TypeScript 入口仍返回 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
+- ESM: Node.js 原生 loader + `module.registerHooks`; live binding, 循环依赖, `import.meta`, `data:` URL 与 `require(esm)` 与桌面一致.
 - 能力: 同步脚本执行, bundle transport, 原生内嵌运行时, 宿主能力代理, host capability live bridge.
 - 文件流、gzip/deflate/Brotli 压缩流和基础 VM 执行正式化; 显式启用的 Debug Inspector 在 localhost 范围内正式支持.
 - 嵌入执行不再输出 ExperimentalWarning 提示, 保留 warning 事件、普通警告、弃用警告和错误; Node 上游 API 稳定性与终端默认行为不变.
@@ -126,6 +126,9 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` process 对象仅保留 exit 的生命周期映射与 dlopen 的暂时拒绝, abort, kill, umask, binding, report, features 及 POSIX 身份调用均为 Node.js 原生行为; os 模块原生, homedir 与 tmpdir 通过执行环境变量 HOME/TMPDIR 指向工作目录, userInfo 返回真实的 Android 应用用户
 * `优化` module 内建模块改为仅覆盖 createRequire 的 Node.js 原生对象, registerHooks, enableCompileCache, findPackageJSON 等可直接使用; 删除仅在禁用原生网络时可达的 http, https, net, tls, dns 受限实现, 禁用时直接返回 ERR_AUTOJS6_BUILTIN_DISABLED
 * `优化` 插件信息 (INFO) 与运行时诊断的 supportedAbis 改为读取构建期写入清单的 org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (需要 AutoJs6-Gradle-Platform-Versions 1.9.0 起的 nativeAlignment 插件), 表示插件构建支持的全部 ABI 而非已安装分包; meta-data 缺失时回退为已安装包内实际打包的 ABI, 手写的 ABI 常量已删除
+* `优化` 模块加载改为 Node.js 原生 CommonJS / ESM loader: require, require.resolve, require.cache, require.extensions, Module._resolveFilename, module.register, import(), import.meta 与 require(esm) 全部为 Node 原生行为, 入口按 Node 主模块方式运行 (require.main === module, __filename / process.argv[1] 为 realpath); 运行时只注册 module.registerHooks 提供 autojs6:* 运行时模块与兼容 shim (autojs6: scheme, 同名 npm 包仍优先于 shim)、请求级 builtin 门禁、请求随附 / provider 物化 / TypeScript 快照的模块源码与入口内联源码; vm.SourceTextModule 自管 linker, 自定义 resolver, 动态 import 改写与 eval / Function 守卫全部移除, esmEnabled / dynamicImportEnabled 请求键不再起作用
+* `优化` worker 内模块加载同样由 Node 原生 loader 承担 (静态 / 动态 import, require(esm), with { type: "json" }, 工作区包解析), worker 引导只注册钩子提供随附模块源码与 worker_threads facade; 宿主 facade 在 worker 内为 MODULE_NOT_FOUND, 缺失模块与 scheme 错误为 Node 自身的 ERR_MODULE_NOT_FOUND / ERR_UNSUPPORTED_ESM_URL_SCHEME, inspector 仍拒绝
+* `优化` 原始 .ts / .mts / .cts 入口与导入模块仍须由宿主 Compiler 编译为 JavaScript; 保留快照映射与 provider v3 按需编译。模块加载失败使用 Node 原生错误码, 原 AutoJs6 ESM 与动态导入错误码退役。
 
 # v1.5.7
 

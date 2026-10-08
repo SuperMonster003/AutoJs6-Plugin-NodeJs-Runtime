@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Compatibility Profile
 
-Last reviewed: 2026-10-07. Published plugin: v1.5.7; subsequent local work: v1.6.0 (M23.1).
+Last reviewed: 2026-10-08. Published plugin: v1.5.7; subsequent local work: v1.6.0 (M23.3, first batch).
 
 The external runtime plugin supplies Node.js 24.21.0 / V8 / libuv for arm64-v8a,
 armeabi-v7a and x86_64. The host contains no libnode or Node JNI implementation.
@@ -42,9 +42,8 @@ asynchronous calls run on the libuv thread pool instead of a synchronous call qu
 the `Stats` / `Dirent` / `Dir` constructors are the native ones, `process.cwd()` /
 `process.chdir()` are native (the execution enters its working directory with a real
 chdir), and fs failures carry Node / Android codes only: `ERR_AUTOJS6_FS_NUL_BYTE`,
-`ERR_AUTOJS6_FS_PATH_ESCAPE` and `ERR_AUTOJS6_FS_SCOPED_PATH` are retired for fs (the
-module loader still raises the first two for NUL specifiers and package-target escapes
-until M23.3). `filesystemProfile.mode` reports `android_file_access` and
+`ERR_AUTOJS6_FS_PATH_ESCAPE` and `ERR_AUTOJS6_FS_SCOPED_PATH` are retired for fs and,
+since M23.3, for module resolution too. `filesystemProfile.mode` reports `android_file_access` and
 `advancedApis.recursiveWatch` reports `native`. The
 runtime keeps no module-source budget of its own (the 16 MiB per
 module, 64 MiB total, 8192 module and provider request-count caps are gone): modules
@@ -82,11 +81,31 @@ not printed to stderr. Warning events remain available through
 `console.error` output are preserved. Terminal `node` invocations keep the upstream
 defaults and can use that same option explicitly when needed.
 
-Plugin support status does not change upstream API stability. Node 24.21's
-`vm.Module`, `vm.SourceTextModule` and `vm.SyntheticModule` are still experimental;
-see the [Node VM documentation](https://nodejs.org/docs/v24.21.0/api/vm.html#class-vmmodule).
+Plugin support status does not change upstream API stability. Since M23.3 the runtime
+no longer drives `vm.SourceTextModule`: Node's own CommonJS and ESM loaders run the module
+graph (entry, `require`, `import()`, `require(esm)`, `import.meta`, package exports and
+imports), and the runtime only registers synchronous `module.registerHooks` (release
+candidate in Node 24) to serve the `autojs6:*` runtime modules, the request-level builtin
+gate, host-provided module sources and the entry's inline source. Scripts may still use
+`vm.Module` / `vm.SourceTextModule` / `vm.SyntheticModule` themselves; they remain
+experimental upstream, see the
+[Node VM documentation](https://nodejs.org/docs/v24.21.0/api/vm.html#class-vmmodule).
 `partial` entries describe remaining implementation or platform limitations and
 do not themselves produce `ExperimentalWarning` messages.
+
+The npm corpus now contains 23 packages, including `pirates` and `mock-require`:
+extension transforms, `Module._resolveFilename`, cache invalidation and reloading
+are checked against desktop Node 24. Native CJS/ESM interop also means that immediate
+`require(esm)` cycles report `ERR_REQUIRE_CYCLE_MODULE`, and object-literal
+`module.exports` does not promise arbitrary ESM named exports. Use the default
+import, or compiler output with explicit `exports.name` assignments.
+
+Synchronous hooks are registered separately in each worker bootstrap. Node does
+not automatically inherit `module.registerHooks()` callbacks into workers; preload
+scripts passed through `--require` or `--import` can be inherited via `execArgv`.
+See [Node's customization hooks documentation](https://r2.nodejs.org/docs/latest-v24.x/api/module.html#customization-hooks).
+Nested workers, worker-count removal and direct worker bridge access remain the
+second M23.3 batch; this loader migration does not claim those changes are complete.
 
 AutoJs6 capabilities use asynchronous host calls, declared in `node.permissions`.
 The host applies Android permissions and provider availability. A profile label
@@ -112,9 +131,12 @@ Inside workers `process.exit()` ends the thread as in Node and
 `process.getBuiltinModule()` answers from Node's own builtin inventory (M23.2; inspector and
 the bridge modules stay denied in workers, the request's network gate applies), and bare package
 specifiers resolve through the workspace `node_modules` as in Node (exports conditions,
-main, index, self-reference); dynamic `import()` inside workers goes through the worker
-partial ESM loader with `with { type: "json" }` support; nested workers are still
-unsupported. Subprocesses retain documented execution limits; bridge calls beyond the
+main, index, self-reference); since M23.3 the worker bootstrap only registers
+`module.registerHooks` for the request's module sources and the `worker_threads` facade, so
+static and dynamic `import()`, `require(esm)` and `with { type: "json" }` inside workers are
+Node's own, host facades are simply absent (`MODULE_NOT_FOUND`) and the ESM loader reports
+its own codes (`ERR_MODULE_NOT_FOUND`, `ERR_UNSUPPORTED_ESM_URL_SCHEME`); nested workers are
+still unsupported. Subprocesses retain documented execution limits; bridge calls beyond the
 `maxPendingBridgeCalls` window wait in FIFO order instead of failing, and the other
 `autojs6:bridge-limits` fields are enforced by the host broker rather than the runtime.
 The bridged `autojs6:fetch` / `autojs6:websocket` / `axios` facades pass caller timeouts,

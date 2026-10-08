@@ -1,6 +1,6 @@
 # AutoJs6 Node.js File Access and Android Permissions
 
-Last reviewed: 2026-10-07.
+Last reviewed: 2026-10-08.
 
 Node/V8 runs in the runtime plugin's Android application. Automation providers run
 in the host application. These applications have different UIDs: `fs` accesses
@@ -31,6 +31,13 @@ Project archives and output writeback are a separate transport. Their entry path
 size and count are checked when crossing application boundaries. Compiler-backed
 module providers select project inputs and check byte counts, file identities and
 generated module paths. These transport rules do not define ordinary fs access.
+
+M23.3 replaces the custom CJS resolver and `vm.SourceTextModule` graph with Node's
+native loaders. Synchronous `module.registerHooks` supplies request-attached and
+provider-owned sources, compiler output, runtime modules and compatibility shims.
+Raw TypeScript still goes through the host Compiler; loader migration does not
+enable Node type stripping as a fallback. Existing request-level builtin switches
+and worker lifecycle controls remain until their respective Roadmap items finish.
 
 Host capabilities currently require `node.permissions`, then Android permissions
 and an available provider. Screen capture requires the system consent flow;

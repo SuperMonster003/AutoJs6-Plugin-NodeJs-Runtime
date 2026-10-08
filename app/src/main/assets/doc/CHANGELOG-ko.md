@@ -17,6 +17,9 @@
 * `개선` process 에는 exit 의 수명 주기 매핑과 dlopen 의 임시 거부만 남고 abort, kill, umask, binding, report, features 및 POSIX 신원 호출은 Node.js 고유 동작입니다; os 는 네이티브이며 homedir 와 tmpdir 는 실행 환경 변수 HOME/TMPDIR (작업 디렉터리로 설정) 를 따르고 userInfo 는 실제 Android 앱 사용자를 반환합니다
 * `개선` module 내장 모듈은 createRequire 만 재정의한 Node.js 고유 객체가 되어 registerHooks, enableCompileCache, findPackageJSON 등을 사용할 수 있습니다; 네이티브 네트워크 비활성화 시에만 도달하던 http, https, net, tls, dns 제한 구현을 제거하고 해당 모드에서는 ERR_AUTOJS6_BUILTIN_DISABLED 를 직접 반환합니다
 * `개선` 플러그인 정보 (INFO) 와 런타임 진단의 supportedAbis는 이제 빌드 시 매니페스트에 기록되는 org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (AutoJs6-Gradle-Platform-Versions 1.9.0 이상의 nativeAlignment 플러그인) 에서 읽으며, 설치된 split이 아니라 플러그인이 빌드된 모든 ABI를 의미; meta-data가 없으면 설치된 APK에 패키징된 ABI로 되돌아가고 수기로 작성된 ABI 상수는 제거
+* `개선` 모듈 로딩이 Node.js 고유 CommonJS / ESM 로더로 바뀌어 require, require.resolve, require.cache, require.extensions, Module._resolveFilename, module.register, import(), import.meta, require(esm) 가 모두 네이티브 동작이며, 진입 스크립트는 Node 의 메인 모듈로 실행 (require.main === module, __filename / process.argv[1] 은 realpath); 런타임은 module.registerHooks 만 등록하여 autojs6:* 런타임 모듈과 호환 shim (autojs6: scheme, 같은 이름의 설치된 npm 패키지가 여전히 shim 보다 우선), 요청 단위 builtin 게이트, 요청 첨부 / provider 실체화 / TypeScript 스냅샷 모듈 소스와 진입 스크립트의 인라인 소스를 제공; vm.SourceTextModule 자체 링커, 자체 resolver, 동적 import() 재작성, eval / Function 가드는 모두 제거되고 esmEnabled / dynamicImportEnabled 요청 키는 더 이상 영향을 주지 않음
+* `개선` worker 내부의 모듈 로딩도 Node 고유 로더가 담당 (정적 / 동적 import, require(esm), with { type: "json" }, 워크스페이스 패키지 해석); worker 부트스트랩은 첨부 모듈 소스와 worker_threads 파사드용 훅만 등록; 호스트 파사드는 worker 안에서 MODULE_NOT_FOUND, 누락 모듈과 미지원 scheme 은 Node 고유의 ERR_MODULE_NOT_FOUND / ERR_UNSUPPORTED_ESM_URL_SCHEME, inspector 는 계속 거부
+* `개선` 원본 .ts / .mts / .cts 진입점과 가져온 모듈에는 여전히 호스트 Compiler가 생성한 JavaScript가 필요합니다. 스냅샷 매핑과 provider v3의 요청 시 컴파일을 유지하고, 기존 AutoJs6 ESM 및 동적 가져오기 오류 코드를 Node 기본 오류로 대체했습니다.
 
 # v1.5.7
 
