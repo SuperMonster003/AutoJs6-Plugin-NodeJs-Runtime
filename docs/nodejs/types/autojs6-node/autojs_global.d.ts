@@ -245,7 +245,7 @@ declare namespace AutoJs6Node {
     readonly overDeclaredPluginCapabilities: "rejected_before_code_execution" | string;
     readonly pluginNamespacePermissions: "rejected_in_manifest" | string;
     readonly androidProviderPlugins: "deferred" | "denied" | "partial" | string;
-    readonly nativePlugins: "denied" | "deferred" | "partial" | string;
+    readonly nativePlugins: "node_addon_dependencies" | string;
     readonly remoteMarketplace: "deferred" | "denied" | "partial" | string;
     readonly signedArchives: "deferred" | "required" | string;
     readonly updateChannel: "deferred" | "partial" | string;
@@ -271,9 +271,9 @@ declare namespace AutoJs6Node {
     readonly hashFormat: "ssri_sha512_base64" | string;
     readonly androidPackageManager: "transactional_local_store" | string;
     readonly pluginPackages: "local_checked_files_signed_archives_deferred" | string;
-    readonly nativeAddons: "denied_until_signed_packaged_artifacts" | string;
+    readonly nativeAddons: "node_android_loader" | string;
     readonly signatureScheme: "autojs6-package-signature-v1" | string;
-    readonly signaturePolicy: "required_before_plugin_native_promotion" | string;
+    readonly signaturePolicy: "plugin_archives_only_native_addons_use_node" | string;
     readonly rollback: "staging_restore_previous_on_failure" | string;
     readonly cacheCleanup: "staging_prune_and_reinstall_required" | string;
     readonly corruptionRecovery: "verify_mismatch_reinstall_required" | string;
@@ -625,7 +625,7 @@ declare namespace AutoJs6Node {
     readonly abort: "unavailable_as_node" | string;
     readonly chdir: "unavailable_as_node" | string;
     readonly kill: "native_shared_runtime_process" | string;
-    readonly dlopen: "denied_native_addon" | string;
+    readonly dlopen: "native" | string;
   }
 
   export interface WorkerThreadsProfile {
@@ -738,27 +738,26 @@ declare namespace AutoJs6Node {
     readonly rawFdNumbers: boolean;
   }
 
+  /** Android-compatible addons use Node's loader; binaries follow the process ABI. */
   export interface NativeAddonProfile {
-    readonly status: "unsupported_by_policy" | string;
+    readonly status: "native_available" | string;
     readonly defaultEnabled: boolean;
     readonly targetProfiles: readonly string[];
-    readonly module: "denied" | "partial" | string;
-    readonly requireExtension: "denied" | "partial" | string;
-    readonly processDlopen: "denied" | string;
-    readonly processBinding: "denied" | string;
-    readonly nodeGyp: "denied" | string;
-    readonly downloadedArtifacts: "denied" | string;
-    readonly signedPackagedOnly: "required_before_enablement" | string;
-    readonly abiAllowlist: "required_before_enablement" | string;
-    readonly hashAllowlist: "required_before_enablement" | string;
-    readonly dependencyScan: "required_before_enablement" | string;
-    readonly crashIsolation: "required_before_enablement" | string;
+    readonly module: "native" | string;
+    readonly requireExtension: "native" | string;
+    readonly processDlopen: "native" | string;
+    readonly processBinding: "native" | string;
+    readonly nodeGyp: "not_bundled" | string;
+    readonly downloadedArtifacts: "android_compatible_prebuilds" | string;
+    readonly abiSelection: "process_arch" | string;
+    readonly dependencyResolution: "android_dynamic_linker" | string;
+    readonly pageAlignmentBytes: number;
+    readonly crashIsolation: "runtime_process" | string;
     readonly packagedBehavior: "not_applicable_no_packaged_runtime" | string;
-    readonly jniBridge: "denied" | string;
-    readonly rawDlopen: "denied" | string;
-    readonly nativeMemoryAccess: "denied" | string;
+    readonly jniBridge: "addon_owned" | string;
+    readonly rawDlopen: "native" | string;
+    readonly nativeMemoryAccess: "addon_owned" | string;
     readonly rawNativeHandles: boolean;
-    readonly downloadExec: boolean;
   }
 
   export interface ChildProcessProfile {

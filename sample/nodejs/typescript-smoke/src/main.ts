@@ -934,10 +934,10 @@ async function smoke(): Promise<void> {
   const wasiProfileRawFdNumbers: boolean = autojsProfile.wasiProfile.rawFdNumbers;
   const nativeAddonProfileStatus: string = autojsProfile.nativeAddonProfile.status;
   const nativeAddonProfileTargetProfiles: readonly string[] = autojsProfile.nativeAddonProfile.targetProfiles;
-  const nativeAddonProfileAbiAllowlist: string = autojsProfile.nativeAddonProfile.abiAllowlist;
-  const nativeAddonProfileHashAllowlist: string = autojsProfile.nativeAddonProfile.hashAllowlist;
+  const nativeAddonProfileAbiSelection: string = autojsProfile.nativeAddonProfile.abiSelection;
+  const nativeAddonProfileDependencyResolution: string = autojsProfile.nativeAddonProfile.dependencyResolution;
   const nativeAddonProfileCrashIsolation: string = autojsProfile.nativeAddonProfile.crashIsolation;
-  const nativeAddonProfileDownloadExec: boolean = autojsProfile.nativeAddonProfile.downloadExec;
+  const nativeAddonProfileAlignment: number = autojsProfile.nativeAddonProfile.pageAlignmentBytes;
   const childProcessProfileStatus: string = autojsProfile.childProcessProfile.status;
   const childProcessProfileTargetProfiles: readonly string[] = autojsProfile.childProcessProfile.targetProfiles;
   const childProcessProfileImplementation: string = autojsProfile.childProcessProfile.implementation;
@@ -1310,10 +1310,10 @@ async function smoke(): Promise<void> {
   void wasiProfileRawFdNumbers;
   void nativeAddonProfileStatus;
   void nativeAddonProfileTargetProfiles;
-  void nativeAddonProfileAbiAllowlist;
-  void nativeAddonProfileHashAllowlist;
+  void nativeAddonProfileAbiSelection;
+  void nativeAddonProfileDependencyResolution;
   void nativeAddonProfileCrashIsolation;
-  void nativeAddonProfileDownloadExec;
+  void nativeAddonProfileAlignment;
   void childProcessProfileStatus;
   void childProcessProfileTargetProfiles;
   void childProcessProfileImplementation;

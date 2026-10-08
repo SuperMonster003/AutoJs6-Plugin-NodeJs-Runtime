@@ -59,9 +59,15 @@ Worker host calls use a private parent MessagePort. All hops reach the root
 execution's existing capability broker, so declarations and Android permissions
 apply as before. This avoids registering process-global JNI callbacks separately
 for each isolate. The preload file contains plugin code only; request sources and
-bridge ports are cloned/transferred in memory. Remaining work includes the native
-addon decision (M23.4) and Release Inspector (M23.5), both tracked in
-[M23](../../Roadmap.md).
+bridge ports are cloned/transferred in memory.
+
+M23.4 restores Node's native addon loader in both main scripts and workers, with
+no plugin-specific addon signature/ABI allowlist. Android's UID, SELinux and
+linker namespace rules still govern library access. Binary `.node` files must be
+Android-compatible and match the process architecture; dependencies and page
+alignment must also match the device. Addon code runs in the runtime slot
+process, and native faults are reported by the existing process-exit/crash path.
+Release Inspector remains a separate [M23.5 item](../../Roadmap.md).
 
 Plugin discovery, caller trust, Binder ownership and grants to remote MCP callers
 remain host integration responsibilities. Shared Android providers do not make a

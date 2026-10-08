@@ -1102,14 +1102,6 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     }
   }
-  function __autojs6_disabled_process_api(apiName) {
-    return function () {
-      throw __autojs6_error(
-        "process." + apiName + " is disabled in Embedded Node.js MVP.",
-        "ERR_AUTOJS6_PROCESS_API_DISABLED"
-      );
-    };
-  }
   function __autojs6_process_exit_code(value) {
     let candidate = value;
     if (candidate === undefined || candidate === null) {
@@ -2681,7 +2673,6 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_install_process_timing_fallbacks();
     __autojs6_install_process_usage_fallbacks();
     __autojs6_install_process_safety_guards();
-    __autojs6_define_process_property("dlopen", __autojs6_disabled_process_api("dlopen"), false);
     try {
       process.chdir(__autojs6_current_working_directory);
     } catch (error) {
@@ -3518,9 +3509,6 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_typescript_snapshot_error(message, code) {
     return __autojs6_error(message, code);
   }
-  function __autojs6_native_addon_disabled(message) {
-    return __autojs6_error(message, "ERR_AUTOJS6_NATIVE_ADDON_DISABLED");
-  }
   function __autojs6_resolve_trace_enabled() {
     try {
       if (typeof process !== "object" || !process || !process.env) return false;
@@ -3581,7 +3569,7 @@ std::string buildEmbeddedScriptExecutionSource(
       childProcess: __autojs6_child_process_enabled,
       dynamicImport: true,
       esm: true,
-      nativeAddon: false,
+      nativeAddon: true,
       network: true,
       rawNodeNetworkModules: __autojs6_raw_node_network_modules_enabled,
       npmInstall: false,
@@ -3794,18 +3782,18 @@ std::string buildEmbeddedScriptExecutionSource(
         id: "native_addon",
         diagnosticName: "nativeAddon",
         gradleProperty: null,
-        defaultEnabled: false,
-        enabled: false,
+        defaultEnabled: true,
+        enabled: true,
         buildTimeOverrideAllowed: false,
         projectJsonOverrideAllowed: false,
         packagedApkOverrideAllowed: false,
         buildOnly: false,
         debugOnly: false,
-        projectAllowed: false,
+        projectAllowed: true,
         packagedAllowed: false,
-        releaseForbidden: true,
+        releaseForbidden: false,
         securityLevel: "critical",
-        status: "unsupported"
+        status: "available"
       }),
       child_process: Object.freeze({
         id: "child_process",
@@ -3852,7 +3840,7 @@ std::string buildEmbeddedScriptExecutionSource(
       workerThreads: __autojs6_worker_threads_enabled,
       javaInterop: __autojs6_java_interop_enabled,
       inspector: __autojs6_inspector_enabled,
-      nativeAddon: false,
+      nativeAddon: true,
       scopedFs: false,
       esmLoaderProfile: Object.freeze({
         status: "node_native_loader",
@@ -4031,8 +4019,7 @@ std::string buildEmbeddedScriptExecutionSource(
         moduleAliases: Object.freeze(["process", "node:process"]),
         androidDifferences: "documented_stable",
         androidUnsupported: Object.freeze([
-          "native_process_exit",
-          "raw_dlopen"
+          "native_process_exit"
         ]),
         packagedBehavior: "not_applicable_no_packaged_runtime",
         rawDesktopParity: false,
@@ -4099,7 +4086,7 @@ std::string buildEmbeddedScriptExecutionSource(
         overDeclaredPluginCapabilities: "rejected_before_code_execution",
         pluginNamespacePermissions: "rejected_in_manifest",
         androidProviderPlugins: "deferred",
-        nativePlugins: "denied",
+        nativePlugins: "node_addon_dependencies",
         remoteMarketplace: "deferred",
         signedArchives: "deferred",
         updateChannel: "deferred",
@@ -4107,7 +4094,7 @@ std::string buildEmbeddedScriptExecutionSource(
         resourceOwnership: "plugin_lifecycle_context_partial",
         debugReload: "debug_only",
         downloadInstaller: false,
-        nativeAddonLoading: false,
+        nativeAddonLoading: true,
         androidPluginApkBridge: false,
         marketplaceInstall: false,
         persistedGlobalState: false,
@@ -4124,9 +4111,9 @@ std::string buildEmbeddedScriptExecutionSource(
         hashFormat: "ssri_sha512_base64",
         androidPackageManager: "transactional_local_store",
         pluginPackages: "local_checked_files_signed_archives_deferred",
-        nativeAddons: "denied_until_signed_packaged_artifacts",
+        nativeAddons: "node_android_loader",
         signatureScheme: "autojs6-package-signature-v1",
-        signaturePolicy: "required_before_plugin_native_promotion",
+        signaturePolicy: "plugin_archives_only_native_addons_use_node",
         rollback: "staging_restore_previous_on_failure",
         cacheCleanup: "staging_prune_and_reinstall_required",
         corruptionRecovery: "verify_mismatch_reinstall_required",
@@ -4136,17 +4123,16 @@ std::string buildEmbeddedScriptExecutionSource(
           "prune_stale_transactions",
           "reinstall_from_verified_source",
           "restore_previous_transaction_snapshot",
-          "disable_unsigned_plugin_or_native_subject"
+          "disable_unsigned_plugin_subject"
         ]),
         subjects: Object.freeze([
           "android_package_manager",
-          "plugin_packages",
-          "native_addons"
+          "plugin_packages"
         ]),
         unsafePackageExecution: false,
         rawRegistryInstall: false,
         unsignedPluginInstall: false,
-        unsignedNativeAddonLoad: false,
+        unsignedNativeAddonLoad: true,
         lifecycleScripts: false,
         postinstallDownloads: false,
         unverifiedCacheReuse: false
@@ -4197,7 +4183,7 @@ std::string buildEmbeddedScriptExecutionSource(
           abort: "unavailable_as_node",
           chdir: "unavailable_as_node",
           kill: "native_shared_runtime_process",
-          dlopen: "denied_native_addon"
+          dlopen: "native"
         }),
         policy: __autojs6_worker_threads_policy_snapshot()
       }),
@@ -4286,26 +4272,24 @@ std::string buildEmbeddedScriptExecutionSource(
         rawFdNumbers: false
       }),
       nativeAddonProfile: Object.freeze({
-        status: "unsupported_by_policy",
-        defaultEnabled: false,
-        targetProfiles: Object.freeze([]),
-        module: "denied",
-        requireExtension: "denied",
-        processDlopen: "denied",
-        processBinding: "denied",
-        nodeGyp: "denied",
-        downloadedArtifacts: "denied",
-        signedPackagedOnly: "required_before_enablement",
-        abiAllowlist: "required_before_enablement",
-        hashAllowlist: "required_before_enablement",
-        dependencyScan: "required_before_enablement",
-        crashIsolation: "required_before_enablement",
+        status: "native_available",
+        defaultEnabled: true,
+        targetProfiles: Object.freeze(["safe_default"]),
+        module: "native",
+        requireExtension: "native",
+        processDlopen: "native",
+        processBinding: "native",
+        nodeGyp: "not_bundled",
+        downloadedArtifacts: "android_compatible_prebuilds",
+        abiSelection: "process_arch",
+        dependencyResolution: "android_dynamic_linker",
+        pageAlignmentBytes: 16384,
+        crashIsolation: "runtime_process",
         packagedBehavior: "not_applicable_no_packaged_runtime",
-        jniBridge: "denied",
-        rawDlopen: "denied",
-        nativeMemoryAccess: "denied",
-        rawNativeHandles: false,
-        downloadExec: false
+        jniBridge: "addon_owned",
+        rawDlopen: "native",
+        nativeMemoryAccess: "addon_owned",
+        rawNativeHandles: true
       }),
       childProcessProfile: Object.freeze({
         status: __autojs6_child_process_enabled ? "stable" : "disabled_by_request",
@@ -4349,7 +4333,6 @@ std::string buildEmbeddedScriptExecutionSource(
       deniedFeatureFlags,
       errorCodes: Object.freeze({
         builtinDisabled: "ERR_AUTOJS6_BUILTIN_DISABLED",
-        processApiDisabled: "ERR_AUTOJS6_PROCESS_API_DISABLED",
         networkDisabled: "ERR_AUTOJS6_NETWORK_DISABLED",
         networkAborted: "ERR_AUTOJS6_NETWORK_ABORTED",
         networkTimeout: "ERR_AUTOJS6_NETWORK_TIMEOUT",
@@ -4384,7 +4367,6 @@ std::string buildEmbeddedScriptExecutionSource(
         javaMethodDenied: "ERR_AUTOJS6_JAVA_METHOD_DENIED",
         javaReflectionDenied: "ERR_AUTOJS6_JAVA_REFLECTION_DENIED",
         javaCallFailed: "ERR_AUTOJS6_JAVA_CALL_FAILED",
-        nativeAddonDisabled: "ERR_AUTOJS6_NATIVE_ADDON_DISABLED",
         legacyAliases: Object.freeze(legacyAliases)
       }),
       compileCache: __autojs6_compile_cache_profile_snapshot(),
@@ -4411,7 +4393,7 @@ std::string buildEmbeddedScriptExecutionSource(
       raw_node_network_modules: "built_in_stable_no_build_switch",
       filesystem_relaxation: "safe_profile_scoped_fs",
       child_process: "built_in_stable_no_build_switch",
-      native_addon: "stable_denial_no_runtime_switch",
+      native_addon: "node_native_loader",
       inspector: "debug_build_plus_explicit_request",
       wasi: "stable_denial_no_runtime_switch"
     });
@@ -4536,10 +4518,10 @@ std::string buildEmbeddedScriptExecutionSource(
         }),
         Object.freeze({
           id: "native_addon",
-          profile: "desktop_compat_opt_in",
+          profile: "safe_default",
           property: capabilityKillSwitches.native_addon,
-          enabled: false,
-          rollbackAction: "keep_node_extension_and_dlopen_denied",
+          enabled: flagEnabled("native_addon"),
+          rollbackAction: "stop_runtime_and_report_native_crash",
           fallbackProfile: "safe_default"
         }),
         Object.freeze({
@@ -4847,19 +4829,6 @@ std::string buildEmbeddedScriptExecutionSource(
           null
         ),
         __autojs6_privacy_disclosure_surface(
-          "native_addon",
-          "native_addon",
-          "desktop_compat_opt_in",
-          Object.freeze([]),
-          true,
-          false,
-          false,
-          false,
-          "packaged_metadata_review",
-          "signed_native_artifact_review",
-          null
-        ),
-        __autojs6_privacy_disclosure_surface(
           "inspector",
           "inspector",
           "debug_unsafe_lab",
@@ -4915,7 +4884,6 @@ std::string buildEmbeddedScriptExecutionSource(
           "app_query",
           "network",
           "raw_network",
-          "native_addon",
           "wasi"
         ]),
         __autojs6_privacy_disclosure_channel("doctor_report", "diagnostic_only", ["java_interop", "child_process"])
@@ -8722,10 +8690,6 @@ std::string buildEmbeddedScriptExecutionSource(
         globalThis.WebSocket = new Proxy(globalThis.WebSocket, { construct() { throw disabled("WebSocket"); } });
       }
     }
-    // Addon loading remains the separate M23.4 item.
-    process.dlopen = () => { throw Object.assign(new Error("Native addon loading is not enabled."), {
-      code: "ERR_AUTOJS6_PROCESS_API_DISABLED", autojs6Code: "ERR_AUTOJS6_PROCESS_API_DISABLED"
-    }); };
     process.getBuiltinModule = function(id) {
       const value = getBuiltinModule(id);
       if (value) builtinGate(id);
@@ -21025,15 +20989,7 @@ std::string buildEmbeddedScriptExecutionSource(
       realPluginDir
     };
   }
-  function __autojs6_plugin_native_file_extension(extension) {
-    const normalized = __autojs6_normalized_extension(extension);
-    return normalized === ".so" ||
-      normalized === ".dll" ||
-      normalized === ".dylib" ||
-      normalized === ".a" ||
-      normalized === ".o";
-  }
-  function __autojs6_plugin_scan_native_files(descriptor, methodName) {
+  function __autojs6_plugin_scan_files(descriptor, methodName) {
     const path = descriptor.scope.path;
     const fs = descriptor.scope.fs;
     const stack = [{ dir: descriptor.pluginDir, depth: 0 }];
@@ -21063,19 +21019,6 @@ std::string buildEmbeddedScriptExecutionSource(
             methodName,
             "AutoJs6 JS plugin file escapes the plugin directory: " + name,
             absolute
-          );
-        }
-        const extension = __autojs6_normalized_extension(path.extname(absolute));
-        __autojs6_throw_if_native_addon_extension(
-          extension,
-          absolute,
-          "AutoJs6 JS plugin scan",
-          "AutoJs6 JS plugin '" + descriptor.id + "' contains a .node native addon: " + absolute
-        );
-        if (__autojs6_plugin_native_file_extension(extension)) {
-          throw __autojs6_plugins_permission_denied(
-            methodName,
-            "AutoJs6 JS plugin '" + descriptor.id + "' contains a native file unsupported by the JS-only prototype: " + absolute
           );
         }
         const lstat = fs.lstatSync(absolute);
@@ -21131,12 +21074,6 @@ std::string buildEmbeddedScriptExecutionSource(
       );
     }
     const extension = __autojs6_normalized_extension(path.extname(base));
-    __autojs6_throw_if_native_addon_extension(
-      extension,
-      descriptor.id,
-      "AutoJs6 JS plugin entry",
-      "AutoJs6 JS plugin '" + descriptor.id + "' entry resolves to a .node native addon: " + entry
-    );
     if (extension !== ".js" && extension !== ".cjs") {
       throw __autojs6_plugins_permission_denied(
         methodName,
@@ -21214,7 +21151,7 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_plugin_descriptor(idValue, methodName) {
     const id = __autojs6_plugin_id(idValue, methodName);
     const descriptor = __autojs6_plugin_package_descriptor(id, methodName);
-    __autojs6_plugin_scan_native_files(descriptor, methodName);
+    __autojs6_plugin_scan_files(descriptor, methodName);
     descriptor.entryPath = __autojs6_plugin_entry_path(descriptor, methodName);
     descriptor.capability = __autojs6_bridge_normalize_capability("plugin." + descriptor.id);
     return descriptor;
@@ -21237,7 +21174,7 @@ std::string buildEmbeddedScriptExecutionSource(
       dependencies: Object.freeze(descriptor.dependencies.slice()),
       exports: Object.freeze(Object.assign({}, descriptor.exports)),
       jsOnly: true,
-      nativeAddons: false
+      nativeAddons: true
     });
   }
   function __autojs6_plugin_capability_subset(descriptor) {
@@ -23940,12 +23877,6 @@ std::string buildEmbeddedScriptExecutionSource(
     if (!allowEsm) {
       __autojs6_throw_if_esm_extension(extension, absolute, "Embedded Node dynamic require fallback");
     }
-    __autojs6_throw_if_native_addon_extension(
-      extension,
-      absolute,
-      "Embedded Node dynamic require fallback",
-      "Unsupported Embedded Node dynamic require fallback extension in MVP: " + absolute
-    );
     if (extension && !__autojs6_supported_local_module_extension(extension) && !(allowEsm && __autojs6_is_esm_extension(extension))) {
       throw __autojs6_runtime_module_error("Unsupported Embedded Node dynamic require fallback extension in MVP: " + absolute);
     }
@@ -24421,9 +24352,6 @@ std::string buildEmbeddedScriptExecutionSource(
     const normalized = __autojs6_normalized_extension(extension);
     return normalized === ".mjs" || normalized === ".mts";
   }
-  function __autojs6_is_native_addon_extension(extension) {
-    return __autojs6_normalized_extension(extension) === ".node";
-  }
   function __autojs6_throw_if_raw_typescript_extension(extension, sourceName, context) {
     if (/^\.(?:tsx?|mts|cts)$/.test(__autojs6_normalized_extension(extension))) {
       throw __autojs6_runtime_module_error(
@@ -24441,12 +24369,6 @@ std::string buildEmbeddedScriptExecutionSource(
     if (!allowEsm) {
       __autojs6_throw_if_esm_extension(extension, absolute, context);
     }
-    __autojs6_throw_if_native_addon_extension(
-      extension,
-      absolute,
-      context,
-      "Unsupported Embedded Node module source extension in MVP: " + absolute
-    );
     if (extension && !__autojs6_supported_local_module_extension(extension) && !(allowEsm && __autojs6_is_esm_extension(extension))) {
       throw __autojs6_runtime_module_error("Unsupported Embedded Node module source extension in MVP: " + absolute);
     }
@@ -24460,14 +24382,6 @@ std::string buildEmbeddedScriptExecutionSource(
         );
       }
       throw __autojs6_esm_unsupported(__autojs6_esm_unsupported_message(__autojs6_mjs_unsupported_detail(detail)));
-    }
-  }
-  function __autojs6_throw_if_native_addon_extension(extension, moduleName, context, legacyMessage) {
-    if (__autojs6_is_native_addon_extension(extension)) {
-      throw __autojs6_native_addon_disabled(
-        legacyMessage + ". Native addon loading is disabled in AutoJs6 Safe Node Profile; " +
-          context + " resolves to a .node native addon for '" + moduleName + "'."
-      );
     }
   }
   function __autojs6_source_extension(sourceName) {
@@ -26645,6 +26559,8 @@ std::string buildEmbeddedScriptExecutionSource(
     return __autojs6_module_source_provider_available;
   }
   function __autojs6_served_module_record(filename) {
+    // Addons are native libraries on disk, not provider-served JavaScript text.
+    if (__autojs6_source_extension(filename) === ".node") return null;
     const pinned = __autojs6_source_table_key(__autojs6_pinned_module_sources, filename);
     if (pinned !== undefined) return __autojs6_pinned_module_sources[pinned];
     const bundled = __autojs6_source_table_key(__autojs6_module_sources, filename);
@@ -26714,12 +26630,13 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_virtual_module_candidates(base) {
     const path = __autojs6_path_module();
     return [
-      base, base + ".js", base + ".cjs", base + ".mjs", base + ".json", base + ".ts", base + ".mts", base + ".cts",
+      base, base + ".js", base + ".cjs", base + ".mjs", base + ".json", base + ".node", base + ".ts", base + ".mts", base + ".cts",
       path.join(base, "index.js"), path.join(base, "index.cjs"), path.join(base, "index.mjs"),
-      path.join(base, "index.json"), path.join(base, "index.ts")
+      path.join(base, "index.json"), path.join(base, "index.node"), path.join(base, "index.ts")
     ];
   }
   function __autojs6_served_module_path(candidate, specifier, parentFilename, knownOnly) {
+    if (__autojs6_source_extension(candidate) === ".node") return null;
     const pinned = __autojs6_source_table_key(__autojs6_pinned_module_sources, candidate);
     if (pinned !== undefined) return pinned;
     const bundled = __autojs6_source_table_key(__autojs6_module_sources, candidate);

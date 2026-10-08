@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.22)
+project(autojs6_hello_addon LANGUAGES C)
+
+if(NOT ANDROID)
+    message(FATAL_ERROR "Use the Android NDK toolchain to build this sample")
+endif()
+
+get_filename_component(REPOSITORY_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+set(NODE_HEADERS "${REPOSITORY_ROOT}/app/src/main/cpp/node-v24.21.0/include/node")
+set(NODE_LIBRARY "${REPOSITORY_ROOT}/app/src/main/jniLibs/${ANDROID_ABI}/libnode.so")
+if(NOT EXISTS "${NODE_HEADERS}/node_api.h" OR NOT EXISTS "${NODE_LIBRARY}")
+    message(FATAL_ERROR "The repository's Node headers and materialized libnode.so are required")
+endif()
+
+set(CMAKE_SKIP_RPATH TRUE)
+add_library(node SHARED IMPORTED)
+set_target_properties(node PROPERTIES IMPORTED_LOCATION "${NODE_LIBRARY}")
+
+add_library(hello SHARED hello.c)
+set_target_properties(hello PROPERTIES PREFIX "" SUFFIX ".node" C_STANDARD 11 C_STANDARD_REQUIRED YES)
+target_include_directories(hello PRIVATE "${NODE_HEADERS}")
+target_compile_definitions(hello PRIVATE NAPI_VERSION=8 NODE_GYP_MODULE_NAME=autojs6_hello AUTOJS6_ADDON_ABI="${ANDROID_ABI}")
+target_compile_options(hello PRIVATE -Wall -Wextra -Werror)
+target_link_libraries(hello PRIVATE node)
+target_link_options(hello PRIVATE "-Wl,-z,max-page-size=16384" "-Wl,--no-undefined")

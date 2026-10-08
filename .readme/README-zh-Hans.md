@@ -107,6 +107,7 @@ console.log("AutoJs6 Node.js runtime");
 - 文件流、gzip/deflate/Brotli 压缩流和基础 VM 执行正式化; 显式启用的 Debug Inspector 在 localhost 范围内正式支持.
 - 嵌入执行不再输出 ExperimentalWarning 提示, 保留 warning 事件、普通警告、弃用警告和错误; Node 上游 API 稳定性与终端默认行为不变.
 - 原生 Worker 支持嵌套, MessagePort API, stdio, argv, execArgv 与预加载继承; 删除插件自设的 Worker 数量和启动时限, 请求 resourceLimits 仅作可覆盖的默认值, WorkerPool 默认不限制排队数量或任务时长; Inspector 会话遵循执行请求与当前构建支持
+- 主脚本与 Worker 可通过 Node 加载 Android native addon, process.dlopen 与 .node 扩展恢复原生行为, 不设插件自有签名或哈希白名单; native-addon 示例提供三 ABI 的 16 KB 对齐 Node-API 产物和离线 NDK/CMake 构建; 错 ABI 或损坏二进制返回 ERR_DLOPEN_FAILED 等 Node 错误, 设备端不随包提供 node-gyp 或 NDK
 
 ******
 
@@ -124,13 +125,14 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` Node.js 运行库改用完整 ICU 数据构建 (--with-intl=full-icu), Intl 及各区域的格式化行为与桌面版 Node.js 一致, 不再需要 NODE_ICU_DATA
 * `优化` crypto.createPrivateKey 及签名 API 支持 file: URL 形式的 OpenSSL STORE 密钥输入 (移除 Android 构建中的禁用补丁)
 * `优化` 全部 Node.js 内建模块 (含 cluster, domain, repl, trace_events, wasi, constants, node:sea 等) 按 Node 自身的 module.builtinModules 清单直接返回原生导出, require, require.resolve, import, process.getBuiltinModule 与 module.isBuiltin 行为与桌面版一致, 仅保留 worker_threads, child_process, inspector 及原生网络模块的请求级门禁; node:wasi 随 /proc 边界的删除一并放开 (trace_events 在当前未启用 tracing 的运行库中与 Node 一样抛出 ERR_TRACE_EVENTS_UNAVAILABLE)
-* `优化` process 对象仅保留 exit 的生命周期映射与 dlopen 的暂时拒绝, abort, kill, umask, binding, report, features 及 POSIX 身份调用均为 Node.js 原生行为; os 模块原生, homedir 与 tmpdir 通过执行环境变量 HOME/TMPDIR 指向工作目录, userInfo 返回真实的 Android 应用用户
+* `优化` process 仅保留 exit 的生命周期映射; dlopen, abort, kill, umask, binding, report, features 及 POSIX 身份调用使用 Node 原生实现; os 为原生模块, homedir 与 tmpdir 遵循 HOME/TMPDIR, userInfo 返回 Android 应用用户
 * `优化` module 内建模块改为仅覆盖 createRequire 的 Node.js 原生对象, registerHooks, enableCompileCache, findPackageJSON 等可直接使用; 删除仅在禁用原生网络时可达的 http, https, net, tls, dns 受限实现, 禁用时直接返回 ERR_AUTOJS6_BUILTIN_DISABLED
 * `优化` 插件信息 (INFO) 与运行时诊断的 supportedAbis 改为读取构建期写入清单的 org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (需要 AutoJs6-Gradle-Platform-Versions 1.9.0 起的 nativeAlignment 插件), 表示插件构建支持的全部 ABI 而非已安装分包; meta-data 缺失时回退为已安装包内实际打包的 ABI, 手写的 ABI 常量已删除
 * `优化` 模块加载改为 Node.js 原生 CommonJS / ESM loader: require, require.resolve, require.cache, require.extensions, Module._resolveFilename, module.register, import(), import.meta 与 require(esm) 全部为 Node 原生行为, 入口按 Node 主模块方式运行 (require.main === module, __filename / process.argv[1] 为 realpath); 运行时只注册 module.registerHooks 提供 autojs6:* 运行时模块与兼容 shim (autojs6: scheme, 同名 npm 包仍优先于 shim)、请求级 builtin 门禁、请求随附 / provider 物化 / TypeScript 快照的模块源码与入口内联源码; vm.SourceTextModule 自管 linker, 自定义 resolver, 动态 import 改写与 eval / Function 守卫全部移除, esmEnabled / dynamicImportEnabled 请求键不再起作用
 * `优化` 原生 Worker 支持嵌套, MessagePort API, stdio, argv, execArgv 与预加载继承; 删除插件自设的 Worker 数量和启动时限, 请求 resourceLimits 仅作可覆盖的默认值, WorkerPool 默认不限制排队数量或任务时长; Inspector 会话遵循执行请求与当前构建支持
 * `优化` Worker 与嵌套 Worker 可通过父线程 MessagePort 使用 autojs6:bridge.callAutoJs, 复用宿主 broker 的权限检查, 错误, 超时与取消; worker-host-bridge 示例演示读取真实宿主设备信息, 并提供桥 API 的 TypeScript 声明
 * `优化` 原始 .ts / .mts / .cts 入口与导入模块仍须由宿主 Compiler 编译为 JavaScript; 保留快照映射与 provider v3 按需编译。模块加载失败使用 Node 原生错误码, 原 AutoJs6 ESM 与动态导入错误码退役。
+* `优化` 主脚本与 Worker 可通过 Node 加载 Android native addon, process.dlopen 与 .node 扩展恢复原生行为, 不设插件自有签名或哈希白名单; native-addon 示例提供三 ABI 的 16 KB 对齐 Node-API 产物和离线 NDK/CMake 构建; 错 ABI 或损坏二进制返回 ERR_DLOPEN_FAILED 等 Node 错误, 设备端不随包提供 node-gyp 或 NDK
 
 # v1.5.7
 

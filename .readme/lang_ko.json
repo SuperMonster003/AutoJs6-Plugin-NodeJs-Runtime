@@ -45,7 +45,8 @@
     "기능: 동기 스크립트 실행, bundle transport, 네이티브 내장 런타임, 호스트 기능 브로커, host capability live bridge.",
     "파일 스트림, gzip/deflate/Brotli 스트림 및 기본 VM 실행을 정식 지원; 명시적으로 활성화한 Debug Inspector는 localhost 범위에서 정식 지원.",
     "내장 실행에서 ExperimentalWarning 출력을 중단하고 warning 이벤트, 일반 경고, 사용 중단 경고 및 오류를 유지; Node 상위 API 안정성과 터미널 기본 동작은 변경되지 않음.",
-    "네이티브 Worker가 중첩, MessagePort API, stdio, argv, execArgv 및 사전 로드 상속을 지원; 플러그인의 Worker 수와 시작 시간 제한을 제거하고 요청 resourceLimits를 재정의 가능한 기본값으로 변경; WorkerPool은 기본 대기열 및 작업 시간 제한이 없으며 Inspector 세션은 실행 요청과 현재 빌드 지원을 따름"
+    "네이티브 Worker가 중첩, MessagePort API, stdio, argv, execArgv 및 사전 로드 상속을 지원; 플러그인의 Worker 수와 시작 시간 제한을 제거하고 요청 resourceLimits를 재정의 가능한 기본값으로 변경; WorkerPool은 기본 대기열 및 작업 시간 제한이 없으며 Inspector 세션은 실행 요청과 현재 빌드 지원을 따름",
+    "메인 스크립트와 Worker에서 Node를 통해 Android 네이티브 애드온을 로드 가능; process.dlopen과 .node는 기본 동작을 사용하며 별도 서명 또는 해시 허용 목록이 없음; native-addon은 3개 ABI의 16 KB 정렬 Node-API 바이너리와 오프라인 NDK/CMake 빌드를 제공; ABI 불일치나 손상은 ERR_DLOPEN_FAILED 등의 Node 오류로 반환되며 기기용 node-gyp 또는 NDK는 포함하지 않음"
   ],
   "h3_release_history": "릴리스 기록",
   "h5_for_more_release_history": "더 많은 릴리스 기록",

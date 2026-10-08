@@ -8,6 +8,6 @@ runs.
 - Capabilities: `plugins`, `plugin.org.example.wasm_math`, `WebAssembly`
 - Expected provider: JS plugin manager plus V8 WebAssembly in Node
 - Packaged support: not applicable
-- Security limitations: plugin code runs with the project's bridge permissions only; native addons remain unsupported by policy
+- Security limitations: plugin code runs with the project's bridge permissions only
 
 Expected output is listed in `expected-output.txt`.

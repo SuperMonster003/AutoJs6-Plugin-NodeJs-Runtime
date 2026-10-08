@@ -11,6 +11,6 @@
     "capabilities": ["plugins", "plugin.org.example.wasm_math", "wasm"],
     "expectedProvider": "JS plugin manager; the checked local plugin instantiates WebAssembly with V8",
     "packagedSupport": "not applicable: exported APKs do not bundle this runtime; run the project from the host entry",
-    "securityLimitations": ["there is no separate WASM plugin kind: a checked local JS plugin compiles the module bytes it ships", "native addons remain unsupported by policy"]
+    "securityLimitations": ["there is no separate WASM plugin kind: a checked local JS plugin compiles the module bytes it ships"]
   }
 }

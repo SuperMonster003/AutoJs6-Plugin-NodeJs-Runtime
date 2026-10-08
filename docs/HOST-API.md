@@ -22,7 +22,7 @@ M23.3 (2026-10-08) 起, 模块加载由 Node 自身的 CommonJS / ESM loader 承
 
 文件中的密钥既可先用 `node:fs` 读取字节再交给 `crypto.createPrivateKey` 或签名 API, 也可直接传入 `file:` URL (WHATWG `URL` 对象): Node 24.21 的 OpenSSL STORE 密钥加载器自 1.6.0 (M23.1) 起在 Android 构建中与桌面版一致, 此前返回 `ERR_ACCESS_DENIED` 的禁用补丁已移除, 可达性同样只由 Android 权限决定。PEM/DER/JWK/KeyObject 等密钥输入继续使用 Node 原生实现。
 
-`os` 自 M23.2 起为原生模块 (`require("os") === process.getBuiltinModule("os")`): 运行时在引导时把执行环境变量 `HOME` / `TMPDIR` 设为工作目录 (请求提供的 env 优先), `os.homedir()` 经 libuv 读取 `HOME`; `os.tmpdir()` 在 Node 中经 `safeGetenv` 读取, 而 Android 应用进程带 AT_SECURE 标志, Node 会拒绝读取并回答不存在的 `/tmp`, 因此运行时在检测到这种情况时把 Node 自己模块对象上的 `tmpdir` 绑定为 `TMPDIR` (不是 Proxy, 模块身份不变); `os.userInfo()` 返回真实的 Android 应用用户。`process` 仅保留 `exit` 的生命周期映射 (槽进程跨执行复用) 与 `dlopen` 的暂时拒绝 (待 M23.4), `abort` / `kill` / `umask` / `binding` / `_linkedBinding` / `report` / `features` 及 POSIX 身份调用均为 Node 原生 (Android 决定它们能做什么; `process.abort` 会结束当前槽进程并走 M12.5 崩溃报告)。`fs` / `fs/promises` 自 M23.1 (2026-10-07) 起直接返回 Node 原生模块 (`require("fs") === process.getBuiltinModule("fs")`): 没有包装层, 没有 `/proc`、`/sys`、`/dev` 边界, 异步 API 经 libuv 线程池执行而非在 `setImmediate` 中同步完成; 执行开始时以原生 `process.chdir` 进入工作目录, `process.cwd()` / `process.chdir()` 为原生行为; `url.pathToFileURL` / `fileURLToPath` 均为原生。`process`、`module`、子进程、worker、网络和 inspector 的请求级策略见对应章节。
+`os` 自 M23.2 起为原生模块 (`require("os") === process.getBuiltinModule("os")`): 运行时在引导时把执行环境变量 `HOME` / `TMPDIR` 设为工作目录 (请求提供的 env 优先), `os.homedir()` 经 libuv 读取 `HOME`; `os.tmpdir()` 在 Node 中经 `safeGetenv` 读取, 而 Android 应用进程带 AT_SECURE 标志, Node 会拒绝读取并回答不存在的 `/tmp`, 因此运行时在检测到这种情况时把 Node 自己模块对象上的 `tmpdir` 绑定为 `TMPDIR` (不是 Proxy, 模块身份不变); `os.userInfo()` 返回真实的 Android 应用用户。`process` 仅保留 `exit` 的生命周期映射 (槽进程跨执行复用), `dlopen` / `abort` / `kill` / `umask` / `binding` / `_linkedBinding` / `report` / `features` 及 POSIX 身份调用均为 Node 原生 (Android 决定它们能做什么; `process.abort` 会结束当前槽进程并走 M12.5 崩溃报告)。`fs` / `fs/promises` 自 M23.1 (2026-10-07) 起直接返回 Node 原生模块 (`require("fs") === process.getBuiltinModule("fs")`): 没有包装层, 没有 `/proc`、`/sys`、`/dev` 边界, 异步 API 经 libuv 线程池执行而非在 `setImmediate` 中同步完成; 执行开始时以原生 `process.chdir` 进入工作目录, `process.cwd()` / `process.chdir()` 为原生行为; `url.pathToFileURL` / `fileURLToPath` 均为原生。`process`、`module`、子进程、worker、网络和 inspector 的请求级策略见对应章节。
 
 成功结果在 Node 事件循环完成、触发最终 `exit` 时生成, 因此原生异步工作及 `beforeExit` 中追加的任务均可完成, 最终 stdout/stderr 与 `process.exitCode` 会正确回传。
 
@@ -33,6 +33,12 @@ M23.3 (2026-10-08) 起, 模块加载由 Node 自身的 CommonJS / ESM loader 承
 `node:sqlite` 提供 Node 原生同步 SQLite 引擎, 支持 `DatabaseSync`、预编译语句、CRUD、事务、函数与备份, 主线程和 worker 均可使用。普通名 `sqlite` 继续表示宿主异步数据库桥。数据库构造、重新打开和 `backup` 目标经过既有 fs 路径及符号链接检查; 支持字符串/Buffer 文件路径、file URL 对象、SQLite `file:` URI 字符串、`:memory:` 与空字符串 (私有临时库)。Node 24.21 的 SQLite API 标为 release candidate; 原生 API 的稳定性级别跟随该 Node 版本, 嵌入执行的实验提示输出遵循上面的统一策略。
 
 SQL 里的文件操作完全交给原生 SQLite (M23.1, 2026-10-07; 取代 M20.2 第九批的 authorizer 边界): `node:sqlite` 直接返回 Node 原生模块, `ATTACH` (字面量、绑定参数或表达式给出的文件名)、`VACUUM INTO`、`PRAGMA temp_store_directory` / `data_store_directory`、只读打开与相对路径解析 (按进程工作目录) 均为 SQLite 自身行为, 路径可达性由 Android 决定, 系统路径上的失败是 SQLite 自己的 `ERR_SQLITE_ERROR` (如 procfs 文件 "file is not a database", `/sys` `/dev` 下无法创建); `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED` 退役。`db.setAuthorizer()` 为 Node 原生实现 (不再有运行时边界回调, 对未打开连接的行为随 Node 上游); `enableLoadExtension` / `allowExtension` 按 Node 原生状态机 (构造时未开启 `allowExtension` 则 `ERR_INVALID_STATE`), 扩展本身的加载随 M23.4 原生扩展放开。
+
+M23.4 起, 主线程和 Worker 的 `process.dlopen` / `Module._extensions[".node"]` 使用 Node 原生实现, Node Environment 不再设置 kNoNativeAddons. 通过 require 或 createRequire 加载磁盘上的 Android addon; 二进制不进入 JavaScript module-source provider, 扩展名省略时也保留 Node 对 .node 的查找. JS 插件可携带并 require 原生依赖, JS 插件本身的入口仍遵循 .js/.cjs 契约.
+
+`sample/nodejs/native-addon` 提供三 ABI 的真实 Node-API 示例, 按 process.arch 选择文件; `tools/nodejs/addon` 提供源码与离线 NDK/CMake 构建命令. addon 及依赖须匹配 Android、运行进程 ABI 和设备页大小, 示例以 16 KB 对齐构建并链接随包 libnode.so. 插件不随包 node-gyp / NDK, 应在桌面交叉编译或使用 Android 预编译分发. 直接 ESM import .node 的处理仍由 Node 决定, ESM 项目可使用 createRequire.
+
+错 ABI、缺依赖、损坏二进制由 Node/Android 动态链接器报告 (例如 ERR_DLOPEN_FAILED), 不再返回 ERR_AUTOJS6_NATIVE_ADDON_DISABLED 或 ERR_AUTOJS6_PROCESS_API_DISABLED. 原生代码在运行时槽进程中执行, 崩溃走既有 M12.5 slotExit / 系统 tombstone 报告. 设备端 npm registry 安装流程仍单独属于 M23.6, 本项不等于在设备内提供编译工具链.
 
 ## MediaInfo 多流查询
 

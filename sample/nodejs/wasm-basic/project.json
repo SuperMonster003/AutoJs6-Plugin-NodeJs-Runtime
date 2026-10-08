@@ -11,6 +11,6 @@
     "capabilities": ["wasm"],
     "expectedProvider": "V8 WebAssembly in Node",
     "packagedSupport": "not applicable: exported APKs do not bundle this runtime; run the project from the host entry",
-    "securityLimitations": ["native addons stay denied until M23.4", "node:wasi is Node's own module since M23.2; its preopens follow Android file access like fs"]
+    "securityLimitations": ["node:wasi is Node's own module since M23.2; its preopens follow Android file access like fs"]
   }
 }

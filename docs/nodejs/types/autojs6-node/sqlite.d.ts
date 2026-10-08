@@ -36,8 +36,8 @@ declare module "node:sqlite" {
     readOnly?: boolean;
     enableForeignKeyConstraints?: boolean;
     enableDoubleQuotedStringLiterals?: boolean;
-    /** Native extension loading remains disabled. */
-    allowExtension?: false;
+    /** Allow native SQLite extensions for this connection (Node default: false). */
+    allowExtension?: boolean;
     timeout?: number;
     readBigInts?: boolean;
     returnArrays?: boolean;
@@ -111,11 +111,12 @@ declare module "node:sqlite" {
       filter?: (tableName: string) => boolean;
       onConflict?: (conflictType: number) => number;
     }): boolean;
-    /** Runs after the runtime's /proc, /sys, /dev boundary check; null clears only the user callback. Throws ERR_INVALID_STATE on a closed connection. */
+    /** Node's native authorizer; null removes the callback. Throws ERR_INVALID_STATE on a closed connection. */
     setAuthorizer(callback: AuthorizerCallback | null): void;
-    enableLoadExtension(allow: false): void;
-    /** Always throws ERR_AUTOJS6_NATIVE_ADDON_DISABLED. */
-    loadExtension(path: string, entryPoint?: string): never;
+    /** Can enable loading only when allowExtension was true at construction. */
+    enableLoadExtension(allow: boolean): void;
+    /** Load an Android-compatible SQLite extension using Node's native API. */
+    loadExtension(path: string, entryPoint?: string): void;
   }
 
   export function backup(source: DatabaseSync, path: DatabasePath, options?: {

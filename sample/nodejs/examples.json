@@ -613,6 +613,17 @@
       ],
       "mainAppSmoke": false,
       "packagedCompatible": false
+    },
+    {
+      "name": "native-addon",
+      "status": "stable",
+      "tags": [
+        "main-app",
+        "commonjs",
+        "desktop-parity"
+      ],
+      "mainAppSmoke": false,
+      "packagedCompatible": false
     }
   ]
 }

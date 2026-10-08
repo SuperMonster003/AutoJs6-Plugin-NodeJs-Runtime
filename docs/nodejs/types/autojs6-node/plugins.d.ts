@@ -55,7 +55,7 @@ declare module "plugins" {
       readonly dependencies: readonly string[];
       readonly exports: Readonly<Record<string, string>>;
       readonly jsOnly: true;
-      readonly nativeAddons: false;
+      readonly nativeAddons: true;
     }
 
     export interface PluginStatus extends PluginManifest {

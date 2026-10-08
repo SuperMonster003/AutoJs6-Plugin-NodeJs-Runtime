@@ -1,7 +1,7 @@
 sample.enabled.child_process=AVAILABLE
 sample.enabled.worker_threads=AVAILABLE
 sample.enabled.http=AVAILABLE
-sample.disabled.native_addon=ERR_AUTOJS6_NATIVE_ADDON_DISABLED
-sample.disabled.process_binding=ERR_AUTOJS6_PROCESS_API_DISABLED
-sample.enabled.process_chdir=AVAILABLE
+sample.enabled.native_loader=AVAILABLE
+sample.enabled.process_binding=AVAILABLE
+sample.enabled.process_cwd=AVAILABLE
 sample.disabled-features-demo=PASS

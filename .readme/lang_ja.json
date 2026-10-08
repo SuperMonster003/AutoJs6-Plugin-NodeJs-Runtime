@@ -45,7 +45,8 @@
     "能力: 同期スクリプト実行, bundle transport, ネイティブ組み込みランタイム, ホスト能力ブローカー, host capability live bridge.",
     "ファイルストリーム、gzip/deflate/Brotli ストリームと基本 VM 実行を正式サポート; 明示的に有効化した Debug Inspector は localhost の範囲で正式サポート.",
     "組み込み実行で ExperimentalWarning の表示を停止し、warning イベント、通常の警告、非推奨警告とエラーを維持; Node 上流 API の安定性と端末の既定動作は変更なし.",
-    "ネイティブ Worker がネスト, MessagePort API, stdio, argv, execArgv とプリロードの継承に対応; プラグイン独自の Worker 数と起動時間の上限を削除し, resourceLimits は上書き可能な既定値に変更; WorkerPool のキュー数とタスク時間は既定で無制限, Inspector セッションは実行要求と現在のビルドに従う"
+    "ネイティブ Worker がネスト, MessagePort API, stdio, argv, execArgv とプリロードの継承に対応; プラグイン独自の Worker 数と起動時間の上限を削除し, resourceLimits は上書き可能な既定値に変更; WorkerPool のキュー数とタスク時間は既定で無制限, Inspector セッションは実行要求と現在のビルドに従う",
+    "メインスクリプトと Worker で Android ネイティブアドオンを Node からロード可能; process.dlopen と .node はネイティブ動作となり, 独自の署名やハッシュ許可リストを設けない; native-addon は 3 ABI の 16 KB アラインメント済み Node-API バイナリとオフライン NDK/CMake ビルドを提供; ABI 不一致や破損は ERR_DLOPEN_FAILED などの Node エラーとなり, 端末用 node-gyp や NDK は同梱しない"
   ],
   "h3_release_history": "リリース履歴",
   "h5_for_more_release_history": "その他のリリース履歴",

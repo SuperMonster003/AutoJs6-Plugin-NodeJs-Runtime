@@ -166,12 +166,11 @@ budgets, worker integration, and packaged behavior. It does not declare
 WebAssembly is the supported runtime path and raw/controlled WASI APIs stay
 stable-denied.
 
-P13-39 extends the `autojs6:profile` declaration with `nativeAddonProfile`. The
-field reports default native-addon denial and future Desktop enablement
-requirements for signed packaged-only artifacts, ABI and hash allowlists,
-dependency scanning, crash isolation, native-build denial, and download-exec
-denial. It does not declare `.node` modules or make native addon loading
-callable.
+`nativeAddonProfile` now reports Node's native addon support (M23.4), process ABI
+selection, Android dynamic-linker dependency resolution and 16 KB alignment.
+The old required signature/hash/ABI allowlist placeholders are retired. Native
+addon APIs belong to their packages; this declaration does not invent a common
+API for arbitrary `.node` exports. See the native-addon sample and NDK builder.
 
 P13-40 extends the `autojs6:profile` declaration with `childProcessProfile`.
 The field reports default `child_process` denial, separate `shell` bridge
@@ -476,8 +475,8 @@ comparison, `RHINO_AUGMENT_COMPATIBILITY_MATRIX.md`, `SECURITY_MODEL.md`, and
 error codes, and the P12-33 fake dual-engine device evidence remains testing
 evidence only.
 
-They intentionally do not declare unrestricted Java interop, native plugin
-loading, Android plugin adapters, or unrestricted desktop Node.js capabilities.
+They intentionally do not declare unrestricted Java interop or Android plugin
+adapters. Native addons use Node's `.node` loader and Android-compatible binaries.
 The declarations are checked by `:app:verifyAutoJs6NodeTypeDeclarations`; the
 sample project at `sample/nodejs/typescript-smoke` can be type-checked with:
 

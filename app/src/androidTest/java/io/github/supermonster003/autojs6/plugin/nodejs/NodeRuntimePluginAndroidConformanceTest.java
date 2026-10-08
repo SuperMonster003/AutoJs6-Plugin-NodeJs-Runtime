@@ -436,7 +436,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 assert.equal(profile.packagedCapabilityProfile.longRunning, 'interactive_long_running_via_execution_mode');
                 assert.equal(profile.wasiProfile.status, 'denied_by_decision');
                 assert.deepEqual(profile.wasiProfile.targetProfiles, []);
-                assert.equal(profile.nativeAddonProfile.status, 'unsupported_by_policy');
+                assert.equal(profile.nativeAddonProfile.status, 'native_available');
                 // M23.3: Node's own ESM loader serves data: URLs (JavaScript, JSON, WebAssembly).
                 assert.equal(profile.esmLoaderProfile.dataUrlImports, 'native');
                 assert.equal(profile.esmLoaderProfile.status, 'node_native_loader');
@@ -1310,7 +1310,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 // M23.2: abort/kill are Node's own; a worker refuses abort itself and kill would signal the slot process.
                 assert.throws(() => process.abort(), (e) => e.code === 'ERR_WORKER_UNSUPPORTED_OPERATION');
                 assert.strictEqual(typeof process.kill, 'function');
-                assert.throws(() => process.dlopen({}, 'x.node'), (e) => e.code === 'ERR_AUTOJS6_PROCESS_API_DISABLED');
+                assert.throws(() => process.dlopen({exports:{}}, './missing-addon.node'), (e) => e.code === 'ERR_DLOPEN_FAILED' && !e.autojs6Code);
                 parentPort.postMessage('before-exit');
                 process.exit(3);
                 parentPort.postMessage('after-exit-must-not-run');

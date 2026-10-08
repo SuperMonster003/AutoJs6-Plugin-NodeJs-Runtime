@@ -13,6 +13,6 @@ return the same module instance.
 - Capabilities: CommonJS module cache
 - Expected provider: none (not applicable)
 - Packaged support: not applicable
-- Security limitations: none for the cache itself; native addons stay denied until M23.4
+- Security limitations: none for the cache itself
 
 Expected output is listed in `expected-output.txt`.

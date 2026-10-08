@@ -45,7 +45,8 @@
     "Capacidades: ejecucion sincronica de scripts, bundle transport, runtime nativo integrado, broker de capacidades del host, host capability live bridge.",
     "Los flujos de archivos, gzip/deflate/Brotli y la ejecución básica de VM son estables; Debug Inspector, activado explícitamente, es estable dentro de localhost.",
     "La ejecución integrada deja de imprimir avisos ExperimentalWarning; conserva los eventos warning, advertencias normales, avisos de obsolescencia y errores. La estabilidad de las API de Node y los valores predeterminados del terminal no cambian.",
-    "Los Workers nativos admiten anidación, MessagePort, stdio, argv, execArgv y precargas heredadas; se eliminan los límites del plugin sobre cantidad y tiempo de arranque, resourceLimits aporta valores predeterminados modificables y WorkerPool no limita por defecto la cola ni la duración de las tareas; Inspector sigue la solicitud y la compilación"
+    "Los Workers nativos admiten anidación, MessagePort, stdio, argv, execArgv y precargas heredadas; se eliminan los límites del plugin sobre cantidad y tiempo de arranque, resourceLimits aporta valores predeterminados modificables y WorkerPool no limita por defecto la cola ni la duración de las tareas; Inspector sigue la solicitud y la compilación",
+    "Los scripts principales y Workers cargan addons nativos Android mediante Node; process.dlopen y .node son nativos y no requieren listas propias de firmas o hashes; native-addon incluye tres ABI alineadas a 16 KB y compilación NDK/CMake sin conexión; ABI incorrectas o binarios dañados producen errores Node como ERR_DLOPEN_FAILED, sin incluir node-gyp ni NDK en el dispositivo"
   ],
   "h3_release_history": "Historial De Versiones",
   "h5_for_more_release_history": "Para mas historial de versiones",

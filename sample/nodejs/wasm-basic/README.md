@@ -7,6 +7,6 @@ minimal WASI module through Node's own `node:wasi` (M23.2).
 - Capabilities: `WebAssembly.compile()`, `WebAssembly.instantiate()`, `node:wasi` (`WASI`, `getImportObject()`, `start()`)
 - Expected provider: V8 WebAssembly in Node
 - Packaged support: not applicable
-- Security limitations: native addons stay denied until M23.4; `node:wasi` is Node's own module since M23.2 and its preopens follow Android file access like `fs`
+- Security limitations: `node:wasi` is Node's own module since M23.2 and its preopens follow Android file access like `fs`
 
 Expected output is listed in `expected-output.txt`.

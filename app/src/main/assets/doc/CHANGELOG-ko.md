@@ -14,13 +14,14 @@
 * `개선` Node.js 런타임 라이브러리를 전체 ICU 데이터로 빌드 (--with-intl=full-icu) 하여 Intl 및 로케일 서식이 데스크톱 Node.js 와 일치하고 NODE_ICU_DATA 가 더 이상 필요하지 않습니다
 * `개선` crypto.createPrivateKey 및 서명 API 가 file: URL 형식의 OpenSSL STORE 키 입력을 지원합니다 (Android 전용 비활성화 패치 제거)
 * `개선` 모든 Node.js 내장 모듈 (cluster, domain, repl, trace_events, wasi, constants, node:sea 등) 을 Node 자체의 module.builtinModules 목록에서 그대로 반환하여 require, require.resolve, import, process.getBuiltinModule, module.isBuiltin 이 데스크톱과 동일하게 동작합니다; 요청 수준 게이트는 worker_threads, child_process, inspector 및 네이티브 네트워크 모듈에만 남고 node:wasi 는 /proc 경계 제거와 함께 개방되었습니다 (tracing 없이 빌드된 현재 libnode 에서는 trace_events 가 Node 와 동일하게 ERR_TRACE_EVENTS_UNAVAILABLE 을 던집니다)
-* `개선` process 에는 exit 의 수명 주기 매핑과 dlopen 의 임시 거부만 남고 abort, kill, umask, binding, report, features 및 POSIX 신원 호출은 Node.js 고유 동작입니다; os 는 네이티브이며 homedir 와 tmpdir 는 실행 환경 변수 HOME/TMPDIR (작업 디렉터리로 설정) 를 따르고 userInfo 는 실제 Android 앱 사용자를 반환합니다
+* `개선` process는 exit의 수명주기 처리만 유지; dlopen, abort, kill, umask, binding, report, features 및 POSIX ID 호출은 Node 기본 구현을 사용; os는 네이티브이며 homedir과 tmpdir은 HOME/TMPDIR을 따르고 userInfo는 Android 앱 사용자를 반환
 * `개선` module 내장 모듈은 createRequire 만 재정의한 Node.js 고유 객체가 되어 registerHooks, enableCompileCache, findPackageJSON 등을 사용할 수 있습니다; 네이티브 네트워크 비활성화 시에만 도달하던 http, https, net, tls, dns 제한 구현을 제거하고 해당 모드에서는 ERR_AUTOJS6_BUILTIN_DISABLED 를 직접 반환합니다
 * `개선` 플러그인 정보 (INFO) 와 런타임 진단의 supportedAbis는 이제 빌드 시 매니페스트에 기록되는 org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (AutoJs6-Gradle-Platform-Versions 1.9.0 이상의 nativeAlignment 플러그인) 에서 읽으며, 설치된 split이 아니라 플러그인이 빌드된 모든 ABI를 의미; meta-data가 없으면 설치된 APK에 패키징된 ABI로 되돌아가고 수기로 작성된 ABI 상수는 제거
 * `개선` 모듈 로딩이 Node.js 고유 CommonJS / ESM 로더로 바뀌어 require, require.resolve, require.cache, require.extensions, Module._resolveFilename, module.register, import(), import.meta, require(esm) 가 모두 네이티브 동작이며, 진입 스크립트는 Node 의 메인 모듈로 실행 (require.main === module, __filename / process.argv[1] 은 realpath); 런타임은 module.registerHooks 만 등록하여 autojs6:* 런타임 모듈과 호환 shim (autojs6: scheme, 같은 이름의 설치된 npm 패키지가 여전히 shim 보다 우선), 요청 단위 builtin 게이트, 요청 첨부 / provider 실체화 / TypeScript 스냅샷 모듈 소스와 진입 스크립트의 인라인 소스를 제공; vm.SourceTextModule 자체 링커, 자체 resolver, 동적 import() 재작성, eval / Function 가드는 모두 제거되고 esmEnabled / dynamicImportEnabled 요청 키는 더 이상 영향을 주지 않음
 * `개선` 네이티브 Worker가 중첩, MessagePort API, stdio, argv, execArgv 및 사전 로드 상속을 지원; 플러그인의 Worker 수와 시작 시간 제한을 제거하고 요청 resourceLimits를 재정의 가능한 기본값으로 변경; WorkerPool은 기본 대기열 및 작업 시간 제한이 없으며 Inspector 세션은 실행 요청과 현재 빌드 지원을 따름
 * `개선` Worker와 중첩 Worker에서 부모 MessagePort를 통해 autojs6:bridge.callAutoJs를 사용 가능; 호스트 broker의 권한 검사, 오류, 시간 초과 및 취소를 유지하며 worker-host-bridge 예제로 실제 호스트 기기 정보 조회를 제공; 브리지 API의 TypeScript 선언도 제공
 * `개선` 원본 .ts / .mts / .cts 진입점과 가져온 모듈에는 여전히 호스트 Compiler가 생성한 JavaScript가 필요합니다. 스냅샷 매핑과 provider v3의 요청 시 컴파일을 유지하고, 기존 AutoJs6 ESM 및 동적 가져오기 오류 코드를 Node 기본 오류로 대체했습니다.
+* `개선` 메인 스크립트와 Worker에서 Node를 통해 Android 네이티브 애드온을 로드 가능; process.dlopen과 .node는 기본 동작을 사용하며 별도 서명 또는 해시 허용 목록이 없음; native-addon은 3개 ABI의 16 KB 정렬 Node-API 바이너리와 오프라인 NDK/CMake 빌드를 제공; ABI 불일치나 손상은 ERR_DLOPEN_FAILED 등의 Node 오류로 반환되며 기기용 node-gyp 또는 NDK는 포함하지 않음
 
 # v1.5.7
 

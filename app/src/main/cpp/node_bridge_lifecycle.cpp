@@ -1320,7 +1320,6 @@ void runEmbeddedScriptNodeLifecycle(
         const auto environmentCreateStartedAt = Clock::now();
         uint64_t environmentFlagBits =
                 static_cast<uint64_t>(node::EnvironmentFlags::kNoRegisterESMLoader) |
-                static_cast<uint64_t>(node::EnvironmentFlags::kNoNativeAddons) |
                 static_cast<uint64_t>(node::EnvironmentFlags::kNoGlobalSearchPaths) |
                 static_cast<uint64_t>(node::EnvironmentFlags::kNoStartDebugSignalHandler) |
                 static_cast<uint64_t>(node::EnvironmentFlags::kNoWaitForInspectorFrontend);

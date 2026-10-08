@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Compatibility Profile
 
-Last reviewed: 2026-10-08. Published plugin: v1.5.7; subsequent local work: v1.6.0 (M23.3, native loaders and workers).
+Last reviewed: 2026-10-08. Published plugin: v1.5.7; subsequent local work: v1.6.0 (M23.4, native addons).
 
 The external runtime plugin supplies Node.js 24.21.0 / V8 / libuv for arm64-v8a,
 armeabi-v7a and x86_64. The host contains no libnode or Node JNI implementation.
@@ -18,9 +18,9 @@ the `node_sandboxed` / `worker_computation` placeholder names are gone, and the
 catalog identity reported by runtimeInfo is derived from the runtime kit. The
 `autojs6:profile` diagnostics describe the runtime as built: Android-bounded file
 access (since M23.1 `fs` is Node's own module and the runtime denies nothing itself),
-the native `process` (M23.2: only `exit` is lifecycle-mapped and `dlopen` denied until M23.4),
+the native `process` (only `exit` is lifecycle-mapped; `dlopen` is native since M23.4),
 Node's own builtin inventory (M23.2: no allowlist or denylist, `wasi` included), stable
-worker channels, the two-slot process pool, and the native addon decision;
+worker channels, the two-slot process pool, and Android native addon loading;
 historical partial / reserved / deferred markers are gone. The sample audit
 promoted the ESM, WebAssembly and desktop parity samples, turned both parity
 suites into real runners, and `new Worker(code, { eval: true })` now works as
@@ -125,8 +125,8 @@ The debug Inspector supports explicit local debugging through localhost and adb
 forward. It is disabled by default; remote listening is unsupported. Java interop reaches
 only the classes and members of the host's declarative allowlist, which the host executes
 by reflection and publishes as `java.policy` (the runtime keeps no class table of its own);
-native addons, arbitrary private bindings and unrestricted Java reflection remain
-unavailable.
+unrestricted Java reflection remains subject to the host policy. Native addons and
+process bindings follow Node and Android.
 Inside workers `process.exit()` ends the thread as in Node. The plugin adds no
 Worker count cap, startup deadline or nested-worker prohibition. Node's Worker
 options, native MessagePort APIs, structured clone and inherited user preloads
@@ -166,3 +166,15 @@ of a complete Android provider or packaged-app support.
 Current implementation metadata is in the embedded
 [capability catalog](../../app/src/main/assets/nodejs/node-capability-catalog.json).
 Historical profiles are archived under [history](history), and are not current policy.
+
+Since M23.4, Android native addons load through Node's `.node` extension and
+`process.dlopen` in both root scripts and workers. Node-API addons must target the
+actual process ABI and have Android-compatible dependencies; a desktop binary
+for the same CPU is not sufficient. The addon loader owns format/symbol errors,
+including `ERR_DLOPEN_FAILED`; the plugin does not impose a signature or hash
+allowlist. Binary addon files bypass JavaScript source-provider hooks.
+
+See the [`native-addon` project](../../sample/nodejs/native-addon) and
+[NDK build instructions](../../tools/nodejs/addon). The plugin does not include
+node-gyp or a device NDK. Native faults affect the runtime slot process and use
+its existing crash reporting; worker threads do not add process isolation.

@@ -1,0 +1,5 @@
+{
+  "name": "native-addon",
+  "type": "node",
+  "main": "main.cjs"
+}

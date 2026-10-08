@@ -203,15 +203,19 @@
       "id": "native_addon",
       "diagnosticName": "nativeAddon",
       "property": null,
-      "defaultEnabled": false,
+      "defaultEnabled": true,
       "securityLevel": "critical",
-      "status": "unsupported",
+      "status": "available",
       "overrides": {
         "buildTime": false,
         "projectJson": false,
         "packagedApk": false,
-        "releaseEnableAllowed": false
-      }
+        "releaseEnableAllowed": true
+      },
+      "loader": "node_native_dlopen",
+      "binaryFormat": "android_elf",
+      "abiSelection": "process_arch",
+      "pageAlignmentBytes": 16384
     },
     {
       "id": "network",
@@ -471,9 +475,7 @@
       "tls",
       "worker_threads"
     ],
-    "disabledProcessApis": [
-      "dlopen"
-    ],
+    "disabledProcessApis": [],
     "lifecycleMappedProcessApis": [
       "exit"
     ],
@@ -2988,10 +2990,6 @@
         "code": "ERR_AUTOJS6_MODULE_SOURCE_PROVIDER_TIMEOUT"
       },
       {
-        "name": "NATIVE_ADDON_DISABLED",
-        "code": "ERR_AUTOJS6_NATIVE_ADDON_DISABLED"
-      },
-      {
         "name": "NETWORK_ABORTED",
         "code": "ERR_AUTOJS6_NETWORK_ABORTED"
       },
@@ -3138,10 +3136,6 @@
       {
         "name": "PACKAGE_MANAGER_MUTATION_NOT_CONFIRMED",
         "code": "ERR_AUTOJS6_PACKAGE_MANAGER_MUTATION_NOT_CONFIRMED"
-      },
-      {
-        "name": "PROCESS_API_DISABLED",
-        "code": "ERR_AUTOJS6_PROCESS_API_DISABLED"
       },
       {
         "name": "PROCESS_EXIT",
