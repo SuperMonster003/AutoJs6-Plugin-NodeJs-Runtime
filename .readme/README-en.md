@@ -104,10 +104,11 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 - TypeScript: accepts host output, maps precompiled snapshots and can request provider-v3 compilation; raw TypeScript modules on disk load through Node's own type stripping, while a raw TypeScript entry dispatched directly still returns `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
 - ESM: Node.js's own loader with `module.registerHooks`; live bindings, cyclic dependencies, `import.meta`, `data:` URLs and `require(esm)` as on desktop.
 - Capabilities: sync script execution, bundle transport, native embedded runtime, host capability broker, host capability live bridge.
-- File streams, gzip/deflate/Brotli streams and basic VM execution are stable plugin capabilities; the explicitly enabled Debug Inspector is stable within its localhost scope.
+- File streams, gzip/deflate/Brotli streams and basic VM execution are stable plugin capabilities; the explicitly enabled Inspector (Debug/Release) is stable within its localhost scope.
 - Embedded execution no longer prints ExperimentalWarning notices; warning events, ordinary warnings, deprecations and errors remain available. Upstream Node API stability and terminal defaults are unchanged.
 - Native Worker threads support nesting, MessagePort APIs, stdio, argv, execArgv and inherited preloads; plugin worker-count and startup-timeout limits are removed, request resourceLimits are overridable defaults, and WorkerPool has no default queue limit or task timeout; Inspector sessions follow the execution request and current build support
 - Android native addons load through Node in main scripts and Workers: process.dlopen and the .node extension are native, with no plugin-specific signature or hash allowlist; native-addon provides Node-API binaries for three ABIs with 16 KB alignment and an offline NDK/CMake build; wrong ABI or invalid binaries report Node errors such as ERR_DLOPEN_FAILED, while node-gyp and an NDK are not bundled on the device
+- Inspector supports Debug and Release builds after an explicit host request; inspector and inspector/promises keep native module identity, sessions work in root scripts and Workers, listeners bind only to 127.0.0.1 and blocking waits are unavailable; without permission url() returns undefined while activation and Session creation remain disabled
 
 ******
 
@@ -117,7 +118,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 # v1.6.0
 
-###### 2026/10/07
+###### 2026/10/08
 
 * `Improvement` fs, fs/promises and node:sqlite are Node.js's own modules: the runtime's /proc, /sys, /dev denial and its path-validating wrapper are gone, file reachability is decided by Android permissions alone, asynchronous file APIs run on the libuv thread pool instead of blocking the event loop, and path errors carry Node.js's own codes (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH and ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED are no longer produced by file or database operations)
 * `Improvement` process.cwd and process.chdir are native Node.js behavior; an execution enters its working directory with a real chdir and relative paths are resolved by Node.js itself
@@ -133,6 +134,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 * `Improvement` autojs6:bridge.callAutoJs is available in Workers and nested Workers through parent MessagePorts, reusing the host broker permissions, errors, timeout and cancellation; worker-host-bridge demonstrates reading real host device information, with TypeScript declarations for the bridge API
 * `Improvement` Raw .ts / .mts / .cts entries and imported modules still require JavaScript output from the host Compiler; snapshot mapping and provider v3 on-demand compilation are retained. Native loader failures replace the retired AutoJs6 ESM and dynamic-import error codes.
 * `Improvement` Android native addons load through Node in main scripts and Workers: process.dlopen and the .node extension are native, with no plugin-specific signature or hash allowlist; native-addon provides Node-API binaries for three ABIs with 16 KB alignment and an offline NDK/CMake build; wrong ABI or invalid binaries report Node errors such as ERR_DLOPEN_FAILED, while node-gyp and an NDK are not bundled on the device
+* `Improvement` Inspector supports Debug and Release builds after an explicit host request; inspector and inspector/promises keep native module identity, sessions work in root scripts and Workers, listeners bind only to 127.0.0.1 and blocking waits are unavailable; without permission url() returns undefined while activation and Session creation remain disabled
 
 # v1.5.7
 

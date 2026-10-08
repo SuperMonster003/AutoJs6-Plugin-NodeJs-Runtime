@@ -104,10 +104,11 @@ console.log("AutoJs6 Node.js runtime");
 - TypeScript: يقبل مخرجات المضيف ويطابق اللقطات مسبقة التجميع ويمكنه طلب تجميع provider v3؛ وتُحمَّل وحدات TypeScript الخام على القرص عبر إزالة الأنواع الأصلية في Node، بينما يظل مدخل TypeScript الخام المرسل مباشرة يعيد `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
 - ESM: محمّل Node.js الأصلي مع `module.registerHooks`؛ الروابط الحية والاعتماديات الدائرية و `import.meta` وعناوين `data:` و `require(esm)` كما على سطح المكتب.
 - القدرات: تنفيذ سكربت متزامن, bundle transport, بيئة تشغيل اصلية مدمجة, وسيط قدرات المضيف, host capability live bridge.
-- أصبحت تدفقات الملفات وتدفقات gzip/deflate/Brotli وتنفيذ VM الأساسي ميزات مستقرة; كما أصبح Debug Inspector المفعّل صراحة مستقرا ضمن localhost.
+- أصبحت تدفقات الملفات وتدفقات gzip/deflate/Brotli وتنفيذ VM الأساسي ميزات مستقرة; كما أصبح Inspector (Debug/Release) المفعّل صراحة مستقرا ضمن localhost.
 - لم يعد التنفيذ المدمج يطبع تنبيهات ExperimentalWarning; مع الاحتفاظ بأحداث warning والتحذيرات العادية وتحذيرات الإهمال والأخطاء. لم يتغير تصنيف استقرار واجهات Node أو الإعدادات الافتراضية للطرفية.
 - تدعم خيوط Worker الأصلية التداخل وواجهات MessagePort و stdio و argv و execArgv وتوارث التحميل المسبق; أزيلت حدود الإضافة لعدد الخيوط ووقت بدء التشغيل, وأصبحت resourceLimits قيما افتراضية قابلة للتجاوز, ولا يفرض WorkerPool حدا افتراضيا للطابور أو مدة المهام; تتبع جلسات Inspector طلب التنفيذ ودعم البناء الحالي
 - يمكن للسكربت الرئيسي و Worker تحميل إضافات Android الأصلية عبر Node; تستخدم process.dlopen وامتداد .node السلوك الأصلي دون قوائم توقيعات أو بصمات خاصة بالإضافة; يوفر native-addon ملفات Node-API لثلاث واجهات ABI بمحاذاة 16 KB وبناء NDK/CMake دون اتصال; تعيد الملفات التالفة أو ABI غير المتوافقة أخطاء Node مثل ERR_DLOPEN_FAILED, ولا يتم تضمين node-gyp أو NDK على الجهاز
+- يدعم Inspector إصدارات Debug وRelease بعد إذن صريح من المضيف; يحتفظ inspector وinspector/promises بوحدات Node الأصلية ويدعمان Session في النصوص الرئيسية وWorker, مع الاستماع على 127.0.0.1 فقط ودون انتظار حاجب; دون إذن تعيد url() القيمة undefined ويظل التفعيل وإنشاء Session معطلين
 
 ******
 
@@ -117,7 +118,7 @@ console.log("AutoJs6 Node.js runtime");
 
 # v1.6.0
 
-###### 2026/10/07
+###### 2026/10/08
 
 * `تحسين` fs و fs/promises و node:sqlite هي وحدات Node.js الأصلية: أُزيل رفض /proc و /sys و /dev الخاص بوقت التشغيل وطبقة التحقق من المسارات، وإمكانية الوصول إلى الملفات تحددها أذونات Android وحدها، وتعمل واجهات الملفات غير المتزامنة في مجمع خيوط libuv بدل حجب حلقة الأحداث، وتحمل أخطاء المسارات رموز Node.js الأصلية (لم تعد عمليات الملفات وقواعد البيانات تُصدر ERR_AUTOJS6_FS_NUL_BYTE و ERR_AUTOJS6_FS_PATH_ESCAPE و ERR_AUTOJS6_FS_SCOPED_PATH و ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED)
 * `تحسين` process.cwd و process.chdir بسلوك Node.js الأصلي؛ يدخل التنفيذ دليل العمل عبر chdir حقيقي وتُحل المسارات النسبية بواسطة Node.js نفسه
@@ -133,6 +134,7 @@ console.log("AutoJs6 Node.js runtime");
 * `تحسين` تتوفر autojs6:bridge.callAutoJs داخل Worker والخيوط المتداخلة عبر MessagePort الأب مع الحفاظ على أذونات وسيط المضيف وأخطائه ومهلاته وإلغاء الطلبات; يوضح مثال worker-host-bridge قراءة معلومات الجهاز الفعلية وتتوفر تعريفات TypeScript لواجهة الجسر
 * `تحسين` لا تزال نقاط الدخول والوحدات المستوردة .ts / .mts / .cts تتطلب JavaScript ينتجه Compiler المضيف; تم الحفاظ على ربط اللقطات والترجمة عند الطلب عبر provider v3. تحل أخطاء Node الأصلية محل رموز أخطاء AutoJs6 السابقة الخاصة بـ ESM والاستيراد الديناميكي.
 * `تحسين` يمكن للسكربت الرئيسي و Worker تحميل إضافات Android الأصلية عبر Node; تستخدم process.dlopen وامتداد .node السلوك الأصلي دون قوائم توقيعات أو بصمات خاصة بالإضافة; يوفر native-addon ملفات Node-API لثلاث واجهات ABI بمحاذاة 16 KB وبناء NDK/CMake دون اتصال; تعيد الملفات التالفة أو ABI غير المتوافقة أخطاء Node مثل ERR_DLOPEN_FAILED, ولا يتم تضمين node-gyp أو NDK على الجهاز
+* `تحسين` يدعم Inspector إصدارات Debug وRelease بعد إذن صريح من المضيف; يحتفظ inspector وinspector/promises بوحدات Node الأصلية ويدعمان Session في النصوص الرئيسية وWorker, مع الاستماع على 127.0.0.1 فقط ودون انتظار حاجب; دون إذن تعيد url() القيمة undefined ويظل التفعيل وإنشاء Session معطلين
 
 # v1.5.7
 

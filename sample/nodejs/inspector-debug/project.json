@@ -8,9 +8,15 @@
     "permissions": []
   },
   "example": {
-    "capabilities": ["inspector"],
-    "expectedProvider": "explicit debug-only localhost inspector facade",
+    "capabilities": [
+      "inspector"
+    ],
+    "expectedProvider": "Node Inspector enabled by the host developer setting or inspectorEnabled request, in Debug and Release",
     "packagedSupport": "not supported in release builds",
-    "securityLimitations": ["release builds ignore inspectorEnabled", "listener is forced to 127.0.0.1", "wait=true and NODE_OPTIONS inspector flags remain denied", "CDP source paths and values are not redacted"]
+    "securityLimitations": [
+      "disabled by default; the host must explicitly allow Inspector",
+      "listener is forced to 127.0.0.1; blocking waits are unavailable",
+      "CDP source paths and values follow the native Node protocol"
+    ]
   }
 }

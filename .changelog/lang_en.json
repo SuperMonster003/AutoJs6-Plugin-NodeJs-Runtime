@@ -6,7 +6,7 @@
   "changelog_label_dependency": "Dependency",
   "$data": {
     "v1.6.0": {
-      "released_date": "2026/10/07",
+      "released_date": "2026/10/08",
       "improvement": [
         "fs, fs/promises and node:sqlite are Node.js's own modules: the runtime's /proc, /sys, /dev denial and its path-validating wrapper are gone, file reachability is decided by Android permissions alone, asynchronous file APIs run on the libuv thread pool instead of blocking the event loop, and path errors carry Node.js's own codes (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH and ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED are no longer produced by file or database operations)",
         "process.cwd and process.chdir are native Node.js behavior; an execution enters its working directory with a real chdir and relative paths are resolved by Node.js itself",
@@ -21,7 +21,8 @@
         "Native Worker threads support nesting, MessagePort APIs, stdio, argv, execArgv and inherited preloads; plugin worker-count and startup-timeout limits are removed, request resourceLimits are overridable defaults, and WorkerPool has no default queue limit or task timeout; Inspector sessions follow the execution request and current build support",
         "autojs6:bridge.callAutoJs is available in Workers and nested Workers through parent MessagePorts, reusing the host broker permissions, errors, timeout and cancellation; worker-host-bridge demonstrates reading real host device information, with TypeScript declarations for the bridge API",
         "Raw .ts / .mts / .cts entries and imported modules still require JavaScript output from the host Compiler; snapshot mapping and provider v3 on-demand compilation are retained. Native loader failures replace the retired AutoJs6 ESM and dynamic-import error codes.",
-        "Android native addons load through Node in main scripts and Workers: process.dlopen and the .node extension are native, with no plugin-specific signature or hash allowlist; native-addon provides Node-API binaries for three ABIs with 16 KB alignment and an offline NDK/CMake build; wrong ABI or invalid binaries report Node errors such as ERR_DLOPEN_FAILED, while node-gyp and an NDK are not bundled on the device"
+        "Android native addons load through Node in main scripts and Workers: process.dlopen and the .node extension are native, with no plugin-specific signature or hash allowlist; native-addon provides Node-API binaries for three ABIs with 16 KB alignment and an offline NDK/CMake build; wrong ABI or invalid binaries report Node errors such as ERR_DLOPEN_FAILED, while node-gyp and an NDK are not bundled on the device",
+        "Inspector supports Debug and Release builds after an explicit host request; inspector and inspector/promises keep native module identity, sessions work in root scripts and Workers, listeners bind only to 127.0.0.1 and blocking waits are unavailable; without permission url() returns undefined while activation and Session creation remain disabled"
       ]
     },
     "v1.5.7": {

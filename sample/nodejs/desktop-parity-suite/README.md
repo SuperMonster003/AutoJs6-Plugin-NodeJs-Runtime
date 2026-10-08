@@ -12,7 +12,7 @@ is unavailable, so the output documents what this runtime really does.
 | Raw network | `snippets/raw-network.cjs` | native `http`/`https`/`net`/`tls`/`dns` are available; `dgram` and `http2` need the `raw_network` capability |
 | Advanced fs | `snippets/fs-advanced.cjs` | FileHandle, `fs.watch` and `fs/promises` work inside Android file access |
 | WASI | `snippets/wasi.cjs` | `node:wasi` is Node's own module since M23.2; the snippet prints its export keys (`WASI`), pure WebAssembly is available as well |
-| Inspector | `snippets/inspector.cjs` | needs an explicit Debug host request; without it the snippet prints the denial code |
+| Inspector | `snippets/inspector.cjs` | reads URL and Session API shape; activation requires host permission |
 | npm dependency | `snippets/npm-dependency.cjs` | a checked-in pure JavaScript dependency loads through `require()`; registry installs happen in the host terminal |
 
 Every snippet can also run on its own (`node snippets/<name>.cjs` semantics:

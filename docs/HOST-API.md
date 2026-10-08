@@ -16,7 +16,7 @@
 
 ## Node.js 内建模块
 
-M23.2 (2026-10-07) 起, Node.js 24.21 的全部内建模块按 Node 自身的 `module.builtinModules` 清单直接返回原生导出 (含 `cluster`, `domain`, `repl`, `trace_events`, `wasi`, `constants`, `node:sea`, `node:sqlite`, `node:test` 等), 普通名称与 `node:` 前缀名称共享同一模块对象, `require` / `require.resolve` / `import` / `process.getBuiltinModule` / `module.isBuiltin` 与桌面 Node 一致 (`require.resolve("node:fs")` 返回 `"node:fs"`); 不再有 allowlist / denylist。仅 `console` 一个薄包装保留 (stdout/stderr 捕获); `module` 自 M23.3 起为原生模块 (`createRequire` / `registerHooks` / `enableCompileCache` / `findPackageJSON` 均为原生)。仍可被请求级门禁关闭的只有 `worker_threads`, `child_process`, `inspector` (需 debug 构建 + 显式请求, 见 M23.5) 与原生网络模块 (`rawNodeNetworkModulesEnabled=false` 时 `http` / `https` / `net` / `tls` / `dns` / `dgram` / `http2` 直接返回 `ERR_AUTOJS6_BUILTIN_DISABLED`, 原来仅在该模式可达的受限 facade 已删除)。异步 crypto、完整 EventEmitter/AsyncLocalStorage、流与序列化遵循对应 Node API, 不再受原子集包装器的方法或输入大小限制。`node:test` 与 `node:test/reporters` 使用原生实现; 普通脚本中的 `test()` 会由默认 spec reporter 输出到 stdout, 失败测试使执行退出码为 1, `node-test-project` 提供可运行样例。
+M23.2 (2026-10-07) 起, Node.js 24.21 的全部内建模块按 Node 自身的 `module.builtinModules` 清单直接返回原生导出 (含 `cluster`, `domain`, `repl`, `trace_events`, `wasi`, `constants`, `node:sea`, `node:sqlite`, `node:test` 等), 普通名称与 `node:` 前缀名称共享同一模块对象, `require` / `require.resolve` / `import` / `process.getBuiltinModule` / `module.isBuiltin` 与桌面 Node 一致 (`require.resolve("node:fs")` 返回 `"node:fs"`); 不再有 allowlist / denylist。仅 `console` 一个薄包装保留 (stdout/stderr 捕获); `module` 自 M23.3 起为原生模块 (`createRequire` / `registerHooks` / `enableCompileCache` / `findPackageJSON` 均为原生)。仍可被请求级门禁关闭的只有 `worker_threads`, `child_process`, `inspector` 的开启与 Session (需显式请求, Debug/Release 均支持, 见 M23.5) 与原生网络模块 (`rawNodeNetworkModulesEnabled=false` 时 `http` / `https` / `net` / `tls` / `dns` / `dgram` / `http2` 直接返回 `ERR_AUTOJS6_BUILTIN_DISABLED`, 原来仅在该模式可达的受限 facade 已删除)。异步 crypto、完整 EventEmitter/AsyncLocalStorage、流与序列化遵循对应 Node API, 不再受原子集包装器的方法或输入大小限制。`node:test` 与 `node:test/reporters` 使用原生实现; 普通脚本中的 `test()` 会由默认 spec reporter 输出到 stdout, 失败测试使执行退出码为 1, `node-test-project` 提供可运行样例。
 
 M23.3 (2026-10-08) 起, 模块加载由 Node 自身的 CommonJS / ESM loader 承担: `require` / `require.resolve` / `require.cache` / `require.extensions` / `Module._resolveFilename` / `module.register` / `import()` / `import.meta` / `require(esm)` 全部为 Node 原生行为; 入口按 Node 主模块的方式运行 (`require.main === module`, `require.main.id === "."`, `__filename` / `process.argv[1]` 为 realpath, 在 Android 上即 `/data/data/...` 而非 `/data/user/0/...` 拼写, 栈帧仍按请求的 sourceURL 显示)。运行时只注册同步的 `module.registerHooks({ resolve, load })`: `autojs6:*` 运行时模块与兼容 shim 以 `autojs6:` scheme 提供 (在 `require.cache` 中以该 url 为键; 同名已安装 npm 包仍优先于 `axios` / `colors` / `mime` / `nanoid` / `opencc` / `undici` 这些 shim), 请求级 builtin 门禁在 resolve 阶段判定, 请求随附的模块源码、module-source provider 物化的源码、TypeScript 快照与按需编译产物以及入口的内联源码由 load 钩子提供, 其余一律交由 Node。不再有 `vm.SourceTextModule` 自管 linker、自定义 resolver、动态 `import()` 改写与 `eval` / `Function` 守卫; `esmEnabled` / `dynamicImportEnabled` 请求键不再起作用 (始终为原生)。ESM 中对运行时模块的具名导入 (`import { esmLoaderProfile } from "autojs6:profile"`) 按模块对象的自有可枚举键提供。
 
@@ -26,7 +26,7 @@ M23.3 (2026-10-08) 起, 模块加载由 Node 自身的 CommonJS / ESM loader 承
 
 成功结果在 Node 事件循环完成、触发最终 `exit` 时生成, 因此原生异步工作及 `beforeExit` 中追加的任务均可完成, 最终 stdout/stderr 与 `process.exitCode` 会正确回传。
 
-文件流、gzip/deflate/Brotli 压缩流和基础 VM 脚本/上下文能力已正式化; 显式启用的 Debug Inspector 在 localhost 范围内为 stable, Release 仍禁用。可运行项目见 `sample/nodejs/streams-compression` 和 `sample/nodejs/vm-context`。这里的 stable 表示插件对文档范围内能力的支持, 不改变 Node 上游 API 稳定性; VM Modules 仍属于上游实验 API。
+文件流、gzip/deflate/Brotli 压缩流和基础 VM 脚本/上下文能力已正式化; 显式启用的 Inspector 在 Debug/Release 的 localhost 范围内均可用。可运行项目见 `sample/nodejs/streams-compression` 和 `sample/nodejs/vm-context`。这里的 stable 表示插件对文档范围内能力的支持, 不改变 Node 上游 API 稳定性; VM Modules 仍属于上游实验 API。
 
 嵌入执行使用 `--disable-warning=ExperimentalWarning`, 因此正常 ESM 运行不会再把内部 VM Modules 提示输出到 stderr。`process.on('warning')` 事件、普通警告、弃用警告、异常和显式 stderr 输出均保留。宿主终端直接启动的 `node` 保持上游默认行为, 可由用户显式传入同一参数。清单中的 partial 或缺失 provider 不会因为关闭提示而自动晋级。
 
@@ -129,7 +129,7 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 | `barcode` | 需 Barcode 外部插件 |
 | `java` | 默认启用; 宿主以声明表 (类 → 可构造 / 静态方法 / 实例方法 / 静态字段 / 实例字段) 定义白名单并按表反射执行, 表经 `getBrokerInfo()` 的 `javaInteropPolicyJson` 公布为 `java.policy`; 反射/ClassLoader/进程与原生库加载继续拒绝 |
 | `rhino` | 默认提供显式迁移入口; 执行请求使用 `explicit: true`, 不会自动安装旧 Rhino 全局对象; `rhino.install` 装入的 `Packages` / `java` / `android` 代理支持静态调用与构造, 并在类路径上提供 `getStatic(field)` / `describe()` (转发 `java.getStatic` / `java.type`, 由宿主白名单裁决) |
-| `worker_threads` | 默认启用, 返回 Node 模块对象; Worker 仅增加执行配置预加载与生命周期清理, 数量不设插件上限且允许嵌套. MessageChannel / MessagePort / 结构化克隆 / stdio / argv / execArgv / environment data 为 Node 原生行为; CJS、ESM、动态 import、require(esm)、JSON attributes 与工作区包解析使用 Node loader. raw 网络开关沿执行继承, fs 交由 Android; worker 中的 autojs6:bridge.callAutoJs 经父线程 MessagePort 到根执行的宿主 broker, 权限、超时和取消继续由现有桥处理. Inspector Session 按执行请求开放 (Release 开放仍属 M23.5), open 仍限 localhost 且 wait=false. WorkerPool 为兼容扩展, 默认并发取 CPU 并行度, 默认不设队列上限与任务超时 |
+| `worker_threads` | 默认启用, 返回 Node 模块对象; Worker 仅增加执行配置预加载与生命周期清理, 数量不设插件上限且允许嵌套. MessageChannel / MessagePort / 结构化克隆 / stdio / argv / execArgv / environment data 为 Node 原生行为; CJS、ESM、动态 import、require(esm)、JSON attributes 与工作区包解析使用 Node loader. raw 网络开关沿执行继承, fs 交由 Android; worker 中的 autojs6:bridge.callAutoJs 经父线程 MessagePort 到根执行的宿主 broker, 权限、超时和取消继续由现有桥处理. Inspector Session 按执行请求开放 (Debug/Release 均支持), open 仍限 localhost 且 wait=false. WorkerPool 为兼容扩展, 默认并发取 CPU 并行度, 默认不设队列上限与任务超时 |
 | `child_process` | 默认启用并遵循 Node 原生语义; 受 Android UID/SELinux/清单与调用方校验约束，但不继承独立 `shell` 桥的私有可执行文件白名单或资源预算，脚本必须自行校验命令、限制 stdio/超时并回收子进程 |
 
 全局 `fetch`、`Request`、`Response`、`Headers`、`FormData`、`WebSocket` 使用 Node 自带的 Web API (网络实现为内置 Undici)。全局网络请求与 raw Node http/https 一样默认可用, 无需宿主 `network` 声明; 请求设 `rawNodeNetworkModulesEnabled=false` 会拒绝全局 fetch/WebSocket 的网络操作, 非联网的数据类仍可用。需要宿主代理、证书与网络策略时, 显式使用 `require("autojs6:fetch")` 或 `require("autojs6:websocket")`, 这两个桥模块仍独立检查宿主 `network` 能力。桥接版的超时上限、响应体大小、方法集合与 WebSocket 消息 / 队列尺寸由宿主网络提供者决定 (宿主 `ControlledFetchPolicy` / `ControlledWebSocketPolicy`: fetch 超时 ≤ 120 s、响应默认 32 MiB / 上限 64 MiB、仅 GET / POST; WebSocket 连接超时 ≤ 60 s、消息默认 64 KiB / 上限 1 MiB、队列默认 32 / 上限 128), 运行时只填 Node 风格默认值 (fetch 超时 30 s、WebSocket 连接超时 10 s、跟随重定向至多 20 次) 并把调用者选项原样传给宿主, `policy.limitsEnforcedBy` 为 `host_provider`。桥接 fetch 的响应体经 ParcelFileDescriptor 交付 (M20.2 第十三批: 请求带 `binary: true`, 支持的宿主把正文写入缓存文件并以 `bodyTransport: "pfd"` 附带描述符, 运行时 mmap 后挂为 Buffer; 空正文与旧宿主仍内联 base64), 响应体只受宿主 `maxResponseBytes` 约束; 插件到宿主方向 (M20.2 第十四批): fetch 请求正文与 WebSocket 消息超过 256 KiB 时, 运行时把字节写入会话上传目录, 插件服务以只读 ParcelFileDescriptor 随请求 Bundle (`KEY_BRIDGE_REQUEST_BINARY_PFD` / `KEY_BRIDGE_REQUEST_BINARY_BYTE_COUNT`) 交给宿主, 描述符只带 `bodyTransport` / `messageTransport: "pfd"` 与字节数, 宿主 OkHttp 直接流式读取文件 (WebSocket 消息按 maxMessageBytes 校验后读入发送), 上行正文只受宿主 `HARD_MAX_REQUEST_BYTES` (64 MiB) / `maxMessageBytes` 约束; 仅当宿主 `getBrokerInfo()` 公布 `bridgeRequestBinaryTransport=pfd` 时启用, 旧宿主仍走内联 base64 (单次 Binder 事务约 1 MB); 宿主回复超过 Binder 事务尺寸时 (如未带 binary 的旧插件收到 2 MiB 内联响应), 第十三批宿主改为立即回一条小体积 BRIDGE_PROVIDER_FAILED, 脚本不再等到超时。
@@ -270,13 +270,15 @@ try {
 
 请求文件完成删除后立即释放内存中的去重记录。`embedded_script.bridge_live_retained_request_count` 与 `embedded_script.bridge_live_retained_response_count` 报告当前保留数量, 用于区分仍待处理的请求和有界的历史响应。
 
-### Debug-only 本地 inspector
+### 本地 Inspector (Debug / Release)
 
-`inspectorEnabled` 是默认 false 的请求级开关 (稳定的契约字段), 只有 **debug 宿主 + debug 插件 + 显式 true** 同时成立才有效。插件 Java 层与 native 编译产物各自复核构建类型; release 产物即使收到伪造请求也保留 `kNoCreateInspector` 并拒绝 `require("inspector")`。
+M23.5 起, `inspectorEnabled` 是默认 false 的请求级开关, Debug 与签名 Release 宿主/插件均支持. 插件 Java 层和 C++ 不再复核构建类型. 宿主在 "关于应用与开发者" 页面长按应用图标进入开发者选项, 开启 "允许 Node.js 脚本使用 Inspector" 后, 普通脚本、项目及后台执行都会在派发时读取该设置; 默认关闭, 修改影响后续执行. 宿主内部调用方可显式传 true/false 覆盖设置, 直接 Binder 请求缺少字段时仍为 false. 开关只允许使用调试能力, 不自动开启监听.
 
-启用后只暴露受控 `inspector` facade: `Session`、`console`、`open`、`close`、`url`; `open` 强制绑定 `127.0.0.1`, 拒绝远程地址与 `wait=true`, `NODE_OPTIONS=--inspect*` 仍被启动环境策略过滤。桌面调试需由用户取得 `inspector.url()` 的设备端口, 手动执行 `adb forward tcp:9229 tcp:<device-port>`, 再在 `chrome://inspect` 配置 `localhost:9229`。自动化证据已覆盖 WebSocket 升级、`Debugger.enable`、断点暂停/恢复、CPU Profiler 与 heap usage Session。
+`inspector` 与 `inspector/promises` 返回 Node 自身模块, CJS/ESM、`process.getBuiltinModule` 以及 Worker 使用同一套入口规则. 未开启时 `inspector.url()` 返回 undefined, `open` 和 Session 构造报 `ERR_AUTOJS6_BUILTIN_DISABLED`; 环境不创建 Inspector agent. 显式启用后可以使用原生 Callback/Promise Session、CPU Profiler 和 HeapProfiler. `open` 强制绑定 `127.0.0.1`, 接受 localhost 别名, 拒绝其他地址与 `wait=true`; `waitForDebugger` 的阻塞等待也不可用. `NODE_OPTIONS=--inspect*` 继续遵循既有启动环境处理.
 
-这是本地开发工具而非安全隔离面: CDP 可读取源码路径、运行时值、CPU profile 与 heap 数据, 当前**不做敏感路径或值的脱敏**。因此 release、项目元数据、打包 APK 与远程监听均不可开启; 完整 heap snapshot 的有界 app-private 落盘、清理和显式导出尚未实现。
+桌面联调: 脚本执行 `inspector.open(0, "127.0.0.1", false)` 并打印 `inspector.url()`, 取得设备端口后执行 `adb -s <serial> forward tcp:9229 tcp:<device-port>`, 在 `chrome://inspect` 配置 localhost:9229 后连接. 调试完成关闭连接、调用 `inspector.close()`, 并移除该转发. 开关关闭后新的执行不接受 Inspector 激活.
+
+CDP 按 Node 原生协议提供源码路径、运行时值、CPU profile 与 heap 数据. 导出和清理分析文件由脚本负责; 项目元数据不能替代宿主设置, 打包 APK 支持仍属 M24. 可运行示例: `inspector-debug`、`cpu-profile`、`heap-snapshot`.
 
 ## 八. 明确不可用 (denied)
 
@@ -285,7 +287,7 @@ try {
 | accessibility 的 powerDialog / waitFor / rawNode | 此旧入口仍 blocked; 电源菜单通过 keys.powerDialog, swipe/gesture 见第一节 |
 | 硬件标识符 (imei 等) | 隐私 fail-closed |
 | RootAutomator / Shizuku 输入通道 | M15.5 决定不新增; gesture/swipe 用无障碍, 设备有 root 时可显式使用 shell.execRoot |
-| 请求级门禁关闭的 builtin (`worker_threads` / `child_process` / `inspector` / 原生网络模块) | `ERR_AUTOJS6_BUILTIN_DISABLED`; 其余 Node 内建模块 (含 `wasi`, M23.2) 全部可用 |
+| 请求级门禁关闭的 builtin (`worker_threads` / `child_process` / 原生网络模块), 以及未获许可的 Inspector 激活/Session | `ERR_AUTOJS6_BUILTIN_DISABLED`; 其余 Node 内建模块 (含 `wasi`, M23.2) 全部可用 |
 
 `media_projection` 已接入 Android 授权和前台服务流程, 不属于 denied; 授权条件及当前验收范围见第二节。
 

@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Compatibility Profile
 
-Last reviewed: 2026-10-08. Published plugin: v1.5.7; subsequent local work: v1.6.0 (M23.4, native addons).
+Last reviewed: 2026-10-08. Published plugin: v1.5.7; subsequent local work: v1.6.0 (M23.5, Release Inspector).
 
 The external runtime plugin supplies Node.js 24.21.0 / V8 / libuv for arm64-v8a,
 armeabi-v7a and x86_64. The host contains no libnode or Node JNI implementation.
@@ -71,8 +71,8 @@ Android-only disabling patch is gone.
 
 File streams, gzip/deflate/Brotli streams, and native VM script/context execution
 are stable plugin capabilities. See the runnable `streams-compression` and
-`vm-context` projects. The explicitly enabled Debug Inspector is stable within
-its localhost-only scope; Release and packaged-app Inspector remain unavailable.
+`vm-context` projects. Explicitly enabled Inspector works in Debug and Release within its localhost-only
+scope. Packaged-app support remains a separate roadmap item.
 
 Embedded executions use Node's `--disable-warning=ExperimentalWarning` option.
 Experimental notices, including the managed ESM linker's VM Modules notice, are
@@ -121,7 +121,7 @@ need a host build that ships those providers (merged into the host master on
 2026-09-17). Archive
 transfer and on-demand compiler inputs have separate project-path contracts.
 
-The debug Inspector supports explicit local debugging through localhost and adb
+Inspector supports explicit local debugging in Debug/Release through localhost and adb
 forward. It is disabled by default; remote listening is unsupported. Java interop reaches
 only the classes and members of the host's declarative allowlist, which the host executes
 by reflection and publishes as `java.policy` (the runtime keeps no class table of its own);
@@ -178,3 +178,9 @@ See the [`native-addon` project](../../sample/nodejs/native-addon) and
 [NDK build instructions](../../tools/nodejs/addon). The plugin does not include
 node-gyp or a device NDK. Native faults affect the runtime slot process and use
 its existing crash reporting; worker threads do not add process isolation.
+
+M23.5 makes Inspector activation independent of build type. The host developer
+setting is off by default; explicit internal request values override it. Without
+permission the native module and url() remain readable, but open and Session
+creation are gated. Root scripts and Workers share the localhost/nonblocking
+policy, including inspector/promises and ESM imports.

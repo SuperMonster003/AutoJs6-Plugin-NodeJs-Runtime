@@ -2706,18 +2706,6 @@ std::string buildEmbeddedScriptExecutionSource(
   // internal/worker replaces process.chdir during module initialization. Load it
   // before process facade properties become read-only; node:test also imports it.
   if (__autojs6_get_builtin_module) __autojs6_get_builtin_module("worker_threads");
-  // inspector.js lazily initializes process internals on first load. Capture
-  // it before the controlled process facade makes those properties read-only.
-  const __autojs6_preloaded_inspector = (function() {
-    if (!__autojs6_inspector_enabled || typeof __autojs6_get_builtin_module !== "function") {
-      return Object.freeze({ module: null, error: null });
-    }
-    try {
-      return Object.freeze({ module: __autojs6_get_builtin_module("inspector"), error: null });
-    } catch (error) {
-      return Object.freeze({ module: null, error: error });
-    }
-  })();
   function __autojs6_builtin_module(name) {
     try {
       if (typeof __autojs6_get_builtin_module === "function") {
@@ -2726,58 +2714,36 @@ std::string buildEmbeddedScriptExecutionSource(
     } catch (_) {}
     return null;
   }
-  function __autojs6_limited_inspector() {
-    if (__autojs6_limited_inspector_cache) {
-      return __autojs6_limited_inspector_cache;
+  // Shared by the root environment and Worker preloads. Keep Node's module objects,
+  // with only the explicit-request and localhost/nonblocking policy on entry points.
+  function __autojs6_install_inspector(getBuiltinModule, enabled) {
+    const inspector = getBuiltinModule("inspector");
+    const nativeOpen = inspector.open;
+    function disabled() {
+      throw Object.assign(new Error("Inspector requires an explicit inspectorEnabled request."), {
+        code: "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED", autojs6Code: "ERR_AUTOJS6_BUILTIN_DISABLED"
+      });
     }
-    if (!__autojs6_inspector_enabled) {
-      throw __autojs6_builtin_disabled(
-        "Embedded Node inspector is disabled. It requires a debug build and an explicit inspectorEnabled request."
-      );
+    function invalid(message) {
+      throw Object.assign(new TypeError(message), { code: "ERR_INVALID_ARG_VALUE" });
     }
-    const nativeModule = __autojs6_preloaded_inspector.module;
-    const inspectorLoadError = __autojs6_preloaded_inspector.error;
-    if (!nativeModule || typeof nativeModule.Session !== "function" || typeof nativeModule.open !== "function") {
-      const detail = inspectorLoadError
-        ? " (" + (inspectorLoadError.code || inspectorLoadError.name || "Error") + ": " + inspectorLoadError.message + ")"
-        : "";
-      throw __autojs6_builtin_disabled("Embedded Node inspector module is unavailable in this runtime." + detail);
-    }
-    const open = function(port, host, wait) {
-      const requestedPort = port === undefined ? 9229 : Number(port);
-      if (!Number.isInteger(requestedPort) || requestedPort < 0 || requestedPort > 65535) {
-        throw __autojs6_out_of_range("inspector.open port must be an integer between 0 and 65535.");
+    const open = function(port, host = "127.0.0.1", wait = false) {
+      if (!enabled) return disabled();
+      const address = String(host).toLowerCase();
+      if ((address !== "127.0.0.1" && address !== "localhost") || wait === true) {
+        return invalid("Inspector requires localhost and wait=false.");
       }
-      const requestedHost = host === undefined ? "127.0.0.1" : String(host).toLowerCase();
-      if (requestedHost !== "127.0.0.1" && requestedHost !== "localhost") {
-        throw __autojs6_invalid_arg_value(
-          "inspector.open host must be localhost or 127.0.0.1; remote bindings are forbidden."
-        );
-      }
-      if (wait === true) {
-        throw __autojs6_invalid_arg_value(
-          "inspector.open wait=true is forbidden because it can permanently occupy the runtime execution slot."
-        );
-      }
-      return nativeModule.open(requestedPort, "127.0.0.1", false);
+      return nativeOpen(port, "127.0.0.1", false);
     };
-    const limitedModule = Object.create(null);
-    Object.defineProperties(limitedModule, {
-      Session: { value: nativeModule.Session, enumerable: true },
-      console: { value: nativeModule.console, enumerable: true },
-      open: { value: open, enumerable: true },
-      close: {
-        value: function() { return nativeModule.close(); },
-        enumerable: true
-      },
-      url: {
-        value: function() { return nativeModule.url(); },
-        enumerable: true
-      }
-    });
-    __autojs6_limited_inspector_cache = Object.freeze(limitedModule);
-    return __autojs6_limited_inspector_cache;
+    for (const name of ["inspector", "inspector/promises"]) {
+      const module = getBuiltinModule(name);
+      module.open = open;
+      module.waitForDebugger = () => invalid("Inspector blocking waits are unavailable; attach asynchronously.");
+      if (!enabled) module.Session = new Proxy(module.Session, { construct: disabled });
+    }
+    getBuiltinModule("module").syncBuiltinESMExports();
   }
+  __autojs6_install_inspector(__autojs6_get_builtin_module, __autojs6_inspector_enabled);
   function __autojs6_child_process_builtin(name) {
     if (!__autojs6_child_process_enabled) {
       return null;
@@ -3202,9 +3168,6 @@ std::string buildEmbeddedScriptExecutionSource(
     if (id === "child_process") {
       return __autojs6_child_process_enabled ? null : "child_process is disabled for this execution.";
     }
-    if (id === "inspector" || id === "inspector/promises") {
-      return __autojs6_inspector_enabled ? null : "inspector requires a debug build and an explicit inspectorEnabled request.";
-    }
     if (__autojs6_network_builtin_ids.indexOf(id) >= 0) {
       return __autojs6_raw_node_network_modules_enabled ? null : "raw Node networking is disabled for this execution.";
     }
@@ -3212,7 +3175,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_gated_builtin_ids() {
     const gated = [];
-    for (const id of ["worker_threads", "child_process", "inspector", "inspector/promises"].concat(__autojs6_network_builtin_ids)) {
+    for (const id of ["worker_threads", "child_process"].concat(__autojs6_network_builtin_ids)) {
       if (__autojs6_builtin_gate(id)) gated.push(id);
     }
     return gated;
@@ -3230,7 +3193,6 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_limited_console_cache = null;
   let __autojs6_limited_web_crypto_cache = null;
   let __autojs6_limited_web_compression_cache = null;
-  let __autojs6_limited_inspector_cache = null;
   let __autojs6_profile_cache = null;
   let __autojs6_autojs_global_cache = null;
   let __autojs6_process_permission_cache = null;
@@ -3753,13 +3715,13 @@ std::string buildEmbeddedScriptExecutionSource(
         buildTimeOverrideAllowed: false,
         projectJsonOverrideAllowed: false,
         packagedApkOverrideAllowed: false,
-        buildOnly: true,
-        debugOnly: true,
-        projectAllowed: false,
+        buildOnly: false,
+        debugOnly: false,
+        projectAllowed: true,
         packagedAllowed: false,
-        releaseForbidden: true,
+        releaseForbidden: false,
         securityLevel: "high",
-        status: __autojs6_inspector_enabled ? "stable" : "disabled"
+        status: "available"
       }),
       java_interop: Object.freeze({
         id: "java_interop",
@@ -4227,23 +4189,23 @@ std::string buildEmbeddedScriptExecutionSource(
         rawGlobalAccess: true
       }),
       inspectorProfile: Object.freeze({
-        status: __autojs6_inspector_enabled ? "debug_explicit_localhost" : "disabled_by_default",
+        status: __autojs6_inspector_enabled ? "explicit_localhost" : "disabled_by_default",
         defaultEnabled: false,
-        targetProfiles: Object.freeze(["debug_unsafe_lab"]),
-        module: __autojs6_inspector_enabled ? "controlled_facade" : "denied",
-        devtools: __autojs6_inspector_enabled ? "cdp_localhost_available" : "requires_explicit_debug_request",
-        inspectorProtocol: __autojs6_inspector_enabled ? "available" : "requires_explicit_debug_request",
+        targetProfiles: Object.freeze(["safe_default"]),
+        module: "native_with_request_gated_activation",
+        devtools: __autojs6_inspector_enabled ? "cdp_localhost_available" : "requires_explicit_request",
+        inspectorProtocol: __autojs6_inspector_enabled ? "available" : "requires_explicit_request",
         adbForwarding: "required_for_desktop_client",
         explicitUserAction: "required_per_execution",
-        releaseBuild: "denied",
+        releaseBuild: "explicit_request",
         packagedBehavior: "not_applicable_no_packaged_runtime",
         portBinding: __autojs6_inspector_enabled ? "127.0.0.1_only" : "denied",
         remoteConnections: "denied",
         bridgeModules: "denied",
         processAccess: __autojs6_inspector_enabled ? "debug_protocol_exposed" : "denied",
-        heapSnapshot: __autojs6_inspector_enabled ? "session_available_debug_only" : "denied",
-        cpuProfiler: __autojs6_inspector_enabled ? "session_available_debug_only" : "denied",
-        sensitivePathRedaction: "not_applied_debug_disclosure_required",
+        heapSnapshot: __autojs6_inspector_enabled ? "session_available" : "denied",
+        cpuProfiler: __autojs6_inspector_enabled ? "session_available" : "denied",
+        sensitivePathRedaction: "native_node_protocol",
         rawSockets: __autojs6_inspector_enabled
       }),
       wasiProfile: Object.freeze({
@@ -4394,7 +4356,7 @@ std::string buildEmbeddedScriptExecutionSource(
       filesystem_relaxation: "safe_profile_scoped_fs",
       child_process: "built_in_stable_no_build_switch",
       native_addon: "node_native_loader",
-      inspector: "debug_build_plus_explicit_request",
+      inspector: "explicit_request_localhost",
       wasi: "stable_denial_no_runtime_switch"
     });
     const flagEnabled = function(name) {
@@ -4526,10 +4488,10 @@ std::string buildEmbeddedScriptExecutionSource(
         }),
         Object.freeze({
           id: "inspector",
-          profile: "debug_unsafe_lab",
+          profile: "safe_default",
           property: capabilityKillSwitches.inspector,
           enabled: flagEnabled("inspector"),
-          rollbackAction: "keep_inspector_builtin_denied",
+          rollbackAction: "disable_inspector_request",
           fallbackProfile: "safe_default"
         }),
         Object.freeze({
@@ -4829,19 +4791,6 @@ std::string buildEmbeddedScriptExecutionSource(
           null
         ),
         __autojs6_privacy_disclosure_surface(
-          "inspector",
-          "inspector",
-          "debug_unsafe_lab",
-          Object.freeze([]),
-          true,
-          true,
-          true,
-          false,
-          "debug_session_confirmation",
-          "foreground_service_notification",
-          null
-        ),
-        __autojs6_privacy_disclosure_surface(
           "wasi",
           "wasi",
           "desktop_compat_opt_in",
@@ -4862,8 +4811,7 @@ std::string buildEmbeddedScriptExecutionSource(
           "screen_capture",
           "media_recording",
           "ui_overlay",
-          "shell_root",
-          "inspector"
+          "shell_root"
         ]),
         __autojs6_privacy_disclosure_channel("in_app_disclosure", "required_before_promotion", [
           "ui_overlay",
@@ -5199,7 +5147,7 @@ std::string buildEmbeddedScriptExecutionSource(
     ) {
       return "desktop_compat_opt_in";
     }
-    if (normalized === "inspector") return "debug_unsafe_lab";
+    if (normalized === "inspector") return "safe_default";
     return "safe_default";
   }
   function __autojs6_profile_required_profiles_for_capabilities(capabilities) {
@@ -8610,7 +8558,7 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     };
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8681,7 +8629,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     function builtinGate(id) {
       const bare = id.startsWith("node:") ? id.slice(5) : id;
-      if (gated.has(bare) || (bare === "inspector/promises" && gated.has("inspector"))) throw disabled(id);
+      if (gated.has(bare)) throw disabled(id);
     }
     ["fetch", "Request", "Response", "Headers", "FormData", "WebSocket"].forEach(name => { void globalThis[name]; });
     if (gated.has("http")) {
@@ -8695,18 +8643,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (value) builtinGate(id);
       return value;
     };
-    if (!gated.has("inspector")) {
-      const inspector = getBuiltinModule("inspector");
-      const open = inspector.open;
-      const localOpen = (port, host = "127.0.0.1", wait = false) => {
-        if ((host !== "127.0.0.1" && host !== "localhost") || wait === true) {
-          throw Object.assign(new TypeError("Inspector requires localhost and wait=false."), { code: "ERR_INVALID_ARG_VALUE" });
-        }
-        return open(port, "127.0.0.1", false);
-      };
-      inspector.open = localOpen;
-      getBuiltinModule("inspector/promises").open = localOpen;
-    }
+    installInspector(getBuiltinModule, config.inspectorEnabled);
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     function sourceKey(table, filename) {
@@ -8813,7 +8750,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // This file contains plugin code only. Request sources and bridge state go
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
-      __autojs6_worker_constructor.toString() + ");";
+      __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -8844,6 +8781,7 @@ std::string buildEmbeddedScriptExecutionSource(
           moduleSources,
           typeScriptSources: { ...__autojs6_typescript_precompiled_source_names },
           gatedBuiltins: __autojs6_gated_builtin_ids(),
+          inspectorEnabled: __autojs6_inspector_enabled,
           resourceLimits: __autojs6_worker_threads_policy.resourceLimits,
           workerProfile: __autojs6_worker_threads_policy.workerProfile,
           permissions: __autojs6_bridge_permission_report()
@@ -26452,10 +26390,9 @@ std::string buildEmbeddedScriptExecutionSource(
     npm: function() { return __autojs6_limited_npm(); },
     plugins: function() { return __autojs6_limited_plugins(); },
     java: function() { return __autojs6_limited_java(); },
-    // Builtin facades: console keeps stdout capture, inspector stays request-gated, the worker and
+    // Builtin facades: console keeps stdout capture; the worker and
     // child_process facades wrap the native modules while a request enables them.
     console: function() { return __autojs6_limited_console(); },
-    inspector: function() { return __autojs6_limited_inspector(); },
     worker_threads: function() { return __autojs6_limited_worker_threads(); },
     worker_threads_shape: function() { return __autojs6_worker_threads_shape_facade(); },
     child_process: function() { return __autojs6_child_process_builtin("child_process"); }

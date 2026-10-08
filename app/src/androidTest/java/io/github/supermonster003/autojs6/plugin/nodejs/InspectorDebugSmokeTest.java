@@ -43,7 +43,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** Roadmap M10.2: explicit debug-only inspector, loopback policy and live CDP breakpoint. */
+/** Roadmap M23.5: explicit Debug/Release inspector, loopback policy and live CDP breakpoint. */
 @RunWith(AndroidJUnit4.class)
 public final class InspectorDebugSmokeTest {
 
@@ -51,7 +51,7 @@ public final class InspectorDebugSmokeTest {
     private static final long SCRIPT_TIMEOUT_MS = 25_000L;
 
     @Test
-    public void explicitDebugRequestProvidesLoopbackCdpAndDefaultStaysDenied() throws Exception {
+    public void explicitRequestProvidesLoopbackCdpAndDefaultStaysInactive() throws Exception {
         Context context = InstrumentationRegistry.getInstrumentation()
                 .getTargetContext()
                 .getApplicationContext();
@@ -85,18 +85,18 @@ public final class InspectorDebugSmokeTest {
             INodeJsRuntimePlugin runtime = INodeJsRuntimePlugin.Stub.asInterface(binder.get());
             assertNotNull("runtime proxy unavailable", runtime);
 
-            Bundle denied = runtime.runScript(
-                    request(
-                            workingDirectory,
-                            "let code = '';\n" +
-                                    "try { require('inspector'); } catch (error) { code = error.autojs6Code || error.code || ''; }\n" +
-                                    "if (code !== 'ERR_AUTOJS6_BUILTIN_DISABLED') throw new Error('unexpected inspector code: ' + code);\n" +
-                                    "console.log('m10.inspector.default-denied=' + code);\n",
-                            false
-                    ),
-                    emptyCallback()
-            );
-            assertSucceededWith(denied, "m10.inspector.default-denied=ERR_AUTOJS6_BUILTIN_DISABLED");
+            Bundle denied = runtime.runScript(request(workingDirectory, """
+                    const assert = require('node:assert/strict');
+                    for (const name of ['inspector', 'inspector/promises']) {
+                      const inspector = require(name);
+                      assert.equal(inspector, process.getBuiltinModule(name));
+                      assert.equal(inspector.url(), undefined);
+                      assert.throws(() => inspector.open(0), e => e.autojs6Code === 'ERR_AUTOJS6_BUILTIN_DISABLED');
+                      assert.throws(() => new inspector.Session(), e => e.autojs6Code === 'ERR_AUTOJS6_BUILTIN_DISABLED');
+                    }
+                    console.log('m23.inspector.default-inactive=true');
+                    """, null), emptyCallback());
+            assertSucceededWith(denied, "m23.inspector.default-inactive=true");
 
             File urlFile = new File(workingDirectory, "inspector-url.txt");
             File readyFile = new File(workingDirectory, "debugger-ready.txt");
@@ -127,7 +127,7 @@ public final class InspectorDebugSmokeTest {
                     result,
                     "m10.inspector.non-loopback-denied=true",
                     "m10.inspector.wait-denied=true",
-                    "m10.inspector.debug-only=true",
+                    "m23.inspector.release-allowed=true",
                     "m10.inspector.breakpoint-resumed=true"
             );
 
@@ -149,7 +149,7 @@ public final class InspectorDebugSmokeTest {
         }
     }
 
-    private static Bundle request(File workingDirectory, String source, boolean inspectorEnabled) {
+    private static Bundle request(File workingDirectory, String source, Boolean inspectorEnabled) {
         Bundle request = new Bundle();
         request.putInt(NodeJsRuntimeContract.KEY_CONTRACT_VERSION, NodeJsRuntimeContract.CONTRACT_VERSION);
         request.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, "inspector-" + UUID.randomUUID());
@@ -161,7 +161,7 @@ public final class InspectorDebugSmokeTest {
         request.putString(NodeJsRuntimeContract.KEY_WORKING_DIRECTORY, workingDirectory.getAbsolutePath());
         request.putString(NodeJsRuntimeContract.KEY_SANDBOX_ROOT, workingDirectory.getAbsolutePath());
         request.putLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, SCRIPT_TIMEOUT_MS);
-        request.putBoolean(NodeJsRuntimeContract.KEY_INSPECTOR_ENABLED, inspectorEnabled);
+        if (inspectorEnabled != null) request.putBoolean(NodeJsRuntimeContract.KEY_INSPECTOR_ENABLED, inspectorEnabled);
         return request;
     }
 
@@ -172,14 +172,14 @@ public final class InspectorDebugSmokeTest {
                 "const fs = require('fs');\n" +
                 "const inspector = require('inspector');\n" +
                 "const profile = require('autojs6:profile');\n" +
-                "require('node:assert/strict').equal(profile.featureFlags.inspector.status, 'stable');\n" +
+                "require('node:assert/strict').equal(profile.featureFlags.inspector.status, 'available');\n" +
                 "let nonLoopbackDenied = false;\n" +
                 "let waitDenied = false;\n" +
                 "try { inspector.open(0, '0.0.0.0', false); } catch (error) { nonLoopbackDenied = error && error.code === 'ERR_INVALID_ARG_VALUE'; }\n" +
                 "try { inspector.open(0, '127.0.0.1', true); } catch (error) { waitDenied = error && error.code === 'ERR_INVALID_ARG_VALUE'; }\n" +
                 "console.log('m10.inspector.non-loopback-denied=' + nonLoopbackDenied);\n" +
                 "console.log('m10.inspector.wait-denied=' + waitDenied);\n" +
-                "console.log('m10.inspector.debug-only=' + (profile.featureFlags.inspector.enabled === true && profile.featureFlags.inspector.debugOnly === true && profile.featureFlags.inspector.releaseForbidden === true));\n" +
+                "console.log('m23.inspector.release-allowed=' + (profile.featureFlags.inspector.enabled === true && profile.featureFlags.inspector.debugOnly === false && profile.featureFlags.inspector.releaseForbidden === false));\n" +
                 "inspector.open(0, 'localhost', false);\n" +
                 "const url = inspector.url();\n" +
                 "if (!url || url.indexOf('ws://127.0.0.1:') !== 0) throw new Error('bad inspector URL: ' + url);\n" +
@@ -203,6 +203,8 @@ public final class InspectorDebugSmokeTest {
                 "const inspector = require('node:inspector');\n" +
                 "const Module = require('module');\n" +
                 "console.log('m10.inspector.module-shape=' + (Module.isBuiltin('inspector') && typeof inspector.Session === 'function'));\n" +
+                "const assert = require('node:assert/strict');\n" +
+                "for (const name of ['inspector', 'inspector/promises']) { const value = require(name); assert.equal(value, process.getBuiltinModule(name)); assert.throws(() => value.open(0, '0.0.0.0'), {code:'ERR_INVALID_ARG_VALUE'}); assert.throws(() => value.open(0, '127.0.0.1', true), {code:'ERR_INVALID_ARG_VALUE'}); assert.throws(() => value.waitForDebugger(), {code:'ERR_INVALID_ARG_VALUE'}); }\n" +
                 "const session = new inspector.Session();\n" +
                 "session.connect();\n" +
                 "const post = (method, params) => new Promise((resolve, reject) => session.post(method, params || {}, (error, result) => error ? reject(error) : resolve(result || {})));\n" +
@@ -211,7 +213,8 @@ public final class InspectorDebugSmokeTest {
                 "  await post('Profiler.start');\n" +
                 "  let total = 0; for (let index = 0; index < 100000; ++index) total += index;\n" +
                 "  const stopped = await post('Profiler.stop');\n" +
-                "  const heap = await post('Runtime.getHeapUsage');\n" +
+                "  const promised = new (require('inspector/promises').Session)(); promised.connect();\n" +
+                "  const heap = await promised.post('Runtime.getHeapUsage'); promised.disconnect();\n" +
                 "  session.disconnect();\n" +
                 "  console.log('m10.inspector.cpu-profile=' + !!(stopped.profile && stopped.profile.nodes && stopped.profile.nodes.length));\n" +
                 "  console.log('m10.inspector.heap-usage=' + !!(heap.usedSize > 0 && heap.totalSize > 0));\n" +

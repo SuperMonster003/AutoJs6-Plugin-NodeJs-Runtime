@@ -44,9 +44,6 @@
 #define AUTOJS6_NODE_BRIDGE_LINKS_LIBNODE 0
 #endif
 
-#ifndef AUTOJS6_NODE_DEBUG_BUILD
-#define AUTOJS6_NODE_DEBUG_BUILD 0
-#endif
 
 namespace autojs6::node_bridge::internal {
 

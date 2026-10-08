@@ -104,10 +104,11 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 - TypeScript: ホストの出力を受け入れ, プリコンパイル済みスナップショットを対応付け, provider v3 のコンパイルを要求可能; ディスク上の raw TypeScript モジュールは Node 自身の型除去で読み込まれ, 直接ディスパッチされた raw TypeScript エントリは引き続き `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` を返します.
 - ESM: `module.registerHooks` 付きの Node.js ネイティブローダー; ライブバインディング, 循環依存, `import.meta`, `data:` URL, `require(esm)` はデスクトップと同じ.
 - 能力: 同期スクリプト実行, bundle transport, ネイティブ組み込みランタイム, ホスト能力ブローカー, host capability live bridge.
-- ファイルストリーム、gzip/deflate/Brotli ストリームと基本 VM 実行を正式サポート; 明示的に有効化した Debug Inspector は localhost の範囲で正式サポート.
+- ファイルストリーム、gzip/deflate/Brotli ストリームと基本 VM 実行を正式サポート; 明示的に有効化した Inspector (Debug/Release) は localhost の範囲で正式サポート.
 - 組み込み実行で ExperimentalWarning の表示を停止し、warning イベント、通常の警告、非推奨警告とエラーを維持; Node 上流 API の安定性と端末の既定動作は変更なし.
 - ネイティブ Worker がネスト, MessagePort API, stdio, argv, execArgv とプリロードの継承に対応; プラグイン独自の Worker 数と起動時間の上限を削除し, resourceLimits は上書き可能な既定値に変更; WorkerPool のキュー数とタスク時間は既定で無制限, Inspector セッションは実行要求と現在のビルドに従う
 - メインスクリプトと Worker で Android ネイティブアドオンを Node からロード可能; process.dlopen と .node はネイティブ動作となり, 独自の署名やハッシュ許可リストを設けない; native-addon は 3 ABI の 16 KB アラインメント済み Node-API バイナリとオフライン NDK/CMake ビルドを提供; ABI 不一致や破損は ERR_DLOPEN_FAILED などの Node エラーとなり, 端末用 node-gyp や NDK は同梱しない
+- ホストの明示的な許可により Debug と Release ビルドで Inspector を利用可能; inspector と inspector/promises は Node のネイティブモジュールを維持し, メインスクリプトと Worker で Session を使用可能, 待受は 127.0.0.1 のみでブロッキング待機は不可; 未許可時は url() が undefined を返し, 有効化と Session 作成は無効
 
 ******
 
@@ -117,7 +118,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 
 # v1.6.0
 
-###### 2026/10/07
+###### 2026/10/08
 
 * `改善` fs, fs/promises および node:sqlite は Node.js 本来のモジュールになりました: ランタイム独自の /proc, /sys, /dev 拒否とパス検証ラッパーを撤去し, ファイルへの到達可否は Android の権限のみで決まり, 非同期ファイル API はイベントループを塞がず libuv スレッドプールで実行され, パスエラーは Node.js 本来のコードを返します (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH および ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED はファイル / データベース操作から発生しなくなりました)
 * `改善` process.cwd と process.chdir は Node.js 本来の動作になり, 実行開始時に実際の chdir で作業ディレクトリへ移動し, 相対パスは Node.js 自身が解決します
@@ -133,6 +134,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `改善` Worker とネストした Worker から親の MessagePort 経由で autojs6:bridge.callAutoJs を利用可能; ホスト broker の権限検査, エラー, タイムアウトとキャンセルを維持し, worker-host-bridge で実際のホスト端末情報の取得を示す; ブリッジ API の TypeScript 宣言を提供
 * `改善` 未コンパイルの .ts / .mts / .cts のエントリーとインポート先は、引き続きホスト Compiler が生成した JavaScript を必要とします。スナップショットの対応付けと provider v3 のオンデマンドコンパイルを維持し、従来の AutoJs6 ESM / 動的インポートエラーコードを Node 本来のエラーに置き換えました。
 * `改善` メインスクリプトと Worker で Android ネイティブアドオンを Node からロード可能; process.dlopen と .node はネイティブ動作となり, 独自の署名やハッシュ許可リストを設けない; native-addon は 3 ABI の 16 KB アラインメント済み Node-API バイナリとオフライン NDK/CMake ビルドを提供; ABI 不一致や破損は ERR_DLOPEN_FAILED などの Node エラーとなり, 端末用 node-gyp や NDK は同梱しない
+* `改善` ホストの明示的な許可により Debug と Release ビルドで Inspector を利用可能; inspector と inspector/promises は Node のネイティブモジュールを維持し, メインスクリプトと Worker で Session を使用可能, 待受は 127.0.0.1 のみでブロッキング待機は不可; 未許可時は url() が undefined を返し, 有効化と Session 作成は無効
 
 # v1.5.7
 

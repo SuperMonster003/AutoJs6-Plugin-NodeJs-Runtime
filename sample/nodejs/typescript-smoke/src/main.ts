@@ -824,8 +824,8 @@ async function smoke(): Promise<void> {
   const safeRawNetworkMode: AutoJs6Node.ProfileModuleModeFor<"raw_network", "safe_default"> = "available";
   const desktopRawNetworkMode: AutoJs6Node.ProfileModuleModeFor<"raw_network", "desktop_compat_opt_in"> = "available";
   const desktopWasiMode: AutoJs6Node.ProfileModuleModeFor<"wasi", "desktop_compat_opt_in"> = "profile_gated";
-  const debugInspectorMode: AutoJs6Node.ProfileModuleModeFor<"inspector", "debug_unsafe_lab"> = "profile_gated";
-  const safeInspectorMode: AutoJs6Node.ProfileModuleModeFor<"inspector", "safe_default"> = "denied";
+  const debugInspectorMode: AutoJs6Node.ProfileModuleModeFor<"inspector", "debug_unsafe_lab"> = "available";
+  const safeInspectorMode: AutoJs6Node.ProfileModuleModeFor<"inspector", "safe_default"> = "available";
   const packageManagerRequiredProfile: AutoJs6Node.ProfileRequiredFor<"package_manager"> = "desktop_compat_opt_in";
   const packageManagerSafeMode: AutoJs6Node.SafeDefaultModeFor<"package_manager"> = "partial";
   const packageManagerTargetMode: AutoJs6Node.TargetProfileModeFor<"package_manager"> = "partial";

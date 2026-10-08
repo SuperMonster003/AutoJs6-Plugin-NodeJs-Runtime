@@ -67,7 +67,11 @@ linker namespace rules still govern library access. Binary `.node` files must be
 Android-compatible and match the process architecture; dependencies and page
 alignment must also match the device. Addon code runs in the runtime slot
 process, and native faults are reported by the existing process-exit/crash path.
-Release Inspector remains a separate [M23.5 item](../../Roadmap.md).
+M23.5 allows Inspector in Debug and signed Release after an explicit request.
+The host developer setting defaults off. Both Inspector modules retain native
+exports with activation/Session entry points gated; url() is readable while
+inactive. Root scripts and Workers bind only 127.0.0.1, without blocking waits.
+Desktop clients use ADB forwarding and see the native Node protocol data.
 
 Plugin discovery, caller trust, Binder ownership and grants to remote MCP callers
 remain host integration responsibilities. Shared Android providers do not make a

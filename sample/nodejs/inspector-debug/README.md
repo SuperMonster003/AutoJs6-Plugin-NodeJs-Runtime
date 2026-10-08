@@ -1,21 +1,16 @@
 # inspector-debug
 
-Debug-only inspector probe. With `inspectorEnabled=true` on a debug host and
-debug plugin build, it opens an ephemeral CDP endpoint on IPv4 loopback and
-then closes it. The ordinary sample runner does not opt in, so that path prints
-the explicit denial and still completes the policy probe.
+Opens a localhost Inspector endpoint and prints its loopback status. Supported in Debug and Release builds.
 
-- Capabilities: localhost Node inspector / Chrome DevTools Protocol
-- Expected provider: controlled `inspector` facade in debug builds only
-- Packaged support: not part of the packaged smoke set
-- Activation: the host request key `inspectorEnabled` exists, but the current
-  host never sets it; project metadata cannot opt in and release builds ignore
-  a forged request
-- Desktop connection: keep the script alive, note the device port from
-  `inspector.url()`, run `adb forward tcp:9229 tcp:<device-port>`, then configure
-  `localhost:9229` in `chrome://inspect`
-- Security limitations: binding is forced to `127.0.0.1`; remote hosts and
-  `wait=true` are rejected; CDP exposes source paths, evaluated values and
-  potentially secrets, and no path/value redaction is claimed
+Enable **Allow Inspector for Node.js scripts** under the host developer options
+(long-press the app icon on the About page), then run the project. The setting is
+off by default. A direct runtime caller can instead set `inspectorEnabled=true`.
+Without permission, activation/Session creation reports `ERR_AUTOJS6_BUILTIN_DISABLED`;
+`inspector.url()` can still be queried and returns `undefined`.
+
+Desktop DevTools connects through `adb forward` to the device loopback port.
+Listeners bind only to `127.0.0.1`; blocking waits are unavailable. Profiles and
+source locations follow Node's native Inspector protocol. See
+[HOST-API](../../../docs/HOST-API.md#本地-inspector-debug--release).
 
 Expected output is listed in `expected-output.txt`.

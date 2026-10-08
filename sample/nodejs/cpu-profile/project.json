@@ -8,9 +8,16 @@
     "permissions": []
   },
   "example": {
-    "capabilities": ["profiler", "inspector"],
-    "expectedProvider": "explicit debug-only inspector Profiler session",
+    "capabilities": [
+      "profiler",
+      "inspector"
+    ],
+    "expectedProvider": "Node Inspector enabled by the host developer setting or inspectorEnabled request, in Debug and Release",
     "packagedSupport": "not supported in release builds",
-    "securityLimitations": ["release builds deny inspector", "no managed .cpuprofile artifact export", "profiles may expose source locations and runtime metadata"]
+    "securityLimitations": [
+      "disabled by default; the host must explicitly allow Inspector",
+      "listener is forced to 127.0.0.1; blocking waits are unavailable",
+      "CDP source paths and values follow the native Node protocol"
+    ]
   }
 }

@@ -1,15 +1,16 @@
 # cpu-profile
 
-Partial CPU profile example backed by `inspector.Session`. It records a short
-in-memory profile when the host sends an explicit debug-only inspector request;
-the ordinary sample runner exercises the denied-by-default branch.
+Records an in-memory CPU profile through a native Inspector Session. Supported in Debug and Release builds.
 
-- Capabilities: Node `Profiler` domain through a controlled inspector session
-- Expected provider: debug-only `inspector.Session`; the host request key
-  `inspectorEnabled` exists, but the current host never sets it
-- Packaged support: not part of the packaged smoke set
-- Security limitations: release builds cannot enable it; a managed,
-  user-selected, app-private `.cpuprofile` export path is not implemented; CPU
-  profiles may contain source locations and runtime-sensitive metadata
+Enable **Allow Inspector for Node.js scripts** under the host developer options
+(long-press the app icon on the About page), then run the project. The setting is
+off by default. A direct runtime caller can instead set `inspectorEnabled=true`.
+Without permission, activation/Session creation reports `ERR_AUTOJS6_BUILTIN_DISABLED`;
+`inspector.url()` can still be queried and returns `undefined`.
+
+Desktop DevTools connects through `adb forward` to the device loopback port.
+Listeners bind only to `127.0.0.1`; blocking waits are unavailable. Profiles and
+source locations follow Node's native Inspector protocol. See
+[HOST-API](../../../docs/HOST-API.md#本地-inspector-debug--release).
 
 Expected output is listed in `expected-output.txt`.

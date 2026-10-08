@@ -1306,7 +1306,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 assert.strictEqual(process.getBuiltinModule('node:path'), require('node:path'));
                 assert.strictEqual(process.getBuiltinModule('fs'), require('fs'));
                 assert.strictEqual(process.getBuiltinModule('no-such-builtin'), undefined);
-                assert.throws(() => process.getBuiltinModule('node:inspector'), (e) => e.code === 'ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED');
+                assert.equal(process.getBuiltinModule('node:inspector').url(), undefined);
                 // M23.2: abort/kill are Node's own; a worker refuses abort itself and kill would signal the slot process.
                 assert.throws(() => process.abort(), (e) => e.code === 'ERR_WORKER_UNSUPPORTED_OPERATION');
                 assert.strictEqual(typeof process.kill, 'function');
@@ -1401,7 +1401,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                   assert.throws(() => require(name), (e) => e.code === 'MODULE_NOT_FOUND', name);
                 }
                 for (const name of ['node:inspector', 'inspector']) {
-                  assert.throws(() => require(name), (e) => e.code === 'ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED', name);
+                  assert.equal(require(name).url(), undefined);
                 }
                 parentPort.postMessage('cjs-ok');
                 """);
@@ -1488,7 +1488,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                   await assert.rejects(import('./data.json'), (e) => e.code === 'ERR_IMPORT_ATTRIBUTE_MISSING');
                   await assert.rejects(import('./dep.mjs', { with: { type: 'json' } }), (e) => e.code === 'ERR_IMPORT_ATTRIBUTE_TYPE_INCOMPATIBLE');
                   await assert.rejects(import('./dep.mjs', { with: { type: 'css' } }), (e) => e.code === 'ERR_IMPORT_ATTRIBUTE_UNSUPPORTED');
-                  await assert.rejects(import('node:inspector'), (e) => e.code === 'ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED');
+                  assert.equal((await import('node:inspector')).url(), undefined);
                   // M23.3: Node's ESM loader answers for everything that is not a worker facade.
                   await assert.rejects(import('autojs6:fetch'), (e) => e.code === 'ERR_UNSUPPORTED_ESM_URL_SCHEME');
                   await assert.rejects(import('./missing.mjs'), (e) => e.code === 'ERR_MODULE_NOT_FOUND');

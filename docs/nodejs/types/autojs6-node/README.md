@@ -151,11 +151,11 @@ interruption, bridge and host object non-injection, scoped-fs preservation, and
 packaged fixture behavior. Runtime now routes `require("vm")` and
 `require("node:vm")` to Node's native VM builtin.
 
-P13-37 extends the `autojs6:profile` declaration with `inspectorProfile`. The
-field reports default inspector denial and future Debug enablement requirements
-for explicit user action, DevTools attach, loopback ADB forwarding, CPU/heap
-artifact redaction, and packaged behavior. It does not declare
-`require("inspector")` or make inspector APIs callable.
+`inspectorProfile` describes native Inspector in Debug and Release (M23.5).
+The host preference defaults off and is sent as an explicit request value.
+Without permission, url() remains readable while open and Session creation are
+gated. Both Inspector modules and Workers share localhost-only listeners and
+nonblocking activation. Their actual APIs follow the Node type declarations.
 
 P13-38 extends the `autojs6:profile` declaration with `wasiProfile`. The field
 reports pure WebAssembly availability, raw WASI denial, and future controlled

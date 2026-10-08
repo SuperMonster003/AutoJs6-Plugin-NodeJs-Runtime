@@ -104,10 +104,11 @@ console.log("AutoJs6 Node.js runtime");
 - TypeScript: 接受宿主編譯產物, 對應預編譯快照並可請求 provider v3 隨需編譯; 磁碟上的 raw TypeScript 模組經 Node 自身的型別剝離載入, 直接派發的 raw TypeScript 入口仍回傳 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
 - ESM: Node.js 原生 loader + `module.registerHooks`; live binding, 循環相依, `import.meta`, `data:` URL 與 `require(esm)` 與桌面一致.
 - 能力: 同步腳本執行, bundle transport, 原生內嵌執行階段, 宿主能力代理, host capability live bridge.
-- 檔案串流、gzip/deflate/Brotli 壓縮串流和基本 VM 執行正式化; 明確啟用的 Debug Inspector 在 localhost 範圍內正式支援.
+- 檔案串流、gzip/deflate/Brotli 壓縮串流和基本 VM 執行正式化; 明確啟用的 Inspector (Debug/Release) 在 localhost 範圍內正式支援.
 - 嵌入執行不再輸出 ExperimentalWarning 提示, 保留 warning 事件、一般警告、淘汰警告和錯誤; Node 上游 API 穩定性與終端預設行為不變.
 - 原生 Worker 支援巢狀執行, MessagePort API, stdio, argv, execArgv 與預載入繼承; 移除外掛自設的 Worker 數量和啟動時限, 請求 resourceLimits 僅作可覆寫的預設值, WorkerPool 預設不限制排隊數量或工作時長; Inspector 工作階段遵循執行請求與目前組建支援
 - 主腳本與 Worker 可透過 Node 載入 Android native addon, process.dlopen 與 .node 副檔名恢復原生行為, 不設外掛自有簽章或雜湊允許清單; native-addon 範例提供三 ABI 的 16 KB 對齊 Node-API 產物和離線 NDK/CMake 建置; 錯誤 ABI 或損壞二進位檔回傳 ERR_DLOPEN_FAILED 等 Node 錯誤, 裝置端不隨附 node-gyp 或 NDK
+- Inspector 在宿主明確允許後支援 Debug 和 Release 建置; inspector 與 inspector/promises 保留 Node 原生模組物件, 主腳本和 Worker 可使用 Session, 監聽僅綁定 127.0.0.1 且不支援阻塞等待; 未開啟時 url() 回傳 undefined, 啟用和 Session 建立保持關閉
 
 ******
 
@@ -117,7 +118,7 @@ console.log("AutoJs6 Node.js runtime");
 
 # v1.6.0
 
-###### 2026/10/07
+###### 2026/10/08
 
 * `優化` fs, fs/promises 及 node:sqlite 模組改為直接使用 Node.js 原生實作, 移除執行階段自設的 /proc, /sys, /dev 拒絕邊界與路徑檢查包裝層, 檔案可達性完全由 Android 權限決定, 非同步檔案 API 經 libuv 執行緒池執行而不再阻塞事件迴圈, 路徑錯誤回傳 Node.js 原生錯誤碼 (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH 及 ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED 不再由檔案及資料庫操作產生)
 * `優化` process.cwd 與 process.chdir 改為 Node.js 原生行為, 指令碼執行開始時以原生 chdir 進入工作目錄, 相對路徑由 Node.js 自行解析
@@ -133,6 +134,7 @@ console.log("AutoJs6 Node.js runtime");
 * `優化` Worker 與巢狀 Worker 可透過父執行緒 MessagePort 使用 autojs6:bridge.callAutoJs, 沿用宿主 broker 的權限檢查, 錯誤, 逾時與取消; worker-host-bridge 範例示範讀取實際宿主裝置資訊, 並提供橋接 API 的 TypeScript 宣告
 * `優化` 原始 .ts / .mts / .cts 入口與匯入模組仍須由宿主 Compiler 編譯為 JavaScript; 保留快照對應與 provider v3 按需編譯。模組載入失敗使用 Node 原生錯誤碼, 原 AutoJs6 ESM 與動態匯入錯誤碼退役。
 * `優化` 主腳本與 Worker 可透過 Node 載入 Android native addon, process.dlopen 與 .node 副檔名恢復原生行為, 不設外掛自有簽章或雜湊允許清單; native-addon 範例提供三 ABI 的 16 KB 對齊 Node-API 產物和離線 NDK/CMake 建置; 錯誤 ABI 或損壞二進位檔回傳 ERR_DLOPEN_FAILED 等 Node 錯誤, 裝置端不隨附 node-gyp 或 NDK
+* `優化` Inspector 在宿主明確允許後支援 Debug 和 Release 建置; inspector 與 inspector/promises 保留 Node 原生模組物件, 主腳本和 Worker 可使用 Session, 監聽僅綁定 127.0.0.1 且不支援阻塞等待; 未開啟時 url() 回傳 undefined, 啟用和 Session 建立保持關閉
 
 # v1.5.7
 

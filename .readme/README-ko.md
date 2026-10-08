@@ -104,10 +104,11 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 - TypeScript: 호스트 출력을 받아들이고 사전 컴파일 스냅샷을 매핑하며 provider v3 컴파일을 요청할 수 있습니다; 디스크상의 raw TypeScript 모듈은 Node 고유의 타입 제거로 로드되고, 직접 디스패치된 raw TypeScript 진입 스크립트는 여전히 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` 를 반환합니다.
 - ESM: `module.registerHooks` 를 갖춘 Node.js 고유 로더; 라이브 바인딩, 순환 의존성, `import.meta`, `data:` URL, `require(esm)` 가 데스크톱과 동일합니다.
 - 기능: 동기 스크립트 실행, bundle transport, 네이티브 내장 런타임, 호스트 기능 브로커, host capability live bridge.
-- 파일 스트림, gzip/deflate/Brotli 스트림 및 기본 VM 실행을 정식 지원; 명시적으로 활성화한 Debug Inspector는 localhost 범위에서 정식 지원.
+- 파일 스트림, gzip/deflate/Brotli 스트림 및 기본 VM 실행을 정식 지원; 명시적으로 활성화한 Inspector (Debug/Release)는 localhost 범위에서 정식 지원.
 - 내장 실행에서 ExperimentalWarning 출력을 중단하고 warning 이벤트, 일반 경고, 사용 중단 경고 및 오류를 유지; Node 상위 API 안정성과 터미널 기본 동작은 변경되지 않음.
 - 네이티브 Worker가 중첩, MessagePort API, stdio, argv, execArgv 및 사전 로드 상속을 지원; 플러그인의 Worker 수와 시작 시간 제한을 제거하고 요청 resourceLimits를 재정의 가능한 기본값으로 변경; WorkerPool은 기본 대기열 및 작업 시간 제한이 없으며 Inspector 세션은 실행 요청과 현재 빌드 지원을 따름
 - 메인 스크립트와 Worker에서 Node를 통해 Android 네이티브 애드온을 로드 가능; process.dlopen과 .node는 기본 동작을 사용하며 별도 서명 또는 해시 허용 목록이 없음; native-addon은 3개 ABI의 16 KB 정렬 Node-API 바이너리와 오프라인 NDK/CMake 빌드를 제공; ABI 불일치나 손상은 ERR_DLOPEN_FAILED 등의 Node 오류로 반환되며 기기용 node-gyp 또는 NDK는 포함하지 않음
+- 호스트의 명시적 허용으로 Debug 및 Release 빌드에서 Inspector 사용 가능; inspector와 inspector/promises는 Node 기본 모듈 객체를 유지하고 메인 스크립트와 Worker에서 Session을 지원하며, 수신 주소는 127.0.0.1로 제한되고 블로킹 대기는 지원하지 않음; 허용되지 않으면 url()은 undefined를 반환하고 활성화 및 Session 생성은 비활성화됨
 
 ******
 
@@ -117,7 +118,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 
 # v1.6.0
 
-###### 2026/10/07
+###### 2026/10/08
 
 * `개선` fs, fs/promises 및 node:sqlite 가 Node.js 고유 모듈이 되었습니다: 런타임 자체의 /proc, /sys, /dev 거부와 경로 검증 래퍼를 제거하여 파일 접근 가능 여부는 Android 권한만으로 결정되고, 비동기 파일 API 는 이벤트 루프를 막지 않고 libuv 스레드 풀에서 실행되며, 경로 오류는 Node.js 고유 코드를 반환합니다 (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH 및 ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED 는 더 이상 파일 / 데이터베이스 작업에서 발생하지 않음)
 * `개선` process.cwd 와 process.chdir 가 Node.js 고유 동작이 되어 실행 시작 시 실제 chdir 로 작업 디렉터리에 진입하고 상대 경로는 Node.js 가 직접 해석합니다
@@ -133,6 +134,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `개선` Worker와 중첩 Worker에서 부모 MessagePort를 통해 autojs6:bridge.callAutoJs를 사용 가능; 호스트 broker의 권한 검사, 오류, 시간 초과 및 취소를 유지하며 worker-host-bridge 예제로 실제 호스트 기기 정보 조회를 제공; 브리지 API의 TypeScript 선언도 제공
 * `개선` 원본 .ts / .mts / .cts 진입점과 가져온 모듈에는 여전히 호스트 Compiler가 생성한 JavaScript가 필요합니다. 스냅샷 매핑과 provider v3의 요청 시 컴파일을 유지하고, 기존 AutoJs6 ESM 및 동적 가져오기 오류 코드를 Node 기본 오류로 대체했습니다.
 * `개선` 메인 스크립트와 Worker에서 Node를 통해 Android 네이티브 애드온을 로드 가능; process.dlopen과 .node는 기본 동작을 사용하며 별도 서명 또는 해시 허용 목록이 없음; native-addon은 3개 ABI의 16 KB 정렬 Node-API 바이너리와 오프라인 NDK/CMake 빌드를 제공; ABI 불일치나 손상은 ERR_DLOPEN_FAILED 등의 Node 오류로 반환되며 기기용 node-gyp 또는 NDK는 포함하지 않음
+* `개선` 호스트의 명시적 허용으로 Debug 및 Release 빌드에서 Inspector 사용 가능; inspector와 inspector/promises는 Node 기본 모듈 객체를 유지하고 메인 스크립트와 Worker에서 Session을 지원하며, 수신 주소는 127.0.0.1로 제한되고 블로킹 대기는 지원하지 않음; 허용되지 않으면 url()은 undefined를 반환하고 활성화 및 Session 생성은 비활성화됨
 
 # v1.5.7
 

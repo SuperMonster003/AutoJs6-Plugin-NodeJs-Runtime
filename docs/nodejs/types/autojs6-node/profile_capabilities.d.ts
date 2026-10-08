@@ -66,7 +66,7 @@ declare namespace AutoJs6Node {
     readonly "raw_network": ProfileModuleSpec<"raw_network", "desktop_compat_opt_in", "available", "available", "supported">;
     readonly "fs.advanced": ProfileModuleSpec<"fs.advanced", "desktop_compat_opt_in", "partial", "partial", "gated">;
     readonly "wasi": ProfileModuleSpec<"wasi", "desktop_compat_opt_in", "denied", "profile_gated", "gated">;
-    readonly "inspector": ProfileModuleSpec<"inspector", "debug_unsafe_lab", "denied", "profile_gated", "denied">;
+    readonly "inspector": ProfileModuleSpec<"inspector", "safe_default", "available", "available", "denied">;
     readonly "package_manager": ProfileModuleSpec<"package_manager", "desktop_compat_opt_in", "partial", "partial", "partial">;
     readonly "npm.pure_js": ProfileModuleSpec<"npm.pure_js", "desktop_compat_opt_in", "partial", "partial", "partial">;
   }
@@ -85,7 +85,9 @@ declare namespace AutoJs6Node {
     ? SafeDefaultModeFor<TModule>
     : TProfile extends ProfileRequiredFor<TModule>
       ? TargetProfileModeFor<TModule>
-      : "denied";
+      : ProfileRequiredFor<TModule> extends "safe_default"
+        ? SafeDefaultModeFor<TModule>
+        : "denied";
 
   export type ProfileModuleRequiresDeclaration<TModule extends ProfileModuleName> =
     SafeDefaultModeFor<TModule> extends "available" | "partial" ? false : true;

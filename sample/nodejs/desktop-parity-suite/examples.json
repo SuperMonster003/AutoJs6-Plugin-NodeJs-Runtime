@@ -51,10 +51,10 @@
     },
     {
       "id": "inspector",
-      "title": "debug inspector profile migration",
+      "title": "local Inspector status",
       "file": "snippets/inspector.cjs",
       "expectedOutput": "sample.desktop-parity-suite.inspector=PASS",
-      "outcome": "The inspector needs an explicit Debug host request; without it the snippet prints the denial code."
+      "outcome": "Inspector activation requires host permission; this snippet reads the inactive URL and Session API shape."
     },
     {
       "id": "npm-dependency",

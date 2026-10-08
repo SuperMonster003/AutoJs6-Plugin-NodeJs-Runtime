@@ -104,10 +104,11 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 - TypeScript : accepte la sortie de l'hôte, applique les instantanés précompilés et peut demander une compilation provider v3 ; les modules TypeScript bruts sur disque se chargent via la suppression de types native de Node, tandis qu'une entrée TypeScript brute envoyée directement renvoie toujours `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
 - ESM : loader natif de Node.js avec `module.registerHooks` ; liaisons vivantes, dépendances cycliques, `import.meta`, URL `data:` et `require(esm)` comme sur le bureau.
 - Capacites: execution synchrone de scripts, bundle transport, runtime natif embarque, agent de capacites hote, host capability live bridge.
-- Les flux de fichiers, les flux gzip/deflate/Brotli et l'exécution VM de base sont stables; le Debug Inspector explicitement activé est stable dans son périmètre localhost.
+- Les flux de fichiers, les flux gzip/deflate/Brotli et l'exécution VM de base sont stables; le Inspector (Debug/Release) explicitement activé est stable dans son périmètre localhost.
 - L'exécution intégrée n'affiche plus les avis ExperimentalWarning; les événements warning, avertissements ordinaires, dépréciations et erreurs restent disponibles. La stabilité des API Node et les valeurs par défaut du terminal sont inchangées.
 - Les Workers natifs prennent en charge l’imbrication, MessagePort, stdio, argv, execArgv et les préchargements hérités; les limites du nombre de Workers et du délai de démarrage sont supprimées, resourceLimits fournit des valeurs par défaut modifiables et WorkerPool ne limite par défaut ni la file ni la durée des tâches; Inspector suit la requête et le build
 - Les scripts principaux et Workers chargent les addons natifs Android avec Node; process.dlopen et .node sont natifs, sans liste propre au plugin de signatures ou de hachages; native-addon fournit trois ABI alignées sur 16 KB et une compilation NDK/CMake hors ligne; les incompatibilités ABI ou fichiers invalides produisent des erreurs Node telles que ERR_DLOPEN_FAILED, sans node-gyp ni NDK embarqué sur l’appareil
+- Inspector fonctionne dans les versions Debug et Release après autorisation explicite de l'hôte; inspector et inspector/promises conservent les modules natifs Node, avec Session dans les scripts et Workers, écoute sur 127.0.0.1 uniquement et sans attente bloquante; sans autorisation url() renvoie undefined et l'activation ainsi que la création de Session restent désactivées
 
 ******
 
@@ -117,7 +118,7 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 # v1.6.0
 
-###### 2026/10/07
+###### 2026/10/08
 
 * `Amelioration` fs, fs/promises et node:sqlite sont les modules natifs de Node.js : le refus de /proc, /sys, /dev propre au runtime et sa couche de validation des chemins ont disparu, l'accessibilité des fichiers est décidée uniquement par les permissions Android, les API de fichiers asynchrones s'exécutent dans le pool de threads libuv au lieu de bloquer la boucle d'événements, et les erreurs de chemin portent les codes propres à Node.js (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH et ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED ne sont plus produits par les opérations de fichiers ou de base de données)
 * `Amelioration` process.cwd et process.chdir ont le comportement natif de Node.js ; une exécution entre dans son répertoire de travail par un vrai chdir et les chemins relatifs sont résolus par Node.js lui-même
@@ -133,6 +134,7 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 * `Amelioration` autojs6:bridge.callAutoJs est disponible dans les Workers, même imbriqués, via les MessagePorts parents et conserve les permissions, erreurs, délais et annulations du broker hôte; worker-host-bridge montre la lecture des informations réelles de l’appareil hôte et les déclarations TypeScript couvrent cette API
 * `Amelioration` Les points d’entrée et modules importés .ts / .mts / .cts nécessitent toujours le JavaScript produit par le Compiler hôte; la correspondance des instantanés et la compilation à la demande du provider v3 sont conservées. Les erreurs natives de Node remplacent les anciens codes AutoJs6 ESM et d’import dynamique.
 * `Amelioration` Les scripts principaux et Workers chargent les addons natifs Android avec Node; process.dlopen et .node sont natifs, sans liste propre au plugin de signatures ou de hachages; native-addon fournit trois ABI alignées sur 16 KB et une compilation NDK/CMake hors ligne; les incompatibilités ABI ou fichiers invalides produisent des erreurs Node telles que ERR_DLOPEN_FAILED, sans node-gyp ni NDK embarqué sur l’appareil
+* `Amelioration` Inspector fonctionne dans les versions Debug et Release après autorisation explicite de l'hôte; inspector et inspector/promises conservent les modules natifs Node, avec Session dans les scripts et Workers, écoute sur 127.0.0.1 uniquement et sans attente bloquante; sans autorisation url() renvoie undefined et l'activation ainsi que la création de Session restent désactivées
 
 # v1.5.7
 

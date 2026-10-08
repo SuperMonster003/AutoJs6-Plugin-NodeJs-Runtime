@@ -692,22 +692,22 @@ declare namespace AutoJs6Node {
   }
 
   export interface InspectorProfile {
-    readonly status: "disabled_by_default" | "debug_opt_in" | string;
+    readonly status: "disabled_by_default" | "explicit_localhost" | string;
     readonly defaultEnabled: boolean;
     readonly targetProfiles: readonly string[];
-    readonly module: "denied" | "partial" | string;
-    readonly devtools: "cdp_localhost_available" | "requires_explicit_debug_request" | string;
-    readonly inspectorProtocol: "available" | "requires_explicit_debug_request" | string;
+    readonly module: "native_with_request_gated_activation" | string;
+    readonly devtools: "cdp_localhost_available" | "requires_explicit_request" | string;
+    readonly inspectorProtocol: "available" | "requires_explicit_request" | string;
     readonly adbForwarding: "required_before_enablement" | string;
     readonly explicitUserAction: "required_before_enablement" | string;
-    readonly releaseBuild: "denied" | string;
+    readonly releaseBuild: "explicit_request" | string;
     readonly packagedBehavior: "not_applicable_no_packaged_runtime" | string;
     readonly portBinding: "denied" | "loopback_only" | string;
     readonly remoteConnections: "denied" | string;
     readonly bridgeModules: "denied" | string;
     readonly processAccess: "denied" | string;
-    readonly heapSnapshot: "denied" | "partial" | string;
-    readonly cpuProfiler: "denied" | "partial" | string;
+    readonly heapSnapshot: "denied" | "session_available" | string;
+    readonly cpuProfiler: "denied" | "session_available" | string;
     readonly sensitivePathRedaction: "not_proven" | "required" | string;
     readonly rawSockets: boolean;
   }

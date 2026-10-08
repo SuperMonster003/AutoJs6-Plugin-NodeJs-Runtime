@@ -8,13 +8,16 @@
     "permissions": []
   },
   "example": {
-    "capabilities": ["heap-snapshot", "inspector"],
-    "expectedProvider": "explicit debug-only inspector HeapProfiler session",
+    "capabilities": [
+      "heap-snapshot",
+      "inspector"
+    ],
+    "expectedProvider": "Node Inspector enabled by the host developer setting or inspectorEnabled request, in Debug and Release",
     "packagedSupport": "unavailable in release packaged apps",
     "securityLimitations": [
-      "release builds deny inspector",
-      "full snapshot export is not implemented",
-      "heap data may contain secrets and must stay app-private until explicit export"
+      "disabled by default; the host must explicitly allow Inspector",
+      "listener is forced to 127.0.0.1; blocking waits are unavailable",
+      "CDP source paths and values follow the native Node protocol"
     ]
   }
 }

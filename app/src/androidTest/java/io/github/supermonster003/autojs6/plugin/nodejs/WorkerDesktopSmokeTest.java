@@ -152,7 +152,8 @@ public final class WorkerDesktopSmokeTest {
                     assert.throws(() => require(name), e => e.code === 'MODULE_NOT_FOUND');
                   }
                   for (const name of ['inspector','node:inspector']) {
-                    assert.throws(() => require(name), e => e.code === 'ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED');
+                    assert.equal(require(name).url(),undefined);
+                    assert.throws(() => require(name).open(0), e => e.code === 'ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED');
                   }
                   const {DatabaseSync}=require('node:sqlite');
                   const db=new DatabaseSync(':memory:');
@@ -349,7 +350,7 @@ public final class WorkerDesktopSmokeTest {
                   const enabled=require('autojs6:profile').inspector;
                   const code=`const {parentPort,workerData}=require('node:worker_threads');
                     if (!workerData) {
-                      require('node:assert/strict').throws(()=>require('node:inspector'), e=>e.code==='ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED');
+                      require('node:assert/strict').equal(require('node:inspector').url(),undefined);
                       parentPort.postMessage('request-disabled');
                     } else {
                       const inspector=require('node:inspector');

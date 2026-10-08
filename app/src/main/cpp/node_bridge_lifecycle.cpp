@@ -87,7 +87,7 @@ std::vector<std::string> runEmbeddedScriptExecution(
         const char* runtimeAdapterPath,
         const char* runtimeAdapterMode
 ) {
-    const bool inspectorEnabled = request.inspectorEnabled && AUTOJS6_NODE_DEBUG_BUILD != 0;
+    const bool inspectorEnabled = request.inspectorEnabled;
     std::lock_guard<std::recursive_mutex> processRuntimeLock(embeddedProcessRuntimeExecutionMutex());
     const auto startedAt = Clock::now();
     __android_log_print(ANDROID_LOG_INFO, kLogTag, "embedded_script.enter");
@@ -131,7 +131,6 @@ std::vector<std::string> runEmbeddedScriptExecution(
     putPayload(payload, "embedded_script.request.raw_node_network_modules_enabled", request.rawNodeNetworkModulesEnabled);
     putPayload(payload, "embedded_script.request.inspector_requested", request.inspectorEnabled);
     putPayload(payload, "embedded_script.request.inspector_enabled", inspectorEnabled);
-    putPayload(payload, "embedded_script.request.inspector_debug_build", AUTOJS6_NODE_DEBUG_BUILD != 0);
     putPayload(payload, "embedded_script.request.worker_threads_enabled", request.workerThreadsEnabled);
     putPayload(payload, "embedded_script.request.child_process_enabled", request.childProcessEnabled);
     putPayload(payload, "embedded_script.request.java_interop_enabled", request.javaInteropEnabled);

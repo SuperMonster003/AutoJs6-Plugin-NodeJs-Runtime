@@ -6,7 +6,7 @@
 
 # v1.6.0
 
-###### 2026/10/07
+###### 2026/10/08
 
 * `Mejora` fs, fs/promises y node:sqlite son los módulos nativos de Node.js: desaparecen la denegación de /proc, /sys, /dev propia del runtime y su capa de validación de rutas, la accesibilidad de los archivos la deciden únicamente los permisos de Android, las API de archivos asíncronas se ejecutan en el pool de hilos de libuv en lugar de bloquear el bucle de eventos, y los errores de ruta llevan los códigos propios de Node.js (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH y ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED ya no los producen las operaciones de archivos ni de base de datos)
 * `Mejora` process.cwd y process.chdir tienen el comportamiento nativo de Node.js; una ejecución entra en su directorio de trabajo con un chdir real y las rutas relativas las resuelve el propio Node.js
@@ -22,6 +22,7 @@
 * `Mejora` autojs6:bridge.callAutoJs está disponible en Workers y Workers anidados mediante MessagePorts de sus padres, conservando permisos, errores, tiempos de espera y cancelación del broker del host; worker-host-bridge demuestra la lectura de información real del dispositivo e incluye declaraciones TypeScript para la API
 * `Mejora` Las entradas y los módulos importados .ts / .mts / .cts siguen necesitando JavaScript generado por el Compiler del host; se mantienen el mapeo de instantáneas y la compilación bajo demanda del provider v3. Los errores nativos de Node sustituyen los antiguos códigos AutoJs6 de ESM e importación dinámica.
 * `Mejora` Los scripts principales y Workers cargan addons nativos Android mediante Node; process.dlopen y .node son nativos y no requieren listas propias de firmas o hashes; native-addon incluye tres ABI alineadas a 16 KB y compilación NDK/CMake sin conexión; ABI incorrectas o binarios dañados producen errores Node como ERR_DLOPEN_FAILED, sin incluir node-gyp ni NDK en el dispositivo
+* `Mejora` Inspector funciona en Debug y Release con permiso explícito del anfitrión; inspector e inspector/promises conservan los módulos nativos de Node, con Session en scripts y Workers, escucha solo en 127.0.0.1 y sin esperas bloqueantes; sin permiso url() devuelve undefined y se impiden la activación y la creación de Session
 
 # v1.5.7
 

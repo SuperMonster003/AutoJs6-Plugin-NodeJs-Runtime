@@ -7,7 +7,7 @@ try {
   console.log("sample.inspector-debug.loopback=" + url.startsWith("ws://127.0.0.1:"));
   inspector.close();
 } catch (error) {
-  console.log("sample.inspector-debug.debug-request-required=" + (error && (error.autojs6Code || error.code || error.name)));
+  console.log("sample.inspector-debug.request-required=" + (error && (error.autojs6Code || error.code || error.name)));
 }
 
 console.log("sample.inspector-debug=PASS");

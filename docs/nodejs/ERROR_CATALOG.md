@@ -74,8 +74,8 @@ compiler module providers have their own relative-path validation. Module-source
 or failed requests; `ERR_AUTOJS6_MODULE_SOURCE_BUDGET_EXCEEDED` now only comes from the
 provider transport's shared protocol sizes, the runtime's own module-source budgets are
 gone. Feature boundaries use specific codes for request-gated builtins, network, workers,
-or Java interop. Since M23.2 `ERR_AUTOJS6_BUILTIN_DISABLED` is raised only
-for a builtin the request gates off (`worker_threads`, `child_process`, `inspector`, the raw
+or Java interop. `ERR_AUTOJS6_BUILTIN_DISABLED` is raised for unpermitted
+Inspector activation/Session creation or a builtin the request gates off (`worker_threads`, `child_process`, the raw
 network modules when `rawNodeNetworkModulesEnabled=false`); every other Node builtin,
 `wasi` included, loads as Node exports it. M23.4 retires `ERR_AUTOJS6_NATIVE_ADDON_DISABLED` and
 `ERR_AUTOJS6_PROCESS_API_DISABLED`: `process.dlopen` and `.node` loading are native,
@@ -112,3 +112,8 @@ Since M23.3's worker migration, `ERR_AUTOJS6_WORKER_LIMIT_EXCEEDED` and
 cap nor a startup deadline. `WORKER_POOL_*` errors still describe caller-selected
 pool limits, task cancellation and pool lifecycle. Native Worker constructor,
 transfer-list and structured-clone failures use Node's own errors.
+
+Since M23.5, importing Inspector is allowed even without permission; url() then
+returns undefined. Opening an endpoint or constructing a Session without the
+explicit request still reports `ERR_AUTOJS6_BUILTIN_DISABLED`. Remote addresses
+and blocking waits report `ERR_INVALID_ARG_VALUE` in Debug and Release alike.

@@ -77,7 +77,7 @@ public final class BuiltinPassthroughSmokeTest {
                       // M23.3: module (including createRequire) is also Node's own object.
                       // Execution gates and the console capture wrapper remain.
                       const Module = require('node:module');
-                      const wrapped = new Set(['console', 'worker_threads', 'child_process', 'inspector', 'inspector/promises']);
+                      const wrapped = new Set(['console', 'worker_threads', 'child_process']);
                       for (const id of Module.builtinModules) {
                         if (wrapped.has(id)) continue;
                         // A builtin that Node itself refuses (trace_events without tracing support) must refuse

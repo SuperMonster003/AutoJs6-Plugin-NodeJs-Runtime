@@ -175,13 +175,16 @@
       "property": null,
       "defaultEnabled": false,
       "securityLevel": "high",
-      "status": "disabled",
+      "status": "available",
       "overrides": {
         "buildTime": false,
         "projectJson": false,
         "packagedApk": false,
-        "releaseEnableAllowed": false
-      }
+        "releaseEnableAllowed": true
+      },
+      "activation": "explicit_request",
+      "binding": "127.0.0.1",
+      "blockingWait": false
     },
     {
       "id": "java_interop",

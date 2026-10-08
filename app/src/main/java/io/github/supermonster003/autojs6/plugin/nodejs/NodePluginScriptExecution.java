@@ -229,7 +229,7 @@ final class NodePluginScriptExecution {
                         // explicit values so diagnostics and test fixtures can
                         // exercise policy-denied paths without build flags.
                         request.getBoolean(NodeJsRuntimeContract.KEY_RAW_NODE_NETWORK_MODULES_ENABLED, true),
-                        BuildConfig.DEBUG && request.getBoolean(
+                        request.getBoolean(
                                 NodeJsRuntimeContract.KEY_INSPECTOR_ENABLED,
                                 false
                         ),

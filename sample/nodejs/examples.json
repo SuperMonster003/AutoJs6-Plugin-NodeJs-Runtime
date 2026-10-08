@@ -353,7 +353,7 @@
     },
     {
       "name": "inspector-debug",
-      "status": "partial",
+      "status": "stable",
       "reason": "Needs an explicit inspector request from a Debug host build; the request key exists but the current host never sets it, so an ordinary run only prints the denial code.",
       "tags": [
         "main-app",
@@ -365,7 +365,7 @@
     },
     {
       "name": "cpu-profile",
-      "status": "partial",
+      "status": "stable",
       "reason": "Profiler.Session needs an explicit inspector request from a Debug host build; the current host never sets it and no managed .cpuprofile export exists, so an ordinary run only prints the denial code.",
       "tags": [
         "main-app",
@@ -387,7 +387,7 @@
     },
     {
       "name": "heap-snapshot",
-      "status": "partial",
+      "status": "stable",
       "reason": "HeapProfiler needs an explicit inspector request from a Debug host build; the current host never sets it and snapshot export is not implemented, so an ordinary run reports heap usage and the denial code.",
       "tags": [
         "main-app",
