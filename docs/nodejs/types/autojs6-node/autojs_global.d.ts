@@ -15,7 +15,7 @@ declare namespace AutoJs6Node {
     readonly releaseForbidden: boolean;
     readonly securityLevel: "low" | "medium" | "high" | "critical" | string;
     /** Plugin support status within the documented scope, independent of upstream Node API stability. */
-    readonly status: "stable" | "partial" | "disabled" | "unsupported" | string;
+    readonly status: "stable" | "disabled" | "unsupported" | string;
   }
 
   /**
@@ -87,20 +87,20 @@ declare namespace AutoJs6Node {
     readonly defaultEnabled: boolean;
     readonly targetProfiles: readonly string[];
     readonly hostPackageManager: "available" | string;
-    readonly androidStore: "local_app_private_partial" | string;
+    readonly androidStore: "local_app_private_store" | string;
     readonly androidRuntimeInstall: "bundled_npm_cli" | string;
-    readonly npmCli: "available" | "debug_only" | "partial" | string;
+    readonly npmCli: "available" | "debug_only" | string;
     readonly terminalCli: "host_terminal_node_npm_corepack_launcher" | string;
     readonly npmFacade: "bundled_npm_cli" | string;
     readonly requireNpm: "bundled_npm_cli" | string;
     readonly npmInstallEquivalent: "npm_install_in_workspace" | string;
     readonly registryDownload: "npm_native" | "denied" | string;
-    readonly tarballInstall: "npm_native" | "partial" | string;
+    readonly tarballInstall: "npm_native" | string;
     readonly lockfile: "package_lock_or_host_store_lock" | string;
     readonly integrity: "sha512_required" | string;
     readonly lifecycleScripts: "npm_default" | "debug_only" | string;
     readonly debugLifecycleScripts: "same_as_release" | "debug_only" | string;
-    readonly binLinks: "npm_default_android_exec_rules" | "partial" | string;
+    readonly binLinks: "npm_default_android_exec_rules" | string;
     readonly symlinks: "npm_default" | string;
     readonly nativeBuild: "external_toolchain_required" | string;
     readonly nativePayloads: "android_compatible" | "signed_packaged_only" | string;
@@ -119,11 +119,11 @@ declare namespace AutoJs6Node {
     readonly mutationConfirmation: "allowMutation_for_host_store_only" | string;
     readonly operations: readonly string[];
     readonly packageKinds: readonly string[];
-    readonly jsBridge: "npm_cli_and_host_store" | "read_maintenance_partial" | "diagnostic_only" | "not_exposed" | "partial" | string;
-    readonly requirePackageManager: "npm_cli_and_host_store" | "read_maintenance_partial" | "diagnostic_only" | "denied" | "partial" | string;
+    readonly jsBridge: "npm_cli_and_host_store" | "diagnostic_only" | "not_exposed" | string;
+    readonly requirePackageManager: "npm_cli_and_host_store" | "diagnostic_only" | "denied" | string;
     readonly diagnosticFacade: "available" | string;
     readonly packagedBehavior: "not_applicable_no_packaged_runtime" | string;
-    readonly androidNetwork: "npm_default" | "partial" | string;
+    readonly androidNetwork: "npm_default" | string;
     readonly rawExecutables: boolean;
     readonly rawRegistryAccess: boolean;
   }
@@ -133,7 +133,7 @@ declare namespace AutoJs6Node {
     readonly defaultEnabled: boolean;
     readonly targetProfiles: readonly string[];
     readonly conformanceSet: "node24_safe_stdlib_subset" | string;
-    readonly moduleStatus: Readonly<Record<string, "partial" | "limited_network_gated" | "disabled" | string>>;
+    readonly moduleStatus: Readonly<Record<string, "limited_network_gated" | "disabled" | string>>;
     readonly conformanceModules: readonly string[];
     readonly cjsAliases: "bare_and_node_prefix" | string;
     readonly esmImports: "native" | string;
@@ -217,7 +217,7 @@ declare namespace AutoJs6Node {
 
   export interface PackagedCapabilityMetadata {
     readonly schema: "autojs6-packaged-capability-metadata-v1" | string;
-    readonly status: "partial" | "absent" | string;
+    readonly status: "absent" | string;
     readonly profile: string;
     readonly requestedProfiles: readonly string[];
     readonly builtins: readonly string[];
@@ -233,7 +233,7 @@ declare namespace AutoJs6Node {
   }
 
   export interface PluginSystemProfile {
-    readonly status: "js_only_local_manager_partial" | string;
+    readonly status: "local_js_plugins" | string;
     readonly defaultEnabled: boolean;
     readonly targetProfiles: readonly string[];
     readonly manager: "js_only_local_manager_v1" | string;
@@ -244,13 +244,9 @@ declare namespace AutoJs6Node {
     readonly hostManifestEnforcement: "required_before_install_load_start" | string;
     readonly overDeclaredPluginCapabilities: "rejected_before_code_execution" | string;
     readonly pluginNamespacePermissions: "rejected_in_manifest" | string;
-    readonly androidProviderPlugins: "deferred" | "denied" | "partial" | string;
     readonly nativePlugins: "node_addon_dependencies" | string;
-    readonly remoteMarketplace: "deferred" | "denied" | "partial" | string;
-    readonly signedArchives: "deferred" | "required" | string;
-    readonly updateChannel: "deferred" | "partial" | string;
-    readonly packagedDistribution: "local_checked_files_only" | "partial" | string;
-    readonly resourceOwnership: "plugin_lifecycle_context_partial" | string;
+    readonly packagedDistribution: "local_checked_files_only" | string;
+    readonly resourceOwnership: "plugin_lifecycle_context" | string;
     readonly debugReload: "debug_only" | string;
     readonly downloadInstaller: boolean;
     readonly nativeAddonLoading: boolean;
@@ -261,7 +257,7 @@ declare namespace AutoJs6Node {
   }
 
   export interface PackageIntegrityProfile {
-    readonly status: "lock_integrity_policy_partial" | string;
+    readonly status: "host_store_integrity" | string;
     readonly defaultEnabled: boolean;
     readonly targetProfiles: readonly string[];
     readonly policySchema: "autojs6-node-package-lock-integrity-policy-v1" | string;
@@ -270,7 +266,7 @@ declare namespace AutoJs6Node {
     readonly hashAlgorithm: "sha512" | string;
     readonly hashFormat: "ssri_sha512_base64" | string;
     readonly androidPackageManager: "transactional_local_store" | string;
-    readonly pluginPackages: "local_checked_files_signed_archives_deferred" | string;
+    readonly pluginPackages: "local_checked_files" | string;
     readonly nativeAddons: "node_android_loader" | string;
     readonly signatureScheme: "autojs6-package-signature-v1" | string;
     readonly signaturePolicy: "plugin_archives_only_native_addons_use_node" | string;
@@ -483,7 +479,7 @@ declare namespace AutoJs6Node {
 
   export interface PrivacyDisclosurePackagedPolicy {
     readonly schema: "autojs6-node-packaged-disclosure-manifest-v1" | string;
-    readonly status: "policy_partial" | string;
+    readonly status: "host_policy_metadata" | string;
     readonly metadataOnly: boolean;
     readonly grantsAuthority: boolean;
     readonly implicitHighPrivilegeDenied: boolean;
@@ -512,7 +508,7 @@ declare namespace AutoJs6Node {
 
   export interface PrivacyDisclosurePolicy {
     readonly schema: "autojs6-node-privacy-disclosure-policy-v1" | string;
-    readonly status: "policy_partial" | string;
+    readonly status: "host_policy_metadata" | string;
     readonly defaultProfile: "safe_default" | string;
     readonly effectiveProfile: "safe_default" | string;
     readonly metadataOnly: boolean;
@@ -542,15 +538,15 @@ declare namespace AutoJs6Node {
   }
 
   export interface FilesystemAdvancedApis {
-    readonly streams: "stable" | "partial" | "unsupported" | string;
-    readonly fileHandle: "native" | "partial" | "unsupported" | string;
-    readonly fd: "native" | "partial" | "unsupported" | string;
-    readonly opendir: "native" | "partial" | "unsupported" | string;
-    readonly watch: "native" | "partial" | "unsupported" | string;
-    readonly realpath: "native" | "partial" | "unsupported" | string;
-    readonly recursiveWatch: "native" | "partial" | "unsupported" | string;
+    readonly streams: "stable" | "unsupported" | string;
+    readonly fileHandle: "native" | "unsupported" | string;
+    readonly fd: "native" | "unsupported" | string;
+    readonly opendir: "native" | "unsupported" | string;
+    readonly watch: "native" | "unsupported" | string;
+    readonly realpath: "native" | "unsupported" | string;
+    readonly recursiveWatch: "native" | "unsupported" | string;
     readonly closeOnDestroy: "execution_owned" | "unsupported" | string;
-    readonly packagedBehavior: "not_applicable_no_packaged_runtime" | "partial" | "unsupported" | string;
+    readonly packagedBehavior: "not_applicable_no_packaged_runtime" | "unsupported" | string;
     readonly rawFd: boolean;
   }
 
@@ -633,13 +629,13 @@ declare namespace AutoJs6Node {
     readonly defaultEnabled: boolean;
     readonly requestEnabled: boolean;
     readonly nativeAvailability: "available" | string;
-    readonly messageChannel: "stable" | "partial" | "unsupported" | string;
-    readonly transferList: "stable" | "partial" | "unsupported" | string;
-    readonly workerPool: "stable" | "partial" | "unsupported" | string;
+    readonly messageChannel: "stable" | "unsupported" | string;
+    readonly transferList: "stable" | "unsupported" | string;
+    readonly workerPool: "stable" | "unsupported" | string;
     readonly bridgeModules: "parent_message_port" | string;
     readonly nestedWorkers: boolean;
     readonly rawNativeHandles: boolean;
-    readonly packagedBehavior: "native_available_only" | "partial" | string;
+    readonly packagedBehavior: "native_available_only" | string;
     /** Bare package specifiers resolve through the workspace node_modules as in Node. */
     readonly packageResolution: "workspace_node_modules" | string;
     /** Since M23.3 import() inside workers is Node's own loader; always true. */
@@ -650,7 +646,7 @@ declare namespace AutoJs6Node {
   }
 
   export interface ProcessWorkerReplacementProfile {
-    readonly status: "decided_worker_threads_and_child_process" | "decision_partial" | "ready" | string;
+    readonly status: "decided_worker_threads_and_child_process" | "ready" | string;
     readonly api: "not_introduced" | "autojs6_process_worker" | string;
     readonly facade: "not_introduced" | string;
     readonly preferredPrimitive: "worker_threads.WorkerPool" | string;
@@ -673,9 +669,9 @@ declare namespace AutoJs6Node {
     readonly status: "native_available" | string;
     readonly defaultEnabled: boolean;
     readonly targetProfiles: readonly string[];
-    readonly module: "denied" | "partial" | "native_available" | string;
-    readonly script: "deferred" | "partial" | "native_available" | string;
-    readonly context: "deferred" | "partial" | "native_available" | string;
+    readonly module: "denied" | "native_available" | string;
+    readonly script: "native_available" | string;
+    readonly context: "native_available" | string;
     readonly timeout: "required_before_enablement" | "native_run_options" | string;
     readonly compileFunction: "denied" | "native_available" | string;
     readonly syntheticModule: "denied" | "native_available" | string;
@@ -719,7 +715,7 @@ declare namespace AutoJs6Node {
     readonly pureWebAssembly: "available" | string;
     readonly rawNodeWasi: "denied" | string;
     readonly controlledFacade: "not_planned" | string;
-    readonly module: "denied" | "partial" | string;
+    readonly module: "denied" | string;
     readonly preopens: "scoped_or_authorized_roots_required" | string;
     readonly workingDirectoryPreopen: "not_planned" | string;
     readonly authorizedRoots: "required_before_enablement" | string;
@@ -773,7 +769,7 @@ declare namespace AutoJs6Node {
     readonly executablePolicy: "android_app_sandbox_and_caller_validation" | "denied" | string;
     readonly cwd: "native_node_options" | "denied" | string;
     readonly env: "native_node_options" | "denied" | string;
-    readonly stdin: "native_node_streams" | "deferred" | string;
+    readonly stdin: "native_node_streams" | "denied_with_child_process" | string;
     readonly stdout: "native_node_streams_caller_bounded" | "denied" | string;
     readonly stderr: "native_node_streams_caller_bounded" | "denied" | string;
     readonly timeout: "caller_managed" | "required" | string;

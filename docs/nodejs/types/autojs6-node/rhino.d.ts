@@ -30,7 +30,7 @@ declare module "rhino" {
       readonly install: "unsupported";
       readonly globalsInstalled: false;
       readonly nodeAlias: false;
-      readonly shadowing: "reserved";
+      readonly shadowing: "not_installed";
     }
 
     export interface InstallOptions {
@@ -50,7 +50,7 @@ declare module "rhino" {
       readonly importClass: false;
       readonly importPackage: false;
       readonly JavaAdapter: false;
-      readonly shadowing: "reserved";
+      readonly shadowing: "installed" | "not_installed";
     }
 
     export interface RhinoShimError extends Error {

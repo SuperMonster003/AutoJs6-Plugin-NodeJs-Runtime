@@ -248,7 +248,7 @@
     },
     {
       "name": "js-plugin-ui",
-      "status": "partial",
+      "status": "host_provider_required",
       "reason": "Plugin loading and the layout descriptor work; showing the layout needs the host UI provider behind the ui permission, so plugin-only runs print ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED for that step.",
       "tags": [
         "main-app",
@@ -354,7 +354,7 @@
     {
       "name": "inspector-debug",
       "status": "stable",
-      "reason": "Needs an explicit inspector request from a Debug host build; the request key exists but the current host never sets it, so an ordinary run only prints the denial code.",
+      "reason": "Stable in Debug and Release with an explicit inspectorEnabled request; localhost / ADB forwarding only.",
       "tags": [
         "main-app",
         "inspector",
@@ -366,7 +366,7 @@
     {
       "name": "cpu-profile",
       "status": "stable",
-      "reason": "Profiler.Session needs an explicit inspector request from a Debug host build; the current host never sets it and no managed .cpuprofile export exists, so an ordinary run only prints the denial code.",
+      "reason": "Stable in Debug and Release with an explicit inspectorEnabled request; localhost / ADB forwarding only.",
       "tags": [
         "main-app",
         "profiler",
@@ -388,7 +388,7 @@
     {
       "name": "heap-snapshot",
       "status": "stable",
-      "reason": "HeapProfiler needs an explicit inspector request from a Debug host build; the current host never sets it and snapshot export is not implemented, so an ordinary run reports heap usage and the denial code.",
+      "reason": "Stable in Debug and Release with an explicit inspectorEnabled request; localhost / ADB forwarding only.",
       "tags": [
         "main-app",
         "heap-snapshot",
@@ -497,7 +497,7 @@
     },
     {
       "name": "pro-parity-suite",
-      "status": "partial",
+      "status": "host_provider_required",
       "reason": "Every snippet needs a host provider plus its Android permission (Java interop, Rhino, UI, overlay, WorkManager, notifications/power, recorder, screenshot/OCR, accessibility); plugin-only runs print each skip code and the catalog still completes.",
       "tags": [
         "main-app",

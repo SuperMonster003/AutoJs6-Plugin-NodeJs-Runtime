@@ -121,7 +121,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 
 # v1.6.0
 
-###### 2026/10/08
+###### 2026/10/09
 
 * `추가` 플러그인 설정에서 동시 실행 슬롯 1-8 개 (기본 2) 및 대기열 한도 (기본 무제한) 설정 지원; 초과 스크립트는 FIFO 로 대기하며 설정 변경 시 수락된 작업을 유지하고 idleExitMs 로 유휴 실행 프로세스 회수
 * `개선` fs, fs/promises 및 node:sqlite 가 Node.js 고유 모듈이 되었습니다: 런타임 자체의 /proc, /sys, /dev 거부와 경로 검증 래퍼를 제거하여 파일 접근 가능 여부는 Android 권한만으로 결정되고, 비동기 파일 API 는 이벤트 루프를 막지 않고 libuv 스레드 풀에서 실행되며, 경로 오류는 Node.js 고유 코드를 반환합니다 (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH 및 ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED 는 더 이상 파일 / 데이터베이스 작업에서 발생하지 않음)
@@ -141,6 +141,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `개선` 호스트의 명시적 허용으로 Debug 및 Release 빌드에서 Inspector 사용 가능; inspector와 inspector/promises는 Node 기본 모듈 객체를 유지하고 메인 스크립트와 Worker에서 Session을 지원하며, 수신 주소는 127.0.0.1로 제한되고 블로킹 대기는 지원하지 않음; 허용되지 않으면 url()은 undefined를 반환하고 활성화 및 Session 생성은 비활성화됨
 * `개선` package_manager의 install/update/remove가 npm 패키지 사양을 받아 작업 공간에서 내장 npm 실행; npm.cli/exec/runScript/pack은 실제 CLI를 사용하고 registry/프록시/수명 주기 옵션은 npm 및 프로젝트 .npmrc를 따르며, 출력을 스트리밍하고 npm 오류 코드를 유지; CLI 파일은 최초 사용 시 준비하고 객체 요청은 기존 호스트 로컬 저장소 계약을 유지
 * `개선` 불필요한 Web API 초기화를 줄여 스크립트 시작을 개선하고 작업 공간과 Worker 에 Node 기본 이식 가능한 모듈 컴파일 캐시 활성화; 작업 공간 복사본 간에 재사용하며 소스 변경은 Node 가 무효화
+* `개선` 구현된 동작에 맞게 런타임 기능의 임시 상태 표시 정리; UI 등의 예제에 필요한 호스트 제공 기능을 명시하고 미계획 플러그인 마켓 및 업데이트 채널 필드 제거
 
 # v1.5.7
 

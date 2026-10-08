@@ -69,6 +69,12 @@ public final class BuiltinPassthroughSmokeTest {
                     """
                     (async () => {
                       const assert = require('node:assert/strict');
+                      const profile = require('autojs6:profile');
+                      assert.equal(profile.pluginSystemProfile.status, 'local_js_plugins');
+                      for (const key of ['androidProviderPlugins', 'remoteMarketplace', 'signedArchives', 'updateChannel']) {
+                        assert.equal(Object.hasOwn(profile.pluginSystemProfile, key), false, key);
+                      }
+                      assert.equal(profile.packageIntegrityProfile.status, 'host_store_integrity');
                       const builtins = ['buffer','events','path','path/posix','path/win32','util','util/types',
                         'url','querystring','string_decoder','assert','assert/strict','punycode','stream',
                         'stream/promises','stream/web','stream/consumers','zlib','timers','timers/promises',

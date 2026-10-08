@@ -3705,7 +3705,7 @@ std::string buildEmbeddedScriptExecutionSource(
         defaultEnabled: true,
         targetProfiles: Object.freeze(["safe_default"]),
         hostPackageManager: "available",
-        androidStore: "local_app_private_partial",
+        androidStore: "local_app_private_store",
         androidRuntimeInstall: "bundled_npm_cli",
         npmCli: "available",
         terminalCli: "host_terminal_node_npm_corepack_launcher",
@@ -3737,7 +3737,7 @@ std::string buildEmbeddedScriptExecutionSource(
         mutationConfirmation: "allowMutation_for_host_store_only",
         operations: Object.freeze(["install", "update", "remove", "list", "verify", "prune"]),
         packageKinds: Object.freeze(["dependency", "plugin", "project"]),
-        jsBridge: "guarded_mutation_partial",
+        jsBridge: "host_store_mutations",
         requirePackageManager: "available",
         diagnosticFacade: "available",
         packagedBehavior: "not_applicable_no_packaged_runtime",
@@ -3869,7 +3869,7 @@ std::string buildEmbeddedScriptExecutionSource(
         unreviewedAndroidPermissions: false
       }),
       pluginSystemProfile: Object.freeze({
-        status: "js_only_local_manager_partial",
+        status: "local_js_plugins",
         defaultEnabled: true,
         targetProfiles: Object.freeze(["pro_compat_opt_in", "desktop_compat_opt_in"]),
         manager: "js_only_local_manager_v1",
@@ -3895,13 +3895,9 @@ std::string buildEmbeddedScriptExecutionSource(
         hostManifestEnforcement: "required_before_install_load_start",
         overDeclaredPluginCapabilities: "rejected_before_code_execution",
         pluginNamespacePermissions: "rejected_in_manifest",
-        androidProviderPlugins: "deferred",
         nativePlugins: "node_addon_dependencies",
-        remoteMarketplace: "deferred",
-        signedArchives: "deferred",
-        updateChannel: "deferred",
         packagedDistribution: "local_checked_files_only",
-        resourceOwnership: "plugin_lifecycle_context_partial",
+        resourceOwnership: "plugin_lifecycle_context",
         debugReload: "debug_only",
         downloadInstaller: false,
         nativeAddonLoading: true,
@@ -3911,7 +3907,7 @@ std::string buildEmbeddedScriptExecutionSource(
         grantsHostCapabilities: false
       }),
       packageIntegrityProfile: Object.freeze({
-        status: "lock_integrity_policy_partial",
+        status: "host_store_integrity",
         defaultEnabled: true,
         targetProfiles: Object.freeze(["pro_compat_opt_in", "desktop_compat_opt_in"]),
         policySchema: "autojs6-node-package-lock-integrity-policy-v1",
@@ -3920,7 +3916,7 @@ std::string buildEmbeddedScriptExecutionSource(
         hashAlgorithm: "sha512",
         hashFormat: "ssri_sha512_base64",
         androidPackageManager: "transactional_local_store",
-        pluginPackages: "local_checked_files_signed_archives_deferred",
+        pluginPackages: "local_checked_files",
         nativeAddons: "node_android_loader",
         signatureScheme: "autojs6-package-signature-v1",
         signaturePolicy: "plugin_archives_only_native_addons_use_node",
@@ -4114,7 +4110,7 @@ std::string buildEmbeddedScriptExecutionSource(
         executablePolicy: __autojs6_child_process_enabled ? "android_app_sandbox_and_caller_validation" : "denied",
         cwd: __autojs6_child_process_enabled ? "native_node_options" : "denied",
         env: __autojs6_child_process_enabled ? "native_node_options" : "denied",
-        stdin: __autojs6_child_process_enabled ? "native_node_streams" : "deferred",
+        stdin: __autojs6_child_process_enabled ? "native_node_streams" : "denied_with_child_process",
         stdout: __autojs6_child_process_enabled ? "native_node_streams_caller_bounded" : "denied",
         stderr: __autojs6_child_process_enabled ? "native_node_streams_caller_bounded" : "denied",
         timeout: __autojs6_child_process_enabled ? "caller_managed" : "required",
@@ -4458,7 +4454,7 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_privacy_disclosure_policy_report() {
     return Object.freeze({
       schema: "autojs6-node-privacy-disclosure-policy-v1",
-      status: "policy_partial",
+      status: "host_policy_metadata",
       defaultProfile: "safe_default",
       effectiveProfile: "safe_default",
       metadataOnly: true,
@@ -4686,7 +4682,7 @@ std::string buildEmbeddedScriptExecutionSource(
       ]),
       packagedPolicy: Object.freeze({
         schema: "autojs6-node-packaged-disclosure-manifest-v1",
-        status: "policy_partial",
+        status: "host_policy_metadata",
         metadataOnly: true,
         grantsAuthority: false,
         implicitHighPrivilegeDenied: true,
@@ -11227,7 +11223,7 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_s13n_unsupported(methodName) {
     throw __autojs6_rhino_compat_unsupported(
       "s13n." + methodName,
-      "P12-32 promotes only s13n.bytes in Node; this s13n helper is deferred until a JSON-safe contract exists."
+      "Only s13n.bytes is provided in Node; this helper has no JSON-safe host contract."
     );
   }
   function __autojs6_s13n_bytes() {
@@ -12728,7 +12724,7 @@ std::string buildEmbeddedScriptExecutionSource(
       install: "unsupported",
       globalsInstalled: false,
       nodeAlias: false,
-      shadowing: "reserved"
+      shadowing: "not_installed"
     });
   }
   const __autojs6_rhino_java_global_names = Object.freeze(["Packages", "java", "android"]);
@@ -12843,7 +12839,7 @@ std::string buildEmbeddedScriptExecutionSource(
       importClass: false,
       importPackage: false,
       JavaAdapter: false,
-      shadowing: "reserved"
+      shadowing: parsed.globals ? "installed" : "not_installed"
     });
     return __autojs6_rhino_install_state;
   }
@@ -21734,7 +21730,7 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_package_manager_policy = Object.freeze({
     schema: "autojs6-node-package-manager-policy-v1",
     status: "npm_cli_and_host_store",
-    androidStore: "local_app_private_partial",
+    androidStore: "local_app_private_store",
     androidRuntimeInstall: "bundled_npm_cli",
     npmCli: "available",
     npmFacade: "bundled_npm_cli",
@@ -24187,7 +24183,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const detail = context + " resolves to an ESM module for '" + moduleName + "'.";
       if (__autojs6_esm_enabled) {
         throw __autojs6_require_esm_unsupported(
-          "CommonJS require() cannot load AutoJs6 partial ESM modules in AutoJs6 Safe Node Profile: " + detail
+          "CommonJS require() cannot load this module: " + detail
         );
       }
       throw __autojs6_esm_unsupported(__autojs6_esm_unsupported_message(__autojs6_mjs_unsupported_detail(detail)));

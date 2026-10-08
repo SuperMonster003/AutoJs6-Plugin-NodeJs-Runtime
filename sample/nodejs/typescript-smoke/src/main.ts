@@ -824,20 +824,20 @@ async function smoke(): Promise<void> {
   const desktopHttpMode: AutoJs6Node.ProfileModuleModeFor<"http", "desktop_compat_opt_in"> = "available";
   const safeRawNetworkMode: AutoJs6Node.ProfileModuleModeFor<"raw_network", "safe_default"> = "available";
   const desktopRawNetworkMode: AutoJs6Node.ProfileModuleModeFor<"raw_network", "desktop_compat_opt_in"> = "available";
-  const desktopWasiMode: AutoJs6Node.ProfileModuleModeFor<"wasi", "desktop_compat_opt_in"> = "profile_gated";
+  const desktopWasiMode: AutoJs6Node.ProfileModuleModeFor<"wasi", "desktop_compat_opt_in"> = "available";
   const debugInspectorMode: AutoJs6Node.ProfileModuleModeFor<"inspector", "debug_unsafe_lab"> = "available";
   const safeInspectorMode: AutoJs6Node.ProfileModuleModeFor<"inspector", "safe_default"> = "available";
   const packageManagerRequiredProfile: AutoJs6Node.ProfileRequiredFor<"package_manager"> = "desktop_compat_opt_in";
-  const packageManagerSafeMode: AutoJs6Node.SafeDefaultModeFor<"package_manager"> = "partial";
-  const packageManagerTargetMode: AutoJs6Node.TargetProfileModeFor<"package_manager"> = "partial";
-  const packageManagerPackagedBehavior: AutoJs6Node.PackagedBehaviorFor<"package_manager"> = "partial";
+  const packageManagerSafeMode: AutoJs6Node.SafeDefaultModeFor<"package_manager"> = "available";
+  const packageManagerTargetMode: AutoJs6Node.TargetProfileModeFor<"package_manager"> = "available";
+  const packageManagerPackagedBehavior: AutoJs6Node.PackagedBehaviorFor<"package_manager"> = "not_applicable_no_packaged_runtime";
   const autojsJavaPackagedBehavior: AutoJs6Node.PackagedBehaviorFor<"$autojs.java"> = "supported";
-  const npmPureJsSafeMode: AutoJs6Node.SafeDefaultModeFor<"npm.pure_js"> = "partial";
+  const npmPureJsSafeMode: AutoJs6Node.SafeDefaultModeFor<"npm.pure_js"> = "available";
   const workerRequiresDeclaration: AutoJs6Node.ProfileModuleRequiresDeclaration<"worker_threads"> = false;
   const toastRequiresDeclaration: AutoJs6Node.ProfileModuleRequiresDeclaration<"toast"> = false;
   const profileDeclarationMatrix: AutoJs6Node.ProfileDeclarationMatrix = {
     schema: "autojs6-node-profile-declaration-matrix-v1",
-    status: "declaration_partial",
+    status: "declaration_only",
     profiles: [runtimeProfileId, proRuntimeProfileId, desktopRuntimeProfileId, debugRuntimeProfileId],
     modules: {} as AutoJs6Node.ProfileModuleCatalog,
     metadataOnly: true,

@@ -6,7 +6,7 @@
 
 # v1.6.0
 
-###### 2026/10/08
+###### 2026/10/09
 
 * `Nuevo` La página de ajustes del plugin permite elegir 1-8 ejecuciones simultáneas (2 por defecto) y un límite de cola (sin límite por defecto); los scripts adicionales esperan en FIFO, los cambios conservan las tareas aceptadas e idleExitMs libera los procesos inactivos
 * `Mejora` fs, fs/promises y node:sqlite son los módulos nativos de Node.js: desaparecen la denegación de /proc, /sys, /dev propia del runtime y su capa de validación de rutas, la accesibilidad de los archivos la deciden únicamente los permisos de Android, las API de archivos asíncronas se ejecutan en el pool de hilos de libuv en lugar de bloquear el bucle de eventos, y los errores de ruta llevan los códigos propios de Node.js (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH y ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED ya no los producen las operaciones de archivos ni de base de datos)
@@ -26,6 +26,7 @@
 * `Mejora` Inspector funciona en Debug y Release con permiso explícito del anfitrión; inspector e inspector/promises conservan los módulos nativos de Node, con Session en scripts y Workers, escucha solo en 127.0.0.1 y sin esperas bloqueantes; sin permiso url() devuelve undefined y se impiden la activación y la creación de Session
 * `Mejora` install/update/remove de package_manager aceptan especificaciones npm y ejecutan el npm incluido en el espacio de trabajo; npm.cli/exec/runScript/pack usan la CLI real, con registry/proxy/ciclo de vida según npm y .npmrc del proyecto, salida en tiempo real y códigos de error npm; los archivos CLI se preparan al primer uso y las solicitudes de objeto conservan el contrato del almacén local del anfitrión
 * `Mejora` Inicio de scripts más rápido al evitar inicializaciones Web API innecesarias y activar por defecto la caché de compilación portátil nativa de Node para espacios de trabajo y Workers; reutilización entre copias e invalidación de fuentes modificadas a cargo de Node
+* `Mejora` Los metadatos describen las funciones implementadas sin estados provisionales; los ejemplos UI indican los proveedores anfitriones necesarios y se eliminan los campos de mercado y actualización de plugins sin plan
 
 # v1.5.7
 

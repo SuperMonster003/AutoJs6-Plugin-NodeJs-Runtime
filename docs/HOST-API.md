@@ -399,3 +399,9 @@ CLI 首次调用时才在插件 filesDir 解压既有 npm/corepack 资产, 按�
 带 sourceDir/name/version 等字段的对象请求保留旧宿主本地库路径, 继续使用原来的权限、allowMutation 与 expectedIntegrity 契约. list/verify/prune 和本地 plan* 同样属于该路径. planRegistryInstall/planTarballInstall 仅解释传入元数据, 不联网、不修改文件, status 为 metadata_only; 实际解析、缓存、下载和解包全部由 npm 执行.
 
 npm 在执行中创建的 .bin 链接保持原样. 现有工作区归档协议不支持符号链接回传; 需要回写宿主项目且依赖带 bin 入口时, 在 .npmrc 设置 bin-links=false 或显式传 npmArgs: ["--no-bin-links"]. 这不是 npm 调用的默认覆盖. Android 也可能拒绝执行 app data 中的脚本或下载二进制; JS 工具可显式通过 node 读取入口文件. 可运行项目见 sample/nodejs/npm-registry. 真正外网验收单独运行 NpmRegistryDeviceTest 并传 nodeNpmOnline=true; 常规 NpmCliSmokeTest 只访问回环测试 registry.
+
+### 本地 JS 插件与能力状态 (1.6.0)
+
+`pluginSystemProfile` 描述当前本地 JS 插件管理器及生命周期; Android provider 插件, 远程市场, 签名归档分发与更新渠道属于未规划产品方向, 不再作为 deferred 能力字段输出. `packageIntegrityProfile` 描述现有宿主本地存储的校验与恢复流程. `rhino` 安装状态的 shadowing 为 not_installed / installed, child_process 被请求关闭时 stdin 为 denied_with_child_process. 这些标记说明实际行为, 不扩大宿主授权.
+
+样例状态仅使用 stable 与 host_provider_required. 后者说明需要真实宿主 provider 和相应 Android 权限, 不表示样例 API 未完成. 旧 Phase 14/15 声明矩阵保留在类型目录 history 下, 仅供旧代码类型兼容, 不代表当前能力. Node 自身的 ExperimentalWarning 和上游 VM Modules 状态不属于插件的暂定标记.

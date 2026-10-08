@@ -121,7 +121,7 @@ console.log("AutoJs6 Node.js runtime");
 
 # v1.6.0
 
-###### 2026/10/08
+###### 2026/10/09
 
 * `新增` 插件设置页支持 1-8 个并行执行槽 (默认 2) 与排队上限 (默认不限), 超额脚本按 FIFO 等待, 设置调整保留已接受的任务, idleExitMs 可回收空闲运行进程
 * `优化` fs, fs/promises 及 node:sqlite 模块改为直接使用 Node.js 原生实现, 移除运行时自设的 /proc, /sys, /dev 拒绝边界与路径校验包装层, 文件可达性完全由 Android 权限决定, 异步文件 API 经 libuv 线程池执行而不再阻塞事件循环, 路径错误返回 Node.js 原生错误码 (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH 及 ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED 不再由文件及数据库操作产生)
@@ -141,6 +141,7 @@ console.log("AutoJs6 Node.js runtime");
 * `优化` Inspector 在宿主显式允许后支持 Debug 和 Release 构建; inspector 与 inspector/promises 保留 Node 原生模块对象, 主脚本和 Worker 可使用 Session, 监听仅绑定 127.0.0.1 且不支持阻塞等待; 未开启时 url() 返回 undefined, 激活和 Session 创建保持关闭
 * `优化` package_manager 的 install/update/remove 支持 npm 包规格, 在工作区调用随包 npm; npm.cli/exec/runScript/pack 使用真实命令行, registry/代理/生命周期选项遵循 npm 与项目 .npmrc, 输出流式回传并保留 npm 错误码; CLI 资产仅在首次调用时准备, 对象请求保留原宿主本地库契约
 * `优化` 减少脚本启动时不必要的 Web API 初始化, 工作区与 Worker 默认启用 Node 原生可移植模块编译缓存, 缓存可跨工作区副本复用并由 Node 自动使变更源码失效
+* `优化` 运行时能力元数据按实际行为表述, 清除临时状态标记; UI 等依赖宿主的样例明确所需提供方, 移除未规划的插件市场和更新渠道字段
 
 # v1.5.7
 

@@ -327,13 +327,13 @@ declare module "package_manager" {
 
     export interface DiagnosticStatus {
       readonly schema: "autojs6-node-package-manager-status-v1";
-      readonly status: "npm_cli_and_host_store" | "read_maintenance_partial" | "diagnostic_only" | string;
+      readonly status: "npm_cli_and_host_store" | "diagnostic_only" | string;
       readonly profileStatus: "npm_cli_and_host_store" | string;
       readonly hostPackageManager: "available" | string;
-      readonly androidStore: "local_app_private_partial" | string;
+      readonly androidStore: "local_app_private_store" | string;
       readonly androidRuntimeInstall: "bundled_npm_cli" | string;
-      readonly jsBridge: "npm_cli_and_host_store" | "read_maintenance_partial" | "diagnostic_only" | string;
-      readonly requirePackageManager: "npm_cli_and_host_store" | "read_maintenance_partial" | "diagnostic_only" | string;
+      readonly jsBridge: "npm_cli_and_host_store" | "diagnostic_only" | string;
+      readonly requirePackageManager: "npm_cli_and_host_store" | "diagnostic_only" | string;
       readonly diagnosticFacade: "available" | string;
       readonly sourcePolicy: SourcePolicyStatus;
       readonly sourceAuthority: SourceAuthority;
@@ -363,8 +363,8 @@ declare module "package_manager" {
 
     export interface DiagnosticPolicy {
       readonly schema: "autojs6-node-package-manager-policy-v1";
-      readonly status: "npm_cli_and_host_store" | "read_maintenance_partial" | "diagnostic_only" | string;
-      readonly androidStore: "local_app_private_partial" | string;
+      readonly status: "npm_cli_and_host_store" | "diagnostic_only" | string;
+      readonly androidStore: "local_app_private_store" | string;
       readonly androidRuntimeInstall: "bundled_npm_cli" | string;
       readonly npmCli: "available" | string;
       readonly npmFacade: "bundled_npm_cli" | string;

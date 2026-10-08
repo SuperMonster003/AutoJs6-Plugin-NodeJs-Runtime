@@ -6,7 +6,7 @@
 
 # v1.6.0
 
-###### 2026/10/08
+###### 2026/10/09
 
 * `Ajout` La page de réglages du plugin permet de choisir 1-8 exécutions simultanées (2 par défaut) et une limite de file (illimitée par défaut); les scripts excédentaires attendent en FIFO, les changements préservent les tâches acceptées et idleExitMs libère les processus inactifs
 * `Amelioration` fs, fs/promises et node:sqlite sont les modules natifs de Node.js : le refus de /proc, /sys, /dev propre au runtime et sa couche de validation des chemins ont disparu, l'accessibilité des fichiers est décidée uniquement par les permissions Android, les API de fichiers asynchrones s'exécutent dans le pool de threads libuv au lieu de bloquer la boucle d'événements, et les erreurs de chemin portent les codes propres à Node.js (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH et ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED ne sont plus produits par les opérations de fichiers ou de base de données)
@@ -26,6 +26,7 @@
 * `Amelioration` Inspector fonctionne dans les versions Debug et Release après autorisation explicite de l'hôte; inspector et inspector/promises conservent les modules natifs Node, avec Session dans les scripts et Workers, écoute sur 127.0.0.1 uniquement et sans attente bloquante; sans autorisation url() renvoie undefined et l'activation ainsi que la création de Session restent désactivées
 * `Amelioration` install/update/remove de package_manager acceptent les spécifications npm et exécutent npm fourni dans le projet; npm.cli/exec/runScript/pack utilisent la CLI réelle, avec registry/proxy/cycle de vie selon npm et le .npmrc du projet, sortie en continu et codes d'erreur npm; les fichiers CLI sont préparés au premier appel et les requêtes objet conservent le contrat du stockage local de l'hôte
 * `Amelioration` Démarrage des scripts accéléré en évitant les initialisations Web API inutiles et en activant par défaut le cache de compilation portable natif de Node pour les espaces de travail et les Workers; réutilisation entre copies et invalidation des sources modifiées par Node
+* `Amelioration` Les métadonnées décrivent les fonctions implémentées sans états provisoires; les exemples UI précisent les services hôtes requis et les champs de marché de plugins et de mises à jour non planifiés sont retirés
 
 # v1.5.7
 

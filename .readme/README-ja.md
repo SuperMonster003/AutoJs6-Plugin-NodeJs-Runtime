@@ -121,7 +121,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 
 # v1.6.0
 
-###### 2026/10/08
+###### 2026/10/09
 
 * `追加` プラグイン設定で同時実行スロットを 1-8 (既定 2), 待機キューの上限を設定可能 (既定は無制限); 超過分は FIFO で待機し, 設定変更後も受理済みの処理を保持, idleExitMs でアイドル状態の実行プロセスを解放
 * `改善` fs, fs/promises および node:sqlite は Node.js 本来のモジュールになりました: ランタイム独自の /proc, /sys, /dev 拒否とパス検証ラッパーを撤去し, ファイルへの到達可否は Android の権限のみで決まり, 非同期ファイル API はイベントループを塞がず libuv スレッドプールで実行され, パスエラーは Node.js 本来のコードを返します (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH および ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED はファイル / データベース操作から発生しなくなりました)
@@ -141,6 +141,7 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `改善` ホストの明示的な許可により Debug と Release ビルドで Inspector を利用可能; inspector と inspector/promises は Node のネイティブモジュールを維持し, メインスクリプトと Worker で Session を使用可能, 待受は 127.0.0.1 のみでブロッキング待機は不可; 未許可時は url() が undefined を返し, 有効化と Session 作成は無効
 * `改善` package_manager の install/update/remove が npm パッケージ指定を受け取り, 同梱 npm を作業領域で実行; npm.cli/exec/runScript/pack は実際の CLI を使用し, registry/プロキシ/ライフサイクル設定は npm とプロジェクトの .npmrc に従う, 出力を逐次転送して npm エラーコードを保持; CLI 資産は初回使用時のみ準備し, オブジェクト形式の要求は既存のホストローカルストア契約を維持
 * `改善` 不要な Web API 初期化を抑えてスクリプト起動を高速化し, ワークスペースと Worker で Node のポータブルなモジュールコンパイルキャッシュを既定で有効化; ワークスペースのコピー間で再利用し, ソース変更時は Node が無効化
+* `改善` 実装済みの動作に合わせてランタイム能力の暫定状態を整理; UI などのサンプルは必要なホスト提供機能を明記し, 未計画のプラグイン市場と更新チャネルの項目を削除
 
 # v1.5.7
 

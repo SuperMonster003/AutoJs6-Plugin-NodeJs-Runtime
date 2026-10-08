@@ -120,8 +120,8 @@ val verifyAutoJs6NodeTypeDeclarations = tasks.register("verifyAutoJs6NodeTypeDec
         if (!profileCapabilitiesText.contains("ProfileModuleCatalog") ||
             !profileCapabilitiesText.contains("ProfileModuleModeFor") ||
             !profileCapabilitiesText.contains("desktop_compat_opt_in") ||
-            !profileCapabilitiesText.contains("NodeProfileV12CapabilityCatalog") ||
-            !profileCapabilitiesText.contains("NodeProfileV12DeclarationMatrix")
+            !typesRoot.resolve("history/profile_versions.d.ts").readText().contains("NodeProfileV12CapabilityCatalog") ||
+            !typesRoot.resolve("history/profile_versions.d.ts").readText().contains("NodeProfileV12DeclarationMatrix")
         ) {
             throw GradleException("profile_capabilities.d.ts must declare the profile-aware module catalog and conditional helpers.")
         }
