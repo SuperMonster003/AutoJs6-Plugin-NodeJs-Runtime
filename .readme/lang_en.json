@@ -44,7 +44,8 @@
     "ESM: Node.js's own loader with `module.registerHooks`; live bindings, cyclic dependencies, `import.meta`, `data:` URLs and `require(esm)` as on desktop.",
     "Capabilities: sync script execution, bundle transport, native embedded runtime, host capability broker, host capability live bridge.",
     "File streams, gzip/deflate/Brotli streams and basic VM execution are stable plugin capabilities; the explicitly enabled Debug Inspector is stable within its localhost scope.",
-    "Embedded execution no longer prints ExperimentalWarning notices; warning events, ordinary warnings, deprecations and errors remain available. Upstream Node API stability and terminal defaults are unchanged."
+    "Embedded execution no longer prints ExperimentalWarning notices; warning events, ordinary warnings, deprecations and errors remain available. Upstream Node API stability and terminal defaults are unchanged.",
+    "Native Worker threads support nesting, MessagePort APIs, stdio, argv, execArgv and inherited preloads; plugin worker-count and startup-timeout limits are removed, request resourceLimits are overridable defaults, and WorkerPool has no default queue limit or task timeout; Inspector sessions follow the execution request and current build support"
   ],
   "h3_release_history": "Release History",
   "h5_for_more_release_history": "For more release history",

@@ -2643,7 +2643,6 @@ std::string buildEmbeddedScriptExecutionSource(
       ["autojs6-node", entryFilename === undefined || entryFilename === null ? __autojs6_source_name : String(entryFilename)],
       true
     );
-    __autojs6_define_process_property("execArgv", [], true);
     if (typeof process.argv0 !== "string" || process.argv0.length === 0) {
       __autojs6_define_process_property("argv0", "autojs6-node", true);
     }
@@ -3398,52 +3397,27 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_worker_threads_policy = (function() {
     const record = __autojs6_runtime_module_embedded_sources["autojs6:worker-policy"];
     const input = record && typeof record.source === "string" ? JSON.parse(record.source) : {};
-    if (!input || typeof input !== "object" || Array.isArray(input)) throw new TypeError("autojs6:worker-policy must be a JSON object.");
-    function integer(name, fallback, min, max) {
-      if (input[name] === undefined) return fallback;
-      const value = input[name];
-      if (!Number.isInteger(value) || value < min || value > max) throw new RangeError("autojs6:worker-policy." + name + " must be between " + min + " and " + max + ".");
-      return value;
-    }
+    const resourceLimits = Object.freeze({ ...input.resourceLimits });
     const os = __autojs6_builtin_module("os");
     const parallelism = os && typeof os.availableParallelism === "function" ? os.availableParallelism() : 1;
-    const maxWorkers = integer("maxWorkers", Math.max(1, Math.min(8, parallelism)), 1, 8);
-    const resourceLimits = {};
-    const suppliedLimits = input.resourceLimits || {};
-    if (typeof suppliedLimits !== "object" || Array.isArray(suppliedLimits)) throw new TypeError("autojs6:worker-policy.resourceLimits must be an object.");
-    const limitNames = ["maxOldGenerationSizeMb", "maxYoungGenerationSizeMb", "codeRangeSizeMb", "stackSizeMb"];
-    for (const name of Object.keys(suppliedLimits)) {
-      if (!limitNames.includes(name) || !Number.isFinite(suppliedLimits[name]) || suppliedLimits[name] <= 0) throw new RangeError("Invalid autojs6:worker-policy.resourceLimits." + name);
-      resourceLimits[name] = suppliedLimits[name];
-    }
-    // M23.2: workers see Node's own builtin inventory minus what this execution gates; the
-    // bridge and inspector denials live in the worker bootstrap itself.
     const gatedBuiltins = __autojs6_gated_builtin_ids();
-    const builtins = Array.from(__autojs6_native_builtin_inventory()).filter((id) => gatedBuiltins.indexOf(id) < 0);
     return Object.freeze({
-      maxWorkers,
-      startupTimeoutMs: integer("startupTimeoutMs", 5000, 1, 60000),
       messageBudget: "native_structured_clone",
-      allowedBuiltins: Object.freeze(builtins),
+      allowedBuiltins: Object.freeze(Array.from(__autojs6_native_builtin_inventory()).filter(id => !gatedBuiltins.includes(id))),
       workerProfile: Object.freeze({
-        fs: Object.freeze({
-          read: __autojs6_unrestricted_fs_access_enabled ? "androidPermissions" : "workingDirectory",
-          write: __autojs6_unrestricted_fs_access_enabled ? "androidPermissions" : "workingDirectory"
-        }),
+        fs: Object.freeze({ read: "androidPermissions", write: "androidPermissions" }),
         network: __autojs6_raw_node_network_modules_enabled ? "native" : "denied",
-        autoJsBridge: "denied",
+        autoJsBridge: "parent_message_port",
         shell: __autojs6_child_process_enabled ? "native" : "denied",
-        javaInterop: "denied",
-        inspector: "denied"
+        javaInterop: "parent_message_port",
+        inspector: __autojs6_inspector_enabled ? "native" : "denied_by_request"
       }),
+      // WorkerPool concurrency is a caller-owned scheduling choice, not a Worker cap.
       workerPool: Object.freeze({
-        minWorkers: 0,
-        maxWorkers,
-        idleTimeoutMs: 1000,
-        taskTimeoutMs: integer("taskTimeoutMs", 0, 0, 2147483647),
-        queueLimit: 8
+        minWorkers: 0, maxWorkers: Math.max(1, parallelism),
+        idleTimeoutMs: 1000, taskTimeoutMs: 0, queueLimit: null
       }),
-      resourceLimits: Object.freeze(resourceLimits)
+      resourceLimits
     });
   })();
   const __autojs6_worker_threads_diagnostics = {
@@ -4211,8 +4185,8 @@ std::string buildEmbeddedScriptExecutionSource(
         messageChannel: "stable",
         transferList: "stable",
         workerPool: "stable",
-        bridgeModules: "denied",
-        nestedWorkers: false,
+        bridgeModules: "parent_message_port",
+        nestedWorkers: true,
         rawNativeHandles: false,
         packagedBehavior: "native_available_only",
         packageResolution: "workspace_node_modules",
@@ -4222,7 +4196,7 @@ std::string buildEmbeddedScriptExecutionSource(
           getBuiltinModule: "native_inventory",
           abort: "unavailable_as_node",
           chdir: "unavailable_as_node",
-          kill: "denied_shared_runtime_process",
+          kill: "native_shared_runtime_process",
           dlopen: "denied_native_addon"
         }),
         policy: __autojs6_worker_threads_policy_snapshot()
@@ -4241,8 +4215,8 @@ std::string buildEmbeddedScriptExecutionSource(
         messageBudget: "native_structured_clone",
         cleanup: "worker_pool_close_or_execution_destroy",
         packagedBehavior: "stable",
-        bridgeModules: "denied",
-        nestedWorkers: false,
+        bridgeModules: "parent_message_port",
+        nestedWorkers: true,
         rawProcessHandles: false
       }),
       vmProfile: Object.freeze({
@@ -4403,9 +4377,7 @@ std::string buildEmbeddedScriptExecutionSource(
         bridgeRateLimited: "ERR_AUTOJS6_BRIDGE_RATE_LIMITED",
         bridgeResourceLimit: "ERR_AUTOJS6_BRIDGE_RESOURCE_LIMIT",
         workerDisabled: "ERR_AUTOJS6_WORKER_DISABLED",
-        workerLimitExceeded: "ERR_AUTOJS6_WORKER_LIMIT_EXCEEDED",
         workerBridgeDenied: "ERR_AUTOJS6_WORKER_BRIDGE_DENIED",
-        workerTimeout: "ERR_AUTOJS6_WORKER_TIMEOUT",
         workerTerminated: "ERR_AUTOJS6_WORKER_TERMINATED",
         javaInteropDisabled: "ERR_AUTOJS6_JAVA_INTEROP_DISABLED",
         javaClassDenied: "ERR_AUTOJS6_JAVA_CLASS_DENIED",
@@ -8431,67 +8403,6 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_worker_threads_record_policy_rejection(reason || code || "policy");
     return __autojs6_worker_threads_error(message, code || "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
   }
-  function __autojs6_worker_threads_record_message_rejection(reason) {
-    __autojs6_worker_threads_diagnostics.messageRejectedCount += 1;
-    __autojs6_worker_threads_diagnostics.lastMessageRejection = String(reason || "");
-  }
-  function __autojs6_worker_threads_data_clone_error(message, reason) {
-    __autojs6_worker_threads_record_message_rejection(reason || "data_clone");
-    let error;
-    if (typeof DOMException === "function") {
-      error = new DOMException(message, "DataCloneError");
-    } else {
-      error = new Error(message);
-      try {
-        error.name = "DataCloneError";
-      } catch (_) {}
-      try {
-        Object.defineProperty(error, "code", { value: 25, enumerable: true, configurable: true });
-      } catch (_) {}
-    }
-    __autojs6_define_error_property(error, "autojs6Code", "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
-    return error;
-  }
-  function __autojs6_worker_threads_register_message_port_record(record) {
-    if (!record || record.__autojs6Closed) return;
-    if (__autojs6_worker_message_port_records.has(record)) return;
-    __autojs6_worker_message_port_records.add(record);
-    __autojs6_worker_threads_diagnostics.activeMessagePortCount += 1;
-    __autojs6_worker_threads_diagnostics.messagePortCreatedCount += 1;
-    if (__autojs6_worker_threads_diagnostics.activeMessagePortCount > __autojs6_worker_threads_diagnostics.maxActiveMessagePortCount) {
-      __autojs6_worker_threads_diagnostics.maxActiveMessagePortCount = __autojs6_worker_threads_diagnostics.activeMessagePortCount;
-    }
-  }
-  function __autojs6_worker_threads_unregister_message_port_record(record) {
-    if (!record || record.__autojs6Closed) return;
-    record.__autojs6Closed = true;
-    if (__autojs6_worker_message_port_records.delete(record)) {
-      __autojs6_worker_threads_diagnostics.activeMessagePortCount = Math.max(
-        0,
-        __autojs6_worker_threads_diagnostics.activeMessagePortCount - 1
-      );
-      __autojs6_worker_threads_diagnostics.messagePortClosedCount += 1;
-    }
-  }
-  function __autojs6_worker_threads_close_message_port_record(record) {
-    if (!record || record.__autojs6Closed) return;
-    try {
-      if (record.nativePort && typeof record.nativePort.close === "function") {
-        record.nativePort.close();
-      }
-    } catch (_) {
-      __autojs6_worker_threads_diagnostics.cleanupErrorCount += 1;
-    }
-    __autojs6_worker_threads_unregister_message_port_record(record);
-  }
-  function __autojs6_close_all_worker_message_ports(reason) {
-    const records = Array.from(__autojs6_worker_message_port_records);
-    if (records.length === 0) return;
-    __autojs6_worker_threads_diagnostics.cleanupRequestedCount += records.length;
-    for (const record of records) {
-      __autojs6_worker_threads_close_message_port_record(record);
-    }
-  }
   function __autojs6_close_all_worker_pools(reason) {
     const pools = Array.from(__autojs6_worker_pool_records);
     if (pools.length === 0) return;
@@ -8507,10 +8418,6 @@ std::string buildEmbeddedScriptExecutionSource(
     }
   }
   function __autojs6_worker_threads_try_start() {
-    if (__autojs6_worker_threads_diagnostics.activeWorkerCount >= __autojs6_worker_threads_policy.maxWorkers) {
-      __autojs6_worker_threads_record_policy_rejection("max_workers");
-      return false;
-    }
     __autojs6_worker_threads_diagnostics.activeWorkerCount += 1;
     __autojs6_worker_threads_diagnostics.createdCount += 1;
     if (__autojs6_worker_threads_diagnostics.activeWorkerCount > __autojs6_worker_threads_diagnostics.maxActiveWorkerCount) {
@@ -8521,12 +8428,6 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_worker_threads_finish(worker) {
     if (!worker || worker.__autojs6Finished) {
       return;
-    }
-    if (worker.__autojs6StartupTimer !== null && worker.__autojs6StartupTimer !== undefined) {
-      try {
-        clearTimeout(worker.__autojs6StartupTimer);
-      } catch (_) {}
-      worker.__autojs6StartupTimer = null;
     }
     worker.__autojs6Finished = true;
     __autojs6_worker_threads_records.delete(worker);
@@ -8569,7 +8470,6 @@ std::string buildEmbeddedScriptExecutionSource(
       return worker && !worker.__autojs6Finished;
     });
     __autojs6_close_all_worker_pools(shutdownReason);
-    __autojs6_close_all_worker_message_ports(shutdownReason);
     if (workers.length === 0) {
       return;
     }
@@ -8601,8 +8501,6 @@ std::string buildEmbeddedScriptExecutionSource(
     const workerPool = __autojs6_worker_threads_policy.workerPool;
     const resourceLimits = __autojs6_worker_threads_policy.resourceLimits;
     return Object.freeze({
-      maxWorkers: __autojs6_worker_threads_policy.maxWorkers,
-      startupTimeoutMs: __autojs6_worker_threads_policy.startupTimeoutMs,
       messageBudget: __autojs6_worker_threads_policy.messageBudget,
       allowedBuiltins: Object.freeze(__autojs6_worker_threads_policy.allowedBuiltins.slice()),
       workerProfile: Object.freeze({
@@ -8660,469 +8558,275 @@ std::string buildEmbeddedScriptExecutionSource(
       lastMessageRejection: __autojs6_worker_threads_diagnostics.lastMessageRejection
     };
   }
-  function __autojs6_worker_threads_entry_kind(resolved) {
-    const extension = __autojs6_source_extension(resolved);
-    if (__autojs6_is_esm_extension(extension)) return "esm";
-    if (extension === ".js" && __autojs6_package_type_module(resolved)) return "esm";
-    if (extension === ".js" || extension === ".cjs") return "cjs";
-    return "";
+  // Shared with the worker preload: Node owns Worker, ports and structured clone.
+  // The constructor only attaches request defaults, a preload and a private bridge port.
+  function __autojs6_worker_constructor(nativeRequire, makeConfig, invoke, onCreate) {
+    const threads = nativeRequire("worker_threads");
+    const NativeWorker = threads.Worker;
+    const runtimeKey = "autojs6:worker-runtime";
+    return class AutoJs6Worker extends NativeWorker {
+      constructor(filename, options = {}) {
+        if (!options || typeof options !== "object") {
+          super(filename, options);
+          return;
+        }
+        const config = makeConfig(filename, options);
+        const suppliedArgs = options.execArgv === undefined ? process.execArgv : options.execArgv;
+        let execArgv = suppliedArgs;
+        if (Array.isArray(suppliedArgs)) {
+          execArgv = ["--require", config.preloadPath];
+          for (let i = 0; i < suppliedArgs.length; i += 1) {
+            if (suppliedArgs[i] === "--require" && suppliedArgs[i + 1] === config.preloadPath) { i += 1; continue; }
+            if (suppliedArgs[i] === "--require=" + config.preloadPath) continue;
+            execArgv.push(suppliedArgs[i]);
+          }
+        }
+        const { port1, port2 } = new threads.MessageChannel();
+        const transferList = options.transferList == null ? [port2]
+          : Array.isArray(options.transferList) ? options.transferList.concat(port2) : options.transferList;
+        const previous = threads.getEnvironmentData(runtimeKey);
+        // The native load message clones environment data and workerData together.
+        // This leaves user workerData untouched, including for --require preloads.
+        threads.setEnvironmentData(runtimeKey, { config, port: port2 });
+        try {
+          super(filename, {
+            ...options,
+            execArgv,
+            transferList,
+            resourceLimits: { ...config.resourceLimits, ...options.resourceLimits }
+          });
+        } catch (error) {
+          port1.close();
+          port2.close();
+          throw error;
+        } finally {
+          threads.setEnvironmentData(runtimeKey, previous);
+        }
+        const pending = new Map();
+        let closed = false;
+        const close = () => {
+          if (closed) return;
+          closed = true;
+          for (const controller of pending.values()) controller.abort();
+          pending.clear();
+          port1.close();
+        };
+        const reply = message => { if (!closed) port1.postMessage(message); };
+        port1.on("message", async message => {
+          if (message.operation === "abort") {
+            const controller = pending.get(message.id);
+            if (controller) controller.abort();
+            return;
+          }
+          if (message.operation !== "call") return;
+          const controller = new AbortController();
+          pending.set(message.id, controller);
+          try {
+            const value = await invoke(message.module, message.method, message.args,
+              { ...message.options, signal: controller.signal });
+            reply({ id: message.id, value });
+          } catch (error) {
+            reply({ id: message.id, error: {
+              ...error,
+              name: error && error.name || "Error", message: error && error.message || String(error),
+              stack: error && error.stack
+            } });
+          } finally {
+            pending.delete(message.id);
+          }
+        });
+        port1.on("close", close);
+        port1.unref();
+        this.once("exit", close);
+        if (onCreate) onCreate(this);
+      }
+    };
   }
-  function __autojs6_worker_threads_module_sources_snapshot(entryFilename, entryRecord) {
-    const snapshot = Object.create(null);
-    for (const resolved of Object.keys(__autojs6_module_sources)) {
-      const record = __autojs6_module_sources[resolved];
-      if (!record || typeof record.source !== "string") continue;
-      snapshot[resolved] = {
-        source: record.source,
-        sourceURL: record.sourceURL || resolved
-      };
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor) {
+    const threads = nativeRequire("worker_threads");
+    const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
+    // Internal Node loader workers do not have a plugin bridge port.
+    if (!envelope) return;
+    threads.setEnvironmentData("autojs6:worker-runtime", undefined);
+    const { config, port } = envelope;
+    const moduleApi = nativeRequire("module");
+    const urlApi = nativeRequire("url");
+    const path = nativeRequire("path");
+    const fs = nativeRequire("fs");
+    const getBuiltinModule = process.getBuiltinModule.bind(process);
+    const gated = new Set(config.gatedBuiltins);
+    const pending = new Map();
+    let nextId = 0;
+    function bridgeCall(module, method, args, options = {}) {
+      const id = ++nextId;
+      const { signal, ...forwarded } = options;
+      return new Promise((resolve, reject) => {
+        const abort = () => port.postMessage({ operation: "abort", id });
+        const cleanup = () => { if (signal && typeof signal.removeEventListener === "function") signal.removeEventListener("abort", abort); };
+        pending.set(id, { resolve, reject, cleanup });
+        port.ref();
+        try {
+          port.postMessage({ operation: "call", id, module, method, args, options: forwarded });
+          if (signal) {
+            if (typeof signal.addEventListener === "function") signal.addEventListener("abort", abort, { once: true });
+            if (signal.aborted) abort();
+          }
+        } catch (error) {
+          cleanup();
+          pending.delete(id);
+          if (!pending.size) port.unref();
+          reject(error);
+        }
+      });
     }
-    if (entryFilename && entryRecord && typeof entryRecord.source === "string") {
-      snapshot[entryFilename] = {
-        source: entryRecord.source,
-        sourceURL: entryRecord.sourceURL || entryFilename
-      };
+    port.on("message", message => {
+      const task = pending.get(message.id);
+      if (!task) return;
+      pending.delete(message.id);
+      task.cleanup();
+      if (!pending.size) port.unref();
+      if (message.error) task.reject(Object.assign(new Error(message.error.message), message.error));
+      else task.resolve(message.value);
+    });
+    port.on("close", () => {
+      for (const task of pending.values()) {
+        task.cleanup();
+        task.reject(Object.assign(new Error("The parent worker bridge has closed."), { code: "ERR_AUTOJS6_WORKER_TERMINATED" }));
+      }
+      pending.clear();
+    });
+    port.unref();
+    threads.Worker = createWorkerConstructor(nativeRequire, () => config, bridgeCall);
+    threads.workerProfile = config.workerProfile;
+    // Legacy globals point to the real Node objects, without wrapping the port.
+    Object.defineProperties(globalThis, {
+      parentPort: { value: threads.parentPort, configurable: true },
+      workerData: { value: threads.workerData, configurable: true },
+      __autojs6_worker_bridge: { value: Object.freeze({
+        callAutoJs: bridgeCall, permissions: () => config.permissions
+      }), configurable: false }
+    });
+    function disabled(id) {
+      return Object.assign(new Error("Builtin module '" + id + "' is disabled for this execution."), {
+        code: "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED", autojs6Code: "ERR_AUTOJS6_BUILTIN_DISABLED"
+      });
     }
-    return snapshot;
-  }
-  function __autojs6_disk_module_record(filename) {
-    const fs = __autojs6_fs_module();
-    try {
-      if (!fs.statSync(filename).isFile()) return null;
-      return { source: fs.readFileSync(filename, "utf8"), sourceURL: filename };
-    } catch (_) {
-      return null;
+    function builtinGate(id) {
+      const bare = id.startsWith("node:") ? id.slice(5) : id;
+      if (gated.has(bare) || (bare === "inspector/promises" && gated.has("inspector"))) throw disabled(id);
     }
-  }
-  function __autojs6_worker_threads_resolve_script(filename, parentFilename) {
-    const path = __autojs6_path_module();
-    const name = filename instanceof URL
-      ? __autojs6_builtin_module("url").fileURLToPath(filename)
-      : (filename === undefined || filename === null ? "" : String(filename));
-    if (!name || (!path.isAbsolute(name) && !__autojs6_is_relative_module_name(name))) {
-      throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 worker_threads requires a local relative path, absolute path or file URL.",
-        "non_local_script",
-        "ERR_WORKER_PATH"
-      );
-    }
-    if (name.indexOf("\u0000") >= 0) {
-      throw __autojs6_worker_threads_policy_error(
-        "AutoJs6 worker_threads rejects NUL worker script paths.",
-        "nul_script",
-        "ERR_INVALID_ARG_VALUE"
-      );
-    }
-    const parentDir = path.dirname(parentFilename || __autojs6_entry_filename());
-    const base = path.resolve(parentDir, name);
-    const extension = __autojs6_normalized_extension(path.extname(base));
-    // Node accepts an existing file as the worker script; the hooks serve bundled sources too.
-    const candidates = extension ? [base] : [base, base + ".js", base + ".cjs", base + ".mjs"];
-    let resolved = null;
-    let record = null;
-    for (const candidate of candidates) {
-      record = __autojs6_served_module_record(candidate) || __autojs6_disk_module_record(candidate);
-      if (record && typeof record.source === "string") {
-        resolved = candidate;
-        break;
+    ["fetch", "Request", "Response", "Headers", "FormData", "WebSocket"].forEach(name => { void globalThis[name]; });
+    if (gated.has("http")) {
+      globalThis.fetch = () => Promise.reject(disabled("fetch"));
+      if (typeof globalThis.WebSocket === "function") {
+        globalThis.WebSocket = new Proxy(globalThis.WebSocket, { construct() { throw disabled("WebSocket"); } });
       }
     }
-    if (!resolved) {
-      throw __autojs6_worker_threads_policy_error(
-        "Cannot find AutoJs6 worker script: " + name,
-        "missing_script",
-        "ERR_AUTOJS6_MODULE_NOT_FOUND"
-      );
+    // Addon loading remains the separate M23.4 item.
+    process.dlopen = () => { throw Object.assign(new Error("Native addon loading is not enabled."), {
+      code: "ERR_AUTOJS6_PROCESS_API_DISABLED", autojs6Code: "ERR_AUTOJS6_PROCESS_API_DISABLED"
+    }); };
+    process.getBuiltinModule = function(id) {
+      const value = getBuiltinModule(id);
+      if (value) builtinGate(id);
+      return value;
+    };
+    if (!gated.has("inspector")) {
+      const inspector = getBuiltinModule("inspector");
+      const open = inspector.open;
+      const localOpen = (port, host = "127.0.0.1", wait = false) => {
+        if ((host !== "127.0.0.1" && host !== "localhost") || wait === true) {
+          throw Object.assign(new TypeError("Inspector requires localhost and wait=false."), { code: "ERR_INVALID_ARG_VALUE" });
+        }
+        return open(port, "127.0.0.1", false);
+      };
+      inspector.open = localOpen;
+      getBuiltinModule("inspector/promises").open = localOpen;
     }
-    const entryKind = __autojs6_worker_threads_entry_kind(resolved) || "cjs";
-    return {
-      root: path.dirname(resolved),
-      filename: resolved,
-      dirname: path.dirname(resolved),
-      format: entryKind,
-      source: record.source,
-      sourceURL: record.sourceURL || resolved,
-      moduleSources: __autojs6_worker_threads_module_sources_snapshot(
-        resolved,
-        { source: record.source, sourceURL: record.sourceURL || resolved }
-      )
-    };
-  }
-  function __autojs6_worker_threads_eval_descriptor(source, parentFilename) {
-    // Node semantics: new Worker(code, { eval: true }) runs the string as a CommonJS
-    // worker named "[worker eval]" next to the parent script; the workspace snapshot
-    // is shared so the code can still require() project modules.
-    const path = __autojs6_path_module();
-    const code = source === undefined || source === null ? "" : String(source);
-    const parentDir = path.dirname(parentFilename || __autojs6_entry_filename());
-    const filename = path.resolve(parentDir, "[worker eval].cjs");
-    return {
-      root: parentDir,
-      filename,
-      dirname: parentDir,
-      format: "cjs",
-      source: code,
-      sourceURL: "[worker eval]",
-      moduleSources: __autojs6_worker_threads_module_sources_snapshot(
-        filename,
-        { source: code, sourceURL: "[worker eval]" }
-      )
-    };
-  }
-  function __autojs6_worker_threads_bootstrap_source(descriptor) {
-    const descriptorLiteral = JSON.stringify({
-      root: descriptor.root,
-      filename: descriptor.filename,
-      dirname: descriptor.dirname,
-      format: descriptor.format,
-      policy: {
-        allowedBuiltins: __autojs6_worker_threads_policy.allowedBuiltins,
-        rawNetwork: __autojs6_raw_node_network_modules_enabled,
-        unrestrictedFs: __autojs6_unrestricted_fs_access_enabled,
-        dynamicImport: true,
-        workerProfile: __autojs6_worker_threads_policy_snapshot().workerProfile
+    moduleApi.syncBuiltinESMExports();
+    const sources = config.moduleSources;
+    function sourceKey(table, filename) {
+      if (Object.hasOwn(table, filename)) return filename;
+      if (config.pathAliases) {
+        for (const [from, to] of [config.pathAliases, config.pathAliases.slice().reverse()]) {
+          if (filename === from || filename.startsWith(from + "/")) {
+            const alias = to + filename.slice(from.length);
+            if (Object.hasOwn(table, alias)) return alias;
+          }
+        }
+      }
+    }
+    function filePath(specifier, parentURL) {
+      if (specifier.startsWith("file:")) return urlApi.fileURLToPath(specifier);
+      if (path.isAbsolute(specifier)) return specifier;
+      if (specifier.startsWith("./") || specifier.startsWith("../")) {
+        if (parentURL && !parentURL.startsWith("file:")) return;
+        const parent = parentURL && parentURL.startsWith("file:") ? parentURL : config.entryUrl;
+        return path.resolve(path.dirname(urlApi.fileURLToPath(parent)), specifier);
+      }
+    }
+    function typescriptPath(filename) {
+      if (!/\.(?:ts|mts|cts|tsx)$/i.test(filename)) return;
+      const generated = filename.replace(/\.(ts|mts|cts)$/i, (_, extension) => ({ ts: ".js", mts: ".mjs", cts: ".cjs" })[extension.toLowerCase()]);
+      const known = sourceKey(config.typeScriptSources, filename);
+      const key = sourceKey(sources, generated);
+      if (known !== undefined && key !== undefined) return key;
+      throw Object.assign(new Error("TypeScript modules require JavaScript output from the host Compiler: " + filename), {
+        code: "ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED"
+      });
+    }
+    moduleApi.registerHooks({
+      resolve(specifier, context, nextResolve) {
+        if (specifier === "autojs6:bridge") return { url: specifier, shortCircuit: true };
+        if (moduleApi.isBuiltin(specifier)) {
+          builtinGate(specifier);
+          return nextResolve(specifier, context);
+        }
+        const filename = filePath(specifier, context.parentURL);
+        if (filename) {
+          const generated = typescriptPath(filename);
+          if (generated) return { url: urlApi.pathToFileURL(generated).href, shortCircuit: true };
+          for (const candidate of [filename, filename + ".js", filename + ".cjs", filename + ".mjs", filename + ".json"]) {
+            const key = sourceKey(sources, candidate);
+            if (key !== undefined) return { url: urlApi.pathToFileURL(key).href, shortCircuit: true };
+          }
+        }
+        const result = nextResolve(specifier, context);
+        if (result.url.startsWith("file:")) {
+          const generated = typescriptPath(urlApi.fileURLToPath(result.url));
+          if (generated) return { url: urlApi.pathToFileURL(generated).href, shortCircuit: true };
+        }
+        return result;
       },
-      moduleSources: descriptor.moduleSources || Object.create(null),
-      pathAliases: __autojs6_path_aliases()
-    });
-    return "\"use strict\";\n" +
-      "(function() {\n" +
-      "  const __descriptor = " + descriptorLiteral + ";\n" +
-      String.raw`
-  const __nativeRequire = require;
-  const __workerThreads = __nativeRequire("worker_threads");
-  const __fs = __nativeRequire("fs");
-  const __path = __nativeRequire("path");
-  const __parentPort = __workerThreads.parentPort;
-  const __workerDataEnvelope = __workerThreads.workerData || {};
-  const __workerData = __workerDataEnvelope.__autojs6UserWorkerData;
-  const __moduleSources = __descriptor.moduleSources || Object.create(null);
-  const __entryFilename = __path.resolve(__descriptor.filename);
-  function __defineErrorProperty(error, name, value) {
-    try {
-      Object.defineProperty(error, name, { value, enumerable: true, configurable: true });
-    } catch (_) {
-      try { error[name] = value; } catch (_) {}
-    }
-  }
-  function __error(message, code, legacyCode) {
-    const error = new Error(message);
-    __defineErrorProperty(error, "code", legacyCode || code);
-    __defineErrorProperty(error, "autojs6Code", code);
-    return error;
-  }
-  function __deny(moduleName) {
-    throw __error("AutoJs6 worker_threads denies module '" + moduleName + "' in workers.", "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
-  }
-  function __disabledProcess(name) {
-    return function() {
-      throw __error("AutoJs6 worker_threads disables process." + name + " in workers.", "ERR_AUTOJS6_PROCESS_API_DISABLED");
-    };
-  }
-  // Trigger lazy Node web exports before guarding process methods.
-  ["fetch", "Request", "Response", "Headers", "FormData", "WebSocket"].forEach(name => { void globalThis[name]; });
-  if (!__descriptor.policy.rawNetwork) {
-    const networkDisabled = () => __error("Raw Node networking is disabled for this execution.", "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED");
-    globalThis.fetch = function() { return Promise.reject(networkDisabled()); };
-    if (typeof globalThis.WebSocket === "function") globalThis.WebSocket = new Proxy(globalThis.WebSocket, { construct() { throw networkDisabled(); } });
-  }
-  if (typeof process === "object" && process) {
-    // M23.2: dlopen stays denied until M23.4 (native addons); everything else on process is Node's
-    // own (abort and chdir already refuse inside workers, kill signals the shared runtime process).
-    ["dlopen"].forEach(function(name) {
-      try { Object.defineProperty(process, name, { value: __disabledProcess(name), configurable: true, writable: false }); }
-      catch (_) { try { process[name] = __disabledProcess(name); } catch (_) {} }
-    });
-    // process.getBuiltinModule() answers through the same inventory and gates as require().
-    const workerGetBuiltinModule = function(id) {
-      if (typeof id !== "string") throw new TypeError("The \"id\" argument must be of type string.");
-      if (!id) return undefined;
-      return __nativeBuiltinId(id) === null ? undefined : __loadBuiltin(id);
-    };
-    try { Object.defineProperty(process, "getBuiltinModule", { value: workerGetBuiltinModule, configurable: true, writable: false }); }
-    catch (_) { try { process.getBuiltinModule = workerGetBuiltinModule; } catch (_) {} }
-  }
-  const __allowed = new Set(__descriptor.policy.allowedBuiltins);
-  const __nativeBuiltins = new Set(__nativeRequire("module").builtinModules);
-  function __nativeBuiltinId(request) {
-    const raw = String(request || "");
-    if (!raw) return null;
-    if (raw.indexOf("node:") === 0) {
-      if (__nativeBuiltins.has(raw)) return raw;
-      const bare = raw.slice(5);
-      return __nativeBuiltins.has(bare) ? bare : null;
-    }
-    return __nativeBuiltins.has(raw) ? raw : null;
-  }
-  const __networkBuiltins = new Set(["net", "http", "https", "tls", "dns", "dns/promises", "dgram", "http2"]);
-  const __profilePolicy = (__descriptor.policy && __descriptor.policy.workerProfile) || {};
-  const __workerProfile = Object.freeze({
-    fs: Object.freeze({
-      read: (__profilePolicy.fs && __profilePolicy.fs.read) || "workingDirectory",
-      write: (__profilePolicy.fs && __profilePolicy.fs.write) || "workingDirectory"
-    }),
-    network: __profilePolicy.network || "denied",
-    autoJsBridge: __profilePolicy.autoJsBridge || "denied",
-    shell: __profilePolicy.shell || "denied",
-    javaInterop: __profilePolicy.javaInterop || "denied",
-    inspector: __profilePolicy.inspector || "denied"
-  });
-  function __dataCloneError(message) {
-    let error;
-    if (typeof DOMException === "function") {
-      error = new DOMException(message, "DataCloneError");
-    } else {
-      error = new Error(message);
-      try { error.name = "DataCloneError"; } catch (_) {}
-    }
-    __defineErrorProperty(error, "autojs6Code", "ERR_AUTOJS6_WORKER_BRIDGE_DENIED");
-    return error;
-  }
-  function __prepareTransferList(transferList, label) {
-    if (transferList === undefined || transferList === null) return [];
-    let list;
-    try {
-      list = Array.isArray(transferList) ? transferList : Array.from(transferList);
-    } catch (_) {
-      throw __dataCloneError("AutoJs6 worker_threads " + label + " must be an iterable transfer list.");
-    }
-    const output = [];
-    const seen = new Set();
-    for (const value of list) {
-      if (seen.has(value)) {
-        throw __dataCloneError("AutoJs6 worker_threads " + label + " contains duplicate transfer entries.");
-      }
-      seen.add(value);
-      if (typeof ArrayBuffer === "function" && value instanceof ArrayBuffer) {
-        output.push(value);
-        continue;
-      }
-      if (__workerThreads.MessagePort && value instanceof __workerThreads.MessagePort) {
-        output.push(value);
-        continue;
-      }
-      throw __dataCloneError("AutoJs6 worker_threads " + label + " accepts only ArrayBuffer and MessagePort transfer entries.");
-    }
-    return output;
-  }
-  const __limitedParentPort = Object.freeze({
-    postMessage: function(message, transferList) {
-      return __parentPort.postMessage(message, __prepareTransferList(transferList, "parentPort.postMessage transferList"));
-    },
-    on: function(eventName, listener) { __parentPort.on(eventName, listener); return this; },
-    once: function(eventName, listener) { __parentPort.once(eventName, listener); return this; },
-    off: function(eventName, listener) {
-      if (typeof __parentPort.off === "function") __parentPort.off(eventName, listener);
-      else if (typeof __parentPort.removeListener === "function") __parentPort.removeListener(eventName, listener);
-      return this;
-    },
-    addListener: function(eventName, listener) { return this.on(eventName, listener); },
-    removeListener: function(eventName, listener) { return this.off(eventName, listener); },
-    start: function() { return typeof __parentPort.start === "function" ? __parentPort.start() : undefined; },
-    close: function() { return typeof __parentPort.close === "function" ? __parentPort.close() : undefined; },
-    ref: function() { if (typeof __parentPort.ref === "function") __parentPort.ref(); return this; },
-    unref: function() { if (typeof __parentPort.unref === "function") __parentPort.unref(); return this; }
-  });
-  const __limitedWorkerThreads = Object.freeze({
-    ...__workerThreads,
-    isMainThread: false,
-    parentPort: __limitedParentPort,
-    workerData: __workerData,
-    threadId: __workerThreads.threadId,
-    MessageChannel: __workerThreads.MessageChannel,
-    MessagePort: __workerThreads.MessagePort,
-    workerProfile: __workerProfile,
-    Worker: function Worker() { throw __error("Nested AutoJs6 worker_threads workers are disabled.", "ERR_AUTOJS6_WORKER_DISABLED"); }
-  });
-  // Preserve legacy aliases without adding parameters that conflict with normal CJS declarations.
-  Object.defineProperties(globalThis, {
-    parentPort: { value: __limitedParentPort, configurable: true },
-    workerData: { value: __workerData, configurable: true }
-  });
-  function __normalBuiltinName(request) {
-    const raw = String(request || "");
-    return raw.indexOf("node:") === 0 ? raw.slice(5) : raw;
-  }
-  function __builtinAllowed(request) {
-    return __nativeBuiltinId(request) !== null;
-  }
-  function __loadBuiltin(request) {
-    const raw = String(request || "");
-    const id = __nativeBuiltinId(raw);
-    if (id === null || id === "inspector" || id === "inspector/promises") return __deny(raw);
-    if (!__allowed.has(id)) {
-      throw __error(
-        __networkBuiltins.has(id) ? "Raw Node networking is disabled for this execution." : "Builtin module '" + raw + "' is disabled for this execution.",
-        "ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED"
-      );
-    }
-    if (id === "worker_threads") return __limitedWorkerThreads;
-    if (id === "process") return process;
-    return __nativeRequire(id);
-  }
-  // M23.3: Node's own loaders run the worker's module graph. The hooks serve the request's
-  // module sources (workspace bundle, worker entry, eval source), the worker_threads facade and
-  // the builtin gate; everything else resolves and compiles natively, ESM included.
-  const __moduleApi = __nativeRequire("module");
-  const __urlApi = __nativeRequire("url");
-  const __workerModuleScheme = "autojs6-worker:";
-  function __isRelativeModuleName(name) {
-    return name === "." || name === ".." || name.indexOf("./") === 0 || name.indexOf("../") === 0;
-  }
-  function __normalizedExtension(filename) {
-    return String(__path.extname(filename || "") || "").toLowerCase();
-  }
-  const __workerModuleExports = Object.create(null);
-  function __workerModuleFor(url) {
-    const id = String(url).slice(__workerModuleScheme.length);
-    if (!Object.prototype.hasOwnProperty.call(__workerModuleExports, id)) {
-      __workerModuleExports[id] = __loadBuiltin(id);
-    }
-    return __workerModuleExports[id];
-  }
-  try {
-    Object.defineProperty(globalThis, "__autojs6_worker_module_exports", {
-      value: __workerModuleFor, enumerable: false, configurable: false, writable: false
-    });
-  } catch (_) {}
-  function __notFound(error) {
-    return !!error && (error.code === "MODULE_NOT_FOUND" || error.code === "ERR_MODULE_NOT_FOUND");
-  }
-  // Node resolves files through realpath while the snapshot is keyed by the host's spelling.
-  const __pathAliases = Array.isArray(__descriptor.pathAliases) ? __descriptor.pathAliases : null;
-  function __sourceKey(filename) {
-    if (Object.prototype.hasOwnProperty.call(__moduleSources, filename)) return filename;
-    if (!__pathAliases) return undefined;
-    for (const [from, to] of [[__pathAliases[1], __pathAliases[0]], [__pathAliases[0], __pathAliases[1]]]) {
-      if (filename === from || filename.indexOf(from + "/") === 0) {
-        const alias = to + filename.slice(from.length);
-        if (Object.prototype.hasOwnProperty.call(__moduleSources, alias)) return alias;
-      }
-    }
-    return undefined;
-  }
-  function __packageTypeModule(filename) {
-    try {
-      const packageJson = typeof __moduleApi.findPackageJSON === "function"
-        ? __moduleApi.findPackageJSON(__urlApi.pathToFileURL(filename).href)
-        : undefined;
-      return !!packageJson && JSON.parse(__fs.readFileSync(packageJson, "utf8")).type === "module";
-    } catch (_) {
-      return false;
-    }
-  }
-  function __servedFormat(filename, context) {
-    const extension = __normalizedExtension(filename);
-    if (extension === ".mjs" || extension === ".mts") return "module";
-    if (extension === ".cjs" || extension === ".cts") return "commonjs";
-    if (extension === ".json") return "json";
-    if (context && typeof context.format === "string" && context.format) return context.format;
-    return __packageTypeModule(filename) ? "module" : "commonjs";
-  }
-  function __virtualResolution(specifier, parentURL) {
-    let base;
-    if (/^file:/i.test(specifier)) {
-      base = __urlApi.fileURLToPath(specifier);
-    } else if (__path.isAbsolute(specifier)) {
-      base = specifier;
-    } else if (__isRelativeModuleName(specifier)) {
-      const parent = parentURL && /^file:/i.test(parentURL) ? __urlApi.fileURLToPath(parentURL) : __entryFilename;
-      base = __path.resolve(__path.dirname(parent), specifier);
-    } else {
-      return null;
-    }
-    base = __path.resolve(base);
-    const candidates = [
-      base, base + ".js", base + ".cjs", base + ".mjs", base + ".json",
-      __path.join(base, "index.js"), __path.join(base, "index.cjs"), __path.join(base, "index.mjs"), __path.join(base, "index.json")
-    ];
-    for (const candidate of candidates) {
-      const key = __sourceKey(candidate);
-      if (key !== undefined) {
-        return { url: __urlApi.pathToFileURL(key).href, shortCircuit: true };
-      }
-    }
-    return null;
-  }
-  function __workerModuleSource(url, context) {
-    const exportsValue = __workerModuleFor(url);
-    const conditions = context && context.conditions;
-    const imported = Array.isArray(conditions) ? conditions.indexOf("import") >= 0 && conditions.indexOf("require") < 0 : false;
-    const accessor = "globalThis.__autojs6_worker_module_exports(" + JSON.stringify(url) + ")";
-    if (!imported) {
-      return { format: "commonjs", source: "module.exports = " + accessor + ";", shortCircuit: true };
-    }
-    const lines = ["const __autojs6_module = " + accessor + ";", "export default __autojs6_module;"];
-    if (exportsValue !== null && (typeof exportsValue === "object" || typeof exportsValue === "function")) {
-      for (const key of Object.keys(exportsValue)) {
-        if (key === "default" || !/^[A-Za-z_$][0-9A-Za-z_$]*$/.test(key)) continue;
-        lines.push("export const " + key + " = __autojs6_module[" + JSON.stringify(key) + "];");
-      }
-    }
-    return { format: "module", source: lines.join("\n"), shortCircuit: true };
-  }
-  __moduleApi.registerHooks({
-    resolve(specifier, context, nextResolve) {
-      const name = String(specifier === undefined ? "" : specifier);
-      const id = __nativeBuiltinId(name);
-      if (id !== null) {
-        // The worker_threads facade, the inspector denial and the builtin gate all answer
-        // through __loadBuiltin; other builtins are Node's own.
-        if (id === "worker_threads" || id === "inspector" || id === "inspector/promises" || !__allowed.has(id)) {
-          return { url: __workerModuleScheme + id, shortCircuit: true };
+      load(url, context, nextLoad) {
+        if (url === "autojs6:bridge") {
+          return { format: "module", shortCircuit: true, source:
+            "const bridge = globalThis.__autojs6_worker_bridge; export default bridge; " +
+            "export const callAutoJs = bridge.callAutoJs; export const permissions = bridge.permissions; " +
+            "export { bridge as 'module.exports' };" };
         }
-        return nextResolve(name, context);
-      }
-      const virtual = __virtualResolution(name, context && context.parentURL);
-      if (virtual) return virtual;
-      try {
-        return nextResolve(name, context);
-      } catch (error) {
-        if (!__notFound(error)) throw error;
-        const virtual = __virtualResolution(name, context && context.parentURL);
-        if (!virtual) throw error;
-        return virtual;
-      }
-    },
-    load(url, context, nextLoad) {
-      const target = String(url);
-      if (target.indexOf(__workerModuleScheme) === 0) {
-        return __workerModuleSource(target, context);
-      }
-      if (/^file:/i.test(target)) {
-        const filename = __urlApi.fileURLToPath(target);
-        const key = __sourceKey(filename);
-        if (key !== undefined) {
-          const record = __moduleSources[key];
-          const format = __servedFormat(filename, context);
-          const source = String(record.source);
-          const sourceURL = record.sourceURL && String(record.sourceURL) !== filename
-            ? String(record.sourceURL).replace(/[\r\n]/g, " ")
-            : "";
-          return {
-            format,
-            source: format === "json" || !sourceURL ? source : source + "\n//# sourceURL=" + sourceURL,
-            shortCircuit: true
-          };
+        if (url.startsWith("file:")) {
+          const filename = urlApi.fileURLToPath(url);
+          const key = sourceKey(sources, filename);
+          if (key !== undefined) {
+            const record = sources[key];
+            const extension = path.extname(filename);
+            let format = extension === ".mjs" ? "module" : extension === ".cjs" ? "commonjs"
+              : extension === ".json" ? "json" : context.format;
+            if (!format) {
+              const packagePath = moduleApi.findPackageJSON(url);
+              format = packagePath && JSON.parse(fs.readFileSync(packagePath, "utf8")).type === "module" ? "module" : "commonjs";
+            }
+            const suffix = format !== "json" && record.sourceURL && record.sourceURL !== filename
+              ? "\n//# sourceURL=" + record.sourceURL.replace(/[\r\n]/g, " ") : "";
+            return { format, source: record.source + suffix, shortCircuit: true };
+          }
         }
+        return nextLoad(url, context);
       }
-      return nextLoad(url, context);
-    }
-  });
-  const __entryUrl = __urlApi.pathToFileURL(__entryFilename).href;
-  if (__descriptor.format === "esm") {
-    import(__entryUrl).then(
-      function() {},
-      function(error) {
-        setImmediate(function() { throw error; });
-      }
-    );
-  } else {
-    __moduleApi.createRequire(__entryFilename)(__entryFilename);
+    });
   }
-})();
-`;
-  }
+
   function __autojs6_limited_worker_threads() {
     if (__autojs6_limited_worker_threads_cache) {
       return __autojs6_limited_worker_threads_cache;
@@ -9142,526 +8846,59 @@ std::string buildEmbeddedScriptExecutionSource(
     ) {
       return __autojs6_worker_threads_shape_facade();
     }
-    const nativeMessagePortCtor = nativeModule.MessagePort;
-    const workerPortStates = new WeakMap();
-    const nativeToWrappedPort = new WeakMap();
-    function AutoJs6MessagePort() {
-      throw __autojs6_worker_threads_error(
-        "AutoJs6 worker_threads MessagePort cannot be constructed directly.",
-        "ERR_AUTOJS6_WORKER_BRIDGE_DENIED"
-      );
-    }
-    function __autojs6_worker_threads_message_port_state(port, operation) {
-      if (port && (typeof port === "object" || typeof port === "function") && workerPortStates.has(port)) {
-        return workerPortStates.get(port);
-      }
-      throw new TypeError("Illegal invocation of MessagePort." + operation);
-    }
-    function __autojs6_worker_threads_is_native_message_port(value) {
-      return !!(
-        value &&
-        (typeof value === "object" || typeof value === "function") &&
-        nativeMessagePortCtor &&
-        value instanceof nativeMessagePortCtor
-      );
-    }
-    function __autojs6_worker_threads_wrap_message_port(nativePort) {
-      if (!__autojs6_worker_threads_is_native_message_port(nativePort)) {
-        throw __autojs6_worker_threads_data_clone_error(
-          "AutoJs6 worker_threads expected a native MessagePort.",
-          "invalid_message_port"
-        );
-      }
-      if (nativeToWrappedPort.has(nativePort)) {
-        return nativeToWrappedPort.get(nativePort);
-      }
-      const wrapper = Object.create(AutoJs6MessagePort.prototype);
-      const record = {
-        nativePort,
-        __autojs6Closed: false
-      };
-      const state = {
-        nativePort,
-        record,
-        onmessage: null,
-        onmessageWrapper: null,
-        onmessageerror: null,
-        onmessageerrorWrapper: null
-      };
-      workerPortStates.set(wrapper, state);
-      nativeToWrappedPort.set(nativePort, wrapper);
-      __autojs6_worker_threads_register_message_port_record(record);
-      return wrapper;
-    }
-    function __autojs6_worker_threads_native_port_from_transfer(value, label) {
-      if (workerPortStates.has(value)) {
-        const state = workerPortStates.get(value);
-        if (state.record.__autojs6Closed) {
-          throw __autojs6_worker_threads_data_clone_error(
-            "AutoJs6 worker_threads cannot transfer a closed MessagePort.",
-            "closed_message_port"
-          );
+    // This file contains plugin code only. Request sources and bridge state go
+    // through Node's native environment-data clone, never into the preload file.
+    const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
+      __autojs6_worker_constructor.toString() + ");";
+    const preloadPath = __autojs6_path_module().join(
+      __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
+    __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
+    const AutoJs6Worker = __autojs6_worker_constructor(
+      name => __autojs6_builtin_module(name),
+      (filename, options) => {
+        if (__autojs6_worker_threads_shutdown_reason) {
+          throw __autojs6_worker_threads_error("Worker creation is unavailable during runtime shutdown.", "ERR_AUTOJS6_WORKER_TERMINATED");
+        }
+        const moduleSources = { ...__autojs6_module_sources, ...__autojs6_pinned_module_sources };
+        if (!options.eval) {
+          const path = __autojs6_path_module();
+          const target = filename instanceof URL && filename.protocol === "file:"
+            ? __autojs6_url_module().fileURLToPath(filename)
+            : typeof filename === "string" && (path.isAbsolute(filename) || /^\.\.?\//.test(filename))
+              ? path.resolve(filename) : null;
+          // Retain provider-backed worker entries from the parent execution.
+          // The entry source stays in the native environment-data clone.
+          if (target && /\.(?:cjs|mjs|js)$/.test(target)) {
+            const record = __autojs6_served_module_record(target);
+            if (record) moduleSources[target] = record;
+          }
         }
         return {
-          nativePort: state.nativePort,
-          record: state.record
+          preloadPath,
+          entryUrl: __autojs6_url_module().pathToFileURL(__autojs6_entry_filename()).href,
+          pathAliases: __autojs6_path_aliases(),
+          moduleSources,
+          typeScriptSources: { ...__autojs6_typescript_precompiled_source_names },
+          gatedBuiltins: __autojs6_gated_builtin_ids(),
+          resourceLimits: __autojs6_worker_threads_policy.resourceLimits,
+          workerProfile: __autojs6_worker_threads_policy.workerProfile,
+          permissions: __autojs6_bridge_permission_report()
         };
-      }
-      if (__autojs6_worker_threads_is_native_message_port(value)) {
-        return {
-          nativePort: value,
-          record: null
+      },
+      __autojs6_call_autojs,
+      worker => {
+        __autojs6_worker_threads_try_start();
+        worker.__autojs6Finished = false;
+        worker.__autojs6NativeWorker = worker;
+        __autojs6_worker_threads_records.add(worker);
+        const terminate = worker.terminate;
+        worker.terminate = function(...args) {
+          __autojs6_worker_threads_diagnostics.terminatedCount += 1;
+          return terminate.apply(this, args);
         };
+        worker.once("exit", () => __autojs6_worker_threads_finish(worker));
       }
-      return null;
-    }
-    function __autojs6_worker_threads_prepare_transfer_list(transferList, label) {
-      if (transferList === undefined || transferList === null) {
-        return {
-          nativeList: [],
-          portRecords: []
-        };
-      }
-      let rawList;
-      try {
-        rawList = Array.isArray(transferList) ? transferList : Array.from(transferList);
-      } catch (_) {
-        throw __autojs6_worker_threads_data_clone_error(
-          "AutoJs6 worker_threads " + label + " must be an iterable transfer list.",
-          "invalid_transfer_list"
-        );
-      }
-      const nativeList = [];
-      const portRecords = [];
-      const seen = new Set();
-      for (const value of rawList) {
-        if (seen.has(value)) {
-          throw __autojs6_worker_threads_data_clone_error(
-            "AutoJs6 worker_threads " + label + " contains duplicate transfer entries.",
-            "duplicate_transfer"
-          );
-        }
-        seen.add(value);
-        const portTransfer = __autojs6_worker_threads_native_port_from_transfer(value, label);
-        if (portTransfer) {
-          nativeList.push(portTransfer.nativePort);
-          if (portTransfer.record) {
-            portRecords.push(portTransfer.record);
-          }
-          continue;
-        }
-        if (typeof ArrayBuffer === "function" && value instanceof ArrayBuffer) {
-          nativeList.push(value);
-          continue;
-        }
-        throw __autojs6_worker_threads_data_clone_error(
-          "AutoJs6 worker_threads " + label + " accepts only ArrayBuffer and MessagePort transfer entries.",
-          "unsupported_transfer"
-        );
-      }
-      return {
-        nativeList,
-        portRecords
-      };
-    }
-    function __autojs6_worker_threads_to_native_message(value, seen) {
-      if (workerPortStates.has(value)) {
-        const state = workerPortStates.get(value);
-        if (state.record.__autojs6Closed) {
-          throw __autojs6_worker_threads_data_clone_error(
-            "AutoJs6 worker_threads cannot clone a closed MessagePort.",
-            "closed_message_port"
-          );
-        }
-        return state.nativePort;
-      }
-      if (value === null || value === undefined) return value;
-      const valueType = typeof value;
-      if (valueType !== "object") return value;
-      if (typeof ArrayBuffer === "function" && value instanceof ArrayBuffer) return value;
-      if (typeof ArrayBuffer === "function" && typeof ArrayBuffer.isView === "function" && ArrayBuffer.isView(value)) return value;
-      if (typeof Date === "function" && value instanceof Date) return new Date(value.getTime());
-      const seenMap = seen || new Map();
-      if (seenMap.has(value)) {
-        return seenMap.get(value);
-      }
-      if (typeof Map === "function" && value instanceof Map) {
-        const clonedMap = new Map();
-        seenMap.set(value, clonedMap);
-        for (const entry of value) {
-          clonedMap.set(
-            __autojs6_worker_threads_to_native_message(entry[0], seenMap),
-            __autojs6_worker_threads_to_native_message(entry[1], seenMap)
-          );
-        }
-        return clonedMap;
-      }
-      if (typeof Set === "function" && value instanceof Set) {
-        const clonedSet = new Set();
-        seenMap.set(value, clonedSet);
-        for (const item of value) {
-          clonedSet.add(__autojs6_worker_threads_to_native_message(item, seenMap));
-        }
-        return clonedSet;
-      }
-      if (Array.isArray(value)) {
-        const clonedArray = [];
-        seenMap.set(value, clonedArray);
-        for (let index = 0; index < value.length; index += 1) {
-          clonedArray[index] = __autojs6_worker_threads_to_native_message(value[index], seenMap);
-        }
-        return clonedArray;
-      }
-      const clonedObject = Object.create(null);
-      seenMap.set(value, clonedObject);
-      for (const key of Object.keys(value)) {
-        clonedObject[key] = __autojs6_worker_threads_to_native_message(value[key], seenMap);
-      }
-      return clonedObject;
-    }
-    function __autojs6_worker_threads_finalize_port_transfers(portRecords) {
-      for (const record of portRecords || []) {
-        __autojs6_worker_threads_unregister_message_port_record(record);
-      }
-    }
-    function __autojs6_worker_threads_post_native_message(nativeTarget, message, transferList, label) {
-      // Message size and queue depth follow Node's native structured clone; only memory bounds them.
-      const prepared = __autojs6_worker_threads_prepare_transfer_list(transferList, label + " transferList");
-      const nativeMessage = __autojs6_worker_threads_to_native_message(message);
-      try {
-        const result = nativeTarget.postMessage(nativeMessage, prepared.nativeList);
-        __autojs6_worker_threads_finalize_port_transfers(prepared.portRecords);
-        return result;
-      } catch (error) {
-        if (error && error.name === "DataCloneError") {
-          __autojs6_worker_threads_record_message_rejection("native_data_clone");
-        }
-        throw error;
-      }
-    }
-    function __autojs6_worker_threads_normalize_resource_limits(resourceLimits, label) {
-      if (resourceLimits === undefined || resourceLimits === null) resourceLimits = {};
-      if (typeof resourceLimits !== "object" || Array.isArray(resourceLimits)) {
-        throw __autojs6_worker_threads_policy_error(
-          "AutoJs6 worker_threads " + label + " resourceLimits must be an object.",
-          "invalid_resource_limits"
-        );
-      }
-      const caps = __autojs6_worker_threads_policy.resourceLimits;
-      const allowed = Object.freeze({
-        maxOldGenerationSizeMb: caps.maxOldGenerationSizeMb,
-        maxYoungGenerationSizeMb: caps.maxYoungGenerationSizeMb,
-        codeRangeSizeMb: caps.codeRangeSizeMb,
-        stackSizeMb: caps.stackSizeMb
-      });
-      const output = Object.assign({}, caps);
-      for (const key of Object.keys(resourceLimits)) {
-        if (!__autojs6_has_own(allowed, key)) {
-          throw __autojs6_worker_threads_policy_error(
-            "AutoJs6 worker_threads " + label + " rejects resourceLimits." + key + ".",
-            "unknown_resource_limit"
-          );
-        }
-        const value = Number(resourceLimits[key]);
-        if (!Number.isFinite(value) || value <= 0) {
-          throw __autojs6_worker_threads_policy_error(
-            "AutoJs6 worker_threads " + label + " resourceLimits." + key + " must be positive.",
-            "invalid_resource_limit"
-          );
-        }
-        if (allowed[key] !== undefined && value > allowed[key]) {
-          throw __autojs6_worker_threads_policy_error(
-            "AutoJs6 worker_threads " + label + " resourceLimits." + key + " exceeds " + allowed[key] + ".",
-            "resource_limit_too_large"
-          );
-        }
-        output[key] = value;
-      }
-      return Object.keys(output).length > 0 ? output : undefined;
-    }
-    Object.defineProperties(AutoJs6MessagePort.prototype, {
-      constructor: { value: AutoJs6MessagePort, configurable: true },
-      onmessage: {
-        get: function() {
-          return __autojs6_worker_threads_message_port_state(this, "onmessage").onmessage;
-        },
-        set: function(listener) {
-          const state = __autojs6_worker_threads_message_port_state(this, "onmessage");
-          if (state.onmessageWrapper && typeof state.nativePort.off === "function") {
-            try {
-              state.nativePort.off("message", state.onmessageWrapper);
-            } catch (_) {}
-          }
-          state.onmessage = typeof listener === "function" ? listener : null;
-          state.onmessageWrapper = state.onmessage
-            ? function(value) {
-                state.onmessage.call(this, { type: "message", data: value, target: this, currentTarget: this });
-              }.bind(this)
-            : null;
-          if (state.onmessageWrapper && typeof state.nativePort.on === "function") {
-            state.nativePort.on("message", state.onmessageWrapper);
-          }
-        },
-        enumerable: true
-      },
-      onmessageerror: {
-        get: function() {
-          return __autojs6_worker_threads_message_port_state(this, "onmessageerror").onmessageerror;
-        },
-        set: function(listener) {
-          const state = __autojs6_worker_threads_message_port_state(this, "onmessageerror");
-          if (state.onmessageerrorWrapper && typeof state.nativePort.off === "function") {
-            try {
-              state.nativePort.off("messageerror", state.onmessageerrorWrapper);
-            } catch (_) {}
-          }
-          state.onmessageerror = typeof listener === "function" ? listener : null;
-          state.onmessageerrorWrapper = state.onmessageerror
-            ? function(value) {
-                state.onmessageerror.call(this, { type: "messageerror", data: value, target: this, currentTarget: this });
-              }.bind(this)
-            : null;
-          if (state.onmessageerrorWrapper && typeof state.nativePort.on === "function") {
-            state.nativePort.on("messageerror", state.onmessageerrorWrapper);
-          }
-        },
-        enumerable: true
-      },
-      postMessage: {
-        value: function(message, transferList) {
-          const state = __autojs6_worker_threads_message_port_state(this, "postMessage");
-          if (state.record.__autojs6Closed) return undefined;
-          return __autojs6_worker_threads_post_native_message(
-            state.nativePort,
-            message,
-            transferList,
-            "MessagePort.postMessage"
-          );
-        },
-        enumerable: true
-      },
-      start: {
-        value: function() {
-          const state = __autojs6_worker_threads_message_port_state(this, "start");
-          return typeof state.nativePort.start === "function" ? state.nativePort.start() : undefined;
-        },
-        enumerable: true
-      },
-      close: {
-        value: function() {
-          const state = __autojs6_worker_threads_message_port_state(this, "close");
-          __autojs6_worker_threads_close_message_port_record(state.record);
-          return undefined;
-        },
-        enumerable: true
-      },
-      ref: {
-        value: function() {
-          const state = __autojs6_worker_threads_message_port_state(this, "ref");
-          if (typeof state.nativePort.ref === "function") state.nativePort.ref();
-          return this;
-        },
-        enumerable: true
-      },
-      unref: {
-        value: function() {
-          const state = __autojs6_worker_threads_message_port_state(this, "unref");
-          if (typeof state.nativePort.unref === "function") state.nativePort.unref();
-          return this;
-        },
-        enumerable: true
-      },
-      on: {
-        value: function(eventName, listener) {
-          const state = __autojs6_worker_threads_message_port_state(this, "on");
-          state.nativePort.on(eventName, listener);
-          return this;
-        },
-        enumerable: true
-      },
-      once: {
-        value: function(eventName, listener) {
-          const state = __autojs6_worker_threads_message_port_state(this, "once");
-          state.nativePort.once(eventName, listener);
-          return this;
-        },
-        enumerable: true
-      },
-      off: {
-        value: function(eventName, listener) {
-          const state = __autojs6_worker_threads_message_port_state(this, "off");
-          if (typeof state.nativePort.off === "function") state.nativePort.off(eventName, listener);
-          else if (typeof state.nativePort.removeListener === "function") state.nativePort.removeListener(eventName, listener);
-          return this;
-        },
-        enumerable: true
-      },
-      addListener: {
-        value: function(eventName, listener) {
-          return this.on(eventName, listener);
-        },
-        enumerable: true
-      },
-      removeListener: {
-        value: function(eventName, listener) {
-          return this.off(eventName, listener);
-        },
-        enumerable: true
-      },
-      [Symbol.toStringTag]: { value: "MessagePort" }
-    });
-    Object.freeze(AutoJs6MessagePort.prototype);
-    Object.freeze(AutoJs6MessagePort);
-    function AutoJs6MessageChannel() {
-      if (!(this instanceof AutoJs6MessageChannel)) {
-        return new AutoJs6MessageChannel();
-      }
-      const nativeChannel = new nativeModule.MessageChannel();
-      Object.defineProperties(this, {
-        port1: { value: __autojs6_worker_threads_wrap_message_port(nativeChannel.port1), enumerable: true },
-        port2: { value: __autojs6_worker_threads_wrap_message_port(nativeChannel.port2), enumerable: true }
-      });
-      Object.freeze(this);
-    }
-    Object.freeze(AutoJs6MessageChannel.prototype);
-    Object.freeze(AutoJs6MessageChannel);
-    function AutoJs6Worker(filename, options) {
-      if (!(this instanceof AutoJs6Worker)) {
-        return new AutoJs6Worker(filename, options);
-      }
-      if (__autojs6_worker_threads_shutdown_reason) {
-        throw __autojs6_worker_threads_error(
-          "AutoJs6 worker_threads worker creation is disabled during " +
-            __autojs6_worker_threads_shutdown_reason + ".",
-          "ERR_AUTOJS6_WORKER_TERMINATED"
-        );
-      }
-      if (!__autojs6_worker_threads_try_start()) {
-        throw __autojs6_worker_threads_error(
-          "AutoJs6 worker_threads exceeded " + __autojs6_worker_threads_policy.maxWorkers + " active worker.",
-          "ERR_AUTOJS6_WORKER_LIMIT_EXCEEDED"
-        );
-      }
-      eventsModule.EventEmitter.call(this);
-      this.__autojs6Finished = false;
-      this.__autojs6StartupTimer = null;
-      this.__autojs6NativeWorker = null;
-      const opts = options && typeof options === "object" ? options : {};
-      let nativeWorker = null;
-      try {
-        const descriptor = opts.eval === true
-          ? __autojs6_worker_threads_eval_descriptor(filename, __autojs6_source_name)
-          : __autojs6_worker_threads_resolve_script(filename, __autojs6_source_name);
-        const workerDataTransfer = __autojs6_worker_threads_prepare_transfer_list(
-          opts.transferList,
-          "Worker options.transferList"
-        );
-        const nativeWorkerData = __autojs6_worker_threads_to_native_message(opts.workerData);
-        const nativeResourceLimits = __autojs6_worker_threads_normalize_resource_limits(
-          opts.resourceLimits,
-          "Worker options"
-        );
-        const nativeOptions = {
-          eval: true,
-          workerData: { __autojs6UserWorkerData: nativeWorkerData },
-          transferList: workerDataTransfer.nativeList
-        };
-        if (nativeResourceLimits) {
-          nativeOptions.resourceLimits = nativeResourceLimits;
-        }
-        nativeWorker = new nativeModule.Worker(
-          __autojs6_worker_threads_bootstrap_source(descriptor),
-          nativeOptions
-        );
-        __autojs6_worker_threads_finalize_port_transfers(workerDataTransfer.portRecords);
-        this.__autojs6NativeWorker = nativeWorker;
-        __autojs6_worker_threads_records.add(this);
-        try {
-          Object.defineProperty(this, "threadId", {
-            value: nativeWorker.threadId,
-            enumerable: true,
-            configurable: true
-          });
-        } catch (_) {
-          this.threadId = nativeWorker.threadId;
-        }
-        const self = this;
-        const clearStartupTimer = function() {
-          if (self.__autojs6StartupTimer !== null) {
-            clearTimeout(self.__autojs6StartupTimer);
-            self.__autojs6StartupTimer = null;
-          }
-        };
-        this.__autojs6StartupTimer = setTimeout(function() {
-          if (self.__autojs6Finished) return;
-          __autojs6_worker_threads_diagnostics.startupTimeoutCount += 1;
-          const error = __autojs6_worker_threads_error(
-            "AutoJs6 worker_threads startup timed out.",
-            "ERR_AUTOJS6_WORKER_TIMEOUT"
-          );
-          try {
-            nativeWorker.terminate();
-          } catch (_) {}
-          self.emit("error", error);
-        }, __autojs6_worker_threads_policy.startupTimeoutMs);
-        nativeWorker.on("online", function() {
-          if (__autojs6_finished || __autojs6_worker_threads_shutdown_reason) return;
-          clearStartupTimer();
-          self.emit("online");
-        });
-        nativeWorker.on("message", function(message) {
-          if (__autojs6_finished || __autojs6_worker_threads_shutdown_reason) return;
-          clearStartupTimer();
-          self.emit("message", message);
-        });
-        nativeWorker.on("error", function(error) {
-          if (__autojs6_finished || __autojs6_worker_threads_shutdown_reason) return;
-          clearStartupTimer();
-          self.emit("error", error);
-        });
-        nativeWorker.on("exit", function(code) {
-          clearStartupTimer();
-          __autojs6_worker_threads_finish(self);
-          if (__autojs6_finished || __autojs6_worker_threads_shutdown_reason) return;
-          self.emit("exit", code);
-        });
-      } catch (error) {
-        if (nativeWorker && typeof nativeWorker.terminate === "function") {
-          try {
-            nativeWorker.terminate();
-          } catch (_) {}
-        }
-        __autojs6_worker_threads_finish(this);
-        throw error;
-      }
-    }
-    AutoJs6Worker.prototype = Object.create(eventsModule.EventEmitter.prototype);
-    AutoJs6Worker.prototype.constructor = AutoJs6Worker;
-    AutoJs6Worker.prototype.postMessage = function(message, transferList) {
-      if (!this.__autojs6NativeWorker || this.__autojs6Finished) {
-        throw __autojs6_worker_threads_error(
-          "AutoJs6 worker_threads worker is already terminated.",
-          "ERR_AUTOJS6_WORKER_TERMINATED"
-        );
-      }
-      return __autojs6_worker_threads_post_native_message(
-        this.__autojs6NativeWorker,
-        message,
-        transferList,
-        "Worker.postMessage"
-      );
-    };
-    AutoJs6Worker.prototype.terminate = function() {
-      if (!this.__autojs6NativeWorker || this.__autojs6Finished) {
-        return Promise.resolve(0);
-      }
-      const nativeWorker = this.__autojs6NativeWorker;
-      return Promise.resolve(nativeWorker.terminate()).then((code) => {
-        __autojs6_worker_threads_diagnostics.terminatedCount += 1;
-        __autojs6_worker_threads_finish(this);
-        return code;
-      });
-    };
+    );
     function __autojs6_worker_pool_error(message, code) {
       return __autojs6_worker_threads_error(message, code || "ERR_AUTOJS6_WORKER_POOL_TASK_FAILED");
     }
@@ -9683,7 +8920,7 @@ std::string buildEmbeddedScriptExecutionSource(
         input.maxWorkers,
         policy.maxWorkers,
         1,
-        policy.maxWorkers,
+        Number.MAX_SAFE_INTEGER,
         "maxWorkers"
       );
       const minWorkers = __autojs6_worker_pool_int(
@@ -9698,9 +8935,9 @@ std::string buildEmbeddedScriptExecutionSource(
         maxWorkers,
         idleTimeoutMs: __autojs6_worker_pool_int(input.idleTimeoutMs, policy.idleTimeoutMs, 0, 60000, "idleTimeoutMs"),
         taskTimeoutMs: __autojs6_worker_pool_int(input.taskTimeoutMs, policy.taskTimeoutMs, 0, 2147483647, "taskTimeoutMs"),
-        queueLimit: __autojs6_worker_pool_int(input.queueLimit, policy.queueLimit, 0, 128, "queueLimit"),
+        queueLimit: input.queueLimit == null ? null : __autojs6_worker_pool_int(input.queueLimit, null, 0, Number.MAX_SAFE_INTEGER, "queueLimit"),
         workerData: input.workerData,
-        resourceLimits: __autojs6_worker_threads_normalize_resource_limits(input.resourceLimits, "WorkerPool options")
+        resourceLimits: input.resourceLimits
       };
     }
     function __autojs6_worker_pool_mark_closed(pool) {
@@ -9931,9 +9168,6 @@ std::string buildEmbeddedScriptExecutionSource(
           return candidate.ready && !candidate.busy && !candidate.removed;
         });
         if (!record && pool.__autojs6PoolWorkers.length < pool.__autojs6PoolMaxWorkers) {
-          if (__autojs6_worker_threads_diagnostics.activeWorkerCount >= __autojs6_worker_threads_policy.maxWorkers) {
-            return;
-          }
           record = __autojs6_worker_pool_create_worker(pool);
         }
         if (!record || !record.ready || record.busy) return;
@@ -9996,7 +9230,7 @@ std::string buildEmbeddedScriptExecutionSource(
           "ERR_AUTOJS6_WORKER_POOL_CLOSED"
         );
       }
-      if (this.__autojs6PoolQueue.length >= this.__autojs6PoolQueueLimit) {
+      if (this.__autojs6PoolQueueLimit !== null && this.__autojs6PoolQueue.length >= this.__autojs6PoolQueueLimit) {
         __autojs6_worker_threads_diagnostics.workerPoolQueueRejectedCount += 1;
         throw __autojs6_worker_pool_error(
           "AutoJs6 worker_threads WorkerPool queue is full.",
@@ -10111,19 +9345,18 @@ std::string buildEmbeddedScriptExecutionSource(
     };
     Object.freeze(AutoJs6WorkerPool.prototype);
     Object.freeze(AutoJs6WorkerPool);
-    __autojs6_limited_worker_threads_cache = Object.freeze({
+    Object.assign(nativeModule, {
       Worker: AutoJs6Worker,
       WorkerPool: AutoJs6WorkerPool,
-      MessageChannel: AutoJs6MessageChannel,
-      MessagePort: AutoJs6MessagePort,
       isMainThread: true,
       parentPort: null,
       workerData: undefined,
-      threadId: nativeModule.threadId,
       policy: __autojs6_worker_threads_policy_snapshot(),
       nativeAvailable: true,
       diagnostics: __autojs6_worker_threads_diagnostics_snapshot
     });
+    __autojs6_builtin_module("module").syncBuiltinESMExports();
+    __autojs6_limited_worker_threads_cache = nativeModule;
     return __autojs6_limited_worker_threads_cache;
   }
   function __autojs6_limited_toast() {
@@ -27554,11 +26787,15 @@ std::string buildEmbeddedScriptExecutionSource(
     return null;
   }
   function __autojs6_native_loader_resolve(specifier, context, nextResolve) {
-    const name = String(specifier === undefined ? "" : specifier);
+    const requested = String(specifier === undefined ? "" : specifier);
+    const canonicalName = requested.startsWith(__autojs6_runtime_module_scheme)
+      ? requested.slice(__autojs6_runtime_module_scheme.length) : null;
+    const canonicalRuntimeUrl = canonicalName !== null && __autojs6_has_own(__autojs6_runtime_module_factories, canonicalName);
+    const name = canonicalRuntimeUrl ? canonicalName : requested;
     const runtimeModule = __autojs6_runtime_module_name(name);
     if (runtimeModule !== null) {
       // An installed npm package shadows the compat shim of the same bare name, as on desktop.
-      if (__autojs6_compat_shim_shadowable(name)) {
+      if (!canonicalRuntimeUrl && __autojs6_compat_shim_shadowable(name)) {
         try {
           return nextResolve(name, context);
         } catch (error) {

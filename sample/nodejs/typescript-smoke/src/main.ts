@@ -1,3 +1,4 @@
+import workerBridge = require("autojs6:bridge");
 import toast = require("toast");
 import app = require("app");
 import dialogs = require("dialogs");
@@ -913,7 +914,7 @@ async function smoke(): Promise<void> {
   const filesystemWatchers: string = autojsProfile.filesystemProfile.limits.watchers;
   const workerThreadsProfileStatus: string = autojsProfile.workerThreadsProfile.status;
   const workerThreadsRequestEnabled: boolean = autojsProfile.workerThreadsProfile.requestEnabled;
-  const workerThreadsMaxWorkers: number = autojsProfile.workerThreadsProfile.policy.maxWorkers;
+  const workerPoolMaxWorkers: number = autojsProfile.workerThreadsProfile.policy.workerPool.maxWorkers;
   const workerThreadsBridgeModules: string = autojsProfile.workerThreadsProfile.bridgeModules;
   const processWorkerReplacementStatus: string = autojsProfile.processWorkerReplacementProfile.status;
   const processWorkerPreferredPrimitive: string = autojsProfile.processWorkerReplacementProfile.preferredPrimitive;
@@ -1289,7 +1290,7 @@ async function smoke(): Promise<void> {
   void filesystemWatchers;
   void workerThreadsProfileStatus;
   void workerThreadsRequestEnabled;
-  void workerThreadsMaxWorkers;
+  void workerPoolMaxWorkers;
   void workerThreadsBridgeModules;
   void processWorkerReplacementStatus;
   void processWorkerPreferredPrimitive;
@@ -1407,3 +1408,9 @@ void compatibleFetch;
 void compatibleWebsocket;
 import host = require("autojs6:host");
 host.once("message", (value: unknown) => console.log(value)).unref();
+
+// The bridge is also available in native workers; host calls retain their result type.
+function readDeviceFromWorkerBridge(): Promise<device.DeviceInfo> {
+  return workerBridge.callAutoJs<device.DeviceInfo>("device", "info", []);
+}
+void readDeviceFromWorkerBridge;

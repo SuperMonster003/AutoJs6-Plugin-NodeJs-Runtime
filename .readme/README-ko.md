@@ -106,6 +106,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 - 기능: 동기 스크립트 실행, bundle transport, 네이티브 내장 런타임, 호스트 기능 브로커, host capability live bridge.
 - 파일 스트림, gzip/deflate/Brotli 스트림 및 기본 VM 실행을 정식 지원; 명시적으로 활성화한 Debug Inspector는 localhost 범위에서 정식 지원.
 - 내장 실행에서 ExperimentalWarning 출력을 중단하고 warning 이벤트, 일반 경고, 사용 중단 경고 및 오류를 유지; Node 상위 API 안정성과 터미널 기본 동작은 변경되지 않음.
+- 네이티브 Worker가 중첩, MessagePort API, stdio, argv, execArgv 및 사전 로드 상속을 지원; 플러그인의 Worker 수와 시작 시간 제한을 제거하고 요청 resourceLimits를 재정의 가능한 기본값으로 변경; WorkerPool은 기본 대기열 및 작업 시간 제한이 없으며 Inspector 세션은 실행 요청과 현재 빌드 지원을 따름
 
 ******
 
@@ -127,7 +128,8 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `개선` module 내장 모듈은 createRequire 만 재정의한 Node.js 고유 객체가 되어 registerHooks, enableCompileCache, findPackageJSON 등을 사용할 수 있습니다; 네이티브 네트워크 비활성화 시에만 도달하던 http, https, net, tls, dns 제한 구현을 제거하고 해당 모드에서는 ERR_AUTOJS6_BUILTIN_DISABLED 를 직접 반환합니다
 * `개선` 플러그인 정보 (INFO) 와 런타임 진단의 supportedAbis는 이제 빌드 시 매니페스트에 기록되는 org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (AutoJs6-Gradle-Platform-Versions 1.9.0 이상의 nativeAlignment 플러그인) 에서 읽으며, 설치된 split이 아니라 플러그인이 빌드된 모든 ABI를 의미; meta-data가 없으면 설치된 APK에 패키징된 ABI로 되돌아가고 수기로 작성된 ABI 상수는 제거
 * `개선` 모듈 로딩이 Node.js 고유 CommonJS / ESM 로더로 바뀌어 require, require.resolve, require.cache, require.extensions, Module._resolveFilename, module.register, import(), import.meta, require(esm) 가 모두 네이티브 동작이며, 진입 스크립트는 Node 의 메인 모듈로 실행 (require.main === module, __filename / process.argv[1] 은 realpath); 런타임은 module.registerHooks 만 등록하여 autojs6:* 런타임 모듈과 호환 shim (autojs6: scheme, 같은 이름의 설치된 npm 패키지가 여전히 shim 보다 우선), 요청 단위 builtin 게이트, 요청 첨부 / provider 실체화 / TypeScript 스냅샷 모듈 소스와 진입 스크립트의 인라인 소스를 제공; vm.SourceTextModule 자체 링커, 자체 resolver, 동적 import() 재작성, eval / Function 가드는 모두 제거되고 esmEnabled / dynamicImportEnabled 요청 키는 더 이상 영향을 주지 않음
-* `개선` worker 내부의 모듈 로딩도 Node 고유 로더가 담당 (정적 / 동적 import, require(esm), with { type: "json" }, 워크스페이스 패키지 해석); worker 부트스트랩은 첨부 모듈 소스와 worker_threads 파사드용 훅만 등록; 호스트 파사드는 worker 안에서 MODULE_NOT_FOUND, 누락 모듈과 미지원 scheme 은 Node 고유의 ERR_MODULE_NOT_FOUND / ERR_UNSUPPORTED_ESM_URL_SCHEME, inspector 는 계속 거부
+* `개선` 네이티브 Worker가 중첩, MessagePort API, stdio, argv, execArgv 및 사전 로드 상속을 지원; 플러그인의 Worker 수와 시작 시간 제한을 제거하고 요청 resourceLimits를 재정의 가능한 기본값으로 변경; WorkerPool은 기본 대기열 및 작업 시간 제한이 없으며 Inspector 세션은 실행 요청과 현재 빌드 지원을 따름
+* `개선` Worker와 중첩 Worker에서 부모 MessagePort를 통해 autojs6:bridge.callAutoJs를 사용 가능; 호스트 broker의 권한 검사, 오류, 시간 초과 및 취소를 유지하며 worker-host-bridge 예제로 실제 호스트 기기 정보 조회를 제공; 브리지 API의 TypeScript 선언도 제공
 * `개선` 원본 .ts / .mts / .cts 진입점과 가져온 모듈에는 여전히 호스트 Compiler가 생성한 JavaScript가 필요합니다. 스냅샷 매핑과 provider v3의 요청 시 컴파일을 유지하고, 기존 AutoJs6 ESM 및 동적 가져오기 오류 코드를 Node 기본 오류로 대체했습니다.
 
 # v1.5.7

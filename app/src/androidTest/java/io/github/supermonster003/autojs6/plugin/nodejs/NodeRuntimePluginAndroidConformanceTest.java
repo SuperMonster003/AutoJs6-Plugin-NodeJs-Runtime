@@ -1306,7 +1306,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 assert.strictEqual(process.getBuiltinModule('node:path'), require('node:path'));
                 assert.strictEqual(process.getBuiltinModule('fs'), require('fs'));
                 assert.strictEqual(process.getBuiltinModule('no-such-builtin'), undefined);
-                assert.throws(() => process.getBuiltinModule('node:inspector'), (e) => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED');
+                assert.throws(() => process.getBuiltinModule('node:inspector'), (e) => e.code === 'ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED');
                 // M23.2: abort/kill are Node's own; a worker refuses abort itself and kill would signal the slot process.
                 assert.throws(() => process.abort(), (e) => e.code === 'ERR_WORKER_UNSUPPORTED_OPERATION');
                 assert.strictEqual(typeof process.kill, 'function');
@@ -1395,13 +1395,13 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 assert.throws(() => require('@scope/cond/hidden'), (e) => e.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED');
                 assert.throws(() => require('no-such-package'), (e) => e.code === 'MODULE_NOT_FOUND');
                 // M23.3: Node's own loader runs in workers, so require(esm) works and host facades are
-                // simply absent (MODULE_NOT_FOUND); only the inspector stays denied inside workers.
+                // simply absent (MODULE_NOT_FOUND); the inspector follows the execution request.
                 assert.equal(require('type-module-pkg').kind, 'esm-js');
                 for (const name of ['ui', 'sqlite', 'autojs6:fetch']) {
                   assert.throws(() => require(name), (e) => e.code === 'MODULE_NOT_FOUND', name);
                 }
                 for (const name of ['node:inspector', 'inspector']) {
-                  assert.throws(() => require(name), (e) => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED', name);
+                  assert.throws(() => require(name), (e) => e.code === 'ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED', name);
                 }
                 parentPort.postMessage('cjs-ok');
                 """);
@@ -1488,7 +1488,7 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                   await assert.rejects(import('./data.json'), (e) => e.code === 'ERR_IMPORT_ATTRIBUTE_MISSING');
                   await assert.rejects(import('./dep.mjs', { with: { type: 'json' } }), (e) => e.code === 'ERR_IMPORT_ATTRIBUTE_TYPE_INCOMPATIBLE');
                   await assert.rejects(import('./dep.mjs', { with: { type: 'css' } }), (e) => e.code === 'ERR_IMPORT_ATTRIBUTE_UNSUPPORTED');
-                  await assert.rejects(import('node:inspector'), (e) => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED');
+                  await assert.rejects(import('node:inspector'), (e) => e.code === 'ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED');
                   // M23.3: Node's ESM loader answers for everything that is not a worker facade.
                   await assert.rejects(import('autojs6:fetch'), (e) => e.code === 'ERR_UNSUPPORTED_ESM_URL_SCHEME');
                   await assert.rejects(import('./missing.mjs'), (e) => e.code === 'ERR_MODULE_NOT_FOUND');
@@ -1573,6 +1573,66 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                     resolve + ":project.json:" + notFound,
                     resolve + ":package.json:" + notFound,
                     resolve + ":secret.cjs:" + NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_STATUS_DECRYPTED));
+        }
+    }
+
+    @Test
+    public void m23_providerWorkerEntryStaysInMemory() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.cjs", """
+                const assert=require('node:assert/strict'),{Worker}=require('node:worker_threads');
+                (async()=>{
+                  const worker=new Worker(__dirname+'/secret-worker.cjs');
+                  try {
+                    assert.equal(await new Promise((r,j)=>{worker.once('message',r);worker.once('error',j);}),42);
+                    assert.equal(require('node:fs').existsSync(__dirname+'/secret-worker.cjs'),false);
+                    console.log('m23.provider.worker=PASS');
+                  } finally { await worker.terminate(); }
+                })().catch(error=>{console.error(error.stack);process.exitCode=1;});
+                """);
+        LinkedHashMap<String, ProviderAction> actions = new LinkedHashMap<>();
+        actions.put("project.json", ProviderAction.notFound());
+        actions.put("package.json", ProviderAction.notFound());
+        actions.put("secret-worker.cjs", ProviderAction.decrypted("""
+                require('node:assert/strict').equal(require('node:fs').existsSync(__filename),false);
+                require('node:worker_threads').parentPort.postMessage(42);
+                """));
+        try (WorkspaceInvocation invocation = execute("provider-worker", "main.cjs", files,
+                new LinkedHashMap<>(), false, null, actions, SCRIPT_TIMEOUT_MS, false,
+                Collections.emptyList(), true)) {
+            assertSucceeded(invocation.result, "m23.provider.worker=PASS");
+            String resolve = NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_OPERATION_RESOLVE_EXISTING;
+            String notFound = NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_STATUS_NOT_FOUND;
+            invocation.exactGraphProvider.assertHealthyAndExactEvents(Arrays.asList(
+                    resolve + ":project.json:" + notFound, resolve + ":package.json:" + notFound,
+                    resolve + ":secret-worker.cjs:" + NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_STATUS_DECRYPTED));
+        }
+    }
+
+    @Test
+    public void m23_workersImportCompiledTypeScriptSnapshotSources() throws Exception {
+        LinkedHashMap<String, String> files = new LinkedHashMap<>();
+        files.put("main.cjs", """
+                (async()=>{
+                  const worker=new (require('node:worker_threads').Worker)(__dirname+'/worker.mjs');
+                  try {
+                    require('node:assert/strict').equal(await new Promise((r,j)=>{worker.once('message',r);worker.once('error',j);}),42);
+                    console.log('m23.worker.snapshot=PASS');
+                  } finally { await worker.terminate(); }
+                })().catch(error=>{console.error(error.stack);process.exitCode=1;});
+                """);
+        files.put("worker.mjs", """
+                import {parentPort} from 'node:worker_threads';
+                import {value} from './value.mts';
+                parentPort.postMessage(value);
+                """);
+        files.put("value.mts", "export const value: number = 42;\n");
+        LinkedHashMap<String, String> generated = new LinkedHashMap<>();
+        generated.put("value.mjs", "export const value = 42;\n");
+        try (WorkspaceInvocation invocation = execute("worker-snapshot", "main.cjs", files,
+                generated, false, null, null, SCRIPT_TIMEOUT_MS, true,
+                Collections.singletonList("value.mts"), true)) {
+            assertSucceeded(invocation.result, "m23.worker.snapshot=PASS");
         }
     }
 

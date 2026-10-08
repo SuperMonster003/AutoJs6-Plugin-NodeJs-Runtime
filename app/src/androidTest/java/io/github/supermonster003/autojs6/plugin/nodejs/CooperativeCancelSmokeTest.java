@@ -21,6 +21,8 @@ import org.autojs.plugin.nodejs.api.NodeJsRuntimeContract;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.File;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,6 +45,15 @@ public final class CooperativeCancelSmokeTest {
 
     @Test
     public void cancellingEndlessScriptKeepsProcessReusable() throws Exception {
+        assertCancelKeepsProcessReusable(false);
+    }
+
+    @Test
+    public void cancellingScriptStopsNestedWorkersAndKeepsProcessReusable() throws Exception {
+        assertCancelKeepsProcessReusable(true);
+    }
+
+    private void assertCancelKeepsProcessReusable(boolean nestedWorkers) throws Exception {
         Context context = InstrumentationRegistry.getInstrumentation()
                 .getTargetContext()
                 .getApplicationContext();
@@ -68,6 +79,7 @@ public final class CooperativeCancelSmokeTest {
                 context.bindService(new Intent().setComponent(component), connection, Context.BIND_AUTO_CREATE)
         );
         ExecutorService executor = Executors.newSingleThreadExecutor();
+        File marker = new File(context.getCacheDir(), "worker-cancel-" + UUID.randomUUID());
         try {
             assertTrue("bind timed out", connected.await(BIND_TIMEOUT_MS, TimeUnit.MILLISECONDS));
             INodeJsRuntimePlugin runtime = INodeJsRuntimePlugin.Stub.asInterface(binder.get());
@@ -92,6 +104,22 @@ public final class CooperativeCancelSmokeTest {
                     "console.log('m2.cancel.alive');\n" +
                             "setInterval(() => { console.log('m2.cancel.tick'); }, 250);\n"
             );
+            if (nestedWorkers) {
+                assertTrue(marker.createNewFile());
+                String leaf = "const wt=require('node:worker_threads');"
+                        + "setInterval(()=>require('node:fs').appendFileSync(wt.workerData,'x'),20);"
+                        + "wt.parentPort.postMessage('alive');";
+                String parent = "const wt=require('node:worker_threads');"
+                        + "const child=new wt.Worker(" + org.json.JSONObject.quote(leaf)
+                        + ",{eval:true,workerData:wt.workerData});"
+                        + "child.once('message',()=>wt.parentPort.postMessage('alive'));";
+                request.putString(NodeJsRuntimeContract.KEY_SOURCE,
+                        "const worker=new (require('node:worker_threads').Worker)("
+                                + org.json.JSONObject.quote(parent) + ",{eval:true,workerData:"
+                                + org.json.JSONObject.quote(marker.getAbsolutePath()) + "});"
+                                + "worker.once('message',()=>console.log('m2.cancel.alive'));"
+                                + "worker.once('error',error=>{throw error;});");
+            }
             // runScript blocks its binder thread until the script ends, so it
             // must run off-thread while the test cancels from here.
             Future<Bundle> pendingResult = executor.submit(() -> runtime.runScript(request, callback));
@@ -115,6 +143,11 @@ public final class CooperativeCancelSmokeTest {
             );
             int cancelledPid = cancelled.getInt(NodeJsRuntimeContract.KEY_PID, -1);
             assertTrue("cancelled result carried no runtime PID", cancelledPid > 0);
+            if (nestedWorkers) {
+                long sizeAfterCancel = marker.length();
+                Thread.sleep(200);
+                assertEquals("nested worker kept writing after cancellation", sizeAfterCancel, marker.length());
+            }
 
             // The same binder (same process) must accept and run the next
             // script: cooperative stop keeps the runtime alive.
@@ -146,6 +179,7 @@ public final class CooperativeCancelSmokeTest {
         } finally {
             executor.shutdownNow();
             context.unbindService(connection);
+            if (nestedWorkers) marker.delete();
         }
     }
 }

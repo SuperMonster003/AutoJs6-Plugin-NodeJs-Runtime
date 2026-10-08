@@ -215,6 +215,17 @@
       "packagedCompatible": false
     },
     {
+      "name": "worker-host-bridge",
+      "status": "stable",
+      "tags": [
+        "main-app",
+        "worker",
+        "bridge"
+      ],
+      "mainAppSmoke": false,
+      "packagedCompatible": false
+    },
+    {
       "name": "node-test-project",
       "status": "stable",
       "tags": [

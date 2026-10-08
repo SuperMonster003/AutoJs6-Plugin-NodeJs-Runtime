@@ -126,7 +126,7 @@ glob patterns behave as in Node 24.
 
 P13-34 extends the `autojs6:profile` declaration with `workerThreadsProfile`.
 The field reports stable default enablement, request state, bounded worker
-policy, bridge denial, WorkerPool, transfer-list, and packaged behavior
+policy, parent-port bridge access, WorkerPool, transfer-list, and packaged behavior
 diagnostics. Worker execution remains isolated from AutoJs bridge modules and
 Android objects and is subject to worker/message/memory/time budgets.
 
@@ -484,3 +484,11 @@ sample project at `sample/nodejs/typescript-smoke` can be type-checked with:
 ```powershell
 tsc -p sample/nodejs/typescript-smoke/tsconfig.json --pretty false
 ```
+
+`autojs6:bridge` is typed for root scripts and native workers. `callAutoJs<T>`
+returns the host result type; in workers the call is forwarded through parent
+MessagePorts with the root execution's permissions. Request worker policy now
+contains only `resourceLimits` defaults, and individual Workers may override them.
+`workerThreadsProfile` reports nested workers and parent-port bridge access;
+WorkerPool's default queue limit is `null` (unbounded). See the
+[`worker-host-bridge` project](../../../../sample/nodejs/worker-host-bridge).

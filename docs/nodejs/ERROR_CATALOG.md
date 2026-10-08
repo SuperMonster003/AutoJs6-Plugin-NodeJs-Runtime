@@ -64,8 +64,8 @@ any more: `ERR_AUTOJS6_EMBEDDED_NODE_ESM_UNSUPPORTED`, `ERR_AUTOJS6_REQUIRE_ESM_
 `ERR_AUTOJS6_FS_PATH_ESCAPE`. `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` remains in use for raw
 TypeScript entries, request-attached sources and modules reached through require/import.
 TypeScript modules must be mapped to host compiler output; the snapshot codes
-`ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND` / `_AMBIGUOUS` still apply. Workers keep
-`ERR_AUTOJS6_WORKER_BRIDGE_DENIED` only for the inspector and the request's builtin gate.
+`ERR_AUTOJS6_TYPESCRIPT_SNAPSHOT_MODULE_NOT_FOUND` / `_AMBIGUOUS` still apply. Workers use the same request-level builtin gate codes; host bridge errors retain
+the root broker's codes through the parent MessagePort.
 `ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED`
 and `ERR_AUTOJS6_SQLITE_PATH_UNSUPPORTED` are retired: ATTACH (literal, bound or computed),
 VACUUM INTO and directory PRAGMAs are plain SQLite. Workspace transfer and
@@ -104,3 +104,9 @@ host contains an embedded runtime.
 
 The host constant inventory is **NodeRuntimeErrorCodes.kt**. Runtime-plugin-specific
 codes and JavaScript error shaping are authoritative in the plugin repository.
+
+Since M23.3's worker migration, `ERR_AUTOJS6_WORKER_LIMIT_EXCEEDED` and
+`ERR_AUTOJS6_WORKER_TIMEOUT` are retired: the plugin imposes neither a Worker count
+cap nor a startup deadline. `WORKER_POOL_*` errors still describe caller-selected
+pool limits, task cancellation and pool lifecycle. Native Worker constructor,
+transfer-list and structured-clone failures use Node's own errors.

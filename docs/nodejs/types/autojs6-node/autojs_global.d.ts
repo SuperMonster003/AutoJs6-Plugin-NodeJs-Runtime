@@ -581,10 +581,10 @@ declare namespace AutoJs6Node {
   export interface WorkerThreadsWorkerProfile {
     readonly fs: WorkerThreadsFsProfile;
     readonly network: "denied" | string;
-    readonly autoJsBridge: "denied" | string;
+    readonly autoJsBridge: "parent_message_port" | string;
     readonly shell: "denied" | string;
-    readonly javaInterop: "denied" | string;
-    readonly inspector: "denied" | string;
+    readonly javaInterop: "parent_message_port" | string;
+    readonly inspector: "native" | "denied_by_request" | string;
   }
 
   export interface WorkerThreadsPoolPolicy {
@@ -593,7 +593,8 @@ declare namespace AutoJs6Node {
     readonly idleTimeoutMs: number;
     /** Zero leaves WorkerPool tasks without a default deadline. */
     readonly taskTimeoutMs: number;
-    readonly queueLimit: number;
+    /** null means no default queue limit; a WorkerPool can set its own limit. */
+    readonly queueLimit: number | null;
   }
 
   export interface WorkerThreadsResourceLimits {
@@ -605,19 +606,11 @@ declare namespace AutoJs6Node {
 
   /** JSON supplied as the autojs6:worker-policy runtime module in an execution request. */
   export interface WorkerThreadsRequestPolicy {
-    /** Defaults to min(8, os.availableParallelism()); accepted range 1..8. */
-    readonly maxWorkers?: number;
-    /** Defaults to 5000; accepted range 1..60000. */
-    readonly startupTimeoutMs?: number;
-    /** Defaults to zero (no WorkerPool task deadline). */
-    readonly taskTimeoutMs?: number;
-    /** Request defaults and caps; individual Worker values may be lower. */
+    /** Node resource defaults; individual Workers may override them in either direction. */
     readonly resourceLimits?: WorkerThreadsResourceLimits;
   }
 
   export interface WorkerThreadsPolicy {
-    readonly maxWorkers: number;
-    readonly startupTimeoutMs: number;
     /** Message size and queue depth follow Node's structured clone; there is no AutoJs6 cap. */
     readonly messageBudget: "native_structured_clone" | string;
     readonly allowedBuiltins: readonly string[];
@@ -631,7 +624,7 @@ declare namespace AutoJs6Node {
     readonly getBuiltinModule: "native_inventory" | string;
     readonly abort: "unavailable_as_node" | string;
     readonly chdir: "unavailable_as_node" | string;
-    readonly kill: "denied_shared_runtime_process" | string;
+    readonly kill: "native_shared_runtime_process" | string;
     readonly dlopen: "denied_native_addon" | string;
   }
 
@@ -643,7 +636,7 @@ declare namespace AutoJs6Node {
     readonly messageChannel: "stable" | "partial" | "unsupported" | string;
     readonly transferList: "stable" | "partial" | "unsupported" | string;
     readonly workerPool: "stable" | "partial" | "unsupported" | string;
-    readonly bridgeModules: "denied" | string;
+    readonly bridgeModules: "parent_message_port" | string;
     readonly nestedWorkers: boolean;
     readonly rawNativeHandles: boolean;
     readonly packagedBehavior: "native_available_only" | "partial" | string;
@@ -670,7 +663,7 @@ declare namespace AutoJs6Node {
     readonly messageBudget: "native_structured_clone" | string;
     readonly cleanup: "worker_pool_close_or_execution_destroy" | string;
     readonly packagedBehavior: "stable" | string;
-    readonly bridgeModules: "denied" | string;
+    readonly bridgeModules: "parent_message_port" | string;
     readonly nestedWorkers: boolean;
     readonly rawProcessHandles: boolean;
   }

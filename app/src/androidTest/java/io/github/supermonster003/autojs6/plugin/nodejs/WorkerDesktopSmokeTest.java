@@ -76,6 +76,10 @@ public final class WorkerDesktopSmokeTest {
     }
 
     private String run(String name, String source, String policy, boolean network) throws Exception {
+        return run(name, source, policy, network, false);
+    }
+
+    private String run(String name, String source, String policy, boolean network, boolean inspector) throws Exception {
         source(name, source);
         File inputArchive = new File(root.getParentFile(), root.getName() + ".zip");
         try (var zip = new java.util.zip.ZipOutputStream(new java.io.FileOutputStream(inputArchive));
@@ -99,6 +103,7 @@ public final class WorkerDesktopSmokeTest {
         request.putString(NodeJsRuntimeContract.KEY_WORKING_DIRECTORY, root.getAbsolutePath());
         request.putString(NodeJsRuntimeContract.KEY_SANDBOX_ROOT, root.getAbsolutePath());
         request.putBoolean(NodeJsRuntimeContract.KEY_RAW_NODE_NETWORK_MODULES_ENABLED, network);
+        request.putBoolean(NodeJsRuntimeContract.KEY_INSPECTOR_ENABLED, inspector);
         request.putLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 45_000L);
         if (policy != null) {
             request.putStringArray(NodeJsRuntimeContract.KEY_RUNTIME_MODULE_SOURCE_NAMES, new String[]{"autojs6:worker-policy"});
@@ -147,7 +152,7 @@ public final class WorkerDesktopSmokeTest {
                     assert.throws(() => require(name), e => e.code === 'MODULE_NOT_FOUND');
                   }
                   for (const name of ['inspector','node:inspector']) {
-                    assert.throws(() => require(name), e => e.code === 'ERR_AUTOJS6_WORKER_BRIDGE_DENIED');
+                    assert.throws(() => require(name), e => e.code === 'ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED');
                   }
                   const {DatabaseSync}=require('node:sqlite');
                   const db=new DatabaseSync(':memory:');
@@ -171,8 +176,11 @@ public final class WorkerDesktopSmokeTest {
         String output = run("main.cjs", """
                 (async () => {
                   const assert=require('node:assert/strict'), wt=require('node:worker_threads');
-                  // Android may change CPU affinity between bootstrap and this assertion.
-                  assert.ok(Number.isInteger(wt.policy.maxWorkers) && wt.policy.maxWorkers>=1 && wt.policy.maxWorkers<=8);
+                  assert.strictEqual(wt, process.getBuiltinModule('worker_threads'));
+                  assert.strictEqual(typeof wt.receiveMessageOnPort, 'function');
+                  for (const name of ['node:worker_threads','autojs6:bridge','device']) {
+                    assert.strictEqual(require(require.resolve(name)),require(name),name);
+                  }
                   assert.strictEqual(wt.policy.workerPool.taskTimeoutMs,0);
                   // M23.2: Node's own inventory; inspector stays denied inside workers.
                   const builtins = require('node:module').builtinModules.filter(name=>!name.startsWith('inspector'));
@@ -191,7 +199,7 @@ public final class WorkerDesktopSmokeTest {
         assertTrue(output.contains("m13.workers.native=PASS"));
     }
 
-    @Test public void requestCapsApplyAndWorkerNetworkCanBeDisabled() throws Exception {
+    @Test public void requestResourceDefaultsCanBeOverriddenAndNetworkCanBeDisabled() throws Exception {
         source("worker.cjs", """
                 const assert=require('assert/strict'), wt=require('worker_threads');
                 (async()=>{
@@ -205,14 +213,10 @@ public final class WorkerDesktopSmokeTest {
         String output = run("main.cjs", """
                 (async()=>{
                   const assert=require('assert/strict'), wt=require('worker_threads');
-                  assert.strictEqual(wt.policy.maxWorkers,1);
-                  assert.strictEqual(wt.policy.workerPool.taskTimeoutMs,200);
-                  assert.throws(()=>new wt.Worker(__dirname+'/worker.cjs',{resourceLimits:{maxOldGenerationSizeMb:192}}));
-                  for (const expected of [96,80]) {
+                  for (const expected of [96,80,192]) {
                     const options={workerData:{expected}};
-                    if(expected===80) options.resourceLimits={maxOldGenerationSizeMb:80};
+                    if(expected!==96) options.resourceLimits={maxOldGenerationSizeMb:expected};
                     const worker=new wt.Worker(__dirname+'/worker.cjs',options);
-                    assert.throws(()=>new wt.Worker(__dirname+'/worker.cjs'),e=>e.code==='ERR_AUTOJS6_WORKER_LIMIT_EXCEEDED');
                     try { assert.strictEqual(await new Promise((resolve,reject)=>{worker.once('message',resolve);worker.once('error',reject);}), 'policy-pass'); }
                     finally { await worker.terminate(); }
                   }
@@ -242,6 +246,168 @@ public final class WorkerDesktopSmokeTest {
         assertTrue(output.contains("m13.workers.pool=PASS"));
     }
 
+    @Test public void sixteenWorkersCanRunTogetherAndCreateNestedWorkers() throws Exception {
+        source("value.mjs", "export const value = 21;\n");
+        source("nested.mjs", """
+                import assert from 'node:assert/strict';
+                import { parentPort } from 'node:worker_threads';
+                import { createRequire } from 'node:module';
+                assert.equal(import.meta.main, true);
+                const require = createRequire(import.meta.url);
+                parentPort.postMessage(require('./value.mjs').value + (await import('./value.mjs')).value);
+                """);
+        source("parallel.cjs", """
+                const { Worker, parentPort, workerData } = require('node:worker_threads');
+                parentPort.once('message', async () => {
+                  if (workerData === 0) {
+                    const nested = new Worker(require('node:path').join(__dirname, 'nested.mjs'));
+                    nested.once('message', value => parentPort.postMessage(value));
+                    nested.once('error', error => { throw error; });
+                  } else {
+                    const esm = await import('./value.mjs');
+                    parentPort.postMessage(esm.value + require('./value.mjs').value + workerData);
+                  }
+                });
+                parentPort.postMessage('ready');
+                """);
+        assertTrue(run("main.cjs", """
+                const assert = require('node:assert/strict');
+                const wt = require('node:worker_threads');
+                (async () => {
+                  const workers = Array.from({length:16}, (_,index) => new wt.Worker(__dirname+'/parallel.cjs', {workerData:index}));
+                  const receive = worker => new Promise((resolve,reject) => {worker.once('message',resolve);worker.once('error',reject);});
+                  try {
+                    assert.deepEqual(await Promise.all(workers.map(receive)), Array(16).fill('ready'));
+                    assert.equal(new Set(workers.map(worker=>worker.threadId)).size, 16);
+                    const values = workers.map(receive);
+                    for (const worker of workers) worker.postMessage('go');
+                    assert.deepEqual(await Promise.all(values), Array.from({length:16}, (_,i)=>42+i));
+                    console.log('m23.workers.parallel-nested=PASS');
+                  } finally { await Promise.all(workers.map(worker=>worker.terminate())); }
+                })().catch(error=>{console.error(error.stack);process.exitCode=1;});
+                """, "{\"maxWorkers\":1,\"startupTimeoutMs\":1}", true).contains("m23.workers.parallel-nested=PASS"));
+    }
+
+    @Test public void workerPreloadsAndNativeOptionsSurviveNestedExecution() throws Exception {
+        source("preload.cjs", """
+                const { registerHooks } = require('node:module');
+                const { workerData } = require('node:worker_threads');
+                globalThis.preloaded = workerData.value;
+                registerHooks({ resolve(s,c,next) {
+                  return s === 'fixture:preloaded' ? {
+                    url:'data:text/javascript,export default '+workerData.value,shortCircuit:true
+                  } : next(s,c);
+                }});
+                """);
+        source("options.mjs", """
+                import assert from 'node:assert/strict';
+                import { Worker, parentPort, workerData, getEnvironmentData } from 'node:worker_threads';
+                import value from 'fixture:preloaded';
+                assert.equal(value, 42);
+                assert.equal(globalThis.preloaded, workerData.value);
+                assert.equal(process.argv.at(-1), 'user-arg');
+                assert.equal(process.env.M23_WORKER_ENV, 'present');
+                assert.equal(getEnvironmentData('m23-example'), 7);
+                const nested = new Worker("import('fixture:preloaded').then(m=>require('worker_threads').parentPort.postMessage(m.default))", {
+                  eval:true,workerData:{value:43}
+                });
+                assert.equal(await new Promise((r,j)=>{nested.once('message',r);nested.once('error',j);}),43);
+                const cleared = new Worker("require('worker_threads').parentPort.postMessage(typeof globalThis.preloaded)", {
+                  eval:true,execArgv:[],workerData:{value:44}
+                });
+                assert.equal(await new Promise((r,j)=>{cleared.once('message',r);cleared.once('error',j);}), 'undefined');
+                console.log('native-worker-stdout');
+                parentPort.postMessage('options-pass');
+                """);
+        assertTrue(run("main.cjs", """
+                (async()=>{
+                  const assert=require('node:assert/strict'),wt=require('node:worker_threads');
+                  wt.setEnvironmentData('m23-example',7);
+                  const worker=new wt.Worker(new URL('file://'+__dirname+'/options.mjs'),{
+                    workerData:{value:42},execArgv:['--require',__dirname+'/preload.cjs'],argv:['user-arg'],
+                    env:{...process.env,M23_WORKER_ENV:'present'},stdout:true
+                  });
+                  let stdout='';worker.stdout.on('data',chunk=>{stdout+=chunk;});
+                  const exit=new Promise((r,j)=>{worker.once('exit',r);worker.once('error',j);});
+                  assert.equal(await new Promise((r,j)=>{worker.once('message',r);worker.once('error',j);}), 'options-pass');
+                  assert.equal(await exit,0);
+                  assert.match(stdout,/native-worker-stdout/);
+                  const dataWorker=new wt.Worker(new URL('data:text/javascript,'+encodeURIComponent(
+                    "import {parentPort} from 'node:worker_threads'; parentPort.postMessage(42);"
+                  )));
+                  assert.equal(await new Promise((r,j)=>{dataWorker.once('message',r);dataWorker.once('error',j);}),42);
+                  await dataWorker.terminate();
+                  console.log('m23.workers.options=PASS');
+                })().catch(error=>{console.error(error.stack);process.exitCode=1;});
+                """, null, true).contains("m23.workers.options=PASS"));
+    }
+
+    @Test public void inspectorSessionsWorkInsideEnabledWorkers() throws Exception {
+        assertTrue(run("main.cjs", """
+                (async()=>{
+                  const assert=require('node:assert/strict'),{Worker}=require('node:worker_threads');
+                  const enabled=require('autojs6:profile').inspector;
+                  const code=`const {parentPort,workerData}=require('node:worker_threads');
+                    if (!workerData) {
+                      require('node:assert/strict').throws(()=>require('node:inspector'), e=>e.code==='ERR_AUTOJS6_EMBEDDED_NODE_BUILTIN_DISABLED');
+                      parentPort.postMessage('request-disabled');
+                    } else {
+                      const inspector=require('node:inspector');
+                      require('node:assert/strict').throws(()=>inspector.open(0,'0.0.0.0'),{code:'ERR_INVALID_ARG_VALUE'});
+                      const session=new inspector.Session(); session.connect();
+                      session.post('Runtime.evaluate',{expression:'21*2'},(error,result)=>{
+                        session.disconnect();if(error)throw error;parentPort.postMessage(result.result.value);
+                      });
+                    }`;
+                  const worker=new Worker(code,{eval:true,workerData:enabled});
+                  try { assert.equal(await new Promise((r,j)=>{worker.once('message',r);worker.once('error',j);}),enabled?42:'request-disabled'); }
+                  finally { await worker.terminate(); }
+                  console.log('m23.workers.inspector=PASS');
+                })().catch(error=>{console.error(error.stack);process.exitCode=1;});
+                """, null, true, true).contains("m23.workers.inspector=PASS"));
+    }
+
+    @Test public void nestedWorkersForwardHostCallsCancellationAndPermissionErrors() throws Exception {
+        source("project.json", "{\"node\":{\"permissions\":[\"device\"]}}\n");
+        source("bridge-worker.cjs", """
+                const assert=require('node:assert/strict'),wt=require('node:worker_threads');
+                (async()=>{
+                  if (wt.workerData.depth) {
+                    const nested=new wt.Worker(__filename,{workerData:{depth:0}});
+                    const value=await new Promise((r,j)=>{nested.once('message',r);nested.once('error',j);});
+                    wt.parentPort.postMessage(value);
+                    return;
+                  }
+                  const bridge=require('autojs6:bridge');
+                  assert.ok(bridge.permissions().permissions.includes('device'));
+                  assert.equal(await bridge.callAutoJs('device','getWidth',[]),42);
+                  await assert.rejects(bridge.callAutoJs('media','info',[]),e=>e.code==='ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED' && e.module==='media');
+                  const controller=new AbortController();
+                  const pending=bridge.callAutoJs('device','getHeight',[],{signal:controller.signal,timeoutMs:5000});
+                  setTimeout(()=>controller.abort(),50);
+                  await assert.rejects(pending,e=>e.code==='ERR_AUTOJS6_BRIDGE_CANCELLED');
+                  wt.parentPort.postMessage('bridge-pass');
+                })().catch(error=>{setImmediate(()=>{throw error;});});
+                """);
+        assertTrue(run("main.cjs", """
+                (async()=>{
+                  const assert=require('node:assert/strict'),bridge=require('autojs6:bridge'),{Worker}=require('node:worker_threads');
+                  const requests=[];
+                  bridge.__test.setTransport({postMessage(text){
+                    const request=JSON.parse(text);requests.push(request);
+                    if(request.method==='getWidth')setImmediate(()=>bridge.__test.receiveMessage(JSON.stringify({id:request.id,ok:true,result:42})));
+                  }});
+                  const worker=new Worker(__dirname+'/bridge-worker.cjs',{workerData:{depth:1}});
+                  const exit=new Promise((r,j)=>{worker.once('exit',r);worker.once('error',j);});
+                  assert.equal(await new Promise((r,j)=>{worker.once('message',r);worker.once('error',j);}), 'bridge-pass');
+                  assert.equal(await exit,0);
+                  assert.equal(requests.filter(r=>r.module==='device').length,2);
+                  assert.equal(bridge.__test.pendingCount(),0);
+                  console.log('m23.workers.bridge=PASS');
+                })().catch(error=>{console.error(error.stack);process.exitCode=1;});
+                """, null, true).contains("m23.workers.bridge=PASS"));
+    }
+
     @Test public void publishedCpuAndWasmSamplesRunInNativeWorkers() throws Exception {
         AssetManager assets = InstrumentationRegistry.getInstrumentation().getContext().getAssets();
         for (String example : new String[]{"worker-cpu", "wasm-worker"}) {
@@ -259,6 +425,32 @@ public final class WorkerDesktopSmokeTest {
             String entry = new String(Files.readAllBytes(new File(root, example + "/main.cjs").toPath()), StandardCharsets.UTF_8);
             assertTrue(run(example + "/main.cjs", entry, null, true).contains("sample." + example + "=PASS"));
         }
+    }
+
+    @Test public void publishedWorkerBridgeSampleUsesParentHostTransport() throws Exception {
+        AssetManager assets = InstrumentationRegistry.getInstrumentation().getContext().getAssets();
+        for (String file : new String[]{"main.cjs", "worker.cjs", "project.json"}) {
+            try (var input = assets.open("worker-host-bridge/" + file);
+                 var output = new java.io.ByteArrayOutputStream()) {
+                byte[] buffer = new byte[4096];
+                int count;
+                while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+                source(file, new String(output.toByteArray(), StandardCharsets.UTF_8));
+            }
+        }
+        String entry = new String(Files.readAllBytes(new File(root, "main.cjs").toPath()), StandardCharsets.UTF_8);
+        String transport = """
+                const fixtureBridge=require('autojs6:bridge');
+                fixtureBridge.__test.setTransport({postMessage(text){
+                  const request=JSON.parse(text);
+                  require('node:assert/strict').equal(request.module,'device');
+                  require('node:assert/strict').equal(request.method,'info');
+                  setImmediate(()=>fixtureBridge.__test.receiveMessage(JSON.stringify({
+                    id:request.id,ok:true,result:{build:{model:'test-device',sdkInt:37}}
+                  })));
+                }});
+                """;
+        assertTrue(run("main.cjs", transport + entry, null, true).contains("sample.worker-host-bridge=PASS"));
     }
 
     @Test public void esmWorkersFileUrlsAndTransferListsRemainUsable() throws Exception {

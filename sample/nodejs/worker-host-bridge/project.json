@@ -1,0 +1,8 @@
+{
+  "name": "worker-host-bridge",
+  "type": "node",
+  "main": "main.cjs",
+  "node": {
+    "permissions": ["device"]
+  }
+}

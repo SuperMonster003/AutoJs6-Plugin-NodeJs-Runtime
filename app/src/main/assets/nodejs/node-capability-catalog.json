@@ -314,7 +314,15 @@
         "releaseEnableAllowed": true
       },
       "requestKey": "workerThreadsEnabled",
-      "requestFallbackEnabled": true
+      "requestFallbackEnabled": true,
+      "implementation": "native_worker_with_request_preload",
+      "nestedWorkers": true,
+      "workerCountLimit": null,
+      "startupTimeoutMs": null,
+      "resourceLimits": "node_defaults_with_request_and_worker_overrides",
+      "hostBridge": "parent_message_port",
+      "nativeMessagePorts": true,
+      "workerPoolDefaultQueueLimit": null
     },
     {
       "id": "zlib_streams",
@@ -3220,10 +3228,6 @@
         "code": "ERR_AUTOJS6_WORKER_DISABLED"
       },
       {
-        "name": "WORKER_LIMIT_EXCEEDED",
-        "code": "ERR_AUTOJS6_WORKER_LIMIT_EXCEEDED"
-      },
-      {
         "name": "WORKER_POOL_CLOSED",
         "code": "ERR_AUTOJS6_WORKER_POOL_CLOSED"
       },
@@ -3246,10 +3250,6 @@
       {
         "name": "WORKER_TERMINATED",
         "code": "ERR_AUTOJS6_WORKER_TERMINATED"
-      },
-      {
-        "name": "WORKER_TIMEOUT",
-        "code": "ERR_AUTOJS6_WORKER_TIMEOUT"
       },
       {
         "name": "WORK_MANAGER_QUOTA_EXHAUSTED",

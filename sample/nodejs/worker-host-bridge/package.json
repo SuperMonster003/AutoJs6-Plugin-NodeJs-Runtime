@@ -1,0 +1,6 @@
+{
+  "name": "@autojs6-sample/worker-host-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs"
+}

@@ -44,7 +44,8 @@
     "ESM: Node.js 原生 loader + `module.registerHooks`; live binding, 循環相依, `import.meta`, `data:` URL 與 `require(esm)` 與桌面一致.",
     "能力: 同步腳本執行, bundle transport, 原生內嵌運行時, 宿主能力代理, host capability live bridge.",
     "檔案串流、gzip/deflate/Brotli 壓縮串流和基本 VM 執行正式化; 明確啟用的 Debug Inspector 在 localhost 範圍內正式支援.",
-    "嵌入執行不再輸出 ExperimentalWarning 提示, 保留 warning 事件、一般警告、棄用警告和錯誤; Node 上游 API 穩定性與終端預設行為不變."
+    "嵌入執行不再輸出 ExperimentalWarning 提示, 保留 warning 事件、一般警告、棄用警告和錯誤; Node 上游 API 穩定性與終端預設行為不變.",
+    "原生 Worker 支援巢狀執行, MessagePort API, stdio, argv, execArgv 與預載入繼承; 移除外掛自設的 Worker 數量和啟動時限, 請求 resourceLimits 僅作可覆寫的預設值, WorkerPool 預設不限制排隊數量或工作時長; Inspector 工作階段遵循執行請求與目前組建支援"
   ],
   "h3_release_history": "發行歷史",
   "h5_for_more_release_history": "更多發行歷史可參閱",

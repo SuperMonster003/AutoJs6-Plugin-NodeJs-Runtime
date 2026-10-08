@@ -836,8 +836,8 @@ void runEmbeddedScriptNodeLifecycle(
     std::vector<std::string> args = {
             "autojs6-embedded-script",
             "--experimental-vm-modules",
-            // The managed ESM linker uses VM Modules internally. Keep warning
-            // events and other diagnostics, without printing experimental notices.
+            // Expose VM Modules to scripts while keeping warning events and other
+            // diagnostics, without printing experimental notices by default.
             "--disable-warning=ExperimentalWarning"
     };
     const auto flags = embeddedNodeInitializationFlags(stdoutCapture);
@@ -1337,7 +1337,9 @@ void runEmbeddedScriptNodeLifecycle(
         std::vector<std::string> environmentArgs = {
                 "autojs6-embedded-environment-probe"
         };
-        std::vector<std::string> environmentExecArgs;
+        // Keep the Environment's public execArgv aligned with the managed Node
+        // startup flags so native Worker options and preload inheritance retain them.
+        std::vector<std::string> environmentExecArgs(args.begin() + 1, args.end());
         std::shared_ptr<NativeBridgeChannel> bridgeChannel;
         v8::Local<v8::Context> context;
         v8::Context* contextRaw = nullptr;

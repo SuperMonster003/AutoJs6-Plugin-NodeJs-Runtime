@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Compatibility Profile
 
-Last reviewed: 2026-10-08. Published plugin: v1.5.7; subsequent local work: v1.6.0 (M23.3, first batch).
+Last reviewed: 2026-10-08. Published plugin: v1.5.7; subsequent local work: v1.6.0 (M23.3, native loaders and workers).
 
 The external runtime plugin supplies Node.js 24.21.0 / V8 / libuv for arm64-v8a,
 armeabi-v7a and x86_64. The host contains no libnode or Node JNI implementation.
@@ -100,12 +100,12 @@ are checked against desktop Node 24. Native CJS/ESM interop also means that imme
 `module.exports` does not promise arbitrary ESM named exports. Use the default
 import, or compiler output with explicit `exports.name` assignments.
 
-Synchronous hooks are registered separately in each worker bootstrap. Node does
-not automatically inherit `module.registerHooks()` callbacks into workers; preload
-scripts passed through `--require` or `--import` can be inherited via `execArgv`.
+Each Worker receives a plugin `--require` preload that registers its hooks before
+user code, including CJS eval workers. User preload scripts follow `execArgv`
+inheritance; arbitrary synchronous hook closures are not automatically copied.
 See [Node's customization hooks documentation](https://r2.nodejs.org/docs/latest-v24.x/api/module.html#customization-hooks).
-Nested workers, worker-count removal and direct worker bridge access remain the
-second M23.3 batch; this loader migration does not claim those changes are complete.
+The plugin preload file contains only plugin code; module sources and bridge
+state are transferred in memory using Node environment data.
 
 AutoJs6 capabilities use asynchronous host calls, declared in `node.permissions`.
 The host applies Android permissions and provider availability. A profile label
@@ -127,16 +127,24 @@ only the classes and members of the host's declarative allowlist, which the host
 by reflection and publishes as `java.policy` (the runtime keeps no class table of its own);
 native addons, arbitrary private bindings and unrestricted Java reflection remain
 unavailable.
-Inside workers `process.exit()` ends the thread as in Node and
-`process.getBuiltinModule()` answers from Node's own builtin inventory (M23.2; inspector and
-the bridge modules stay denied in workers, the request's network gate applies), and bare package
-specifiers resolve through the workspace `node_modules` as in Node (exports conditions,
-main, index, self-reference); since M23.3 the worker bootstrap only registers
-`module.registerHooks` for the request's module sources and the `worker_threads` facade, so
-static and dynamic `import()`, `require(esm)` and `with { type: "json" }` inside workers are
-Node's own, host facades are simply absent (`MODULE_NOT_FOUND`) and the ESM loader reports
-its own codes (`ERR_MODULE_NOT_FOUND`, `ERR_UNSUPPORTED_ESM_URL_SCHEME`); nested workers are
-still unsupported. Subprocesses retain documented execution limits; bridge calls beyond the
+Inside workers `process.exit()` ends the thread as in Node. The plugin adds no
+Worker count cap, startup deadline or nested-worker prohibition. Node's Worker
+options, native MessagePort APIs, structured clone and inherited user preloads
+remain available. Request `resourceLimits` are defaults that a Worker can override
+in either direction; Node validates and enforces them. WorkerPool is an additive
+helper with CPU-based default concurrency, no default queue limit and no default
+task timeout; callers can set pool-specific limits.
+
+Worker CommonJS/ESM graphs use Node's loaders, including `import()`, `require(esm)`
+and JSON import attributes. Request sources, provider-backed worker entries and
+compiled TypeScript snapshots remain available without writing those sources to
+the preload file. Raw TypeScript still requires host compiler output. The
+`autojs6:bridge` module forwards calls through parent MessagePorts to the root
+execution's broker, including permission checks, cancellation and timeouts.
+Higher-level host facades such as `device` and `ui` remain on the root thread.
+Inspector sessions are native when the request enables them; localhost-only open
+and the current build requirement remain until M23.5. The request's network gate
+also applies in nested workers. Subprocesses retain documented execution limits; bridge calls beyond the
 `maxPendingBridgeCalls` window wait in FIFO order instead of failing, and the other
 `autojs6:bridge-limits` fields are enforced by the host broker rather than the runtime.
 The bridged `autojs6:fetch` / `autojs6:websocket` / `axios` facades pass caller timeouts,

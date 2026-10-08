@@ -18,7 +18,8 @@
         "module 内建模块改为仅覆盖 createRequire 的 Node.js 原生对象, registerHooks, enableCompileCache, findPackageJSON 等可直接使用; 删除仅在禁用原生网络时可达的 http, https, net, tls, dns 受限实现, 禁用时直接返回 ERR_AUTOJS6_BUILTIN_DISABLED",
         "插件信息 (INFO) 与运行时诊断的 supportedAbis 改为读取构建期写入清单的 org.autojs.plugin.contract.SUPPORTED_ABIS meta-data (需要 AutoJs6-Gradle-Platform-Versions 1.9.0 起的 nativeAlignment 插件), 表示插件构建支持的全部 ABI 而非已安装分包; meta-data 缺失时回退为已安装包内实际打包的 ABI, 手写的 ABI 常量已删除",
         "模块加载改为 Node.js 原生 CommonJS / ESM loader: require, require.resolve, require.cache, require.extensions, Module._resolveFilename, module.register, import(), import.meta 与 require(esm) 全部为 Node 原生行为, 入口按 Node 主模块方式运行 (require.main === module, __filename / process.argv[1] 为 realpath); 运行时只注册 module.registerHooks 提供 autojs6:* 运行时模块与兼容 shim (autojs6: scheme, 同名 npm 包仍优先于 shim)、请求级 builtin 门禁、请求随附 / provider 物化 / TypeScript 快照的模块源码与入口内联源码; vm.SourceTextModule 自管 linker, 自定义 resolver, 动态 import 改写与 eval / Function 守卫全部移除, esmEnabled / dynamicImportEnabled 请求键不再起作用",
-        "worker 内模块加载同样由 Node 原生 loader 承担 (静态 / 动态 import, require(esm), with { type: \"json\" }, 工作区包解析), worker 引导只注册钩子提供随附模块源码与 worker_threads facade; 宿主 facade 在 worker 内为 MODULE_NOT_FOUND, 缺失模块与 scheme 错误为 Node 自身的 ERR_MODULE_NOT_FOUND / ERR_UNSUPPORTED_ESM_URL_SCHEME, inspector 仍拒绝",
+        "原生 Worker 支持嵌套, MessagePort API, stdio, argv, execArgv 与预加载继承; 删除插件自设的 Worker 数量和启动时限, 请求 resourceLimits 仅作可覆盖的默认值, WorkerPool 默认不限制排队数量或任务时长; Inspector 会话遵循执行请求与当前构建支持",
+        "Worker 与嵌套 Worker 可通过父线程 MessagePort 使用 autojs6:bridge.callAutoJs, 复用宿主 broker 的权限检查, 错误, 超时与取消; worker-host-bridge 示例演示读取真实宿主设备信息, 并提供桥 API 的 TypeScript 声明",
         "原始 .ts / .mts / .cts 入口与导入模块仍须由宿主 Compiler 编译为 JavaScript; 保留快照映射与 provider v3 按需编译。模块加载失败使用 Node 原生错误码, 原 AutoJs6 ESM 与动态导入错误码退役。"
       ]
     },
