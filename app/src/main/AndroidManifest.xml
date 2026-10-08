@@ -40,6 +40,23 @@
             android:name="org.autojs.plugin.WAKE_ACTIVITY"
             android:value=".WakeActivity" />
 
+        <provider
+            android:name=".NodeRuntimeSettings"
+            android:authorities="${applicationId}.runtime-settings"
+            android:exported="false"
+            android:process=":nodejs_runtime" />
+
+        <activity
+            android:name=".RuntimeSettingsActivity"
+            android:exported="true"
+            android:permission="org.autojs.permission.PLUGIN"
+            android:label="@string/runtime_settings_title">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.INFO" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".LocalNetworkPermissionActivity"
             android:excludeFromRecents="true"
@@ -132,6 +149,13 @@
 
         <service android:name=".NodeJsRuntimeSlot0Service" android:exported="false" android:process=":nodejs_runtime0" />
         <service android:name=".NodeJsRuntimeSlot1Service" android:exported="false" android:process=":nodejs_runtime1" />
+
+        <service android:name=".NodeJsRuntimeSlot2Service" android:exported="false" android:process=":nodejs_runtime2" />
+        <service android:name=".NodeJsRuntimeSlot3Service" android:exported="false" android:process=":nodejs_runtime3" />
+        <service android:name=".NodeJsRuntimeSlot4Service" android:exported="false" android:process=":nodejs_runtime4" />
+        <service android:name=".NodeJsRuntimeSlot5Service" android:exported="false" android:process=":nodejs_runtime5" />
+        <service android:name=".NodeJsRuntimeSlot6Service" android:exported="false" android:process=":nodejs_runtime6" />
+        <service android:name=".NodeJsRuntimeSlot7Service" android:exported="false" android:process=":nodejs_runtime7" />
 
     </application>
 

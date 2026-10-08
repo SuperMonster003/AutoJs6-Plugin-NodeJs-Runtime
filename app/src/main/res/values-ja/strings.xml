@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="local_network_allow">付近のデバイスを許可</string>
     <string name="local_network_denied">未許可</string>
     <string name="local_network_explanation">Android 17 以降では, AutoJs6 プラグインセンターで有効にする前に, このプラグインに付近のデバイスへのアクセスを許可してください. プラグインの設定ページでもローカルネットワーク権限を管理できます. 未許可の場合は無効のままとなり, 自動起動は通知せずにスキップされます. この権限はプラグインに属し, AutoJs6 の権限とは独立しています.</string>
@@ -9,4 +9,12 @@
     <string name="local_network_settings">アプリの設定を開く</string>
     <string name="local_network_title">ローカルネットワークへのアクセス</string>
     <string name="plugin_description">AutoJs6 に Node.js 24.21.0 ネイティブランタイムを提供</string>
+    <string name="runtime_settings_explanation" tools:ignore="TypographyDashes">キューの上限は空欄で無制限 (既定), 0 で待機を拒否します. スロット数は 1-8, 既定は 2 です. 変更は以後の割り当てに適用され, 実行中と待機中のスクリプトは保持されます.</string>
+    <string name="runtime_settings_invalid_queue">0 から 2147483647 の整数を入力するか, 空欄にしてください.</string>
+    <string name="runtime_settings_queue">待機キューの上限</string>
+    <string name="runtime_settings_save">保存</string>
+    <string name="runtime_settings_saved">保存しました. 実行中のスクリプトは続行します.</string>
+    <string name="runtime_settings_slots">同時実行スロット数</string>
+    <string name="runtime_settings_title">実行設定</string>
+    <string name="runtime_settings_unlimited">無制限</string>
 </resources>

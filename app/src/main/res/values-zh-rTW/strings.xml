@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="local_network_allow">允許附近裝置</string>
     <string name="local_network_denied">未允許</string>
     <string name="local_network_explanation">在 Android 17 以上, 在 AutoJs6 外掛程式中心啟用此外掛程式前須允許存取附近的裝置. 也可在此外掛程式的設定頁面管理區域網路權限. 未獲授權時外掛程式保持關閉, 自動啟動將靜默略過. 此權限屬於外掛程式本身, 與 AutoJs6 的授權相互獨立.</string>
@@ -9,4 +9,12 @@
     <string name="local_network_settings">開啟應用程式設定</string>
     <string name="local_network_title">本機網路存取</string>
     <string name="plugin_description">為 AutoJs6 提供 Node.js 24.21.0 原生執行階段</string>
+    <string name="runtime_settings_explanation" tools:ignore="TypographyDashes">排隊上限留空表示不限 (預設), 輸入 0 則不接受等待指令碼. 平行槽數為 1-8, 預設 2. 修改後影響後續排程, 已執行和已排隊的指令碼會保留.</string>
+    <string name="runtime_settings_invalid_queue">請輸入 0 到 2147483647 之間的整數, 或留空.</string>
+    <string name="runtime_settings_queue">排隊上限</string>
+    <string name="runtime_settings_save">儲存</string>
+    <string name="runtime_settings_saved">已儲存. 執行中的指令碼將正常完成.</string>
+    <string name="runtime_settings_slots">平行執行槽數</string>
+    <string name="runtime_settings_title">執行設定</string>
+    <string name="runtime_settings_unlimited">不限</string>
 </resources>

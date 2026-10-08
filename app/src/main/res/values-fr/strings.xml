@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="local_network_allow">Autoriser les appareils à proximité</string>
     <string name="local_network_denied">Non autorisé</string>
     <string name="local_network_explanation">Sous Android 17 ou version ultérieure, autorisez les appareils à proximité avant de permettre ce plugin dans le centre de plugins AutoJs6. Cette autorisation se gère aussi dans les paramètres du plugin. Sans autorisation, le plugin reste désactivé et le démarrage automatique est ignoré sans message. Cette autorisation appartient au plugin et est indépendante de celle de AutoJs6.</string>
@@ -9,4 +9,12 @@
     <string name="local_network_settings">Ouvrir les paramètres</string>
     <string name="local_network_title">Accès au réseau local</string>
     <string name="plugin_description">Fournit le runtime natif Node.js 24.21.0 pour AutoJs6</string>
+    <string name="runtime_settings_explanation" tools:ignore="TypographyDashes">Laissez la limite vide pour une attente illimitée (par défaut), ou saisissez 0 pour refuser la mise en attente. Nombre de scripts simultanés: 1-8, 2 par défaut. Les changements concernent les prochaines affectations; les scripts en cours et déjà en attente sont conservés.</string>
+    <string name="runtime_settings_invalid_queue">Saisissez un entier de 0 à 2147483647, ou laissez vide.</string>
+    <string name="runtime_settings_queue">Limite de la file</string>
+    <string name="runtime_settings_save">Enregistrer</string>
+    <string name="runtime_settings_saved">Enregistré. Les scripts en cours continuent.</string>
+    <string name="runtime_settings_slots">Nombre de scripts simultanés</string>
+    <string name="runtime_settings_title">Paramètres du moteur</string>
+    <string name="runtime_settings_unlimited">Illimitée</string>
 </resources>

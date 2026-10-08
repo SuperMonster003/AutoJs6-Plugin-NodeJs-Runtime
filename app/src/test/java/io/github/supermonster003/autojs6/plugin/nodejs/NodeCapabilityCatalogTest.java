@@ -125,8 +125,10 @@ public class NodeCapabilityCatalogTest {
 
         assertTrue(lifecycle.contains("\"processModel\": \"process_pool\""));
         assertTrue(lifecycle.contains("\"maxConcurrentExecutions\": 1"));
-        assertTrue(lifecycle.contains("\"processPoolMaxConcurrentExecutions\": 2"));
-        assertTrue(lifecycle.contains("\"queueCapacity\": " + NodeRuntimeExecutionGate.QUEUE_CAPACITY));
+        assertTrue(lifecycle.contains("\"processPoolMaxConcurrentExecutions\": " + NodeRuntimeSettings.DEFAULT_SLOTS));
+        assertTrue(lifecycle.contains("\"processPoolMaxSlots\": " + NodeRuntimeSettings.MAX_SLOTS));
+        assertTrue(lifecycle.contains("\"queueUnlimited\": true"));
+        assertTrue(lifecycle.contains("\"queueCapacity\": " + Integer.MAX_VALUE));
         assertTrue(lifecycle.contains(
                 "\"mode\": \"" + NodeJsRuntimePluginService.CANCELLATION_STRATEGY_COOPERATIVE_STOP + "\""
         ));

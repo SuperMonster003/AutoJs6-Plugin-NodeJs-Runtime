@@ -66,8 +66,9 @@ public final class RuntimeColdStartMeasurementTest {
 
         long bindStartedAt = SystemClock.elapsedRealtime();
         try (BoundRuntime bound = BoundRuntime.bind(context)) {
+            ConcurrentExecutionSmokeTest.assertSucceeded(bound.runtime.prewarmRuntime(new Bundle()));
             Bundle runtimeInfo = bound.runtime.getRuntimeInfo();
-            // The dispatcher binds workers asynchronously; include the readiness query in cold startup.
+            // Include demand-started workers and explicit prewarm in the existing cold-start total.
             long bindAndPrewarmWallMs = SystemClock.elapsedRealtime() - bindStartedAt;
             assertNotNull("getRuntimeInfo returned null", runtimeInfo);
             assertTrue(
@@ -154,8 +155,8 @@ public final class RuntimeColdStartMeasurementTest {
             report.put("runs", runsJson);
             report.put(
                     "method",
-                    "Force-stop the package before instrumentation; bind includes dedicated-process " +
-                            "startup and the first readiness query waiting for prewarm; run 0 is the first fresh isolate; " +
+                    "Force-stop the package before instrumentation; bind includes dispatcher startup, " +
+                            "explicit worker prewarm and a readiness query; run 0 is the first fresh isolate; " +
                             "runs 1-" + (EXECUTION_COUNT - 1) +
                             " are fresh isolates in the same persistent process."
             );

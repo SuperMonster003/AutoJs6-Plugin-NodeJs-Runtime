@@ -36,6 +36,13 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @RunWith(AndroidJUnit4.class)
 public final class SerialQueueSmokeTest {
+    private PoolSettingsFixture settings;
+
+    @org.junit.Before public void configureOneSlot() {
+        settings = new PoolSettingsFixture(1, 3);
+    }
+
+    @org.junit.After public void restoreSettings() { if (settings != null) settings.close(); }
 
     @Test public void occupiedSlotsPreserveFifoCapacityAndQueuedCancellation() throws Exception {
         try (ConcurrentExecutionSmokeTest.Binding binding = new ConcurrentExecutionSmokeTest.Binding()) {
@@ -43,10 +50,10 @@ public final class SerialQueueSmokeTest {
             ConcurrentExecutionSmokeTest.assertSucceeded(runtime.prewarmRuntime(new Bundle()));
             ExecutorService executor = Executors.newFixedThreadPool(5);
             List<String> starts = java.util.Collections.synchronizedList(new ArrayList<>());
-            CountDownLatch blockersReady = new CountDownLatch(2);
+            CountDownLatch blockersReady = new CountDownLatch(1);
             try {
                 List<Future<Bundle>> blockers = new ArrayList<>();
-                for (int index = 0; index < 2; index++) {
+                for (int index = 0; index < 1; index++) {
                     String id = "m16-blocker-" + index;
                     blockers.add(executor.submit(() -> runtime.runScript(ConcurrentExecutionSmokeTest.request(id,
                             "console.log('ready'); setInterval(() => {}, 1000);"), ConcurrentExecutionSmokeTest.output(blockersReady))));
@@ -78,12 +85,9 @@ public final class SerialQueueSmokeTest {
                 assertEquals(java.util.Arrays.asList("m16-fifo-0", "m16-fifo-2"), starts);
                 assertEquals(stopped.getInt(NodeJsRuntimeContract.KEY_PID), first.getInt(NodeJsRuntimeContract.KEY_PID));
                 assertEquals(first.getInt(NodeJsRuntimeContract.KEY_PID), third.getInt(NodeJsRuntimeContract.KEY_PID));
-                assertTrue(!blockers.get(1).isDone());
-                assertTrue(runtime.cancelScript("m16-blocker-1"));
-                blockers.get(1).get(15, TimeUnit.SECONDS);
                 assertEquals(0, runtime.getRuntimeInfo().getInt("queuedExecutions"));
             } finally {
-                for (int i = 0; i < 2; i++) runtime.cancelScript("m16-blocker-" + i);
+                runtime.cancelScript("m16-blocker-0");
                 for (int i = 0; i < 3; i++) runtime.cancelScript("m16-fifo-" + i);
                 executor.shutdownNow();
             }
@@ -165,8 +169,9 @@ public final class SerialQueueSmokeTest {
                 );
             }
 
-            // All submissions complete; the pool retains three global waiting positions.
+            // Explicit one-slot / three-waiter settings preserve the serial regression.
             Bundle info = runtime.getRuntimeInfo();
+            assertEquals(1, info.getInt("processPoolMaxConcurrentExecutions"));
             assertEquals(
                     "queue capacity not advertised",
                     3,

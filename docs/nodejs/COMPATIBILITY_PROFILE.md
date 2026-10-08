@@ -20,7 +20,7 @@ catalog identity reported by runtimeInfo is derived from the runtime kit. The
 access (since M23.1 `fs` is Node's own module and the runtime denies nothing itself),
 the native `process` (only `exit` is lifecycle-mapped; `dlopen` is native since M23.4),
 Node's own builtin inventory (M23.2: no allowlist or denylist, `wasi` included), stable
-worker channels, the two-slot process pool, and Android native addon loading;
+worker channels, the configurable 1-8-slot process pool (default 2, unlimited FIFO queue by default), and Android native addon loading;
 historical partial / reserved / deferred markers are gone. The sample audit
 promoted the ESM, WebAssembly and desktop parity samples, turned both parity
 suites into real runners, and `new Worker(code, { eval: true })` now works as

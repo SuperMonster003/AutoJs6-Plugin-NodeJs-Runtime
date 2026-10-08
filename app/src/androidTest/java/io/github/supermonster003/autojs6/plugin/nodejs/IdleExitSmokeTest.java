@@ -36,6 +36,8 @@ public final class IdleExitSmokeTest {
             while (runtime.getRuntimeInfo().getInt(NodeJsRuntimeContract.KEY_PID) == originalPid && SystemClock.elapsedRealtime() < exitDeadline) SystemClock.sleep(100);
             assertNotEquals("idle worker did not exit", originalPid, runtime.getRuntimeInfo().getInt(NodeJsRuntimeContract.KEY_PID));
             assertEquals("idle worker exit killed the dispatcher", 1L, died.getCount());
+            SystemClock.sleep(500L);
+            assertEquals("idle slot restarted without work", -1, runtime.getRuntimeInfo().getInt(NodeJsRuntimeContract.KEY_PID));
             INodeJsRuntimePlugin replacement = runtime;
             Bundle second = run(replacement, "console.log('idle.after')", 0L, null);
             assertNotEquals(originalPid, pid(second));

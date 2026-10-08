@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="local_network_allow">Permitir dispositivos cercanos</string>
     <string name="local_network_denied">No permitido</string>
     <string name="local_network_explanation">En Android 17 o posterior, permita Dispositivos cercanos antes de activar este plugin en el centro de plugins de AutoJs6. También puede gestionar el permiso de red local en los ajustes del plugin. Sin permiso, el plugin permanece desactivado y el inicio automático se omite sin avisos. El permiso pertenece al plugin y es independiente del permiso de AutoJs6.</string>
@@ -9,4 +9,12 @@
     <string name="local_network_settings">Abrir ajustes de la aplicación</string>
     <string name="local_network_title">Acceso a la red local</string>
     <string name="plugin_description">Proporciona el runtime nativo Node.js 24.21.0 para AutoJs6</string>
+    <string name="runtime_settings_explanation" tools:ignore="TypographyDashes">Deje el límite vacío para una espera ilimitada (predeterminado), o introduzca 0 para rechazar la espera. Ejecuciones simultáneas: 1-8, 2 por defecto. Los cambios se aplican a las siguientes asignaciones; se conservan los scripts en ejecución y en espera.</string>
+    <string name="runtime_settings_invalid_queue">Introduzca un entero de 0 a 2147483647, o deje vacío.</string>
+    <string name="runtime_settings_queue">Límite de la cola</string>
+    <string name="runtime_settings_save">Guardar</string>
+    <string name="runtime_settings_saved">Guardado. Los scripts en curso continuarán.</string>
+    <string name="runtime_settings_slots">Ejecuciones simultáneas</string>
+    <string name="runtime_settings_title">Ajustes del motor</string>
+    <string name="runtime_settings_unlimited">Sin límite</string>
 </resources>

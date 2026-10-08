@@ -62,6 +62,7 @@ El plugin AutoJs6 Node.js Runtime proporciona a AutoJs6 un runtime nativo integr
 - Incluye proyectos `sample/nodejs` y el inventario de capacidades de API del host `docs/HOST-API.md`.
 - Los metadatos del plugin, las instrucciones de uso, el README y el CHANGELOG estan localizados en espanol, frances, ruso, arabe, japones, coreano, ingles, chino simplificado, chino tradicional de Hong Kong y chino tradicional de Taiwan.
 - Incluye el lanzador de terminal multi-llamada `libnodexe.so` y un archivo npm / corepack declarados mediante los meta-data de manifest `NODE_CLI_*`, para que el terminal de AutoJs6 (host 6.8.0+) pueda ejecutar `node`, `npm`, `npx`, `corepack`, `yarn` y `pnpm` en un shell con su propio uid.
+- La página de ajustes del plugin permite elegir 1-8 ejecuciones simultáneas (2 por defecto) y un límite de cola (sin límite por defecto); los scripts adicionales esperan en FIFO, los cambios conservan las tareas aceptadas e idleExitMs libera los procesos inactivos
 
 ******
 
@@ -121,6 +122,7 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ###### 2026/10/08
 
+* `Nuevo` La página de ajustes del plugin permite elegir 1-8 ejecuciones simultáneas (2 por defecto) y un límite de cola (sin límite por defecto); los scripts adicionales esperan en FIFO, los cambios conservan las tareas aceptadas e idleExitMs libera los procesos inactivos
 * `Mejora` fs, fs/promises y node:sqlite son los módulos nativos de Node.js: desaparecen la denegación de /proc, /sys, /dev propia del runtime y su capa de validación de rutas, la accesibilidad de los archivos la deciden únicamente los permisos de Android, las API de archivos asíncronas se ejecutan en el pool de hilos de libuv en lugar de bloquear el bucle de eventos, y los errores de ruta llevan los códigos propios de Node.js (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH y ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED ya no los producen las operaciones de archivos ni de base de datos)
 * `Mejora` process.cwd y process.chdir tienen el comportamiento nativo de Node.js; una ejecución entra en su directorio de trabajo con un chdir real y las rutas relativas las resuelve el propio Node.js
 * `Mejora` ATTACH de node:sqlite (incluidos nombres de archivo por parámetro enlazado o expresión), VACUUM INTO, los PRAGMA de directorio y setAuthorizer son comportamiento nativo de SQLite; enableLoadExtension y allowExtension siguen las comprobaciones de estado propias de Node.js

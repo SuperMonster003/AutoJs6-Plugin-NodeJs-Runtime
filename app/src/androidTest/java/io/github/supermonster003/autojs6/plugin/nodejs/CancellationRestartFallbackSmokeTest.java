@@ -62,6 +62,7 @@ public final class CancellationRestartFallbackSmokeTest {
         int firstPid;
         Future<Bundle> pending;
         try (ServiceSession first = ServiceSession.connect(context)) {
+            ConcurrentExecutionSmokeTest.assertSucceeded(first.runtime.prewarmRuntime(new Bundle()));
             firstPid = first.runtime.getRuntimeInfo().getInt(NodeJsRuntimeContract.KEY_PID, -1);
             assertTrue("initial runtime PID unavailable", firstPid > 0);
 
@@ -135,6 +136,7 @@ public final class CancellationRestartFallbackSmokeTest {
         }
 
         try (ServiceSession restarted = ServiceSession.connect(context)) {
+            ConcurrentExecutionSmokeTest.assertSucceeded(restarted.runtime.prewarmRuntime(new Bundle()));
             int restartedPid = restarted.runtime.getRuntimeInfo().getInt(NodeJsRuntimeContract.KEY_PID, -1);
             assertTrue("restarted runtime PID unavailable", restartedPid > 0);
             assertNotEquals("runtime fallback did not create a fresh process", firstPid, restartedPid);

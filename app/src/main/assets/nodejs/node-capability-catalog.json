@@ -529,7 +529,10 @@
     "admission": {
       "maxConcurrentExecutions": 1,
       "processPoolMaxConcurrentExecutions": 2,
-      "queueCapacity": 3,
+      "processPoolMinSlots": 1,
+      "processPoolMaxSlots": 8,
+      "queueCapacity": 2147483647,
+      "queueUnlimited": true,
       "busyError": "ERR_AUTOJS6_NODE_PLUGIN_BUSY"
     },
     "cancellation": {

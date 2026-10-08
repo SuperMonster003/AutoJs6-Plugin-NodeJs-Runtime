@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -24,22 +25,35 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static io.github.supermonster003.autojs6.plugin.nodejs.NodePluginPayloads.*;
 
-/** Two single-runtime processes, with one admission queue shared by all callers. */
+/** Configurable, demand-started runtime processes with one FIFO shared by all callers. */
 final class NodeRuntimeProcessPool implements AutoCloseable {
     private final NodeJsRuntimePluginService service;
     private final Object lock = new Object();
     private final Handler main = new Handler(Looper.getMainLooper());
-    private final Slot[] slots = { new Slot(0, NodeJsRuntimeSlot0Service.class), new Slot(1, NodeJsRuntimeSlot1Service.class) };
+    private final Slot[] slots = {
+            new Slot(0, NodeJsRuntimeSlot0Service.class), new Slot(1, NodeJsRuntimeSlot1Service.class),
+            new Slot(2, NodeJsRuntimeSlot2Service.class), new Slot(3, NodeJsRuntimeSlot3Service.class),
+            new Slot(4, NodeJsRuntimeSlot4Service.class), new Slot(5, NodeJsRuntimeSlot5Service.class),
+            new Slot(6, NodeJsRuntimeSlot6Service.class), new Slot(7, NodeJsRuntimeSlot7Service.class)
+    };
     private final ArrayDeque<Job> queue = new ArrayDeque<>();
     private final Map<String, Job> jobs = new HashMap<>();
-    private final ExecutorService executions = Executors.newFixedThreadPool(5,
+    private final ExecutorService executions = Executors.newFixedThreadPool(NodeRuntimeSettings.MAX_SLOTS,
             task -> new Thread(task, "Node-pool-execution"));
+    // Queued jobs own descriptors and a completion, but never a waiting execution thread.
+    private final ExecutorService completions = Executors.newSingleThreadExecutor(
+            task -> new Thread(task, "Node-pool-completion"));
+    private final SharedPreferences preferences;
     private volatile boolean closed;
+    private final SharedPreferences.OnSharedPreferenceChangeListener settingsListener = (prefs, key) -> {
+        synchronized (lock) {
+            if (!closed) { dispatchQueued(); releaseUnusedBindings(); }
+        }
+    };
     /** Most recent unexpected slot death (M12.5a); cancellation restarts are not counted. */
     private volatile Bundle lastSlotExit;
     /** Newest fatal-error report on disk (M12.5), parsed once per file. */
@@ -48,8 +62,12 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
 
     NodeRuntimeProcessPool(NodeJsRuntimePluginService service) {
         this.service = service;
-        for (Slot slot : slots) bind(slot);
+        preferences = NodeRuntimeSettings.preferences(service);
+        preferences.registerOnSharedPreferenceChangeListener(settingsListener);
     }
+
+    private int slotCount() { return preferences.getInt(NodeRuntimeSettings.SLOTS, NodeRuntimeSettings.DEFAULT_SLOTS); }
+    private int queueLimit() { return preferences.getInt(NodeRuntimeSettings.QUEUE, NodeRuntimeSettings.UNLIMITED); }
 
     private final class Slot implements ServiceConnection {
         final int id;
@@ -63,14 +81,18 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
             synchronized (lock) { remote = INodeJsRuntimePlugin.Stub.asInterface(binder); lock.notifyAll(); }
         }
         @Override public void onServiceDisconnected(ComponentName name) {
-            synchronized (lock) { remote = null; lock.notifyAll(); }
+            synchronized (lock) {
+                remote = null;
+                // Release AUTO_CREATE after an idle exit; only a new execution should restart it.
+                if (job == null && !warming) unbind(this);
+                lock.notifyAll();
+            }
         }
         @Override public void onBindingDied(ComponentName name) {
             synchronized (lock) {
                 remote = null;
-                if (bound) service.unbindService(this);
-                bound = false;
-                if (!closed) bind(this);
+                unbind(this);
+                if (!closed && (job != null || warming)) bind(this);
                 lock.notifyAll();
             }
         }
@@ -82,19 +104,23 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
         final Bundle request;
         final long startedAt = SystemClock.elapsedRealtime();
         final long timeout;
+        final INodeJsRuntimeCallback callback;
+        final CompletableFuture<Bundle> completion = new CompletableFuture<>();
+        Runnable queueTimeout;
         volatile boolean cancelled;
         int pid;
         long dispatchedAtWallMs;
         Slot slot;
-        Job(Bundle request) {
+        Job(Bundle request, INodeJsRuntimeCallback callback) {
             this.request = request;
+            this.callback = callback;
             id = nonBlank(request.getString(NodeJsRuntimeContract.KEY_EXECUTION_ID), "plugin-" + UUID.randomUUID());
             request.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, id);
             timeout = request.getLong(NodeJsRuntimeContract.KEY_TIMEOUT_MS, 0L);
         }
         long remaining() {
-            return NodeJsRuntimePluginService.remainingTimeoutBudgetMs(timeout > 0 ? timeout : 600_000L,
-                    startedAt, SystemClock.elapsedRealtime());
+            return timeout <= 0 ? Long.MAX_VALUE : NodeJsRuntimePluginService.remainingTimeoutBudgetMs(
+                    timeout, startedAt, SystemClock.elapsedRealtime());
         }
     }
 
@@ -106,9 +132,26 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
     private void bind(Slot slot) {
         main.post(() -> {
             synchronized (lock) {
-                if (closed || slot.bound) return;
+                if (closed || slot.bound || (slot.job == null && !slot.warming)) return;
                 slot.bound = service.bindService(new Intent(service, slot.component), slot, Context.BIND_AUTO_CREATE);
                 lock.notifyAll();
+            }
+        });
+    }
+
+    /** Called under lock on the main thread, or posted there by the dispatcher. */
+    private void unbind(Slot slot) {
+        if (slot.bound) service.unbindService(slot);
+        slot.bound = false;
+        slot.remote = null;
+    }
+
+    private void releaseUnusedBindings() {
+        main.post(() -> {
+            synchronized (lock) {
+                for (Slot slot : slots) {
+                    if (slot.job == null && !slot.warming && (slot.id >= slotCount() || slot.remote == null)) unbind(slot);
+                }
             }
         });
     }
@@ -129,37 +172,40 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
     }
 
     private Slot freeSlot() {
-        for (Slot slot : slots) if (slot.job == null && !slot.warming && slot.remote != null) return slot;
-        for (Slot slot : slots) if (slot.job == null && !slot.warming) return slot;
+        int count = slotCount(), occupied = 0;
+        for (Slot slot : slots) if (slot.job != null || slot.warming) occupied++;
+        // Shrinking lets active scripts finish before admitting work at the smaller capacity.
+        if (occupied >= count) return null;
+        for (int i = 0; i < count; i++) if (slots[i].job == null && !slots[i].warming && slots[i].remote != null) return slots[i];
+        for (int i = 0; i < count; i++) if (slots[i].job == null && !slots[i].warming) return slots[i];
         return null;
     }
 
     Bundle runScript(Bundle original, INodeJsRuntimeCallback callback) {
-        Job job = new Job(original == null ? new Bundle() : new Bundle(original));
+        Job job = new Job(original == null ? new Bundle() : new Bundle(original), callback);
         try {
             register(job);
         } catch (AdmissionFailure failure) {
             closeWorkspaceDescriptors(job.request);
             return finish(job, callback, failure.result);
         }
-        return runRegistered(job, callback);
+        try { return job.completion.get(); }
+        catch (InterruptedException error) {
+            cancelScript(job.id);
+            Thread.currentThread().interrupt();
+            return service.bundles.failureBundle(job.request, job.startedAt, "Node caller interrupted.", null,
+                    NodeJsRuntimePluginService.ERROR_SCRIPT_CANCELLED);
+        } catch (java.util.concurrent.ExecutionException error) { throw new IllegalStateException(error); }
     }
 
     Bundle startScript(Bundle original, INodeJsRuntimeCallback callback) {
-        // Keep the unmarshalled Binder descriptors alive until runRegistered closes them.
-        Job job = new Job(original == null ? new Bundle() : new Bundle(original));
+        // Keep unmarshalled Binder descriptors alive until completion, including while queued.
+        Job job = new Job(original == null ? new Bundle() : new Bundle(original), callback);
         try {
             if (callback == null) throw new AdmissionFailure(service.bundles.failureBundle(job.request,
                     job.startedAt, "startScript requires a completion callback.", null,
                     "ERR_AUTOJS6_NODE_PLUGIN_INVALID_REQUEST"));
             register(job); // Visible to cancelScript before the acknowledgement can reach the caller.
-            try {
-                executions.execute(() -> runRegistered(job, callback));
-            } catch (RejectedExecutionException error) {
-                unregister(job);
-                throw new AdmissionFailure(service.bundles.failureBundle(job.request, job.startedAt,
-                        "Node process pool is closing.", error, NodeJsRuntimePluginService.ERROR_UNAVAILABLE));
-            }
             Bundle ack = new Bundle();
             ack.putBoolean(NodeJsRuntimeContract.KEY_ACCEPTED, true);
             ack.putString(NodeJsRuntimeContract.KEY_EXECUTION_ID, job.id);
@@ -178,21 +224,66 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
         synchronized (lock) {
             if (closed) throw new AdmissionFailure(service.bundles.failureBundle(job.request, job.startedAt,
                     "Node process pool is closing.", null, NodeJsRuntimePluginService.ERROR_UNAVAILABLE));
+            dispatchQueued();
             Slot available = queue.isEmpty() ? freeSlot() : null;
-            if (jobs.containsKey(job.id) || (available == null && queue.size() >= NodeRuntimeExecutionGate.QUEUE_CAPACITY)) {
-                throw new AdmissionFailure(service.bundles.busyFailureBundle(job.request, job.startedAt));
+            if (jobs.containsKey(job.id)) {
+                throw new AdmissionFailure(service.bundles.failureBundle(job.request, job.startedAt,
+                        "Execution ID is already active or queued: " + job.id, null, NodeJsRuntimePluginService.ERROR_BUSY));
+            }
+            if (available == null && queueLimit() >= 0 && queue.size() >= queueLimit()) {
+                throw new AdmissionFailure(service.bundles.failureBundle(job.request, job.startedAt,
+                        "Node process pool queue is full (limit " + queueLimit() + ").", null, NodeJsRuntimePluginService.ERROR_BUSY));
             }
             jobs.put(job.id, job);
-            if (available == null) queue.addLast(job);
-            else { available.job = job; job.slot = available; }
+            queue.addLast(job);
+            if (job.timeout > 0) {
+                job.queueTimeout = () -> {
+                    synchronized (lock) {
+                        if (queue.remove(job)) {
+                            jobs.remove(job.id);
+                            completeQueued(job, timeout(job, "queued"));
+                            dispatchQueued();
+                        }
+                    }
+                };
+                main.postDelayed(job.queueTimeout, job.remaining());
+            }
+            dispatchQueued();
         }
+    }
+
+    private void dispatchQueued() {
+        if (closed) return;
+        Slot available;
+        while (!queue.isEmpty() && (available = freeSlot()) != null) {
+            Job next = queue.removeFirst();
+            if (next.queueTimeout != null) main.removeCallbacks(next.queueTimeout);
+            if (next.remaining() <= 0) {
+                jobs.remove(next.id);
+                completeQueued(next, timeout(next, "queued"));
+                continue;
+            }
+            available.job = next;
+            next.slot = available;
+            executions.execute(() -> runRegistered(next, next.callback));
+        }
+    }
+
+    private void completeQueued(Job job, Bundle result) {
+        if (job.queueTimeout != null) main.removeCallbacks(job.queueTimeout);
+        completions.execute(() -> {
+            closeWorkspaceDescriptors(job.request);
+            finish(job, job.callback, result);
+        });
     }
 
     private void unregister(Job job) {
         synchronized (lock) {
             queue.remove(job);
-            jobs.remove(job.id);
+            jobs.remove(job.id, job);
             if (job.slot != null) job.slot.job = null;
+            dispatchQueued();
+            releaseUnusedBindings();
             lock.notifyAll();
         }
     }
@@ -200,21 +291,6 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
     private Bundle runRegistered(Job job, INodeJsRuntimeCallback callback) {
         Bundle result;
         try {
-            synchronized (lock) {
-                while (job.slot == null) {
-                    if (closed || job.cancelled) throw new InterruptedException("Node execution cancelled while queued.");
-                    if (job.remaining() <= 0) throw new AdmissionFailure(timeout(job, "queued"));
-                    Slot available = freeSlot();
-                    if (queue.peekFirst() == job && available != null) {
-                        queue.removeFirst();
-                        available.job = job;
-                        job.slot = available;
-                        lock.notifyAll();
-                        break;
-                    }
-                    lock.wait(job.remaining());
-                }
-            }
             INodeJsRuntimePlugin remote = awaitRemote(job.slot, job);
             job.pid = remote.getRuntimeInfo().getInt(NodeJsRuntimeContract.KEY_PID);
             job.dispatchedAtWallMs = System.currentTimeMillis();
@@ -310,7 +386,7 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
 
     private Bundle timeout(Job job, String phase) {
         return service.bundles.timeoutFailureBundle(job.request, job.startedAt,
-                job.timeout > 0 ? job.timeout : 600_000L, phase);
+                job.timeout, phase);
     }
 
     private Bundle finish(Job job, INodeJsRuntimeCallback callback, Bundle result) {
@@ -322,6 +398,7 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
         terminal.putInt(NodeJsRuntimeContract.KEY_SLOT_ID, job.slot == null ? -1 : job.slot.id);
         terminal.putBundle(NodeJsRuntimeContract.KEY_EVENT_RESULT, result);
         send(callback, terminal);
+        job.completion.complete(result);
         return result;
     }
 
@@ -335,6 +412,12 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
             Job job = jobs.get(id);
             if (job == null) return false;
             job.cancelled = true;
+            if (queue.remove(job)) {
+                jobs.remove(id);
+                completeQueued(job, service.bundles.failureBundle(job.request, job.startedAt,
+                        "Node execution cancelled while queued.", null, NodeJsRuntimePluginService.ERROR_SCRIPT_CANCELLED));
+                dispatchQueued();
+            }
             remote = job.slot == null ? null : job.slot.remote;
             lock.notifyAll();
         }
@@ -356,7 +439,7 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
         try {
             for (Slot slot : slots) {
                 synchronized (lock) {
-                    if (slot.job != null || slot.warming || !queue.isEmpty()) continue;
+                    if (slot.id >= slotCount() || slot.job != null || slot.warming || !queue.isEmpty()) continue;
                     slot.warming = true;
                 }
                 try {
@@ -364,10 +447,17 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
                     warmed.putInt(NodeJsRuntimeContract.KEY_SLOT_ID, slot.id);
                     if (result == null || !warmed.getBoolean("started")) result = warmed;
                 } finally {
-                    synchronized (lock) { slot.warming = false; lock.notifyAll(); }
+                    synchronized (lock) {
+                        slot.warming = false;
+                        dispatchQueued();
+                        releaseUnusedBindings();
+                        lock.notifyAll();
+                    }
                 }
             }
-            return result == null ? service.bundles.busyFailureBundle(request == null ? new Bundle() : request, SystemClock.elapsedRealtime()) : result;
+            return result == null ? service.bundles.failureBundle(request == null ? new Bundle() : request,
+                    SystemClock.elapsedRealtime(), "All configured Node process slots are busy.", null,
+                    NodeJsRuntimePluginService.ERROR_BUSY) : result;
         } catch (Exception error) {
             return service.bundles.failureBundle(request == null ? new Bundle() : request, SystemClock.elapsedRealtime(),
                     "Node process pool prewarm failed: " + error.getMessage(), error, NodeJsRuntimePluginService.ERROR_UNAVAILABLE);
@@ -376,8 +466,14 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
 
     Bundle getRuntimeInfo() {
         Bundle info;
-        try { info = awaitRemote(slots[0], null).getRuntimeInfo(); }
-        catch (Exception error) { info = service.bundles.runtimeInfoBundle(); }
+        INodeJsRuntimePlugin first;
+        synchronized (lock) { first = slots[0].remote; }
+        try { info = first == null ? service.bundles.runtimeInfoBundle() : first.getRuntimeInfo(); }
+        catch (RemoteException error) { info = service.bundles.runtimeInfoBundle(); first = null; }
+        if (first == null) {
+            info.putInt(NodeJsRuntimeContract.KEY_PID, -1);
+            info.putString(NodeJsRuntimeContract.KEY_PROCESS_NAME, service.getPackageName() + ":nodejs_runtime0");
+        }
         ArrayList<Bundle> snapshots = new ArrayList<>();
         String active = "";
         for (Slot slot : slots) {
@@ -385,7 +481,9 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
             state.putInt(NodeJsRuntimeContract.KEY_SLOT_ID, slot.id);
             INodeJsRuntimePlugin remote;
             synchronized (lock) {
+                if (slot.id >= slotCount() && slot.job == null && !slot.warming) continue;
                 remote = slot.remote;
+                state.putBoolean("enabled", slot.id < slotCount());
                 state.putString("active", slot.job == null ? "" : slot.job.id);
                 if (active.isEmpty() && slot.job != null) active = slot.job.id;
             }
@@ -402,13 +500,19 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
             } catch (RemoteException ignored) { }
             snapshots.add(state);
         }
-        synchronized (lock) { info.putInt("queuedExecutions", queue.size()); }
+        synchronized (lock) {
+            info.putInt("queuedExecutions", queue.size());
+            info.putInt(NodeJsRuntimeContract.KEY_PROCESS_POOL_MAX_CONCURRENT_EXECUTIONS, slotCount());
+            // Published v2 hosts reject negative queueCapacity. The additive flag disambiguates unlimited.
+            info.putInt(NodeJsRuntimeContract.KEY_QUEUE_CAPACITY, queueLimit() < 0 ? Integer.MAX_VALUE : queueLimit());
+            info.putBoolean(NodeJsRuntimeContract.KEY_QUEUE_UNLIMITED, queueLimit() < 0);
+        }
         info.putString(NodeJsRuntimeContract.KEY_ACTIVE_EXECUTION_ID, active);
         // Published v2 hosts require exactly 1 here. It remains the per-runtime capacity;
         // the additive field reports the capacity of the pool to aware clients.
         info.putInt("maxConcurrentExecutions", 1);
-        info.putInt("processPoolMaxConcurrentExecutions", slots.length);
         info.putString("processModel", "process_pool");
+        info.putBoolean("dedicatedRuntimeProcess", true);
         ArrayList<String> capabilities = new ArrayList<>(java.util.Arrays.asList(NodeJsRuntimePluginService.CAPABILITIES));
         capabilities.remove("singleActiveBackpressure");
         capabilities.add("processPoolExecution");
@@ -438,6 +542,7 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
 
     @Override public void close() {
         ArrayList<String> active;
+        preferences.unregisterOnSharedPreferenceChangeListener(settingsListener);
         synchronized (lock) { closed = true; active = new ArrayList<>(jobs.keySet()); lock.notifyAll(); }
         for (String id : active) cancelScript(id);
         for (Slot slot : slots) synchronized (lock) {
@@ -446,5 +551,6 @@ final class NodeRuntimeProcessPool implements AutoCloseable {
             slot.remote = null;
         }
         executions.shutdown();
+        completions.shutdown();
     }
 }

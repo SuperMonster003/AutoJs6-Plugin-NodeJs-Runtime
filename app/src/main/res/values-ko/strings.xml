@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="local_network_allow">근처 기기 허용</string>
     <string name="local_network_denied">허용되지 않음</string>
     <string name="local_network_explanation">Android 17 이상에서는 AutoJs6 플러그인 센터에서 이 플러그인을 켜기 전에 주변 기기 권한을 허용하세요. 이 플러그인의 설정 페이지에서도 로컬 네트워크 권한을 관리할 수 있습니다. 권한이 없으면 플러그인이 꺼진 상태로 유지되고 자동 시작은 알림 없이 건너뜁니다. 이 권한은 플러그인에 속하며 AutoJs6 권한과 별개입니다.</string>
@@ -9,4 +9,12 @@
     <string name="local_network_settings">앱 설정 열기</string>
     <string name="local_network_title">로컬 네트워크 접근</string>
     <string name="plugin_description">AutoJs6 에 Node.js 24.21.0 네이티브 런타임 제공</string>
+    <string name="runtime_settings_explanation" tools:ignore="TypographyDashes">대기열 한도를 비워 두면 무제한 (기본값), 0 을 입력하면 대기를 거부합니다. 슬롯 수는 1-8, 기본값은 2 입니다. 변경 사항은 이후 배정에 적용되며 실행 중이거나 대기 중인 스크립트는 유지됩니다.</string>
+    <string name="runtime_settings_invalid_queue">0 에서 2147483647 사이의 정수를 입력하거나 비워 두세요.</string>
+    <string name="runtime_settings_queue">대기열 한도</string>
+    <string name="runtime_settings_save">저장</string>
+    <string name="runtime_settings_saved">저장했습니다. 실행 중인 스크립트는 계속됩니다.</string>
+    <string name="runtime_settings_slots">동시 실행 슬롯 수</string>
+    <string name="runtime_settings_title">실행 설정</string>
+    <string name="runtime_settings_unlimited">무제한</string>
 </resources>

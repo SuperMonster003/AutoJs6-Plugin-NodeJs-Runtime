@@ -59,7 +59,18 @@ public final class PluginManifestContractTest {
         assertService(pm, packageName, "org.autojs.plugin.INFO", "NodeJsPluginInfoService");
         ServiceInfo runtime = assertService(pm, packageName, "org.autojs.plugin.nodejs.RUNTIME", "NodeJsRuntimePluginService");
         assertTerminalLauncherContract(context, runtime);
-        for (int slot = 0; slot < 2; slot++) {
+        Intent settings = pm.getLaunchIntentForPackage(packageName);
+        assertNotNull("Plugin Center must be able to open settings", settings);
+        assertEquals(packageName + ".RuntimeSettingsActivity", settings.getComponent().getClassName());
+        ActivityInfo settingsInfo = pm.getActivityInfo(settings.getComponent(), 0);
+        assertEquals(PERMISSION, settingsInfo.permission);
+        assertTrue(pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER).setPackage(packageName), 0).isEmpty());
+        android.content.pm.ProviderInfo provider = pm.resolveContentProvider(packageName + ".runtime-settings", 0);
+        assertNotNull(provider);
+        assertEquals(false, provider.exported);
+        assertEquals(packageName + ":nodejs_runtime", provider.processName);
+        for (int slot = 0; slot < NodeRuntimeSettings.MAX_SLOTS; slot++) {
             ServiceInfo worker = pm.getServiceInfo(new ComponentName(packageName, packageName + ".NodeJsRuntimeSlot" + slot + "Service"), 0);
             assertEquals(packageName + ":nodejs_runtime" + slot, worker.processName);
             assertEquals(false, worker.exported);
@@ -107,7 +118,7 @@ public final class PluginManifestContractTest {
         int packagedAbis = 0;
         for (String path : installedPaths) {
             try (ZipFile apk = new ZipFile(path)) {
-                for (String abi : NodePluginAbis.supported(context)) {
+                for (String abi : packagedRuntimeAbis(context)) {
                     if (apk.getEntry("lib/" + abi + "/libnode.so") == null) continue;
                     packagedAbis++;
                     assertNotNull("launcher is not packaged for " + abi,
@@ -116,6 +127,25 @@ public final class PluginManifestContractTest {
             }
         }
         assertTrue("no runtime ABI is packaged", packagedAbis > 0);
+    }
+
+    /** Inspect the installed artifact independently of the app's minified ABI helper. */
+    static java.util.Set<String> packagedRuntimeAbis(Context context) throws Exception {
+        java.util.Set<String> abis = new java.util.HashSet<>();
+        List<String> paths = new ArrayList<>();
+        paths.add(context.getApplicationInfo().sourceDir);
+        if (context.getApplicationInfo().splitSourceDirs != null) paths.addAll(Arrays.asList(context.getApplicationInfo().splitSourceDirs));
+        for (String path : paths) {
+            try (ZipFile apk = new ZipFile(path)) {
+                java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = apk.entries();
+                while (entries.hasMoreElements()) {
+                    String[] segments = entries.nextElement().getName().split("/");
+                    if (segments.length == 3 && segments[0].equals("lib") && segments[2].equals("libnode.so")) abis.add(segments[1]);
+                }
+            }
+        }
+        assertTrue("No packaged Node runtime", !abis.isEmpty());
+        return abis;
     }
 
     private static ServiceInfo assertService(PackageManager pm, String packageName, String action, String name) {

@@ -131,6 +131,8 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 .getTargetContext()
                 .getApplicationContext();
         boundRuntime = BoundRuntime.bind(targetContext);
+        // The provider fixtures need the worker PID before dispatch; status queries no longer start slots.
+        ConcurrentExecutionSmokeTest.assertSucceeded(boundRuntime.runtime.prewarmRuntime(new Bundle()));
     }
 
     @After

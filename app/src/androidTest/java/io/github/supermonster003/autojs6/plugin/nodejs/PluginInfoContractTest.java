@@ -69,11 +69,11 @@ public final class PluginInfoContractTest {
             // The advertised set is the project-level support (manifest meta-data written by the
             // build); a split install packages a subset of it, never an ABI outside it.
             java.util.List<String> advertised = java.util.Arrays.asList(info.getSupportedAbis());
-            String[] declared = NodePluginAbis.declared(context);
-            if (declared != null) {
-                assertEquals(java.util.Arrays.asList(declared), advertised);
-            }
-            for (String abi : NodePluginAbis.installed(context)) {
+            String declared = context.getPackageManager().getApplicationInfo(context.getPackageName(),
+                    android.content.pm.PackageManager.GET_META_DATA).metaData.getString("org.autojs.plugin.contract.SUPPORTED_ABIS");
+            assertNotNull("build must declare supported ABIs", declared);
+            assertEquals(java.util.Arrays.asList(declared.split(",")), advertised);
+            for (String abi : PluginManifestContractTest.packagedRuntimeAbis(context)) {
                 assertTrue("Packaged ABI is not advertised: " + abi, advertised.contains(abi));
             }
             assertTrue(java.util.Arrays.stream(android.os.Build.SUPPORTED_ABIS).anyMatch(advertised::contains));

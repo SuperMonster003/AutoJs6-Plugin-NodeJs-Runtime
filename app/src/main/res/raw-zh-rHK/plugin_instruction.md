@@ -13,3 +13,5 @@ console.log(process.version);
 運行時槽位為 `node24_5`. 支援 `arm64-v8a`, `armeabi-v7a`, `x86_64` 構建, 以及 `universal` 通用包.
 
 更多示例位於 `sample/nodejs`.
+
+插件設定頁支援 1-8 個並行執行槽 (預設 2) 與排隊上限 (預設不限), 超額腳本按 FIFO 等待, 設定調整保留已接受的任務, idleExitMs 可回收閒置執行進程
