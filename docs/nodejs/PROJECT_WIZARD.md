@@ -1,6 +1,6 @@
 # AutoJs6 Node Project Wizard
 
-Last reviewed: 2026-10-09.
+Last reviewed: 2026-10-11.
 
 `tools/nodejs/project/autojs6-node-project.js` is a runtime-plugin helper for
 creating and validating Node project directories. It runs on the desktop;
@@ -92,8 +92,9 @@ It records the entry format, required Node builtins, declared bridge
 capabilities, capability requirements, package format/export-condition usage,
 dependency graph size, and runtime/request requirements. `unsupported` signals
 are surfaced as validator issues. Inspector activation requires an explicit host
-request, while importing the module is allowed. Exported APK support remains M24
-work; this validator does not certify an APK builder integration.
+request, while importing the module is allowed. Packaged apps use the external Node runtime with a matching AutoJs6/Builder
+template. This validator checks project inputs; building and device acceptance
+remain separate steps.
 
 ## Validator Coverage
 

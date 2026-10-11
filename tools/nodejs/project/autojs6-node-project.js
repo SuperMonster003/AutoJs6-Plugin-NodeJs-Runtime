@@ -1023,7 +1023,8 @@ function analyzeCompatibility(root, projectJson, packageJson, dependencyScan) {
       gate: "project-validation-only",
       packagedAssetRoot: "assets/project",
       reportFile: "dependency-compatibility.json",
-      supported: false
+      supported: true,
+      requiresExternalRuntime: true
     },
     signals: signals.sort((left, right) => {
       const statusDelta = COMPATIBILITY_STATUS_RANK.get(right.status) - COMPATIBILITY_STATUS_RANK.get(left.status);

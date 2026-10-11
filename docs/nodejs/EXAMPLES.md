@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Example Projects
 
-Last reviewed: 2026-10-09.
+Last reviewed: 2026-10-11.
 
 Examples live only under **sample/nodejs** in the runtime-plugin repository. Keeping
 one copy prevents host/plugin drift and keeps runtime-specific assets out of the host
@@ -30,7 +30,8 @@ basic plugin round trip, a live host capability, and TypeScript compiler output
 dispatch. Exhaustive runtime/sample conformance remains plugin-owned.
 
 Legacy packaged-compatible metadata remains readable for historical catalogs, but
-the current host does not embed Node into exported APKs.
+the current host does not embed Node into exported APKs. M24 packages use the
+installed external runtime; provider and Android permission requirements remain.
 
 The current collection contains 55 projects. See [the sample collection](../../sample/nodejs)
 and [manual acceptance](MANUAL-ACCEPTANCE.md) for complete screen capture, OCR,
