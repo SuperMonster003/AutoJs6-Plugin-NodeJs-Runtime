@@ -9,6 +9,9 @@
       "released_date": "2026/10/11",
       "feature": [
         "Node.js 專案和指令碼可打包為獨立簽章的應用程式, 執行時呼叫外部 Node.js Runtime 外掛程式, 外掛程式不可用時顯示安裝指引"
+      ],
+      "dependency": [
+        "為 Node.js 24.21.0 Android 執行階段回補 OpenSSL 3.5.9 安全性修正"
       ]
     },
     "v1.6.0": {

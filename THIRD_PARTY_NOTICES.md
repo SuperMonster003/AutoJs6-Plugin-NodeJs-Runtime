@@ -13,7 +13,7 @@ The following table summarizes major components. The bundled license file contai
 | Node.js | MIT |
 | V8 | BSD-style; additional third-party notices in the upstream license |
 | ICU 78 (linked as `full-icu` since 1.6.0; `small-icu` with English-only locale data from 1.5.1 to 1.5.7) | Unicode/ICU licenses and third-party data notices retained in the complete upstream license |
-| OpenSSL | Apache License 2.0 |
+| OpenSSL 3.5.9 (backported to Node 24.21.0) | Apache License 2.0 |
 | zlib | zlib license |
 | libuv | MIT and incorporated third-party notices |
 | c-ares | MIT-style |
@@ -22,15 +22,15 @@ The following table summarizes major components. The bundled license file contai
 | llhttp / undici / ada / uvwasi | MIT / MIT / Apache License 2.0 or MIT / MIT |
 | Brotli / Zstandard | MIT / BSD and GPL alternatives as described upstream |
 
-Binary provenance is recorded in [runtime-build.lock.json](tools/nodejs/runtime-build/runtime-build.lock.json), including the official `node-v24.21.0.tar.xz` archive (SHA-256 `a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc`), the three patch hashes, and the exact Docker image and NDK used. The original Node 24.5 Android archive is retained in the lock as historical provenance and for reconstruction of that version.
+Binary provenance is recorded in [runtime-build.lock.json](tools/nodejs/runtime-build/runtime-build.lock.json), including the official `node-v24.21.0.tar.xz` archive (SHA-256 `a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc`), the Android and OpenSSL patch hashes, and the exact Docker image and NDK used. Plugin 1.7.0 backports the OpenSSL 3.5.9 source and architecture updates from [Node PR 66396](https://github.com/nodejs/node/pull/66396); the build README records the two upstream commits and the omitted documentation-only hunk. The OpenSSL license is unchanged. The original Node 24.5 Android archive is retained in the lock as historical provenance and for reconstruction of that version.
 
 | ABI | `libnode.so` SHA-256 |
 |---|---|
-| arm64-v8a | `c48da9b772635e8e76ce0a06de09e71dbd70efe602903f1f5c9042672e629b2d` |
-| armeabi-v7a | `8e9f6c326ac3fdaac114cc37323e2d12dba96894fb306423c1426c1a7cd8c99d` |
-| x86_64 | `ef576b2958de84b6cd641c18f684f42d00f4e97da09c4be3ebfb8bff4dd722b5` |
+| arm64-v8a | `b6bfbc7c5890244e25a9fad68e3f6a8c633badc1462409b8c36c9d4fc65cb91e` |
+| armeabi-v7a | `4559fb5cfedc31fbdf1000f06bbd4f63f35039bf6c59a815b1b7bb4ea82104c8` |
+| x86_64 | `69e3fd9e81917c6add91fe6534a3ed859c31a0383ea257e15603ffac5e75cfef` |
 
-The [24.21.0 bridge headers](app/src/main/cpp/node-v24.21.0/README.md) come from the official Node.js header archive, with its complete [upstream license](app/src/main/cpp/node-v24.21.0/LICENSE) preserved alongside them. All three runtime libraries are built from the same official source and patch set; since 1.5.1 they link ICU 78 as `small-icu` (English-only locale data) and retain the Inspector backend for explicit Debug use.
+The [24.21.0 bridge headers](app/src/main/cpp/node-v24.21.0/README.md) come from the official Node.js header archive, with its complete [upstream license](app/src/main/cpp/node-v24.21.0/LICENSE) preserved alongside them. All three runtime libraries are built from the same official source and patch set; since 1.6.0 they link ICU 78 as `full-icu` and retain the Inspector backend for explicit requests in Debug and Release.
 
 ## Android C++ runtime
 

@@ -18,7 +18,8 @@
     "contract": {
       "min": 2,
       "max": 3
-    }
+    },
+    "opensslVersion": "3.5.9"
   },
   "budgets": {
     "checkpointMaxBytes": 65536,

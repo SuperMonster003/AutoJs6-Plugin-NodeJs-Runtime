@@ -23,7 +23,8 @@
       "arm64-v8a",
       "armeabi-v7a",
       "x86_64"
-    ]
+    ],
+    "opensslVersion": "3.5.9"
   },
   "contract": {
     "min": 2,
@@ -39,12 +40,12 @@
   "capabilityCatalog": {
     "schema": "autojs6-node-capability-catalog-v1",
     "version": "1.7.0",
-    "sha256": "ce97a000b5c36264519757b4a080f1afe4a2a467180a938095ff04974b1d1456"
+    "sha256": "a3ae819a1e8c114b197fcab3145ce1f52347a08b292ebd936644655485b01f40"
   },
   "reproducibility": {
     "artifactMaterialization": "source_build",
     "artifactMaterializationStatus": "ready",
-    "sourceBuild": "source_build_with_independent_maintenance_rebuilds",
+    "sourceBuild": "source_build",
     "sourceBuildStatus": "ready",
     "kitUsable": true,
     "releaseReady": false,
@@ -54,10 +55,10 @@
   },
   "buildProvenance": {
     "sourceRepository": "AutoJs6-Plugin-NodeJs-Runtime",
-    "sourceGitBase": "a7a0a8441002a00dc574aee308b6c775fd0e2007",
+    "sourceGitBase": "07b8e0b87780d09662ff1dcc1bf605f5a3d6d9de",
     "runtimeBuildPlan": {
       "lockFile": "tools/nodejs/runtime-build/runtime-build.lock.json",
-      "lockSha256": "b60d3714de7af422d5261f990ca3c51cf35618baa347abce650bf7b9c13620fa",
+      "lockSha256": "87e8f4b766b42e16084e95d5bb44168c22c8c477d1eac7b268736a99cb3ff324",
       "sourceBuilder": "tools/nodejs/runtime-build/build-node-from-source.py",
       "sourceBuilderSha256": "aef1c3a170514c4a3dfbb7f6b77281896ca43076eea1b7a2497b705e33a48f41",
       "containerBuildScript": "tools/nodejs/runtime-build/container/build-source.sh",
@@ -76,7 +77,21 @@
       "patchFiles": {
         "0001-nodejs-mobile-android.patch": "2933143f3280dc40c32de05df2a5a9f3dd9c6b8f5586a3e599cf699cdcd330c7",
         "0002-linux-host-trap-handlers.patch": "abf7fa4764c3cfbd0b90e2368a0568b1f75d024aa8ad13e59be5b83354ffd870",
-        "0004-android-stderr-passthrough.patch": "b141d17c799fbf8d7532d46f538151aba547af8ecaf4ec42b10c5e5bc371115e"
+        "0004-android-stderr-passthrough.patch": "b141d17c799fbf8d7532d46f538151aba547af8ecaf4ec42b10c5e5bc371115e",
+        "0005-openssl-3.5.9-sources.patch": "3a0373cfa3228338236407d9a88a7092a1f74413a3d1aadc2d173ec3f524282a",
+        "0006-openssl-3.5.9-archs.patch": "7781c884cf126ac318646c0bb1ce5c74eae56fcbdce0895d6039cd132cd0430a"
+      },
+      "opensslBackport": {
+        "fromVersion": "3.5.8",
+        "targetVersion": "3.5.9",
+        "advisoryUrl": "https://openssl-library.org/news/secadv/20260929.txt",
+        "upstreamPullRequest": "https://github.com/nodejs/node/pull/66396",
+        "sourceCommit": "bee7e2403cedcd8c5e11e34bfaa922a37b5faaa1",
+        "archsCommit": "6b5ac2ab5d36030e7916b0f4c57b23b515b2d96e",
+        "adaptation": "Omit doc/build.info, which is absent from the official Node v24.21.0 release tarball; runtime source and architecture configuration hunks are unchanged.",
+        "node24BranchCheckedOn": "2026-10-11",
+        "node24BranchOpenSslVersion": "3.5.8",
+        "status": "validated"
       }
     },
     "bridgeBuild": {
@@ -108,8 +123,8 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "source_tree",
       "required": true,
-      "size": 78497,
-      "sha256": "ce97a000b5c36264519757b4a080f1afe4a2a467180a938095ff04974b1d1456",
+      "size": 78528,
+      "sha256": "a3ae819a1e8c114b197fcab3145ce1f52347a08b292ebd936644655485b01f40",
       "buildId": null
     },
     {
@@ -206,9 +221,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 110376704,
-      "sha256": "8acf5da18f6b9ead77a265f932ea79d17abd51c592f1fb07e0c2516a841c3fc1",
-      "buildId": "79d89c792134a3bc23554c329d7cec641bfed946"
+      "size": 110393088,
+      "sha256": "b6bfbc7c5890244e25a9fad68e3f6a8c633badc1462409b8c36c9d4fc65cb91e",
+      "buildId": "5bb623c8d260b4cff4bd0b1e2d2d95d677bb8127"
     },
     {
       "id": "libnode-armeabi-v7a",
@@ -220,9 +235,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 103604184,
-      "sha256": "89109535b7992231e373fad3df78f16a1abc1ebb9097f37ddc1e7411757c9cd5",
-      "buildId": "b289832333ef187f08d4d64afa0bf33136cf0d7d"
+      "size": 103612376,
+      "sha256": "4559fb5cfedc31fbdf1000f06bbd4f63f35039bf6c59a815b1b7bb4ea82104c8",
+      "buildId": "41bf3c6b9f4a6540a0cba728d1de1d8793003158"
     },
     {
       "id": "libnode-x86_64",
@@ -234,9 +249,9 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "plugin_apk_release_entry",
       "required": true,
-      "size": 115177376,
-      "sha256": "c8119890f27d7f0d896036f7e63bb86c89d7b6f1eb177b53971f908d5a557925",
-      "buildId": "88c0d736ff13a311737baf3f56a4c90546396013"
+      "size": 115193760,
+      "sha256": "69e3fd9e81917c6add91fe6534a3ed859c31a0383ea257e15603ffac5e75cfef",
+      "buildId": "a615ced972579d91f85c90d82aa2a2faf04086bf"
     }
   ],
   "diagnostics": {

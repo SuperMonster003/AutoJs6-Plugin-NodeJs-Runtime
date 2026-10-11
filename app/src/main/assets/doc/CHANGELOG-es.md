@@ -9,6 +9,7 @@
 ###### 2026/10/11
 
 * `Nuevo` Los proyectos y scripts Node.js se empaquetan como aplicaciones con firma independiente, usan el plugin externo Node.js Runtime y muestran instrucciones de instalación cuando no está disponible
+* `Dependencia` Se incorporaron las correcciones de seguridad de OpenSSL 3.5.9 al entorno Android de Node.js 24.21.0
 
 # v1.6.0
 

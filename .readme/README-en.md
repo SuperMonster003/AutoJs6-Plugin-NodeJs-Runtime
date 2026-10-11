@@ -124,6 +124,7 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/11
 
 * `Feature` Packaged Node.js projects and scripts use the external Node.js Runtime plugin, support independently signed applications, and show installation guidance when the runtime is unavailable
+* `Dependency` Backported OpenSSL 3.5.9 security fixes to the Node.js 24.21.0 Android runtime
 
 # v1.6.0
 

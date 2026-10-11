@@ -726,7 +726,15 @@ M18.2 首轮清点 (2026-09-10): 当前 catalog 有 15 个顶层 feature, 9 stab
 目标: 在 Node 26 进入 LTS 后用 M17 自建管线产出 26.x libnode, 作为 2.0.0 主版本发布; 24.x 保持安全更新直至用户迁移.
 
 - [x] **M25.1 月度复查与 24.x 收尾**: 动作: 按 M17.4 记录 2026-10 复查 (24.x 最新安全版本, 26 的 LTS 日期与 V8 / ICU / OpenSSL 版本); 24.x 若有安全发布, 合并进 M23.1 的同一次重建. Check: M17.4 表格新增一行.
-- [ ] **M25.1a OpenSSL 3.5.9 安全回补** (2026-10-11 月度复查): 24.x 最新发布仍携带 3.5.8, 尚未集成 2026-09-29 修复. 核对 Node 24 维护分支的官方回补, 按 M17.1/M17.2 更新自建源码/补丁并重建三个 ABI, 运行 TLS/crypto 与完整设备回归后再标记修复; 不改写 1.6.0 已发布资产.
+- [x] **M25.1a OpenSSL 3.5.9 安全回补** (2026-10-11 月度复查): 24.x 最新发布仍携带 3.5.8, 尚未集成 2026-09-29 修复. 核对 Node 24 维护分支的官方回补, 按 M17.1/M17.2 更新自建源码/补丁并重建三个 ABI, 运行 TLS/crypto 与完整设备回归后再标记修复; 不改写 1.6.0 已发布资产.
+  完成 (2026-10-11): Node 24.21.0 / full ICU / node24_21 保持, 回补 Node PR 66396 在 v26.x 的官方提交 `bee7e240` / `6b5ac2ab`, 仅省略发布源码包中不存在的 `doc/build.info` 文档构建差异.
+
+  - 构建: 三个 ABI 均从全新源码目录重建, 本次涉及的 564 个 OpenSSL 文件与上游 Git tree 一致; 新库 sha256 / build-id / ELF 对齐及 bridge imports 经核对, 当前开发版 catalog/runtime-kit 与第三方说明已更新.
+  - 设备: Debug 与配套混淆 Release 的 37 类完整回归: arm64-v8a/API31/debug 113 tests (0 skips); arm64-v8a/API31/release 113 tests (0 skips); arm64-v8a/API35/debug 113 tests (0 skips); arm64-v8a/API35/release 113 tests (0 skips); armeabi-v7a/API28/debug 113 tests (1 skip); armeabi-v7a/API28/release 113 tests (1 skip); x86_64/API37/debug 113 tests (0 skips); x86_64/API37/release 113 tests (0 skips). API 28 的既有跳过项为需要 Android 11 的 MANAGE_EXTERNAL_STORAGE 用例. 新增 OpenSSL 4 用例覆盖 TLS 1.2/1.3, SNI 上下文切换, 证书拒绝, crypto, CJS/ESM/Worker/终端.
+  - 内存回归: 72,968 B 相对 CRLDP 样本的独立进程 RSS 增量 (每设备前后各三次): arm64-v8a/QV710AF65F 91.3-91.9 MiB -> 5.5-5.9 MiB; arm64-v8a/63751f63 77.5-77.6 MiB -> 1.4-1.5 MiB; armeabi-v7a/BH900ASK9E 64.7-64.8 MiB -> 约 1.6 MiB; x86_64/emulator-5580 87.5-87.6 MiB -> 1.6-1.8 MiB. 签名/验签为功能回归, 不声称统计证明恒定时间.
+  - 本地检查: 插件 JVM 96/96, API 13/13, Python 2/2, 25 份生成文档无漂移, lint 0 errors / 25 warnings. v1.7.0 / build 247 四个签名 Release APK 的 CRC32, 签名, ZIP/64 位 ELF 对齐与 runtime-kit 载荷核验通过. 验收元数据回写后的最终 arm64-v8a / armeabi-v7a / x86_64 / universal 四包重新安装, SimpleRun / npm / Manifest / PluginInfo 各 5/5, 共 20/20, 无跳过.
+  - 覆盖范围: 本次 arm64/ARMv7 真机为 4 KB, x86_64 AVD 为 4 KB 内核上的 16 KB 用户态模拟, 未新增 arm64 16 KB 实机证据. 本地原始记录在 `.bak/m25-openssl-20261011/`, 1.6.0 已发布资产保持不变; 对外发布另行确认.
+
 - [ ] **M25.2 构建管线与 adapter**: 动作: ① `tools/nodejs/runtime-build` 容器按 26 的构建要求升级 (NDK / Python / clang 版本, `--with-intl=full-icu` 延续 M23.1), 核对 M21.2 的 Android stderr 直通补丁是否仍需要; ② 新增 `node_runtime_adapter_26_x.cpp` (embedder API 差异: `CreateEnvironment` / `EmbedderSnapshotData` / `node::Stop` 签名), 运行时槽位 `node26_x`, `node_runtime_api_v1.h` 按需扩展, 旧 adapter 文件不改; ③ 终端启动器资产 `build-node-cli-archive.py` 指向 26 的官方 tarball (npm / corepack 版本随之更新), `NODE_CLI_*` meta-data 同步; ④ 26 移除的弃用 API 对内嵌运行时 JS (M23 后应已很薄), 样例与 npm corpus 的影响逐项修复. Check: 三 ABI 构建; 12 冒烟组 + corpus + conformance + worker / sqlite / addon 用例全绿 (arm64 真机 + 16 KB arm64 实机 + x86_64 AVD); `process.version` 为 v26.x, `Temporal` 全局可用; M23.8 冷启动分相在 26 上复测.
 - [ ] **M25.3 2.0.0 发布与 24.x 维护策略**: 动作: 同一 APK 只含一个 libnode (体积), 26 以 2.0.0 发布, `requiresHostVersion` 按宿主契约不变; 24.x 分支 (`release/1.x`) 只接安全更新, 维护期限记回本文件; 十语言文档与 THIRD_PARTY_NOTICES 更新. Check: 对外动作逐项取得用户同意; 宿主在两版本插件下的契约测试均通过.
 

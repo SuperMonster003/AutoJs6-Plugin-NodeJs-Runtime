@@ -5,12 +5,39 @@ Node 24.5 binary materializer. Both are manual maintenance tools; neither runs
 in the default APK or PR build.
 
 Current status: the default Android runtime is Node 24.21.0, built from official
-Node sources with three Android patches and `--with-intl=full-icu` (ICU 78 with
-full locale data since plugin 1.6.0 / M23.1; `small-icu` from 1.5.1 to 1.5.7). All three ABIs passed embedding and
-device validation. Independent rebuild results and the exact Docker image,
-NDK and patch hashes are recorded in
-[runtime-build.lock.json](runtime-build.lock.json). Runtime Kit 1.5.5 and the
-four signed APKs ship with plugin v1.5.5 (Runtime Kit 1.4.0 shipped with v1.3.0).
+Node sources with three Android/host patches, the OpenSSL 3.5.9 backport described
+below, and `--with-intl=full-icu` (ICU 78 with full locale data since plugin 1.6.0 /
+M23.1; `small-icu` from 1.5.1 to 1.5.7). Current build and device acceptance,
+historical independent rebuild results, and the exact Docker image, NDK and
+patch hashes are recorded in
+[runtime-build.lock.json](runtime-build.lock.json). Published Runtime Kit 1.6.0
+and APKs remain unchanged; the security backport belongs to the 1.7.0 development version.
+
+## OpenSSL 3.5.9 security backport (M25.1a)
+
+The 2026-10-11 check found OpenSSL 3.5.8 in both Node v24.21.0 and the Node
+`v24.x` maintenance branch. This project backports the complete OpenSSL update
+from [Node PR 66396](https://github.com/nodejs/node/pull/66396), already landed
+on `v26.x`, without changing the Node/V8 version or runtime slot:
+
+- `0005-openssl-3.5.9-sources.patch` comes from Node commit
+  [`bee7e2403cedcd8c5e11e34bfaa922a37b5faaa1`](https://github.com/nodejs/node/commit/bee7e2403cedcd8c5e11e34bfaa922a37b5faaa1).
+  Only the `deps/openssl/openssl/doc/build.info` diff is omitted because Node's
+  release tarball excludes that generated documentation file. Runtime hunks are unchanged.
+- `0006-openssl-3.5.9-archs.patch` is the unmodified architecture update from
+  [`6b5ac2ab5d36030e7916b0f4c57b23b515b2d96e`](https://github.com/nodejs/node/commit/6b5ac2ab5d36030e7916b0f4c57b23b515b2d96e),
+  including the `no-asm` headers and source lists consumed by this build.
+
+The [OpenSSL advisory](https://openssl-library.org/news/secadv/20260929.txt)
+describes the fixes. `OpenSslSecuritySmokeTest` checks TLS 1.2/1.3, SNI context
+switching, certificate rejection and crypto through CJS, ESM, Workers and the
+terminal. Its relative CRLDP fixture exercises CVE-2026-35189 in a fresh process
+with a 32 MiB RSS-growth ceiling. Signing/verification tests establish functional
+compatibility, not a statistical proof of constant-time execution.
+
+Use the normal source-build command below with a fresh run ID. Each ABI is built
+from a fresh source tree; no new repeat-build proof is required for this maintenance
+update. Current build and device acceptance facts are recorded in the lock and Roadmap.
 
 ## Build Node 24.21 from source
 
@@ -57,7 +84,7 @@ clean builds, use a fresh `--run-id repeat` with identical inputs and compare
 each ABI's `output/libnode.so` SHA-256. Record actual differences if unequal;
 an incremental no-op rebuild is not a clean repeat.
 
-The recorded maintenance run first built Node 24.20 from source, resumed after
+The earlier maintenance run first built Node 24.20 from source, resumed after
 the Linux host-tool fix, and compared it with an independent clean build using
 the corrected inputs. Node 24.21 was then rebuilt separately from each of those
 two workspaces, overlaying the verified new source and applying the STORE fix.
@@ -70,7 +97,8 @@ Artifacts and ELF reports are under
 `<work-root>/24.21.0-<abi>-<run-id>/output/`. The build uses Android API 24,
 16 KB LOAD alignment, SHA-1 ELF Build IDs, fixed source paths/timestamp, ICU 78
 with full locale data (`--with-intl=full-icu`, M23.1), no Node startup snapshot, and keeps
-the inspector backend for Debug use. See Roadmap M17.3 / M21.2 / M23.1 for the
+the inspector backend for explicit Debug and Release requests. See Roadmap
+M17.3 / M21.2 / M23.1 / M23.5 for the
 packaging/ICU/inspector decision; the `0004` patch keeps Node's fatal-error text on
 the real stderr in addition to logcat.
 
@@ -86,7 +114,7 @@ changing the Android target's trap-handler policy. The former third patch
 (`0003-disable-android-openssl-store.patch`) rejected OpenSSL STORE private-key
 URLs on Android to protect the runtime's own `/proc` boundary; M23.1 removed that
 boundary and the patch with it, so key URLs load as on desktop Node. The three
-remaining patch digests are recorded in the lock.
+Android/host patch digests and two OpenSSL update digests are recorded in the lock.
 
 `verify-source-runtime.py` checks architecture, 16 KB LOAD alignment, Build ID
 and the Node/V8/libuv symbols dynamically consumed by the current bridge.
