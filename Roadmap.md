@@ -430,6 +430,7 @@ M13 Release 验证补记 (2026-09-08): build 116 的签名 arm64-v8a / x86_64 �
 | 2026-09-08 | **影响, 尚未晋级**。Node [6 月安全发布](https://nodejs.org/en/blog/vulnerability/june-2026-security-releases) 与 [7 月安全发布](https://nodejs.org/en/blog/vulnerability/july-2026-security-releases) 修复 TLS/HTTP2/DNS/crypto 等原生入口问题; 24.5.0 早于修复版本 24.17.0/24.18.1, 本插件已开放相关模块, 不能用桥权限代替修复。 | 当前 24.5.0; 本次源码目标为 [24.20.0 LTS, 2026-08-26](https://nodejs.org/en/blog/release/v24.20.0) | M17.1 三 ABI 源码构建与 M17.2 设备晋级处理中。OpenSSL [2026-08-25 公告](https://openssl-library.org/news/secadv/20260825.txt) 的修复版本为 3.5.8; 24.20.0 官方源码 VERSION.dat 仍为 3.5.7, 因此不能将 Node 升级等同于全部 OpenSSL 公告已修复。该组涉及 OpenSSL QUIC/CMS/CMP/DTLS/RPK/EVP_Cipher 特定入口, 本次未单独证明插件可达性, 保留依赖版本受影响判断并跟踪上游集成。 |
 | 2026-09-09 | [24.21.0 LTS](https://github.com/nodejs/node/releases/tag/v24.21.0), 含 OpenSSL 3.5.8 / Undici 7.29.1 | **已本地晋级 24.21.0 / OpenSSL 3.5.8** | M17.1/M17.2 三 ABI 源码与独立复建比较、三台真机 + x86_64 AVD 及最终四包验收完成, 解除旧 Android 产物阻塞。嵌入 OpenSSL 已达到上一行公告的修复版本; 本地额外修复实证 STORE 密钥 URL 绕过文件边界。该结论针对本次已核对版本与回归, 不声明所有漏洞或所有路径均已穷尽; 对外发布待用户当次确认, 下次月度复查仍为 2026-10。 |
 | 2026-10-07 | [24.21.0 LTS](https://github.com/nodejs/node/releases/tag/v24.21.0) 仍为最新 24.x (2026-09-07 发布, 其后无新的安全公告); 26.10.0 为 Current, LTS 待定 | **24.21.0 (M23.1 重建: 移除 OpenSSL STORE 禁用补丁, `--with-intl=full-icu`)** | 无需晋级; 本次重建不含上游源码变化, 仅补丁集与 ICU 配置变化; Node 26 由 M25 跟进 |
+| 2026-10-11 | [24.21.0 LTS](https://nodejs.org/en/blog/release/v24.21.0) 仍为最新 24.x | 24.21.0 / OpenSSL 3.5.8, 未更改原生依赖 | [OpenSSL 2026-09-29 公告](https://openssl-library.org/news/vulnerabilities-3.5/) 已给出 3.5.9 修复, 包括相对 CRLDP 内存放大及通用非 NIST EC 签名时序问题. 当前 3.5.8 位于受影响版本范围; 原生 TLS/crypto 已开放, 不以宿主桥权限判定豁免. 记录 M25.1a 后续回补与三 ABI 重建, 未声明修复. [26.11.1 Current](https://nodejs.org/en/blog/release/v26.11.1) 使用 V8 14.6.202.34 / ICU 78.3 / OpenSSL 3.5.9; [官方排期](https://github.com/nodejs/Release/blob/main/schedule.json) 的 26 LTS 日期为 2026-10-28. |
 
 ## 四补. 2026-09-10 用户反馈与后续执行
 
@@ -724,7 +725,8 @@ M18.2 首轮清点 (2026-09-10): 当前 catalog 有 15 个顶层 feature, 9 stab
 
 目标: 在 Node 26 进入 LTS 后用 M17 自建管线产出 26.x libnode, 作为 2.0.0 主版本发布; 24.x 保持安全更新直至用户迁移.
 
-- [ ] **M25.1 月度复查与 24.x 收尾**: 动作: 按 M17.4 记录 2026-10 复查 (24.x 最新安全版本, 26 的 LTS 日期与 V8 / ICU / OpenSSL 版本); 24.x 若有安全发布, 合并进 M23.1 的同一次重建. Check: M17.4 表格新增一行.
+- [x] **M25.1 月度复查与 24.x 收尾**: 动作: 按 M17.4 记录 2026-10 复查 (24.x 最新安全版本, 26 的 LTS 日期与 V8 / ICU / OpenSSL 版本); 24.x 若有安全发布, 合并进 M23.1 的同一次重建. Check: M17.4 表格新增一行.
+- [ ] **M25.1a OpenSSL 3.5.9 安全回补** (2026-10-11 月度复查): 24.x 最新发布仍携带 3.5.8, 尚未集成 2026-09-29 修复. 核对 Node 24 维护分支的官方回补, 按 M17.1/M17.2 更新自建源码/补丁并重建三个 ABI, 运行 TLS/crypto 与完整设备回归后再标记修复; 不改写 1.6.0 已发布资产.
 - [ ] **M25.2 构建管线与 adapter**: 动作: ① `tools/nodejs/runtime-build` 容器按 26 的构建要求升级 (NDK / Python / clang 版本, `--with-intl=full-icu` 延续 M23.1), 核对 M21.2 的 Android stderr 直通补丁是否仍需要; ② 新增 `node_runtime_adapter_26_x.cpp` (embedder API 差异: `CreateEnvironment` / `EmbedderSnapshotData` / `node::Stop` 签名), 运行时槽位 `node26_x`, `node_runtime_api_v1.h` 按需扩展, 旧 adapter 文件不改; ③ 终端启动器资产 `build-node-cli-archive.py` 指向 26 的官方 tarball (npm / corepack 版本随之更新), `NODE_CLI_*` meta-data 同步; ④ 26 移除的弃用 API 对内嵌运行时 JS (M23 后应已很薄), 样例与 npm corpus 的影响逐项修复. Check: 三 ABI 构建; 12 冒烟组 + corpus + conformance + worker / sqlite / addon 用例全绿 (arm64 真机 + 16 KB arm64 实机 + x86_64 AVD); `process.version` 为 v26.x, `Temporal` 全局可用; M23.8 冷启动分相在 26 上复测.
 - [ ] **M25.3 2.0.0 发布与 24.x 维护策略**: 动作: 同一 APK 只含一个 libnode (体积), 26 以 2.0.0 发布, `requiresHostVersion` 按宿主契约不变; 24.x 分支 (`release/1.x`) 只接安全更新, 维护期限记回本文件; 十语言文档与 THIRD_PARTY_NOTICES 更新. Check: 对外动作逐项取得用户同意; 宿主在两版本插件下的契约测试均通过.
 
