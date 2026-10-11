@@ -1,6 +1,6 @@
 {
   "schema": "autojs6-node-capability-catalog-v1",
-  "catalogVersion": "1.6.0",
+  "catalogVersion": "1.7.0",
   "runtime": {
     "pluginId": "nodejs",
     "engine": "nodejs",
@@ -530,6 +530,16 @@
       "mode": "streaming",
       "streaming": true,
       "terminalEventCount": 1
+    },
+    "packagedApplications": {
+      "mode": "external_plugin",
+      "runtimeAction": "org.autojs.plugin.nodejs.PACKAGED_RUNTIME",
+      "permission": "org.autojs.plugin.nodejs.permission.RUNTIME",
+      "permissionProtectionLevel": "normal",
+      "admission": "contract_version",
+      "embeddedNativeRuntime": false,
+      "sharedProcessPool": true,
+      "wakeAction": "org.autojs.plugin.nodejs.PACKAGED_WAKE"
     }
   },
   "lifecycle": {

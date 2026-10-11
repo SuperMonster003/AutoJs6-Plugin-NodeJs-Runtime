@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Amelioration",
   "changelog_label_dependency": "Dependance",
   "$data": {
+    "v1.7.0": {
+      "released_date": "2026/10/11",
+      "feature": [
+        "Les projets et scripts Node.js peuvent être empaquetés en applications signées indépendamment, exécutées par le plugin externe Node.js Runtime, avec une aide à l'installation si le runtime est indisponible"
+      ]
+    },
     "v1.6.0": {
       "released_date": "2026/10/09",
       "improvement": [

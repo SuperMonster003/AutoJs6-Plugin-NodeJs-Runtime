@@ -4,6 +4,12 @@
 
 ******
 
+# v1.7.0
+
+###### 2026/10/11
+
+* `Ajout` Les projets et scripts Node.js peuvent être empaquetés en applications signées indépendamment, exécutées par le plugin externe Node.js Runtime, avec une aide à l'installation si le runtime est indisponible
+
 # v1.6.0
 
 ###### 2026/10/09

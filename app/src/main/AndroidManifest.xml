@@ -2,6 +2,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="org.autojs.permission.PLUGIN" />
+    <permission
+        android:name="org.autojs.plugin.nodejs.permission.RUNTIME"
+        android:protectionLevel="normal" />
     <!-- M2.6: raw Node network builtins (http/https/net/dns/tls) are enabled
          by default; sockets need this even for loopback. -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -77,6 +80,17 @@
             </intent-filter>
         </activity>
 
+        <activity-alias
+            android:name=".PackagedWakeActivity"
+            android:targetActivity=".WakeActivity"
+            android:exported="true"
+            android:permission="org.autojs.plugin.nodejs.permission.RUNTIME">
+            <intent-filter>
+                <action android:name="org.autojs.plugin.nodejs.PACKAGED_WAKE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+
         <meta-data
             android:name="org.autojs.plugin.info.AUTHOR"
             android:value="SuperMonster003" />
@@ -143,6 +157,17 @@
 
             <intent-filter>
                 <action android:name="org.autojs.plugin.nodejs.RUNTIME" />
+                <category android:name="nodejs" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".NodeJsPackagedRuntimePluginService"
+            android:exported="true"
+            android:process=":nodejs_runtime"
+            android:permission="org.autojs.plugin.nodejs.permission.RUNTIME">
+            <intent-filter>
+                <action android:name="org.autojs.plugin.nodejs.PACKAGED_RUNTIME" />
                 <category android:name="nodejs" />
             </intent-filter>
         </service>

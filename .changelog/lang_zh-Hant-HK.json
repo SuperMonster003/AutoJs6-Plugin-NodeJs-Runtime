@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.7.0": {
+      "released_date": "2026/10/11",
+      "feature": [
+        "Node.js 專案和指令碼可打包為獨立簽章的應用程式, 執行時呼叫外部 Node.js Runtime 插件, 插件不可用時顯示安裝指引"
+      ]
+    },
     "v1.6.0": {
       "released_date": "2026/10/09",
       "improvement": [

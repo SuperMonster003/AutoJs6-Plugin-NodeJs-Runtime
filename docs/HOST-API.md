@@ -395,3 +395,14 @@ npm 在执行中创建的 .bin 链接保持原样. 现有工作区归档协议�
 `pluginSystemProfile` 描述当前本地 JS 插件管理器及生命周期; Android provider 插件, 远程市场, 签名归档分发与更新渠道属于未规划产品方向, 不作为运行时能力字段输出. `packageIntegrityProfile` 描述现有宿主本地存储的校验与恢复流程. `rhino` 安装状态的 shadowing 为 not_installed / installed, child_process 被请求关闭时 stdin 为 denied_with_child_process. 这些标记说明实际行为, 不扩大宿主授权.
 
 样例状态仅使用 stable 与 host_provider_required. 后者说明需要真实宿主 provider 和相应 Android 权限, 不表示样例 API 未完成. 旧 Phase 14/15 声明矩阵保留在类型目录 history 下, 仅供旧代码类型兼容, 不代表当前能力. Node 自身的 ExperimentalWarning 和上游 VM Modules 状态不属于插件的暂定标记.
+
+
+### 打包应用调用外部 Node 运行时 (1.7.0 开发版, M24)
+
+Node 项目和带有 `"nodejs";` 入口的脚本通过配套宿主与 APK Builder Template 打包. 生成的应用不嵌入 libnode, 设备需要安装 Node.js Runtime 插件. 项目使用 Node 时, 打包界面的 Node.js Runtime 依赖会自动选中且不可取消; 旧 Embedded Node.js 配置继续提示迁移.
+
+独立签名应用声明普通权限 `org.autojs.plugin.nodejs.permission.RUNTIME`, 使用 `org.autojs.plugin.nodejs.PACKAGED_RUNTIME` 服务动作. `PACKAGED_WAKE` 无界面激活入口供用户启动的应用激活尚未运行的插件. 这些入口共享既有运行时进程池, AIDL 事务保持不变. 原 INFO / RUNTIME / WAKE 入口保留原有 `org.autojs.permission.PLUGIN` 契约.
+
+任何声明专用普通权限的应用均可使用新入口. Node 代码以运行时插件的 UID 执行, Android 能力桥在生成应用自己的 UID 下运行, 仍需要该应用的能力声明和 Android 授权. 独立应用按运行时协议版本协商, 不把应用自身的 versionCode 与 AutoJs6 宿主版本号比较. 插件不可用时, 交互式启动会显示下载引导.
+
+需要包含本项实现的宿主和 Runtime Kit, 以及配套 APK Builder Template. 当前公共发行版仍为 1.6.0; 1.7.0, nodejs-api 1.8.0 和相关宿主改动尚未对外发布. TypeScript 仍需 Compiler 产出的 JavaScript, 不在 Node 插件内直接编译.

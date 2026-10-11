@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Mejora",
   "changelog_label_dependency": "Dependencia",
   "$data": {
+    "v1.7.0": {
+      "released_date": "2026/10/11",
+      "feature": [
+        "Los proyectos y scripts Node.js se empaquetan como aplicaciones con firma independiente, usan el plugin externo Node.js Runtime y muestran instrucciones de instalación cuando no está disponible"
+      ]
+    },
     "v1.6.0": {
       "released_date": "2026/10/09",
       "improvement": [

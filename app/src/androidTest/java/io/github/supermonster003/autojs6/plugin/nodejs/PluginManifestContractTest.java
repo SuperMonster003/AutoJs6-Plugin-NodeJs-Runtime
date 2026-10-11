@@ -129,6 +129,27 @@ public final class PluginManifestContractTest {
         assertTrue("no runtime ABI is packaged", packagedAbis > 0);
     }
 
+    @Test
+    public void packagedRuntimeUsesItsOwnNormalPermission() throws Exception {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        PackageManager pm = context.getPackageManager();
+        String permission = "org.autojs.plugin.nodejs.permission.RUNTIME";
+        assertEquals(android.content.pm.PermissionInfo.PROTECTION_NORMAL,
+                pm.getPermissionInfo(permission, 0).protectionLevel & android.content.pm.PermissionInfo.PROTECTION_MASK_BASE);
+        List<ResolveInfo> matches = pm.queryIntentServices(new Intent("org.autojs.plugin.nodejs.PACKAGED_RUNTIME")
+                .addCategory("nodejs").setPackage(context.getPackageName()), 0);
+        assertEquals(1, matches.size());
+        ServiceInfo service = matches.get(0).serviceInfo;
+        assertTrue(service.exported);
+        assertEquals(permission, service.permission);
+        assertEquals(context.getPackageName() + ":nodejs_runtime", service.processName);
+        ActivityInfo wake = pm.getActivityInfo(new ComponentName(context.getPackageName(),
+                context.getPackageName() + ".PackagedWakeActivity"), 0);
+        assertTrue(wake.exported);
+        assertEquals(permission, wake.permission);
+        assertEquals(context.getPackageName() + ".WakeActivity", wake.targetActivity);
+    }
+
     /** Inspect the installed artifact independently of the app's minified ABI helper. */
     static java.util.Set<String> packagedRuntimeAbis(Context context) throws Exception {
         java.util.Set<String> abis = new java.util.HashSet<>();

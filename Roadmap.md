@@ -705,8 +705,14 @@ M18.2 首轮清点 (2026-09-10): 当前 catalog 有 15 个顶层 feature, 9 stab
 
 目标: 宿主 "打包应用" 对 `project.json` type=node 或首行 `"nodejs";` 的项目可直接生成 APK, 生成的应用在装有本插件的设备上运行 Node 脚本, 与 OpenCV 等插件依赖的使用方式一致.
 
-- [ ] **M24.1 宿主打包器接入** (宿主仓): 事实: 见四次勘察 7. 动作: ① `ApkBuildLibraryCatalog` 新增 `NODEJS_RUNTIME` 条目, `plugin = ApkPluginLibrary(action = NodeJsRuntimeContract.ACTION_RUNTIME, ...)`, 项目为 Node 类型时自动勾选且不可取消; `EMBEDDED_NODE_JS` 的迁移错误条目保留给旧配置; ② 打包应用运行时复用宿主的 `NodeJsRuntimePluginBridge` / 工作区传输 (direct-run 或归档, 脚本位于打包应用私有目录), 缺插件时走与 OpenCV 相同的 "请安装 AutoJs6 Node.js Runtime" 引导; ③ `RemoteEmbeddedNodePackagingGateDeviceTest` 改为正向用例. Check: 打包一个 `"nodejs";` 脚本 APK, 装有插件的 arm64 真机运行并输出; 未装插件时出现引导而非崩溃; 宿主仓独立提交并记回提交号.
-- [ ] **M24.2 插件侧调用方准入** (本仓): 事实: RUNTIME 服务要求 `org.autojs.permission.PLUGIN`; 打包应用与宿主签名不同. 动作: ① 核对该权限的 protectionLevel, 若为 signature 级则改为 normal 并在 PluginInfo / HOST-API 记录 "任何声明该权限的应用可调用, 安全由 Android 权限模型与用户安装决策裁决" (用户方向), 或保留 signature 并由插件设置页维护 "允许的调用方" 列表 — 一次性决策记回本文件; ② 打包应用的 `requiresHostVersion` 校验改为按契约版本而非宿主包名. Check: 打包应用 (非宿主签名) 绑定 RUNTIME 成功并跑通 `SimpleRunSmokeTest` 同等脚本; `PluginManifestContractTest` 更新通过.
+- [x] **M24.1 宿主打包器接入** (宿主仓): 事实: 见四次勘察 7. 动作: ① `ApkBuildLibraryCatalog` 新增 `NODEJS_RUNTIME` 条目, `plugin = ApkPluginLibrary(action = NodeJsRuntimeContract.ACTION_RUNTIME, ...)`, 项目为 Node 类型时自动勾选且不可取消; `EMBEDDED_NODE_JS` 的迁移错误条目保留给旧配置; ② 打包应用运行时复用宿主的 `NodeJsRuntimePluginBridge` / 工作区传输 (direct-run 或归档, 脚本位于打包应用私有目录), 缺插件时走与 OpenCV 相同的 "请安装 AutoJs6 Node.js Runtime" 引导; ③ `RemoteEmbeddedNodePackagingGateDeviceTest` 改为正向用例. Check: 打包一个 `"nodejs";` 脚本 APK, 装有插件的 arm64 真机运行并输出; 未装插件时出现引导而非崩溃; 宿主仓独立提交并记回提交号.
+- [x] **M24.2 插件侧调用方准入** (本仓): 事实: RUNTIME 服务要求 `org.autojs.permission.PLUGIN`; 打包应用与宿主签名不同. 动作: ① 核对该权限的 protectionLevel, 若为 signature 级则改为 normal 并在 PluginInfo / HOST-API 记录 "任何声明该权限的应用可调用, 安全由 Android 权限模型与用户安装决策裁决" (用户方向), 或保留 signature 并由插件设置页维护 "允许的调用方" 列表 — 一次性决策记回本文件; ② 打包应用的 `requiresHostVersion` 校验改为按契约版本而非宿主包名. Check: 打包应用 (非宿主签名) 绑定 RUNTIME 成功并跑通 `SimpleRunSmokeTest` 同等脚本; `PluginManifestContractTest` 更新通过.
+
+  - 2026-10-11 实施决策: APK Builder 已迁出宿主, 本项同步宿主, Node 插件和 APK Builder Template 三仓. `org.autojs.permission.PLUGIN` 为多个插件共用的 signature 权限; Node 另设 `org.autojs.plugin.nodejs.permission.RUNTIME` 普通权限, 提供 PACKAGED_RUNTIME 和 PACKAGED_WAKE 入口, 不改动其他插件的权限定义. 新入口委托原 RUNTIME, 共享一个进程池; 原签名入口继续兼容宿主. 打包端保留旧 Embedded Node.js 名称的迁移提示, Node 项目与脚本改为外部运行时依赖. 已完成下述设备验收.
+
+  - 2026-10-11 M24 收账 (本地开发版): 宿主提交 `03b37ef76a`, Android versionCode 5329 (Git 清理后以 VERSION_BUILD 3677 + VERSION_CODE_OFFSET 1652 接续已安装版本); APK Builder Template 提交 `6a69981`, 1.1.0 / build 72, 配套 5329 Runtime Kit; Node 插件 1.7.0 / build 244, nodejs-api 1.8.0 本地快照. AIDL 事务不变, 原 INFO/RUNTIME/WAKE 和公共 signature 权限保持兼容. 新增正常权限的 PACKAGED_RUNTIME 委托入口与 PACKAGED_WAKE 无界面别名, 交互式启动激活 stopped 插件, 两条服务入口共享既有进程池. 缺插件提示使用当前 Activity, 包含 Download / Exit 操作.
+  - 验收: 真实 APK Builder 分别生成项目 APK 和 `"nodejs";` 单文件 APK, 确认生成应用签名与宿主/插件不同, 不含 libnode.so. 一加 OPD2413 (API 35 / ARM64 / 4 KB) 和 API 37 x86_64 / 16 KB AVD 均由生成应用调用外部 Node 24.21.0, 结果为 42, device.info.host.packageName 为生成应用自身包名. 强制停止运行时后重新启动应用可自动激活并运行. 单文件入口也通过; 打包界面 Node 依赖自动勾选且不可取消. AVD 新建的无 Node 插件用户验证安装引导和 Download / Exit 按钮, 测试用户已删除并恢复 Owner. 小米本轮 ADB 连接不稳定后改用一加完成最终运行验收.
+  - 验证: Node JVM 96/96, API 13/13, Builder JVM 38/38, 宿主策略 3/3, 打包/界面设备组 3/3; Node 混淆 Release 全部 SmokeTest + conformance + Manifest/Info 在 ARM64 与 16 KB x86_64 各 109/109. 55 示例, TypeScript 声明, SDK publication 和宿主镜像检查通过; 四个本地签名 Release APK 的 Runtime Kit 字节及摘要匹配. 记录与生成样例 APK 位于 `.bak/m24-20261011/`. 本批新版本及宿主/Builder 提交未对外发布.
 
 ### 跨仓待办: ABI 信息自动维护 (2026-10-07 记录并实施, 不属于本仓运行时范围)
 
@@ -760,3 +766,5 @@ M18.2 首轮清点 (2026-09-10): 当前 catalog 有 15 个顶层 feature, 9 stab
       3/3 真机验收: 运行期 `.mts` 成功执行, TS2322 返回稳定可读诊断, 动态异常栈回映到
       `late-stack.mts:3` 且不含 `.mjs` 帧。runtime contract 仍为 2, AIDL transaction 与
       workspace schema 均未改变。
+
+2026-10-11 发布 CI 补记: v1.6.0 的官方索引 CI, Markdown 和 Icon Studio 检查通过. GitHub Android 工作流在依赖解析阶段报告找不到 Kotlin 2.3.20 (stdlib/BOM), 本地公开 Maven 地址 HTTP 200; 普通重跑及清理该仓 Gradle 依赖缓存后重跑仍未恢复. 本地签名构建与设备结果独立有效, 不将远端 CI 标成通过. 运行记录: https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/actions/runs/38124383040 .

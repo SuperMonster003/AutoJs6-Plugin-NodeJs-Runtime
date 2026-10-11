@@ -1,6 +1,6 @@
 # AutoJs6 Node TypeScript Declarations
 
-Last reviewed: 2026-10-09, runtime plugin 1.6.0.
+Last reviewed: 2026-10-09, runtime plugin 1.7.0 development version.
 
 This directory describes AutoJs6 runtime modules, host bridge APIs and request
 metadata. Include `index.d.ts` from your TypeScript project as demonstrated by
@@ -19,8 +19,8 @@ Node builtins use Node's native implementations. Filesystem access, sockets,
 SQLite, native addons and process operations run under the plugin's Android UID.
 Host bridge calls separately require a real provider, declared capabilities and
 any Android permissions or user consent required by that provider. A type
-annotation does not grant authority. Exported APK support is tracked by M24 and
-is not supplied by this release.
+annotation does not grant authority. M24 packaged clients use the normal-permission runtime entry and require a
+matching host/Builder template plus an installed Node runtime.
 
 ## Runtime and host modules
 

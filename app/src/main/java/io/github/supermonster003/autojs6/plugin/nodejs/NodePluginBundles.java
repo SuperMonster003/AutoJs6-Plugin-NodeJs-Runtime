@@ -6,6 +6,8 @@ import android.util.Log;
 
 import org.autojs.plugin.nodejs.api.INodeJsHostCapabilityBroker;
 import org.autojs.plugin.nodejs.api.NodeJsPluginIds;
+import org.autojs.plugin.nodejs.api.NodeJsPluginActions;
+import org.autojs.plugin.nodejs.api.NodeJsPluginCapabilityKeys;
 import org.autojs.plugin.nodejs.api.NodeJsRuntimeContract;
 
 import java.util.LinkedHashMap;
@@ -56,6 +58,8 @@ final class NodePluginBundles {
         info.putInt(NodeJsRuntimeContract.KEY_MODULE_SOURCE_PROVIDER_VERSION, NodeJsRuntimeContract.MODULE_SOURCE_PROVIDER_CONTRACT_VERSION);
         info.putStringArray(NodeJsRuntimeContract.KEY_CAPABILITIES, NodeJsRuntimePluginService.CAPABILITIES.clone());
         putNodeCliFacts(info);
+        info.putString(NodeJsPluginCapabilityKeys.PACKAGED_RUNTIME_SERVICE_ACTION, NodeJsPluginActions.PACKAGED_RUNTIME);
+        info.putString(NodeJsPluginCapabilityKeys.PACKAGED_RUNTIME_PERMISSION, NodeJsPluginActions.PACKAGED_RUNTIME_PERMISSION);
         info.putString(NodeJsRuntimePluginService.KEY_NODE_CAPABILITY_CATALOG_SCHEMA, NodeJsRuntimePluginService.NODE_CAPABILITY_CATALOG_SCHEMA);
         info.putString(NodeJsRuntimePluginService.KEY_NODE_CAPABILITY_CATALOG_VERSION, NodeJsRuntimePluginService.NODE_CAPABILITY_CATALOG_VERSION);
         info.putString(NodeJsRuntimePluginService.KEY_NODE_CAPABILITY_CATALOG_SHA256, NodeJsRuntimePluginService.NODE_CAPABILITY_CATALOG_SHA256);

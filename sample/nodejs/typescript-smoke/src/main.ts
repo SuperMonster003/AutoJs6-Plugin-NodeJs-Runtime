@@ -830,8 +830,8 @@ async function smoke(): Promise<void> {
   const packageManagerRequiredProfile: AutoJs6Node.ProfileRequiredFor<"package_manager"> = "desktop_compat_opt_in";
   const packageManagerSafeMode: AutoJs6Node.SafeDefaultModeFor<"package_manager"> = "available";
   const packageManagerTargetMode: AutoJs6Node.TargetProfileModeFor<"package_manager"> = "available";
-  const packageManagerPackagedBehavior: AutoJs6Node.PackagedBehaviorFor<"package_manager"> = "not_applicable_no_packaged_runtime";
-  const autojsJavaPackagedBehavior: AutoJs6Node.PackagedBehaviorFor<"$autojs.java"> = "not_applicable_no_packaged_runtime";
+  const packageManagerPackagedBehavior: AutoJs6Node.PackagedBehaviorFor<"package_manager"> = "external_runtime_required";
+  const autojsJavaPackagedBehavior: AutoJs6Node.PackagedBehaviorFor<"$autojs.java"> = "external_runtime_required";
   const npmPureJsSafeMode: AutoJs6Node.SafeDefaultModeFor<"npm.pure_js"> = "available";
   const workerRequiresDeclaration: AutoJs6Node.ProfileModuleRequiresDeclaration<"worker_threads"> = false;
   const toastRequiresDeclaration: AutoJs6Node.ProfileModuleRequiresDeclaration<"toast"> = false;

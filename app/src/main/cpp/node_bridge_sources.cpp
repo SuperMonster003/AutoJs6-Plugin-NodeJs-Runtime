@@ -3413,7 +3413,7 @@ std::string buildEmbeddedScriptExecutionSource(
         buildOnly: false,
         debugOnly: false,
         projectAllowed: false,
-        packagedAllowed: false,
+        packagedAllowed: true,
         releaseForbidden: false,
         securityLevel: "medium",
         status: "stable"
@@ -3430,7 +3430,7 @@ std::string buildEmbeddedScriptExecutionSource(
         buildOnly: false,
         debugOnly: false,
         projectAllowed: false,
-        packagedAllowed: false,
+        packagedAllowed: true,
         releaseForbidden: false,
         securityLevel: "medium",
         status: "stable"
@@ -3447,7 +3447,7 @@ std::string buildEmbeddedScriptExecutionSource(
         buildOnly: false,
         debugOnly: false,
         projectAllowed: false,
-        packagedAllowed: false,
+        packagedAllowed: true,
         releaseForbidden: false,
         securityLevel: "high",
         status: "stable"
@@ -3464,7 +3464,7 @@ std::string buildEmbeddedScriptExecutionSource(
         buildOnly: false,
         debugOnly: false,
         projectAllowed: false,
-        packagedAllowed: false,
+        packagedAllowed: true,
         releaseForbidden: false,
         securityLevel: "high",
         status: "stable"
@@ -3481,7 +3481,7 @@ std::string buildEmbeddedScriptExecutionSource(
         buildOnly: false,
         debugOnly: false,
         projectAllowed: false,
-        packagedAllowed: false,
+        packagedAllowed: true,
         releaseForbidden: false,
         securityLevel: "high",
         status: "stable"
@@ -3498,7 +3498,7 @@ std::string buildEmbeddedScriptExecutionSource(
         buildOnly: false,
         debugOnly: false,
         projectAllowed: false,
-        packagedAllowed: false,
+        packagedAllowed: true,
         releaseForbidden: false,
         securityLevel: "high",
         status: "stable"
@@ -3515,7 +3515,7 @@ std::string buildEmbeddedScriptExecutionSource(
         buildOnly: false,
         debugOnly: false,
         projectAllowed: false,
-        packagedAllowed: false,
+        packagedAllowed: true,
         releaseForbidden: false,
         securityLevel: "medium",
         status: "stable"
@@ -3532,7 +3532,7 @@ std::string buildEmbeddedScriptExecutionSource(
         buildOnly: false,
         debugOnly: false,
         projectAllowed: false,
-        packagedAllowed: false,
+        packagedAllowed: true,
         releaseForbidden: false,
         securityLevel: "medium",
         status: "stable"
@@ -3549,7 +3549,7 @@ std::string buildEmbeddedScriptExecutionSource(
         buildOnly: false,
         debugOnly: false,
         projectAllowed: false,
-        packagedAllowed: false,
+        packagedAllowed: true,
         releaseForbidden: false,
         securityLevel: "high",
         status: "stable"
@@ -3566,7 +3566,7 @@ std::string buildEmbeddedScriptExecutionSource(
         buildOnly: false,
         debugOnly: false,
         projectAllowed: true,
-        packagedAllowed: false,
+        packagedAllowed: true,
         releaseForbidden: false,
         securityLevel: "high",
         status: "available"
@@ -3583,7 +3583,7 @@ std::string buildEmbeddedScriptExecutionSource(
         buildOnly: false,
         debugOnly: false,
         projectAllowed: false,
-        packagedAllowed: false,
+        packagedAllowed: true,
         releaseForbidden: false,
         securityLevel: "critical",
         status: "stable"
@@ -3600,7 +3600,7 @@ std::string buildEmbeddedScriptExecutionSource(
         buildOnly: false,
         debugOnly: false,
         projectAllowed: true,
-        packagedAllowed: false,
+        packagedAllowed: true,
         releaseForbidden: false,
         securityLevel: "critical",
         status: "available"
@@ -3617,7 +3617,7 @@ std::string buildEmbeddedScriptExecutionSource(
         buildOnly: false,
         debugOnly: false,
         projectAllowed: false,
-        packagedAllowed: false,
+        packagedAllowed: true,
         releaseForbidden: false,
         securityLevel: "high",
         status: "stable"
@@ -3740,7 +3740,7 @@ std::string buildEmbeddedScriptExecutionSource(
         jsBridge: "host_store_mutations",
         requirePackageManager: "available",
         diagnosticFacade: "available",
-        packagedBehavior: "not_applicable_no_packaged_runtime",
+        packagedBehavior: "external_runtime_required",
         androidNetwork: "npm_default",
         rawExecutables: true,
         rawRegistryAccess: true
@@ -3790,7 +3790,7 @@ std::string buildEmbeddedScriptExecutionSource(
         resourceLimits: "node_runtime_and_android_process_limits",
         npmCorpus: "real_npm_21_package_corpus",
         desktopDifferential: "documented_android_differences",
-        packagedBehavior: "not_applicable_no_packaged_runtime",
+        packagedBehavior: "external_runtime_required",
         rawDesktopParity: false,
         rawNativeHandles: false,
         unrestrictedNetwork: false,
@@ -3831,7 +3831,7 @@ std::string buildEmbeddedScriptExecutionSource(
         androidUnsupported: Object.freeze([
           "native_process_exit"
         ]),
-        packagedBehavior: "not_applicable_no_packaged_runtime",
+        packagedBehavior: "external_runtime_required",
         rawDesktopParity: false,
         rawEnvInheritance: false,
         rawSignals: true,
@@ -3961,7 +3961,7 @@ std::string buildEmbeddedScriptExecutionSource(
           realpath: "native",
           recursiveWatch: "native",
           closeOnDestroy: "execution_owned",
-          packagedBehavior: "not_applicable_no_packaged_runtime",
+          packagedBehavior: "external_runtime_required",
           rawFd: false
         }),
         limits: Object.freeze({
@@ -4042,7 +4042,7 @@ std::string buildEmbeddedScriptExecutionSource(
         adbForwarding: "required_for_desktop_client",
         explicitUserAction: "required_per_execution",
         releaseBuild: "explicit_request",
-        packagedBehavior: "not_applicable_no_packaged_runtime",
+        packagedBehavior: "external_runtime_required",
         portBinding: __autojs6_inspector_enabled ? "127.0.0.1_only" : "denied",
         remoteConnections: "denied",
         bridgeModules: "denied",
@@ -4073,7 +4073,7 @@ std::string buildEmbeddedScriptExecutionSource(
         processExit: "denied",
         symlinkEscape: "must_deny",
         workerIntegration: "not_planned",
-        packagedBehavior: "not_applicable_no_packaged_runtime",
+        packagedBehavior: "external_runtime_required",
         rawHostPaths: false,
         rawFdNumbers: false
       }),
@@ -4091,7 +4091,7 @@ std::string buildEmbeddedScriptExecutionSource(
         dependencyResolution: "android_dynamic_linker",
         pageAlignmentBytes: 16384,
         crashIsolation: "runtime_process",
-        packagedBehavior: "not_applicable_no_packaged_runtime",
+        packagedBehavior: "external_runtime_required",
         jniBridge: "addon_owned",
         rawDlopen: "native",
         nativeMemoryAccess: "addon_owned",

@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.7.0": {
+      "released_date": "2026/10/11",
+      "feature": [
+        "Проекты и скрипты Node.js можно упаковывать в приложения с независимой подписью, использующие внешний плагин Node.js Runtime; если он недоступен, показывается инструкция по установке"
+      ]
+    },
     "v1.6.0": {
       "released_date": "2026/10/09",
       "improvement": [

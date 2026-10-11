@@ -119,6 +119,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.7.0
+
+###### 2026/10/11
+
+* `Nuevo` Los proyectos y scripts Node.js se empaquetan como aplicaciones con firma independiente, usan el plugin externo Node.js Runtime y muestran instrucciones de instalación cuando no está disponible
+
 # v1.6.0
 
 ###### 2026/10/09
@@ -149,14 +155,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 * `Mejora` Los iconos del centro de plugins usan los tamaños, posiciones, imágenes claras y oscuras y fondos circulares ajustados en Icon Studio, conservando fuentes y parámetros reproducibles
 * `Mejora` Los iconos de información de la aplicación de Android comparten las imágenes y los fondos claros y oscuros de Icon Studio, conservando las imágenes transparentes del centro de plugins y las opciones del lanzador
-
-# v1.5.6
-
-###### 2026/09/19
-
-* `Nuevo` Un error fatal de Node.js en una ranura del runtime (heap de JavaScript agotado, comprobación interna fallida) ahora deja el informe de diagnóstico propio de Node en la caché del plugin (crash/<executionId>.json, escrito antes del abort; no se instala ningún manejador de señales): el resultado de fallo lleva su evento, cifras del heap, pila JS y ruta en slotExit.crash y en el mensaje de error (por ejemplo CRASH_NATIVE (SIGABRT; see the logcat tombstone; Node.js fatal error: Allocation failed - JavaScript heap out of memory; JS heap 61.9 MB used of 64.0 MB limit; report .../crash/<executionId>.json)), y getRuntimeInfo expone el informe más reciente como lastCrash incluso tras reiniciar el despachador; la nueva opción de solicitud maxOldGenerationSizeMb limita el heap JS de una ejecución (generación vieja de V8, en MB), que es también como la prueba de regresión reproduce el fallo
-* `Correccion` Se corrigió la muerte de la ranura del runtime por agotamiento del heap de V8 (informado como CRASH_NATIVE / SIGABRT) al hacer require de un módulo CommonJS grande: el enmascarado de comentarios y cadenas del cargador concatenaba carácter a carácter, por lo que un módulo de 22 MiB necesitaba unos 700 MB de heap; ahora emite tramos con el mismo resultado (unos 44 MB) y los escaneos de import / export de CommonJS saltan entre candidatos en lugar de comprobar cada carácter
-* `Correccion` Advertencias de lectura de SDK XML v4 con AGP 9.1 y comprobaciones de alineación nativa de APK activadas por error al ensamblar pruebas unitarias JVM, mediante los plugins de compilación compartidos 1.8.3
 
 ##### Para mas historial de versiones
 

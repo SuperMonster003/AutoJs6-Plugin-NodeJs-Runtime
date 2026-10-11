@@ -119,6 +119,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.7.0
+
+###### 2026/10/11
+
+* `新增` Node.js 專案和指令碼可打包為獨立簽章的應用程式, 執行時呼叫外部 Node.js Runtime 外掛程式, 外掛程式不可用時顯示安裝指引
+
 # v1.6.0
 
 ###### 2026/10/09
@@ -149,14 +155,6 @@ console.log("AutoJs6 Node.js runtime");
 
 * `優化` 外掛程式中心圖示採用統一工作台調整後的尺寸, 位置, 明暗圖稿與圓形底色, 保留可重建原稿和參數
 * `優化` Android 系統應用程式資訊圖示與圖示工作台共用圖稿及明暗底色, 保留外掛程式中心透明圖稿與現有啟動器選項
-
-# v1.5.6
-
-###### 2026/09/19
-
-* `新增` 執行階段槽處理程序發生 Node.js 致命錯誤 (JavaScript 堆積記憶體耗盡、內部檢查失敗) 時, 現在會在外掛快取目錄留下 Node 自帶的診斷報告 (crash/<executionId>.json, 於中止前寫出, 不安裝訊號處理器): 失敗結果在 slotExit.crash 與錯誤訊息中帶上事件、堆積用量、JS 堆疊與報告路徑 (例如 CRASH_NATIVE (SIGABRT; see the logcat tombstone; Node.js fatal error: Allocation failed - JavaScript heap out of memory; JS heap 61.9 MB used of 64.0 MB limit; report .../crash/<executionId>.json)), getRuntimeInfo 以 lastCrash 公開最新報告 (排程處理程序重啟後仍可讀); 新增請求選項 maxOldGenerationSizeMb 為單次執行設定 JS 堆積上限 (V8 老生代, 單位 MB), 回歸測試也藉此重現該當機
-* `修復` 修正 require 大型 CommonJS 模組時執行階段槽處理程序因 V8 堆積記憶體耗盡而中止 (回報為 CRASH_NATIVE / SIGABRT) 的問題: 載入器的註解與字串遮罩逐字元串接, 22 MiB 模組需要約 700 MB 堆積記憶體; 現改為按連續區段輸出 (結果相同, 約 44 MB), CommonJS 的 import / export 掃描也改為在候選位置間跳轉而非逐字元檢測
-* `修復` AGP 9.1 建置時的 SDK XML v4 解析警告及 JVM 單元測試組裝工作誤觸發 APK 原生程式庫對齊檢查的問題 (共用建置外掛 1.8.3)
 
 ##### 更多發行歷史可參閱
 

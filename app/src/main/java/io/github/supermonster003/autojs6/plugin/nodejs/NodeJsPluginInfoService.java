@@ -45,6 +45,8 @@ public class NodeJsPluginInfoService extends Service {
             capabilities.putString("nodeRuntimeKitSha256", BuildConfig.NODE_PLUGIN_RUNTIME_KIT_SHA256);
             capabilities.putString("nodeRuntimeKitId", BuildConfig.NODE_PLUGIN_RUNTIME_KIT_ID);
             NodePluginBundles.putNodeCliFacts(capabilities);
+            capabilities.putString(NodeJsPluginCapabilityKeys.PACKAGED_RUNTIME_SERVICE_ACTION, NodeJsPluginActions.PACKAGED_RUNTIME);
+            capabilities.putString(NodeJsPluginCapabilityKeys.PACKAGED_RUNTIME_PERMISSION, NodeJsPluginActions.PACKAGED_RUNTIME_PERMISSION);
 
             return new PluginInfo(
                     getString(R.string.app_name),

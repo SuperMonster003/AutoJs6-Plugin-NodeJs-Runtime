@@ -20,7 +20,7 @@ declare namespace AutoJs6Node {
   export type ProfilePackagedBehavior =
     | "supported"
     | "host_provider_required"
-    | "not_applicable_no_packaged_runtime"
+    | "external_runtime_required"
 
     | "metadata_only"
     | "gated"
@@ -47,31 +47,31 @@ declare namespace AutoJs6Node {
    *
    * This catalog is declaration-only. Legacy profile names do not change runtime
    * access. Host providers and request switches determine callable operations;
-   * the metadata grants no authority and packaged runtime support is unavailable.
+   * the metadata grants no authority and packaged clients require the external runtime plugin.
    */
   export interface ProfileModuleCatalog {
-    readonly "toast": ProfileModuleSpec<"toast", "safe_default", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "app": ProfileModuleSpec<"app", "safe_default", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "accessibility": ProfileModuleSpec<"accessibility", "pro_compat_opt_in", "host_provider_required", "host_provider_required", "not_applicable_no_packaged_runtime">;
-    readonly "image": ProfileModuleSpec<"image", "pro_compat_opt_in", "host_provider_required", "host_provider_required", "not_applicable_no_packaged_runtime">;
-    readonly "ocr": ProfileModuleSpec<"ocr", "pro_compat_opt_in", "host_provider_required", "host_provider_required", "not_applicable_no_packaged_runtime">;
-    readonly "ui": ProfileModuleSpec<"ui", "pro_compat_opt_in", "host_provider_required", "host_provider_required", "not_applicable_no_packaged_runtime">;
-    readonly "ui.overlay": ProfileModuleSpec<"ui.overlay", "pro_compat_opt_in", "host_provider_required", "host_provider_required", "not_applicable_no_packaged_runtime">;
-    readonly "work_manager": ProfileModuleSpec<"work_manager", "pro_compat_opt_in", "host_provider_required", "host_provider_required", "not_applicable_no_packaged_runtime">;
-    readonly "java": ProfileModuleSpec<"java", "pro_compat_opt_in", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "$autojs.java": ProfileModuleSpec<"$autojs.java", "pro_compat_opt_in", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "rhino.install": ProfileModuleSpec<"rhino.install", "pro_compat_opt_in", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "esm": ProfileModuleSpec<"esm", "desktop_compat_opt_in", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "worker_threads": ProfileModuleSpec<"worker_threads", "desktop_compat_opt_in", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "child_process": ProfileModuleSpec<"child_process", "desktop_compat_opt_in", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "http": ProfileModuleSpec<"http", "desktop_compat_opt_in", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "https": ProfileModuleSpec<"https", "desktop_compat_opt_in", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "raw_network": ProfileModuleSpec<"raw_network", "desktop_compat_opt_in", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "fs.advanced": ProfileModuleSpec<"fs.advanced", "desktop_compat_opt_in", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "wasi": ProfileModuleSpec<"wasi", "desktop_compat_opt_in", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "inspector": ProfileModuleSpec<"inspector", "safe_default", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "package_manager": ProfileModuleSpec<"package_manager", "desktop_compat_opt_in", "available", "available", "not_applicable_no_packaged_runtime">;
-    readonly "npm.pure_js": ProfileModuleSpec<"npm.pure_js", "desktop_compat_opt_in", "available", "available", "not_applicable_no_packaged_runtime">;
+    readonly "toast": ProfileModuleSpec<"toast", "safe_default", "available", "available", "external_runtime_required">;
+    readonly "app": ProfileModuleSpec<"app", "safe_default", "available", "available", "external_runtime_required">;
+    readonly "accessibility": ProfileModuleSpec<"accessibility", "pro_compat_opt_in", "host_provider_required", "host_provider_required", "external_runtime_required">;
+    readonly "image": ProfileModuleSpec<"image", "pro_compat_opt_in", "host_provider_required", "host_provider_required", "external_runtime_required">;
+    readonly "ocr": ProfileModuleSpec<"ocr", "pro_compat_opt_in", "host_provider_required", "host_provider_required", "external_runtime_required">;
+    readonly "ui": ProfileModuleSpec<"ui", "pro_compat_opt_in", "host_provider_required", "host_provider_required", "external_runtime_required">;
+    readonly "ui.overlay": ProfileModuleSpec<"ui.overlay", "pro_compat_opt_in", "host_provider_required", "host_provider_required", "external_runtime_required">;
+    readonly "work_manager": ProfileModuleSpec<"work_manager", "pro_compat_opt_in", "host_provider_required", "host_provider_required", "external_runtime_required">;
+    readonly "java": ProfileModuleSpec<"java", "pro_compat_opt_in", "available", "available", "external_runtime_required">;
+    readonly "$autojs.java": ProfileModuleSpec<"$autojs.java", "pro_compat_opt_in", "available", "available", "external_runtime_required">;
+    readonly "rhino.install": ProfileModuleSpec<"rhino.install", "pro_compat_opt_in", "available", "available", "external_runtime_required">;
+    readonly "esm": ProfileModuleSpec<"esm", "desktop_compat_opt_in", "available", "available", "external_runtime_required">;
+    readonly "worker_threads": ProfileModuleSpec<"worker_threads", "desktop_compat_opt_in", "available", "available", "external_runtime_required">;
+    readonly "child_process": ProfileModuleSpec<"child_process", "desktop_compat_opt_in", "available", "available", "external_runtime_required">;
+    readonly "http": ProfileModuleSpec<"http", "desktop_compat_opt_in", "available", "available", "external_runtime_required">;
+    readonly "https": ProfileModuleSpec<"https", "desktop_compat_opt_in", "available", "available", "external_runtime_required">;
+    readonly "raw_network": ProfileModuleSpec<"raw_network", "desktop_compat_opt_in", "available", "available", "external_runtime_required">;
+    readonly "fs.advanced": ProfileModuleSpec<"fs.advanced", "desktop_compat_opt_in", "available", "available", "external_runtime_required">;
+    readonly "wasi": ProfileModuleSpec<"wasi", "desktop_compat_opt_in", "available", "available", "external_runtime_required">;
+    readonly "inspector": ProfileModuleSpec<"inspector", "safe_default", "available", "available", "external_runtime_required">;
+    readonly "package_manager": ProfileModuleSpec<"package_manager", "desktop_compat_opt_in", "available", "available", "external_runtime_required">;
+    readonly "npm.pure_js": ProfileModuleSpec<"npm.pure_js", "desktop_compat_opt_in", "available", "available", "external_runtime_required">;
   }
 
   export type ProfileModuleName = keyof ProfileModuleCatalog;

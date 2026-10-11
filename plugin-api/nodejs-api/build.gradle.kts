@@ -16,7 +16,7 @@ plugins {
 }
 
 group = "org.autojs.plugin.nodejs"
-version = "1.7.0"
+version = "1.8.0"
 
 android {
     namespace = "org.autojs.plugin.nodejs.api"

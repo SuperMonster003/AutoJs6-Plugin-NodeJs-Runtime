@@ -9,8 +9,8 @@ message, request ID, and execution ID when reporting a failure.
 
 ## Host Routing and Plugin Availability
 
-- **ERR_AUTOJS6_NODE_DISABLED**: this packaged Inrt application does not support the
-  external Node.js runtime plugin.
+- **ERR_AUTOJS6_NODE_DISABLED**: an older Inrt template disables the external
+  runtime. M24 templates use the plugin and show installation guidance when missing.
 - **ERR_AUTOJS6_NODE_RUNTIME_UNAVAILABLE**: no usable runtime path exists.
 - **ERR_AUTOJS6_NODE_PLUGIN_UNAVAILABLE**: the required plugin cannot be discovered,
   trusted, enabled, bound, or used for the device ABI. It is also the code when a

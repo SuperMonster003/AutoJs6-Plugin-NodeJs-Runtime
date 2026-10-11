@@ -5,6 +5,12 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v1.7.0": {
+      "released_date": "2026/10/11",
+      "feature": [
+        "Node.js プロジェクトとスクリプトを独立した署名のアプリにパッケージ化し, 外部 Node.js Runtime プラグインで実行できるようにし, 利用できない場合はインストール手順を表示"
+      ]
+    },
     "v1.6.0": {
       "released_date": "2026/10/09",
       "improvement": [

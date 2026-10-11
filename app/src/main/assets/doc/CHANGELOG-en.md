@@ -4,6 +4,12 @@
 
 ******
 
+# v1.7.0
+
+###### 2026/10/11
+
+* `Feature` Packaged Node.js projects and scripts use the external Node.js Runtime plugin, support independently signed applications, and show installation guidance when the runtime is unavailable
+
 # v1.6.0
 
 ###### 2026/10/09

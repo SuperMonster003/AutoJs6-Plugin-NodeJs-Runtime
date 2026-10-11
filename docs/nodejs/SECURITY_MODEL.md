@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Runtime: Android Authority and Host Integration
 
-Last reviewed: 2026-10-11. Applies to the published 1.6.0 release.
+Last reviewed: 2026-10-11. Applies to the 1.7.0 development version; the public release is 1.6.0.
 
 ## Ordinary Node access
 
@@ -64,8 +64,11 @@ NODE_COMPILE_CACHE chooses an accessible directory.
 
 Caller trust and Binder access remain host integration concerns. RUNTIME and INFO
 require org.autojs.permission.PLUGIN; the current AutoJs6 host declares it as a
-signature permission. Independently signed packaged apps remain M24 work and are
-not advertised here. Remote MCP authorization is also a host responsibility.
+signature permission. The additional PACKAGED_RUNTIME / PACKAGED_WAKE entries use the plugin-owned
+normal permission org.autojs.plugin.nodejs.permission.RUNTIME, allowing separately
+signed apps to call the same runtime pool. Interactive app launches can activate a
+stopped plugin through its no-display wake alias. Packaged clients negotiate the
+Binder contract instead of comparing their app versionCode to the host version. Remote MCP authorization is also a host responsibility.
 
 See [HOST-API](../HOST-API.md), [compatibility](COMPATIBILITY_PROFILE.md) and
 [error ownership](ERROR_CATALOG.md) for the API contracts.

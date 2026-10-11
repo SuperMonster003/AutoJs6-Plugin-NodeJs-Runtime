@@ -140,7 +140,7 @@ declare namespace AutoJs6Node {
     readonly jsBridge: "npm_cli_and_host_store" | "diagnostic_only" | "not_exposed" | string;
     readonly requirePackageManager: "npm_cli_and_host_store" | "diagnostic_only" | "denied" | string;
     readonly diagnosticFacade: "available" | string;
-    readonly packagedBehavior: "not_applicable_no_packaged_runtime" | string;
+    readonly packagedBehavior: "external_runtime_required" | string;
     readonly androidNetwork: "npm_default" | string;
     readonly rawExecutables: boolean;
     readonly rawRegistryAccess: boolean;
@@ -163,7 +163,7 @@ declare namespace AutoJs6Node {
     readonly resourceLimits: "bounded_callbacks_streams_crypto_zlib" | string;
     readonly npmCorpus: "real_npm_21_package_corpus" | string;
     readonly desktopDifferential: "documented_android_differences" | string;
-    readonly packagedBehavior: "not_applicable_no_packaged_runtime" | string;
+    readonly packagedBehavior: "external_runtime_required" | string;
     readonly rawDesktopParity: boolean;
     readonly rawNativeHandles: boolean;
     readonly unrestrictedNetwork: boolean;
@@ -194,7 +194,7 @@ declare namespace AutoJs6Node {
     readonly moduleAliases: readonly string[];
     readonly androidDifferences: "documented_stable" | string;
     readonly androidUnsupported: readonly string[];
-    readonly packagedBehavior: "not_applicable_no_packaged_runtime" | string;
+    readonly packagedBehavior: "external_runtime_required" | string;
     readonly rawDesktopParity: boolean;
     readonly rawEnvInheritance: boolean;
     readonly rawSignals: boolean;
@@ -564,7 +564,7 @@ declare namespace AutoJs6Node {
     readonly realpath: "native" | "unsupported" | string;
     readonly recursiveWatch: "native" | "unsupported" | string;
     readonly closeOnDestroy: "execution_owned" | "unsupported" | string;
-    readonly packagedBehavior: "not_applicable_no_packaged_runtime" | "unsupported" | string;
+    readonly packagedBehavior: "external_runtime_required" | "unsupported" | string;
     readonly rawFd: boolean;
   }
 
@@ -715,7 +715,7 @@ declare namespace AutoJs6Node {
     readonly adbForwarding: "required_before_enablement" | string;
     readonly explicitUserAction: "required_before_enablement" | string;
     readonly releaseBuild: "explicit_request" | string;
-    readonly packagedBehavior: "not_applicable_no_packaged_runtime" | string;
+    readonly packagedBehavior: "external_runtime_required" | string;
     readonly portBinding: "denied" | "loopback_only" | string;
     readonly remoteConnections: "denied" | string;
     readonly bridgeModules: "denied" | string;
@@ -747,7 +747,7 @@ declare namespace AutoJs6Node {
     readonly processExit: "denied" | string;
     readonly symlinkEscape: "must_deny" | string;
     readonly workerIntegration: "not_planned" | string;
-    readonly packagedBehavior: "not_applicable_no_packaged_runtime" | string;
+    readonly packagedBehavior: "external_runtime_required" | string;
     readonly rawHostPaths: boolean;
     readonly rawFdNumbers: boolean;
   }
@@ -767,7 +767,7 @@ declare namespace AutoJs6Node {
     readonly dependencyResolution: "android_dynamic_linker" | string;
     readonly pageAlignmentBytes: number;
     readonly crashIsolation: "runtime_process" | string;
-    readonly packagedBehavior: "not_applicable_no_packaged_runtime" | string;
+    readonly packagedBehavior: "external_runtime_required" | string;
     readonly jniBridge: "addon_owned" | string;
     readonly rawDlopen: "native" | string;
     readonly nativeMemoryAccess: "addon_owned" | string;

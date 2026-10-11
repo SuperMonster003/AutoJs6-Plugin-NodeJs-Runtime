@@ -1,0 +1,19 @@
+# Immutable Node.js runtime API distribution lock.
+format=1
+coordinate=org.autojs.plugin.nodejs:nodejs-api:1.8.0
+file=nodejs-api-1.8.0.aar
+sha256=4fc3ec5d3aa23a2e24be474d723b4a907bd43098602616bf2ea733c1f54b18f9
+aar.sha256=4fc3ec5d3aa23a2e24be474d723b4a907bd43098602616bf2ea733c1f54b18f9
+classes.jar.sha256=2244f44c15178592d8ee4d1ab3f48111b4aa49e5e5b1afe089efc7532e5f5ccb
+source.sha256=eb19428e29a78ca8cbb5bcffa52eb82b33ee079e5cc4e3fe64e49b7ee6d30410
+binary.api.sha256=facadb13646e96d48aaee29fe4dbe6276411228cb974fad1b91e2f4fa38cf381
+abi.sha256=37405578971f7c3e9f028fb90a46fcf2bb183b4d0f7ba271bfb59c5ac88a82ab
+public.abi.sha256=37405578971f7c3e9f028fb90a46fcf2bb183b4d0f7ba271bfb59c5ac88a82ab
+aidl.transactions.sha256=c781e229418850724100564332b83141e461259b1356bae5b100a01481ca7323
+contract.version=2
+contract.min=2
+contract.max=3
+module.source.provider.contract.version=3
+source.owner=AutoJs6-Plugin-NodeJs-Runtime
+source.repository=AutoJs6-Plugin-NodeJs-Runtime
+source.gitBase=a7a0a8441002a00dc574aee308b6c775fd0e2007

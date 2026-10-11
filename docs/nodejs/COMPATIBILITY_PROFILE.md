@@ -1,7 +1,8 @@
 # AutoJs6 Node.js Compatibility Profile
 
 Last reviewed: 2026-10-11. Runtime plugin v1.6.0 (build 240), SDK 1.7.0,
-capability catalog 1.6.0 and runtime-kit 1.6.0 are published.
+capability catalog 1.6.0 and runtime-kit 1.6.0 are published. This checkout develops
+1.7.0; the packaged-client changes below are not yet published.
 
 ## Runtime and routing
 
@@ -9,11 +10,12 @@ The plugin supplies Node.js 24.21.0, V8 and libuv for arm64-v8a, armeabi-v7a and
 x86_64, plus a universal APK. Full ICU locale data is included. AutoJs6 contains
 no embedded Node runtime. Node-marked scripts use this plugin; TypeScript first
 uses the host Compiler, including provider-v3 on-demand compilation. Raw
-TypeScript dispatch is rejected. Packaged APK integration remains M24 work.
+TypeScript dispatch is rejected. The 1.7.0 development version supports packaged
+applications through the external runtime and a matching host/Builder Runtime Kit.
 
 ## Implemented behavior
 
-| Area | 1.6.0 behavior |
+| Area | Current behavior |
 |---|---|
 | Builtins | Node's builtin inventory and native module identities; console output remains captured |
 | File access and SQLite | Native Node operations, Android UID/SELinux/storage permissions |
@@ -25,6 +27,7 @@ TypeScript dispatch is rejected. Packaged APK integration remains M24 work.
 | Process pool | 1-8 configurable slots, default 2; default unlimited FIFO, cancellation and explicit timeout |
 | Compile cache | Native portable workspace/Worker cache, enabled by default, Node-managed invalidation |
 | Host APIs | Available only with the required provider, declarations and Android authorization |
+| Packaged apps (1.7.0) | Independent signer, normal-permission runtime/wake entry, shared pool and install guidance |
 
 An Android build may reject an upstream feature itself. For example, this Node
 library can report ERR_TRACE_EVENTS_UNAVAILABLE; a plugin support label does not
@@ -72,5 +75,8 @@ A callable facade does not establish Android device behavior: capture, recording
 OCR and accessibility still require their documented provider and device conditions.
 
 The runtime handshake remains v2 with additive v3 operations. The prepared
-nodejs-api 1.7.0 artifact includes current constants and source-provider v3 while
+published nodejs-api 1.7.0 artifact includes source-provider v3 while
 preserving existing AIDL transaction IDs; it does not replace the immutable API 1.6.0 archive.
+
+The local nodejs-api 1.8.0 snapshot adds packaged runtime/wake actions and their
+normal permission. Existing signature-protected host entry points remain compatible.
