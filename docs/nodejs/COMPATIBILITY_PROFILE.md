@@ -1,7 +1,7 @@
 # AutoJs6 Node.js Compatibility Profile
 
-Last reviewed: 2026-10-09. Public GitHub latest: v1.5.6; this checkout prepares
-v1.6.0. Local validation does not mean the new version has been published.
+Last reviewed: 2026-10-11. Runtime plugin v1.6.0 (build 240), SDK 1.7.0,
+capability catalog 1.6.0 and runtime-kit 1.6.0 are published.
 
 ## Runtime and routing
 

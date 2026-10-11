@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Runtime: Android Authority and Host Integration
 
-Last reviewed: 2026-10-09. Applies to the local 1.6.0 release candidate.
+Last reviewed: 2026-10-11. Applies to the published 1.6.0 release.
 
 ## Ordinary Node access
 
