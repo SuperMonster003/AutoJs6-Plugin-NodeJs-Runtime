@@ -113,7 +113,7 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 
 `await image.toBytes(handle, {format: "png" | "rgba"})` 返回原生 Node Buffer, 也可把格式直接作为第二个参数。PNG 为默认值; RGBA 为紧密排列的 sRGB RGBA8, 使用直通 alpha, 长度为 width × height × 4。图片句柄回收后 Buffer 仍有效。宿主在私有临时文件中编码, 回调 Bundle 通过 `bridgeBinaryPfd` / `bridgeBinaryByteCount` 携带描述符及长度; JSON 仅含元数据。插件直接 mmap 文件并由 V8 BackingStore 持有, `Buffer.from(ArrayBuffer)` 不复制像素。文件目录项及 FD 及时关闭, 映射在 Buffer 回收或 isolate 结束时解除。JNI 与文件桥接均支持, 请求 `binary=true` 为 additive, 未声明该字段的旧客户端不会收到 PFD。`readImage(path)` 继续返回宿主图片句柄, 大图也通过随后调用 toBytes 取回像素, 无 base64 或 `/proc` / `/dev` 文件读取入口。PNG 解码已使用真实 [pngjs](https://github.com/pngjs/pngjs) 包在设备测试中验证。
 
-`ocr.recognizeText(handle)` 与 `barcode.detect(handle, {formats: ["QR_CODE"]})` 可直接使用同一图片句柄, 分别需声明 `image` + `ocr` / `barcode`。OCR 选项支持 `engineId` / `engine` / `variant`; 找不到已启用的兼容识别插件时错误 category 为 `unavailable`, 实际识别失败仍返回 provider 错误。OCR 与截图 OCR 样例申请 Android 截屏授权后执行真实识别, 在 finally 中回收图片并停止截屏; 只有权限拒绝或插件不可用才输出可读 skip。M14.4 已在小米与 x86_64 上识别宿主显示的 ROADMAP 2026 和二维码, 测试输入由 UiAutomation 截屏落盘后 readImage 取得; 2026-09-10 用户通过 MediaProjection 真实截图识别到 AutoJs6 文件界面文字, 补齐人工授权链; 截屏/屏幕 OCR 样例及同调用链的 Pro 片段转为 stable。
+`ocr.recognizeText(handle)` 与 `barcode.detect(handle, {formats: ["QR_CODE"]})` 可直接使用同一图片句柄, 分别需声明 `image` + `ocr` / `barcode`。OCR 选项支持 `engineId` / `engine` / `variant`; 未指定时宿主按 ML Kit OCR, Paddle OCR, Rapid OCR 的顺序自动选择已启用的引擎 (AutoJs6 6.8.0 起; 更早的宿主固定使用 ML Kit OCR); 找不到已启用的兼容识别插件时错误 category 为 `unavailable`, 实际识别失败仍返回 provider 错误。OCR 与截图 OCR 样例申请 Android 截屏授权后执行真实识别, 在 finally 中回收图片并停止截屏; 只有权限拒绝或插件不可用才输出可读 skip。M14.4 已在小米与 x86_64 上识别宿主显示的 ROADMAP 2026 和二维码, 测试输入由 UiAutomation 截屏落盘后 readImage 取得; 2026-09-10 用户通过 MediaProjection 真实截图识别到 AutoJs6 文件界面文字, 补齐人工授权链; 截屏/屏幕 OCR 样例及同调用链的 Pro 片段转为 stable。
 
 `recorder.start({path:"record.m4a", maxDurationMs:3000})` 在宿主项目目录内通过 PFD 写入 AAC/MPEG-4 单声道文件, 返回录音 id/path; 默认时长 60 s, 可设 1..300 s。开始前检查 Android 麦克风权限, 并先建立带停止按钮的 microphone 前台通知; Android 后台启动限制仍适用。sampleRate 默认 44100 (8000..192000), bitRate 默认 128000 (16000..320000), 设备不支持的编码组合返回 provider-failed。stop 返回 path/byteCount/durationMs/reason 或尚未录音时的 null, 重复 stop 返回上一结果。时长到达、通知停止按钮和脚本退出均关闭 MediaRecorder/PFD 并移除通知。getStatus 包含 microphonePermissionGranted、recording、starting、active 和 lastRecording。权限拒绝返回 permission-denied; MediaInfo 插件未安装返回 unavailable。M15.4 的权限与窗口自动化回归已通过; 2026-09-10 用户完成真实 3 s 录音, 自动停止后文件 51,938 bytes, MediaInfo 解析到 AAC LC / 单声道 / 44.1 kHz 音轨, 录音样例及同调用链的 Pro 片段转为 stable。
 
@@ -125,7 +125,7 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 |---|---|
 | `autojs6:fetch` / `autojs6:websocket` / `axios` / `undici` | 宿主 OkHttp 网络栈, 需项目声明 `network` 并满足宿主网络策略; `fetch` / `websocket` 旧模块名保留兼容 |
 | `websocket` | 同上 |
-| `ocr` | 需 ML Kit OCR 外部插件 |
+| `ocr` | 需 OCR 外部插件 (ML Kit OCR, Paddle OCR 或 Rapid OCR 任一; 未指定 `engine` 时宿主按此顺序自动选择已启用的引擎) |
 | `barcode` | 需 Barcode 外部插件 |
 | `java` | 默认启用; 宿主以声明表 (类 → 可构造 / 静态方法 / 实例方法 / 静态字段 / 实例字段) 定义白名单并按表反射执行, 表经 `getBrokerInfo()` 的 `javaInteropPolicyJson` 公布为 `java.policy`; 反射/ClassLoader/进程与原生库加载继续拒绝 |
 | `rhino` | 默认提供显式迁移入口; 执行请求使用 `explicit: true`, 不会自动安装旧 Rhino 全局对象; `rhino.install` 装入的 `Packages` / `java` / `android` 代理支持静态调用与构造, 并在类路径上提供 `getStatic(field)` / `describe()` (转发 `java.getStatic` / `java.type`, 由宿主白名单裁决) |
