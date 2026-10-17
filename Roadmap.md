@@ -798,3 +798,14 @@ M18.2 首轮清点 (2026-09-10): 当前 catalog 有 15 个顶层 feature, 9 stab
       workspace schema 均未改变。
 
 2026-10-11 发布 CI 补记: v1.6.0 的官方索引 CI, Markdown 和 Icon Studio 检查通过. GitHub Android 工作流在依赖解析阶段报告找不到 Kotlin 2.3.20 (stdlib/BOM), 本地公开 Maven 地址 HTTP 200; 普通重跑及清理该仓 Gradle 依赖缓存后重跑仍未恢复. 本地签名构建与设备结果独立有效, 不将远端 CI 标成通过. 运行记录: https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/actions/runs/38124383040 .
+
+
+## 2026-10-17 Node recording and Worker capture
+
+Main/CJS/ESM/nested Workers now expose screen_recorder, with none/microphone/playback/mixed
+audio, MP4 finalization and concurrent screenshots. Workers also expose media_projection
+handles and the existing audio-only recorder. Worker exit discards its unsaved screen
+recordings using ID-checked cancellation. The image capture wrapper no longer forwards
+consent-only options to screenshot encoding. Source/type/editor and physical acceptance
+details are recorded in the host docs/dev/runtime-node-recording-2026-10-17.md.
+This is development 1.7.0 source; no published kit/catalog snapshot is changed.

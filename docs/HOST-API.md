@@ -451,3 +451,38 @@ Node 项目和带有 `"nodejs";` 入口的脚本通过配套宿主与 APK Builde
 Worker 还提供 `pinyin` / `autojs6:pinyin`, `pinyin4j` / `autojs6:pinyin4j`, `screen_metrics` / `autojs6:screen_metrics` 和 `console` / `node:console` / `autojs6:console`, 支持 CJS, ESM 和嵌套 Worker. 拼音常量保持数字值, 可调用入口等价于 convert/of; `await pinyin(...)` 的二维数组保留异步 `compact()` 方法. 文本在进入结构化克隆之前转换, Buffer 和自定义 toString 对象不会被误解释为字节列表或普通对象.
 
 坐标换算每次读取当前屏幕信息, `cX/cY/cXy/cYx` 的重载与主线程一致. 基数属于整个执行, 主线程和所有 Worker 共享同一个状态, 每个轴仍只能设置一次. 原生 Worker stdout/stderr 和自定义 Console 流保持在线程内运行; 窗口控制方法异步作用于父执行的控制台, 全局日志配置方法仍影响宿主全局. Worker 的全局 console 同样提供这些控制方法, 不把普通日志输出转为异步宿主调用. Rhino 的 input/rawInput/build 仍明确报不支持.
+
+## Screen recording in main and Worker threads (2026-10-17)
+
+`require("screen_recorder")` and `autojs6:screen_recorder` export async start(path,
+options?), stop(options?), cancel(options?) and getStatus(options?). ESM and nested
+Workers use the same provider. Request Android capture consent first through images
+or media_projection. screen_capture is required; audio additionally needs media,
+media.recording and Android RECORD_AUDIO. The host checks raw bridge calls too.
+
+Options match Bun: even width/height in 2..8192, frameRate 1..120 (30 default),
+positive bitRate (8000000 default), audio none/false (default), microphone, playback
+or mixed. Audio is AAC-LC 48 kHz mono, target 128 kbit/s; playback/mixed need API 29+.
+Playback policy and Android microphone foreground requirements still apply.
+Screenshots remain available during recording, including rotation, at capture
+dimensions; video output dimensions stay fixed. See screen_recorder.d.ts for all
+status/result fields. Stop publishes the MP4 without replacing an existing file;
+cancel, projection revocation and execution exit discard partial output.
+
+Main and Workers share one recording. Optional stop/cancel {id} protects against
+stale cross-thread cleanup (null/false on mismatch). Worker exit discards recordings
+started by it or descendants and not yet explicitly saved. An aborted start waits
+for its native result and discards that ID. Worker media_projection handles retain
+nextImage/stop methods locally. The existing audio-only recorder is also available
+in Workers, with its original max-duration and execution lifetime, independent of
+the screen-recorder exit rule. Multiple simultaneous microphone inputs remain
+subject to Android/device behavior. Unlisted modules are not claimed as covered.
+
+Manual wrapper regressions: node tools/nodejs/api/test-screen-recording.js and
+test-worker-host-modules.js. Physical evidence belongs to the host's
+docs/dev/runtime-node-recording-2026-10-17.md.
+
+Capture uses the authorized session orientation. Legacy captureScreen orientation and
+requireExistingPermission fields remain accepted, but are not sent to the screenshot
+encoder; all captures always require an existing session. Set orientation while requesting
+consent. This avoids the previous invalid-option failure for ordinary screenshots too.

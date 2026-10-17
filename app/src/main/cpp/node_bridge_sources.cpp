@@ -3065,6 +3065,7 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_limited_engines_cache = null;
   let __autojs6_limited_dialogs_cache = null;
   let __autojs6_limited_accessibility_cache = null;
+  let __autojs6_limited_screen_recorder_cache = null;
   let __autojs6_limited_media_projection_cache = null;
   let __autojs6_limited_image_cache = null;
   let __autojs6_limited_images_cache = null;
@@ -5319,7 +5320,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return ["engines"];
     }
     if (moduleName === "accessibility") return ["accessibility"];
-    if (moduleName === "media_projection") return ["screen_capture"];
+    if (moduleName === "media_projection" || moduleName === "screen_recorder") return ["screen_capture"];
     if (moduleName === "image" || moduleName === "images") {
       if (methodName === "captureScreen") return ["image", "screen_capture"];
       return ["image"];
@@ -8370,12 +8371,16 @@ std::string buildEmbeddedScriptExecutionSource(
           threads.setEnvironmentData(runtimeKey, previous);
         }
         const pending = new Map();
+        const recordings = new Set();
+        const cancelRecording = id => invoke("autojs6:worker-module:screen_recorder", "cancel", [{ id }], {}).catch(() => {});
         let closed = false;
         const close = () => {
           if (closed) return;
           closed = true;
           for (const controller of pending.values()) controller.abort();
           pending.clear();
+          for (const id of recordings) cancelRecording(id);
+          recordings.clear();
           port1.close();
         };
         const reply = message => { if (!closed) port1.postMessage(message); };
@@ -8391,6 +8396,16 @@ std::string buildEmbeddedScriptExecutionSource(
           try {
             const value = await invoke(message.module, message.method, message.args,
               { ...message.options, signal: controller.signal });
+            if (message.module === "autojs6:worker-module:screen_recorder" || message.module === "screen_recorder") {
+              if (message.method === "start" && value && value.id) {
+                if (closed) await cancelRecording(value.id);
+                else recordings.add(value.id);
+              } else if (message.method === "stop" && value) recordings.delete(value.id);
+              else if (message.method === "cancel" && value) {
+                const id = message.args[0] && message.args[0].id;
+                if (id) recordings.delete(id); else recordings.clear();
+              }
+            }
             reply({ id: message.id, value });
           } catch (error) {
             reply({ id: message.id, error: {
@@ -8471,6 +8486,13 @@ std::string buildEmbeddedScriptExecutionSource(
             return arg;
           });
           const result = await bridgeCall("autojs6:worker-module:" + module, method, args, { signal, signalArgumentIndex });
+          if (module === "media_projection" && method === "requestScreenCapture") {
+            const id = result.id;
+            return Object.freeze({ ...result,
+              nextImage: async (options = {}) => Object.freeze(await bridgeCall("media_projection", "nextImage", [id, {}], options)),
+              stop: async (options = {}) => { await bridgeCall("media_projection", "stop", [id], options); }
+            });
+          }
           if (module === "pinyin" && method === "convert") {
             Object.defineProperty(result, "compact", { value: () => value.compact(result) });
           }
@@ -8493,10 +8515,16 @@ std::string buildEmbeddedScriptExecutionSource(
       : name === "image" || name === "images" ? __autojs6_limited_image(name)
       : name === "pinyin" ? __autojs6_limited_pinyin()
       : name === "pinyin4j" ? __autojs6_limited_pinyin4j()
+      : name === "media_projection" ? __autojs6_limited_media_projection()
+      : name === "screen_recorder" ? __autojs6_limited_screen_recorder()
+      : name === "recorder" ? __autojs6_limited_recorder()
       : name === "screen_metrics" ? __autojs6_limited_screen_metrics()
       : name === "console" ? __autojs6_limited_console() : null;
     if (!target || !Object.prototype.hasOwnProperty.call(target, method) || typeof target[method] !== "function") {
       throw __autojs6_invalid_arg_type("Unknown worker host module operation.");
+    }
+    if (name === "screen_recorder" && method === "start" && !Number.isInteger(options.signalArgumentIndex)) {
+      args[1] = { ...args[1], signal: options.signal };
     }
     const index = options.signalArgumentIndex;
     if (Number.isInteger(index) && index >= 0 && index < args.length) {
@@ -8513,6 +8541,9 @@ std::string buildEmbeddedScriptExecutionSource(
       // A terminated worker cannot receive a newly created handle. Do not retain that orphan.
       await __autojs6_limited_image("images").recycle(result);
       throw Object.assign(new Error("Worker call was aborted."), { code: "ABORT_ERR" });
+    }
+    if (name === "media_projection" && method === "requestScreenCapture") {
+      return { id: result.id, __autojs6ScreenCapturerHandle: result.id, width: result.width, height: result.height };
     }
     return result;
   }
@@ -8769,6 +8800,9 @@ std::string buildEmbeddedScriptExecutionSource(
             images: Object.keys(__autojs6_limited_image("images")),
             pinyin: Object.keys(__autojs6_limited_pinyin()),
             pinyin4j: Object.keys(__autojs6_limited_pinyin4j()),
+            media_projection: Object.keys(__autojs6_limited_media_projection()),
+            screen_recorder: Object.keys(__autojs6_limited_screen_recorder()),
+            recorder: Object.keys(__autojs6_limited_recorder()),
             screen_metrics: Object.keys(__autojs6_limited_screen_metrics()),
             console: Object.keys(__autojs6_limited_console())
           },
@@ -17925,6 +17959,46 @@ std::string buildEmbeddedScriptExecutionSource(
       : value.id;
     return id === undefined || id === null ? "" : String(id);
   }
+  function __autojs6_limited_screen_recorder() {
+    if (__autojs6_limited_screen_recorder_cache) return __autojs6_limited_screen_recorder_cache;
+    function call(method, args, options = {}, audio = false) {
+      return __autojs6_call_autojs("screen_recorder", method, args, {
+        timeoutMs: __autojs6_bridge_timeout_ms(options.timeoutMs === undefined ? 15000 : options.timeoutMs),
+        signal: __autojs6_bridge_signal_from_options(options),
+        permissions: audio ? ["screen_capture", "media", "media.recording"] : ["screen_capture"]
+      });
+    }
+    async function start(path, options = {}) {
+      if (typeof path !== "string" || !path || path.includes("\u0000")) throw __autojs6_invalid_arg_type("Recording path must be a non-empty string.");
+      if (!options || typeof options !== "object" || Array.isArray(options)) throw __autojs6_invalid_arg_type("Recording options must be an object.");
+      const audio = options.audio == null || options.audio === false ? "none" : options.audio;
+      if (!["none", "microphone", "playback", "mixed"].includes(audio)) throw __autojs6_invalid_arg_type("Invalid recording audio source.");
+      const payload = { audio };
+      for (const key of ["width", "height", "frameRate", "bitRate"]) {
+        if (options[key] !== undefined) {
+          if (!Number.isInteger(options[key])) throw __autojs6_invalid_arg_type("Recording " + key + " must be an integer.");
+          payload[key] = options[key];
+        }
+      }
+      const signal = __autojs6_bridge_signal_from_options(options);
+      const aborted = () => Object.assign(new Error("Screen recording start was aborted."), { code: "ABORT_ERR" });
+      if (signal && signal.aborted) throw aborted();
+      // Receive the ID even if cancellation races with native encoder startup, then discard it.
+      const result = await call("start", [path, payload], { ...options, signal: undefined }, audio !== "none");
+      if (signal && signal.aborted) { await cancel({ id: result.id }); throw aborted(); }
+      return Object.freeze(result);
+    }
+    function control(method, options = {}) {
+      if (!options || typeof options !== "object" || Array.isArray(options)) throw __autojs6_invalid_arg_type("Recording options must be an object.");
+      if (options.id !== undefined && (typeof options.id !== "string" || !options.id.trim())) throw __autojs6_invalid_arg_type("Recording id must be a non-empty string.");
+      const args = options.id === undefined ? [] : [{ id: options.id }];
+      return call(method, args, options);
+    }
+    function stop(options) { return control("stop", options); }
+    function cancel(options) { return control("cancel", options); }
+    function getStatus(options) { return call("getStatus", [], options); }
+    return __autojs6_limited_screen_recorder_cache = Object.freeze({ start, stop, cancel, getStatus });
+  }
   function __autojs6_limited_media_projection() {
     if (__autojs6_limited_media_projection_cache) {
       return __autojs6_limited_media_projection_cache;
@@ -18118,12 +18192,7 @@ std::string buildEmbeddedScriptExecutionSource(
         return __autojs6_call_autojs(
           bridgeModuleName,
           "captureScreen",
-          [{
-            requireExistingPermission: true,
-            orientation: captureOptions.orientation === "portrait" || captureOptions.orientation === "landscape"
-              ? captureOptions.orientation
-              : "auto"
-          }],
+          [],
           {
             timeoutMs: __autojs6_image_timeout_from_options(captureOptions, 10000),
             signal: __autojs6_bridge_signal_from_options(captureOptions),
@@ -26432,6 +26501,7 @@ std::string buildEmbeddedScriptExecutionSource(
     engines: function() { return __autojs6_limited_engines(); },
     dialogs: function() { return __autojs6_limited_dialogs(); },
     accessibility: function() { return __autojs6_limited_accessibility(); },
+    screen_recorder: function() { return __autojs6_limited_screen_recorder(); },
     media_projection: function() { return __autojs6_limited_media_projection(); },
     image: function() { return __autojs6_limited_image("image"); },
     images: function() { return __autojs6_limited_image("images"); },

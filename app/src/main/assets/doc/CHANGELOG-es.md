@@ -13,7 +13,9 @@
 * `Nuevo` Node.js y Bun admiten OpenCC asíncrono, códecs de imagen, lectura de píxeles, transformaciones y búsqueda de colores; acceso a archivos de imagen de Bun autorizado por separado
 * `Nuevo` Los Workers de Node.js usan OpenCC e imágenes mediante el runtime padre, con CJS, ESM, Workers anidados y transferencia binaria
 * `Nuevo` Los Workers de Node.js ofrecen pinyin, pinyin4j, controles de consola y coordenadas, compartiendo el estado padre y conservando los flujos nativos
+* `Nuevo` El hilo principal de Node.js y los Workers admiten grabacion H.264 MP4 con audio AAC de microfono, reproduccion o mixto, capturas simultaneas y limpieza de grabaciones Worker sin guardar
 * `Correccion` Pinyin/Pinyin4j llaman de forma asíncrona a los proveedores del anfitrión en lugar del pequeño diccionario local; los controles de consola Android se ejecutan en el anfitrión y devuelven Promises; se completan los tipos de gestos e input_observer
+* `Correccion` Node.js images.captureScreen deja de enviar opciones de consentimiento al procesamiento de capturas, permitiendo capturas normales y durante la grabación
 * `Dependencia` Se incorporaron las correcciones de seguridad de OpenSSL 3.5.9 al entorno Android de Node.js 24.21.0
 
 # v1.6.0

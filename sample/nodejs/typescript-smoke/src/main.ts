@@ -1430,3 +1430,21 @@ function readDeviceFromWorkerBridge(): Promise<device.DeviceInfo> {
   return workerBridge.callAutoJs<device.DeviceInfo>("device", "info", []);
 }
 void readDeviceFromWorkerBridge;
+
+// Main and Workers use the same recording and capture contracts.
+import screenRecorder = require("autojs6:screen_recorder");
+import workerProjection = require("autojs6:media_projection");
+import workerRecorder = require("autojs6:recorder");
+async function recordingSmoke(path: string) {
+  const capture: mediaProjection.ScreenCapturer = await workerProjection.requestScreenCapture();
+  const active = await screenRecorder.start(path, { audio: "mixed", width: 720, height: 1280 });
+  const frame: AutoJs6Node.ImageHandle = await capture.nextImage();
+  await images.recycle(frame);
+  const movie: screenRecorder.RecordingResult | null = await screenRecorder.stop({ id: active.id });
+  if (movie) { const source: screenRecorder.AudioSource = movie.audioSource; void source; }
+  await screenRecorder.cancel({ id: active.id });
+  await capture.stop();
+  await workerRecorder.start({ path: "audio.m4a" });
+  await workerRecorder.stop();
+}
+void recordingSmoke;

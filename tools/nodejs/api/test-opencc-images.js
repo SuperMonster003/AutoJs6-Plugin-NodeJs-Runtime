@@ -29,6 +29,9 @@ const handle={id:'test',__autojs6ImageHandle:'test',width:2,height:1};
   for(const name of Object.keys(api.cc)) { assert.equal(await (name==='convert'?api.cc[name]('汉字','s2t'):api.cc[name]('汉字')),'converted'); assert.equal(calls.at(-1).method,'convert'); }
   await assert.rejects(api.cc.s2t(null));
   response=handle;
+  await api.images.captureScreen({timeoutMs:6000});
+  assert.deepEqual(calls.at(-1).args,[],"Capture must not forward consent options to screenshot encoding");
+  assert.equal(calls.at(-1).options.timeoutMs,6000);
   const bytes=Buffer.from([0,137,80,78,71,0]);
   await api.images.fromBytes(bytes.subarray(1,5));
   assert.deepEqual(calls.at(-1).options.upload.bytes,Buffer.from([137,80,78,71]));

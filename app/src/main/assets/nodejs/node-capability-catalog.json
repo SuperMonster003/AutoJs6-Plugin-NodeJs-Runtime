@@ -797,6 +797,11 @@
         "providerOwner": "host_capability_provider"
       },
       {
+        "id": "screen_recorder",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
         "id": "sensors",
         "aliases": [],
         "providerOwner": "host_capability_provider"
@@ -2763,6 +2768,35 @@
         "method": "setScaleBases",
         "requiredCapabilities": [
           "device"
+        ]
+      },
+      {
+        "module": "screen_recorder",
+        "method": "cancel",
+        "requiredCapabilities": [
+          "screen_capture"
+        ]
+      },
+      {
+        "module": "screen_recorder",
+        "method": "getStatus",
+        "requiredCapabilities": [
+          "screen_capture"
+        ]
+      },
+      {
+        "module": "screen_recorder",
+        "method": "start",
+        "requiredCapabilities": [
+          "screen_capture"
+        ],
+        "notes": "Audio also requires media and media.recording, plus Android RECORD_AUDIO. Playback/mixed require API 29+."
+      },
+      {
+        "module": "screen_recorder",
+        "method": "stop",
+        "requiredCapabilities": [
+          "screen_capture"
         ]
       },
       {

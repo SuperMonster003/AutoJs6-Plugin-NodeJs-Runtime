@@ -13,7 +13,9 @@
 * `Feature` Node.js and Bun support asynchronous OpenCC conversions and common image codecs, pixel reads, transforms and color searches; Bun image file access is authorized separately
 * `Feature` Node.js Workers support OpenCC and image modules through the parent runtime, including CJS, ESM, nested Workers and binary image data
 * `Feature` Node.js Workers support pinyin, pinyin4j, console controls and coordinate conversion, sharing the parent execution while retaining native output streams
+* `Feature` Node.js main thread and Workers support H.264 MP4 recording with microphone, playback or mixed AAC audio, concurrent screenshots and cleanup of unsaved Worker recordings
 * `Fix` Pinyin/Pinyin4j now await real host providers instead of a small local dictionary; Android console controls execute on the host and return Promises; accessibility gestures and input_observer declarations are complete
+* `Fix` Node.js images.captureScreen no longer forwards capture-consent options to the screenshot encoder, allowing ordinary and concurrent recording screenshots
 * `Dependency` Backported OpenSSL 3.5.9 security fixes to the Node.js 24.21.0 Android runtime
 
 # v1.6.0
