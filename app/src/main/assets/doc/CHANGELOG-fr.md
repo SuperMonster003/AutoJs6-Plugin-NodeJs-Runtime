@@ -4,6 +4,12 @@
 
 ******
 
+# v1.8.0
+
+###### 2026/10/18
+
+* `Ajout` Node.js prennent en charge les handles View propres à une exécution, les fabriques AndroidView asynchrones, les conteneurs XML Compose, la fermeture des Workers et les applications empaquetées
+
 # v1.7.0
 
 ###### 2026/10/18

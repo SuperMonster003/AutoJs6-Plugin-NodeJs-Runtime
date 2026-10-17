@@ -119,6 +119,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.8.0
+
+###### 2026/10/18
+
+* `Ajout` Node.js prennent en charge les handles View propres à une exécution, les fabriques AndroidView asynchrones, les conteneurs XML Compose, la fermeture des Workers et les applications empaquetées
+
 # v1.7.0
 
 ###### 2026/10/18
@@ -160,13 +166,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 * `Amelioration` install/update/remove de package_manager acceptent les spécifications npm et exécutent npm fourni dans le projet; npm.cli/exec/runScript/pack utilisent la CLI réelle, avec registry/proxy/cycle de vie selon npm et le .npmrc du projet, sortie en continu et codes d'erreur npm; les fichiers CLI sont préparés au premier appel et les requêtes objet conservent le contrat du stockage local de l'hôte
 * `Amelioration` Démarrage des scripts accéléré en évitant les initialisations Web API inutiles et en activant par défaut le cache de compilation portable natif de Node pour les espaces de travail et les Workers; réutilisation entre copies et invalidation des sources modifiées par Node
 * `Amelioration` Les métadonnées décrivent les fonctions implémentées sans états provisoires; les exemples UI précisent les services hôtes requis et les champs de marché de plugins et de mises à jour non planifiés sont retirés
-
-# v1.5.7
-
-###### 2026/10/05
-
-* `Amelioration` Les icônes du centre de plugins utilisent les tailles, positions, images claires et sombres et fonds circulaires réglés dans Icon Studio, avec les sources et paramètres permettant de les reproduire
-* `Amelioration` Les icônes des informations d'application Android utilisent les illustrations et les fonds clairs et sombres d'Icon Studio, en conservant les images transparentes du centre de plugins et les choix du lanceur
 
 ##### Pour plus d'historique des versions
 

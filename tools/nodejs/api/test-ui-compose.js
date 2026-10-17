@@ -10,13 +10,26 @@ const compose = section("  function __autojs6_create_compose(", "  function __au
 const createCompose = new Function("return (" + compose + ")")();
 const createUi = new Function("return (" + ui + ")")();
 const live = new Map(), calls = [], released = [];
+const nativeViews = new Map();
+const contextToken = {__autojs6UiContext:'test-context',density:2,scaledDensity:2,packageName:'test'};
 let next = 0;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function host(module, method, args) {
   calls.push({ module, method, args: structuredClone(args) });
   if (method === "isAvailable") return true;
-  if (["mount", "dialog", "floaty", "showLayout"].includes(method)) {
-    const id = "window-" + ++next; live.set(id, { tree: args[0], events: [{ type: "shown" }] }); return { id };
+  if (module === 'ui' && method === 'context') return contextToken;
+  if (module === 'ui' && method === 'inflate') {
+    const id='view-'+ ++next, value={__autojs6ViewHandle:id,id,type:'TextView',context:contextToken};
+    nativeViews.set(id,{value,props:args[0]});return value;
+  }
+  if (module === 'ui' && ['viewGet','viewUpdate','disposeView'].includes(method)) {
+    const id=args[0].__autojs6ViewHandle, value=nativeViews.get(id);assert(value,'unknown View');
+    if(method==='disposeView'){nativeViews.delete(id);return null;}
+    if(method==='viewUpdate')Object.assign(value.props,args[1]);
+    return method==='viewGet'&&args.length>1?value.props[args[1]]:value.props;
+  }
+  if (["mount", "dialog", "floaty", "attach", "showLayout"].includes(method)) {
+    const id = "window-" + ++next; live.set(id, { tree: args[method==='attach'?1:0], events: [{ type: "shown" }] }); return { id };
   }
   const record = live.get(args[0]);
   if (method === "close") { live.delete(args[0]); released.push(args[0]); return null; }
@@ -57,6 +70,14 @@ async function exercise(api) {
   await assert.rejects(memoApi.mount(memoApi.Text({fontSize:NaN})),/finite/);
   await assert.rejects(memoApi.mount(memoApi.Text({text:()=>"invalid"})),/JSON values/);
   const layouts = createUi(host), state = layouts.state({ text: "before" });
+  const context=await layouts.context(),view=await context.createView('TextView',{text:'Native'});
+  const clone=structuredClone(view);assert.equal(clone.get,undefined,'Only data crosses Worker boundary');
+  assert.equal(layouts.view(clone),view);await view.set({text:'Updated'});assert.equal(await view.get('text'),'Updated');
+  let factoryCalls=0;
+  const androidView=memoApi.AndroidView({view:async ctx=>{factoryCalls++;assert.equal(ctx.__autojs6UiContext,context.__autojs6UiContext);return view;}});
+  const attached=await memoApi.attach(view,memoApi.Column({},androidView));
+  assert.equal(live.get(attached.id).tree.children[0].props.view.__autojs6ViewHandle,view.__autojs6ViewHandle);
+  await attached.render(memoApi.Column({},androidView));assert.equal(factoryCalls,1);await attached.close();await view.dispose();
   const window = await layouts.showLayout({ type: "Text", id: "text", text: layouts.bind(state, "text") });
   state.set("text", "after"); await delay(25);
   assert(calls.some(value => value.method === "batchUpdate" && value.args[1][0].text === "after"));
@@ -70,7 +91,7 @@ async function exercise(api) {
   const config = { preloadPath, entryUrl: pathToFileURL(path.join(directory, "entry.cjs")).href,
     gatedBuiltins: [], moduleSources: {}, typeScriptSources: {}, resourceLimits: {}, hostModuleMethods: { ui: Object.keys(layouts), compose: Object.keys(createCompose(host)) } };
   const Worker = new Function("return (" + constructor + ")")()(require, () => config, host);
-  const body = `const session=await compose.mount(compose.Text({text:'worker'})); parentPort.postMessage({id:session.id, methods:typeof requireUi.state});`;
+  const body = `const view=await requireUi.createView('Compose');const session=await compose.attach(view,compose.AndroidView({view:async context=>context.createView('Text',{text:'worker'})})); parentPort.postMessage({id:session.id, methods:typeof requireUi.state,view});`;
   for (const esm of [false, true]) {
     const code = esm ? `import compose,{sessions,Text} from 'compose'; if(!Array.isArray(sessions)||typeof Text!=='function')throw Error('named Compose exports'); import requireUi from 'ui'; import {parentPort} from 'node:worker_threads'; ${body}`
       : `const compose=require('compose'),requireUi=require('ui'),{parentPort}=require('worker_threads'); (async()=>{${body}})();`;
@@ -79,6 +100,8 @@ async function exercise(api) {
     assert.equal(result.methods, "function"); assert(live.has(result.id));
     await worker.terminate(); for (let i = 0; live.has(result.id) && i < 50; i++) await delay(10);
     assert(!live.has(result.id), "worker exit releases its Compose window");
+    assert(nativeViews.has(result.view.__autojs6ViewHandle),'Delivered View survives Worker exit within its execution');
+    await layouts.view(result.view).dispose();
   }
   let pendingWindow;
   const LateWorker=new Function("return ("+constructor+")")()(require,()=>config,async(module,method,args)=>{
@@ -100,5 +123,16 @@ async function exercise(api) {
     assert(!live.has(pendingWindow),'aborted request releases its late window while Worker remains alive');
   } finally {await aborting.terminate();}
   assert.equal(live.size, 0);
+  let pendingView;
+  const LateViewWorker=new Function("return ("+constructor+")")()(require,()=>config,async(module,method,args)=>{
+    const value=await host(module,method,args);
+    if(module==='ui'&&method==='inflate'){pendingView=value;await delay(150);}
+    return value;
+  });
+  const lateView=new LateViewWorker("require('ui').createView('Text',{text:'late View'});",{eval:true});
+  for(let i=0;!pendingView&&i<100;i++)await delay(5);
+  assert(pendingView);await lateView.terminate();
+  for(let i=0;nativeViews.has(pendingView.id)&&i<100;i++)await delay(5);
+  assert(!nativeViews.has(pendingView.id),'Undelivered View is disposed after Worker exit');
   console.log("UI bindings and Compose state/callbacks/refs/batches, CJS/ESM Workers and termination cleanup passed");
 })().catch(error => { console.error(error); process.exitCode = 1; });

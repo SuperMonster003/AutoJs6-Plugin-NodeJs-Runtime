@@ -119,6 +119,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.8.0
+
+###### 2026/10/18
+
+* `Feature` Node.js support execution-owned View handles, asynchronous AndroidView factories and XML Compose container attachments, with Worker cleanup and packaged application support
+
 # v1.7.0
 
 ###### 2026/10/18
@@ -160,13 +166,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 * `Improvement` package_manager install/update/remove accept npm package specs and run the bundled npm in the workspace; npm.cli/exec/runScript/pack use the real CLI, registry/proxy/lifecycle options follow npm and project .npmrc, output streams back and failures retain npm codes; CLI assets are prepared only on first use, while object requests keep the existing host local-store contract
 * `Improvement` Faster script startup by preserving native Web API initialization and enabling Node's portable module compile cache for workspaces and Workers by default; cache entries survive workspace copies and Node invalidates changed sources
 * `Improvement` Runtime capability metadata now describes implemented behavior without provisional status labels; UI/provider-dependent examples identify their host requirements, and unplanned plugin marketplace/update fields are removed
-
-# v1.5.7
-
-###### 2026/10/05
-
-* `Improvement` Plugin Center icons use the sizes, positions, light and dark artwork, and circular backgrounds adjusted in Icon Studio, retaining reproducible sources and parameters
-* `Improvement` Android App info icons share Icon Studio artwork and light/dark backgrounds while preserving transparent Plugin Center artwork and existing launcher choices
 
 ##### For more release history
 

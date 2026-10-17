@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.8.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js поддерживают дескрипторы View в пределах выполнения, асинхронные фабрики AndroidView, контейнеры XML Compose, очистку Workers и упакованные приложения"
+      ]
+    },
     "v1.7.0": {
       "released_date": "2026/10/18",
       "feature": [

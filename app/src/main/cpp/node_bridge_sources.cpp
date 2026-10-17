@@ -8401,10 +8401,10 @@ std::string buildEmbeddedScriptExecutionSource(
           const controller = new AbortController();
           pending.set(message.id, controller);
           try {
-            const createsWindow = ["ui", "compose"].includes(message.module) && ["showLayout", "mount", "dialog", "floaty"].includes(message.method);
+            const createsWindow = ["ui", "compose"].includes(message.module) && ["showLayout", "mount", "dialog", "floaty", "attach"].includes(message.method);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: createsWindow ? undefined : controller.signal });
+              { ...message.options, signal: createsWindow || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
             if (message.module === "autojs6:worker-module:screen_recorder" || message.module === "screen_recorder") {
               if (message.method === "start" && value && value.id) {
                 if (closed) await cancelRecording(value.id);
@@ -8415,8 +8415,12 @@ std::string buildEmbeddedScriptExecutionSource(
                 if (id) recordings.delete(id); else recordings.clear();
               }
             }
+            if (message.module === "ui" && message.method === "inflate" && value && value.__autojs6ViewHandle && (closed || controller.signal.aborted)) {
+              await invoke("ui", "disposeView", [value], { permissions: ["ui"] }).catch(() => {});
+              throw Object.assign(new Error("Native View creation was aborted."), { code: "ABORT_ERR" });
+            }
             if (message.module === "ui" || message.module === "compose") {
-              if (["showLayout", "mount", "dialog", "floaty"].includes(message.method) && value && value.id) {
+              if (["showLayout", "mount", "dialog", "floaty", "attach"].includes(message.method) && value && value.id) {
                 if (closed || controller.signal.aborted) {
                   await closeWindow(value.id, message.module);
                   throw Object.assign(new Error("Window creation was aborted."), { name: "AbortError", code: "ABORT_ERR" });
@@ -16344,6 +16348,67 @@ std::string buildEmbeddedScriptExecutionSource(
     return __autojs6_keys_cache;
   }
   function __autojs6_create_ui(__autojs6_call_autojs, __autojs6_bridge_attach_events = () => null) {
+    const nativeViews = new Map();
+    let nativeContext;
+    const nativeCall = (method, args) => __autojs6_call_autojs("ui", method, args, { permissions: ["ui"] });
+    function wrapContext(value) {
+      const result = { ...value };
+      Object.defineProperties(result, {
+        inflate: { value: layout => inflate(layout, result) },
+        createView: { value: (type, props) => createView(type, props, result) }
+      });
+      return Object.freeze(result);
+    }
+    function context() { return nativeContext ||= nativeCall("context", []).then(wrapContext); }
+    function viewToken(value) {
+      if (!value || typeof value.__autojs6ViewHandle !== "string" || !value.__autojs6ViewHandle) throw new TypeError("An execution-owned native View handle is required");
+      return value;
+    }
+    function wrapView(value) {
+      if (value === null) return null;
+      viewToken(value);
+      if (nativeViews.has(value.__autojs6ViewHandle)) return nativeViews.get(value.__autojs6ViewHandle);
+      const output = { ...value, context: value.context && wrapContext(value.context) };
+      const listeners = new Map(); let closed = false, reading = false;
+      const usable = () => { if (closed) throw new Error("Native View handle is closed"); };
+      const emit = event => {
+        if (closed) return;
+        if (event.type === "close") closed = true;
+        for (const callback of [...listeners.get(event.type) || [], ...listeners.get("*") || []]) callback.call(output, Object.freeze(event));
+        if (closed) { listeners.clear(); nativeViews.delete(value.__autojs6ViewHandle); }
+      };
+      async function poll() {
+        if (reading || closed) return; reading = true;
+        try {
+          while (!closed && [...listeners.values()].some(list => list.length)) {
+            for (const event of await nativeCall("viewEvents", [value])) emit(event);
+          }
+        } catch (error) { emit({ type: "error", message: error.message }); emit({ type: "close" }); }
+        finally { reading = false; }
+      }
+      function on(name, callback) {
+        usable(); if (typeof callback !== "function") throw new TypeError("View event listener must be a function");
+        listeners.set(name, [...listeners.get(name) || [], callback]); poll();
+        return () => off(name, callback);
+      }
+      function off(name, callback) { listeners.set(name, (listeners.get(name) || []).filter(fn => fn !== callback && fn.listener !== callback)); }
+      function once(name, callback) { const listener = event => { off(name, listener); callback.call(output, event); }; listener.listener = callback; return on(name, listener); }
+      Object.defineProperties(output, {
+        get: { value: async name => { usable(); return nativeCall("viewGet", name === undefined ? [value] : [value, name]); } },
+        set: { value: async patch => { usable(); return nativeCall("viewUpdate", [value, patch]); } },
+        findView: { value: name => findView(value, name) },
+        dispose: { value: async () => { if (closed) return; await nativeCall("disposeView", [value]); emit({ type: "close" }); } },
+        on: { value: on }, once: { value: once }, off: { value: off }
+      });
+      Object.freeze(output); nativeViews.set(value.__autojs6ViewHandle, output); return output;
+    }
+    async function inflate(layout, scope) {
+      const args = [layout]; if (scope !== undefined) args.push(scope);
+      return wrapView(await nativeCall("inflate", args));
+    }
+    function createView(type, props = {}, scope) { return inflate({ ...props, type: String(type).replace(/^android\.widget\./, "") }, scope); }
+    async function findView(root, name) { return wrapView(await nativeCall("findView", [typeof root === "string" ? root : viewToken(root), name])); }
+
     let __autojs6_limited_ui_cache;
     const __autojs6_bridge_signal_from_options = options => options && options.signal;
     const __autojs6_bridge_error = (message, code, module, method) => Object.assign(new Error(message), { code, module, method });
@@ -16855,6 +16920,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return Object.freeze({
       id,
+      ...(result.rootView ? { rootView: wrapView(result.rootView), findView: name => findView(id, name) } : {}),
       get closed() { return closed; },
       subscriptionId: result.subscriptionId,
       on,
@@ -16873,8 +16939,12 @@ std::string buildEmbeddedScriptExecutionSource(
       let prepared;
       let descriptor;
       try {
-        prepared = __autojs6_ui_prepare_descriptor(layoutJson, "showLayout");
-        descriptor = __autojs6_ui_descriptor(prepared.descriptor, "showLayout");
+        if (typeof layoutJson === "string" || layoutJson && layoutJson.__autojs6ViewHandle) {
+          prepared = { bindings: [] }; descriptor = layoutJson;
+        } else {
+          prepared = __autojs6_ui_prepare_descriptor(layoutJson, "showLayout");
+          descriptor = __autojs6_ui_descriptor(prepared.descriptor, "showLayout");
+        }
       } catch (error) {
         return Promise.reject(error);
       }
@@ -16889,7 +16959,7 @@ std::string buildEmbeddedScriptExecutionSource(
       });
     }
     __autojs6_limited_ui_cache = Object.freeze({
-      showLayout,
+      showLayout, inflate, createView, context, view: wrapView, findView,
       state: __autojs6_ui_state,
       bind: __autojs6_ui_bind
     });
@@ -16904,7 +16974,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (["function", "symbol", "bigint"].includes(typeof value)) throw new TypeError("Compose arguments must be JSON values");
       return value;
     })), options);
-    const names = ["AlertDialog", "Box", "Button", "Card", "Checkbox", "CircularProgressIndicator", "Column", "ElevatedButton", "FilledTonalButton", "HorizontalDivider", "Icon", "IconButton", "Image", "LazyColumn", "LazyRow", "LinearProgressIndicator", "OutlinedButton", "OutlinedTextField", "RadioButton", "Row", "Scaffold", "Slider", "Spacer", "Surface", "Switch", "Text", "TextButton", "TextField", "TopAppBar", "AssistChip", "Badge", "DatePicker", "DropdownMenu", "DropdownMenuItem", "FilterChip", "FloatingActionButton", "HorizontalPager", "InputChip", "LazyVerticalGrid", "ModalBottomSheet", "NavigationBar", "NavigationBarItem", "NavigationDrawer", "NavigationDrawerItem", "NavigationRail", "NavigationRailItem", "PullToRefresh", "SearchBar", "SegmentedButton", "SegmentedButtonItem", "Tab", "TabRow", "TimePicker", "Tooltip"];
+    const names = ["AndroidView", "AlertDialog", "Box", "Button", "Card", "Checkbox", "CircularProgressIndicator", "Column", "ElevatedButton", "FilledTonalButton", "HorizontalDivider", "Icon", "IconButton", "Image", "LazyColumn", "LazyRow", "LinearProgressIndicator", "OutlinedButton", "OutlinedTextField", "RadioButton", "Row", "Scaffold", "Slider", "Spacer", "Surface", "Switch", "Text", "TextButton", "TextField", "TopAppBar", "AssistChip", "Badge", "DatePicker", "DropdownMenu", "DropdownMenuItem", "FilterChip", "FloatingActionButton", "HorizontalPager", "InputChip", "LazyVerticalGrid", "ModalBottomSheet", "NavigationBar", "NavigationBarItem", "NavigationDrawer", "NavigationDrawerItem", "NavigationRail", "NavigationRailItem", "PullToRefresh", "SearchBar", "SegmentedButton", "SegmentedButtonItem", "Tab", "TabRow", "TimePicker", "Tooltip"];
     const modifierNames = ["padding", "size", "width", "height", "fillMaxWidth", "fillMaxHeight", "fillMaxSize", "weight", "align", "background", "border", "clip", "alpha", "clickable", "verticalScroll", "horizontalScroll", "offset", "aspectRatio", "testTag", "semantics"];
     const nodeTag = Symbol("compose.node"), modifierTag = Symbol("compose.modifier");
     const open = new Set();
@@ -16988,7 +17058,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (typeof fn !== "function" || !Number.isInteger(delay) || delay < 0 || delay > 2147483647) throw error("post requires a callback and a valid delay");
       return setTimeout(fn, delay);
     }
-    async function mount(root, options = {}, mode = "mount") {
+    async function mount(root, options = {}, mode = "mount", container) {
       if (active) throw error("Cannot mount while rendering");
       const session = { id: null, closed: false, root: null, dependencies: new Set(), nodes: new Set(), refs: new Set(), memo: new Map(), memoPath: "root", memoIndices: new Map(), memoSeen: new Set(), readCollectors: [],
         callbacks: new Map(), commands: new Map(), frames: new Map(), pendingEvents: [], generation: 0, listeners: new Map(), timers: new Set(), chain: Promise.resolve(), scheduled: false };
@@ -17014,12 +17084,12 @@ std::string buildEmbeddedScriptExecutionSource(
         for (const listener of [...session.listeners.get(value.type) || [], ...session.listeners.get("*") || []]) listener(value);
         if (value.type === "close") finish();
       }
-      function serialize() {
+      async function serialize() {
         for (const dependency of session.dependencies) dependency.readers.delete(session);
         session.dependencies.clear(); session.memoIndices.clear(); session.memoSeen.clear();
         let value;
         active = session; try { value = typeof root === "function" ? root() : root; } finally { active = null; }
-        const callbacks = new Map(), nodes = new Set(), refs = new Map();
+        const callbacks = new Map(), nodes = new Set(), refs = new Map(), factories = [];
         function token(node, fn) { if (nextCallback >= 2147483647) throw error("Compose callback limit reached"); const id = nextCallback++; callbacks.set(id, { node, fn }); return id; }
         function walk(node, depth = 0) {
           if (!node || !node[nodeTag] || nodes.has(node) || depth > 64 || nodes.size >= 5000) throw error("Invalid, repeated or excessive Compose tree");
@@ -17029,6 +17099,18 @@ std::string buildEmbeddedScriptExecutionSource(
           for (const [name, value] of Object.entries(data.props)) {
             if (name === "ref") { if (!value || typeof value !== "object") throw error("Invalid Compose ref"); refs.set(value, node); }
             else if (name === "slots") { for (const [key, child] of Object.entries(value || {})) { const list = children([child]); if (list.length > 1) throw error("A slot requires a single root"); if (list.length) slots[key] = walk(list[0], depth + 1); } }
+            else if (data.type === "AndroidView" && name === "view" && typeof value === "function") {
+              if (data.viewFactory !== value) { data.viewFactory = value; data.resolvedView = undefined; }
+              factories.push((async () => {
+                if (!data.resolvedView) {
+                  const token = await call("ui", "context", []);
+                  const scope = Object.freeze({ ...token, inflate: layout => call("ui", "inflate", [layout, token]),
+                    createView: (type, props = {}) => call("ui", "inflate", [{ ...props, type: String(type).replace(/^android\.widget\./, "") }, token]) });
+                  data.resolvedView = Promise.resolve(value(scope));
+                }
+                props.view = await data.resolvedView;
+              })());
+            }
             else if (name === "modifier" || name === "key") continue;
             else if (/^on[A-Z]/.test(name)) { if (typeof value !== "function") throw error("Event callback must be a function"); events[name] = token(node, value); }
             else if (value && value[nodeTag]) slots[name] = walk(value, depth + 1);
@@ -17045,6 +17127,7 @@ std::string buildEmbeddedScriptExecutionSource(
             children: data.children.map(child => walk(child, depth + 1)) };
         }
         const descriptor = walk(value);
+        await Promise.all(factories);
         for (const key of session.memo.keys()) if (!session.memoSeen.has(key)) session.memo.delete(key);
         return { descriptor, accept(generation) { for (const node of session.nodes) node[nodeTag].owners.delete(session); for (const ref of session.refs) ref.current = null;
           session.nodes = nodes; for (const node of nodes) node[nodeTag].owners.add(session);
@@ -17060,7 +17143,7 @@ std::string buildEmbeddedScriptExecutionSource(
         session.scheduled = true;
         session.chain = session.chain.catch(() => {}).then(async () => {
           session.scheduled = false; if (session.closed) return;
-          const frame = serialize(); const result = await call("compose", "render", [session.id, frame.descriptor]); if (!session.closed) frame.accept(result && result.generation);
+          const frame = await serialize(); const result = await call("compose", "render", [session.id, frame.descriptor]); if (!session.closed) frame.accept(result && result.generation);
         });
         session.chain.catch(failure => { event({ type: "error", message: failure.message }); });
       };
@@ -17096,8 +17179,10 @@ std::string buildEmbeddedScriptExecutionSource(
         async close() { if (session.closed) return; await call("compose", "close", [session.id]); event({ type: "close" }); }
       });
       try {
-        const frame = serialize();
-        const result = await call("compose", mode, [frame.descriptor, { ...(defaultTheme ? { theme: defaultTheme } : {}), ...options }]);
+        const frame = await serialize();
+        const arguments_ = [frame.descriptor, { ...(defaultTheme ? { theme: defaultTheme } : {}), ...options }];
+        if (mode === "attach") arguments_.unshift(container);
+        const result = await call("compose", mode, arguments_);
         session.id = result.id; frame.accept(result.generation); open.add(handle);
         if (session.needsRender) session.schedule();
         let shown = false;
@@ -17115,7 +17200,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     const api = (root, options) => mount(root, options);
     Object.assign(api, { createElement, modifier, state, ref: () => ({ current: null }), batch, memo, post,
-      mount, dialog: (root, options) => mount(root, options, "dialog"), floaty: (root, options) => mount(root, options, "floaty"),
+      mount, attach: (container, root, options) => mount(root, options, "attach", container), dialog: (root, options) => mount(root, options, "dialog"), floaty: (root, options) => mount(root, options, "floaty"),
       isAvailable: () => call("compose", "isAvailable", []), version: () => call("compose", "version", []),
       theme(value) { if (arguments.length) defaultTheme = value; return defaultTheme; }
     });

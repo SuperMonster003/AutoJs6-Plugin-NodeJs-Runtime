@@ -1,6 +1,6 @@
 {
   "schema": "autojs6-node-capability-catalog-v1",
-  "catalogVersion": "1.7.0",
+  "catalogVersion": "1.8.0",
   "runtime": {
     "pluginId": "nodejs",
     "engine": "nodejs",
@@ -3578,6 +3578,62 @@
       {
         "module": "compose",
         "method": "window",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "context",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "inflate",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "findView",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "viewGet",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "viewUpdate",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "viewEvents",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "disposeView",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "compose",
+        "method": "attach",
         "requiredCapabilities": [
           "ui"
         ]

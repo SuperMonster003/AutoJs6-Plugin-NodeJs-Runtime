@@ -4,6 +4,12 @@
 
 ******
 
+# v1.8.0
+
+###### 2026/10/18
+
+* `Nuevo` Node.js admiten identificadores View de cada ejecución, fábricas AndroidView asíncronas, contenedores XML Compose, limpieza de Workers y aplicaciones empaquetadas
+
 # v1.7.0
 
 ###### 2026/10/18

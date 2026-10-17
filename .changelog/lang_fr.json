@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Amelioration",
   "changelog_label_dependency": "Dependance",
   "$data": {
+    "v1.8.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js prennent en charge les handles View propres à une exécution, les fabriques AndroidView asynchrones, les conteneurs XML Compose, la fermeture des Workers et les applications empaquetées"
+      ]
+    },
     "v1.7.0": {
       "released_date": "2026/10/18",
       "feature": [

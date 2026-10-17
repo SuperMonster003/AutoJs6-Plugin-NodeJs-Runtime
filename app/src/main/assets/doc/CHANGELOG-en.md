@@ -4,6 +4,12 @@
 
 ******
 
+# v1.8.0
+
+###### 2026/10/18
+
+* `Feature` Node.js support execution-owned View handles, asynchronous AndroidView factories and XML Compose container attachments, with Worker cleanup and packaged application support
+
 # v1.7.0
 
 ###### 2026/10/18
