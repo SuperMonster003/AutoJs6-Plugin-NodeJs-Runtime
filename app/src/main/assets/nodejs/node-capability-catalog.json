@@ -747,6 +747,11 @@
         "providerOwner": "host_capability_provider"
       },
       {
+        "id": "opencc",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
         "id": "package_manager",
         "aliases": [],
         "providerOwner": "host_capability_provider",
@@ -1675,6 +1680,13 @@
       },
       {
         "module": "image",
+        "method": "blur",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
         "method": "captureScreen",
         "requiredCapabilities": [
           "image",
@@ -1684,6 +1696,27 @@
       {
         "module": "image",
         "method": "clip",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "copy",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "detectsColor",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "findAllPointsForColor",
         "requiredCapabilities": [
           "image"
         ]
@@ -1711,7 +1744,42 @@
       },
       {
         "module": "image",
+        "method": "flip",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "fromBase64",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "fromBytes",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "gaussianBlur",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
         "method": "grayscale",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "invert",
         "requiredCapabilities": [
           "image"
         ]
@@ -1725,7 +1793,28 @@
       },
       {
         "module": "image",
+        "method": "medianBlur",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "pixel",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
         "method": "readImage",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "readPixels",
         "requiredCapabilities": [
           "image"
         ]
@@ -1746,6 +1835,13 @@
       },
       {
         "module": "image",
+        "method": "rotate",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
         "method": "saveImage",
         "requiredCapabilities": [
           "image"
@@ -1753,7 +1849,21 @@
       },
       {
         "module": "image",
+        "method": "scale",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
         "method": "threshold",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "toBase64",
         "requiredCapabilities": [
           "image"
         ]
@@ -2175,6 +2285,237 @@
         "requiredCapabilities": [
           "image",
           "ocr"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "convert",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "hk2jp",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "hk2s",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "hk2t",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "hk2tw",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "hk2twi",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "jp2hk",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "jp2s",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "jp2t",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "jp2tw",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "jp2twi",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "s2hk",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "s2jp",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "s2t",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "s2tw",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "s2twi",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "s2twp",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "t2hk",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "t2jp",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "t2s",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "t2tw",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "t2twi",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "tw2hk",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "tw2jp",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "tw2s",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "tw2sp",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "tw2t",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "tw2twi",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "twi2hk",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "twi2jp",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "twi2s",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "twi2t",
+        "requiredCapabilities": [
+          "opencc"
+        ]
+      },
+      {
+        "module": "opencc",
+        "method": "twi2tw",
+        "requiredCapabilities": [
+          "opencc"
         ]
       },
       {
@@ -2981,6 +3322,11 @@
       },
       {
         "id": "ocr",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "opencc",
         "aliases": [],
         "androidPermissions": []
       },

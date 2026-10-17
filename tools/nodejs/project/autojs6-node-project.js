@@ -50,6 +50,7 @@ const KNOWN_CAPABILITIES = new Set([
   "notifications",
   "notifications.settings",
   "ocr",
+  "opencc",
   "package_manager",
   "package_manager.mutate",
   "pinyin",

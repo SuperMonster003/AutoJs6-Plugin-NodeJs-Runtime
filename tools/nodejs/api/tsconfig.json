@@ -8,5 +8,5 @@
     "lib": ["ES2020"],
     "types": []
   },
-  "files": ["types-entry.ts"]
+  "files": ["types-entry.ts", "opencc-images-types.ts"]
 }

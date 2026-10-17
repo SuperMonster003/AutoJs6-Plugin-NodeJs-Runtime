@@ -6,10 +6,11 @@
   "changelog_label_dependency": "依赖",
   "$data": {
     "v1.7.0": {
-      "released_date": "2026/10/11",
+      "released_date": "2026/10/17",
       "feature": [
         "Node.js 项目和脚本可打包为独立签名的应用, 运行时调用外部 Node.js Runtime 插件, 插件不可用时显示安装引导",
-        "screen_metrics 和 autojs6:compat 提供基于当前屏幕的异步 cX/cY/cXy/cYx 及每次执行独立的换算基数, 并补充覆盖检查和 ESM 样例"
+        "screen_metrics 和 autojs6:compat 提供基于当前屏幕的异步 cX/cY/cXy/cYx 及每次执行独立的换算基数, 并补充覆盖检查和 ESM 样例",
+        "Node.js 和 Bun 支持异步 OpenCC 转换及常用图像编解码, 像素读取, 变换和颜色查找; Bun 图像文件访问独立授权"
       ],
       "dependency": [
         "为 Node.js 24.21.0 Android 运行时回补 OpenSSL 3.5.9 安全修复"

@@ -74,6 +74,7 @@ public final class NodeBridgePermissionManifest {
     private static final String FLOATY_RAW = "floaty.raw";
     private static final String FLOATY_TOUCH = "floaty.touch";
     private static final String PINYIN = "pinyin";
+    private static final String OPENCC = "opencc";
     private static final String PINYIN4J = "pinyin4j";
     private static final String FILES = "files";
     private static final String FILES_WRITE = "files.write";
@@ -162,6 +163,7 @@ public final class NodeBridgePermissionManifest {
             FLOATY_RAW,
             FLOATY_TOUCH,
             PINYIN,
+            OPENCC,
             PINYIN4J,
             FILES,
             FILES_WRITE,

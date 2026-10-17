@@ -40,7 +40,7 @@
   "capabilityCatalog": {
     "schema": "autojs6-node-capability-catalog-v1",
     "version": "1.7.0",
-    "sha256": "52def9d55dc4630fd55f3a5382d52efc64fc198ea62d275fc795072ff8f55e8e"
+    "sha256": "847054aa19d43be620a587f105622125c071a652a3a3ff1aee7b0ecf2c704c91"
   },
   "reproducibility": {
     "artifactMaterialization": "source_build",
@@ -55,7 +55,7 @@
   },
   "buildProvenance": {
     "sourceRepository": "AutoJs6-Plugin-NodeJs-Runtime",
-    "sourceGitBase": "07b17368b0775fb5061681e5b7beccf718f726d3",
+    "sourceGitBase": "d6aedf4124533f9f7d47fdf88841ad632b1c0a9a",
     "runtimeBuildPlan": {
       "lockFile": "tools/nodejs/runtime-build/runtime-build.lock.json",
       "lockSha256": "87e8f4b766b42e16084e95d5bb44168c22c8c477d1eac7b268736a99cb3ff324",
@@ -123,8 +123,8 @@
       "payloadProfile": "embedded_runtime",
       "delivery": "source_tree",
       "required": true,
-      "size": 84810,
-      "sha256": "52def9d55dc4630fd55f3a5382d52efc64fc198ea62d275fc795072ff8f55e8e",
+      "size": 91516,
+      "sha256": "847054aa19d43be620a587f105622125c071a652a3a3ff1aee7b0ecf2c704c91",
       "buildId": null
     },
     {

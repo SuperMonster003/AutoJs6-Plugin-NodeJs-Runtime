@@ -379,8 +379,8 @@ async function smoke(): Promise<void> {
   const parsedMime: mime.JsMime = mime("text/plain; charset=utf-8");
   const nano: string = nanoid(8);
   const inspected: string = util.inspect({ encoded, decoded });
-  const openccConvert: (value: unknown, type: opencc.ConversionType | string) => never = opencc.convert;
-  const openccS2t: (value: unknown) => never = opencc.s2t;
+  const openccConvert: (value: opencc.TextInput, type: opencc.ConversionType | string) => Promise<string> = opencc.convert;
+  const openccS2t: (value: opencc.TextInput) => Promise<string> = opencc.s2t;
   const pinyinText: string = await pinyin.simple("\u4f60\u597d");
   const pinyinRows: pinyin.PinyinResult = await pinyin.convert("\u4e2d\u56fd", { style: pinyin.STYLE_TONE2 });
   const pinyin4jText: string = await pinyin4j.of("\u4e2d\u56fd", { separator: " ", tone: "WITH_TONE_NUMBER" });

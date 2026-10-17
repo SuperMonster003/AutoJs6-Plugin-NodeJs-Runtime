@@ -10,6 +10,8 @@
 >
 > 2026-08-26 所有权更新: M5 中关于宿主保留 `sample/nodejs` 与 `docs/nodejs/types` 副本的决策已被取代。样例, 类型声明, 项目向导及其 Gradle 校验现在仅由本插件仓库维护; 宿主只保留路由, Binder 客户端, 工作区传输, Android 能力桥接与最小集成测试。详见 `docs/DEVELOPMENT-ASSETS.md`。
 
+2026-10-17 第二批宿主 API: OpenCC callable/convert/32 个方法改为真实异步 provider 调用; images 增加编解码, 像素, 变换和找色入口, 维持 PFD 大图传输及执行所有权. 对应实现, 声明, 样例类型与覆盖检查同步, 真机验证记录见 docs/HOST-API.md 和宿主 docs/dev/runtime-opencc-images-2026-10-17.md.
+
 ## 一. 项目定位 (不变的初衷)
 
 为 AutoJs6 提供接近桌面体验的 Node.js 运行能力:

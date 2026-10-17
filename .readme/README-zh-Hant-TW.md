@@ -121,10 +121,11 @@ console.log("AutoJs6 Node.js runtime");
 
 # v1.7.0
 
-###### 2026/10/11
+###### 2026/10/17
 
 * `新增` Node.js 專案和指令碼可打包為獨立簽章的應用程式, 執行時呼叫外部 Node.js Runtime 外掛程式, 外掛程式不可用時顯示安裝指引
 * `新增` screen_metrics 和 autojs6:compat 提供依據目前螢幕的非同步 cX/cY/cXy/cYx 及各次執行獨立的換算基數, 並補充覆蓋檢查和 ESM 範例
+* `新增` Node.js 和 Bun 支援非同步 OpenCC 轉換及常用影像編解碼, 像素讀取, 變換和顏色搜尋; Bun 影像檔案存取獨立授權
 * `修復` Pinyin/Pinyin4j 改為非同步呼叫實際宿主外掛, 移除小字典替代實作; Android 主控台操作透過宿主執行並回傳 Promise; 補齊無障礙手勢和 input_observer 型別宣告
 * `依賴` 為 Node.js 24.21.0 Android 執行階段回補 OpenSSL 3.5.9 安全性修正
 

@@ -6,10 +6,11 @@
 
 # v1.7.0
 
-###### 2026/10/11
+###### 2026/10/17
 
 * `Feature` Packaged Node.js projects and scripts use the external Node.js Runtime plugin, support independently signed applications, and show installation guidance when the runtime is unavailable
 * `Feature` screen_metrics and autojs6:compat expose asynchronous cX/cY/cXy/cYx and per-execution scale bases using the current display, with coverage checks and an ESM example
+* `Feature` Node.js and Bun support asynchronous OpenCC conversions and common image codecs, pixel reads, transforms and color searches; Bun image file access is authorized separately
 * `Fix` Pinyin/Pinyin4j now await real host providers instead of a small local dictionary; Android console controls execute on the host and return Promises; accessibility gestures and input_observer declarations are complete
 * `Dependency` Backported OpenSSL 3.5.9 security fixes to the Node.js 24.21.0 Android runtime
 

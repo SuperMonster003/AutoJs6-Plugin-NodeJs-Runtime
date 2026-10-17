@@ -97,7 +97,7 @@ M23.4 起, 主线程和 Worker 的 `process.dlopen` / `Module._extensions[".node
 
 | 模块 | live 方法 | blocked 方法 |
 |---|---|---|
-| `image` / `images` | requestScreenCapture, stopScreenCapture, captureScreen, readImage, saveImage, toBytes, clip, resize, grayscale, threshold, findImage, matchTemplate, findColor, findMultiColors, recycle | 图像分析需宿主 OpenCV 插件 |
+| `image` / `images` | 编解码, 像素读取, 复制, 裁剪, 缩放, 旋转, 翻转, 滤镜, 模板与颜色搜索, 回收, 既有截图接口 | 缩放, 滤镜和搜索需宿主 OpenCV 插件; 截图需 Android 授权 |
 | `media_projection` | requestScreenCapture, nextImage, stop | 需用户确认 Android 录屏授权 |
 | `recorder` | getStatus, start, stop | 需 media + media.recording 及 Android RECORD_AUDIO; 真机录音 Check 待补 |
 | `media` | getAudioStreamVolume/MaxVolume/Info, setAudioStreamVolume; play, pause, resume, stop, seekTo, getPlaybackStatus (会话播放) | 音量方法需 media + media.audio, 遵循 Android 音量/DND 策略; 播放方法需 media + media.playback, 经宿主 ScriptMusicService 前台媒体通知播放, 同一应用同一时刻只有一个脚本音乐会话; 需含媒体 provider 的宿主 (2026-09-17 已合并进宿主 master) |
@@ -111,7 +111,11 @@ M23.4 起, 主线程和 Worker 的 `process.dlopen` / `Module._extensions[".node
 
 M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返回独立的新句柄。找图使用宿主 Rhino Images 同用的 TemplateMatching, 找色使用 ColorFinder, 图像变换调用同一 OpenCV 后端; clip 与编码使用 Android Bitmap。模板阈值默认 0.9, 范围 0..1; matchTemplate 的 limit/max 默认 5, 范围 1..1000。找色阈值默认 4, 范围 0..255; region 为 `[x,y,width,height]`, 返回坐标位于输入图片中, 不做屏幕比例缩放。多点找色偏移可为负, 匹配点须在原图范围内。grayscale 使用 RGBA→GRAY, threshold 对灰度执行指定二值化类型。未安装可用 OpenCV 插件时, 捕获、读取、保存、裁剪和回收仍可调用, 依赖 OpenCV 的操作返回宿主插件错误。
 
-`await image.toBytes(handle, {format: "png" | "rgba"})` 返回原生 Node Buffer, 也可把格式直接作为第二个参数。PNG 为默认值; RGBA 为紧密排列的 sRGB RGBA8, 使用直通 alpha, 长度为 width × height × 4。图片句柄回收后 Buffer 仍有效。宿主在私有临时文件中编码, 回调 Bundle 通过 `bridgeBinaryPfd` / `bridgeBinaryByteCount` 携带描述符及长度; JSON 仅含元数据。插件直接 mmap 文件并由 V8 BackingStore 持有, `Buffer.from(ArrayBuffer)` 不复制像素。文件目录项及 FD 及时关闭, 映射在 Buffer 回收或 isolate 结束时解除。JNI 与文件桥接均支持, 请求 `binary=true` 为 additive, 未声明该字段的旧客户端不会收到 PFD。`readImage(path)` 继续返回宿主图片句柄, 大图也通过随后调用 toBytes 取回像素, 无 base64 或 `/proc` / `/dev` 文件读取入口。PNG 解码已使用真实 [pngjs](https://github.com/pngjs/pngjs) 包在设备测试中验证。
+`await images.toBytes(handle, {format: "png"})` 返回原生 Node Buffer. 格式支持 png/jpg/jpeg/webp/rgba, quality 为 0-100, region 为 [x,y,width,height]. RGBA 为紧密排列的直通 alpha sRGB RGBA8; 图像回收后 Buffer 仍有效. `fromBytes` 接受编码后的图片, 经 PFD 上传避免 Binder JSON 大小限制; `fromBase64` 先解码再走同一通道. `toBase64` 对编码结果做 Base64 转换. `readPixels` 通过 RGBA 二进制数据返回 `{data,width,height}`, data 为按行排列的有符号 ARGB32 数组.
+
+`copy`, `rotate`, `scale`, `flip`, `blur`, `gaussianBlur`, `medianBlur`, `invert` 返回独立句柄, 不消耗输入. 全图裁剪, 零度旋转和不翻转也保持独立回收. `detectsColor` 支持 threshold 和 diff/rgb/rgb+/hs/h/equal/oklab 算法; `findAllPointsForColor` 按不透明像素的 RGB 各通道阈值查找, 返回图像坐标, 最多 4096 个点, 超限拒绝而非截断. Node 的公开 readPixels 不受宿主原始 JSON readPixels 的 16384 像素上限限制. `getSize/getWidth/getHeight/isRecycled` 同步读取本地句柄信息; isRecycled 不跟踪绕过客户端的原始桥接回收.
+
+`autojs6:opencc` 可调用, 并提供 convert 与全部 32 个转换方法, 均返回 Promise<string>. 转换类型不区分大小写, 原生类型和组合链与 Rhino 共用宿主 OpenCC provider. 空字符串有效, null/undefined 拒绝, 插件缺失或执行失败不伪造原文成功结果. 完整转换名称以 docs/nodejs/types/autojs6-node/opencc.d.ts 为准.
 
 `ocr.recognizeText(handle)` 与 `barcode.detect(handle, {formats: ["QR_CODE"]})` 可直接使用同一图片句柄, 分别需声明 `image` + `ocr` / `barcode`。OCR 选项支持 `engineId` / `engine` / `variant`; 未指定时宿主按 ML Kit OCR, Paddle OCR, Rapid OCR 的顺序自动选择已启用的引擎 (AutoJs6 6.8.0 起; 更早的宿主固定使用 ML Kit OCR); 找不到已启用的兼容识别插件时错误 category 为 `unavailable`, 实际识别失败仍返回 provider 错误。OCR 与截图 OCR 样例申请 Android 截屏授权后执行真实识别, 在 finally 中回收图片并停止截屏; 只有权限拒绝或插件不可用才输出可读 skip。M14.4 已在小米与 x86_64 上识别宿主显示的 ROADMAP 2026 和二维码, 测试输入由 UiAutomation 截屏落盘后 readImage 取得; 2026-09-10 用户通过 MediaProjection 真实截图识别到 AutoJs6 文件界面文字, 补齐人工授权链; 截屏/屏幕 OCR 样例及同调用链的 Pro 片段转为 stable。
 
@@ -142,7 +146,7 @@ Worker 中使用 `require("autojs6:bridge").callAutoJs("device", "info", [], {ti
 
 ## 四. 本地工具与宿主桥接模块
 
-`files` (Node fs 便捷封装), `base64`, `colors`, `formatter`/`fmt`, `converter`/`cvt`, `s13n`, `mime`, `nanoid`, `jsox` (+.mathx/.arrayx/.numberx), `plugins` (本地 ./plugins 目录扫描) 由插件本地实现. `opencc` 保留明确的不支持错误, 不计入转换能力覆盖.
+`files` (Node fs 便捷封装), `base64`, `colors`, `formatter`/`fmt`, `converter`/`cvt`, `s13n`, `mime`, `nanoid`, `jsox` (+.mathx/.arrayx/.numberx), `plugins` (本地 ./plugins 目录扫描) 由插件本地实现. `autojs6:opencc` 通过真实宿主插件提供异步转换, 需要 `opencc` 能力; 裸名 `opencc` 仍可被已安装的同名 npm 包覆盖.
 
 宿主还提供显式桥调用 `files.list/stat/read/write/mkdir/rename/delete`, `console.tail`, 用于宿主工作区和日志读取. 它们分别使用 `files` (+ 写入时 `files.write`, 删除时 `files.delete`), `console` 声明. 原生 Node fs 仍使用插件 UID.
 

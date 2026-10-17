@@ -6,10 +6,11 @@
 
 # v1.7.0
 
-###### 2026/10/11
+###### 2026/10/17
 
 * `Nuevo` Los proyectos y scripts Node.js se empaquetan como aplicaciones con firma independiente, usan el plugin externo Node.js Runtime y muestran instrucciones de instalación cuando no está disponible
 * `Nuevo` screen_metrics y autojs6:compat ofrecen cX/cY/cXy/cYx asíncronos con la pantalla actual y bases por ejecución, con comprobaciones de cobertura y ejemplo ESM
+* `Nuevo` Node.js y Bun admiten OpenCC asíncrono, códecs de imagen, lectura de píxeles, transformaciones y búsqueda de colores; acceso a archivos de imagen de Bun autorizado por separado
 * `Correccion` Pinyin/Pinyin4j llaman de forma asíncrona a los proveedores del anfitrión en lugar del pequeño diccionario local; los controles de consola Android se ejecutan en el anfitrión y devuelven Promises; se completan los tipos de gestos e input_observer
 * `Dependencia` Se incorporaron las correcciones de seguridad de OpenSSL 3.5.9 al entorno Android de Node.js 24.21.0
 

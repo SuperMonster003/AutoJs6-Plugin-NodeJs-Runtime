@@ -3068,6 +3068,7 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_limited_media_projection_cache = null;
   let __autojs6_limited_image_cache = null;
   let __autojs6_limited_images_cache = null;
+  const __autojs6_recycled_image_handles = new Set();
   let __autojs6_limited_ocr_cache = null;
   let __autojs6_limited_barcode_cache = null;
   let __autojs6_limited_media_cache = null;
@@ -5365,7 +5366,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const capability = {observeNotification: "events.notification", observeToast: "events.toast", observeKey: "events.key"}[methodName];
       return capability ? ["events", capability] : ["events"];
     }
-    if (moduleName === "pinyin" || moduleName === "pinyin4j" || moduleName === "console") return [moduleName];
+    if (moduleName === "opencc" || moduleName === "pinyin" || moduleName === "pinyin4j" || moduleName === "console") return [moduleName];
     if (moduleName === "files") {
       if (["write", "mkdir", "rename"].includes(methodName)) return ["files", "files.write"];
       if (methodName === "delete") return ["files", "files.delete"];
@@ -11401,12 +11402,6 @@ std::string buildEmbeddedScriptExecutionSource(
     "jp2tw",
     "jp2twi"
   ]);
-  function __autojs6_text_resource_unsupported(apiName, dependency) {
-    throw __autojs6_rhino_compat_unsupported(
-      apiName,
-      dependency + " resources are not available in the host-testable Node text facade; use a supported pure subset or run the Rhino/Android provider."
-    );
-  }
   function __autojs6_limited_opencc() {
     if (__autojs6_limited_opencc_cache) {
       return __autojs6_limited_opencc_cache;
@@ -11416,8 +11411,13 @@ std::string buildEmbeddedScriptExecutionSource(
     };
     __autojs6_opencc_methods.forEach(function(name) {
       Object.defineProperty(opencc, name, {
-        value: function() {
-          __autojs6_text_resource_unsupported("opencc." + name, "OpenCC dictionary");
+        value: function(value, type) {
+          try {
+            if (value === undefined || value === null) throw __autojs6_invalid_arg_type("OpenCC text must not be null or undefined.");
+            return __autojs6_call_autojs("opencc", "convert", [String(value), name === "convert" ? type : name], { permissions: ["opencc"] });
+          } catch (error) {
+            return Promise.reject(error);
+          }
         },
         enumerable: true
       });
@@ -13499,7 +13499,14 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       return imageModule.findMultiColors(image, color, points, bridgeOptions);
     }
-    __autojs6_rhino_compat_images_cache = Object.freeze({
+    function findColorEquals(image, color, optionsOrX, y, width, height) {
+      const hasRegionArgs = arguments.length > 3;
+      return Promise.resolve().then(function() {
+        const options = __autojs6_rhino_compat_image_find_options(optionsOrX, y, width, height, 0, "images.findColorEquals", hasRegionArgs);
+        return imageModule.findColorEquals(image, color, options);
+      });
+    }
+    __autojs6_rhino_compat_images_cache = Object.freeze(Object.assign({}, imageModule, {
       requestScreenCapture: __autojs6_rhino_compat_request_screen_capture,
       requestScreenCaptureAsync: __autojs6_rhino_compat_request_screen_capture,
       captureScreen: __autojs6_rhino_compat_capture_screen,
@@ -13515,10 +13522,12 @@ std::string buildEmbeddedScriptExecutionSource(
       findImage,
       matchTemplate,
       findColor,
+      findPointByColor: findColor,
+      findColorEquals,
       findMultiColors,
       getSize: imageModule.getSize,
       recycle: imageModule.recycle
-    });
+    }));
     return __autojs6_rhino_compat_images_cache;
   }
   function __autojs6_rhino_selector_copy_field(target, source, fieldName) {
@@ -17664,7 +17673,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return Math.trunc(number);
   }
   function __autojs6_image_color(moduleName, methodName, fieldName, value) {
-    if (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 4294967295) {
+    if (typeof value === "number" && Number.isFinite(value) && value >= -2147483648 && value <= 4294967295) {
       return Math.trunc(value);
     }
     const text = value === undefined || value === null ? "" : String(value).trim();
@@ -17844,14 +17853,123 @@ std::string buildEmbeddedScriptExecutionSource(
     if (cached) {
       return cached;
     }
-    const recycledImageHandles = new Set();
-    function toBytes(image, options) {
-      const handle = __autojs6_normalize_image_handle(image);
-      if (!handle) return Promise.reject(__autojs6_image_invalid_argument_error(bridgeModuleName, "toBytes", "Image bytes require an image handle."));
-      const input = typeof options === "string" ? { format: options } : __autojs6_image_options(options);
-      const format = input.format || "png";
-      if (format !== "png" && format !== "rgba") return Promise.reject(__autojs6_image_invalid_argument_error(bridgeModuleName, "toBytes", "Image byte format must be png or rgba."));
-      return __autojs6_call_autojs(bridgeModuleName, "toBytes", [handle, { format }], __autojs6_image_bridge_options(input, 10000));
+    const recycledImageHandles = __autojs6_recycled_image_handles;
+    function finite(value, name) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) throw __autojs6_invalid_arg_type("Image " + name + " must be finite.");
+      return number;
+    }
+    function kernelSize(value, square) {
+      const size = Array.isArray(value) ? value.map(item => finite(item, "kernel size")) : finite(value, "kernel size");
+      if (Array.isArray(size)) {
+        if (size.length !== 2 || (square && size[0] !== size[1])) throw __autojs6_invalid_arg_type("Image kernel size must have two matching dimensions.");
+        return square ? size[0] : size;
+      }
+      return size;
+    }
+    function imageRegion(options) {
+      if (options.region === undefined) return undefined;
+      if (!Array.isArray(options.region) || options.region.length !== 4) throw __autojs6_invalid_arg_type("Image region must be [x, y, width, height].");
+      return options.region.map((value, index) => __autojs6_image_coordinate(bridgeModuleName, "region", String(index), value, index < 2));
+    }
+    async function withImage(method, image, options, action) {
+      const owned = typeof image === "string";
+      const handle = owned ? await readImage(image, options) : __autojs6_normalize_image_handle(image);
+      if (!handle) throw __autojs6_image_invalid_argument_error(bridgeModuleName, method, "Image operation requires an image handle or path.");
+      let failed = false;
+      try {
+        return await action(handle);
+      } catch (error) {
+        failed = true;
+        throw error;
+      } finally {
+        if (owned) {
+          try { await recycle(handle); } catch (error) { if (!failed) throw error; }
+        }
+      }
+    }
+    function encodingOptions(formatOrOptions, qualityOrOptions) {
+      const input = typeof formatOrOptions === "string" ? { format: formatOrOptions } : Object.assign({}, __autojs6_image_options(formatOrOptions));
+      if (qualityOrOptions && typeof qualityOrOptions === "object") Object.assign(input, qualityOrOptions);
+      else if (qualityOrOptions !== undefined) input.quality = finite(qualityOrOptions, "quality");
+      input.format = String(input.format || "png").toLowerCase();
+      if (!["png", "jpg", "jpeg", "webp", "rgba"].includes(input.format)) throw __autojs6_invalid_arg_type("Image byte format must be png, jpg, jpeg, webp or rgba.");
+      if (input.quality !== undefined) {
+        input.quality = finite(input.quality, "quality");
+        if (input.quality < 0 || input.quality > 100) throw __autojs6_invalid_arg_type("Image quality must be in 0..100.");
+      }
+      if (input.region !== undefined) input.region = imageRegion(input);
+      return input;
+    }
+    function toBytes(image, formatOrOptions, qualityOrOptions) {
+      return Promise.resolve().then(function() {
+        const input = encodingOptions(formatOrOptions, qualityOrOptions);
+        const payload = { format: input.format };
+        if (input.quality !== undefined) payload.quality = input.quality;
+        if (input.region !== undefined) payload.region = input.region;
+        return withImage("toBytes", image, input, handle => __autojs6_call_autojs(bridgeModuleName, "toBytes", [handle, payload], __autojs6_image_bridge_options(input, 10000)));
+      });
+    }
+    function fromBytes(bytes, options) {
+      return __autojs6_track_image_creation(bridgeModuleName, "fromBytes", async function() {
+        const BufferCtor = __autojs6_buffer_constructor_required("images.fromBytes");
+        let buffer;
+        if (ArrayBuffer.isView(bytes)) buffer = BufferCtor.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        else if (bytes instanceof ArrayBuffer) buffer = BufferCtor.from(bytes);
+        else if (Array.isArray(bytes) && bytes.every(value => typeof value === "number" && Number.isFinite(value))) buffer = BufferCtor.from(bytes);
+        else throw __autojs6_invalid_arg_type("Image bytes must be an ArrayBuffer, byte view or numeric byte array.");
+        if (buffer.byteLength === 0) throw __autojs6_invalid_arg_type("Encoded image bytes must not be empty.");
+        const input = __autojs6_image_options(options);
+        const upload = __autojs6_bridge_upload_write(buffer);
+        if (!upload) {
+          const encoded = buffer.toString("base64");
+          if (encoded.length + 4 > 65536) throw __autojs6_bridge_error("This image requires a host with descriptor upload support.", "ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED", bridgeModuleName, "fromBytes");
+          return __autojs6_call_autojs(bridgeModuleName, "fromBase64", [encoded], __autojs6_image_bridge_options(input, 10000));
+        }
+        try {
+          return await __autojs6_call_autojs(bridgeModuleName, "fromBytes", [{ bodyTransport: "pfd", bodyBytes: upload.byteCount }],
+            Object.assign(__autojs6_image_bridge_options(input, 10000), { upload }));
+        } finally {
+          __autojs6_bridge_upload_release(upload);
+        }
+      });
+    }
+    function fromBase64(encoded, options) {
+      return Promise.resolve().then(function() {
+        if (typeof encoded !== "string") throw __autojs6_invalid_arg_type("Image base64 must be a string.");
+        const text = encoded.replace(/^data:[^,]*;base64,/i, "").replace(/\s/g, "");
+        if (!/^[A-Za-z0-9+/]*={0,2}$/.test(text) || text.length % 4 === 1) throw __autojs6_invalid_arg_type("Image base64 is invalid.");
+        return fromBytes(__autojs6_buffer_constructor_required("images.fromBase64").from(text, "base64"), options);
+      });
+    }
+    function toBase64(image, formatOrOptions, qualityOrOptions) {
+      return Promise.resolve().then(function() {
+        const input = encodingOptions(formatOrOptions, qualityOrOptions);
+        if (input.format === "rgba") throw __autojs6_invalid_arg_type("toBase64 requires an encoded image format, not raw rgba.");
+        return toBytes(image, input).then(bytes => __autojs6_buffer_constructor_required("images.toBase64").from(bytes).toString("base64"));
+      });
+    }
+    function pixel(image, x, y, options) {
+      return withImage("pixel", image, options, handle => __autojs6_call_autojs(bridgeModuleName, "pixel", [handle,
+        __autojs6_image_coordinate(bridgeModuleName, "pixel", "x", x, true),
+        __autojs6_image_coordinate(bridgeModuleName, "pixel", "y", y, true)],
+        __autojs6_image_bridge_options(__autojs6_image_options(options), 10000)));
+    }
+    function readPixels(image, options) {
+      return withImage("readPixels", image, options, async function(handle) {
+        const input = __autojs6_image_options(options);
+        const region = imageRegion(input);
+        const width = region ? region[2] : handle.width;
+        const height = region ? region[3] : handle.height;
+        const bytes = await toBytes(handle, Object.assign({}, input, { format: "rgba" }));
+        if (bytes.byteLength !== width * height * 4) throw __autojs6_invalid_arg_type("Image RGBA byte count does not match its dimensions.");
+        const data = new Array(width * height);
+        for (let index = 0; index < data.length; index += 1) {
+          const offset = index * 4;
+          data[index] = (bytes[offset + 3] << 24) | (bytes[offset] << 16) | (bytes[offset + 1] << 8) | bytes[offset + 2];
+        }
+        return Object.freeze({ data, width, height });
+      });
     }
     function captureScreen(options) {
       const captureOptions = __autojs6_image_options(options);
@@ -17973,29 +18091,112 @@ std::string buildEmbeddedScriptExecutionSource(
       });
     }
     function imageTransform(methodName, image, options, normalizeOptions) {
-      const imageHandle = __autojs6_normalize_image_handle(image);
-      if (!imageHandle) {
-        return Promise.reject(__autojs6_image_invalid_argument_error(
-          bridgeModuleName,
-          methodName,
-          bridgeModuleName + "." + methodName + " requires an image handle."
-        ));
-      }
-      let transformOptions;
-      try {
-        transformOptions = typeof normalizeOptions === "function"
+      return withImage(methodName, image, options, function(imageHandle) {
+        const transformOptions = typeof normalizeOptions === "function"
           ? normalizeOptions(bridgeModuleName, methodName, options)
           : __autojs6_image_options(options);
-      } catch (error) {
-        return Promise.reject(error);
+        return __autojs6_track_image_creation(bridgeModuleName, methodName, function() {
+          return __autojs6_call_autojs(
+            bridgeModuleName,
+            methodName,
+            methodName === "copy" || methodName === "invert" ? [imageHandle] : [imageHandle, transformOptions],
+            __autojs6_image_bridge_options(transformOptions, 10000)
+          );
+        });
+      });
+    }
+    function rotate(image, degrees, centerXOrOptions, centerY, options) {
+      return Promise.resolve().then(function() {
+        const input = Object.assign({}, __autojs6_image_options(typeof centerXOrOptions === "object" ? centerXOrOptions : options));
+        input.degrees = finite(degrees, "degrees");
+        if (centerXOrOptions !== undefined && typeof centerXOrOptions !== "object") input.centerX = centerXOrOptions;
+        if (centerY !== undefined) input.centerY = centerY;
+        for (const name of ["centerX", "centerY"]) if (input[name] !== undefined) input[name] = finite(input[name], name);
+        if (input.filter !== undefined && typeof input.filter !== "boolean") throw __autojs6_invalid_arg_type("Image filter must be boolean.");
+        return imageTransform("rotate", image, input);
+      });
+    }
+    function scale(image, fx, fyOrOptions, options) {
+      return Promise.resolve().then(function() {
+        const input = Object.assign({}, __autojs6_image_options(typeof fyOrOptions === "object" ? fyOrOptions : options));
+        input.fx = finite(fx, "fx");
+        input.fy = fyOrOptions === undefined || typeof fyOrOptions === "object" ? input.fx : finite(fyOrOptions, "fy");
+        if (input.fx <= 0 || input.fy <= 0) throw __autojs6_invalid_arg_type("Image scale factors must be positive.");
+        if (typeof input.interpolation === "number") finite(input.interpolation, "interpolation");
+        return imageTransform("scale", image, input);
+      });
+    }
+    function flip(image, directionOrHorizontal, verticalOrOptions, options) {
+      return Promise.resolve().then(function() {
+        let input = Object.assign({}, __autojs6_image_options(options));
+        let direction;
+        if (typeof directionOrHorizontal === "boolean") {
+          const vertical = typeof verticalOrOptions === "boolean" ? verticalOrOptions : false;
+          Object.assign(input, __autojs6_image_options(verticalOrOptions));
+          direction = directionOrHorizontal ? (vertical ? "both" : "horizontal") : (vertical ? "vertical" : "none");
+        } else {
+          Object.assign(input, __autojs6_image_options(typeof directionOrHorizontal === "object" ? directionOrHorizontal : verticalOrOptions));
+          direction = typeof directionOrHorizontal === "object" ? input.direction : directionOrHorizontal;
+          if (direction === undefined) direction = "horizontal";
+          if (direction === null) direction = "none";
+          const aliases = { h: "horizontal", x: "horizontal", v: "vertical", y: "vertical", xy: "both", yx: "both", all: "both" };
+          direction = String(direction).toLowerCase();
+          direction = aliases[direction] || direction;
+        }
+        if (!["horizontal", "vertical", "both", "none"].includes(direction)) throw __autojs6_invalid_arg_type("Image flip direction must be horizontal, vertical, both or none.");
+        input.direction = direction;
+        return imageTransform("flip", image, input);
+      });
+    }
+    function blur(image, size, options) {
+      return Promise.resolve().then(() => imageTransform("blur", image, Object.assign({}, __autojs6_image_options(options), { size: kernelSize(size, false) })));
+    }
+    function gaussianBlur(image, size, sigmaXOrOptions, sigmaY, options) {
+      return Promise.resolve().then(function() {
+        const input = Object.assign({}, __autojs6_image_options(typeof sigmaXOrOptions === "object" ? sigmaXOrOptions : options), { size: kernelSize(size, false) });
+        if (sigmaXOrOptions !== undefined && typeof sigmaXOrOptions !== "object") input.sigmaX = sigmaXOrOptions;
+        if (sigmaY !== undefined) input.sigmaY = sigmaY;
+        for (const name of ["sigmaX", "sigmaY"]) if (input[name] !== undefined) input[name] = finite(input[name], name);
+        return imageTransform("gaussianBlur", image, input);
+      });
+    }
+    function medianBlur(image, size, options) {
+      return Promise.resolve().then(() => imageTransform("medianBlur", image, Object.assign({}, __autojs6_image_options(options), { size: kernelSize(size, true) })));
+    }
+    function colorOptions(options) {
+      const input = Object.assign({}, __autojs6_image_options(options));
+      if (input.region !== undefined) input.region = imageRegion(input);
+      if (input.threshold !== undefined) {
+        input.threshold = finite(input.threshold, "color threshold");
+        if (input.threshold < 0 || input.threshold > 255) throw __autojs6_invalid_arg_type("Color threshold must be in 0..255.");
       }
-      return __autojs6_track_image_creation(bridgeModuleName, methodName, function() {
-        return __autojs6_call_autojs(
-          bridgeModuleName,
-          methodName,
-          [imageHandle, transformOptions],
-          __autojs6_image_bridge_options(transformOptions, 10000)
-        );
+      return input;
+    }
+    function detectsColor(image, color, x, y, thresholdOrOptions) {
+      return Promise.resolve().then(function() {
+        const input = colorOptions(typeof thresholdOrOptions === "number" ? { threshold: thresholdOrOptions } : thresholdOrOptions);
+        const target = __autojs6_image_color(bridgeModuleName, "detectsColor", "color", color);
+        const px = __autojs6_image_coordinate(bridgeModuleName, "detectsColor", "x", x, true);
+        const py = __autojs6_image_coordinate(bridgeModuleName, "detectsColor", "y", y, true);
+        return withImage("detectsColor", image, input, handle => __autojs6_call_autojs(bridgeModuleName, "detectsColor", [handle, target, px, py, input], __autojs6_image_bridge_options(input, 10000)));
+      });
+    }
+    function findAllPointsForColor(image, color, options) {
+      return Promise.resolve().then(function() {
+        const input = colorOptions(options);
+        const target = __autojs6_image_color(bridgeModuleName, "findAllPointsForColor", "color", color);
+        return withImage("findAllPointsForColor", image, input, handle => __autojs6_call_autojs(bridgeModuleName, "findAllPointsForColor", [handle, target, input],
+          __autojs6_image_bridge_options(input, 10000))).then(points => points.map(__autojs6_normalize_point));
+      });
+    }
+    function findColorEquals(image, color, options) {
+      return withImage("findColorEquals", image, options, handle => findColor(handle, color, Object.assign({}, __autojs6_image_options(options), { threshold: 0 })));
+    }
+    function save(image, path, formatOrOptions, qualityOrOptions) {
+      return Promise.resolve().then(function() {
+        const input = encodingOptions(formatOrOptions, qualityOrOptions);
+        if (input.format === "rgba") throw __autojs6_invalid_arg_type("Image files require an encoded image format.");
+        return withImage("save", image, input, handle => saveImage(handle, path, input)).then(() => true);
       });
     }
     function grayscale(image, options) {
@@ -18058,12 +18259,13 @@ std::string buildEmbeddedScriptExecutionSource(
         ));
       }
       let targetColor;
+      let findOptions;
       try {
         targetColor = __autojs6_image_color(bridgeModuleName, "findColor", "color", color);
+        findOptions = colorOptions(options);
       } catch (error) {
         return Promise.reject(error);
       }
-      const findOptions = __autojs6_image_options(options);
       return __autojs6_call_autojs(
         bridgeModuleName,
         "findColor",
@@ -18082,13 +18284,14 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       let targetColor;
       let colorPoints;
+      let findOptions;
       try {
         targetColor = __autojs6_image_color(bridgeModuleName, "findMultiColors", "color", color);
         colorPoints = __autojs6_image_multi_color_points(bridgeModuleName, "findMultiColors", points);
+        findOptions = colorOptions(options);
       } catch (error) {
         return Promise.reject(error);
       }
-      const findOptions = __autojs6_image_options(options);
       return __autojs6_call_autojs(
         bridgeModuleName,
         "findMultiColors",
@@ -18134,6 +18337,28 @@ std::string buildEmbeddedScriptExecutionSource(
       requestScreenCapture: __autojs6_rhino_compat_request_screen_capture,
       stopScreenCapture: __autojs6_rhino_compat_stop_screen_capture,
       toBytes,
+      fromBytes,
+      fromBase64,
+      toBase64,
+      pixel,
+      readPixels,
+      copy: (image, options) => imageTransform("copy", image, options),
+      rotate,
+      scale,
+      flip,
+      blur,
+      gaussianBlur,
+      medianBlur,
+      invert: (image, options) => imageTransform("invert", image, options),
+      detectColor: detectsColor,
+      detectsColor,
+      findAllPointsForColor,
+      findPointsByColor: findAllPointsForColor,
+      findColorEquals,
+      findPointByColor: findColor,
+      findPointByColors: findMultiColors,
+      read: readImage,
+      save,
       readImage,
       saveImage,
       clip,
@@ -18145,6 +18370,9 @@ std::string buildEmbeddedScriptExecutionSource(
       findColor,
       findMultiColors,
       getSize,
+      getWidth: image => getSize(image).width,
+      getHeight: image => getSize(image).height,
+      isRecycled: image => recycledImageHandles.has(__autojs6_image_handle_id(image)),
       recycle
     });
     if (bridgeModuleName === "images") {

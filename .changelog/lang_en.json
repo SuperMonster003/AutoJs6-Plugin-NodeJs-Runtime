@@ -6,10 +6,11 @@
   "changelog_label_dependency": "Dependency",
   "$data": {
     "v1.7.0": {
-      "released_date": "2026/10/11",
+      "released_date": "2026/10/17",
       "feature": [
         "Packaged Node.js projects and scripts use the external Node.js Runtime plugin, support independently signed applications, and show installation guidance when the runtime is unavailable",
-        "screen_metrics and autojs6:compat expose asynchronous cX/cY/cXy/cYx and per-execution scale bases using the current display, with coverage checks and an ESM example"
+        "screen_metrics and autojs6:compat expose asynchronous cX/cY/cXy/cYx and per-execution scale bases using the current display, with coverage checks and an ESM example",
+        "Node.js and Bun support asynchronous OpenCC conversions and common image codecs, pixel reads, transforms and color searches; Bun image file access is authorized separately"
       ],
       "dependency": [
         "Backported OpenSSL 3.5.9 security fixes to the Node.js 24.21.0 Android runtime"
