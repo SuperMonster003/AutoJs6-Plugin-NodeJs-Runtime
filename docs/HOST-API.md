@@ -93,6 +93,18 @@ M23.4 起, 主线程和 Worker 的 `process.dlopen` / `Module._extensions[".node
 
 `keys.takeScreenshot()` 触发系统截图操作, 不返回像素, 图片处理请用 images。`keys.powerDialog()` 的决策为开放 Android 电源菜单, 后续关机/重启仍由菜单中的用户选择。无障碍关闭返回 permission-denied; 服务可用但设备不支持或拒绝某个全局动作时返回 false。
 
+### Worker 的 OpenCC 与图像模块
+
+CJS, ESM 和嵌套 Worker 可以导入 opencc / autojs6:opencc, image / images 及 autojs6:image / autojs6:images.
+全部 33 个 OpenCC 成员和 41 个图像函数复用主线程公开封装, 不再要求脚本自行编写原始 bridge 调用.
+OpenCC 文本在 Worker 内先转为字符串, 保持 Buffer 和自定义 toString 的语义. 裸名 opencc 仍可由已安装 npm 包优先解析.
+
+异步操作经父线程转发, 大图上传继续使用 PFD; 返回 Worker 的字节经过结构化克隆并恢复为独立 Buffer.
+getSize/getWidth/getHeight/isRecycled 同步读取线程内信息. isRecycled 不跟踪其他线程的回收.
+句柄属于整个执行, 可通过 postMessage 交接并在 Worker 退出后继续使用; 调用者负责协调共享句柄的回收.
+无法交付给已退出 Worker 的新图像会回收. Worker 终止时也会取消该次尚未完成的录屏授权申请.
+权限仍由本次执行的宿主 manifest 决定, 这些模块不会授予其他主线程高级模块或安装 Rhino 全局.
+
 ## 二. 依赖宿主提供方和 Android 授权 (bridged)
 
 | 模块 | live 方法 | blocked 方法 |

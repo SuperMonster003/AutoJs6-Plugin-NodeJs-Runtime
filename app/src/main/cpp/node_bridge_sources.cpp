@@ -8409,7 +8409,77 @@ std::string buildEmbeddedScriptExecutionSource(
       }
     };
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector) {
+  // The worker keeps synchronous metadata local; asynchronous operations use the same public
+  // wrappers as the main thread, including descriptor uploads and their argument validation.
+  function __autojs6_worker_host_modules(bridgeCall, methods) {
+    const modules = new Map();
+    const recycled = new Set();
+    const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
+    function size(image) {
+      if (!handleId(image)) throw new TypeError("An image handle is required.");
+      return Object.freeze({ width: Number(image.width) || 0, height: Number(image.height) || 0 });
+    }
+    for (const [module, names] of Object.entries(methods)) {
+      const value = module === "opencc" ? (text, type) => value.convert(text, type) : {};
+      for (const method of names) {
+        if (method === "getSize") value[method] = size;
+        else if (method === "getWidth") value[method] = image => size(image).width;
+        else if (method === "getHeight") value[method] = image => size(image).height;
+        else if (method === "isRecycled") value[method] = image => recycled.has(String(handleId(image)));
+        else value[method] = async (...args) => {
+          if (module === "opencc") {
+            if (args[0] === null || args[0] === undefined) throw new TypeError("OpenCC text must not be null or undefined.");
+            // Coerce before structured clone can change Buffer/custom-object string semantics.
+            args[0] = String(args[0]);
+          }
+          let signal, signalArgumentIndex;
+          args = args.map((arg, index) => {
+            if (arg && typeof arg === "object" && arg.signal !== undefined) {
+              signal = arg.signal; signalArgumentIndex = index;
+              const copy = { ...arg }; delete copy.signal; return copy;
+            }
+            return arg;
+          });
+          const result = await bridgeCall("autojs6:worker-module:" + module, method, args, { signal, signalArgumentIndex });
+          if (method === "recycle") recycled.add(String(handleId(args[0])));
+          // Node structured clone turns a parent's Buffer into Uint8Array. A worker owns its copy.
+          if (method === "toBytes") return Buffer.from(result.buffer, result.byteOffset, result.byteLength);
+          if (result && result.__autojs6ImageHandle) return Object.freeze(result);
+          return result;
+        };
+      }
+      modules.set(module, Object.freeze(value));
+    }
+    return modules;
+  }
+  async function __autojs6_worker_invoke(module, method, args, options) {
+    const prefix = "autojs6:worker-module:";
+    if (!module.startsWith(prefix)) return __autojs6_call_autojs(module, method, args, options);
+    const name = module.slice(prefix.length);
+    const target = name === "opencc" ? __autojs6_limited_opencc()
+      : name === "image" || name === "images" ? __autojs6_limited_image(name) : null;
+    if (!target || !Object.prototype.hasOwnProperty.call(target, method) || typeof target[method] !== "function") {
+      throw __autojs6_invalid_arg_type("Unknown worker host module operation.");
+    }
+    const index = options.signalArgumentIndex;
+    if (Number.isInteger(index) && index >= 0 && index < args.length) {
+      args[index] = { ...args[index], signal: options.signal };
+    }
+    if (options.signal && options.signal.aborted) throw Object.assign(new Error("Worker call was aborted."), { code: "ABORT_ERR" });
+    const cancelConsent = name !== "opencc" && method === "requestScreenCapture" && options.signal
+      ? () => { __autojs6_call_autojs("media_projection", "stop", [], { permissions: ["media_projection"] }).catch(() => {}); } : null;
+    if (cancelConsent) options.signal.addEventListener("abort", cancelConsent, { once: true });
+    let result;
+    try { result = await target[method](...args); }
+    finally { if (cancelConsent) options.signal.removeEventListener("abort", cancelConsent); }
+    if (options.signal && options.signal.aborted && result && result.__autojs6ImageHandle) {
+      // A terminated worker cannot receive a newly created handle. Do not retain that orphan.
+      await __autojs6_limited_image("images").recycle(result);
+      throw Object.assign(new Error("Worker call was aborted."), { code: "ABORT_ERR" });
+    }
+    return result;
+  }
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8500,6 +8570,8 @@ std::string buildEmbeddedScriptExecutionSource(
     installInspector(getBuiltinModule, config.inspectorEnabled);
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
+    const hostModules = createHostModules(bridgeCall, config.hostModuleMethods);
+    Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
       if (Object.hasOwn(table, filename)) return filename;
       if (config.pathAliases) {
@@ -8533,6 +8605,16 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.registerHooks({
       resolve(specifier, context, nextResolve) {
         if (specifier === "autojs6:bridge") return { url: specifier, shortCircuit: true };
+        const hostName = specifier.startsWith("autojs6:") ? specifier.slice(8) : specifier;
+        if (hostModules.has(hostName)) {
+          // Match the main thread: an installed npm opencc package shadows only the bare name.
+          if (specifier === "opencc") {
+            try { return nextResolve(specifier, context); } catch (error) {
+              if (error.code !== "MODULE_NOT_FOUND" && error.code !== "ERR_MODULE_NOT_FOUND") throw error;
+            }
+          }
+          return { url: "autojs6:" + hostName, shortCircuit: true };
+        }
         if (moduleApi.isBuiltin(specifier)) {
           builtinGate(specifier);
           return nextResolve(specifier, context);
@@ -8554,6 +8636,14 @@ std::string buildEmbeddedScriptExecutionSource(
         return result;
       },
       load(url, context, nextLoad) {
+        if (url.startsWith("autojs6:") && hostModules.has(url.slice(8))) {
+          const name = url.slice(8);
+          const exports = config.hostModuleMethods[name].map(method =>
+            "export const " + method + " = value[" + JSON.stringify(method) + "];").join("\n");
+          return { format: "module", shortCircuit: true, source:
+            "const value = globalThis.__autojs6_worker_host_modules.get(" + JSON.stringify(name) + ");\n" +
+            "export default value; export { value as 'module.exports' };\n" + exports };
+        }
         if (url === "autojs6:bridge") {
           return { format: "module", shortCircuit: true, source:
             "const bridge = globalThis.__autojs6_worker_bridge; export default bridge; " +
@@ -8604,7 +8694,8 @@ std::string buildEmbeddedScriptExecutionSource(
     // This file contains plugin code only. Request sources and bridge state go
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
-      __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ");";
+      __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
+      __autojs6_worker_host_modules.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -8633,6 +8724,11 @@ std::string buildEmbeddedScriptExecutionSource(
           entryUrl: __autojs6_url_module().pathToFileURL(__autojs6_entry_filename()).href,
           pathAliases: __autojs6_path_aliases(),
           moduleSources,
+          hostModuleMethods: {
+            opencc: Object.keys(__autojs6_limited_opencc()),
+            image: Object.keys(__autojs6_limited_image("image")),
+            images: Object.keys(__autojs6_limited_image("images"))
+          },
           typeScriptSources: { ...__autojs6_typescript_precompiled_source_names },
           gatedBuiltins: __autojs6_gated_builtin_ids(),
           inspectorEnabled: __autojs6_inspector_enabled,
@@ -8646,7 +8742,7 @@ std::string buildEmbeddedScriptExecutionSource(
           permissions: __autojs6_bridge_permission_report()
         };
       },
-      __autojs6_call_autojs,
+      __autojs6_worker_invoke,
       worker => {
         __autojs6_worker_threads_try_start();
         worker.__autojs6Finished = false;

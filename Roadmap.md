@@ -14,6 +14,8 @@
 
 ## 一. 项目定位 (不变的初衷)
 
+2026-10-17 第三批: Worker 通过父线程复用 OpenCC 和图像公开封装, 覆盖 CJS/ESM/嵌套 Worker, Buffer 传输, 文本转换和取消清理. 模块解析继续保留裸名 opencc 的 npm 优先级. 验证与后续边界见宿主 docs/dev/runtime-capture-worker-2026-10-17.md.
+
 为 AutoJs6 提供接近桌面体验的 Node.js 运行能力:
 
 1. **像桌面 Node.js 一样流畅运行 JavaScript** — 完整 ES6+ 语法, CJS/ESM, npm 生态, 真实 V8 性能。

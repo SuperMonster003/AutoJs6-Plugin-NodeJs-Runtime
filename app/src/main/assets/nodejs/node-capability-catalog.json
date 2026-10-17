@@ -329,7 +329,13 @@
       "resourceLimits": "node_defaults_with_request_and_worker_overrides",
       "hostBridge": "parent_message_port",
       "nativeMessagePorts": true,
-      "workerPoolDefaultQueueLimit": null
+      "workerPoolDefaultQueueLimit": null,
+      "hostModules": [
+        "opencc",
+        "image",
+        "images"
+      ],
+      "imageByteTransport": "parent_pfd_then_structured_clone_to_worker_buffer"
     },
     {
       "id": "zlib_streams",

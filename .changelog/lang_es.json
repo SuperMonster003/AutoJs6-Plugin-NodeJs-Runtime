@@ -10,7 +10,8 @@
       "feature": [
         "Los proyectos y scripts Node.js se empaquetan como aplicaciones con firma independiente, usan el plugin externo Node.js Runtime y muestran instrucciones de instalación cuando no está disponible",
         "screen_metrics y autojs6:compat ofrecen cX/cY/cXy/cYx asíncronos con la pantalla actual y bases por ejecución, con comprobaciones de cobertura y ejemplo ESM",
-        "Node.js y Bun admiten OpenCC asíncrono, códecs de imagen, lectura de píxeles, transformaciones y búsqueda de colores; acceso a archivos de imagen de Bun autorizado por separado"
+        "Node.js y Bun admiten OpenCC asíncrono, códecs de imagen, lectura de píxeles, transformaciones y búsqueda de colores; acceso a archivos de imagen de Bun autorizado por separado",
+        "Los Workers de Node.js usan OpenCC e imágenes mediante el runtime padre, con CJS, ESM, Workers anidados y transferencia binaria"
       ],
       "dependency": [
         "Se incorporaron las correcciones de seguridad de OpenSSL 3.5.9 al entorno Android de Node.js 24.21.0"

@@ -11,6 +11,7 @@
 * `新增` Node.js 项目和脚本可打包为独立签名的应用, 运行时调用外部 Node.js Runtime 插件, 插件不可用时显示安装引导
 * `新增` screen_metrics 和 autojs6:compat 提供基于当前屏幕的异步 cX/cY/cXy/cYx 及每次执行独立的换算基数, 并补充覆盖检查和 ESM 样例
 * `新增` Node.js 和 Bun 支持异步 OpenCC 转换及常用图像编解码, 像素读取, 变换和颜色查找; Bun 图像文件访问独立授权
+* `新增` Node.js Worker 支持通过父运行时调用 OpenCC 与图像模块, 包含 CJS, ESM, 嵌套 Worker 和图像二进制传输
 * `修复` Pinyin/Pinyin4j 改为异步调用真实宿主插件, 移除小字典替代实现; Android 控制台操作通过宿主执行并返回 Promise; 补齐无障碍手势和 input_observer 类型声明
 * `依赖` 为 Node.js 24.21.0 Android 运行时回补 OpenSSL 3.5.9 安全修复
 

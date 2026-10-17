@@ -126,6 +126,7 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `추가` Node.js 프로젝트와 스크립트를 독립적으로 서명된 앱으로 패키징하고 외부 Node.js Runtime 플러그인으로 실행하며, 런타임을 사용할 수 없으면 설치 안내를 표시
 * `추가` screen_metrics와 autojs6:compat에 현재 화면을 사용하는 비동기 cX/cY/cXy/cYx 및 실행별 변환 기준값을 추가하고 커버리지 검사와 ESM 예제를 제공
 * `추가` Node.js와 Bun에서 비동기 OpenCC 변환 및 이미지 인코딩, 디코딩, 픽셀 읽기, 변환과 색상 검색 지원; Bun 이미지 파일 접근은 별도로 허용
+* `추가` Node.js Worker에서 부모 런타임을 통한 OpenCC 및 이미지 모듈 지원, CJS, ESM, 중첩 Worker와 이미지 바이너리 전송 포함
 * `수정` Pinyin/Pinyin4j가 작은 로컬 사전 대신 실제 호스트 공급자를 비동기로 호출하며, Android 콘솔 제어는 호스트에서 실행 후 Promise를 반환하고 접근성 제스처 및 input_observer 형식 선언을 보완
 * `의존성` Node.js 24.21.0 Android 런타임에 OpenSSL 3.5.9 보안 수정 사항을 백포트
 
