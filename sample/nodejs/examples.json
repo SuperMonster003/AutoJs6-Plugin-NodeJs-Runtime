@@ -2,6 +2,14 @@
   "schema": "autojs6-node-examples-v1",
   "examples": [
     {
+      "name": "host-api-coverage",
+      "status": "host_provider_required",
+      "reason": "Requires updated AutoJs6, installed Pinyin/Pinyin4j providers and overlay permission.",
+      "tags": ["main-app", "esm", "bridge", "plugin", "ui"],
+      "mainAppSmoke": false,
+      "packagedCompatible": false
+    },
+    {
       "name": "hello-node",
       "status": "stable",
       "tags": [

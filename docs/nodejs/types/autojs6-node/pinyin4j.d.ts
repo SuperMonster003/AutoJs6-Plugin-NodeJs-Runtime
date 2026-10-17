@@ -26,10 +26,16 @@ declare module "pinyin4j" {
       readonly vCharType?: string;
     }
 
+    export interface ReadingsOptions extends Pinyin4jOptions {
+      readonly romanization?: string;
+      readonly system?: string;
+    }
+
     export interface Pinyin4jModule {
-      (value: unknown, options?: Pinyin4jOptions | string | null): string;
-      of(value: unknown, options?: Pinyin4jOptions | string | null): string;
-      as(value: unknown): string;
+      (value: unknown, options?: Pinyin4jOptions | string | null): Promise<string>;
+      of(value: unknown, options?: Pinyin4jOptions | string | null): Promise<string>;
+      as(value: unknown): Promise<string>;
+      readings(value: unknown, options?: ReadingsOptions | null): Promise<string[][]>;
     }
   }
 

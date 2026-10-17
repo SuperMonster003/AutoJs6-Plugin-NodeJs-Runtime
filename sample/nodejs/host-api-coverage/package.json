@@ -1,0 +1,6 @@
+{
+  "name": "@autojs6-sample/host-api-coverage",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module"
+}

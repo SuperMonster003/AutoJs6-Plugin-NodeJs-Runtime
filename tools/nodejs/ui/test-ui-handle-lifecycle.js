@@ -133,6 +133,7 @@ async function assertExplicitCloseCancelsPendingDrain(createHandle) {
 
 function uiHandleFactory(source) {
   const embedded = [
+    embeddedFunctionSource(source, "__autojs6_bridge_attach_events"),
     embeddedFunctionSource(source, "__autojs6_ui_handle_id"),
     embeddedFunctionSource(source, "__autojs6_ui_closed_error"),
     embeddedFunctionSource(source, "__autojs6_ui_handle"),

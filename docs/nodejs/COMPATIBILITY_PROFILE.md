@@ -27,6 +27,9 @@ applications through the external runtime and a matching host/Builder Runtime Ki
 | Process pool | 1-8 configurable slots, default 2; default unlimited FIFO, cancellation and explicit timeout |
 | Compile cache | Native portable workspace/Worker cache, enabled by default, Node-managed invalidation |
 | Host APIs | Available only with the required provider, declarations and Android authorization |
+| Pinyin/Pinyin4j | Awaited host-provider conversions; no small local dictionary fallback |
+| Console controls | Awaited per-execution Android window controls; regular log output remains synchronous |
+| Coordinates | screen_metrics exposes awaited cX/cY/cXy/cYx and once-per-execution scale bases using the current display |
 | Packaged apps (1.7.0) | Independent signer, normal-permission runtime/wake entry, shared pool and install guidance |
 
 An Android build may reject an upstream feature itself. For example, this Node

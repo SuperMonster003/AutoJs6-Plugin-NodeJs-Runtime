@@ -38,6 +38,12 @@ relevant Android authorization. Screen capture uses MediaProjection consent;
 microphone recording uses permission and a visible foreground service. These
 host contracts are distinct from ordinary native Node access.
 
+Pinyin and Pinyin4j conversions declare their respective capabilities and use
+installed host providers. Android console controls declare `console`; windows
+belong to the current execution, while global log configuration remains shared.
+Coordinate queries and scale setters declare `device`. Scale state is isolated
+per execution and does not change the host-wide screen metrics.
+
 Workspace ZIPs, source providers and binary PFD messages cross process boundaries.
 Entry names, file identities, byte counts and output receipts remain validated.
 The workspace root is a transport location, not a Node fs sandbox. Output archives

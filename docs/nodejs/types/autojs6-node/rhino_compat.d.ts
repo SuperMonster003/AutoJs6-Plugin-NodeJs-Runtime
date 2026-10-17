@@ -7,6 +7,7 @@ declare module "autojs6:compat" {
   import accessibility = require("accessibility");
   import app = require("app");
   import device = require("device");
+  import screenMetrics = require("screen_metrics");
   import shellModule = require("shell");
   import image = require("image");
   import mediaProjection = require("media_projection");
@@ -433,6 +434,16 @@ declare module "autojs6:compat" {
       recents(options?: SelectorOptions): Promise<boolean>;
       readonly app: app.AppModule;
       readonly device: device.DeviceModule;
+      readonly cX: screenMetrics.ScreenMetricsModule["cX"];
+      readonly cY: screenMetrics.ScreenMetricsModule["cY"];
+      readonly cXy: screenMetrics.ScreenMetricsModule["cXy"];
+      readonly cYx: screenMetrics.ScreenMetricsModule["cYx"];
+      readonly getScaleBases: screenMetrics.ScreenMetricsModule["getScaleBases"];
+      readonly getScaleBaseX: screenMetrics.ScreenMetricsModule["getScaleBaseX"];
+      readonly getScaleBaseY: screenMetrics.ScreenMetricsModule["getScaleBaseY"];
+      readonly setScaleBases: screenMetrics.ScreenMetricsModule["setScaleBases"];
+      readonly setScaleBaseX: screenMetrics.ScreenMetricsModule["setScaleBaseX"];
+      readonly setScaleBaseY: screenMetrics.ScreenMetricsModule["setScaleBaseY"];
       readonly shell: ShellCompatFunction;
       readonly images: RhinoImagesCompatModule;
       readonly ocr: RhinoOcrCompatFunction;

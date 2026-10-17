@@ -8,10 +8,14 @@
     "v1.7.0": {
       "released_date": "2026/10/11",
       "feature": [
-        "Node.js プロジェクトとスクリプトを独立した署名のアプリにパッケージ化し, 外部 Node.js Runtime プラグインで実行できるようにし, 利用できない場合はインストール手順を表示"
+        "Node.js プロジェクトとスクリプトを独立した署名のアプリにパッケージ化し, 外部 Node.js Runtime プラグインで実行できるようにし, 利用できない場合はインストール手順を表示",
+        "screen_metrics と autojs6:compat に現在の画面を使う非同期 cX/cY/cXy/cYx と実行ごとの変換基準値を追加し, カバレッジ検査と ESM サンプルを整備"
       ],
       "dependency": [
         "Node.js 24.21.0 の Android ランタイムに OpenSSL 3.5.9 のセキュリティ修正をバックポート"
+      ],
+      "fix": [
+        "Pinyin/Pinyin4j を小規模な辞書から実際のホストプロバイダーへの非同期呼び出しに変更; Android コンソール操作はホストで実行して Promise を返し, アクセシビリティのジェスチャーと input_observer の型宣言を補完"
       ]
     },
     "v1.6.0": {

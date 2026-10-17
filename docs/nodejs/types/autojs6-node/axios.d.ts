@@ -52,6 +52,11 @@ declare module "axios" {
       };
     }
 
+    export interface AxiosErrorConstructor {
+      new<T = unknown>(message?: string, code?: string, config?: RequestConfig, request?: Response["request"], response?: Response<T>): AxiosError<T>;
+      <T = unknown>(message?: string, code?: string, config?: RequestConfig, request?: Response["request"], response?: Response<T>): AxiosError<T>;
+    }
+
     /** Timeout ceilings, response size and the accepted method set are the host network provider's policy; the runtime only fills these defaults. */
     export interface Policy {
       readonly defaultTimeoutMs: number;
@@ -76,6 +81,7 @@ declare module "axios" {
       readonly post: <T = unknown>(url: string, data?: BodyInit, config?: RequestConfig) => Promise<Response<T>>;
       readonly create: (config?: RequestConfig) => AxiosModule;
       readonly isAxiosError: (value: unknown) => value is AxiosError;
+      readonly AxiosError: AxiosErrorConstructor;
       readonly defaults: Readonly<RequestConfig>;
       readonly adapterName: "autojs6-controlled-fetch";
       readonly VERSION: string;

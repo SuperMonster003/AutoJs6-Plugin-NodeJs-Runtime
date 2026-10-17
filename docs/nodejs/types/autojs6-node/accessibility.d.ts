@@ -65,6 +65,8 @@
       ensureEnabled(options?: EnsureEnabledOptions): Promise<boolean>;
       click(x: number, y: number, options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;
       click(selector: SelectorDescriptor, options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;
+      swipe(x1: number, y1: number, x2: number, y2: number, durationMs?: number, options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;
+      gesture(durationMs: number, points: readonly (readonly [number, number])[], options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;
       back(options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;
       home(options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;
       recentApps(options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;

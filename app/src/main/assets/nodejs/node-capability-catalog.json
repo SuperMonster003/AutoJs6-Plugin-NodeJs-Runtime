@@ -777,6 +777,11 @@
         "providerOwner": "host_capability_provider"
       },
       {
+        "id": "screen_metrics",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
         "id": "sensors",
         "aliases": [],
         "providerOwner": "host_capability_provider"
@@ -1098,6 +1103,223 @@
         "method": "setText",
         "requiredCapabilities": [
           "clipboard"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "clear",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "collapse",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "expand",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "hide",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "launch",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "reset",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "resetGlobalLogConfig",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setBackgroundAlpha",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setBackgroundColor",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setBackgroundTint",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setContentBackgroundAlpha",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setContentBackgroundColor",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setContentBackgroundTint",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setContentTextColor",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setContentTextColors",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setContentTextSize",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setExitOnClose",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setGlobalLogConfig",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setPosition",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setSize",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setTextColor",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setTextSize",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setTitle",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setTitleBackgroundAlpha",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setTitleBackgroundColor",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setTitleBackgroundTint",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setTitleIconsTint",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setTitleTextColor",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setTitleTextSize",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setTouchable",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "show",
+        "requiredCapabilities": [
+          "console"
         ]
       },
       {
@@ -2113,6 +2335,83 @@
         "method": "run",
         "requiredCapabilities": [
           "rhino"
+        ]
+      },
+      {
+        "module": "screen_metrics",
+        "method": "cX",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "screen_metrics",
+        "method": "cXy",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "screen_metrics",
+        "method": "cY",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "screen_metrics",
+        "method": "cYx",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "screen_metrics",
+        "method": "getInfo",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "screen_metrics",
+        "method": "getScaleBaseX",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "screen_metrics",
+        "method": "getScaleBaseY",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "screen_metrics",
+        "method": "getScaleBases",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "screen_metrics",
+        "method": "setScaleBaseX",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "screen_metrics",
+        "method": "setScaleBaseY",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "screen_metrics",
+        "method": "setScaleBases",
+        "requiredCapabilities": [
+          "device"
         ]
       },
       {

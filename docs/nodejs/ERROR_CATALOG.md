@@ -29,6 +29,11 @@ message, request ID, and execution ID when reporting a failure.
 
 ## Bridge and Capability
 
+Pinyin/Pinyin4j and console-control failures are returned through their Promises.
+There is no dictionary fallback or successful no-op for an unavailable provider.
+Coordinate wrappers reject non-finite numbers before JSON can turn them into null;
+invalid bases, ratio modes and repeated base setters are rejected by the host.
+
 - **ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED**: the project did not declare the
   required capability.
 - **ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED**: Android/host policy denied authority.

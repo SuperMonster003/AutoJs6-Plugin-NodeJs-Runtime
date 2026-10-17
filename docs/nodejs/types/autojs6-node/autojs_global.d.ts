@@ -803,6 +803,23 @@ declare namespace AutoJs6Node {
     readonly rawSignals: boolean;
   }
 
+  /** Read-only host capability diagnostics, not Node's native permission model. */
+  export interface ProcessPermissionSnapshot {
+    readonly version: 1;
+    readonly model: "autojs6-readonly-capability-query";
+    readonly exactNodePermissionModel: false;
+    readonly readOnly: true;
+    readonly scopeNames: readonly string[];
+    readonly scopes: Readonly<Record<string, boolean>>;
+    readonly scopedFs: {
+      readonly root: string;
+      readonly cwd: string;
+      readonly read: boolean;
+      readonly write: boolean;
+    };
+    readonly manifest: BridgePermissionsReport;
+  }
+
   export interface AutoJsProfile {
     readonly name: string;
     readonly engineVersion: string;
@@ -813,6 +830,7 @@ declare namespace AutoJs6Node {
     readonly network: boolean;
     readonly workerThreads: boolean;
     readonly javaInterop: boolean;
+    readonly inspector: boolean;
     readonly nativeAddon: boolean;
     readonly scopedFs: boolean;
     readonly esmLoaderProfile: EsmLoaderProfile;
@@ -831,9 +849,10 @@ declare namespace AutoJs6Node {
     readonly wasiProfile: WasiProfile;
     readonly nativeAddonProfile: NativeAddonProfile;
     readonly childProcessProfile: ChildProcessProfile;
+    readonly processPermission: ProcessPermissionSnapshot;
     /** Every alias (bare and `node:`) of Node's own builtin inventory, mapped to its builtin id (M23.2). */
     readonly directBuiltinAliases: Readonly<Record<string, string>>;
-    /** Builtins that still answer through a thin runtime wrapper: `console` (stdout capture) and `module` (createRequire until M23.3). */
+    /** Builtins that still answer through a thin runtime wrapper: `console` (stdout capture and host controls). */
     readonly limitedBuiltins: readonly string[];
     /** Node's own `module.builtinModules` as seen by this execution. */
     readonly nativeBuiltins: readonly string[];

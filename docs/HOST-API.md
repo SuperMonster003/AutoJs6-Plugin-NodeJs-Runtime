@@ -140,11 +140,34 @@ M14.2 图像操作保持输入句柄有效, clip/resize/grayscale/threshold 返�
 
 Worker 中使用 `require("autojs6:bridge").callAutoJs("device", "info", [], {timeoutMs: 5000, signal})` 调用宿主; 也可从 autojs6:bridge 具名导入 callAutoJs. 高层 device / ui 等 facade 仍在主脚本线程, 嵌套 Worker 通过各级父端口转发到同一根执行, 不为每个 isolate 注册一套 JNI broker. 参数与结果遵循 Node 结构化克隆 (例如 Buffer 跨线程成为 Uint8Array), 错误码与错误字段透传. `worker-cpu`、`wasm-worker` 与 `worker-host-bridge` 提供计算、WASM 与宿主调用示例.
 
-## 四. 插件内本地实现 (local-shim, 不出进程)
+## 四. 本地工具与宿主桥接模块
 
-`files` (Node fs 便捷封装), `base64`, `colors`, `formatter`/`fmt`, `converter`/`cvt`, `s13n`, `mime`, `nanoid`, `opencc`, `pinyin`, `pinyin4j`, `jsox` (+.mathx/.arrayx/.numberx), `plugins` (本地 ./plugins 目录扫描)。
+`files` (Node fs 便捷封装), `base64`, `colors`, `formatter`/`fmt`, `converter`/`cvt`, `s13n`, `mime`, `nanoid`, `jsox` (+.mathx/.arrayx/.numberx), `plugins` (本地 ./plugins 目录扫描) 由插件本地实现. `opencc` 保留明确的不支持错误, 不计入转换能力覆盖.
 
-宿主还提供显式桥调用 `files.list/stat/read/write/mkdir/rename/delete`, `console.tail` 与 `pinyin` / `pinyin4j` 方法, 用于宿主工作区和控制台等能力。它们分别使用 `files` (+ 写入时 `files.write`, 删除时 `files.delete`), `console`, `pinyin` / `pinyin4j` 声明; 原生 Node console/fs 及本地便捷模块维持原有行为。
+宿主还提供显式桥调用 `files.list/stat/read/write/mkdir/rename/delete`, `console.tail`, 用于宿主工作区和日志读取. 它们分别使用 `files` (+ 写入时 `files.write`, 删除时 `files.delete`), `console` 声明. 原生 Node fs 仍使用插件 UID.
+
+### 拼音, 控制台与坐标 (2026-10-17)
+
+`require("pinyin")` / `require("pinyin4j")` 与 ESM 同名导入现在直接调用宿主拼音 provider. 需要 `node.permissions` 中的 `pinyin` / `pinyin4j`, 以及安装对应转换插件. 不再使用少量汉字的内置字典. 所有转换方法返回 Promise, 必须等待: `await pinyin.simple("北京上海")`, `await pinyin4j.of("北京上海", " ")`. `pinyin.convert` 支持宿主的分词, 多音字, 风格, 模式与 `customDictionary`; 返回矩阵具有异步 `compact()`, 生成候选音节的组合矩阵, 不返回拼接字符串. `pinyin4j.readings` 也透传宿主的罗马化配置. Provider 缺失和参数错误通过 Promise 拒绝报告, 不返回原文假装转换成功.
+
+`pinyin.compare` 也返回 Promise, 不能直接作为 `Array.sort` 的同步比较器. 批量排序时先通过 `Promise.all` 计算各项的拼音排序键, 再同步比较这些键.
+
+`console` / `node:console` 模块, 默认全局 `console`, 以及 `autojs6:compat.console` 的窗口控制使用宿主当前执行的控制台. `show/hide/expand/collapse/reset/launch/clear`, `setSize/setPosition/setTitle`, 标题/内容的字号, 颜色, 背景, tint/alpha, `setExitOnClose/setTouchable` 以及全局日志配置都返回 `Promise<void>`, 需要 `console` capability. `showConsole/openConsole`, `launchConsole`, `clearConsole` 是对应方法的别名. 例如:
+
+```js
+await console.setTitle("Node script");
+await console.show();
+console.log("ready");
+await console.hide();
+```
+
+不再支持原来的同步链式空操作 `console.show().setTitle(...)`. `show(reset?: boolean)` 的可选参数控制重置, 不是自动隐藏. 正常日志输出仍同步. `build/input/rawInput` 继续明确报不支持. 窗口显示受宿主悬浮窗权限约束; 配置错误和权限失败不得静默吞掉.
+
+`require("screen_metrics")` / ESM 同名导入提供 `cX/cY/cXy/cYx`, `getInfo`, `getScaleBases/getScaleBaseX/getScaleBaseY`, `setScaleBases/setScaleBaseX/setScaleBaseY`. 全部异步并使用既有 `device` capability. 每次换算使用当前屏幕尺寸; `getInfo()` 返回 `{width,height,rotation,baseX,baseY}`. `autojs6:compat` 提供四个换算函数与六个基数函数, 显式 `install({globals: true})` 后也可使用对应全局名.
+
+参数规则复用 Rhino: 无参 `cX()/cY()` 返回当前宽/高; 绝对坐标使用当前或显式正整数基数; 比例模式为 `true/false/"auto"`, 默认在 `abs(value) < 1` 时使用比例. 第三个参数是比例模式, 不是舍入开关. 跨轴比例支持宽高比 `"16:9"`; 所有结果取最近整数, 中点向正无穷舍入. NaN/Infinity 在序列化前拒绝. 基数按执行隔离, 每轴只能成功设置一次, `setScaleBases(x,y)` 原子校验两轴. `setScreenMetrics` 不等同于这些基数方法.
+
+高层模块适用于主线程 CJS/ESM. Worker 使用 `autojs6:bridge.callAutoJs("screen_metrics", "cX", [0.5])` 等通用桥接; 原生终端 `node` 不注入宿主模块. 样例见 `sample/nodejs/host-api-coverage`. 手动回归运行 `node tools/nodejs/api/test-host-api-coverage.js`, `tsc -p tools/nodejs/api/tsconfig.json`; 后者只通过公开 `index.d.ts` 载入声明, 能检测孤立声明文件没有被引用的问题.
 
 `await device.info()` 返回现有 `autojs6-bridge-device-info-v1` 结构的实时快照, 追加 screen 的 density/brightness/brightnessMode/canWriteSettings, battery.isCharging, memory.totalMem/availMem 和 build.bootloader/fingerprint。异步 `get*` 方法从该快照读取对应值; 同步的 device.width/height/density/sdkInt 及 Build 字符串属性为脚本启动时的设备信息。内存单位 bytes, 电量为百分比, 不支持的亮度设置值为 -1。系统构建 fingerprint 是固件构建信息, 不包含硬件唯一标识。
 

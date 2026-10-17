@@ -1,7 +1,7 @@
 declare module "pinyin" {
   namespace pinyin {
     export type PinyinRow = string[];
-    export type PinyinResult = PinyinRow[] & { compact(): string };
+    export type PinyinResult = PinyinRow[] & { compact(): Promise<string[][]> };
 
     export interface PinyinOptions {
       readonly style?: number | "NORMAL" | "TONE" | "TONE2" | "TO3NE" | "INITIALS" | "FIRST_LETTER";
@@ -9,10 +9,11 @@ declare module "pinyin" {
       readonly heteronym?: boolean;
       readonly group?: boolean;
       readonly segment?: boolean;
+      readonly customDictionary?: Readonly<Record<string, readonly (readonly string[])[]>>;
     }
 
     export interface PinyinModule {
-      (value: unknown, options?: PinyinOptions | null): PinyinResult;
+      (value: unknown, options?: PinyinOptions | null): Promise<PinyinResult>;
       readonly STYLE_NORMAL: 0;
       readonly STYLE_TONE: 1;
       readonly STYLE_TONE2: 2;
@@ -23,12 +24,12 @@ declare module "pinyin" {
       readonly MODE_SURNAME: 1;
       readonly MODE_PLACENAME: 2;
       readonly MODE_PLACE_NAME: 2;
-      convert(value: unknown, options?: PinyinOptions | null): PinyinResult;
-      simple(value: unknown, enableNumericTone?: boolean, enableSegment?: boolean): string;
-      compact(rows: readonly (readonly string[])[]): string;
-      compare(left: unknown, right: unknown): number;
-      fromCodePoint(codePoint: number): string | null;
-      fromPhrase(phrase: unknown): string[][];
+      convert(value: unknown, options?: PinyinOptions | null): Promise<PinyinResult>;
+      simple(value: unknown, enableNumericTone?: boolean, enableSegment?: boolean): Promise<string>;
+      compact(rows: readonly (readonly string[])[]): Promise<string[][]>;
+      compare(left: unknown, right: unknown): Promise<number>;
+      fromCodePoint(codePoint: number): Promise<string | null>;
+      fromPhrase(phrase: unknown): Promise<string[][]>;
     }
   }
 

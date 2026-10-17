@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Runtime 插件 — 开发路线图 (Roadmap)
 
-> 修订日期: 2026-10-11
+> 修订日期: 2026-10-17
 >
 > 本路线图取代此前所有里程碑编号 (X3d/X3e/X3f/X3g/X3i/X3j 等)。旧编号只保留在 `tools/nodejs/ownership/evidence/` 的历史证据文件中, 不再继续演进。
 >
@@ -737,6 +737,20 @@ M18.2 首轮清点 (2026-09-10): 当前 catalog 有 15 个顶层 feature, 9 stab
 
 - [ ] **M25.2 构建管线与 adapter**: 动作: ① `tools/nodejs/runtime-build` 容器按 26 的构建要求升级 (NDK / Python / clang 版本, `--with-intl=full-icu` 延续 M23.1), 核对 M21.2 的 Android stderr 直通补丁是否仍需要; ② 新增 `node_runtime_adapter_26_x.cpp` (embedder API 差异: `CreateEnvironment` / `EmbedderSnapshotData` / `node::Stop` 签名), 运行时槽位 `node26_x`, `node_runtime_api_v1.h` 按需扩展, 旧 adapter 文件不改; ③ 终端启动器资产 `build-node-cli-archive.py` 指向 26 的官方 tarball (npm / corepack 版本随之更新), `NODE_CLI_*` meta-data 同步; ④ 26 移除的弃用 API 对内嵌运行时 JS (M23 后应已很薄), 样例与 npm corpus 的影响逐项修复. Check: 三 ABI 构建; 12 冒烟组 + corpus + conformance + worker / sqlite / addon 用例全绿 (arm64 真机 + 16 KB arm64 实机 + x86_64 AVD); `process.version` 为 v26.x, `Temporal` 全局可用; M23.8 冷启动分相在 26 上复测.
 - [ ] **M25.3 2.0.0 发布与 24.x 维护策略**: 动作: 同一 APK 只含一个 libnode (体积), 26 以 2.0.0 发布, `requiresHostVersion` 按宿主契约不变; 24.x 分支 (`release/1.x`) 只接安全更新, 维护期限记回本文件; 十语言文档与 THIRD_PARTY_NOTICES 更新. Check: 对外动作逐项取得用户同意; 宿主在两版本插件下的契约测试均通过.
+
+### 2026-10-17 宿主 API 覆盖修复
+
+- [x] 公开 Pinyin/Pinyin4j 转换改为调用宿主 provider, 删除小字典, 补 `readings`, `compact` 返回候选音节组合矩阵. 同步返回类型改为 Promise, 声明和迁移示例要求 await.
+- [x] 控制台 31 个窗口/配置操作和 4 个别名接入当前执行的宿主控制台. 默认 global console 与显式模块一致, 保留同步日志输出. `build/input/rawInput` 仍明确拒绝.
+- [x] `screen_metrics` 提供四个坐标函数, 实时显示查询和各执行独立的 scale 基数, compat 提供显式全局安装. 非有限参数在 JSON 序列化前拒绝.
+- [x] 补 accessibility.swipe/gesture, input_observer 总入口, fetch.request, axios.AxiosError, profile.inspector/processPermission 及单独从 index.d.ts 编译的用例. 手动 wrapper 回归验证 59 次分派, Promise 错误透传, catalog 和声明入口, 不加入默认重型门禁.
+- [x] 本地基础验证: 当前 NDK arm64 `-fsyntax-only`, Python 2/2, JVM 96/96, 三 ABI Debug 与 androidTest 组装, 41 个声明模块校验, examples 校验, 全量 TypeScript smoke, 独立 index TypeScript 用例和 25 份生成文档检查通过. lint 0 errors / 25 warnings.
+- [x] Node 真机回归: Sony QV770340J7 / Android 13 API 33 / arm64-v8a / PAGE_SIZE 4096, 最终 build 249 Debug APK 和配套测试 APK 执行 NpmEcosystemSmokeTest + NodeRuntimePluginAndroidConformanceTest 全类, 34/34 通过 (23.418s), 包括新增 CJS/ESM 宿主 wrapper 用例. 记录: 宿主仓 `.bak/runtime-api-20261017/node-conformance-device.log`.
+- [x] 真实宿主联调: 同一 Sony 真机以当前 Pinyin 1.0.3 和 Pinyin4j provider, 配合宿主 build 3895 / versionCode 5547 执行三个 Android 验收类, 10/10 通过 (15.578s). Node CJS/ESM 与 Bun 的公开拼音和控制台入口, 36 次方向/基数矩阵运行中的 684 个数值断言与 216 个拒绝断言 (含数字字符串坐标), Node CJS/Bun 同一执行中的 8 次旋转观察均通过. 整套同时验证 Bun capability 撤销与恢复和输出回调生命周期. 记录: 宿主仓 `.bak/runtime-api-20261017/host-5547-acceptance.log`, `runtime-api-coordinates.json`, `runtime-api-live-rotation.json`.
+
+宿主共享桥实现提交: `4e5511303` (`feat(runtime-api): bridge Node and Bun text console and coordinates`). 本插件验收使用 build 249 Debug; 构建产物身份记录在 `.bak/api-coverage-20261017/validation.json`.
+
+本地中间记录位于 `.bak/api-coverage-20261017/`. 既有 `tools/nodejs/ui/test-ui-handle-lifecycle.js` 补入当前 UI handle 依赖的真实 `__autojs6_bridge_attach_events` helper, 两个终止生命周期用例恢复通过. 本轮 wrapper 检查命令为 `node tools/nodejs/api/test-host-api-coverage.js`, 声明入口检查为 `tsc -p tools/nodejs/api/tsconfig.json`.
 
 ## 五. 明确不做的事
 

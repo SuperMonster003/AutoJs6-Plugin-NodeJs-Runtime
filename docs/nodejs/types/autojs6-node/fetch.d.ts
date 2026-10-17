@@ -53,6 +53,7 @@
     export interface FetchModule {
       (input: string, init?: RequestOptions): Promise<Response>;
       readonly fetch: FetchModule;
+      readonly request: FetchModule;
       readonly default: FetchModule;
       readonly policy: Policy;
       diagnostics(): Diagnostics;

@@ -836,6 +836,10 @@ std::string buildEmbeddedScriptExecutionSource(
         [__autojs6_console_table_text(tabularData, properties)]
       );
     };
+    const hostConsole = __autojs6_limited_console();
+    Object.keys(hostConsole).forEach(function(name) {
+      if (name === "clear" || !(name in shim)) shim[name] = hostConsole[name];
+    });
     globalThis.console = shim;
   }
   function __autojs6_define_global(name, value) {
@@ -3082,6 +3086,7 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_limited_input_observer_cache = null;
   let __autojs6_limited_clipboard_cache = null;
   let __autojs6_limited_device_cache = null;
+  let __autojs6_limited_screen_metrics_cache = null;
   let __autojs6_host_events_cache = null;
   let __autojs6_limited_shell_cache = null;
   let __autojs6_limited_fetch_cache = null;
@@ -5366,6 +5371,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (methodName === "delete") return ["files", "files.delete"];
       return ["files"];
     }
+    if (moduleName === "screen_metrics") return ["device"];
     if (moduleName === "device") {
       if (["isIgnoringBatteryOptimizations", "openBatteryOptimizationSettings", "setBrightness", "setBrightnessMode", "keepScreenOn", "cancelKeepingAwake"].includes(methodName)) return ["device", "device.power"];
       return ["device"];
@@ -11433,164 +11439,16 @@ std::string buildEmbeddedScriptExecutionSource(
     PLACE_NAME: 2,
     PLACENAME: 2
   });
-  const __autojs6_pinyin_initials = Object.freeze(["zh", "ch", "sh", "b", "p", "m", "f", "d", "t", "n", "l", "g", "k", "h", "j", "q", "x", "r", "z", "c", "s"]);
-  const __autojs6_pinyin_dict = Object.freeze({
-    "\u4e2d": Object.freeze([Object.freeze({ tone: "zh\u014dng", normal: "zhong", tone2: "zhong1", to3ne: "zho1ng" })]),
-    "\u56fd": Object.freeze([Object.freeze({ tone: "gu\u00f3", normal: "guo", tone2: "guo2", to3ne: "guo2" })]),
-    "\u4eba": Object.freeze([Object.freeze({ tone: "r\u00e9n", normal: "ren", tone2: "ren2", to3ne: "re2n" })]),
-    "\u6c11": Object.freeze([Object.freeze({ tone: "m\u00edn", normal: "min", tone2: "min2", to3ne: "mi2n" })]),
-    "\u4f60": Object.freeze([Object.freeze({ tone: "n\u01d0", normal: "ni", tone2: "ni3", to3ne: "ni3" })]),
-    "\u597d": Object.freeze([Object.freeze({ tone: "h\u01ceo", normal: "hao", tone2: "hao3", to3ne: "ha3o" })]),
-    "\u6211": Object.freeze([Object.freeze({ tone: "w\u01d2", normal: "wo", tone2: "wo3", to3ne: "wo3" })]),
-    "\u662f": Object.freeze([Object.freeze({ tone: "sh\u00ec", normal: "shi", tone2: "shi4", to3ne: "shi4" })]),
-    "\u7684": Object.freeze([Object.freeze({ tone: "de", normal: "de", tone2: "de0", to3ne: "de0" })]),
-    "\u884c": Object.freeze([Object.freeze({ tone: "x\u00edng", normal: "xing", tone2: "xing2", to3ne: "xi2ng" }), Object.freeze({ tone: "h\u00e1ng", normal: "hang", tone2: "hang2", to3ne: "ha2ng" })]),
-    "\u91cd": Object.freeze([Object.freeze({ tone: "zh\u00f2ng", normal: "zhong", tone2: "zhong4", to3ne: "zho4ng" }), Object.freeze({ tone: "ch\u00f3ng", normal: "chong", tone2: "chong2", to3ne: "cho2ng" })]),
-    "\u957f": Object.freeze([Object.freeze({ tone: "ch\u00e1ng", normal: "chang", tone2: "chang2", to3ne: "cha2ng" }), Object.freeze({ tone: "zh\u01ceng", normal: "zhang", tone2: "zhang3", to3ne: "zha3ng" })]),
-    "\u674e": Object.freeze([Object.freeze({ tone: "l\u01d0", normal: "li", tone2: "li3", to3ne: "li3" })]),
-    "\u738b": Object.freeze([Object.freeze({ tone: "w\u00e1ng", normal: "wang", tone2: "wang2", to3ne: "wa2ng" })]),
-    "\u5f20": Object.freeze([Object.freeze({ tone: "zh\u0101ng", normal: "zhang", tone2: "zhang1", to3ne: "zha1ng" })])
-  });
-  const __autojs6_pinyin_phrase_dict = Object.freeze({
-    "\u4e2d\u56fd": Object.freeze([Object.freeze(["zh\u014dng"]), Object.freeze(["gu\u00f3"])]),
-    "\u4eba\u6c11": Object.freeze([Object.freeze(["r\u00e9n"]), Object.freeze(["m\u00edn"])]),
-    "\u4f60\u597d": Object.freeze([Object.freeze(["n\u01d0"]), Object.freeze(["h\u01ceo"])])
-  });
-  function __autojs6_pinyin_parse_style(value, fallback) {
-    if (value === undefined || value === null || value === "") {
-      return fallback;
-    }
-    if (typeof value === "number") {
-      const number = Math.floor(value);
-      if (number >= 0 && number <= 5) return number;
-    }
-    const key = String(value).trim().toUpperCase();
-    if (Object.prototype.hasOwnProperty.call(__autojs6_pinyin_styles, key)) {
-      return __autojs6_pinyin_styles[key];
-    }
-    throw __autojs6_rhino_compat_unsupported("pinyin.style", "Unsupported pinyin style: " + value);
+  function __autojs6_pinyin_text(value) {
+    return value === undefined || value === null ? "" : String(value);
   }
-  function __autojs6_pinyin_parse_mode(value, fallback) {
-    if (value === undefined || value === null || value === "") {
-      return fallback;
-    }
-    if (typeof value === "number") {
-      const number = Math.floor(value);
-      if (number >= 0 && number <= 2) return number;
-    }
-    const key = String(value).trim().toUpperCase();
-    if (Object.prototype.hasOwnProperty.call(__autojs6_pinyin_modes, key)) {
-      return __autojs6_pinyin_modes[key];
-    }
-    throw __autojs6_rhino_compat_unsupported("pinyin.mode", "Unsupported pinyin mode: " + value);
-  }
-  function __autojs6_pinyin_options(options) {
-    const input = options && typeof options === "object" && !Array.isArray(options) ? options : {};
-    const mode = __autojs6_pinyin_parse_mode(input.mode, __autojs6_pinyin_modes.NORMAL);
-    if (input.segment === true) {
-      __autojs6_text_resource_unsupported("pinyin.convert", "Jieba segmentation");
-    }
-    if (mode === __autojs6_pinyin_modes.PLACE_NAME) {
-      __autojs6_text_resource_unsupported("pinyin.convert", "Pinyin place-name dictionary");
-    }
-    return {
-      style: __autojs6_pinyin_parse_style(input.style, __autojs6_pinyin_styles.TONE),
-      heteronym: input.heteronym === true,
-      group: input.group === true,
-      mode: mode
-    };
-  }
-  function __autojs6_pinyin_initial(value) {
-    for (let index = 0; index < __autojs6_pinyin_initials.length; index += 1) {
-      const initial = __autojs6_pinyin_initials[index];
-      if (value.indexOf(initial) === 0) return initial;
-    }
-    return "";
-  }
-  function __autojs6_pinyin_fixed(record, style) {
-    switch (style) {
-      case __autojs6_pinyin_styles.NORMAL:
-        return record.normal;
-      case __autojs6_pinyin_styles.TONE2:
-        return record.tone2;
-      case __autojs6_pinyin_styles.TO3NE:
-        return record.to3ne;
-      case __autojs6_pinyin_styles.INITIALS:
-        return __autojs6_pinyin_initial(record.normal);
-      case __autojs6_pinyin_styles.FIRST_LETTER:
-        return record.normal.charAt(0);
-      case __autojs6_pinyin_styles.TONE:
-      default:
-        return record.tone;
-    }
-  }
-  function __autojs6_pinyin_is_han_char(text) {
-    if (!text) return false;
-    const code = text.codePointAt(0);
-    return (code >= 0x3400 && code <= 0x9fff) || (code >= 0xf900 && code <= 0xfaff);
-  }
-  function __autojs6_pinyin_char_variants(charValue, options) {
-    const records = __autojs6_pinyin_dict[charValue];
-    if (!records) {
-      return [charValue];
-    }
-    const mapped = records.map(function(record) {
-      return __autojs6_pinyin_fixed(record, options.style);
+  function __autojs6_pinyin_call(moduleName, method, args) {
+    return __autojs6_call_autojs(moduleName, method, args, {
+      permissions: [moduleName]
     });
-    return options.heteronym ? Array.from(new Set(mapped)) : [mapped[0]];
-  }
-  function __autojs6_pinyin_compact_rows(rows) {
-    if (!Array.isArray(rows)) return "";
-    return rows.map(function(row) {
-      return Array.isArray(row) ? String(row[0] === undefined ? "" : row[0]) : String(row);
-    }).join("");
-  }
-  function __autojs6_pinyin_combo(rows) {
-    let result = [""];
-    rows.forEach(function(row) {
-      const values = Array.isArray(row) && row.length > 0 ? row : [""];
-      const next = [];
-      result.forEach(function(prefix) {
-        values.forEach(function(value) {
-          next.push(prefix + value);
-        });
-      });
-      result = next;
-    });
-    return result;
-  }
-  function __autojs6_pinyin_convert(value, optionsInput) {
-    const options = __autojs6_pinyin_options(optionsInput);
-    const text = value === undefined || value === null ? "" : String(value);
-    const rows = [];
-    let nonHan = "";
-    for (const charValue of text) {
-      if (__autojs6_pinyin_is_han_char(charValue)) {
-        if (nonHan) {
-          rows.push([nonHan]);
-          nonHan = "";
-        }
-        rows.push(__autojs6_pinyin_char_variants(charValue, options));
-      } else {
-        nonHan += charValue;
-      }
-    }
-    if (nonHan) {
-      rows.push([nonHan]);
-    }
-    const result = options.group ? [__autojs6_pinyin_combo(rows)] : rows;
-    Object.defineProperty(result, "compact", {
-      value: function() {
-        return __autojs6_pinyin_compact_rows(result);
-      },
-      configurable: true
-    });
-    return result;
   }
   function __autojs6_limited_pinyin() {
-    if (__autojs6_limited_pinyin_cache) {
-      return __autojs6_limited_pinyin_cache;
-    }
+    if (__autojs6_limited_pinyin_cache) return __autojs6_limited_pinyin_cache;
     const pinyin = function(value, options) {
       return pinyin.convert(value, options);
     };
@@ -11605,128 +11463,79 @@ std::string buildEmbeddedScriptExecutionSource(
       MODE_SURNAME: { value: __autojs6_pinyin_modes.SURNAME, enumerable: true },
       MODE_PLACENAME: { value: __autojs6_pinyin_modes.PLACENAME, enumerable: true },
       MODE_PLACE_NAME: { value: __autojs6_pinyin_modes.PLACE_NAME, enumerable: true },
-      convert: { value: __autojs6_pinyin_convert, enumerable: true },
-      simple: {
-        value: function(value, enableNumericTone, enableSegment) {
-          if (enableSegment === true) {
-            __autojs6_text_resource_unsupported("pinyin.simple", "Jieba segmentation");
-          }
-          const rows = __autojs6_pinyin_convert(value, {
-            style: enableNumericTone === true ? __autojs6_pinyin_styles.TONE2 : __autojs6_pinyin_styles.NORMAL
+      convert: {
+        value: function(value, options) {
+          return __autojs6_pinyin_call("pinyin", "convert", [__autojs6_pinyin_text(value), options]).then(function(rows) {
+            Object.defineProperty(rows, "compact", { value: function() { return pinyin.compact(rows); } });
+            return rows;
           });
-          return __autojs6_pinyin_compact_rows(rows);
         },
         enumerable: true
       },
-      compact: { value: __autojs6_pinyin_compact_rows, enumerable: true },
-      compare: {
-        value: function(left, right) {
-          return pinyin.simple(left).localeCompare(pinyin.simple(right));
+      simple: {
+        value: function(value, enableNumericTone, enableSegment) {
+          return __autojs6_pinyin_call("pinyin", "simple", [__autojs6_pinyin_text(value), enableNumericTone, enableSegment]);
         },
+        enumerable: true
+      },
+      compact: {
+        value: function(rows) { return __autojs6_pinyin_call("pinyin", "compact", [rows]); },
+        enumerable: true
+      },
+      compare: {
+        value: function(left, right) { return __autojs6_pinyin_call("pinyin", "compare", [__autojs6_pinyin_text(left), __autojs6_pinyin_text(right)]); },
         enumerable: true
       },
       fromCodePoint: {
-        value: function(codePoint) {
-          const charValue = String.fromCodePoint(Number(codePoint));
-          const records = __autojs6_pinyin_dict[charValue];
-          return records && records[0] ? records[0].tone : null;
-        },
+        value: function(codePoint) { return __autojs6_pinyin_call("pinyin", "fromCodePoint", [codePoint]); },
         enumerable: true
       },
       fromPhrase: {
-        value: function(phrase) {
-          const text = phrase === undefined || phrase === null ? "" : String(phrase);
-          const rows = __autojs6_pinyin_phrase_dict[text];
-          if (rows) return rows.map(function(row) { return row.slice(); });
-          __autojs6_text_resource_unsupported("pinyin.fromPhrase", "Pinyin phrase dictionary");
-        },
+        value: function(phrase) { return __autojs6_pinyin_call("pinyin", "fromPhrase", [__autojs6_pinyin_text(phrase)]); },
         enumerable: true
       }
     });
     __autojs6_limited_pinyin_cache = Object.freeze(pinyin);
     return __autojs6_limited_pinyin_cache;
   }
-  const __autojs6_pinyin4j_tone_map = Object.freeze({
-    zhong1: "zh\u014dng",
-    zhong4: "zh\u00f2ng",
-    chong2: "ch\u00f3ng",
-    guo2: "gu\u00f3",
-    ren2: "r\u00e9n",
-    min2: "m\u00edn",
-    ni3: "n\u01d0",
-    hao3: "h\u01ceo",
-    wo3: "w\u01d2",
-    shi4: "sh\u00ec",
-    de0: "de",
-    xing2: "x\u00edng",
-    hang2: "h\u00e1ng",
-    chang2: "ch\u00e1ng",
-    zhang1: "zh\u0101ng",
-    zhang3: "zh\u01ceng",
-    li3: "l\u01d0",
-    wang2: "w\u00e1ng"
-  });
-  function __autojs6_pinyin4j_options(options) {
-    const input = options && typeof options === "object" && !Array.isArray(options) ? options : {};
-    let separator = "";
-    if (typeof options === "string") {
-      separator = options;
-    }
-    if (input.separator !== undefined) separator = String(input.separator);
-    if (input.sep !== undefined) separator = String(input.sep);
-    const caseText = String(input.case !== undefined ? input.case : input.caseType !== undefined ? input.caseType : "LOWERCASE").toUpperCase();
-    const toneText = String(input.tone !== undefined ? input.tone : input.toneType !== undefined ? input.toneType : "WITHOUT_TONE").toUpperCase();
-    return {
-      separator: separator,
-      upper: caseText === "UPPERCASE" || caseText === "UP" || caseText === "U" || caseText === "1",
-      tone: toneText === "WITH_TONE_NUMBER" || toneText === "WITH_NUMBER" || toneText === "NUMBER" || toneText === "NUM"
-        ? "number"
-        : toneText === "WITH_TONE_MARK" || toneText === "WITH_MARK" || toneText === "MARK" || toneText === "TRUE" || toneText === "1"
-          ? "mark"
-          : "none"
-    };
-  }
-  function __autojs6_pinyin4j_format_record(record, options) {
-    let text = record.normal;
-    if (options.tone === "number") text = record.tone2;
-    if (options.tone === "mark") text = record.tone;
-    return options.upper ? text.toUpperCase() : text;
-  }
-  function __autojs6_pinyin4j_of(value, optionsInput) {
-    const text = value === undefined || value === null ? "" : String(value);
-    if (!text) return "";
-    const options = __autojs6_pinyin4j_options(optionsInput);
-    const parts = [];
-    for (const charValue of text) {
-      const records = __autojs6_pinyin_dict[charValue];
-      if (records && records[0]) {
-        parts.push(__autojs6_pinyin4j_format_record(records[0], options));
-      } else {
-        parts.push(charValue);
-      }
-    }
-    return parts.join(options.separator);
-  }
-  function __autojs6_pinyin4j_as(value) {
-    return String(value === undefined || value === null ? "" : value).replace(/[a-z]+[0-4]/gi, function(match) {
-      const lower = match.toLowerCase();
-      const fixed = __autojs6_pinyin4j_tone_map[lower] || match;
-      return match === match.toUpperCase() ? fixed.toUpperCase() : fixed;
-    });
-  }
   function __autojs6_limited_pinyin4j() {
-    if (__autojs6_limited_pinyin4j_cache) {
-      return __autojs6_limited_pinyin4j_cache;
-    }
-    const pinyin4j = function(value, options) {
-      return __autojs6_pinyin4j_of(value, options);
-    };
+    if (__autojs6_limited_pinyin4j_cache) return __autojs6_limited_pinyin4j_cache;
+    const pinyin4j = function(value, options) { return pinyin4j.of(value, options); };
     Object.defineProperties(pinyin4j, {
-      of: { value: __autojs6_pinyin4j_of, enumerable: true },
-      as: { value: __autojs6_pinyin4j_as, enumerable: true }
+      of: {
+        value: function(value, options) { return __autojs6_pinyin_call("pinyin4j", "of", [__autojs6_pinyin_text(value), options]); },
+        enumerable: true
+      },
+      as: {
+        value: function(value) { return __autojs6_pinyin_call("pinyin4j", "as", [__autojs6_pinyin_text(value)]); },
+        enumerable: true
+      },
+      readings: {
+        value: function(value, options) { return __autojs6_pinyin_call("pinyin4j", "readings", [__autojs6_pinyin_text(value), options]); },
+        enumerable: true
+      }
     });
     __autojs6_limited_pinyin4j_cache = Object.freeze(pinyin4j);
     return __autojs6_limited_pinyin4j_cache;
+  }
+  function __autojs6_limited_screen_metrics() {
+    if (__autojs6_limited_screen_metrics_cache) return __autojs6_limited_screen_metrics_cache;
+    const result = {};
+    ["cX", "cY", "cXy", "cYx", "getInfo", "getScaleBases", "getScaleBaseX", "getScaleBaseY",
+      "setScaleBases", "setScaleBaseX", "setScaleBaseY"].forEach(function(method) {
+      result[method] = function() {
+        const args = Array.from(arguments);
+        if (args.some(function(value) { return typeof value === "number" && !Number.isFinite(value); }) ||
+            (method[0] === "c" && args.length > 0 && args[0] === undefined)) {
+          return Promise.reject(__autojs6_invalid_arg_type("screen_metrics." + method + " requires finite coordinates and bases."));
+        }
+        return __autojs6_call_autojs("screen_metrics", method, args, { permissions: ["device"] }).then(function(value) {
+          return method.indexOf("set") === 0 ? undefined : value;
+        });
+      };
+    });
+    __autojs6_limited_screen_metrics_cache = Object.freeze(result);
+    return __autojs6_limited_screen_metrics_cache;
   }
   function __autojs6_jsox_mathx_flatten(input, output) {
     const target = output || [];
@@ -12930,7 +12739,7 @@ std::string buildEmbeddedScriptExecutionSource(
   const __autojs6_rhino_compat_events = Object.freeze({
     keys: __autojs6_rhino_compat_key_constants
   });
-  const __autojs6_rhino_compat_basic_global_names = Object.freeze(["toast", "toastLog", "sleep", "setClip", "getClip", "files", "base64", "colors", "fmt", "cvt", "s13n", "mime", "nanoid", "util", "opencc", "pinyin", "pinyin4j", "jsox", "storages", "sqlite", "console", "setTimeout", "clearTimeout", "setInterval", "clearInterval", "selector", "text", "desc", "id", "className", "textContains", "descContains", "textMatches", "descMatches", "idMatches", "classNameMatches", "clickable", "enabled", "scrollable", "depth", "boundsInside", "boundsContains", "description", "descriptionContains", "descriptionMatches", "idContains", "classNameContains", "click", "back", "home", "recentApps", "recents", "app", "device", "shell", "images", "requestScreenCapture", "requestScreenCaptureAsync", "captureScreen", "ocr", "barcode", "qrcode", "media", "mediainfo", "recorder", "keys", "ui"]);
+  const __autojs6_rhino_compat_basic_global_names = Object.freeze(["toast", "toastLog", "sleep", "setClip", "getClip", "files", "base64", "colors", "fmt", "cvt", "s13n", "mime", "nanoid", "util", "opencc", "pinyin", "pinyin4j", "jsox", "storages", "sqlite", "console", "setTimeout", "clearTimeout", "setInterval", "clearInterval", "selector", "text", "desc", "id", "className", "textContains", "descContains", "textMatches", "descMatches", "idMatches", "classNameMatches", "clickable", "enabled", "scrollable", "depth", "boundsInside", "boundsContains", "description", "descriptionContains", "descriptionMatches", "idContains", "classNameContains", "click", "back", "home", "recentApps", "recents", "app", "device", "cX", "cY", "cXy", "cYx", "getScaleBases", "getScaleBaseX", "getScaleBaseY", "setScaleBases", "setScaleBaseX", "setScaleBaseY", "shell", "images", "requestScreenCapture", "requestScreenCaptureAsync", "captureScreen", "ocr", "barcode", "qrcode", "media", "mediainfo", "recorder", "keys", "ui"]);
   const __autojs6_rhino_compat_basic_module_names = Object.freeze(["toast", "clipboard", "console", "timers", "files", "base64", "colors", "formatter", "fmt", "converter", "cvt", "s13n", "mime", "nanoid", "util", "opencc", "pinyin", "pinyin4j", "jsox", "jsox.mathx", "jsox.arrayx", "jsox.numberx", "storage", "storages", "database", "sqlite", "selector", "app", "device", "shell", "images", "media_projection", "ocr", "barcode", "qrcode", "media", "mediainfo", "media_store", "recorder", "events.keys", "ui", "tasks"]);
   const __autojs6_rhino_compat_installed_globals = [];
   function __autojs6_rhino_compat_error(message, code, apiName, category) {
@@ -14243,6 +14052,16 @@ std::string buildEmbeddedScriptExecutionSource(
       recents: selector.recents,
       app: __autojs6_limited_app(),
       device: __autojs6_limited_device(),
+      cX: __autojs6_limited_screen_metrics().cX,
+      cY: __autojs6_limited_screen_metrics().cY,
+      cXy: __autojs6_limited_screen_metrics().cXy,
+      cYx: __autojs6_limited_screen_metrics().cYx,
+      getScaleBases: __autojs6_limited_screen_metrics().getScaleBases,
+      getScaleBaseX: __autojs6_limited_screen_metrics().getScaleBaseX,
+      getScaleBaseY: __autojs6_limited_screen_metrics().getScaleBaseY,
+      setScaleBases: __autojs6_limited_screen_metrics().setScaleBases,
+      setScaleBaseX: __autojs6_limited_screen_metrics().setScaleBaseX,
+      setScaleBaseY: __autojs6_limited_screen_metrics().setScaleBaseY,
       shell: shell,
       images: images,
       ocr: ocr,
@@ -14424,6 +14243,16 @@ std::string buildEmbeddedScriptExecutionSource(
       recents: selector.recents,
       app: __autojs6_limited_app(),
       device: __autojs6_limited_device(),
+      cX: __autojs6_limited_screen_metrics().cX,
+      cY: __autojs6_limited_screen_metrics().cY,
+      cXy: __autojs6_limited_screen_metrics().cXy,
+      cYx: __autojs6_limited_screen_metrics().cYx,
+      getScaleBases: __autojs6_limited_screen_metrics().getScaleBases,
+      getScaleBaseX: __autojs6_limited_screen_metrics().getScaleBaseX,
+      getScaleBaseY: __autojs6_limited_screen_metrics().getScaleBaseY,
+      setScaleBases: __autojs6_limited_screen_metrics().setScaleBases,
+      setScaleBaseX: __autojs6_limited_screen_metrics().setScaleBaseX,
+      setScaleBaseY: __autojs6_limited_screen_metrics().setScaleBaseY,
       shell: shell,
       images: images,
       ocr: ocr,
@@ -25776,8 +25605,14 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       return undefined;
     }
-    function consoleNoopReturnSelf() {
-      return limitedConsole;
+    function consoleHostMethod(method) {
+      return function() {
+        const args = Array.from(arguments);
+        if (args.some(function(value) { return typeof value === "number" && !Number.isFinite(value); })) {
+          return Promise.reject(__autojs6_invalid_arg_type("console." + method + " requires finite numbers."));
+        }
+        return __autojs6_call_autojs("console", method, args, { permissions: ["console"] }).then(function() {});
+      };
     }
     function consoleUnsupported(apiName, reason) {
       return function() {
@@ -25878,9 +25713,9 @@ std::string buildEmbeddedScriptExecutionSource(
         ),
         enumerable: true
       },
-      clear: { value: defaultMethod("clear"), enumerable: true },
-      clearConsole: { value: defaultMethod("clear"), enumerable: true },
-      collapse: { value: consoleNoopReturnSelf, enumerable: true },
+      clear: { value: consoleHostMethod("clear"), enumerable: true },
+      clearConsole: { value: consoleHostMethod("clear"), enumerable: true },
+      collapse: { value: consoleHostMethod("collapse"), enumerable: true },
       context: { value: consoleContext, enumerable: true },
       count: { value: defaultMethod("count"), enumerable: true },
       countReset: { value: defaultMethod("countReset"), enumerable: true },
@@ -25890,11 +25725,11 @@ std::string buildEmbeddedScriptExecutionSource(
       dirxml: { value: defaultMethod("dirxml"), enumerable: true },
       err: { value: defaultMethod("error"), enumerable: true },
       error: { value: defaultMethod("error"), enumerable: true },
-      expand: { value: consoleNoopReturnSelf, enumerable: true },
+      expand: { value: consoleHostMethod("expand"), enumerable: true },
       group: { value: defaultMethod("group"), enumerable: true },
       groupCollapsed: { value: defaultMethod("groupCollapsed"), enumerable: true },
       groupEnd: { value: defaultMethod("groupEnd"), enumerable: true },
-      hide: { value: consoleNoopReturnSelf, enumerable: true },
+      hide: { value: consoleHostMethod("hide"), enumerable: true },
       info: { value: defaultMethod("info"), enumerable: true },
       input: {
         value: consoleUnsupported(
@@ -25903,10 +25738,10 @@ std::string buildEmbeddedScriptExecutionSource(
         ),
         enumerable: true
       },
-      launch: { value: consoleNoopReturnSelf, enumerable: true },
-      launchConsole: { value: consoleNoopReturnSelf, enumerable: true },
+      launch: { value: consoleHostMethod("launch"), enumerable: true },
+      launchConsole: { value: consoleHostMethod("launch"), enumerable: true },
       log: { value: defaultMethod("log"), enumerable: true },
-      openConsole: { value: consoleNoopReturnSelf, enumerable: true },
+      openConsole: { value: consoleHostMethod("show"), enumerable: true },
       print: { value: defaultMethod("log"), enumerable: true },
       printAllStackTrace: { value: defaultMethod("printAllStackTrace"), enumerable: true },
       profile: { value: defaultMethod("clear"), enumerable: true },
@@ -25918,33 +25753,33 @@ std::string buildEmbeddedScriptExecutionSource(
         ),
         enumerable: true
       },
-      reset: { value: consoleNoopReturnSelf, enumerable: true },
-      resetGlobalLogConfig: { value: consoleNoopReturnSelf, enumerable: true },
-      setBackgroundAlpha: { value: consoleNoopReturnSelf, enumerable: true },
-      setBackgroundColor: { value: consoleNoopReturnSelf, enumerable: true },
-      setBackgroundTint: { value: consoleNoopReturnSelf, enumerable: true },
-      setContentBackgroundAlpha: { value: consoleNoopReturnSelf, enumerable: true },
-      setContentBackgroundColor: { value: consoleNoopReturnSelf, enumerable: true },
-      setContentBackgroundTint: { value: consoleNoopReturnSelf, enumerable: true },
-      setContentTextColor: { value: consoleNoopReturnSelf, enumerable: true },
-      setContentTextColors: { value: consoleNoopReturnSelf, enumerable: true },
-      setContentTextSize: { value: consoleNoopReturnSelf, enumerable: true },
-      setExitOnClose: { value: consoleNoopReturnSelf, enumerable: true },
-      setGlobalLogConfig: { value: consoleNoopReturnSelf, enumerable: true },
-      setPosition: { value: consoleNoopReturnSelf, enumerable: true },
-      setSize: { value: consoleNoopReturnSelf, enumerable: true },
-      setTextColor: { value: consoleNoopReturnSelf, enumerable: true },
-      setTextSize: { value: consoleNoopReturnSelf, enumerable: true },
-      setTitle: { value: consoleNoopReturnSelf, enumerable: true },
-      setTitleBackgroundAlpha: { value: consoleNoopReturnSelf, enumerable: true },
-      setTitleBackgroundColor: { value: consoleNoopReturnSelf, enumerable: true },
-      setTitleBackgroundTint: { value: consoleNoopReturnSelf, enumerable: true },
-      setTitleIconsTint: { value: consoleNoopReturnSelf, enumerable: true },
-      setTitleTextColor: { value: consoleNoopReturnSelf, enumerable: true },
-      setTitleTextSize: { value: consoleNoopReturnSelf, enumerable: true },
-      setTouchable: { value: consoleNoopReturnSelf, enumerable: true },
-      show: { value: consoleNoopReturnSelf, enumerable: true },
-      showConsole: { value: consoleNoopReturnSelf, enumerable: true },
+      reset: { value: consoleHostMethod("reset"), enumerable: true },
+      resetGlobalLogConfig: { value: consoleHostMethod("resetGlobalLogConfig"), enumerable: true },
+      setBackgroundAlpha: { value: consoleHostMethod("setBackgroundAlpha"), enumerable: true },
+      setBackgroundColor: { value: consoleHostMethod("setBackgroundColor"), enumerable: true },
+      setBackgroundTint: { value: consoleHostMethod("setBackgroundTint"), enumerable: true },
+      setContentBackgroundAlpha: { value: consoleHostMethod("setContentBackgroundAlpha"), enumerable: true },
+      setContentBackgroundColor: { value: consoleHostMethod("setContentBackgroundColor"), enumerable: true },
+      setContentBackgroundTint: { value: consoleHostMethod("setContentBackgroundTint"), enumerable: true },
+      setContentTextColor: { value: consoleHostMethod("setContentTextColor"), enumerable: true },
+      setContentTextColors: { value: consoleHostMethod("setContentTextColors"), enumerable: true },
+      setContentTextSize: { value: consoleHostMethod("setContentTextSize"), enumerable: true },
+      setExitOnClose: { value: consoleHostMethod("setExitOnClose"), enumerable: true },
+      setGlobalLogConfig: { value: consoleHostMethod("setGlobalLogConfig"), enumerable: true },
+      setPosition: { value: consoleHostMethod("setPosition"), enumerable: true },
+      setSize: { value: consoleHostMethod("setSize"), enumerable: true },
+      setTextColor: { value: consoleHostMethod("setTextColor"), enumerable: true },
+      setTextSize: { value: consoleHostMethod("setTextSize"), enumerable: true },
+      setTitle: { value: consoleHostMethod("setTitle"), enumerable: true },
+      setTitleBackgroundAlpha: { value: consoleHostMethod("setTitleBackgroundAlpha"), enumerable: true },
+      setTitleBackgroundColor: { value: consoleHostMethod("setTitleBackgroundColor"), enumerable: true },
+      setTitleBackgroundTint: { value: consoleHostMethod("setTitleBackgroundTint"), enumerable: true },
+      setTitleIconsTint: { value: consoleHostMethod("setTitleIconsTint"), enumerable: true },
+      setTitleTextColor: { value: consoleHostMethod("setTitleTextColor"), enumerable: true },
+      setTitleTextSize: { value: consoleHostMethod("setTitleTextSize"), enumerable: true },
+      setTouchable: { value: consoleHostMethod("setTouchable"), enumerable: true },
+      show: { value: consoleHostMethod("show"), enumerable: true },
+      showConsole: { value: consoleHostMethod("show"), enumerable: true },
       table: { value: defaultMethod("table"), enumerable: true },
       time: { value: defaultMethod("time"), enumerable: true },
       timeEnd: { value: defaultMethod("timeEnd"), enumerable: true },
@@ -26246,6 +26081,7 @@ std::string buildEmbeddedScriptExecutionSource(
     input_observer: function() { return __autojs6_limited_input_observer(); },
     clipboard: function() { return __autojs6_limited_clipboard(); },
     device: function() { return __autojs6_limited_device(); },
+    screen_metrics: function() { return __autojs6_limited_screen_metrics(); },
     shell: function() { return __autojs6_limited_shell(); },
     fetch: function() { return __autojs6_limited_fetch(); },
     keys: function() { return __autojs6_keys(); },

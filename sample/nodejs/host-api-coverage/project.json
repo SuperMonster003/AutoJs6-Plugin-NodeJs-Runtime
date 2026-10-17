@@ -1,0 +1,10 @@
+{
+  "name": "host-api-coverage",
+  "type": "node",
+  "main": "main.mjs",
+  "node": {
+    "backend": "embedded",
+    "timeoutMs": 30000,
+    "permissions": ["device", "console", "pinyin", "pinyin4j"]
+  }
+}

@@ -455,6 +455,92 @@ public final class NodeRuntimePluginAndroidConformanceTest {
         }
     }
 
+    /** The public wrappers must actually dispatch, including the default console and ESM named exports. */
+    @Test
+    public void runtimeHostApiWrappersRouteAndRejectAcrossCjsAndEsm() throws Exception {
+        for (boolean esm : new boolean[]{false, true}) {
+            String imports = esm ? """
+                    import assert from 'node:assert/strict';
+                    import bridge from 'autojs6:bridge';
+                    import pinyin, {simple} from 'pinyin';
+                    import pinyin4j from 'pinyin4j';
+                    import screen, {cX} from 'screen_metrics';
+                    import compat from 'autojs6:compat';
+                    """ : """
+                    const assert = require('node:assert/strict');
+                    const bridge = require('autojs6:bridge');
+                    const pinyin = require('pinyin'), simple = pinyin.simple;
+                    const pinyin4j = require('pinyin4j');
+                    const screen = require('screen_metrics'), cX = screen.cX;
+                    const compat = require('autojs6:compat');
+                    """;
+            String source = imports + """
+                    (async () => {
+                      const requests = [];
+                      let rejected = false;
+                      bridge.__test.setTransport({postMessage(message) {
+                        const request = JSON.parse(message);
+                        requests.push(request);
+                        let result = null;
+                        if (request.module === 'pinyin') {
+                          result = request.method === 'simple' ? 'beijingshanghai' : [['bei'], ['jing']];
+                        } else if (request.module === 'pinyin4j') {
+                          result = request.method === 'readings' ? [['xing2', 'hang2']] : 'bei jing shang hai';
+                        } else if (request.module === 'screen_metrics') {
+                          result = request.method === 'getInfo' ? {width: 1096, height: 2560, rotation: 0, baseX: 720, baseY: 1280} : 548;
+                        } else if (request.module !== 'console') {
+                          throw new Error('Unexpected module: ' + request.module);
+                        }
+                        const response = rejected
+                          ? {id: request.id, ok: false, error: {code: 'ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED', message: 'test host denied'}}
+                          : {id: request.id, ok: true, result};
+                        setImmediate(() => bridge.__test.receiveMessage(JSON.stringify(response)));
+                      }});
+                      assert.equal(await simple('Beijing Shanghai', true, true), 'beijingshanghai');
+                      assert.deepEqual(requests.at(-1).args, ['Beijing Shanghai', true, true]);
+                      const rows = await pinyin('Beijing', {segment: true});
+                      await rows.compact();
+                      assert.equal(requests.at(-1).method, 'compact');
+                      assert.deepEqual(requests.at(-1).args, [[['bei'], ['jing']]]);
+                      assert.equal(await pinyin4j('Beijing', ' '), 'bei jing shang hai');
+                      assert.deepEqual(await pinyin4j.readings('xing'), [['xing2', 'hang2']]);
+                      await console.setTitle('host controls');
+                      await console.show();
+                      await console.clear();
+                      await console.hide();
+                      assert.equal(await cX(0.5), 548);
+                      assert.equal((await screen.getInfo()).width, 1096);
+                      assert.equal(await compat.cYx(0.5, '16:9'), 548);
+                      const installed = compat.install({globals: true});
+                      assert.ok(installed.globals.includes('cX') && installed.globals.includes('setScaleBases'));
+                      assert.equal(await globalThis.cX(0.5), 548);
+                      await compat.setScaleBases(720, 1280);
+                      assert.deepEqual(requests.at(-1).args, [720, 1280]);
+                      const count = requests.length;
+                      await assert.rejects(screen.cX(NaN), TypeError);
+                      await assert.rejects(screen.cY(10, Infinity), TypeError);
+                      assert.equal(requests.length, count);
+                      for (const request of requests) {
+                        assert.deepEqual(request.permissions, [request.module === 'screen_metrics' ? 'device' : request.module]);
+                      }
+                      rejected = true;
+                      await assert.rejects(pinyin.simple('Beijing'), error => error.code === 'ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED');
+                      await assert.rejects(console.show(), error => error.code === 'ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED');
+                      console.log('host-api-wrappers=PASS');
+                    })().catch(error => { console.error(error.stack); process.exitCode = 1; });
+                    """;
+            String entry = esm ? "main.mjs" : "main.cjs";
+            LinkedHashMap<String, String> files = new LinkedHashMap<>();
+            files.put(entry, source);
+            files.put("project.json", """
+                    {"node":{"permissions":["console","device","pinyin","pinyin4j"]}}
+                    """);
+            try (WorkspaceInvocation invocation = execute("host-api-wrappers-" + esm, entry, files, false)) {
+                assertSucceeded(invocation.result, "host-api-wrappers=PASS");
+            }
+        }
+    }
+
     /** M18.2: every host-independent sample project runs from its own files and prints its expected output. */
     @Test
     public void m18_sampleProjectsPrintTheirExpectedOutput() throws Exception {
