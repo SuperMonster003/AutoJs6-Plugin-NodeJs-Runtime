@@ -127,6 +127,7 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 * `Ajout` screen_metrics et autojs6:compat proposent cX/cY/cXy/cYx asynchrones avec les dimensions actuelles et des bases par exécution, avec contrôles de couverture et exemple ESM
 * `Ajout` Node.js et Bun prennent en charge OpenCC asynchrone, les codecs, la lecture des pixels, les transformations et la recherche de couleurs; accès aux fichiers image de Bun autorisé séparément
 * `Ajout` Les Workers Node.js utilisent OpenCC et les images via le runtime parent, avec CJS, ESM, Workers imbriqués et transfert binaire
+* `Ajout` Les Workers Node.js proposent pinyin, pinyin4j, les commandes de console et les coordonnées, avec état parent partagé et flux natifs conservés
 * `Correction` Pinyin/Pinyin4j appellent les fournisseurs hôtes de façon asynchrone au lieu du petit dictionnaire local; les commandes de console Android exécutent leurs actions sur l'hôte et renvoient des Promises; déclarations des gestes et de input_observer complétées
 * `Dependance` Rétroportage des correctifs de sécurité OpenSSL 3.5.9 vers le moteur Android Node.js 24.21.0
 

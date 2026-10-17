@@ -8411,7 +8411,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8420,8 +8420,33 @@ std::string buildEmbeddedScriptExecutionSource(
       return Object.freeze({ width: Number(image.width) || 0, height: Number(image.height) || 0 });
     }
     for (const [module, names] of Object.entries(methods)) {
-      const value = module === "opencc" ? (text, type) => value.convert(text, type) : {};
+      const value = module === "opencc" || module === "pinyin" ? (text, options) => value.convert(text, options)
+        : module === "pinyin4j" ? (text, options) => value.of(text, options) : {};
       for (const method of names) {
+        if (Object.prototype.hasOwnProperty.call(constants[module] || {}, method)) {
+          value[method] = constants[module][method];
+          continue;
+        }
+        if (module === "console" && !consoleControls.includes(method)) {
+          const aliases = { print: "log", verbose: "debug", err: "error", printAllStackTrace: "error" };
+          if (["input", "rawInput", "build"].includes(method)) value[method] = () => {
+            throw Object.assign(new Error("Rhino console." + method + " is unavailable in Node Workers."), { code: "ERR_AUTOJS6_RHINO_COMPAT_UNSUPPORTED" });
+          };
+          else if (method === "context") value[method] = () => value;
+          else if (method === "createTask") value[method] = () => ({ run: (fn, ...args) => fn(...args) });
+          else if (method === "Console") {
+            const NativeConsole = nativeConsole.Console;
+            value[method] = function(...args) {
+              const instance = new NativeConsole(...args);
+              instance.printAllStackTrace = error => instance.error(error && error.stack || error || new Error().stack);
+              return instance;
+            };
+            value[method].prototype = NativeConsole.prototype;
+          }
+          else if (method === "printAllStackTrace") value[method] = error => nativeConsole.error(error && error.stack || error || new Error().stack);
+          else value[method] = nativeConsole[aliases[method] || method].bind(nativeConsole);
+          continue;
+        }
         if (method === "getSize") value[method] = size;
         else if (method === "getWidth") value[method] = image => size(image).width;
         else if (method === "getHeight") value[method] = image => size(image).height;
@@ -8432,6 +8457,11 @@ std::string buildEmbeddedScriptExecutionSource(
             // Coerce before structured clone can change Buffer/custom-object string semantics.
             args[0] = String(args[0]);
           }
+          if (module === "pinyin4j" || (module === "pinyin" && !["compact", "fromCodePoint"].includes(method))) {
+            const text = value => value === null || value === undefined ? "" : String(value);
+            args[0] = text(args[0]);
+            if (method === "compare") args[1] = text(args[1]);
+          }
           let signal, signalArgumentIndex;
           args = args.map((arg, index) => {
             if (arg && typeof arg === "object" && arg.signal !== undefined) {
@@ -8441,6 +8471,9 @@ std::string buildEmbeddedScriptExecutionSource(
             return arg;
           });
           const result = await bridgeCall("autojs6:worker-module:" + module, method, args, { signal, signalArgumentIndex });
+          if (module === "pinyin" && method === "convert") {
+            Object.defineProperty(result, "compact", { value: () => value.compact(result) });
+          }
           if (method === "recycle") recycled.add(String(handleId(args[0])));
           // Node structured clone turns a parent's Buffer into Uint8Array. A worker owns its copy.
           if (method === "toBytes") return Buffer.from(result.buffer, result.byteOffset, result.byteLength);
@@ -8457,7 +8490,11 @@ std::string buildEmbeddedScriptExecutionSource(
     if (!module.startsWith(prefix)) return __autojs6_call_autojs(module, method, args, options);
     const name = module.slice(prefix.length);
     const target = name === "opencc" ? __autojs6_limited_opencc()
-      : name === "image" || name === "images" ? __autojs6_limited_image(name) : null;
+      : name === "image" || name === "images" ? __autojs6_limited_image(name)
+      : name === "pinyin" ? __autojs6_limited_pinyin()
+      : name === "pinyin4j" ? __autojs6_limited_pinyin4j()
+      : name === "screen_metrics" ? __autojs6_limited_screen_metrics()
+      : name === "console" ? __autojs6_limited_console() : null;
     if (!target || !Object.prototype.hasOwnProperty.call(target, method) || typeof target[method] !== "function") {
       throw __autojs6_invalid_arg_type("Unknown worker host module operation.");
     }
@@ -8570,7 +8607,9 @@ std::string buildEmbeddedScriptExecutionSource(
     installInspector(getBuiltinModule, config.inspectorEnabled);
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
-    const hostModules = createHostModules(bridgeCall, config.hostModuleMethods);
+    const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
+      config.consoleControls, nativeRequire("console"));
+    if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
       if (Object.hasOwn(table, filename)) return filename;
@@ -8605,7 +8644,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.registerHooks({
       resolve(specifier, context, nextResolve) {
         if (specifier === "autojs6:bridge") return { url: specifier, shortCircuit: true };
-        const hostName = specifier.startsWith("autojs6:") ? specifier.slice(8) : specifier;
+        const hostName = specifier === "node:console" ? "console" : specifier.startsWith("autojs6:") ? specifier.slice(8) : specifier;
         if (hostModules.has(hostName)) {
           // Match the main thread: an installed npm opencc package shadows only the bare name.
           if (specifier === "opencc") {
@@ -8727,8 +8766,14 @@ std::string buildEmbeddedScriptExecutionSource(
           hostModuleMethods: {
             opencc: Object.keys(__autojs6_limited_opencc()),
             image: Object.keys(__autojs6_limited_image("image")),
-            images: Object.keys(__autojs6_limited_image("images"))
+            images: Object.keys(__autojs6_limited_image("images")),
+            pinyin: Object.keys(__autojs6_limited_pinyin()),
+            pinyin4j: Object.keys(__autojs6_limited_pinyin4j()),
+            screen_metrics: Object.keys(__autojs6_limited_screen_metrics()),
+            console: Object.keys(__autojs6_limited_console())
           },
+          hostModuleConstants: { pinyin: Object.fromEntries(Object.entries(__autojs6_limited_pinyin()).filter(([, value]) => typeof value !== "function")) },
+          consoleControls: Object.keys(__autojs6_limited_console()).filter(name => __autojs6_limited_console()[name].__autojs6ConsoleControl),
           typeScriptSources: { ...__autojs6_typescript_precompiled_source_names },
           gatedBuiltins: __autojs6_gated_builtin_ids(),
           inspectorEnabled: __autojs6_inspector_enabled,
@@ -25930,13 +25975,15 @@ std::string buildEmbeddedScriptExecutionSource(
       return undefined;
     }
     function consoleHostMethod(method) {
-      return function() {
+      const call = function() {
         const args = Array.from(arguments);
         if (args.some(function(value) { return typeof value === "number" && !Number.isFinite(value); })) {
           return Promise.reject(__autojs6_invalid_arg_type("console." + method + " requires finite numbers."));
         }
         return __autojs6_call_autojs("console", method, args, { permissions: ["console"] }).then(function() {});
       };
+      Object.defineProperty(call, "__autojs6ConsoleControl", { value: true });
+      return call;
     }
     function consoleUnsupported(apiName, reason) {
       return function() {

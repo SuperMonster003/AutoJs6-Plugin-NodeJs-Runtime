@@ -12,6 +12,7 @@
 * `新增` screen_metrics 和 autojs6:compat 提供基於目前螢幕的非同步 cX/cY/cXy/cYx 及每次執行獨立的換算基數, 並補充覆蓋檢查和 ESM 範例
 * `新增` Node.js 和 Bun 支援非同步 OpenCC 轉換及常用圖像編解碼, 像素讀取, 變換和顏色搜尋; Bun 圖像檔案存取獨立授權
 * `新增` Node.js Worker 支援透過父運行時呼叫 OpenCC 與圖像模組, 包含 CJS, ESM, 巢狀 Worker 和圖像二進制傳輸
+* `新增` Node.js Worker 支援 pinyin, pinyin4j, 控制台視窗和座標換算, 共用父執行狀態並保留原生輸出串流
 * `修復` Pinyin/Pinyin4j 改為非同步呼叫實際宿主外掛, 移除小字典替代實作; Android 控制台操作透過宿主執行並回傳 Promise; 補齊無障礙手勢和 input_observer 類型聲明
 * `依賴` 為 Node.js 24.21.0 Android 執行環境回補 OpenSSL 3.5.9 安全修正
 

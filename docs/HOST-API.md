@@ -445,3 +445,9 @@ Node 项目和带有 `"nodejs";` 入口的脚本通过配套宿主与 APK Builde
 任何声明专用普通权限的应用均可使用新入口. Node 代码以运行时插件的 UID 执行, Android 能力桥在生成应用自己的 UID 下运行, 仍需要该应用的能力声明和 Android 授权. 独立应用按运行时协议版本协商, 不把应用自身的 versionCode 与 AutoJs6 宿主版本号比较. 插件不可用时, 交互式启动会显示下载引导.
 
 需要包含本项实现的宿主和 Runtime Kit, 以及配套 APK Builder Template. 当前公共发行版仍为 1.6.0; 1.7.0, nodejs-api 1.8.0 和相关宿主改动尚未对外发布. TypeScript 仍需 Compiler 产出的 JavaScript, 不在 Node 插件内直接编译.
+
+### Worker 拼音, 控制台与坐标
+
+Worker 还提供 `pinyin` / `autojs6:pinyin`, `pinyin4j` / `autojs6:pinyin4j`, `screen_metrics` / `autojs6:screen_metrics` 和 `console` / `node:console` / `autojs6:console`, 支持 CJS, ESM 和嵌套 Worker. 拼音常量保持数字值, 可调用入口等价于 convert/of; `await pinyin(...)` 的二维数组保留异步 `compact()` 方法. 文本在进入结构化克隆之前转换, Buffer 和自定义 toString 对象不会被误解释为字节列表或普通对象.
+
+坐标换算每次读取当前屏幕信息, `cX/cY/cXy/cYx` 的重载与主线程一致. 基数属于整个执行, 主线程和所有 Worker 共享同一个状态, 每个轴仍只能设置一次. 原生 Worker stdout/stderr 和自定义 Console 流保持在线程内运行; 窗口控制方法异步作用于父执行的控制台, 全局日志配置方法仍影响宿主全局. Worker 的全局 console 同样提供这些控制方法, 不把普通日志输出转为异步宿主调用. Rhino 的 input/rawInput/build 仍明确报不支持.

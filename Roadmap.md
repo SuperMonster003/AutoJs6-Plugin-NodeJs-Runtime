@@ -14,6 +14,8 @@
 
 ## 一. 项目定位 (不变的初衷)
 
+2026-10-17 第四批: Worker 提供 pinyin/pinyin4j, console 控制和 screen_metrics 的 CJS/ESM/嵌套封装. 数字拼音常量, compact 结果方法, 原生输出流与执行共享基数均已在 Android 13/15 真机验证; 宿主同步修正数字 mode/style 的解析. 详见宿主 docs/dev/runtime-video-worker-2026-10-17.md.
+
 2026-10-17 第三批: Worker 通过父线程复用 OpenCC 和图像公开封装, 覆盖 CJS/ESM/嵌套 Worker, Buffer 传输, 文本转换和取消清理. 模块解析继续保留裸名 opencc 的 npm 优先级. 验证与后续边界见宿主 docs/dev/runtime-capture-worker-2026-10-17.md.
 
 为 AutoJs6 提供接近桌面体验的 Node.js 运行能力:
