@@ -809,3 +809,15 @@ recordings using ID-checked cancellation. The image capture wrapper no longer fo
 consent-only options to screenshot encoding. Source/type/editor and physical acceptance
 details are recorded in the host docs/dev/runtime-node-recording-2026-10-17.md.
 This is development 1.7.0 source; no published kit/catalog snapshot is changed.
+
+## 2026-10-17 Advanced images
+
+All 81 registered host image function names now have portable main/Worker counterparts,
+alongside readImage and ObjectFrame. Advanced filters, color spaces, SIFT/ORB, native
+Mat/feature handles, similarities and PNG quantization use the host's real providers.
+Worker wrappers retain local geometry helpers and restore Frame/Buffer results. The
+images/autojs6:images type aliases preserve the image namespace, and Mat/features are
+not accepted as bitmap pixel inputs. Canonical types, catalog and runtime-kit metadata
+are synchronized. Physical and local checks are recorded in the host's
+docs/dev/runtime-image-parity-2026-10-17.md. Arbitrary Java Mat/Bitmap prototypes and
+every Rhino coercion remain outside this portable API contract.

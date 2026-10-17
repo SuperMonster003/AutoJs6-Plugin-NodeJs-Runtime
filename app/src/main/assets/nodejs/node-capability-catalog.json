@@ -1695,6 +1695,20 @@
       },
       {
         "module": "image",
+        "method": "adaptiveThreshold",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "bilateralFilter",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
         "method": "blur",
         "requiredCapabilities": [
           "image"
@@ -1717,7 +1731,56 @@
       },
       {
         "module": "image",
+        "method": "compress",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "compressToBytes",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "concat",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
         "method": "copy",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "countPointsByColor",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "cvtColor",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "detectAndComputeFeatures",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "detectMultiColors",
         "requiredCapabilities": [
           "image"
         ]
@@ -1731,7 +1794,21 @@
       },
       {
         "module": "image",
+        "method": "downsample",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
         "method": "findAllPointsForColor",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "findCircles",
         "requiredCapabilities": [
           "image"
         ]
@@ -1753,6 +1830,13 @@
       {
         "module": "image",
         "method": "findMultiColors",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "findPointsByColors",
         "requiredCapabilities": [
           "image"
         ]
@@ -1787,6 +1871,28 @@
       },
       {
         "module": "image",
+        "method": "getMeanColor",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "getScreenCaptureOptions",
+        "requiredCapabilities": [
+          "image",
+          "screen_capture"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "getSimilarity",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
         "method": "grayscale",
         "requiredCapabilities": [
           "image"
@@ -1794,7 +1900,78 @@
       },
       {
         "module": "image",
+        "method": "hist",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "imread",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "inRange",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "initOpenCvIfNeeded",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "interval",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
         "method": "invert",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "isEqual",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "isGrayscale",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "load",
+        "requiredCapabilities": [
+          "image",
+          "network"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "matToImage",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "matchFeatures",
         "requiredCapabilities": [
           "image"
         ]
@@ -1815,7 +1992,49 @@
       },
       {
         "module": "image",
+        "method": "mse",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "mssim",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "ncc",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
         "method": "pixel",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "psnr",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "quantize",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
+        "method": "quantizeToFile",
         "requiredCapabilities": [
           "image"
         ]
@@ -1871,6 +2090,13 @@
       },
       {
         "module": "image",
+        "method": "ssim",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "image",
         "method": "threshold",
         "requiredCapabilities": [
           "image"
@@ -1886,6 +2112,232 @@
       {
         "module": "image",
         "method": "toBytes",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "adaptiveThreshold",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "bilateralFilter",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "compress",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "compressToBytes",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "concat",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "countPointsByColor",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "cvtColor",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "detectAndComputeFeatures",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "detectMultiColors",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "downsample",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "findCircles",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "findPointsByColors",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "getMeanColor",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "getScreenCaptureOptions",
+        "requiredCapabilities": [
+          "image",
+          "screen_capture"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "getSimilarity",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "hist",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "imread",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "inRange",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "initOpenCvIfNeeded",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "interval",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "isEqual",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "isGrayscale",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "load",
+        "requiredCapabilities": [
+          "image",
+          "network"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "matToImage",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "matchFeatures",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "mse",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "mssim",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "ncc",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "psnr",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "quantize",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "quantizeToFile",
+        "requiredCapabilities": [
+          "image"
+        ]
+      },
+      {
+        "module": "images",
+        "method": "ssim",
         "requiredCapabilities": [
           "image"
         ]

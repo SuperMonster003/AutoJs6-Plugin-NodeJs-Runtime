@@ -18,6 +18,7 @@ const factory=new Function("__autojs6_call_autojs","__autojs6_bridge_upload_writ
   const __autojs6_rhino_compat_stop_screen_capture=()=>{};
   ${segment('  const __autojs6_opencc_methods =','  const __autojs6_pinyin_styles =')}
   ${segment('  function __autojs6_number_property(','  function __autojs6_media_projection_handle_id(')}
+  ${segment('  function __autojs6_image_extensions(','  function __autojs6_limited_image(')}
   ${segment('  function __autojs6_limited_image(moduleName)','  function __autojs6_ocr_bridge_options(')}
   return {cc:__autojs6_limited_opencc(),images:__autojs6_limited_image('images'),image:__autojs6_limited_image('image')};
 `);

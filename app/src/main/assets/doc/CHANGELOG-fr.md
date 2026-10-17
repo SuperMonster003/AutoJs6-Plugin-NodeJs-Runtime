@@ -14,6 +14,9 @@
 * `Ajout` Les Workers Node.js utilisent OpenCC et les images via le runtime parent, avec CJS, ESM, Workers imbriqués et transfert binaire
 * `Ajout` Les Workers Node.js proposent pinyin, pinyin4j, les commandes de console et les coordonnées, avec état parent partagé et flux natifs conservés
 * `Ajout` Le thread principal Node.js et les Workers prennent en charge la capture H.264 MP4 avec audio AAC du microphone, de lecture ou mixte, les captures simultanees et la suppression des enregistrements Worker non sauvegardes
+* `Ajout` Node.js images prend en charge les filtres avancés, la conversion des couleurs, les recherches multicolores, les cercles, les mesures de similarité et les URL
+* `Ajout` Node.js images prend en charge SIFT/ORB avec coordonnées de scène, géométrie ObjectFrame et handles Mat/caractéristiques propres à chaque exécution
+* `Ajout` Node.js images prend en charge la quantification PNG et la compression avec mesures de qualité/mémoire, résultats binaires et sortie par descripteur de fichier
 * `Correction` Pinyin/Pinyin4j appellent les fournisseurs hôtes de façon asynchrone au lieu du petit dictionnaire local; les commandes de console Android exécutent leurs actions sur l'hôte et renvoient des Promises; déclarations des gestes et de input_observer complétées
 * `Correction` Node.js images.captureScreen ne transmet plus les options de consentement au traitement des captures, ce qui permet les captures ordinaires et pendant un enregistrement
 * `Dependance` Rétroportage des correctifs de sécurité OpenSSL 3.5.9 vers le moteur Android Node.js 24.21.0

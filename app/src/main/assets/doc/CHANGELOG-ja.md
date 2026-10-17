@@ -14,6 +14,9 @@
 * `追加` Node.js Worker が親ランタイム経由の OpenCC と画像モジュールに対応し, CJS, ESM, 入れ子の Worker と画像バイナリ転送を提供
 * `追加` Node.js Worker が pinyin, pinyin4j, コンソール操作と座標変換に対応し, 親の実行状態を共有しながらネイティブ出力を維持
 * `追加` Node.js のメインスレッドと Worker が H.264 MP4 画面録画, マイク/再生/ミックス AAC 音声, 録画中のスクリーンショット, Worker の未保存録画の破棄に対応
+* `追加` Node.js images が高度なフィルター, 色空間変換, 複数色検索, 円検出, 類似度指標と URL 読み込みに対応
+* `追加` Node.js images が SIFT/ORB 特徴抽出と照合, シーン座標と ObjectFrame の幾何情報, 実行単位の Mat/特徴ハンドル管理に対応
+* `追加` Node.js images が PNG 量子化と圧縮, 品質/メモリ指標, バイナリ結果とファイル記述子への出力に対応
 * `修正` Pinyin/Pinyin4j を小規模な辞書から実際のホストプロバイダーへの非同期呼び出しに変更; Android コンソール操作はホストで実行して Promise を返し, アクセシビリティのジェスチャーと input_observer の型宣言を補完
 * `修正` Node.js images.captureScreen が画面取得の許可オプションを画像処理に渡し, 通常のスクリーンショットと録画中の取得が拒否される問題
 * `依存関係` Node.js 24.21.0 の Android ランタイムに OpenSSL 3.5.9 のセキュリティ修正をバックポート

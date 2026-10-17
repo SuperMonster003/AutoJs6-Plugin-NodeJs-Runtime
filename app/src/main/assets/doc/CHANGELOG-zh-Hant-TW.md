@@ -14,6 +14,9 @@
 * `新增` Node.js Worker 支援透過父執行環境呼叫 OpenCC 與影像模組, 包含 CJS, ESM, 巢狀 Worker 和影像二進位傳輸
 * `新增` Node.js Worker 支援 pinyin, pinyin4j, 主控台視窗和座標換算, 共用父執行狀態並保留原生輸出串流
 * `新增` Node.js 主執行緒與 Worker 支援 H.264 MP4 螢幕錄影, 麥克風/播放/混合 AAC 音訊, 錄製期間並行截圖及 Worker 未儲存錄影清理
+* `新增` Node.js images 支援進階濾鏡, 色彩空間轉換, 多點尋色, 圓形偵測, 相似度指標及 URL 載入
+* `新增` Node.js images 支援 SIFT/ORB 特徵擷取與比對, 回傳場景座標和 ObjectFrame 幾何資訊, 並管理執行內的 Mat/特徵控制代碼
+* `新增` Node.js images 支援 PNG 量化和壓縮, 提供品質/記憶體度量, 二進位結果及檔案描述元輸出
 * `修復` Pinyin/Pinyin4j 改為非同步呼叫實際宿主外掛, 移除小字典替代實作; Android 主控台操作透過宿主執行並回傳 Promise; 補齊無障礙手勢和 input_observer 型別宣告
 * `修復` Node.js images.captureScreen 將授權選項誤傳給截圖處理入口, 導致一般截圖和錄製期間截圖被拒絕的問題
 * `依賴` 為 Node.js 24.21.0 Android 執行階段回補 OpenSSL 3.5.9 安全性修正

@@ -14,6 +14,9 @@
 * `추가` Node.js Worker에서 부모 런타임을 통한 OpenCC 및 이미지 모듈 지원, CJS, ESM, 중첩 Worker와 이미지 바이너리 전송 포함
 * `추가` Node.js Worker에서 pinyin, pinyin4j, 콘솔 창 및 좌표 변환 지원, 부모 실행 상태 공유와 네이티브 출력 스트림 유지
 * `추가` Node.js 메인 스레드와 Worker에서 H.264 MP4 화면 녹화, 마이크/재생/혼합 AAC 오디오, 녹화 중 동시 스크린샷 및 Worker의 미저장 녹화 정리 지원
+* `추가` Node.js images에서 고급 필터, 색 공간 변환, 다중 색상 검색, 원 검출, 유사도 지표 및 URL 로드 지원
+* `추가` Node.js images에서 SIFT/ORB 특징 추출과 매칭, 장면 좌표와 ObjectFrame 기하 정보 및 실행별 Mat/특징 핸들 관리 지원
+* `추가` Node.js images에서 PNG 양자화와 압축, 품질/메모리 지표, 바이너리 결과 및 파일 디스크립터 출력 지원
 * `수정` Pinyin/Pinyin4j가 작은 로컬 사전 대신 실제 호스트 공급자를 비동기로 호출하며, Android 콘솔 제어는 호스트에서 실행 후 Promise를 반환하고 접근성 제스처 및 input_observer 형식 선언을 보완
 * `수정` Node.js images.captureScreen이 캡처 권한 옵션을 이미지 처리에 전달하여 일반 캡처와 녹화 중 캡처가 거부되는 문제
 * `의존성` Node.js 24.21.0 Android 런타임에 OpenSSL 3.5.9 보안 수정 사항을 백포트

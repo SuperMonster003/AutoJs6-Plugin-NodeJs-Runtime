@@ -5322,7 +5322,8 @@ std::string buildEmbeddedScriptExecutionSource(
     if (moduleName === "accessibility") return ["accessibility"];
     if (moduleName === "media_projection" || moduleName === "screen_recorder") return ["screen_capture"];
     if (moduleName === "image" || moduleName === "images") {
-      if (methodName === "captureScreen") return ["image", "screen_capture"];
+      if (methodName === "captureScreen" || methodName === "getScreenCaptureOptions") return ["image", "screen_capture"];
+      if (methodName === "load") return ["image", "network"];
       return ["image"];
     }
     if (moduleName === "ocr") return ["ocr", "image"];
@@ -5899,7 +5900,8 @@ std::string buildEmbeddedScriptExecutionSource(
           if (!bytes || !response.result || bytes.byteLength !== response.result.byteCount) {
             throw new Error("Host image bytes are missing or have an invalid length.");
           }
-          __autojs6_bridge_resolve_pending(record, __autojs6_buffer_module().Buffer.from(bytes));
+          const body = __autojs6_buffer_module().Buffer.from(bytes);
+          __autojs6_bridge_resolve_pending(record, record.request.method === "quantize" ? { ...response.result, bytes: body } : body);
         } catch (error) {
           __autojs6_bridge_reject_pending(record, __autojs6_bridge_error(
             String(error.message || error), "ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED", record.request.module, record.request.method));
@@ -8426,7 +8428,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8434,6 +8436,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (!handleId(image)) throw new TypeError("An image handle is required.");
       return Object.freeze({ width: Number(image.width) || 0, height: Number(image.height) || 0 });
     }
+    const localImages = createImageExtensions ? createImageExtensions({ getSize: size }, () => {}, value => Buffer.from(value, "base64")) : {};
     for (const [module, names] of Object.entries(methods)) {
       const value = module === "opencc" || module === "pinyin" ? (text, options) => value.convert(text, options)
         : module === "pinyin4j" ? (text, options) => value.of(text, options) : {};
@@ -8462,10 +8465,11 @@ std::string buildEmbeddedScriptExecutionSource(
           else value[method] = nativeConsole[aliases[method] || method].bind(nativeConsole);
           continue;
         }
-        if (method === "getSize") value[method] = size;
+        if (["ObjectFrame", "buildRegion", "__buildRegion"].includes(method) && localImages[method]) value[method] = localImages[method];
+        else if (method === "getSize") value[method] = size;
         else if (method === "getWidth") value[method] = image => size(image).width;
         else if (method === "getHeight") value[method] = image => size(image).height;
-        else if (method === "isRecycled") value[method] = image => recycled.has(String(handleId(image)));
+        else if (method === "isRecycled") value[method] = (...images) => images.flat().every(image => !!handleId(image) && recycled.has(String(handleId(image))));
         else value[method] = async (...args) => {
           if (module === "opencc") {
             if (args[0] === null || args[0] === undefined) throw new TypeError("OpenCC text must not be null or undefined.");
@@ -8496,9 +8500,11 @@ std::string buildEmbeddedScriptExecutionSource(
           if (module === "pinyin" && method === "convert") {
             Object.defineProperty(result, "compact", { value: () => value.compact(result) });
           }
-          if (method === "recycle") recycled.add(String(handleId(args[0])));
+          if (method === "recycle") for (const item of args.flat()) if (handleId(item)) recycled.add(String(handleId(item)));
+          if (method === "matchFeatures" && result && localImages.ObjectFrame) return new localImages.ObjectFrame(result.topLeft,result.topRight,result.bottomLeft,result.bottomRight,result.matches,result.inliers,result.points);
+          if (method === "quantize" && result && result.bytes) return Object.freeze({ ...result, bytes: Buffer.from(result.bytes.buffer,result.bytes.byteOffset,result.bytes.byteLength) });
           // Node structured clone turns a parent's Buffer into Uint8Array. A worker owns its copy.
-          if (method === "toBytes") return Buffer.from(result.buffer, result.byteOffset, result.byteLength);
+          if (method === "toBytes" || method === "compressToBytes") return Buffer.from(result.buffer, result.byteOffset, result.byteLength);
           if (result && result.__autojs6ImageHandle) return Object.freeze(result);
           return result;
         };
@@ -8537,7 +8543,7 @@ std::string buildEmbeddedScriptExecutionSource(
     let result;
     try { result = await target[method](...args); }
     finally { if (cancelConsent) options.signal.removeEventListener("abort", cancelConsent); }
-    if (options.signal && options.signal.aborted && result && result.__autojs6ImageHandle) {
+    if (options.signal && options.signal.aborted && result && (result.__autojs6ImageHandle || result.__autojs6MatHandle || result.__autojs6ImageFeaturesHandle)) {
       // A terminated worker cannot receive a newly created handle. Do not retain that orphan.
       await __autojs6_limited_image("images").recycle(result);
       throw Object.assign(new Error("Worker call was aborted."), { code: "ABORT_ERR" });
@@ -8547,7 +8553,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return result;
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8639,7 +8645,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"));
+      config.consoleControls, nativeRequire("console"), createImageExtensions);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8765,7 +8771,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -18062,6 +18068,125 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return __autojs6_limited_media_projection_cache;
   }
+  // Shared portable image adapters. Native work stays in the execution's host provider.
+  function __autojs6_image_extensions(base, dispatch, decodeBytes) {
+    const recycled = new Set();
+    const id = value => value && (value.id || value.__autojs6ImageHandle || value.__autojs6MatHandle || value.__autojs6ImageFeaturesHandle);
+    function options(value) {
+      if (value === undefined || value === null) return {};
+      if (typeof value !== "object" || Array.isArray(value)) throw new TypeError("Image options must be an object.");
+      return { ...value };
+    }
+    function payload(value) {
+      const { signal, timeoutMs, ...plain } = options(value);
+      function check(item) {
+        if (typeof item === "number" && !Number.isFinite(item)) throw new TypeError("Image arguments must be finite.");
+        if (item && typeof item === "object") Object.values(item).forEach(check);
+      }
+      check(plain); return plain;
+    }
+    function text(value,label) {
+      if(value===null||value===undefined)throw new TypeError(label+" must not be null or undefined.");
+      const result=String(value);if(!result||result.includes("\u0000"))throw new TypeError(label+" must be non-empty and contain no NUL.");return result;
+    }
+    async function withInput(input, opts, action, acceptBytes = false) {
+      let owned = false, image = input;
+      if (typeof input === "string") { image = /^(https?|file):/i.test(input) ? await extra.load(input, opts) : await base.readImage(input, opts); owned = true; }
+      else if (acceptBytes && (input instanceof ArrayBuffer || ArrayBuffer.isView(input) || Array.isArray(input))) { image = await base.fromBytes(input, opts); owned = true; }
+      if (!id(image)) throw new TypeError("An active image handle or readable image source is required.");
+      try { return await action(image); } finally { if (owned && image) await base.recycle(image); }
+    }
+    const one = (method, image, data = {}, opts = data) => withInput(image, opts, value => dispatch(method, [value, payload(data)], opts));
+    const two = (method, a, b, data = {}) => withInput(a, data, first => withInput(b, data, second => dispatch(method, [first, second, payload(data)], data)));
+    function region(value, width, height) {
+      if (width === undefined || height === undefined) return null;
+      let entries = value == null ? [] : Array.isArray(value) ? value : [value.x, value.y, value.width, value.height];
+      const x = entries[0] ?? 0, y = entries[1] ?? 0, w = entries[2] ?? width - x, h = entries[3] ?? height - y;
+      if (![x,y,w,h,width,height].every(Number.isInteger) || Math.min(x,y,w,h,width,height) < 0 || x+w > width || y+h > height) throw new TypeError("Image region must fit the image dimensions.");
+      return Object.freeze({x,y,width:w,height:h});
+    }
+    function buildRegion(image, value) { const size=base.getSize(image); return region(value,size.width,size.height); }
+    function regionOptions(image, x, y, width, height, threshold) {
+      const r=buildRegion(image,[x,y,width,height]);
+      return {region:[r.x,r.y,r.width,r.height],...(threshold===undefined?{}:{threshold})};
+    }
+    class ObjectFrame {
+      constructor(topLeft,topRight,bottomLeft,bottomRight,matches=0,inliers=0,points=[]) {
+        const point=p=>{if(!p||![p.x,p.y].every(Number.isFinite))throw new TypeError("Frame points must be finite.");return Object.freeze({x:p.x,y:p.y});};
+        Object.assign(this,{topLeft:point(topLeft),topRight:point(topRight),bottomLeft:point(bottomLeft),bottomRight:point(bottomRight),matches,inliers,points:points.map(point)});
+        const corners=[this.topLeft,this.topRight,this.bottomLeft,this.bottomRight],xs=corners.map(p=>p.x),ys=corners.map(p=>p.y);
+        this.centerX=xs.reduce((a,b)=>a+b)/4;this.centerY=ys.reduce((a,b)=>a+b)/4;this.center=Object.freeze({x:this.centerX,y:this.centerY});
+        this.width=Math.hypot(topRight.x-topLeft.x,topRight.y-topLeft.y);this.height=Math.hypot(bottomLeft.x-topLeft.x,bottomLeft.y-topLeft.y);
+        this.angle=Math.atan2(topRight.y-topLeft.y,topRight.x-topLeft.x)*180/Math.PI;
+        const x=Math.floor(Math.min(...xs)),y=Math.floor(Math.min(...ys));this.bounds=Object.freeze({x,y,width:Math.ceil(Math.max(...xs))-x,height:Math.ceil(Math.max(...ys))-y});
+        Object.freeze(this.points);Object.freeze(this);
+      }
+      summary(){return `center=(${this.centerX}, ${this.centerY}), width=${this.width}, height=${this.height}, angle=${this.angle}, matches=${this.matches}, inliers=${this.inliers}`;}
+      toString(){return "[ObjectFrame] "+this.summary();}
+    }
+    function compression(formatOrOptions,qualityOrOptions) {
+      const result=typeof formatOrOptions==="string"?{format:formatOrOptions}:options(formatOrOptions);
+      if(qualityOrOptions&&typeof qualityOrOptions==="object") result.quantization=payload(qualityOrOptions);
+      else if(qualityOrOptions!==undefined)result.quality=qualityOrOptions;
+      result.format=result.format||"png";return result;
+    }
+    const extra={
+      ObjectFrame,buildRegion,__buildRegion:region,
+      initOpenCvIfNeeded:async opts=>{await dispatch("initOpenCvIfNeeded",[],opts);},
+      load:(url,opts)=>Promise.resolve().then(()=>dispatch("load",[text(url,"Image URL")],opts)),
+      imread:(path,opts)=>Promise.resolve().then(()=>dispatch("imread",[text(path,"Mat path")],opts)),
+      matToImage:(mat,opts)=>dispatch("matToImage",[mat],opts),
+      getScreenCaptureOptions:opts=>dispatch("getScreenCaptureOptions",[],opts),
+      isGrayscale:(image,opts)=>one("isGrayscale",image,{},opts),
+      inRange:(image,lower,upper,opts)=>one("inRange",image,{lower,upper},opts),
+      interval:(image,color,threshold,opts)=>one("interval",image,{color,threshold},opts),
+      adaptiveThreshold:(image,maxValue,adaptiveMethod,type,blockSize,C,opts)=>one("adaptiveThreshold",image,
+        typeof maxValue==="object"?maxValue:{maxValue,adaptiveMethod,type,blockSize,C},typeof maxValue==="object"?maxValue:opts),
+      bilateralFilter:(image,d,sigmaColor,sigmaSpace,borderType,opts)=>one("bilateralFilter",image,
+        typeof d==="object"?d:{d,sigmaColor,sigmaSpace,borderType},typeof d==="object"?d:opts),
+      cvtColor:(image,code,dstCn,opts)=>one("cvtColor",image,{code,dstCn:typeof dstCn==="object"?undefined:dstCn},typeof dstCn==="object"?dstCn:opts),
+      findCircles:(image,opts)=>one("findCircles",image,opts),
+      concat:(a,b,direction="right",opts)=>two("concat",a,b,{...options(opts),...(typeof direction==="object"?direction:{direction})}),
+      detectMultiColors:(image,color,points,x,y,opts)=>withInput(image,opts,value=>dispatch("detectMultiColors",[value,color,points,x,y,payload(opts)],opts)),
+      findPointsByColors:(image,color,points,opts)=>withInput(image,opts,value=>dispatch("findPointsByColors",[value,color,points,payload(opts)],opts)),
+      countPointsByColor:(image,color,opts)=>withInput(image,opts,value=>dispatch("countPointsByColor",[value,color,payload(opts)],opts)),
+      getMeanColor:(image,opts)=>one("getMeanColor",image,opts),
+      detectAndComputeFeatures:(image,opts)=>one("detectAndComputeFeatures",image,opts),
+      matchFeatures:async(a,b,opts)=>{
+        const value=await two("matchFeatures",a,b,opts);
+        return value?new ObjectFrame(value.topLeft,value.topRight,value.bottomLeft,value.bottomRight,value.matches,value.inliers,value.points):null;
+      },
+      quantize:async(image,opts)=>{
+        const value=await one("quantize",image,opts),{base64,...result}=value;
+        result.bytes=value.bytes===undefined?decodeBytes(base64):value.bytes;return Object.freeze(result);
+      },
+      quantizeToFile:(image,path,opts)=>withInput(image,opts,value=>dispatch("quantizeToFile",[value,text(path,"Quantization path"),payload(opts)],opts)),
+      compress:(image,formatOrOptions,qualityOrOptions)=>{const opts=compression(formatOrOptions,qualityOrOptions);return one("compress",image,opts);},
+      compressToBytes:async(image,formatOrOptions,qualityOrOptions)=>{const opts=compression(formatOrOptions,qualityOrOptions);const value=await one("compressToBytes",image,opts);return typeof value==="string"?decodeBytes(value):value;},
+      downsample:(source,width,height,withAlpha=true,opts)=>withInput(source,opts,value=>dispatch("downsample",[value,{width,height,withAlpha}],opts),true),
+      findColorInRegion:(image,color,x,y,width,height,threshold)=>withInput(image,{},value=>base.findColor(value,color,regionOptions(value,x,y,width,height,threshold))),
+      findImageInRegion:(image,template,x,y,width,height,threshold)=>withInput(image,{},first=>withInput(template,{},second=>base.findImage(first,second,regionOptions(first,x,y,width,height,threshold)))),
+      findPointByColorExactly:(image,color,opts)=>withInput(image,opts,value=>base.findColor(value,color,{...options(opts),threshold:0})),
+      isRecycled:(...values)=>values.flat().every(value=>!!id(value)&&(recycled.has(id(value))||!!base.isRecycled?.(value))),
+      recycle:async(...values)=>{
+        let opts;if(values.length>1&&!Array.isArray(values.at(-1))&&!id(values.at(-1)))opts=values.pop();
+        for(const value of values.flat()){if(!id(value))throw new TypeError("Recycle requires image, Mat or feature handles.");await base.recycle(value,opts);recycled.add(id(value));}
+      },
+      getWidth:image=>base.getSize(image).width,getHeight:image=>base.getSize(image).height,
+      read:base.readImage,
+      save:base.save||(async(image,path,formatOrOptions,quality)=>{await base.saveImage(image,path,formatOrOptions,quality);return true;}),
+      findPointByColor:base.findColor,findPointByColors:base.findMultiColors,findPointByImage:base.findImage,
+      findColorEquals:base.findColorEquals||((image,color,opts)=>extra.findPointByColorExactly(image,color,opts)),
+      requestScreenCaptureAsync:base.requestScreenCapture,
+    };
+    extra.loadAsync=extra.load;extra.detectsMultiColors=extra.detectMultiColors;
+    for(const name of ["psnr","ssim","mssim","hist","mse","ncc","getSimilarity"])extra[name]=async(a,b,opts)=>{
+      const value=await two(name,a,b,opts);return typeof value==="string"?Number(value):value;
+    };
+    extra.isEqual=(a,b,opts)=>two("isEqual",a,b,opts);
+    return extra;
+  }
+
   function __autojs6_limited_image(moduleName) {
     const bridgeModuleName = moduleName === "images" ? "images" : "image";
     const cached = bridgeModuleName === "images" ? __autojs6_limited_images_cache : __autojs6_limited_image_cache;
@@ -18542,7 +18667,7 @@ std::string buildEmbeddedScriptExecutionSource(
         return undefined;
       });
     }
-    const moduleValue = Object.freeze({
+    const baseImageModule = {
       captureScreen,
       requestScreenCapture: __autojs6_rhino_compat_request_screen_capture,
       stopScreenCapture: __autojs6_rhino_compat_stop_screen_capture,
@@ -18584,7 +18709,18 @@ std::string buildEmbeddedScriptExecutionSource(
       getHeight: image => getSize(image).height,
       isRecycled: image => recycledImageHandles.has(__autojs6_image_handle_id(image)),
       recycle
-    });
+    };
+    const extensions = __autojs6_image_extensions(baseImageModule, (method, args, options) => {
+      const input = __autojs6_image_options(options);
+      const bridge = __autojs6_image_bridge_options(input, 15000);
+      if (method === "load") bridge.permissions = ["image", "network"];
+      if (method === "getScreenCaptureOptions") bridge.permissions = ["image", "screen_capture"];
+      return __autojs6_call_autojs(bridgeModuleName, method, args, bridge).then(result => {
+        if (result && (result.__autojs6ImageHandle || result.__autojs6MatHandle || result.__autojs6ImageFeaturesHandle)) return Object.freeze(result);
+        return result;
+      });
+    }, base64 => __autojs6_buffer_constructor_required("images").from(base64, "base64"));
+    const moduleValue = Object.freeze({ ...baseImageModule, ...extensions });
     if (bridgeModuleName === "images") {
       __autojs6_limited_images_cache = moduleValue;
     } else {
@@ -20636,7 +20772,7 @@ std::string buildEmbeddedScriptExecutionSource(
       request.upload = { path: String(opts.upload.path), byteCount: Number(opts.upload.byteCount) };
     }
     const eventMethod = { sensors: "subscribe", websocket: "connect", ui: "showLayout", "ui.overlay": "show", input_observer: "observeKeys" };
-    if ((moduleValue === "image" || moduleValue === "images") && methodValue === "toBytes") request.binary = true;
+    if ((moduleValue === "image" || moduleValue === "images") && ["toBytes", "compressToBytes", "quantize"].includes(methodValue)) request.binary = true;
     // Controlled fetch bodies come back through the same descriptor channel as image bytes
     // (host reply "bodyTransport": "pfd"); hosts without it keep answering inline base64.
     if (moduleValue === "fetch" && methodValue === "request") request.binary = true;

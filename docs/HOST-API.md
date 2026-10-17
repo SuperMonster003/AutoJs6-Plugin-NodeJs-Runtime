@@ -486,3 +486,35 @@ Capture uses the authorized session orientation. Legacy captureScreen orientatio
 requireExistingPermission fields remain accepted, but are not sent to the screenshot
 encoder; all captures always require an existing session. Set orientation while requesting
 consent. This avoids the previous invalid-option failure for ordinary screenshots too.
+
+
+## Advanced images (2026-10-17)
+
+image/images and their autojs6: aliases now expose all 81 host-registered image
+function names, plus readImage and the portable ObjectFrame constructor. Main,
+CJS/ESM/nested Workers use the same adapters. The canonical image.d.ts documents
+filters/color conversion, circles/concat, multi-color search/count/mean, similarity,
+SIFT/ORB features, Mat handles, URL loading, compression and PNG quantization.
+Functions with host work are asynchronous; dimensions, recycle bookkeeping, region
+builders and ObjectFrame construction remain local. This is the documented portable
+parameter contract, not arbitrary Java Bitmap/Mat/enum interop or every Rhino coercion.
+
+Native channel information survives cvtColor chains. imread yields an opaque BGR Mat;
+matToImage creates an independent RGB image. Mat/features/images share execution
+ownership and the existing handle limit. Feature regions/scales are restored to
+scene coordinates in the returned ObjectFrame, including when reconstructed in a
+Worker. Delivered handles survive the creating Worker's exit but never execution
+exit. Undeliverable late Worker resources are recycled. Recycle accepts arrays and
+multiple handles; local isRecycled bookkeeping does not track other threads/raw calls.
+
+load requires image + network. Other image operations retain image, with screen
+capture also needing screen_capture. quantize and PNG compression below quality 100
+require the Image Quantization resource-control API; no fallback pretends to quantize.
+quantize/compressToBytes retain PFD/Buffer transport, including Worker Buffer copies.
+quantizeToFile streams to a temporary descriptor and replaces the target after success.
+All quantization metadata stays typed; execution destruction cancels native work.
+
+Run tools/nodejs/api/test-advanced-images.js plus the existing image/Worker/recording
+regressions. Device acceptance is recorded in the host's
+docs/dev/runtime-image-parity-2026-10-17.md. Unlisted Java object/prototype behavior
+and unrelated runtime modules are not claimed as direct parity.
