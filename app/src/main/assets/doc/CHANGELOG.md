@@ -6,7 +6,7 @@
 
 # v1.7.0
 
-###### 2026/10/17
+###### 2026/10/18
 
 * `新增` Node.js 项目和脚本可打包为独立签名的应用, 运行时调用外部 Node.js Runtime 插件, 插件不可用时显示安装引导
 * `新增` screen_metrics 和 autojs6:compat 提供基于当前屏幕的异步 cX/cY/cXy/cYx 及每次执行独立的换算基数, 并补充覆盖检查和 ESM 样例
@@ -17,6 +17,7 @@
 * `新增` Node.js images 支持高级滤镜, 颜色空间转换, 多点找色, 圆检测, 相似度指标及 URL 载入
 * `新增` Node.js images 支持 SIFT/ORB 特征提取与匹配, 返回场景坐标和 ObjectFrame 几何信息, 并管理执行内的 Mat/特征句柄
 * `新增` Node.js images 支持 PNG 量化和压缩, 提供质量/内存度量, 二进制结果及文件描述符输出
+* `新增` Node.js UI 与 Compose 支持原生布局, 数据组件, 响应式状态及窗口事件, 提供独立授权与窗口自动清理
 * `修复` Pinyin/Pinyin4j 改为异步调用真实宿主插件, 移除小字典替代实现; Android 控制台操作通过宿主执行并返回 Promise; 补齐无障碍手势和 input_observer 类型声明
 * `修复` Node.js images.captureScreen 将授权选项误传给截图处理入口, 导致普通截图和录制期间截图被拒绝的问题
 * `依赖` 为 Node.js 24.21.0 Android 运行时回补 OpenSSL 3.5.9 安全修复

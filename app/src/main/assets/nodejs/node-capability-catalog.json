@@ -337,7 +337,12 @@
         "pinyin",
         "pinyin4j",
         "console",
-        "screen_metrics"
+        "screen_metrics",
+        "media_projection",
+        "screen_recorder",
+        "recorder",
+        "ui",
+        "compose"
       ],
       "imageByteTransport": "parent_pfd_then_structured_clone_to_worker_buffer"
     },
@@ -840,6 +845,11 @@
       },
       {
         "id": "work_manager",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "compose",
         "aliases": [],
         "providerOwner": "host_capability_provider"
       }
@@ -3493,6 +3503,83 @@
         "method": "schedulePeriodic",
         "requiredCapabilities": [
           "work_manager"
+        ]
+      },
+      {
+        "module": "compose",
+        "method": "isAvailable",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "compose",
+        "method": "version",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "compose",
+        "method": "mount",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "compose",
+        "method": "dialog",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "compose",
+        "method": "floaty",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "compose",
+        "method": "render",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "compose",
+        "method": "setTheme",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "compose",
+        "method": "command",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "compose",
+        "method": "drainEvents",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "compose",
+        "method": "close",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "compose",
+        "method": "window",
+        "requiredCapabilities": [
+          "ui"
         ]
       }
     ],

@@ -1482,10 +1482,11 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 assert.ok(require.resolve('plain-cjs').endsWith('/node_modules/plain-cjs/lib/entry.js'), require.resolve('plain-cjs'));
                 assert.throws(() => require('@scope/cond/hidden'), (e) => e.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED');
                 assert.throws(() => require('no-such-package'), (e) => e.code === 'MODULE_NOT_FOUND');
-                // M23.3: Node's own loader runs in workers, so require(esm) works and host facades are
-                // simply absent (MODULE_NOT_FOUND); the inspector follows the execution request.
+                // Native package resolution coexists with the explicitly wrapped host modules.
                 assert.equal(require('type-module-pkg').kind, 'esm-js');
-                for (const name of ['ui', 'sqlite', 'autojs6:fetch']) {
+                assert.equal(require('ui').state({value:7}).get('value'),7);
+                assert.equal(require('compose').Text({text:'worker'}).get('text'),'worker');
+                for (const name of ['sqlite', 'autojs6:fetch']) {
                   assert.throws(() => require(name), (e) => e.code === 'MODULE_NOT_FOUND', name);
                 }
                 for (const name of ['node:inspector', 'inspector']) {

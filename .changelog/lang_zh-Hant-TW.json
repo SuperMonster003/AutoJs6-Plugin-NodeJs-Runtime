@@ -6,7 +6,7 @@
   "changelog_label_dependency": "依賴",
   "$data": {
     "v1.7.0": {
-      "released_date": "2026/10/17",
+      "released_date": "2026/10/18",
       "feature": [
         "Node.js 專案和指令碼可打包為獨立簽章的應用程式, 執行時呼叫外部 Node.js Runtime 外掛程式, 外掛程式不可用時顯示安裝指引",
         "screen_metrics 和 autojs6:compat 提供依據目前螢幕的非同步 cX/cY/cXy/cYx 及各次執行獨立的換算基數, 並補充覆蓋檢查和 ESM 範例",
@@ -16,7 +16,8 @@
         "Node.js 主執行緒與 Worker 支援 H.264 MP4 螢幕錄影, 麥克風/播放/混合 AAC 音訊, 錄製期間並行截圖及 Worker 未儲存錄影清理",
         "Node.js images 支援進階濾鏡, 色彩空間轉換, 多點尋色, 圓形偵測, 相似度指標及 URL 載入",
         "Node.js images 支援 SIFT/ORB 特徵擷取與比對, 回傳場景座標和 ObjectFrame 幾何資訊, 並管理執行內的 Mat/特徵控制代碼",
-        "Node.js images 支援 PNG 量化和壓縮, 提供品質/記憶體度量, 二進位結果及檔案描述元輸出"
+        "Node.js images 支援 PNG 量化和壓縮, 提供品質/記憶體度量, 二進位結果及檔案描述元輸出",
+        "Node.js UI 與 Compose 支援原生版面配置, 資料元件, 響應式狀態及視窗事件, 提供獨立授權與視窗自動清理"
       ],
       "dependency": [
         "為 Node.js 24.21.0 Android 執行階段回補 OpenSSL 3.5.9 安全性修正"

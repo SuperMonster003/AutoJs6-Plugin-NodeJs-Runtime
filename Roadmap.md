@@ -821,3 +821,5 @@ not accepted as bitmap pixel inputs. Canonical types, catalog and runtime-kit me
 are synchronized. Physical and local checks are recorded in the host's
 docs/dev/runtime-image-parity-2026-10-17.md. Arbitrary Java Mat/Bitmap prototypes and
 every Rhino coercion remain outside this portable API contract.
+
+2026-10-18: UI/Compose 数据 API 接入主线程与 CJS/ESM/嵌套 Worker, 窗口效果异步, 回调留在创建线程. 详见 docs/HOST-API.md 及宿主本批报告; AndroidView/XML attach 等原生互操作仍未宣称覆盖.

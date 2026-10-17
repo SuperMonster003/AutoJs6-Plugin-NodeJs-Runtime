@@ -6,7 +6,7 @@
   "changelog_label_dependency": "Dependance",
   "$data": {
     "v1.7.0": {
-      "released_date": "2026/10/17",
+      "released_date": "2026/10/18",
       "feature": [
         "Les projets et scripts Node.js peuvent être empaquetés en applications signées indépendamment, exécutées par le plugin externe Node.js Runtime, avec une aide à l'installation si le runtime est indisponible",
         "screen_metrics et autojs6:compat proposent cX/cY/cXy/cYx asynchrones avec les dimensions actuelles et des bases par exécution, avec contrôles de couverture et exemple ESM",
@@ -16,7 +16,8 @@
         "Le thread principal Node.js et les Workers prennent en charge la capture H.264 MP4 avec audio AAC du microphone, de lecture ou mixte, les captures simultanees et la suppression des enregistrements Worker non sauvegardes",
         "Node.js images prend en charge les filtres avancés, la conversion des couleurs, les recherches multicolores, les cercles, les mesures de similarité et les URL",
         "Node.js images prend en charge SIFT/ORB avec coordonnées de scène, géométrie ObjectFrame et handles Mat/caractéristiques propres à chaque exécution",
-        "Node.js images prend en charge la quantification PNG et la compression avec mesures de qualité/mémoire, résultats binaires et sortie par descripteur de fichier"
+        "Node.js images prend en charge la quantification PNG et la compression avec mesures de qualité/mémoire, résultats binaires et sortie par descripteur de fichier",
+        "Node.js UI et Compose prennent en charge les interfaces natives, composants de données, états réactifs et événements, avec autorisations distinctes et fermeture automatique"
       ],
       "dependency": [
         "Rétroportage des correctifs de sécurité OpenSSL 3.5.9 vers le moteur Android Node.js 24.21.0"

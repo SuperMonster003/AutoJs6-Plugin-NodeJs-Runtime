@@ -6,7 +6,7 @@
 
 # v1.7.0
 
-###### 2026/10/17
+###### 2026/10/18
 
 * `Ajout` Les projets et scripts Node.js peuvent être empaquetés en applications signées indépendamment, exécutées par le plugin externe Node.js Runtime, avec une aide à l'installation si le runtime est indisponible
 * `Ajout` screen_metrics et autojs6:compat proposent cX/cY/cXy/cYx asynchrones avec les dimensions actuelles et des bases par exécution, avec contrôles de couverture et exemple ESM
@@ -17,6 +17,7 @@
 * `Ajout` Node.js images prend en charge les filtres avancés, la conversion des couleurs, les recherches multicolores, les cercles, les mesures de similarité et les URL
 * `Ajout` Node.js images prend en charge SIFT/ORB avec coordonnées de scène, géométrie ObjectFrame et handles Mat/caractéristiques propres à chaque exécution
 * `Ajout` Node.js images prend en charge la quantification PNG et la compression avec mesures de qualité/mémoire, résultats binaires et sortie par descripteur de fichier
+* `Ajout` Node.js UI et Compose prennent en charge les interfaces natives, composants de données, états réactifs et événements, avec autorisations distinctes et fermeture automatique
 * `Correction` Pinyin/Pinyin4j appellent les fournisseurs hôtes de façon asynchrone au lieu du petit dictionnaire local; les commandes de console Android exécutent leurs actions sur l'hôte et renvoient des Promises; déclarations des gestes et de input_observer complétées
 * `Correction` Node.js images.captureScreen ne transmet plus les options de consentement au traitement des captures, ce qui permet les captures ordinaires et pendant un enregistrement
 * `Dependance` Rétroportage des correctifs de sécurité OpenSSL 3.5.9 vers le moteur Android Node.js 24.21.0

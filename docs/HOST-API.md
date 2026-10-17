@@ -518,3 +518,32 @@ Run tools/nodejs/api/test-advanced-images.js plus the existing image/Worker/reco
 regressions. Device acceptance is recorded in the host's
 docs/dev/runtime-image-parity-2026-10-17.md. Unlisted Java object/prototype behavior
 and unrelated runtime modules are not claimed as direct parity.
+
+## Portable UI and Compose (2026-10-18)
+
+Node main and CJS/ESM/nested Workers expose `ui` and `compose`, including their
+`autojs6:` imports. Both use the `ui` manifest capability. Bun exposes the same
+local facades as `host.ui` and `host.compose` through separate, default-off
+`ui.layout` and `ui.compose` grants. Compose uses the real enabled and authorized
+3-Block Compose renderer, its 54 portable V1/V2 components and catalog validation.
+
+UI has JSON layouts, state/bind, window update/batchUpdate/close and on/once/off.
+Compose has component/modifier constructors, state/ref/batch/memo, theme, mount,
+dialog, floaty, local node mutations and Promise-based window/command effects.
+Mount waits for renderer attachment. Event callbacks receive a scalar data object
+on the creating JS thread. Text edits preserve the native edit sequence. Ref values
+are accepted-frame references, cleared on removal/close. Worker exit closes owned
+windows, including late creation replies; other owners remain usable.
+
+This is data-contract coverage, not Rhino object compatibility: AndroidView,
+Java View/Context factories, XML container attach, native property proxies and
+native overlay adjustment chrome are not exposed. `version()` is asynchronous; `sessions`
+is a snapshot. `Image.src` accepts execution-owned image handles or host drawable
+names. Overlay options use physical pixels and require Android overlay permission.
+Bun retains its request/result/concurrency/call limits; event polling counts as
+host calls. See the host report `docs/dev/runtime-ui-compose-2026-10-18.md` for
+the executed validation and remaining boundaries.
+
+Sessions also expose `showSnackbar` with one action/dismiss callback. Floating
+sessions have asynchronous position, size, focus and touch controls. Rotation
+recreates native owners while retaining state, text and callback routing.

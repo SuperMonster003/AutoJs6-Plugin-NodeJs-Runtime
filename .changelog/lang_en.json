@@ -6,7 +6,7 @@
   "changelog_label_dependency": "Dependency",
   "$data": {
     "v1.7.0": {
-      "released_date": "2026/10/17",
+      "released_date": "2026/10/18",
       "feature": [
         "Packaged Node.js projects and scripts use the external Node.js Runtime plugin, support independently signed applications, and show installation guidance when the runtime is unavailable",
         "screen_metrics and autojs6:compat expose asynchronous cX/cY/cXy/cYx and per-execution scale bases using the current display, with coverage checks and an ESM example",
@@ -16,7 +16,8 @@
         "Node.js main thread and Workers support H.264 MP4 recording with microphone, playback or mixed AAC audio, concurrent screenshots and cleanup of unsaved Worker recordings",
         "Node.js images supports advanced filters, color conversion, multi-color searches, circles, similarity metrics and URL loading",
         "Node.js images supports SIFT/ORB extraction and matching with scene coordinates, ObjectFrame geometry and execution-owned Mat/feature handles",
-        "Node.js images supports PNG quantization and compression with quality/memory metrics, binary results and descriptor-backed file output"
+        "Node.js images supports PNG quantization and compression with quality/memory metrics, binary results and descriptor-backed file output",
+        "Node.js UI and Compose support native layouts, data components, reactive state and window events, with independent grants and automatic window cleanup"
       ],
       "dependency": [
         "Backported OpenSSL 3.5.9 security fixes to the Node.js 24.21.0 Android runtime"

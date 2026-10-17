@@ -148,7 +148,10 @@ public final class WorkerDesktopSmokeTest {
                   assert.strictEqual(fs, process.getBuiltinModule('fs'));
                   assert.match(fs.readFileSync('/proc/self/status', 'utf8'), /^Pid:\\s+\\d+/m);
                   assert.strictEqual(fs.readFileSync(workerData.outside,'utf8'),'outside');
-                  for (const name of ['autojs6:fetch','autojs6:websocket','sqlite','ui']) {
+                  assert.equal(require('ui').state({value:7}).get('value'),7);
+                  assert.equal(require('compose').Text({text:'worker'}).get('text'),'worker');
+                  assert.equal(typeof require('autojs6:compose').mount,'function');
+                  for (const name of ['autojs6:fetch','autojs6:websocket','sqlite']) {
                     assert.throws(() => require(name), e => e.code === 'MODULE_NOT_FOUND');
                   }
                   for (const name of ['inspector','node:inspector']) {

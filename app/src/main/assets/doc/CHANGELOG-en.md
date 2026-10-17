@@ -6,7 +6,7 @@
 
 # v1.7.0
 
-###### 2026/10/17
+###### 2026/10/18
 
 * `Feature` Packaged Node.js projects and scripts use the external Node.js Runtime plugin, support independently signed applications, and show installation guidance when the runtime is unavailable
 * `Feature` screen_metrics and autojs6:compat expose asynchronous cX/cY/cXy/cYx and per-execution scale bases using the current display, with coverage checks and an ESM example
@@ -17,6 +17,7 @@
 * `Feature` Node.js images supports advanced filters, color conversion, multi-color searches, circles, similarity metrics and URL loading
 * `Feature` Node.js images supports SIFT/ORB extraction and matching with scene coordinates, ObjectFrame geometry and execution-owned Mat/feature handles
 * `Feature` Node.js images supports PNG quantization and compression with quality/memory metrics, binary results and descriptor-backed file output
+* `Feature` Node.js UI and Compose support native layouts, data components, reactive state and window events, with independent grants and automatic window cleanup
 * `Fix` Pinyin/Pinyin4j now await real host providers instead of a small local dictionary; Android console controls execute on the host and return Promises; accessibility gestures and input_observer declarations are complete
 * `Fix` Node.js images.captureScreen no longer forwards capture-consent options to the screenshot encoder, allowing ordinary and concurrent recording screenshots
 * `Dependency` Backported OpenSSL 3.5.9 security fixes to the Node.js 24.21.0 Android runtime

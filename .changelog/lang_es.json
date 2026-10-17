@@ -6,7 +6,7 @@
   "changelog_label_dependency": "Dependencia",
   "$data": {
     "v1.7.0": {
-      "released_date": "2026/10/17",
+      "released_date": "2026/10/18",
       "feature": [
         "Los proyectos y scripts Node.js se empaquetan como aplicaciones con firma independiente, usan el plugin externo Node.js Runtime y muestran instrucciones de instalación cuando no está disponible",
         "screen_metrics y autojs6:compat ofrecen cX/cY/cXy/cYx asíncronos con la pantalla actual y bases por ejecución, con comprobaciones de cobertura y ejemplo ESM",
@@ -16,7 +16,8 @@
         "El hilo principal de Node.js y los Workers admiten grabacion H.264 MP4 con audio AAC de microfono, reproduccion o mixto, capturas simultaneas y limpieza de grabaciones Worker sin guardar",
         "Node.js images admite filtros avanzados, conversión de color, búsquedas multicolor, círculos, métricas de similitud y carga de URL",
         "Node.js images admite extracción y coincidencia SIFT/ORB con coordenadas de escena, geometría ObjectFrame y handles Mat/características por ejecución",
-        "Node.js images admite cuantización PNG y compresión con métricas de calidad/memoria, resultados binarios y salida mediante descriptor de archivo"
+        "Node.js images admite cuantización PNG y compresión con métricas de calidad/memoria, resultados binarios y salida mediante descriptor de archivo",
+        "Node.js UI y Compose admiten diseños nativos, componentes de datos, estado reactivo y eventos, con permisos independientes y cierre automático"
       ],
       "dependency": [
         "Se incorporaron las correcciones de seguridad de OpenSSL 3.5.9 al entorno Android de Node.js 24.21.0"
