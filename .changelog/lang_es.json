@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Mejora",
   "changelog_label_dependency": "Dependencia",
   "$data": {
+    "v1.12.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Worker: Captura WebView de fotos completas, selección de archivos y directorios, lectura de bytes y descargas blob/data hacia los destinos elegidos"
+      ]
+    },
     "v1.11.0": {
       "released_date": "2026/10/18",
       "feature": [

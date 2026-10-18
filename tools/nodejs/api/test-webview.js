@@ -48,9 +48,10 @@ function createWebFixture() {
     }
     if(name==='cancelFileChooser'){cancelled.push(parameters[0]);return true;}
     if(name==='cancelWebTask'){cancelled.push(parameters[0]);const done=record.tasks.get(parameters[0]);record.tasks.delete(parameters[0]);done?.();return !!done;}
-    if(name==='download')return {id:7,url:parameters[0].url,fileName:'fixture.txt'};
-    if(name==='getDownload')return {id:7,status:'successful'};
+    if(name==='download')return {id:parameters[0].url.startsWith('data:')?'web:fixture':7,url:parameters[0].url,fileName:'fixture.txt'};
+    if(name==='getDownload')return {id:parameters[0],status:'successful'};
     if(name==='readDownload')return {base64:Buffer.from('downloaded').toString('base64'),bytesRead:10};
+    if(name==='readDocument')return {base64:Buffer.from([0,128,255,42]).toString('base64'),bytesRead:4};
     if(name==='cancelDownload'||name==='exitFullscreen')return true;
     throw Error('Unexpected command '+name);
   }
@@ -84,6 +85,14 @@ async function exercise(ui,fixture) {
     const token=structuredClone(web);assert.equal(token.setWebViewClient,undefined,'Callbacks must stay out of transferable View identities');
     const download=await web.download({url:'https://fixture.invalid/file'});assert.equal((await web.getDownload(download.id)).status,'successful');
     assert.equal(Buffer.from(await web.readDownload(download.id)).toString(),'downloaded');assert.equal(await web.cancelDownload(download.id),true);
+    for(const mode of ['save','directory']) {
+      const selected=await web.chooseFiles({mode,acceptTypes:['text/plain'],fileName:'fixture.txt',writable:true});assert(selected[0].startsWith('content:'));
+      assert(fixture.calls.some(call=>call.method==='viewCommand'&&call.args[1]==='chooseFiles'&&call.args[2][0].mode===mode));
+    }
+    await web.chooseFiles({acceptTypes:['image/*'],captureEnabled:true});
+    assert.deepEqual([...await web.readDocument('content://fixture/document/alpha')],[0,128,255,42]);
+    const local=await web.download({url:'data:text/plain,fixture',directoryUri:'content://fixture/tree/root'});
+    assert.equal((await web.getDownload(local.id)).id,'web:fixture');await web.cancelDownload(local.id);
     assert.throws(()=>web.setWebViewClient({unknown(){}}),/Unsupported/);
   } finally {await web.dispose();}
 }
@@ -98,7 +107,7 @@ async function workers(source,createUi) {
   const fixture=createWebFixture(),ui=createUi(fixture.invoke);
   const config={preloadPath,entryUrl:pathToFileURL(path.join(directory,'entry.cjs')).href,gatedBuiltins:[],moduleSources:{},typeScriptSources:{},resourceLimits:{},hostModuleMethods:{ui:Object.keys(ui)}};
   const Worker=new Function('return ('+constructor+')')()(require,()=>config,fixture.invoke);
-  const body=`const view=await ui.createView('WebView');await view.setWebChromeClient({onJsConfirm:async()=>true});if(!await view.evaluateJavascript('confirm'))throw Error('Worker callback');view.chooseFiles({wait:true});parentPort.postMessage(view);setInterval(()=>{},1000);`;
+  const body=`const view=await ui.createView('WebView');await view.setWebChromeClient({onJsConfirm:async()=>true});if(!await view.evaluateJavascript('confirm'))throw Error('Worker callback');if((await view.readDocument('content://fixture/document/alpha'))[1]!==128)throw Error('Worker document bytes');const local=await view.download({url:'data:text/plain,fixture'});if((await view.getDownload(local.id)).id!=='web:fixture')throw Error('Worker download identity');await view.cancelDownload(local.id);view.chooseFiles({wait:true,mode:'directory'});parentPort.postMessage(view);setInterval(()=>{},1000);`;
   for(const mode of ['cjs','esm','nested']) {
     let code=mode==='esm'?`import ui from 'ui';import {parentPort} from 'node:worker_threads';${body}`:`const ui=require('ui'),{parentPort}=require('node:worker_threads');(async()=>{${body}})();`;
     if(mode==='nested')code=`const {Worker,parentPort}=require('node:worker_threads');new Worker(${JSON.stringify(code)},{eval:true}).on('message',value=>parentPort.postMessage(value)).on('error',error=>{throw error;});`;

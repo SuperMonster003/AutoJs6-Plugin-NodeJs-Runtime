@@ -4,6 +4,12 @@
 
 ******
 
+# v1.12.0
+
+###### 2026/10/18
+
+* `Nuevo` Node.js/Worker: Captura WebView de fotos completas, selección de archivos y directorios, lectura de bytes y descargas blob/data hacia los destinos elegidos
+
 # v1.11.0
 
 ###### 2026/10/18

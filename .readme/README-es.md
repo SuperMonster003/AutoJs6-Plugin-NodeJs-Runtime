@@ -119,6 +119,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.12.0
+
+###### 2026/10/18
+
+* `Nuevo` Node.js/Worker: Captura WebView de fotos completas, selección de archivos y directorios, lectura de bytes y descargas blob/data hacia los destinos elegidos
+
 # v1.11.0
 
 ###### 2026/10/18
@@ -130,12 +136,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 ###### 2026/10/18
 
 * `Nuevo` Node.js/Worker: Carga WebView y resultados JavaScript, paneles Drawer, navegación y menús Toolbar, páginas ViewPager y eventos nativos asíncronos
-
-# v1.9.0
-
-###### 2026/10/18
-
-* `Nuevo` Node.js admiten formularios y diseños XML comunes, propiedades View asíncronas, asignaciones ordenadas, recuperación de errores y Workers
 
 ##### Para mas historial de versiones
 

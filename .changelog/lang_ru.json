@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.12.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Worker: Полноразмерные фото WebView, выбор файлов и каталогов, чтение байтов документов и потоковая загрузка blob/data в выбранное место"
+      ]
+    },
     "v1.11.0": {
       "released_date": "2026/10/18",
       "feature": [

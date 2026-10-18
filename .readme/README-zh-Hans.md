@@ -119,6 +119,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.12.0
+
+###### 2026/10/18
+
+* `新增` Node.js/Worker: WebView 完整照片拍摄, 保存和目录选择, 文档字节读取, blob/data 分块下载及所选位置输出
+
 # v1.11.0
 
 ###### 2026/10/18
@@ -130,12 +136,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/18
 
 * `新增` Node.js/Worker: WebView 页面加载与 JavaScript 返回值, Drawer 侧栏, Toolbar 导航与菜单, ViewPager 页面及异步原生事件
-
-# v1.9.0
-
-###### 2026/10/18
-
-* `新增` Node.js 支持常用 XML 表单与布局组件及原生 View 异步属性代理, 包含顺序赋值, 错误恢复与 Worker 调用
 
 ##### 更多发行历史可参阅
 

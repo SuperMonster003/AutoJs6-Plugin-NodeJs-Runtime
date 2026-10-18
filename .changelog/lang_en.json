@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.12.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Worker: WebView full-size camera capture, save and directory selection, document byte reads, and streamed blob/data downloads with selected output locations"
+      ]
+    },
     "v1.11.0": {
       "released_date": "2026/10/18",
       "feature": [

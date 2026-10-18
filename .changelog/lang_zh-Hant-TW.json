@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.12.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Worker: WebView 完整照片拍攝, 儲存和目錄選擇, 文件位元組讀取, blob/data 分塊下載及所選位置輸出"
+      ]
+    },
     "v1.11.0": {
       "released_date": "2026/10/18",
       "feature": [

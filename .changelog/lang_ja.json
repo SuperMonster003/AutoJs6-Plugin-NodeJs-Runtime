@@ -5,6 +5,12 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v1.12.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Worker: WebView のフルサイズ写真撮影, 保存先とディレクトリの選択, 文書バイトの読み取り, blob/data の分割ダウンロードと選択先への出力"
+      ]
+    },
     "v1.11.0": {
       "released_date": "2026/10/18",
       "feature": [

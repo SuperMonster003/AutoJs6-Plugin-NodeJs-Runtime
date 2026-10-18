@@ -4,6 +4,12 @@
 
 ******
 
+# v1.12.0
+
+###### 2026/10/18
+
+* `Feature` Node.js/Worker: WebView full-size camera capture, save and directory selection, document byte reads, and streamed blob/data downloads with selected output locations
+
 # v1.11.0
 
 ###### 2026/10/18

@@ -5,6 +5,12 @@
   "changelog_label_improvement": "개선",
   "changelog_label_dependency": "의존성",
   "$data": {
+    "v1.12.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Worker: WebView 원본 크기 사진 촬영, 저장 및 디렉터리 선택, 문서 바이트 읽기, blob/data 분할 다운로드와 선택한 위치로 출력"
+      ]
+    },
     "v1.11.0": {
       "released_date": "2026/10/18",
       "feature": [

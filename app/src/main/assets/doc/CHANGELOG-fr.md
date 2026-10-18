@@ -4,6 +4,12 @@
 
 ******
 
+# v1.12.0
+
+###### 2026/10/18
+
+* `Ajout` Node.js/Worker: Capture photo WebView en pleine résolution, sélection de fichiers et dossiers, lecture des octets et téléchargements blob/data vers les emplacements choisis
+
 # v1.11.0
 
 ###### 2026/10/18

@@ -197,6 +197,10 @@
         readDownload: async (id, offset = 0, length = 32768) => {
           const result = await command("readDownload", [id, offset, length]);
           return Uint8Array.from(atob(result.base64), value => value.charCodeAt(0));
+        },
+        readDocument: async (uri, offset = 0, length = 32768) => {
+          const result = await command("readDocument", [uri, offset, length]);
+          return Uint8Array.from(atob(result.base64), value => value.charCodeAt(0));
         }
       };
       for (const [name, method] of Object.entries(commands)) Object.defineProperty(output, name, { value: method });
