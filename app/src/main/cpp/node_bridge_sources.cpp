@@ -8376,6 +8376,9 @@ std::string buildEmbeddedScriptExecutionSource(
         const pending = new Map();
         const recordings = new Set();
         const windows = new Map();
+        const webClients = new Map(), webTasks = new Map();
+        const clearWebClient = entry => invoke("ui", "viewCommand", [entry.view, "clearWebClient", [entry.family, entry.clientId]], { permissions: ["ui"] }).catch(() => {});
+        const cancelWebTask = entry => invoke("ui", "viewCommand", [entry.view, "cancelWebTask", [entry.taskId]], { permissions: ["ui"] }).catch(() => {});
         const closeWindow = (id, module) => invoke(module, "close", [id], { permissions: ["ui"] }).catch(() => {});
         const cancelRecording = id => invoke("autojs6:worker-module:screen_recorder", "cancel", [{ id }], {}).catch(() => {});
         let closed = false;
@@ -8388,6 +8391,9 @@ std::string buildEmbeddedScriptExecutionSource(
           recordings.clear();
           for (const [id, module] of windows) closeWindow(id, module);
           windows.clear();
+          for (const entry of webClients.values()) clearWebClient(entry);
+          for (const entry of webTasks.values()) cancelWebTask(entry);
+          webClients.clear(); webTasks.clear();
           port1.close();
         };
         const reply = message => { if (!closed) port1.postMessage(message); };
@@ -8402,9 +8408,22 @@ std::string buildEmbeddedScriptExecutionSource(
           pending.set(message.id, controller);
           try {
             const createsWindow = ["ui", "compose"].includes(message.module) && ["showLayout", "mount", "dialog", "floaty", "attach"].includes(message.method);
+            const webOperation = message.module === "ui" && message.method === "viewCommand" ? message.args[1] : "";
+            const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: createsWindow || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+              { ...message.options, signal: createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+            if (webOperation === "configureWebClient") {
+              const config = message.args[2][0], entry = { view: message.args[0], family: config.family, clientId: config.clientId };
+              if (closed || controller.signal.aborted) { await clearWebClient(entry); throw Object.assign(new Error("WebView client creation was aborted"), { code: "ABORT_ERR" }); }
+              webClients.set(entry.view.__autojs6ViewHandle + ":" + entry.family, entry);
+            } else if (["chooseFiles", "beginWebEvaluation"].includes(webOperation) && value && value.taskId) {
+              const entry = { view: message.args[0], taskId: value.taskId };
+              if (closed || controller.signal.aborted) { await cancelWebTask(entry); throw Object.assign(new Error("WebView task creation was aborted"), { code: "ABORT_ERR" }); }
+              webTasks.set(value.taskId, entry);
+            }
+            if (message.module === "ui" && message.method === "viewEvents" && Array.isArray(value))
+              for (const event of value) if (event.type === "webTaskResult") webTasks.delete(event.taskId);
             if (message.module === "autojs6:worker-module:screen_recorder" || message.module === "screen_recorder") {
               if (message.method === "start" && value && value.id) {
                 if (closed) await cancelRecording(value.id);
@@ -16359,6 +16378,12 @@ std::string buildEmbeddedScriptExecutionSource(
     const readonlyViewProperties = ["attached", "layoutWidth", "layoutHeight", "drawableWidth", "drawableHeight",
       "canGoBack", "canGoForward", "drawerOpenStart", "drawerOpenEnd", "pageCount"];
     const nativeViews = new Map();
+    const webViewClientCallbacks = ["onPageStarted", "onPageFinished", "onLoadResource", "onPageCommitVisible", "doUpdateVisitedHistory", "onScaleChanged",
+      "onReceivedError", "onReceivedHttpError", "onReceivedLoginRequest", "shouldOverrideUrlLoading", "shouldInterceptRequest", "shouldOverrideKeyEvent", "onUnhandledKeyEvent",
+      "onFormResubmission", "onReceivedHttpAuthRequest", "onReceivedSslError", "onReceivedClientCertRequest", "onSafeBrowsingHit", "onRenderProcessGone"];
+    const webChromeClientCallbacks = ["onProgressChanged", "onReceivedTitle", "onReceivedIcon", "onReceivedTouchIconUrl", "onConsoleMessage",
+      "onJsAlert", "onJsConfirm", "onJsPrompt", "onJsBeforeUnload", "onPermissionRequest", "onPermissionRequestCanceled",
+      "onGeolocationPermissionsShowPrompt", "onGeolocationPermissionsHidePrompt", "onShowFileChooser", "onCreateWindow", "onCloseWindow", "onRequestFocus", "onShowCustomView", "onHideCustomView", "getVisitedHistory"];
     let nativeContext;
     const nativeCall = (method, args) => __autojs6_call_autojs("ui", method, args, { permissions: ["ui"] });
     function wrapContext(value) {
@@ -16383,6 +16408,9 @@ std::string buildEmbeddedScriptExecutionSource(
         ...(value.context ? { context: Object.freeze({ ...value.context }) } : {}) });
       const output = { ...value, context: value.context && wrapContext(value.context) };
       const listeners = new Map(); let closed = false, reading = false;
+      const clients = Object.create(null), clientVersions = new Map(), webTasks = new Map(), earlyWebTasks = new Map();
+      const clientInstance = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+      let clientSerial = 0, startingWebTasks = 0;
       let writeTail = Promise.resolve(), sequence = 0;
       const writeErrors = [];
       const usable = () => { if (closed) throw new Error("Native View handle is closed"); };
@@ -16414,16 +16442,84 @@ std::string buildEmbeddedScriptExecutionSource(
         writeTail = result.then(() => {}, () => {});
         return result;
       }
+      function directWebCommand(name, args) {
+        usable();
+        return nativeCall("viewCommand", [value, name, __autojs6_ui_validate_json(args, "viewCommand", "args", 0, [], 1024)]);
+      }
+      function evaluateJavascript(source, options = {}) { return webTask("beginWebEvaluation", [source, options], true); }
+      function configureWebClient(family, handlers, options = {}) {
+        usable();
+        const allowed = family === "client" ? webViewClientCallbacks : family === "chrome" ? webChromeClientCallbacks : ["onDownloadStart"];
+        if (handlers !== null && (!handlers || typeof handlers !== "object" || Array.isArray(handlers))) throw new TypeError("A WebView client must be a callback object or null");
+        const callbacks = { ...handlers };
+        for (const [name, handler] of Object.entries(callbacks)) {
+          if (!allowed.includes(name) || typeof handler !== "function") throw new TypeError("Unsupported WebView callback: " + name);
+        }
+        const next = { id: clientInstance + "-" + ++clientSerial, callbacks: Object.freeze(callbacks) };
+        const config = __autojs6_ui_validate_json({ family, clientId: next.id, callbacks: Object.keys(callbacks), options }, "configureWebClient", "options", 0, []);
+        const barrier = flush();
+        const result = writeTail.then(async () => {
+          await barrier; usable();
+          const previous = clients[family]; clients[family] = next; clientVersions.set(next.id, next); poll();
+          try { await nativeCall("viewCommand", [value, "configureWebClient", [config]]); if (previous) clientVersions.delete(previous.id); }
+          catch (error) { clients[family] = previous; clientVersions.delete(next.id); throw error; }
+        });
+        writeTail = result.then(() => {}, () => {});
+        return result;
+      }
+      function hasWebInterest() {
+        return startingWebTasks > 0 || webTasks.size > 0 || [...clientVersions.values()].some(client => Object.keys(client.callbacks).length);
+      }
+      function settleWebTask(event) {
+        const task = webTasks.get(event.taskId);
+        if (task) { webTasks.delete(event.taskId); if (event.error) task.reject(new Error(event.error)); else task.resolve(event.value); }
+        else if (startingWebTasks) earlyWebTasks.set(event.taskId, event);
+      }
+      async function webTask(name, args, ordered = false) {
+        usable(); startingWebTasks++; poll();
+        try {
+          // Only submission occupies the UI command queue; user decisions do not hold a Bun RPC open.
+          const task = await (ordered ? command(name, args) : directWebCommand(name, args)); usable();
+          return await new Promise((resolve, reject) => {
+            webTasks.set(task.taskId, { resolve, reject });
+            const early = earlyWebTasks.get(task.taskId);
+            if (early) { earlyWebTasks.delete(task.taskId); settleWebTask(early); }
+          });
+        } finally { startingWebTasks--; if (!startingWebTasks) earlyWebTasks.clear(); }
+      }
+      function chooseFiles(options = {}) { return webTask("chooseFiles", [options]); }
+      async function webCallback(event) {
+        const client = clientVersions.get(event.clientId);
+        if (!client) return;
+        const handler = client.callbacks[event.callback]; if (!handler) return;
+        try {
+          const result = await handler.call(output, Object.freeze(event.data));
+          if (["shouldOverrideUrlLoading", "shouldInterceptRequest", "shouldOverrideKeyEvent", "onConsoleMessage", "onRenderProcessGone"].includes(event.callback) && result !== undefined) {
+            throw new TypeError(event.callback + " is a notification; synchronous decisions use the client's native options");
+          }
+          if (event.requestId && !closed) await directWebCommand("replyWebRequest", [event.requestId, result === undefined ? null : result]);
+        } catch (error) {
+          if (event.requestId && !closed) await directWebCommand("replyWebRequest", [event.requestId, null]).catch(() => {});
+          emit({ type: "webCallbackError", callback: event.callback, message: String(error && error.message || error) });
+        }
+      }
       const emit = event => {
         if (closed) return;
+        if (event.type === "webCallback") { webCallback(event); return; }
+        if (event.type === "webTaskResult") { settleWebTask(event); return; }
         if (event.type === "close") closed = true;
         for (const callback of [...listeners.get(event.type) || [], ...listeners.get("*") || []]) callback.call(output, Object.freeze(event));
-        if (closed) { listeners.clear(); nativeViews.delete(value.__autojs6ViewHandle); }
+        if (closed) {
+          for (const task of webTasks.values()) task.reject(new Error("Native View handle is closed"));
+          webTasks.clear(); earlyWebTasks.clear(); clientVersions.clear();
+          for (const family of Object.keys(clients)) delete clients[family];
+          listeners.clear(); nativeViews.delete(value.__autojs6ViewHandle);
+        }
       };
       async function poll() {
         if (reading || closed) return; reading = true;
         try {
-          while (!closed && [...listeners.values()].some(list => list.length)) {
+          while (!closed && (hasWebInterest() || [...listeners.values()].some(list => list.length))) {
             for (const event of await nativeCall("viewEvents", [value])) emit(event);
           }
         } catch (error) { emit({ type: "error", message: error.message }); emit({ type: "close" }); }
@@ -16438,6 +16534,11 @@ std::string buildEmbeddedScriptExecutionSource(
       function once(name, callback) { const listener = event => { off(name, listener); callback.call(output, event); }; listener.listener = callback; return on(name, listener); }
       Object.defineProperties(output, {
         get: { value: read }, set: { value: patch => write(patch) }, flush: { value: flush },
+        setWebViewClient: { value: (client, options) => configureWebClient("client", client, options) },
+        setWebChromeClient: { value: (client, options) => configureWebClient("chrome", client, options) },
+        setDownloadListener: { value: callback => configureWebClient("download", callback === null ? null : { onDownloadStart: callback }) },
+        chooseFiles: { value: chooseFiles },
+        cancelFileChooser: { value: async () => { await directWebCommand("cancelFileChooser", []); } },
         findView: { value: name => findView(value, name) },
         dispose: { value: async () => {
           if (closed) return;
@@ -16450,13 +16551,21 @@ std::string buildEmbeddedScriptExecutionSource(
       const commands = {
         loadUrl: url => command("loadUrl", [url]),
         loadHtml: (html, baseUrl = null) => command("loadHtml", [html, baseUrl]),
-        evaluateJavascript: source => command("evaluateJavascript", [source]),
+        evaluateJavascript,
         goBack: () => command("goBack", []), goForward: () => command("goForward", []),
         reload: () => command("reload", []), stopLoading: () => command("stopLoading", []),
         openDrawer: (side = "start", animate = true) => command("openDrawer", [side, animate]),
         closeDrawer: (side = "start", animate = true) => command("closeDrawer", [side, animate]),
         setCurrentItem: (index, smoothScroll = true) => command("setCurrentItem", [index, smoothScroll]),
-        showOverflowMenu: () => command("showOverflowMenu", []), hideOverflowMenu: () => command("hideOverflowMenu", [])
+        showOverflowMenu: () => command("showOverflowMenu", []), hideOverflowMenu: () => command("hideOverflowMenu", []),
+        exitFullscreen: () => command("exitFullscreen", []),
+        download: options => command("download", [options]),
+        getDownload: id => command("getDownload", [id]),
+        cancelDownload: id => command("cancelDownload", [id]),
+        readDownload: async (id, offset = 0, length = 32768) => {
+          const result = await command("readDownload", [id, offset, length]);
+          return Uint8Array.from(atob(result.base64), value => value.charCodeAt(0));
+        }
       };
       for (const [name, method] of Object.entries(commands)) Object.defineProperty(output, name, { value: method });
       for (const name of writableViewProperties) Object.defineProperty(output, name, {

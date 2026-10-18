@@ -829,3 +829,5 @@ every Rhino coercion remain outside this portable API contract.
 2026-10-18: 常用 XML 组件与原生 View 异步属性代理接入主线程和 CJS/ESM/嵌套 Worker, 保留顺序, 失败传播及跨线程句柄身份; 详见 docs/HOST-API.md.
 
 2026-10-18: WebView, Drawer, Toolbar 和 ViewPager 的原生属性, 异步命令与事件同步主线程及 Worker, 详见 docs/HOST-API.md 与宿主本批报告.
+
+2026-10-18: WebView 下载, 文件选择及 WebViewClient/WebChromeClient 异步答复同步主线程和 CJS/ESM/嵌套 Worker, 退出时按注册身份清理. 同步原生决策使用预提交规则; 行为, 验证及边界见 docs/HOST-API.md 与宿主 docs/dev/runtime-webview-callbacks-2026-10-18.md.

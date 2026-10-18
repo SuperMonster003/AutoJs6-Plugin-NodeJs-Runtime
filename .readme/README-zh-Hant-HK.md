@@ -119,6 +119,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.11.0
+
+###### 2026/10/18
+
+* `新增` Node.js/Worker: WebView HTTP(S) 下載, 系統檔案選擇及非同步 WebViewClient/WebChromeClient 回調, 支援原生導覽和資源規則
+
 # v1.10.0
 
 ###### 2026/10/18
@@ -130,12 +136,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/18
 
 * `新增` Node.js 支援常用 XML 表單與佈局組件及原生 View 非同步屬性代理, 包含順序賦值, 錯誤恢復與 Worker 呼叫
-
-# v1.8.0
-
-###### 2026/10/18
-
-* `新增` Node.js 支援執行所屬 View 控制代碼, 非同步 AndroidView 工廠與 XML Compose 容器掛載, 同步支援 Worker 清理及打包應用
 
 ##### 更多發行歷史可參閱
 

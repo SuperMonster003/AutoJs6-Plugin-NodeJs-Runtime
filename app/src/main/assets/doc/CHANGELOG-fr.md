@@ -4,6 +4,12 @@
 
 ******
 
+# v1.11.0
+
+###### 2026/10/18
+
+* `Ajout` Node.js/Worker: Téléchargements HTTP(S) WebView, sélection de fichiers système et rappels WebViewClient/WebChromeClient asynchrones avec règles natives de navigation et de ressources
+
 # v1.10.0
 
 ###### 2026/10/18

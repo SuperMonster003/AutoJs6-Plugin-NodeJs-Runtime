@@ -20,8 +20,9 @@ async function host(module, method, args) {
   if (module === 'ui' && method === 'context') return contextToken;
   if (module === 'ui' && method === 'inflate') {
     const id='view-'+ ++next, value={__autojs6ViewHandle:id,id,type:'TextView',context:contextToken};
-    nativeViews.set(id,{value,props:args[0]});return value;
+    nativeViews.set(id,{value,props:args[0],events:[]});return value;
   }
+  if (module === 'ui' && method === 'viewEvents') { await delay(5);return nativeViews.get(args[0].id)?.events.splice(0) || [{type:'close'}]; }
   if (module === 'ui' && ['viewGet','viewUpdate','disposeView'].includes(method)) {
     const id=args[0].__autojs6ViewHandle, value=nativeViews.get(id);assert(value,'unknown View');
     if(method==='disposeView'){nativeViews.delete(id);return null;}
@@ -30,7 +31,10 @@ async function host(module, method, args) {
   }
   if (module === 'ui' && method === 'viewCommand') {
     const value=nativeViews.get(args[0].__autojs6ViewHandle);assert(value,'unknown command View');
-    if(args[1]==='evaluateJavascript'){assert.equal(value.props.javaScriptEnabled,true);return {answer:42};}
+    if(args[1]==='beginWebEvaluation'){
+      assert.equal(value.props.javaScriptEnabled,true);const taskId='eval-'+ ++next;
+      value.events.push({type:'webTaskResult',taskId,value:{answer:42}});return {taskId};
+    }
     if(args[1]==='setCurrentItem')value.props.currentItem=args[2][0];
     return null;
   }
@@ -110,7 +114,7 @@ async function exercise(api) {
   const orderStart=calls.length;
   const firstCommand=web.setCurrentItem(1,false);web.currentItem=2;
   assert.equal(await web.currentItem,2);await firstCommand;
-  assert.deepEqual(calls.slice(orderStart).map(x=>x.method),['viewCommand','viewUpdate','viewGet']);
+  assert.deepEqual(calls.slice(orderStart).filter(x=>x.method!=='viewEvents').map(x=>x.method),['viewCommand','viewUpdate','viewGet']);
   for(const [name,args] of Object.entries({loadUrl:['about:blank'],loadHtml:['<p>local</p>'],goBack:[],goForward:[],reload:[],stopLoading:[],openDrawer:[],closeDrawer:['end',false],showOverflowMenu:[],hideOverflowMenu:[]}))await web[name](...args);
   assert.deepEqual(calls.findLast(x=>x.method==='viewCommand'&&x.args[1]==='loadHtml').args[2],['<p>local</p>',null]);
   assert.deepEqual(calls.findLast(x=>x.method==='viewCommand'&&x.args[1]==='openDrawer').args[2],['start',true]);

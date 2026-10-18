@@ -4,6 +4,12 @@
 
 ******
 
+# v1.11.0
+
+###### 2026/10/18
+
+* `추가` Node.js/Worker: WebView HTTP(S) 다운로드, 시스템 파일 선택, 비동기 WebViewClient/WebChromeClient 콜백 및 네이티브 탐색과 리소스 규칙
+
 # v1.10.0
 
 ###### 2026/10/18

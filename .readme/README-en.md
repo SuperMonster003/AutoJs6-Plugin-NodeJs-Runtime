@@ -119,6 +119,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.11.0
+
+###### 2026/10/18
+
+* `Feature` Node.js/Worker: WebView HTTP(S) downloads, system file selection and asynchronous WebViewClient/WebChromeClient callbacks with native navigation and resource rules
+
 # v1.10.0
 
 ###### 2026/10/18
@@ -130,12 +136,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/18
 
 * `Feature` Node.js support common XML form and layout widgets and asynchronous native View property access, including ordered assignments, error recovery and Worker use
-
-# v1.8.0
-
-###### 2026/10/18
-
-* `Feature` Node.js support execution-owned View handles, asynchronous AndroidView factories and XML Compose container attachments, with Worker cleanup and packaged application support
 
 ##### For more release history
 

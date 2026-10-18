@@ -4,6 +4,12 @@
 
 ******
 
+# v1.11.0
+
+###### 2026/10/18
+
+* `Feature` Node.js/Worker: WebView HTTP(S) downloads, system file selection and asynchronous WebViewClient/WebChromeClient callbacks with native navigation and resource rules
+
 # v1.10.0
 
 ###### 2026/10/18

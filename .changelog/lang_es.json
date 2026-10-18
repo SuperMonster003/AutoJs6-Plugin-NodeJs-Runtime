@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Mejora",
   "changelog_label_dependency": "Dependencia",
   "$data": {
+    "v1.11.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Worker: Descargas HTTP(S) de WebView, selección de archivos del sistema y callbacks asíncronos WebViewClient/WebChromeClient con reglas nativas de navegación y recursos"
+      ]
+    },
     "v1.10.0": {
       "released_date": "2026/10/18",
       "feature": [

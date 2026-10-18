@@ -119,6 +119,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.11.0
+
+###### 2026/10/18
+
+* `Ajout` Node.js/Worker: Téléchargements HTTP(S) WebView, sélection de fichiers système et rappels WebViewClient/WebChromeClient asynchrones avec règles natives de navigation et de ressources
+
 # v1.10.0
 
 ###### 2026/10/18
@@ -130,12 +136,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 ###### 2026/10/18
 
 * `Ajout` Node.js prennent en charge les formulaires et interfaces XML courants, les propriétés View asynchrones, les affectations ordonnées, la reprise après erreur et les Workers
-
-# v1.8.0
-
-###### 2026/10/18
-
-* `Ajout` Node.js prennent en charge les handles View propres à une exécution, les fabriques AndroidView asynchrones, les conteneurs XML Compose, la fermeture des Workers et les applications empaquetées
 
 ##### Pour plus d'historique des versions
 

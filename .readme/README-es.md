@@ -119,6 +119,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.11.0
+
+###### 2026/10/18
+
+* `Nuevo` Node.js/Worker: Descargas HTTP(S) de WebView, selección de archivos del sistema y callbacks asíncronos WebViewClient/WebChromeClient con reglas nativas de navegación y recursos
+
 # v1.10.0
 
 ###### 2026/10/18
@@ -130,12 +136,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 ###### 2026/10/18
 
 * `Nuevo` Node.js admiten formularios y diseños XML comunes, propiedades View asíncronas, asignaciones ordenadas, recuperación de errores y Workers
-
-# v1.8.0
-
-###### 2026/10/18
-
-* `Nuevo` Node.js admiten identificadores View de cada ejecución, fábricas AndroidView asíncronas, contenedores XML Compose, limpieza de Workers y aplicaciones empaquetadas
 
 ##### Para mas historial de versiones
 
