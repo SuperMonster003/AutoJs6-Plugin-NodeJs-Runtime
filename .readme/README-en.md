@@ -119,6 +119,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.10.0
+
+###### 2026/10/18
+
+* `Feature` Node.js/Worker: WebView page loading and JavaScript results, Drawer panels, Toolbar navigation and menus, and ViewPager pages with asynchronous native events
+
 # v1.9.0
 
 ###### 2026/10/18
@@ -130,24 +136,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/18
 
 * `Feature` Node.js support execution-owned View handles, asynchronous AndroidView factories and XML Compose container attachments, with Worker cleanup and packaged application support
-
-# v1.7.0
-
-###### 2026/10/18
-
-* `Feature` Packaged Node.js projects and scripts use the external Node.js Runtime plugin, support independently signed applications, and show installation guidance when the runtime is unavailable
-* `Feature` screen_metrics and autojs6:compat expose asynchronous cX/cY/cXy/cYx and per-execution scale bases using the current display, with coverage checks and an ESM example
-* `Feature` Node.js and Bun support asynchronous OpenCC conversions and common image codecs, pixel reads, transforms and color searches; Bun image file access is authorized separately
-* `Feature` Node.js Workers support OpenCC and image modules through the parent runtime, including CJS, ESM, nested Workers and binary image data
-* `Feature` Node.js Workers support pinyin, pinyin4j, console controls and coordinate conversion, sharing the parent execution while retaining native output streams
-* `Feature` Node.js main thread and Workers support H.264 MP4 recording with microphone, playback or mixed AAC audio, concurrent screenshots and cleanup of unsaved Worker recordings
-* `Feature` Node.js images supports advanced filters, color conversion, multi-color searches, circles, similarity metrics and URL loading
-* `Feature` Node.js images supports SIFT/ORB extraction and matching with scene coordinates, ObjectFrame geometry and execution-owned Mat/feature handles
-* `Feature` Node.js images supports PNG quantization and compression with quality/memory metrics, binary results and descriptor-backed file output
-* `Feature` Node.js UI and Compose support native layouts, data components, reactive state and window events, with independent grants and automatic window cleanup
-* `Fix` Pinyin/Pinyin4j now await real host providers instead of a small local dictionary; Android console controls execute on the host and return Promises; accessibility gestures and input_observer declarations are complete
-* `Fix` Node.js images.captureScreen no longer forwards capture-consent options to the screenshot encoder, allowing ordinary and concurrent recording screenshots
-* `Dependency` Backported OpenSSL 3.5.9 security fixes to the Node.js 24.21.0 Android runtime
 
 ##### For more release history
 

@@ -4,6 +4,12 @@
 
 ******
 
+# v1.10.0
+
+###### 2026/10/18
+
+* `Feature` Node.js/Worker: WebView page loading and JavaScript results, Drawer panels, Toolbar navigation and menus, and ViewPager pages with asynchronous native events
+
 # v1.9.0
 
 ###### 2026/10/18

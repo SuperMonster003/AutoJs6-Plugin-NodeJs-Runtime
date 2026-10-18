@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.10.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Worker: WebView 頁面載入與 JavaScript 回傳值, Drawer 側欄, Toolbar 導覽與選單, ViewPager 頁面及非同步原生事件"
+      ]
+    },
     "v1.9.0": {
       "released_date": "2026/10/18",
       "feature": [

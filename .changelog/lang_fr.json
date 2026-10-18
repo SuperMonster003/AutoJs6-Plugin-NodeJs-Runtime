@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Amelioration",
   "changelog_label_dependency": "Dependance",
   "$data": {
+    "v1.10.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Worker: Chargement WebView et résultats JavaScript, panneaux Drawer, navigation et menus Toolbar, pages ViewPager et événements natifs asynchrones"
+      ]
+    },
     "v1.9.0": {
       "released_date": "2026/10/18",
       "feature": [

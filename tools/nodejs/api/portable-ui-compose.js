@@ -4,8 +4,11 @@
       "width", "height", "padding", "margin", "backgroundColor", "gravity", "layoutGravity", "weight", "orientation",
       "min", "max", "progress", "indeterminate", "rating", "numStars", "stepSize", "isIndicator",
       "items", "selectedIndex", "checkedId", "textOn", "textOff", "value", "wrapSelectorWheel", "displayedValues",
-      "cardCornerRadius", "cardElevation", "src", "scaleType", "adjustViewBounds"];
-    const readonlyViewProperties = ["attached", "layoutWidth", "layoutHeight", "drawableWidth", "drawableHeight"];
+      "cardCornerRadius", "cardElevation", "src", "scaleType", "adjustViewBounds",
+      "url", "html", "javaScriptEnabled", "domStorageEnabled", "title", "subtitle",
+      "navigationIcon", "navigationContentDescription", "menu", "drawerLockMode", "currentItem", "offscreenPageLimit"];
+    const readonlyViewProperties = ["attached", "layoutWidth", "layoutHeight", "drawableWidth", "drawableHeight",
+      "canGoBack", "canGoForward", "drawerOpenStart", "drawerOpenEnd", "pageCount"];
     const nativeViews = new Map();
     let nativeContext;
     const nativeCall = (method, args) => __autojs6_call_autojs("ui", method, args, { permissions: ["ui"] });
@@ -54,6 +57,14 @@
         usable(); await flush(); usable();
         return nativeCall("viewGet", name === undefined ? [value] : [value, name]);
       }
+      function command(name, args) {
+        usable();
+        const payload = __autojs6_ui_validate_json(args, "viewCommand", "args", 0, [], 1024);
+        const barrier = flush();
+        const result = writeTail.then(async () => { await barrier; usable(); return nativeCall("viewCommand", [value, name, payload]); });
+        writeTail = result.then(() => {}, () => {});
+        return result;
+      }
       const emit = event => {
         if (closed) return;
         if (event.type === "close") closed = true;
@@ -87,6 +98,18 @@
         } },
         on: { value: on }, once: { value: once }, off: { value: off }
       });
+      const commands = {
+        loadUrl: url => command("loadUrl", [url]),
+        loadHtml: (html, baseUrl = null) => command("loadHtml", [html, baseUrl]),
+        evaluateJavascript: source => command("evaluateJavascript", [source]),
+        goBack: () => command("goBack", []), goForward: () => command("goForward", []),
+        reload: () => command("reload", []), stopLoading: () => command("stopLoading", []),
+        openDrawer: (side = "start", animate = true) => command("openDrawer", [side, animate]),
+        closeDrawer: (side = "start", animate = true) => command("closeDrawer", [side, animate]),
+        setCurrentItem: (index, smoothScroll = true) => command("setCurrentItem", [index, smoothScroll]),
+        showOverflowMenu: () => command("showOverflowMenu", []), hideOverflowMenu: () => command("hideOverflowMenu", [])
+      };
+      for (const [name, method] of Object.entries(commands)) Object.defineProperty(output, name, { value: method });
       for (const name of writableViewProperties) Object.defineProperty(output, name, {
         get: () => read(name), set: assigned => { write({ [name]: assigned }, true).catch(() => {}); }
       });

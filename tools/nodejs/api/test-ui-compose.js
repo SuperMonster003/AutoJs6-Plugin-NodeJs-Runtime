@@ -28,6 +28,12 @@ async function host(module, method, args) {
     if(method==='viewUpdate')Object.assign(value.props,args[1]);
     return method==='viewGet'&&args.length>1?value.props[args[1]]:value.props;
   }
+  if (module === 'ui' && method === 'viewCommand') {
+    const value=nativeViews.get(args[0].__autojs6ViewHandle);assert(value,'unknown command View');
+    if(args[1]==='evaluateJavascript'){assert.equal(value.props.javaScriptEnabled,true);return {answer:42};}
+    if(args[1]==='setCurrentItem')value.props.currentItem=args[2][0];
+    return null;
+  }
   if (["mount", "dialog", "floaty", "attach", "showLayout"].includes(method)) {
     const id = "window-" + ++next; live.set(id, { tree: args[method==='attach'?1:0], events: [{ type: "shown" }] }); return { id };
   }
@@ -99,6 +105,16 @@ async function exercise(api) {
   assert.equal(await proxy.text,'Stable identity','Changing a source token cannot retarget queued native writes');
   proxy.text='invalid';await assert.rejects(proxy.dispose(),{code:'NATIVE_REJECTED'});
   assert(!nativeViews.has(proxy.id),'Disposal still releases native resources after a queued write fails');
+  const web=await layouts.createView('WebView');web.javaScriptEnabled=true;
+  assert.deepEqual(await web.evaluateJavascript('({answer:42})'),{answer:42});
+  const orderStart=calls.length;
+  const firstCommand=web.setCurrentItem(1,false);web.currentItem=2;
+  assert.equal(await web.currentItem,2);await firstCommand;
+  assert.deepEqual(calls.slice(orderStart).map(x=>x.method),['viewCommand','viewUpdate','viewGet']);
+  for(const [name,args] of Object.entries({loadUrl:['about:blank'],loadHtml:['<p>local</p>'],goBack:[],goForward:[],reload:[],stopLoading:[],openDrawer:[],closeDrawer:['end',false],showOverflowMenu:[],hideOverflowMenu:[]}))await web[name](...args);
+  assert.deepEqual(calls.findLast(x=>x.method==='viewCommand'&&x.args[1]==='loadHtml').args[2],['<p>local</p>',null]);
+  assert.deepEqual(calls.findLast(x=>x.method==='viewCommand'&&x.args[1]==='openDrawer').args[2],['start',true]);
+  await web.dispose();assert.throws(()=>web.reload(),/closed/);
   const window = await layouts.showLayout({ type: "Text", id: "text", text: layouts.bind(state, "text") });
   state.set("text", "after"); await delay(25);
   assert(calls.some(value => value.method === "batchUpdate" && value.args[1][0].text === "after"));
@@ -112,7 +128,7 @@ async function exercise(api) {
   const config = { preloadPath, entryUrl: pathToFileURL(path.join(directory, "entry.cjs")).href,
     gatedBuiltins: [], moduleSources: {}, typeScriptSources: {}, resourceLimits: {}, hostModuleMethods: { ui: Object.keys(layouts), compose: Object.keys(createCompose(host)) } };
   const Worker = new Function("return (" + constructor + ")")()(require, () => config, host);
-  const body = `const view=await requireUi.createView('Compose');view.alpha=0.25;view.alpha=0.75;await view.flush();if(await view.alpha!==0.75)throw Error('Worker native properties');const session=await compose.attach(view,compose.AndroidView({view:async context=>context.createView('Text',{text:'worker'})})); parentPort.postMessage({id:session.id, methods:typeof requireUi.state,view});`;
+  const body = `const view=await requireUi.createView('Compose');view.alpha=0.25;view.alpha=0.75;await view.flush();if(await view.alpha!==0.75)throw Error('Worker native properties');view.javaScriptEnabled=true;if((await view.evaluateJavascript('({answer:42})')).answer!==42)throw Error('Worker native command');await view.setCurrentItem(1,false);if(await view.currentItem!==1)throw Error('Worker paging');await view.openDrawer();await view.closeDrawer();const session=await compose.attach(view,compose.AndroidView({view:async context=>context.createView('Text',{text:'worker'})})); parentPort.postMessage({id:session.id, methods:typeof requireUi.state,view});`;
   for (const esm of [false, true]) {
     const code = esm ? `import compose,{sessions,Text} from 'compose'; if(!Array.isArray(sessions)||typeof Text!=='function')throw Error('named Compose exports'); import requireUi from 'ui'; import {parentPort} from 'node:worker_threads'; ${body}`
       : `const compose=require('compose'),requireUi=require('ui'),{parentPort}=require('worker_threads'); (async()=>{${body}})();`;

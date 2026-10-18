@@ -119,6 +119,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.10.0
+
+###### 2026/10/18
+
+* `新增` Node.js/Worker: WebView 頁面載入與 JavaScript 回傳值, Drawer 側欄, Toolbar 導覽與選單, ViewPager 頁面及非同步原生事件
+
 # v1.9.0
 
 ###### 2026/10/18
@@ -130,24 +136,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/18
 
 * `新增` Node.js 支援執行所屬 View 控制代碼, 非同步 AndroidView 工廠與 XML Compose 容器掛載, 同步支援 Worker 清理及打包應用
-
-# v1.7.0
-
-###### 2026/10/18
-
-* `新增` Node.js 專案和指令碼可打包為獨立簽章的應用程式, 執行時呼叫外部 Node.js Runtime 插件, 插件不可用時顯示安裝指引
-* `新增` screen_metrics 和 autojs6:compat 提供基於目前螢幕的非同步 cX/cY/cXy/cYx 及每次執行獨立的換算基數, 並補充覆蓋檢查和 ESM 範例
-* `新增` Node.js 和 Bun 支援非同步 OpenCC 轉換及常用圖像編解碼, 像素讀取, 變換和顏色搜尋; Bun 圖像檔案存取獨立授權
-* `新增` Node.js Worker 支援透過父運行時呼叫 OpenCC 與圖像模組, 包含 CJS, ESM, 巢狀 Worker 和圖像二進制傳輸
-* `新增` Node.js Worker 支援 pinyin, pinyin4j, 控制台視窗和座標換算, 共用父執行狀態並保留原生輸出串流
-* `新增` Node.js 主執行緒與 Worker 支援 H.264 MP4 錄屏, 麥克風/播放/混合 AAC 音訊, 錄製期間並行截圖及 Worker 未儲存錄屏清理
-* `新增` Node.js images 支援進階濾鏡, 色彩空間轉換, 多點找色, 圓形偵測, 相似度指標及 URL 載入
-* `新增` Node.js images 支援 SIFT/ORB 特徵擷取與比對, 返回場景座標和 ObjectFrame 幾何資訊, 並管理執行內的 Mat/特徵控制代碼
-* `新增` Node.js images 支援 PNG 量化和壓縮, 提供品質/記憶體度量, 二進位結果及檔案描述元輸出
-* `新增` Node.js UI 與 Compose 支援原生佈局, 資料組件, 響應式狀態及視窗事件, 提供獨立授權與視窗自動清理
-* `修復` Pinyin/Pinyin4j 改為非同步呼叫實際宿主外掛, 移除小字典替代實作; Android 控制台操作透過宿主執行並回傳 Promise; 補齊無障礙手勢和 input_observer 類型聲明
-* `修復` Node.js images.captureScreen 將授權選項誤傳給截圖處理入口, 導致一般截圖和錄製期間截圖被拒絕的問題
-* `依賴` 為 Node.js 24.21.0 Android 執行環境回補 OpenSSL 3.5.9 安全修正
 
 ##### 更多發行歷史可參閱
 

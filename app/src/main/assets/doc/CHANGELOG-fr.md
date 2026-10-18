@@ -4,6 +4,12 @@
 
 ******
 
+# v1.10.0
+
+###### 2026/10/18
+
+* `Ajout` Node.js/Worker: Chargement WebView et résultats JavaScript, panneaux Drawer, navigation et menus Toolbar, pages ViewPager et événements natifs asynchrones
+
 # v1.9.0
 
 ###### 2026/10/18

@@ -827,3 +827,5 @@ every Rhino coercion remain outside this portable API contract.
 2026-10-18: 后续批次补齐执行所属 View 句柄, AndroidView 和 XML compose.attach, 包括 Worker 所有权与打包应用路径. 详见 docs/HOST-API.md.
 
 2026-10-18: 常用 XML 组件与原生 View 异步属性代理接入主线程和 CJS/ESM/嵌套 Worker, 保留顺序, 失败传播及跨线程句柄身份; 详见 docs/HOST-API.md.
+
+2026-10-18: WebView, Drawer, Toolbar 和 ViewPager 的原生属性, 异步命令与事件同步主线程及 Worker, 详见 docs/HOST-API.md 与宿主本批报告.
