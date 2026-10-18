@@ -119,6 +119,12 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 
 ******
 
+# v1.13.0
+
+###### 2026/10/18
+
+* `추가` Node.js/Worker: WebView 동영상 촬영과 전면 AAC/M4A 오디오 녹음, 미디어 옵션, 선택 대기 시간 설정 및 임시 파일 정리
+
 # v1.12.0
 
 ###### 2026/10/18
@@ -130,12 +136,6 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 ###### 2026/10/18
 
 * `추가` Node.js/Worker: WebView HTTP(S) 다운로드, 시스템 파일 선택, 비동기 WebViewClient/WebChromeClient 콜백 및 네이티브 탐색과 리소스 규칙
-
-# v1.10.0
-
-###### 2026/10/18
-
-* `추가` Node.js/Worker: WebView 페이지 로딩과 JavaScript 반환값, Drawer 패널, Toolbar 탐색과 메뉴, ViewPager 페이지 및 비동기 네이티브 이벤트
 
 ##### 더 많은 릴리스 기록
 

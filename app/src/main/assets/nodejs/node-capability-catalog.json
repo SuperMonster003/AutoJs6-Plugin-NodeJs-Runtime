@@ -1,6 +1,6 @@
 {
   "schema": "autojs6-node-capability-catalog-v1",
-  "catalogVersion": "1.12.0",
+  "catalogVersion": "1.13.0",
   "runtime": {
     "pluginId": "nodejs",
     "engine": "nodejs",

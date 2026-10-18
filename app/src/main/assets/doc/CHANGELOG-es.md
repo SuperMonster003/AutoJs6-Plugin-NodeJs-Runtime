@@ -4,6 +4,12 @@
 
 ******
 
+# v1.13.0
+
+###### 2026/10/18
+
+* `Nuevo` Node.js/Worker: Captura de vídeo WebView y audio AAC/M4A en primer plano, con opciones multimedia, plazos configurables y limpieza de archivos temporales
+
 # v1.12.0
 
 ###### 2026/10/18

@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.13.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Worker: WebView video capture and foreground AAC/M4A audio recording, with media options, configurable chooser deadlines and temporary-file cleanup"
+      ]
+    },
     "v1.12.0": {
       "released_date": "2026/10/18",
       "feature": [

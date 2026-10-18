@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.13.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Worker: WebView 影片拍攝與前台 AAC/M4A 錄音, 支援媒體參數, 可設定選擇等待時限及臨時檔案清理"
+      ]
+    },
     "v1.12.0": {
       "released_date": "2026/10/18",
       "feature": [

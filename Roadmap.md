@@ -833,3 +833,5 @@ every Rhino coercion remain outside this portable API contract.
 2026-10-18: WebView 下载, 文件选择及 WebViewClient/WebChromeClient 异步答复同步主线程和 CJS/ESM/嵌套 Worker, 退出时按注册身份清理. 同步原生决策使用预提交规则; 行为, 验证及边界见 docs/HOST-API.md 与宿主 docs/dev/runtime-webview-callbacks-2026-10-18.md.
 
 2026-10-18: WebView 拍照, SAF 保存/目录选择, readDocument 和 blob/data 下载同步主线程及 Worker. 任务标识支持不透明字符串; 真机与打包应用验证见宿主 runtime-webview-files-2026-10-18 报告.
+
+2026-10-18: WebView 视频和前台录音捕获扩展到主线程及 Worker, 同步媒体参数, 声明与补全. 真机和打包验证记录见宿主 docs/dev/runtime-webview-media-2026-10-18.md. Bun 原生载荷和冻结的兼容范围不变.

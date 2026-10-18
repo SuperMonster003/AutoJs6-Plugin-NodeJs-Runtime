@@ -5,6 +5,12 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v1.13.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Worker: WebView の動画撮影と前面での AAC/M4A 録音, メディア設定, 選択待ち時間の指定と一時ファイルの削除"
+      ]
+    },
     "v1.12.0": {
       "released_date": "2026/10/18",
       "feature": [

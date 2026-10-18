@@ -89,7 +89,11 @@ async function exercise(ui,fixture) {
       const selected=await web.chooseFiles({mode,acceptTypes:['text/plain'],fileName:'fixture.txt',writable:true});assert(selected[0].startsWith('content:'));
       assert(fixture.calls.some(call=>call.method==='viewCommand'&&call.args[1]==='chooseFiles'&&call.args[2][0].mode===mode));
     }
-    await web.chooseFiles({acceptTypes:['image/*'],captureEnabled:true});
+    for(const captureKind of ['image','video','audio']) {
+      const options={captureEnabled:true,captureKind,acceptTypes:['*/*'],videoQuality:0,durationLimitSeconds:4,sizeLimitBytes:2097152,timeoutMs:180000};
+      await web.chooseFiles(options);
+      assert.deepEqual(fixture.calls.findLast(call=>call.method==='viewCommand'&&call.args[1]==='chooseFiles').args[2][0],options,'Media capture options reach the host unchanged');
+    }
     assert.deepEqual([...await web.readDocument('content://fixture/document/alpha')],[0,128,255,42]);
     const local=await web.download({url:'data:text/plain,fixture',directoryUri:'content://fixture/tree/root'});
     assert.equal((await web.getDownload(local.id)).id,'web:fixture');await web.cancelDownload(local.id);
@@ -107,7 +111,7 @@ async function workers(source,createUi) {
   const fixture=createWebFixture(),ui=createUi(fixture.invoke);
   const config={preloadPath,entryUrl:pathToFileURL(path.join(directory,'entry.cjs')).href,gatedBuiltins:[],moduleSources:{},typeScriptSources:{},resourceLimits:{},hostModuleMethods:{ui:Object.keys(ui)}};
   const Worker=new Function('return ('+constructor+')')()(require,()=>config,fixture.invoke);
-  const body=`const view=await ui.createView('WebView');await view.setWebChromeClient({onJsConfirm:async()=>true});if(!await view.evaluateJavascript('confirm'))throw Error('Worker callback');if((await view.readDocument('content://fixture/document/alpha'))[1]!==128)throw Error('Worker document bytes');const local=await view.download({url:'data:text/plain,fixture'});if((await view.getDownload(local.id)).id!=='web:fixture')throw Error('Worker download identity');await view.cancelDownload(local.id);view.chooseFiles({wait:true,mode:'directory'});parentPort.postMessage(view);setInterval(()=>{},1000);`;
+  const body=`const view=await ui.createView('WebView');await view.setWebChromeClient({onJsConfirm:async()=>true});if(!await view.evaluateJavascript('confirm'))throw Error('Worker callback');if((await view.readDocument('content://fixture/document/alpha'))[1]!==128)throw Error('Worker document bytes');const local=await view.download({url:'data:text/plain,fixture'});if((await view.getDownload(local.id)).id!=='web:fixture')throw Error('Worker download identity');await view.cancelDownload(local.id);for(const captureKind of ['video','audio'])await view.chooseFiles({captureEnabled:true,captureKind,durationLimitSeconds:3,sizeLimitBytes:1048576,videoQuality:0,timeoutMs:180000});view.chooseFiles({wait:true,mode:'directory'});parentPort.postMessage(view);setInterval(()=>{},1000);`;
   for(const mode of ['cjs','esm','nested']) {
     let code=mode==='esm'?`import ui from 'ui';import {parentPort} from 'node:worker_threads';${body}`:`const ui=require('ui'),{parentPort}=require('node:worker_threads');(async()=>{${body}})();`;
     if(mode==='nested')code=`const {Worker,parentPort}=require('node:worker_threads');new Worker(${JSON.stringify(code)},{eval:true}).on('message',value=>parentPort.postMessage(value)).on('error',error=>{throw error;});`;
@@ -122,6 +126,7 @@ async function workers(source,createUi) {
     else assert.equal(record.clients.chrome,undefined);
     await ui.view(token).dispose();
   }
+  for(const kind of ['video','audio'])assert.equal(fixture.calls.filter(c=>c.method==='viewCommand'&&c.args[1]==='chooseFiles'&&c.args[2][0].captureKind===kind).length,3,'Every Worker mode forwards '+kind);
   assert(fixture.cancelled.length>=3,'Worker termination must cancel its pending file picker');
 }
 module.exports={createWebFixture,exercise};

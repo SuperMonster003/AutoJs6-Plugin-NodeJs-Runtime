@@ -4,6 +4,12 @@
 
 ******
 
+# v1.13.0
+
+###### 2026/10/18
+
+* `Feature` Node.js/Worker: WebView video capture and foreground AAC/M4A audio recording, with media options, configurable chooser deadlines and temporary-file cleanup
+
 # v1.12.0
 
 ###### 2026/10/18

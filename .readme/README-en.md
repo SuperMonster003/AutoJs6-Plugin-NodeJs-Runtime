@@ -119,6 +119,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.13.0
+
+###### 2026/10/18
+
+* `Feature` Node.js/Worker: WebView video capture and foreground AAC/M4A audio recording, with media options, configurable chooser deadlines and temporary-file cleanup
+
 # v1.12.0
 
 ###### 2026/10/18
@@ -130,12 +136,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/18
 
 * `Feature` Node.js/Worker: WebView HTTP(S) downloads, system file selection and asynchronous WebViewClient/WebChromeClient callbacks with native navigation and resource rules
-
-# v1.10.0
-
-###### 2026/10/18
-
-* `Feature` Node.js/Worker: WebView page loading and JavaScript results, Drawer panels, Toolbar navigation and menus, and ViewPager pages with asynchronous native events
 
 ##### For more release history
 

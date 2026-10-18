@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.13.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Worker: Съёмка видео WebView и запись AAC/M4A на переднем плане, настройки медиа, время ожидания выбора и очистка временных файлов"
+      ]
+    },
     "v1.12.0": {
       "released_date": "2026/10/18",
       "feature": [
