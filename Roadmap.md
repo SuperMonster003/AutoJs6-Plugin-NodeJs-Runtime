@@ -835,3 +835,12 @@ every Rhino coercion remain outside this portable API contract.
 2026-10-18: WebView 拍照, SAF 保存/目录选择, readDocument 和 blob/data 下载同步主线程及 Worker. 任务标识支持不透明字符串; 真机与打包应用验证见宿主 runtime-webview-files-2026-10-18 报告.
 
 2026-10-18: WebView 视频和前台录音捕获扩展到主线程及 Worker, 同步媒体参数, 声明与补全. 真机和打包验证记录见宿主 docs/dev/runtime-webview-media-2026-10-18.md. Bun 原生载荷和冻结的兼容范围不变.
+
+
+## WebView streaming media (2026-10-18)
+
+Host build 5568 adds `evaluateJavascriptAsync(source, {timeoutMs})`: await a page expression or Promise, returning JSON with page errors propagated. The default is 30000 ms (100..2147483647). Waiting does not occupy the UI command queue or a Bun RPC. Navigation, disposal and Worker exit cancel pending results; timeout cannot abort arbitrary page code. Keep DOM MediaStream/MediaRecorder objects in the page and stop tracks explicitly in finally.
+
+`onPermissionRequest` also accepts `{resources, requestAndroidPermissions:true}` after checking the requesting origin. This explicitly requests missing CAMERA/RECORD_AUDIO through Android. An array still requires existing Android grants. The installed host or packaged app must declare the relevant permissions. Missing callbacks, rejected OS prompts and undeclared permissions deny capture. Pending media authorization is cancelled on navigation, client replacement and View disposal.
+
+Use a secure page (HTTPS or loopback), actual WebView `navigator.mediaDevices.getUserMedia` and `MediaRecorder`. Pause/resume/requestData/stop remain page APIs. Transfer each emitted Blob through existing download/readDownload calls (32768 bytes per read), and concatenate chunks in order for the final recording. Codec availability and timing depend on WebView. This does not add DOM globals to Node or Bun, guarantee background capture, or implement getDisplayMedia. See host docs/dev/runtime-webview-streams-2026-10-18.md for device evidence.

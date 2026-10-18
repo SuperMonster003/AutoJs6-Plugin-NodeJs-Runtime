@@ -79,6 +79,7 @@
         return nativeCall("viewCommand", [value, name, __autojs6_ui_validate_json(args, "viewCommand", "args", 0, [], 1024)]);
       }
       function evaluateJavascript(source, options = {}) { return webTask("beginWebEvaluation", [source, options], true); }
+      function evaluateJavascriptAsync(source, options = {}) { return webTask("beginAsyncWebEvaluation", [source, options], true); }
       function configureWebClient(family, handlers, options = {}) {
         usable();
         const allowed = family === "client" ? webViewClientCallbacks : family === "chrome" ? webChromeClientCallbacks : ["onDownloadStart"];
@@ -184,6 +185,7 @@
         loadUrl: url => command("loadUrl", [url]),
         loadHtml: (html, baseUrl = null) => command("loadHtml", [html, baseUrl]),
         evaluateJavascript,
+        evaluateJavascriptAsync,
         goBack: () => command("goBack", []), goForward: () => command("goForward", []),
         reload: () => command("reload", []), stopLoading: () => command("stopLoading", []),
         openDrawer: (side = "start", animate = true) => command("openDrawer", [side, animate]),

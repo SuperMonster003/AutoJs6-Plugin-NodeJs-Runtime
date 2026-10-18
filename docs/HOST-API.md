@@ -794,3 +794,16 @@ applies independently. Nothing records automatically or continues as a hidden
 background audio service. Cancellation, navigation, window/Worker shutdown and
 View disposal close the capture and release owned temporary files. Confirmed
 files remain available while the View or a copying download holds them.
+
+
+## WebView streaming media (2026-10-18)
+
+Host build 5568 adds `evaluateJavascriptAsync(source, {timeoutMs})`: await a page expression or Promise, returning JSON with page errors propagated. The default is 30000 ms (100..2147483647). Waiting does not occupy the UI command queue or a Bun RPC. Navigation, disposal and Worker exit cancel pending results; timeout cannot abort arbitrary page code. Keep DOM MediaStream/MediaRecorder objects in the page and stop tracks explicitly in finally.
+
+`onPermissionRequest` also accepts `{resources, requestAndroidPermissions:true}` after checking the requesting origin. This explicitly requests missing CAMERA/RECORD_AUDIO through Android. An array still requires existing Android grants. The installed host or packaged app must declare the relevant permissions. Missing callbacks, rejected OS prompts and undeclared permissions deny capture. Pending media authorization is cancelled on navigation, client replacement and View disposal.
+
+Use a secure page (HTTPS or loopback), actual WebView `navigator.mediaDevices.getUserMedia` and `MediaRecorder`. Pause/resume/requestData/stop remain page APIs. Transfer each emitted Blob through existing download/readDownload calls (32768 bytes per read), and concatenate chunks in order for the final recording. Codec availability and timing depend on WebView. This does not add DOM globals to Node or Bun, guarantee background capture, or implement getDisplayMedia. See host docs/dev/runtime-webview-streams-2026-10-18.md for device evidence.
+
+Closing a window that hosted a media-authorized WebView navigates that page to about:blank to release its camera/microphone; the View identity remains reusable after reloading. Worker exit closes only its own windows. Clearing/replacing a Chrome callback alone does not revoke a previously granted page permission.
+
+Chromium audio capture also requires the normal MODIFY_AUDIO_SETTINGS manifest permission. APK Builder 1.2.6 retains it when RECORD_AUDIO is selected; other packagers must declare it explicitly.

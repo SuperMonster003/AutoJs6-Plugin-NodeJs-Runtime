@@ -4,6 +4,12 @@
 
 ******
 
+# v1.14.0
+
+###### 2026/10/18
+
+* `추가` WebView getUserMedia/MediaRecorder 오디오 및 비디오 스트리밍, 페이지 Promise 대기, 명시적 Android 미디어 권한 요청 및 Worker 수명 주기 관리
+
 # v1.13.0
 
 ###### 2026/10/18

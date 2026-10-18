@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.14.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Потоковое аудио и видео WebView getUserMedia/MediaRecorder, ожидание Promise страницы, явные запросы разрешений Android и управление жизненным циклом Worker"
+      ]
+    },
     "v1.13.0": {
       "released_date": "2026/10/18",
       "feature": [

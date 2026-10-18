@@ -119,6 +119,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.14.0
+
+###### 2026/10/18
+
+* `Feature` WebView getUserMedia/MediaRecorder streaming audio and video, awaited page Promises, explicit Android media permission requests and Worker lifecycle support
+
 # v1.13.0
 
 ###### 2026/10/18
@@ -130,12 +136,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/18
 
 * `Feature` Node.js/Worker: WebView full-size camera capture, save and directory selection, document byte reads, and streamed blob/data downloads with selected output locations
-
-# v1.11.0
-
-###### 2026/10/18
-
-* `Feature` Node.js/Worker: WebView HTTP(S) downloads, system file selection and asynchronous WebViewClient/WebChromeClient callbacks with native navigation and resource rules
 
 ##### For more release history
 

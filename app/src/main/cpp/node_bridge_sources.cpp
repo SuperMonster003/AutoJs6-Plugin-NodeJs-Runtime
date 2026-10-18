@@ -8409,7 +8409,7 @@ std::string buildEmbeddedScriptExecutionSource(
           try {
             const createsWindow = ["ui", "compose"].includes(message.module) && ["showLayout", "mount", "dialog", "floaty", "attach"].includes(message.method);
             const webOperation = message.module === "ui" && message.method === "viewCommand" ? message.args[1] : "";
-            const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation"].includes(webOperation);
+            const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
               { ...message.options, signal: createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
@@ -8417,7 +8417,7 @@ std::string buildEmbeddedScriptExecutionSource(
               const config = message.args[2][0], entry = { view: message.args[0], family: config.family, clientId: config.clientId };
               if (closed || controller.signal.aborted) { await clearWebClient(entry); throw Object.assign(new Error("WebView client creation was aborted"), { code: "ABORT_ERR" }); }
               webClients.set(entry.view.__autojs6ViewHandle + ":" + entry.family, entry);
-            } else if (["chooseFiles", "beginWebEvaluation"].includes(webOperation) && value && value.taskId) {
+            } else if (["chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation"].includes(webOperation) && value && value.taskId) {
               const entry = { view: message.args[0], taskId: value.taskId };
               if (closed || controller.signal.aborted) { await cancelWebTask(entry); throw Object.assign(new Error("WebView task creation was aborted"), { code: "ABORT_ERR" }); }
               webTasks.set(value.taskId, entry);
@@ -16447,6 +16447,7 @@ std::string buildEmbeddedScriptExecutionSource(
         return nativeCall("viewCommand", [value, name, __autojs6_ui_validate_json(args, "viewCommand", "args", 0, [], 1024)]);
       }
       function evaluateJavascript(source, options = {}) { return webTask("beginWebEvaluation", [source, options], true); }
+      function evaluateJavascriptAsync(source, options = {}) { return webTask("beginAsyncWebEvaluation", [source, options], true); }
       function configureWebClient(family, handlers, options = {}) {
         usable();
         const allowed = family === "client" ? webViewClientCallbacks : family === "chrome" ? webChromeClientCallbacks : ["onDownloadStart"];
@@ -16552,6 +16553,7 @@ std::string buildEmbeddedScriptExecutionSource(
         loadUrl: url => command("loadUrl", [url]),
         loadHtml: (html, baseUrl = null) => command("loadHtml", [html, baseUrl]),
         evaluateJavascript,
+        evaluateJavascriptAsync,
         goBack: () => command("goBack", []), goForward: () => command("goForward", []),
         reload: () => command("reload", []), stopLoading: () => command("stopLoading", []),
         openDrawer: (side = "start", animate = true) => command("openDrawer", [side, animate]),

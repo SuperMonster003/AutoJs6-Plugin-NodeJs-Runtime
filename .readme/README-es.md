@@ -119,6 +119,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.14.0
+
+###### 2026/10/18
+
+* `Nuevo` Audio y video en directo con WebView getUserMedia/MediaRecorder, espera de Promise de pagina, solicitudes explicitas de permisos multimedia Android y ciclo de vida de Worker
+
 # v1.13.0
 
 ###### 2026/10/18
@@ -130,12 +136,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 ###### 2026/10/18
 
 * `Nuevo` Node.js/Worker: Captura WebView de fotos completas, selección de archivos y directorios, lectura de bytes y descargas blob/data hacia los destinos elegidos
-
-# v1.11.0
-
-###### 2026/10/18
-
-* `Nuevo` Node.js/Worker: Descargas HTTP(S) de WebView, selección de archivos del sistema y callbacks asíncronos WebViewClient/WebChromeClient con reglas nativas de navegación y recursos
 
 ##### Para mas historial de versiones
 

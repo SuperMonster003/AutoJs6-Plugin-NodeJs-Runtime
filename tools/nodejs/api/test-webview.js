@@ -27,8 +27,9 @@ function createWebFixture() {
       if(record.clients[family]?.clientId!==id)return false;
       record.clients[family]=undefined;for(const done of record.requests.values())done(null);record.requests.clear();return true;
     }
-    if(name==='beginWebEvaluation') {
+    if(name==='beginWebEvaluation'||name==='beginAsyncWebEvaluation') {
       const taskId='eval-'+ ++next;
+      if(parameters[0]==='pendingAsync') {record.tasks.set(taskId,()=>emit(record,{type:'webTaskResult',taskId,error:'cancelled'}));return {taskId};}
       const callback={confirm:'onJsConfirm',prompt:'onJsPrompt',file:'onShowFileChooser'}[parameters[0]];
       if(!callback){emit(record,{type:'webTaskResult',taskId,value:42});return {taskId};}
       const client=record.clients.chrome;assert(client?.callbacks.includes(callback));
@@ -67,6 +68,8 @@ async function exercise(ui,fixture) {
     });
     assert.equal(await web.evaluateJavascript('confirm'),true);
     assert.equal(await web.evaluateJavascript('prompt'),'typed');
+    assert.equal(await web.evaluateJavascriptAsync('Promise.resolve(42)',{timeoutMs:180000}),42);
+    assert.equal(fixture.calls.findLast(call=>call.method==='viewCommand'&&call.args[1]==='beginAsyncWebEvaluation').args[2][1].timeoutMs,180000);
     assert.deepEqual(await web.evaluateJavascript('file'),['content://fixture/document/alpha']);
     await assert.rejects(web.setWebChromeClient({}, {invalid:true}),/Invalid native policy/);
     assert.equal(await web.evaluateJavascript('confirm'),true,'Rejected configuration retains prior callbacks');
@@ -111,7 +114,7 @@ async function workers(source,createUi) {
   const fixture=createWebFixture(),ui=createUi(fixture.invoke);
   const config={preloadPath,entryUrl:pathToFileURL(path.join(directory,'entry.cjs')).href,gatedBuiltins:[],moduleSources:{},typeScriptSources:{},resourceLimits:{},hostModuleMethods:{ui:Object.keys(ui)}};
   const Worker=new Function('return ('+constructor+')')()(require,()=>config,fixture.invoke);
-  const body=`const view=await ui.createView('WebView');await view.setWebChromeClient({onJsConfirm:async()=>true});if(!await view.evaluateJavascript('confirm'))throw Error('Worker callback');if((await view.readDocument('content://fixture/document/alpha'))[1]!==128)throw Error('Worker document bytes');const local=await view.download({url:'data:text/plain,fixture'});if((await view.getDownload(local.id)).id!=='web:fixture')throw Error('Worker download identity');await view.cancelDownload(local.id);for(const captureKind of ['video','audio'])await view.chooseFiles({captureEnabled:true,captureKind,durationLimitSeconds:3,sizeLimitBytes:1048576,videoQuality:0,timeoutMs:180000});view.chooseFiles({wait:true,mode:'directory'});parentPort.postMessage(view);setInterval(()=>{},1000);`;
+  const body=`const view=await ui.createView('WebView');await view.setWebChromeClient({onJsConfirm:async()=>true});if(!await view.evaluateJavascript('confirm'))throw Error('Worker callback');if(await view.evaluateJavascriptAsync('Promise.resolve(42)')!==42)throw Error('Worker asynchronous evaluation');if((await view.readDocument('content://fixture/document/alpha'))[1]!==128)throw Error('Worker document bytes');const local=await view.download({url:'data:text/plain,fixture'});if((await view.getDownload(local.id)).id!=='web:fixture')throw Error('Worker download identity');await view.cancelDownload(local.id);for(const captureKind of ['video','audio'])await view.chooseFiles({captureEnabled:true,captureKind,durationLimitSeconds:3,sizeLimitBytes:1048576,videoQuality:0,timeoutMs:180000});view.evaluateJavascriptAsync('pendingAsync').catch(()=>{});view.chooseFiles({wait:true,mode:'directory'});parentPort.postMessage(view);setInterval(()=>{},1000);`;
   for(const mode of ['cjs','esm','nested']) {
     let code=mode==='esm'?`import ui from 'ui';import {parentPort} from 'node:worker_threads';${body}`:`const ui=require('ui'),{parentPort}=require('node:worker_threads');(async()=>{${body}})();`;
     if(mode==='nested')code=`const {Worker,parentPort}=require('node:worker_threads');new Worker(${JSON.stringify(code)},{eval:true}).on('message',value=>parentPort.postMessage(value)).on('error',error=>{throw error;});`;
@@ -127,7 +130,7 @@ async function workers(source,createUi) {
     await ui.view(token).dispose();
   }
   for(const kind of ['video','audio'])assert.equal(fixture.calls.filter(c=>c.method==='viewCommand'&&c.args[1]==='chooseFiles'&&c.args[2][0].captureKind===kind).length,3,'Every Worker mode forwards '+kind);
-  assert(fixture.cancelled.length>=3,'Worker termination must cancel its pending file picker');
+  assert(fixture.cancelled.length>=6,'Worker termination must cancel pending file pickers and page Promises');
 }
 module.exports={createWebFixture,exercise};
 if(require.main===module)(async()=>{

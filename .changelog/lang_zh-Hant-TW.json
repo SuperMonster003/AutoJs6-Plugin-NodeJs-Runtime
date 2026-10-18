@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.14.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "WebView getUserMedia/MediaRecorder 串流音訊與影片, 支援等待網頁 Promise, 明確申請 Android 媒體權限及 Worker 生命週期管理"
+      ]
+    },
     "v1.13.0": {
       "released_date": "2026/10/18",
       "feature": [
