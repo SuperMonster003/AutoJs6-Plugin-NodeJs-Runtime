@@ -119,6 +119,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.9.0
+
+###### 2026/10/18
+
+* `Nuevo` Node.js admiten formularios y diseños XML comunes, propiedades View asíncronas, asignaciones ordenadas, recuperación de errores y Workers
+
 # v1.8.0
 
 ###### 2026/10/18
@@ -142,30 +148,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 * `Correccion` Pinyin/Pinyin4j llaman de forma asíncrona a los proveedores del anfitrión en lugar del pequeño diccionario local; los controles de consola Android se ejecutan en el anfitrión y devuelven Promises; se completan los tipos de gestos e input_observer
 * `Correccion` Node.js images.captureScreen deja de enviar opciones de consentimiento al procesamiento de capturas, permitiendo capturas normales y durante la grabación
 * `Dependencia` Se incorporaron las correcciones de seguridad de OpenSSL 3.5.9 al entorno Android de Node.js 24.21.0
-
-# v1.6.0
-
-###### 2026/10/09
-
-* `Nuevo` La página de ajustes del plugin permite elegir 1-8 ejecuciones simultáneas (2 por defecto) y un límite de cola (sin límite por defecto); los scripts adicionales esperan en FIFO, los cambios conservan las tareas aceptadas e idleExitMs libera los procesos inactivos
-* `Correccion` El asistente de proyectos deja de rechazar dependencias nativas, scripts de ciclo de vida npm, package exports e Inspector compatibles; conserva la comprobación de permisos declarados del anfitrión
-* `Mejora` fs, fs/promises y node:sqlite son los módulos nativos de Node.js: desaparecen la denegación de /proc, /sys, /dev propia del runtime y su capa de validación de rutas, la accesibilidad de los archivos la deciden únicamente los permisos de Android, las API de archivos asíncronas se ejecutan en el pool de hilos de libuv en lugar de bloquear el bucle de eventos, y los errores de ruta llevan los códigos propios de Node.js (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH y ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED ya no los producen las operaciones de archivos ni de base de datos)
-* `Mejora` process.cwd y process.chdir tienen el comportamiento nativo de Node.js; una ejecución entra en su directorio de trabajo con un chdir real y las rutas relativas las resuelve el propio Node.js
-* `Mejora` ATTACH de node:sqlite (incluidos nombres de archivo por parámetro enlazado o expresión), VACUUM INTO, los PRAGMA de directorio y setAuthorizer son comportamiento nativo de SQLite; enableLoadExtension y allowExtension siguen las comprobaciones de estado propias de Node.js
-* `Mejora` La biblioteca de ejecución de Node.js se compila con los datos ICU completos (--with-intl=full-icu), de modo que Intl y el formato regional coinciden con el Node.js de escritorio y NODE_ICU_DATA ya no es necesario
-* `Mejora` crypto.createPrivateKey y las API de firma aceptan claves OpenSSL STORE en forma de URL file: (se elimina el parche de desactivación exclusivo de Android)
-* `Mejora` Todos los módulos integrados de Node.js (cluster, domain, repl, trace_events, wasi, constants, node:sea y el resto) se devuelven tal como Node los exporta, directamente desde el inventario module.builtinModules de Node; require, require.resolve, import, process.getBuiltinModule y module.isBuiltin se comportan como en escritorio, y solo worker_threads, child_process, inspector y los módulos de red nativos conservan una puerta a nivel de solicitud; node:wasi queda disponible junto con la eliminación del límite /proc (en la libnode actual, compilada sin trazado, trace_events lanza ERR_TRACE_EVENTS_UNAVAILABLE exactamente como Node)
-* `Mejora` process conserva solo la gestión del ciclo de vida de exit; dlopen, abort, kill, umask, binding, report, features y las llamadas de identidad POSIX usan Node; os es nativo, homedir y tmpdir siguen HOME/TMPDIR y userInfo devuelve el usuario Android de la aplicación
-* `Mejora` supportedAbis en la información del plugin (INFO) y en los diagnósticos de ejecución procede ahora de la meta-data de manifiesto org.autojs.plugin.contract.SUPPORTED_ABIS escrita en la compilación (plugin nativeAlignment de AutoJs6-Gradle-Platform-Versions 1.9.0 o posterior), es decir, todas las ABI para las que se compila el plugin y no el split instalado; sin esa meta-data recurre a las ABI empaquetadas en los APK instalados, y se eliminan las constantes ABI escritas a mano
-* `Mejora` La carga de módulos es el loader CommonJS / ESM nativo de Node.js: require, require.resolve, require.cache, require.extensions, Module._resolveFilename, module.register, import(), import.meta y require(esm) son nativos, y la entrada se ejecuta como módulo principal de Node (require.main === module, __filename / process.argv[1] son realpaths); el runtime solo registra module.registerHooks que sirven los módulos de runtime autojs6:* y los shims de compatibilidad (esquema autojs6:; un paquete npm instalado sigue ocultando al shim del mismo nombre), la barrera de builtins por solicitud, las fuentes de módulos adjuntas a la solicitud / materializadas por el provider / de la instantánea TypeScript y la fuente en línea de la entrada; desaparecen el linker vm.SourceTextModule, el resolver propio, la reescritura de import() dinámico y las guardas eval / Function, y las claves de solicitud esmEnabled / dynamicImportEnabled ya no tienen efecto
-* `Mejora` Los Workers nativos admiten anidación, MessagePort, stdio, argv, execArgv y precargas heredadas; se eliminan los límites del plugin sobre cantidad y tiempo de arranque, resourceLimits aporta valores predeterminados modificables y WorkerPool no limita por defecto la cola ni la duración de las tareas; Inspector sigue la solicitud y la compilación
-* `Mejora` autojs6:bridge.callAutoJs está disponible en Workers y Workers anidados mediante MessagePorts de sus padres, conservando permisos, errores, tiempos de espera y cancelación del broker del host; worker-host-bridge demuestra la lectura de información real del dispositivo e incluye declaraciones TypeScript para la API
-* `Mejora` Las entradas y los módulos importados .ts / .mts / .cts siguen necesitando JavaScript generado por el Compiler del host; se mantienen el mapeo de instantáneas y la compilación bajo demanda del provider v3. Los errores nativos de Node sustituyen los antiguos códigos AutoJs6 de ESM e importación dinámica.
-* `Mejora` Los scripts principales y Workers cargan addons nativos Android mediante Node; process.dlopen y .node son nativos y no requieren listas propias de firmas o hashes; native-addon incluye tres ABI alineadas a 16 KB y compilación NDK/CMake sin conexión; ABI incorrectas o binarios dañados producen errores Node como ERR_DLOPEN_FAILED, sin incluir NDK ni Python en el dispositivo
-* `Mejora` Inspector funciona en Debug y Release con permiso explícito del anfitrión; inspector e inspector/promises conservan los módulos nativos de Node, con Session en scripts y Workers, escucha solo en 127.0.0.1 y sin esperas bloqueantes; sin permiso url() devuelve undefined y se impiden la activación y la creación de Session
-* `Mejora` install/update/remove de package_manager aceptan especificaciones npm y ejecutan el npm incluido en el espacio de trabajo; npm.cli/exec/runScript/pack usan la CLI real, con registry/proxy/ciclo de vida según npm y .npmrc del proyecto, salida en tiempo real y códigos de error npm; los archivos CLI se preparan al primer uso y las solicitudes de objeto conservan el contrato del almacén local del anfitrión
-* `Mejora` Inicio de scripts más rápido al evitar inicializaciones Web API innecesarias y activar por defecto la caché de compilación portátil nativa de Node para espacios de trabajo y Workers; reutilización entre copias e invalidación de fuentes modificadas a cargo de Node
-* `Mejora` Los metadatos describen las funciones implementadas sin estados provisionales; los ejemplos UI indican los proveedores anfitriones necesarios y se eliminan los campos de mercado y actualización de plugins sin plan
 
 ##### Para mas historial de versiones
 

@@ -78,6 +78,27 @@ async function exercise(api) {
   const attached=await memoApi.attach(view,memoApi.Column({},androidView));
   assert.equal(live.get(attached.id).tree.children[0].props.view.__autojs6ViewHandle,view.__autojs6ViewHandle);
   await attached.render(memoApi.Column({},androidView));assert.equal(factoryCalls,1);await attached.close();await view.dispose();
+  const writes=[], proxyUi=createUi(async(module,method,args)=>{
+    if(method==='viewUpdate'){
+      await delay(args[1].text==='first'?20:1);
+      if(args[1].text==='invalid')throw Object.assign(Error('invalid native text'),{code:'NATIVE_REJECTED'});
+      writes.push(structuredClone(args[1]));
+    }
+    return host(module,method,args);
+  });
+  const proxy=await proxyUi.createView('Text',{text:'before'});
+  proxy.text='first';proxy.text='second';
+  assert.equal(await proxy.text,'second');assert.deepEqual(writes.map(p=>p.text),['first','second']);
+  proxy.text='invalid';await assert.rejects(proxy.flush(),{code:'NATIVE_REJECTED'});
+  proxy.text='recovered';await proxy.flush();assert.equal(await proxy.get('text'),'recovered');
+  const assigned=['A','B'];proxy.items=assigned;assigned[0]='mutated';await proxy.flush();
+  assert.deepEqual(writes.at(-1).items,['A','B'],'Assignments snapshot array data');
+  assert.equal(structuredClone(proxy).text,undefined,'Property proxies remain outside serialized tokens');
+  const mutableToken=structuredClone(proxy), stable=createUi(host).view(mutableToken);
+  mutableToken.__autojs6ViewHandle='foreign';stable.text='Stable identity';await stable.flush();
+  assert.equal(await proxy.text,'Stable identity','Changing a source token cannot retarget queued native writes');
+  proxy.text='invalid';await assert.rejects(proxy.dispose(),{code:'NATIVE_REJECTED'});
+  assert(!nativeViews.has(proxy.id),'Disposal still releases native resources after a queued write fails');
   const window = await layouts.showLayout({ type: "Text", id: "text", text: layouts.bind(state, "text") });
   state.set("text", "after"); await delay(25);
   assert(calls.some(value => value.method === "batchUpdate" && value.args[1][0].text === "after"));
@@ -91,7 +112,7 @@ async function exercise(api) {
   const config = { preloadPath, entryUrl: pathToFileURL(path.join(directory, "entry.cjs")).href,
     gatedBuiltins: [], moduleSources: {}, typeScriptSources: {}, resourceLimits: {}, hostModuleMethods: { ui: Object.keys(layouts), compose: Object.keys(createCompose(host)) } };
   const Worker = new Function("return (" + constructor + ")")()(require, () => config, host);
-  const body = `const view=await requireUi.createView('Compose');const session=await compose.attach(view,compose.AndroidView({view:async context=>context.createView('Text',{text:'worker'})})); parentPort.postMessage({id:session.id, methods:typeof requireUi.state,view});`;
+  const body = `const view=await requireUi.createView('Compose');view.alpha=0.25;view.alpha=0.75;await view.flush();if(await view.alpha!==0.75)throw Error('Worker native properties');const session=await compose.attach(view,compose.AndroidView({view:async context=>context.createView('Text',{text:'worker'})})); parentPort.postMessage({id:session.id, methods:typeof requireUi.state,view});`;
   for (const esm of [false, true]) {
     const code = esm ? `import compose,{sessions,Text} from 'compose'; if(!Array.isArray(sessions)||typeof Text!=='function')throw Error('named Compose exports'); import requireUi from 'ui'; import {parentPort} from 'node:worker_threads'; ${body}`
       : `const compose=require('compose'),requireUi=require('ui'),{parentPort}=require('worker_threads'); (async()=>{${body}})();`;

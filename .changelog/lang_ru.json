@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.9.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js поддерживают стандартные XML-формы и макеты, асинхронные свойства View, последовательные присваивания, восстановление после ошибок и Workers"
+      ]
+    },
     "v1.8.0": {
       "released_date": "2026/10/18",
       "feature": [

@@ -4,6 +4,12 @@
 
 ******
 
+# v1.9.0
+
+###### 2026/10/18
+
+* `Ajout` Node.js prennent en charge les formulaires et interfaces XML courants, les propriétés View asynchrones, les affectations ordonnées, la reprise après erreur et les Workers
+
 # v1.8.0
 
 ###### 2026/10/18

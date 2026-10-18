@@ -825,3 +825,5 @@ every Rhino coercion remain outside this portable API contract.
 2026-10-18: UI/Compose 数据 API 接入主线程与 CJS/ESM/嵌套 Worker, 窗口效果异步, 回调留在创建线程. 详见 docs/HOST-API.md 及宿主本批报告; AndroidView/XML attach 等原生互操作仍未宣称覆盖.
 
 2026-10-18: 后续批次补齐执行所属 View 句柄, AndroidView 和 XML compose.attach, 包括 Worker 所有权与打包应用路径. 详见 docs/HOST-API.md.
+
+2026-10-18: 常用 XML 组件与原生 View 异步属性代理接入主线程和 CJS/ESM/嵌套 Worker, 保留顺序, 失败传播及跨线程句柄身份; 详见 docs/HOST-API.md.

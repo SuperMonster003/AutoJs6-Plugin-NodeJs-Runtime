@@ -1,4 +1,11 @@
   function __autojs6_create_ui(__autojs6_call_autojs, __autojs6_bridge_attach_events = () => null) {
+    const writableViewProperties = ["text", "hint", "textSize", "textColor", "textStyle", "singleLine", "maxLines", "inputType",
+      "checked", "enabled", "visible", "visibility", "alpha", "contentDescription", "clickable", "focusable",
+      "width", "height", "padding", "margin", "backgroundColor", "gravity", "layoutGravity", "weight", "orientation",
+      "min", "max", "progress", "indeterminate", "rating", "numStars", "stepSize", "isIndicator",
+      "items", "selectedIndex", "checkedId", "textOn", "textOff", "value", "wrapSelectorWheel", "displayedValues",
+      "cardCornerRadius", "cardElevation", "src", "scaleType", "adjustViewBounds"];
+    const readonlyViewProperties = ["attached", "layoutWidth", "layoutHeight", "drawableWidth", "drawableHeight"];
     const nativeViews = new Map();
     let nativeContext;
     const nativeCall = (method, args) => __autojs6_call_autojs("ui", method, args, { permissions: ["ui"] });
@@ -19,9 +26,34 @@
       if (value === null) return null;
       viewToken(value);
       if (nativeViews.has(value.__autojs6ViewHandle)) return nativeViews.get(value.__autojs6ViewHandle);
+      // A caller may mutate the original structured-cloned token after wrapping it.
+      value = Object.freeze({ ...value, id: value.__autojs6ViewHandle,
+        ...(value.context ? { context: Object.freeze({ ...value.context }) } : {}) });
       const output = { ...value, context: value.context && wrapContext(value.context) };
       const listeners = new Map(); let closed = false, reading = false;
+      let writeTail = Promise.resolve(), sequence = 0;
+      const writeErrors = [];
       const usable = () => { if (closed) throw new Error("Native View handle is closed"); };
+      function write(patch, deferred = false) {
+        usable();
+        // Capture assignment values now, before a caller mutates an array/object again.
+        const payload = __autojs6_ui_validate_json(patch, "viewUpdate", "patch", 0, [], 1024);
+        const order = ++sequence;
+        const result = writeTail.then(() => { usable(); return nativeCall("viewUpdate", [value, payload]); });
+        writeTail = result.then(() => {}, error => { if (deferred) writeErrors.push({ order, error }); });
+        return result;
+      }
+      async function flush() {
+        const end = sequence, barrier = writeTail;
+        await barrier;
+        const errors = writeErrors.filter(item => item.order <= end);
+        for (let index = writeErrors.length - 1; index >= 0; index--) if (writeErrors[index].order <= end) writeErrors.splice(index, 1);
+        if (errors.length) throw errors[0].error;
+      }
+      async function read(name) {
+        usable(); await flush(); usable();
+        return nativeCall("viewGet", name === undefined ? [value] : [value, name]);
+      }
       const emit = event => {
         if (closed) return;
         if (event.type === "close") closed = true;
@@ -45,12 +77,21 @@
       function off(name, callback) { listeners.set(name, (listeners.get(name) || []).filter(fn => fn !== callback && fn.listener !== callback)); }
       function once(name, callback) { const listener = event => { off(name, listener); callback.call(output, event); }; listener.listener = callback; return on(name, listener); }
       Object.defineProperties(output, {
-        get: { value: async name => { usable(); return nativeCall("viewGet", name === undefined ? [value] : [value, name]); } },
-        set: { value: async patch => { usable(); return nativeCall("viewUpdate", [value, patch]); } },
+        get: { value: read }, set: { value: patch => write(patch) }, flush: { value: flush },
         findView: { value: name => findView(value, name) },
-        dispose: { value: async () => { if (closed) return; await nativeCall("disposeView", [value]); emit({ type: "close" }); } },
+        dispose: { value: async () => {
+          if (closed) return;
+          let failure; try { await flush(); } catch (error) { failure = error; }
+          await nativeCall("disposeView", [value]); emit({ type: "close" });
+          if (failure) throw failure;
+        } },
         on: { value: on }, once: { value: once }, off: { value: off }
       });
+      for (const name of writableViewProperties) Object.defineProperty(output, name, {
+        get: () => read(name), set: assigned => { write({ [name]: assigned }, true).catch(() => {}); }
+      });
+      for (const name of readonlyViewProperties) Object.defineProperty(output, name, { get: () => read(name) });
+      Object.defineProperty(output, "xmlId", { get: () => read("id") });
       Object.freeze(output); nativeViews.set(value.__autojs6ViewHandle, output); return output;
     }
     async function inflate(layout, scope) {
@@ -94,7 +135,7 @@
       methodName
     );
   }
-  function __autojs6_ui_validate_json(value, methodName, path, depth, seen) {
+  function __autojs6_ui_validate_json(value, methodName, path, depth, seen, arrayLimit = 128) {
     if (depth > 16) {
       throw __autojs6_ui_invalid_argument_error(methodName, "ui." + methodName + " descriptor is too deep at " + path + ".");
     }
@@ -112,11 +153,11 @@
     }
     seen.push(value);
     if (Array.isArray(value)) {
-      if (value.length > 128) {
+      if (value.length > arrayLimit) {
         throw __autojs6_ui_invalid_argument_error(methodName, "ui." + methodName + " descriptor array is too large at " + path + ".");
       }
       const arrayResult = value.map(function(entry, index) {
-        return __autojs6_ui_validate_json(entry, methodName, path + "[" + index + "]", depth + 1, seen);
+        return __autojs6_ui_validate_json(entry, methodName, path + "[" + index + "]", depth + 1, seen, arrayLimit);
       });
       seen.pop();
       return arrayResult;
@@ -135,7 +176,7 @@
       if (entry === undefined || typeof entry === "function" || typeof entry === "symbol" || typeof entry === "bigint") {
         throw __autojs6_ui_invalid_argument_error(methodName, "ui." + methodName + " descriptor must be JSON-only at " + path + "." + key + ".");
       }
-      objectResult[key] = __autojs6_ui_validate_json(entry, methodName, path + "." + key, depth + 1, seen);
+      objectResult[key] = __autojs6_ui_validate_json(entry, methodName, path + "." + key, depth + 1, seen, arrayLimit);
     });
     seen.pop();
     return objectResult;

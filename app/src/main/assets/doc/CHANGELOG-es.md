@@ -4,6 +4,12 @@
 
 ******
 
+# v1.9.0
+
+###### 2026/10/18
+
+* `Nuevo` Node.js admiten formularios y diseños XML comunes, propiedades View asíncronas, asignaciones ordenadas, recuperación de errores y Workers
+
 # v1.8.0
 
 ###### 2026/10/18

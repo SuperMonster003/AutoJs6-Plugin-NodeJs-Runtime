@@ -119,6 +119,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.9.0
+
+###### 2026/10/18
+
+* `ميزة` يدعم Node.js نماذج وتخطيطات XML الشائعة وخصائص View غير المتزامنة مع الإسناد المرتب والتعافي من الأخطاء و Worker
+
 # v1.8.0
 
 ###### 2026/10/18
@@ -142,30 +148,6 @@ console.log("AutoJs6 Node.js runtime");
 * `اصلاح` أصبحت Pinyin/Pinyin4j تستدعي مزودي المضيف بشكل غير متزامن بدلا من القاموس المحلي الصغير; تنفذ أوامر وحدة تحكم Android على المضيف وتعيد Promise; اكتملت تعريفات أنواع الإيماءات و input_observer
 * `اصلاح` يتوقف Node.js images.captureScreen عن إرسال خيارات إذن الالتقاط إلى معالج الصور, مما يتيح اللقطات العادية واللقطات أثناء التسجيل
 * `اعتماد` نقل إصلاحات الأمان من OpenSSL 3.5.9 إلى بيئة تشغيل Node.js 24.21.0 على Android
-
-# v1.6.0
-
-###### 2026/10/09
-
-* `ميزة` تتيح إعدادات الإضافة 1-8 عمليات تشغيل متزامنة (الافتراضي 2) وحدا لقائمة الانتظار (بلا حد افتراضيا); تنتظر البرامج الزائدة بترتيب FIFO وتحافظ التغييرات على المهام المقبولة ويحرر idleExitMs العمليات الخاملة
-* `اصلاح` لم يعد معالج المشاريع يرفض الاعتماديات الأصلية المدعومة أو نصوص دورة حياة npm أو package exports أو Inspector, مع الإبقاء على التحقق من صلاحيات المضيف المعلنة
-* `تحسين` fs و fs/promises و node:sqlite هي وحدات Node.js الأصلية: أُزيل رفض /proc و /sys و /dev الخاص بوقت التشغيل وطبقة التحقق من المسارات، وإمكانية الوصول إلى الملفات تحددها أذونات Android وحدها، وتعمل واجهات الملفات غير المتزامنة في مجمع خيوط libuv بدل حجب حلقة الأحداث، وتحمل أخطاء المسارات رموز Node.js الأصلية (لم تعد عمليات الملفات وقواعد البيانات تُصدر ERR_AUTOJS6_FS_NUL_BYTE و ERR_AUTOJS6_FS_PATH_ESCAPE و ERR_AUTOJS6_FS_SCOPED_PATH و ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED)
-* `تحسين` process.cwd و process.chdir بسلوك Node.js الأصلي؛ يدخل التنفيذ دليل العمل عبر chdir حقيقي وتُحل المسارات النسبية بواسطة Node.js نفسه
-* `تحسين` ATTACH في node:sqlite (بما في ذلك أسماء الملفات عبر معامل مربوط أو تعبير) و VACUUM INTO و PRAGMA الأدلة و setAuthorizer هي سلوك SQLite الأصلي؛ ويتبع enableLoadExtension و allowExtension فحوصات الحالة الخاصة بـ Node.js
-* `تحسين` تُبنى مكتبة وقت تشغيل Node.js ببيانات ICU الكاملة (--with-intl=full-icu)، فتتطابق Intl وتنسيقات اللغات المحلية مع Node.js المكتبي ولم تعد NODE_ICU_DATA مطلوبة
-* `تحسين` تقبل crypto.createPrivateKey وواجهات التوقيع مفاتيح OpenSSL STORE بصيغة عنوان file: URL (أُزيل تصحيح التعطيل الخاص بـ Android)
-* `تحسين` تُعاد جميع وحدات Node.js المضمنة (cluster و domain و repl و trace_events و wasi و constants و node:sea وغيرها) كما يصدّرها Node مباشرة من قائمة module.builtinModules الخاصة به؛ وتسلك require و require.resolve و import و process.getBuiltinModule و module.isBuiltin سلوك سطح المكتب، ولا تحتفظ ببوابة على مستوى الطلب سوى worker_threads و child_process و inspector ووحدات الشبكة الأصلية؛ وتُفتح node:wasi مع إزالة حدود /proc (في libnode الحالية المبنية دون تتبع، تطلق trace_events الخطأ ERR_TRACE_EVENTS_UNAVAILABLE تماماً كما يفعل Node)
-* `تحسين` يحتفظ process فقط بإدارة دورة حياة exit; تستخدم dlopen و abort و kill و umask و binding و report و features واستدعاءات هوية POSIX تنفيذ Node الأصلي; تكون os أصلية وتتبع homedir و tmpdir قيم HOME/TMPDIR وتعيد userInfo مستخدم تطبيق Android
-* `تحسين` أصبحت supportedAbis في معلومات الإضافة (INFO) وتشخيصات وقت التشغيل تُقرأ من البيانات الوصفية org.autojs.plugin.contract.SUPPORTED_ABIS المكتوبة في البيان أثناء البناء (إضافة nativeAlignment من AutoJs6-Gradle-Platform-Versions 1.9.0 فما بعد), أي كل ABI بُنيت الإضافة لأجلها وليس التقسيم المثبّت فقط; وعند غياب البيانات الوصفية تعود إلى ABI المعبّأة في ملفات APK المثبّتة, وحُذفت ثوابت ABI المكتوبة يدويًا
-* `تحسين` أصبح تحميل الوحدات عبر محمّل CommonJS / ESM الأصلي في Node.js: require و require.resolve و require.cache و require.extensions و Module._resolveFilename و module.register و import() و import.meta و require(esm) كلها أصلية, ويعمل المدخل كوحدة Node الرئيسية (require.main === module, و __filename / process.argv[1] مساران حقيقيان); لا يسجّل وقت التشغيل سوى module.registerHooks التي تقدّم وحدات وقت التشغيل autojs6:* وطبقات التوافق (مخطط autojs6:; تظل حزمة npm المثبّتة مقدّمة على الطبقة بالاسم نفسه) وبوابة الوحدات المضمنة على مستوى الطلب ومصادر الوحدات المرفقة بالطلب / المجسّدة من المزوّد / من لقطة TypeScript والمصدر المضمّن للمدخل; أُزيل رابط vm.SourceTextModule والمحلّل الخاص وإعادة كتابة import() الديناميكي وحراس eval / Function, ولم يعد لمفتاحي الطلب esmEnabled / dynamicImportEnabled أي أثر
-* `تحسين` تدعم خيوط Worker الأصلية التداخل وواجهات MessagePort و stdio و argv و execArgv وتوارث التحميل المسبق; أزيلت حدود الإضافة لعدد الخيوط ووقت بدء التشغيل, وأصبحت resourceLimits قيما افتراضية قابلة للتجاوز, ولا يفرض WorkerPool حدا افتراضيا للطابور أو مدة المهام; تتبع جلسات Inspector طلب التنفيذ ودعم البناء الحالي
-* `تحسين` تتوفر autojs6:bridge.callAutoJs داخل Worker والخيوط المتداخلة عبر MessagePort الأب مع الحفاظ على أذونات وسيط المضيف وأخطائه ومهلاته وإلغاء الطلبات; يوضح مثال worker-host-bridge قراءة معلومات الجهاز الفعلية وتتوفر تعريفات TypeScript لواجهة الجسر
-* `تحسين` لا تزال نقاط الدخول والوحدات المستوردة .ts / .mts / .cts تتطلب JavaScript ينتجه Compiler المضيف; تم الحفاظ على ربط اللقطات والترجمة عند الطلب عبر provider v3. تحل أخطاء Node الأصلية محل رموز أخطاء AutoJs6 السابقة الخاصة بـ ESM والاستيراد الديناميكي.
-* `تحسين` يمكن للسكربت الرئيسي و Worker تحميل إضافات Android الأصلية عبر Node; تستخدم process.dlopen وامتداد .node السلوك الأصلي دون قوائم توقيعات أو بصمات خاصة بالإضافة; يوفر native-addon ملفات Node-API لثلاث واجهات ABI بمحاذاة 16 KB وبناء NDK/CMake دون اتصال; تعيد الملفات التالفة أو ABI غير المتوافقة أخطاء Node مثل ERR_DLOPEN_FAILED, ولا يتم تضمين NDK أو Python على الجهاز
-* `تحسين` يدعم Inspector إصدارات Debug وRelease بعد إذن صريح من المضيف; يحتفظ inspector وinspector/promises بوحدات Node الأصلية ويدعمان Session في النصوص الرئيسية وWorker, مع الاستماع على 127.0.0.1 فقط ودون انتظار حاجب; دون إذن تعيد url() القيمة undefined ويظل التفعيل وإنشاء Session معطلين
-* `تحسين` تقبل install/update/remove في package_manager مواصفات حزم npm وتشغل npm المرفق في مساحة العمل; تستخدم npm.cli/exec/runScript/pack سطر الأوامر الفعلي وتتبع إعدادات registry والوكيل ودورة الحياة npm وملف .npmrc للمشروع, مع بث المخرجات والاحتفاظ برموز أخطاء npm; تجهز ملفات CLI عند أول استخدام وتحتفظ طلبات الكائنات بعقد التخزين المحلي للمضيف
-* `تحسين` تسريع بدء البرامج النصية بتجنب تهيئة Web API غير الضرورية وتفعيل ذاكرة تجميع وحدات Node المحمولة افتراضيا لمساحات العمل وWorker; يعاد استخدامها بين النسخ ويبطل Node المصادر المعدلة
-* `تحسين` تصف بيانات القدرات الوظائف المنفذة دون حالات مؤقتة; توضح أمثلة UI خدمات المضيف المطلوبة وتحذف حقول متجر الإضافات وقنوات التحديث غير المخطط لها
 
 ##### لمزيد من سجل الاصدارات
 

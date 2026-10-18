@@ -119,6 +119,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.9.0
+
+###### 2026/10/18
+
+* `Feature` Node.js support common XML form and layout widgets and asynchronous native View property access, including ordered assignments, error recovery and Worker use
+
 # v1.8.0
 
 ###### 2026/10/18
@@ -142,30 +148,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 * `Fix` Pinyin/Pinyin4j now await real host providers instead of a small local dictionary; Android console controls execute on the host and return Promises; accessibility gestures and input_observer declarations are complete
 * `Fix` Node.js images.captureScreen no longer forwards capture-consent options to the screenshot encoder, allowing ordinary and concurrent recording screenshots
 * `Dependency` Backported OpenSSL 3.5.9 security fixes to the Node.js 24.21.0 Android runtime
-
-# v1.6.0
-
-###### 2026/10/09
-
-* `Feature` The plugin settings page provides 1-8 parallel execution slots (default 2) and a queue limit (unlimited by default); surplus scripts wait in FIFO order, settings take effect without interrupting accepted work, and idleExitMs releases idle runtime processes
-* `Fix` The project wizard no longer rejects supported native dependencies, npm lifecycle scripts, package exports or Inspector; host permission declaration checks remain in place
-* `Improvement` fs, fs/promises and node:sqlite are Node.js's own modules: the runtime's /proc, /sys, /dev denial and its path-validating wrapper are gone, file reachability is decided by Android permissions alone, asynchronous file APIs run on the libuv thread pool instead of blocking the event loop, and path errors carry Node.js's own codes (ERR_AUTOJS6_FS_NUL_BYTE, ERR_AUTOJS6_FS_PATH_ESCAPE, ERR_AUTOJS6_FS_SCOPED_PATH and ERR_AUTOJS6_SQLITE_FILE_OPERATION_UNSUPPORTED are no longer produced by file or database operations)
-* `Improvement` process.cwd and process.chdir are native Node.js behavior; an execution enters its working directory with a real chdir and relative paths are resolved by Node.js itself
-* `Improvement` node:sqlite ATTACH (including bound-parameter and expression filenames), VACUUM INTO, directory PRAGMAs and setAuthorizer are plain SQLite behavior; enableLoadExtension and allowExtension follow Node.js's own state checks
-* `Improvement` The Node.js runtime library is built with full ICU data (--with-intl=full-icu), so Intl and locale formatting match desktop Node.js and NODE_ICU_DATA is no longer needed
-* `Improvement` crypto.createPrivateKey and the signing APIs accept file: URL OpenSSL STORE key inputs (the Android-only disabling patch is removed)
-* `Improvement` Every Node.js builtin (cluster, domain, repl, trace_events, wasi, constants, node:sea and the rest) is returned as Node exports it, straight from Node's own module.builtinModules inventory; require, require.resolve, import, process.getBuiltinModule and module.isBuiltin behave as on desktop, and only worker_threads, child_process, inspector and the raw network modules keep a request-level gate; node:wasi opens up together with the removed /proc boundary (on the current libnode, built without tracing, trace_events throws ERR_TRACE_EVENTS_UNAVAILABLE exactly as Node does)
-* `Improvement` process keeps only the lifecycle mapping of exit; dlopen, abort, kill, umask, binding, report, features and POSIX identity calls use Node implementations; os is native, homedir and tmpdir follow HOME/TMPDIR and userInfo reports the Android app user
-* `Improvement` supportedAbis in the plugin INFO and the runtime diagnostics now comes from the org.autojs.plugin.contract.SUPPORTED_ABIS manifest meta-data written at build time (nativeAlignment plugin of AutoJs6-Gradle-Platform-Versions 1.9.0 or later), meaning every ABI the plugin is built for rather than the installed split; without the meta-data it falls back to the ABIs packaged in the installed APKs, and the hand-written ABI constants are gone
-* `Improvement` Module loading is Node.js's own CommonJS / ESM loader: require, require.resolve, require.cache, require.extensions, Module._resolveFilename, module.register, import(), import.meta and require(esm) are native, and the entry runs as Node's main module (require.main === module, __filename / process.argv[1] are realpaths); the runtime only registers module.registerHooks that serve the autojs6:* runtime modules and compat shims (autojs6: scheme; an installed npm package still shadows a shim of the same name), the request-level builtin gate, request-attached / provider-materialized / TypeScript-snapshot module sources and the entry's inline source; the vm.SourceTextModule linker, the custom resolver, the dynamic import() rewrite and the eval / Function guards are gone, and the esmEnabled / dynamicImportEnabled request keys no longer gate anything
-* `Improvement` Native Worker threads support nesting, MessagePort APIs, stdio, argv, execArgv and inherited preloads; plugin worker-count and startup-timeout limits are removed, request resourceLimits are overridable defaults, and WorkerPool has no default queue limit or task timeout; Inspector sessions follow the execution request and current build support
-* `Improvement` autojs6:bridge.callAutoJs is available in Workers and nested Workers through parent MessagePorts, reusing the host broker permissions, errors, timeout and cancellation; worker-host-bridge demonstrates reading real host device information, with TypeScript declarations for the bridge API
-* `Improvement` Raw .ts / .mts / .cts entries and imported modules still require JavaScript output from the host Compiler; snapshot mapping and provider v3 on-demand compilation are retained. Native loader failures replace the retired AutoJs6 ESM and dynamic-import error codes.
-* `Improvement` Android native addons load through Node in main scripts and Workers: process.dlopen and the .node extension are native, with no plugin-specific signature or hash allowlist; native-addon provides Node-API binaries for three ABIs with 16 KB alignment and an offline NDK/CMake build; wrong ABI or invalid binaries report Node errors such as ERR_DLOPEN_FAILED, while a device NDK/Python build toolchain is not bundled
-* `Improvement` Inspector supports Debug and Release builds after an explicit host request; inspector and inspector/promises keep native module identity, sessions work in root scripts and Workers, listeners bind only to 127.0.0.1 and blocking waits are unavailable; without permission url() returns undefined while activation and Session creation remain disabled
-* `Improvement` package_manager install/update/remove accept npm package specs and run the bundled npm in the workspace; npm.cli/exec/runScript/pack use the real CLI, registry/proxy/lifecycle options follow npm and project .npmrc, output streams back and failures retain npm codes; CLI assets are prepared only on first use, while object requests keep the existing host local-store contract
-* `Improvement` Faster script startup by preserving native Web API initialization and enabling Node's portable module compile cache for workspaces and Workers by default; cache entries survive workspace copies and Node invalidates changed sources
-* `Improvement` Runtime capability metadata now describes implemented behavior without provisional status labels; UI/provider-dependent examples identify their host requirements, and unplanned plugin marketplace/update fields are removed
 
 ##### For more release history
 

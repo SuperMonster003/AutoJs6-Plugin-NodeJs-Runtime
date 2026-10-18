@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Mejora",
   "changelog_label_dependency": "Dependencia",
   "$data": {
+    "v1.9.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js admiten formularios y diseños XML comunes, propiedades View asíncronas, asignaciones ordenadas, recuperación de errores y Workers"
+      ]
+    },
     "v1.8.0": {
       "released_date": "2026/10/18",
       "feature": [
