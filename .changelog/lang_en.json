@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.15.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "WebView screen sharing adapter, foreground-service audio capture and native background camera recording in Node.js/Bun, including Node Workers"
+      ]
+    },
     "v1.14.0": {
       "released_date": "2026/10/18",
       "feature": [

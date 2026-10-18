@@ -119,6 +119,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.15.0
+
+###### 2026/10/18
+
+* `Ajout` Adaptateur de partage ecran WebView, capture audio par service de premier plan et enregistrement camera natif en arriere-plan pour Node.js/Bun et Node Worker
+
 # v1.14.0
 
 ###### 2026/10/18
@@ -130,12 +136,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 ###### 2026/10/18
 
 * `Ajout` Node.js/Worker: Capture vidéo WebView et enregistrement audio AAC/M4A au premier plan, avec options média, délais configurables et nettoyage des fichiers temporaires
-
-# v1.12.0
-
-###### 2026/10/18
-
-* `Ajout` Node.js/Worker: Capture photo WebView en pleine résolution, sélection de fichiers et dossiers, lecture des octets et téléchargements blob/data vers les emplacements choisis
 
 ##### Pour plus d'historique des versions
 

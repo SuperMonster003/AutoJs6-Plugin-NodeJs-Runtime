@@ -807,3 +807,14 @@ Use a secure page (HTTPS or loopback), actual WebView `navigator.mediaDevices.ge
 Closing a window that hosted a media-authorized WebView navigates that page to about:blank to release its camera/microphone; the View identity remains reusable after reloading. Worker exit closes only its own windows. Clearing/replacing a Chrome callback alone does not revoke a previously granted page permission.
 
 Chromium audio capture also requires the normal MODIFY_AUDIO_SETTINGS manifest permission. APK Builder 1.2.6 retains it when RECORD_AUDIO is selected; other packagers must declare it explicitly.
+
+
+## WebView display sharing and background recording (2026-10-18)
+
+Host 5569 supports `enableDisplayCapture({origin,maxWidth,maxHeight,frameRate,timeoutMs})` / `disableDisplayCapture(id?)`: an opt-in same-page getDisplayMedia adapter only when the native method is absent. It uses fresh Android MediaProjection consent and a real canvas MediaStream, with a visible-page user gesture. Screen audio is not supplied. Navigation, window disposal, last track/clone stop and Worker registration cleanup release sharing.
+
+`onPermissionRequest` accepts `backgroundCapture:true` with an explicit origin/resource decision and Android permission request. The foreground service supports microphone capture while the app is hidden. It does not override Chromium camera muting; tested WebViews 111/130 mute hidden getUserMedia camera tracks.
+
+`startBackgroundRecording(options)` / `getBackgroundRecording()` / `stopBackgroundRecording()` / `cancelBackgroundRecording(id?)` provide native Camera2/MediaRecorder H.264/MP4 recording, optionally AAC microphone audio. Start from a visible WebView, then continue in a foreground service. Copy/read the temporary content URI before disposing the View. Notification stop and limits finalize native output; cancellation/closing its window discards unfinished output. Worker cleanup uses recording IDs so it cannot cancel a later replacement. `stopMediaCapture()` cancels active work and navigates to about:blank; save page recorder data before calling it.
+
+Builder 1.2.7 retains foreground camera/microphone dependencies and base FOREGROUND_SERVICE for selected service types. Screen sharing projects explicitly select FOREGROUND_SERVICE_MEDIA_PROJECTION. OS consent and while-in-use rules remain in force. See the host delivery report `docs/dev/runtime-webview-display-2026-10-18.md` for device and packaged evidence.

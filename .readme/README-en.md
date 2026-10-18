@@ -119,6 +119,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.15.0
+
+###### 2026/10/18
+
+* `Feature` WebView screen sharing adapter, foreground-service audio capture and native background camera recording in Node.js/Bun, including Node Workers
+
 # v1.14.0
 
 ###### 2026/10/18
@@ -130,12 +136,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/18
 
 * `Feature` Node.js/Worker: WebView video capture and foreground AAC/M4A audio recording, with media options, configurable chooser deadlines and temporary-file cleanup
-
-# v1.12.0
-
-###### 2026/10/18
-
-* `Feature` Node.js/Worker: WebView full-size camera capture, save and directory selection, document byte reads, and streamed blob/data downloads with selected output locations
 
 ##### For more release history
 

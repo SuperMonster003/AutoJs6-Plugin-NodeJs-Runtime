@@ -4,6 +4,12 @@
 
 ******
 
+# v1.15.0
+
+###### 2026/10/18
+
+* `Ajout` Adaptateur de partage ecran WebView, capture audio par service de premier plan et enregistrement camera natif en arriere-plan pour Node.js/Bun et Node Worker
+
 # v1.14.0
 
 ###### 2026/10/18

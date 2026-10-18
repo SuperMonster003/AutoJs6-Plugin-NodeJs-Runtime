@@ -119,6 +119,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.15.0
+
+###### 2026/10/18
+
+* `新增` Node.js/Bun 的 WebView 螢幕共享適配, 前景服務背景錄音及原生背景攝影機錄影, 包括 Node Worker 封裝
+
 # v1.14.0
 
 ###### 2026/10/18
@@ -130,12 +136,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/18
 
 * `新增` Node.js/Worker: WebView 影片拍攝與前台 AAC/M4A 錄音, 支援媒體參數, 可設定選擇等待時限及臨時檔案清理
-
-# v1.12.0
-
-###### 2026/10/18
-
-* `新增` Node.js/Worker: WebView 完整照片拍攝, 儲存和目錄選擇, 文件位元組讀取, blob/data 分塊下載及所選位置輸出
 
 ##### 更多發行歷史可參閱
 

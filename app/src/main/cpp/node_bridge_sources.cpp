@@ -8376,7 +8376,10 @@ std::string buildEmbeddedScriptExecutionSource(
         const pending = new Map();
         const recordings = new Set();
         const windows = new Map();
-        const webClients = new Map(), webTasks = new Map();
+        const webClients = new Map(), webTasks = new Map(), displayCaptures = new Map(), cameraRecordings = new Map(), eventReaders = new Map();
+        const releaseEventReader = entry => invoke("ui", "viewCommand", [entry.view, "releaseViewEvents", [entry.id]], { permissions: ["ui"] }).catch(() => {});
+        const cancelCameraRecording = entry => invoke("ui", "viewCommand", [entry.view, "cancelBackgroundRecording", [entry.id]], { permissions: ["ui"] }).catch(() => {});
+        const disableDisplayCapture = entry => invoke("ui", "viewCommand", [entry.view, "disableDisplayCapture", [entry.id]], { permissions: ["ui"] }).catch(() => {});
         const clearWebClient = entry => invoke("ui", "viewCommand", [entry.view, "clearWebClient", [entry.family, entry.clientId]], { permissions: ["ui"] }).catch(() => {});
         const cancelWebTask = entry => invoke("ui", "viewCommand", [entry.view, "cancelWebTask", [entry.taskId]], { permissions: ["ui"] }).catch(() => {});
         const closeWindow = (id, module) => invoke(module, "close", [id], { permissions: ["ui"] }).catch(() => {});
@@ -8394,6 +8397,12 @@ std::string buildEmbeddedScriptExecutionSource(
           for (const entry of webClients.values()) clearWebClient(entry);
           for (const entry of webTasks.values()) cancelWebTask(entry);
           webClients.clear(); webTasks.clear();
+          for (const entry of displayCaptures.values()) disableDisplayCapture(entry);
+          displayCaptures.clear();
+          for (const entry of cameraRecordings.values()) cancelCameraRecording(entry);
+          cameraRecordings.clear();
+          for (const entry of eventReaders.values()) releaseEventReader(entry);
+          eventReaders.clear();
           port1.close();
         };
         const reply = message => { if (!closed) port1.postMessage(message); };
@@ -8409,15 +8418,30 @@ std::string buildEmbeddedScriptExecutionSource(
           try {
             const createsWindow = ["ui", "compose"].includes(message.module) && ["showLayout", "mount", "dialog", "floaty", "attach"].includes(message.method);
             const webOperation = message.module === "ui" && message.method === "viewCommand" ? message.args[1] : "";
-            const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation"].includes(webOperation);
+            const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "enableDisplayCapture", "startBackgroundRecording", "stopBackgroundRecording", "subscribeViewEvents"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
               { ...message.options, signal: createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+            if (webOperation === "subscribeViewEvents" && value) {
+              const entry = {view:message.args[0], id:message.args[2][0]};
+              if (closed || controller.signal.aborted) { await releaseEventReader(entry); throw Object.assign(new Error("View event subscription was aborted"), {code:"ABORT_ERR"}); }
+              eventReaders.set(entry.view.__autojs6ViewHandle+":"+entry.id,entry);
+            } else if (webOperation === "releaseViewEvents") eventReaders.delete(message.args[0].__autojs6ViewHandle+":"+message.args[2][0]);
+            if (webOperation === "startBackgroundRecording" && value && value.recordingId) {
+              const entry = {view: message.args[0], id: value.recordingId};
+              if (closed || controller.signal.aborted) { await cancelCameraRecording(entry); throw Object.assign(new Error("Camera recording creation was aborted"), {code:"ABORT_ERR"}); }
+              cameraRecordings.set(entry.view.__autojs6ViewHandle, entry);
+            } else if (webOperation === "cancelBackgroundRecording" && value) cameraRecordings.delete(message.args[0].__autojs6ViewHandle);
+            if (webOperation === "enableDisplayCapture" && value && value.id) {
+              const entry = { view: message.args[0], id: value.id };
+              if (closed || controller.signal.aborted) { await disableDisplayCapture(entry); throw Object.assign(new Error("Display capture installation was aborted"), { code: "ABORT_ERR" }); }
+              displayCaptures.set(entry.view.__autojs6ViewHandle, entry);
+            } else if (webOperation === "disableDisplayCapture" && value) displayCaptures.delete(message.args[0].__autojs6ViewHandle);
             if (webOperation === "configureWebClient") {
               const config = message.args[2][0], entry = { view: message.args[0], family: config.family, clientId: config.clientId };
               if (closed || controller.signal.aborted) { await clearWebClient(entry); throw Object.assign(new Error("WebView client creation was aborted"), { code: "ABORT_ERR" }); }
               webClients.set(entry.view.__autojs6ViewHandle + ":" + entry.family, entry);
-            } else if (["chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation"].includes(webOperation) && value && value.taskId) {
+            } else if (["chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "startBackgroundRecording", "stopBackgroundRecording"].includes(webOperation) && value && value.taskId) {
               const entry = { view: message.args[0], taskId: value.taskId };
               if (closed || controller.signal.aborted) { await cancelWebTask(entry); throw Object.assign(new Error("WebView task creation was aborted"), { code: "ABORT_ERR" }); }
               webTasks.set(value.taskId, entry);
@@ -16411,6 +16435,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const clients = Object.create(null), clientVersions = new Map(), webTasks = new Map(), earlyWebTasks = new Map();
       const clientInstance = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
       let clientSerial = 0, startingWebTasks = 0;
+      let subscriptionSerial = 0, subscription = null, subscriptionReady = null, legacyEvents = false;
       let writeTail = Promise.resolve(), sequence = 0;
       const writeErrors = [];
       const usable = () => { if (closed) throw new Error("Native View handle is closed"); };
@@ -16448,6 +16473,16 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       function evaluateJavascript(source, options = {}) { return webTask("beginWebEvaluation", [source, options], true); }
       function evaluateJavascriptAsync(source, options = {}) { return webTask("beginAsyncWebEvaluation", [source, options], true); }
+      function subscribeEvents() {
+        if (!subscriptionReady) {
+          const id = clientInstance + ":" + ++subscriptionSerial;
+          subscriptionReady = (legacyEvents ? Promise.resolve() : directWebCommand("subscribeViewEvents", [id]).then(() => { subscription = id; }).catch(error => {
+            if (/subscribeViewEvents/.test(String(error.message)) && /unknown|unsupported/i.test(String(error.message))) legacyEvents = true;
+            else throw error;
+          }));
+        }
+        return subscriptionReady;
+      }
       function configureWebClient(family, handlers, options = {}) {
         usable();
         const allowed = family === "client" ? webViewClientCallbacks : family === "chrome" ? webChromeClientCallbacks : ["onDownloadStart"];
@@ -16462,7 +16497,7 @@ std::string buildEmbeddedScriptExecutionSource(
         const result = writeTail.then(async () => {
           await barrier; usable();
           const previous = clients[family]; clients[family] = next; clientVersions.set(next.id, next); poll();
-          try { await nativeCall("viewCommand", [value, "configureWebClient", [config]]); if (previous) clientVersions.delete(previous.id); }
+          try { await subscribeEvents(); await nativeCall("viewCommand", [value, "configureWebClient", [config]]); if (previous) clientVersions.delete(previous.id); }
           catch (error) { clients[family] = previous; clientVersions.delete(next.id); throw error; }
         });
         writeTail = result.then(() => {}, () => {});
@@ -16479,6 +16514,7 @@ std::string buildEmbeddedScriptExecutionSource(
       async function webTask(name, args, ordered = false) {
         usable(); startingWebTasks++; poll();
         try {
+          await subscribeEvents();
           // Only submission occupies the UI command queue; user decisions do not hold a Bun RPC open.
           const task = await (ordered ? command(name, args) : directWebCommand(name, args)); usable();
           return await new Promise((resolve, reject) => {
@@ -16520,11 +16556,16 @@ std::string buildEmbeddedScriptExecutionSource(
       async function poll() {
         if (reading || closed) return; reading = true;
         try {
+          await subscribeEvents();
           while (!closed && (hasWebInterest() || [...listeners.values()].some(list => list.length))) {
-            for (const event of await nativeCall("viewEvents", [value])) emit(event);
+            for (const event of await nativeCall("viewEvents", subscription ? [value, subscription] : [value])) emit(event);
           }
         } catch (error) { emit({ type: "error", message: error.message }); emit({ type: "close" }); }
-        finally { reading = false; }
+        finally {
+          const previous = subscription; subscription = null; subscriptionReady = null; reading = false;
+          if (previous) nativeCall("viewCommand", [value, "releaseViewEvents", [previous]]).catch(() => {});
+          if (!closed && (hasWebInterest() || [...listeners.values()].some(list => list.length))) poll();
+        }
       }
       function on(name, callback) {
         usable(); if (typeof callback !== "function") throw new TypeError("View event listener must be a function");
@@ -16554,6 +16595,13 @@ std::string buildEmbeddedScriptExecutionSource(
         loadHtml: (html, baseUrl = null) => command("loadHtml", [html, baseUrl]),
         evaluateJavascript,
         evaluateJavascriptAsync,
+        stopMediaCapture: () => command("stopMediaCapture", []),
+        enableDisplayCapture: options => command("enableDisplayCapture", [options]),
+        disableDisplayCapture: id => command("disableDisplayCapture", [id === undefined ? null : id]),
+        startBackgroundRecording: (options = {}) => webTask("startBackgroundRecording", [options], true),
+        getBackgroundRecording: () => command("getBackgroundRecording", []),
+        stopBackgroundRecording: () => webTask("stopBackgroundRecording", [], true),
+        cancelBackgroundRecording: id => command("cancelBackgroundRecording", [id === undefined ? null : id]),
         goBack: () => command("goBack", []), goForward: () => command("goForward", []),
         reload: () => command("reload", []), stopLoading: () => command("stopLoading", []),
         openDrawer: (side = "start", animate = true) => command("openDrawer", [side, animate]),

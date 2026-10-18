@@ -43,6 +43,7 @@
       const clients = Object.create(null), clientVersions = new Map(), webTasks = new Map(), earlyWebTasks = new Map();
       const clientInstance = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
       let clientSerial = 0, startingWebTasks = 0;
+      let subscriptionSerial = 0, subscription = null, subscriptionReady = null, legacyEvents = false;
       let writeTail = Promise.resolve(), sequence = 0;
       const writeErrors = [];
       const usable = () => { if (closed) throw new Error("Native View handle is closed"); };
@@ -80,6 +81,16 @@
       }
       function evaluateJavascript(source, options = {}) { return webTask("beginWebEvaluation", [source, options], true); }
       function evaluateJavascriptAsync(source, options = {}) { return webTask("beginAsyncWebEvaluation", [source, options], true); }
+      function subscribeEvents() {
+        if (!subscriptionReady) {
+          const id = clientInstance + ":" + ++subscriptionSerial;
+          subscriptionReady = (legacyEvents ? Promise.resolve() : directWebCommand("subscribeViewEvents", [id]).then(() => { subscription = id; }).catch(error => {
+            if (/subscribeViewEvents/.test(String(error.message)) && /unknown|unsupported/i.test(String(error.message))) legacyEvents = true;
+            else throw error;
+          }));
+        }
+        return subscriptionReady;
+      }
       function configureWebClient(family, handlers, options = {}) {
         usable();
         const allowed = family === "client" ? webViewClientCallbacks : family === "chrome" ? webChromeClientCallbacks : ["onDownloadStart"];
@@ -94,7 +105,7 @@
         const result = writeTail.then(async () => {
           await barrier; usable();
           const previous = clients[family]; clients[family] = next; clientVersions.set(next.id, next); poll();
-          try { await nativeCall("viewCommand", [value, "configureWebClient", [config]]); if (previous) clientVersions.delete(previous.id); }
+          try { await subscribeEvents(); await nativeCall("viewCommand", [value, "configureWebClient", [config]]); if (previous) clientVersions.delete(previous.id); }
           catch (error) { clients[family] = previous; clientVersions.delete(next.id); throw error; }
         });
         writeTail = result.then(() => {}, () => {});
@@ -111,6 +122,7 @@
       async function webTask(name, args, ordered = false) {
         usable(); startingWebTasks++; poll();
         try {
+          await subscribeEvents();
           // Only submission occupies the UI command queue; user decisions do not hold a Bun RPC open.
           const task = await (ordered ? command(name, args) : directWebCommand(name, args)); usable();
           return await new Promise((resolve, reject) => {
@@ -152,11 +164,16 @@
       async function poll() {
         if (reading || closed) return; reading = true;
         try {
+          await subscribeEvents();
           while (!closed && (hasWebInterest() || [...listeners.values()].some(list => list.length))) {
-            for (const event of await nativeCall("viewEvents", [value])) emit(event);
+            for (const event of await nativeCall("viewEvents", subscription ? [value, subscription] : [value])) emit(event);
           }
         } catch (error) { emit({ type: "error", message: error.message }); emit({ type: "close" }); }
-        finally { reading = false; }
+        finally {
+          const previous = subscription; subscription = null; subscriptionReady = null; reading = false;
+          if (previous) nativeCall("viewCommand", [value, "releaseViewEvents", [previous]]).catch(() => {});
+          if (!closed && (hasWebInterest() || [...listeners.values()].some(list => list.length))) poll();
+        }
       }
       function on(name, callback) {
         usable(); if (typeof callback !== "function") throw new TypeError("View event listener must be a function");
@@ -186,6 +203,13 @@
         loadHtml: (html, baseUrl = null) => command("loadHtml", [html, baseUrl]),
         evaluateJavascript,
         evaluateJavascriptAsync,
+        stopMediaCapture: () => command("stopMediaCapture", []),
+        enableDisplayCapture: options => command("enableDisplayCapture", [options]),
+        disableDisplayCapture: id => command("disableDisplayCapture", [id === undefined ? null : id]),
+        startBackgroundRecording: (options = {}) => webTask("startBackgroundRecording", [options], true),
+        getBackgroundRecording: () => command("getBackgroundRecording", []),
+        stopBackgroundRecording: () => webTask("stopBackgroundRecording", [], true),
+        cancelBackgroundRecording: id => command("cancelBackgroundRecording", [id === undefined ? null : id]),
         goBack: () => command("goBack", []), goForward: () => command("goForward", []),
         reload: () => command("reload", []), stopLoading: () => command("stopLoading", []),
         openDrawer: (side = "start", animate = true) => command("openDrawer", [side, animate]),

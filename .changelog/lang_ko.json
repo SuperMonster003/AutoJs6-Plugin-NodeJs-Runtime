@@ -5,6 +5,12 @@
   "changelog_label_improvement": "개선",
   "changelog_label_dependency": "의존성",
   "$data": {
+    "v1.15.0": {
+      "released_date": "2026/10/18",
+      "feature": [
+        "Node.js/Bun WebView 화면 공유 어댑터, 포그라운드 서비스 녹음 및 네이티브 백그라운드 카메라 녹화, Node Worker 지원"
+      ]
+    },
     "v1.14.0": {
       "released_date": "2026/10/18",
       "feature": [

@@ -3,20 +3,22 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {pathToFileURL}=require('node:url');
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function createWebFixture() {
-  let next=0;const views=new Map(),calls=[],cleared=[],cancelled=[];
-  function emit(record,event){record.events.push(event);}
+  let next=0;const views=new Map(),calls=[],cleared=[],cancelled=[],cameraCancelled=[];
+  function emit(record,event){if(record.readers.size)for(const events of record.readers.values())events.push(event);else record.events.push(event);}
   async function invoke(module,method,args) {
     assert.equal(module,'ui');calls.push({method,args:structuredClone(args)});
     if(method==='inflate') {
       const id='web-'+ ++next,token={__autojs6ViewHandle:id,id,type:'RuntimeWebView'};
-      views.set(id,{token,props:{title:'Browser',...args[0]},events:[],clients:{},requests:new Map(),tasks:new Map()});return token;
+      views.set(id,{token,props:{title:'Browser',...args[0]},events:[],readers:new Map(),clients:{},requests:new Map(),tasks:new Map()});return token;
     }
     const record=views.get(args[0].__autojs6ViewHandle);assert(record,'unknown View');
-    if(method==='viewEvents'){await delay(4);return record.events.splice(0);}
+    if(method==='viewEvents'){await delay(4);return (args[1]?record.readers.get(args[1])||[]:record.events).splice(0);}
     if(method==='viewUpdate'){Object.assign(record.props,args[1]);return record.props;}
     if(method==='viewGet')return args.length>1?record.props[args[1]]:record.props;
     if(method==='disposeView'){for(const done of record.requests.values())done(null);record.requests.clear();return null;}
     assert.equal(method,'viewCommand');const [_,name,parameters]=args;
+    if(name==='subscribeViewEvents'){if(!record.readers.has(parameters[0]))record.readers.set(parameters[0],record.events.splice(0));return true;}
+    if(name==='releaseViewEvents'){record.readers.delete(parameters[0]);return true;}
     if(name==='configureWebClient') {
       const config=parameters[0];assert(config.callbacks.every(value=>typeof value==='string'));
       if(config.options.invalid)throw Error('Invalid native policy');
@@ -54,9 +56,21 @@ function createWebFixture() {
     if(name==='readDownload')return {base64:Buffer.from('downloaded').toString('base64'),bytesRead:10};
     if(name==='readDocument')return {base64:Buffer.from([0,128,255,42]).toString('base64'),bytesRead:4};
     if(name==='cancelDownload'||name==='exitFullscreen')return true;
+    if(name==='stopMediaCapture')return true;
+    if(name==='enableDisplayCapture'){const id='display-'+ ++next;record.display=id;return {id,installed:true,source:'android-media-projection',audio:false};}
+    if(name==='disableDisplayCapture'){if(parameters[0]&&record.display!==parameters[0])return false;const active=!!record.display;record.display=null;return active;}
+    if(name==='startBackgroundRecording'){
+      const id='camera-'+ ++next,taskId='start-'+next;record.recording={id,state:'recording',audio:!!parameters[0].audio};
+      emit(record,{type:'webTaskResult',taskId,value:record.recording});return {taskId,recordingId:id};
+    }
+    if(name==='getBackgroundRecording')return record.recording||{state:'idle'};
+    if(name==='cancelBackgroundRecording'){
+      if(!record.recording||parameters[0]&&parameters[0]!==record.recording.id)return false;
+      cameraCancelled.push(record.recording.id);record.recording=null;return true;
+    }
     throw Error('Unexpected command '+name);
   }
-  return {invoke,views,calls,cleared,cancelled,emit};
+  return {invoke,views,calls,cleared,cancelled,cameraCancelled,emit};
 }
 async function exercise(ui,fixture) {
   const web=await ui.createView('WebView',{javaScriptEnabled:true}),record=fixture.views.get(web.id),errors=[];
@@ -98,6 +112,11 @@ async function exercise(ui,fixture) {
       assert.deepEqual(fixture.calls.findLast(call=>call.method==='viewCommand'&&call.args[1]==='chooseFiles').args[2][0],options,'Media capture options reach the host unchanged');
     }
     assert.deepEqual([...await web.readDocument('content://fixture/document/alpha')],[0,128,255,42]);
+    const display=await web.enableDisplayCapture({origin:'https://fixture.invalid',frameRate:5,maxWidth:640,maxHeight:480});
+    assert.equal(display.audio,false);assert.equal(await web.disableDisplayCapture('stale-id'),false);assert.equal(await web.disableDisplayCapture(display.id),true);
+    assert.equal(await web.stopMediaCapture(),true);
+    const camera=await web.startBackgroundRecording({audio:true,facing:'back'});assert.equal((await web.getBackgroundRecording()).id,camera.id);
+    assert.equal(await web.cancelBackgroundRecording('stale-camera'),false);assert.equal(await web.cancelBackgroundRecording(camera.id),true);
     const local=await web.download({url:'data:text/plain,fixture',directoryUri:'content://fixture/tree/root'});
     assert.equal((await web.getDownload(local.id)).id,'web:fixture');await web.cancelDownload(local.id);
     assert.throws(()=>web.setWebViewClient({unknown(){}}),/Unsupported/);
@@ -114,19 +133,21 @@ async function workers(source,createUi) {
   const fixture=createWebFixture(),ui=createUi(fixture.invoke);
   const config={preloadPath,entryUrl:pathToFileURL(path.join(directory,'entry.cjs')).href,gatedBuiltins:[],moduleSources:{},typeScriptSources:{},resourceLimits:{},hostModuleMethods:{ui:Object.keys(ui)}};
   const Worker=new Function('return ('+constructor+')')()(require,()=>config,fixture.invoke);
-  const body=`const view=await ui.createView('WebView');await view.setWebChromeClient({onJsConfirm:async()=>true});if(!await view.evaluateJavascript('confirm'))throw Error('Worker callback');if(await view.evaluateJavascriptAsync('Promise.resolve(42)')!==42)throw Error('Worker asynchronous evaluation');if((await view.readDocument('content://fixture/document/alpha'))[1]!==128)throw Error('Worker document bytes');const local=await view.download({url:'data:text/plain,fixture'});if((await view.getDownload(local.id)).id!=='web:fixture')throw Error('Worker download identity');await view.cancelDownload(local.id);for(const captureKind of ['video','audio'])await view.chooseFiles({captureEnabled:true,captureKind,durationLimitSeconds:3,sizeLimitBytes:1048576,videoQuality:0,timeoutMs:180000});view.evaluateJavascriptAsync('pendingAsync').catch(()=>{});view.chooseFiles({wait:true,mode:'directory'});parentPort.postMessage(view);setInterval(()=>{},1000);`;
+  const body=`const view=await ui.createView('WebView');await view.setWebChromeClient({onJsConfirm:async()=>true});if(!await view.evaluateJavascript('confirm'))throw Error('Worker callback');if(await view.evaluateJavascriptAsync('Promise.resolve(42)')!==42)throw Error('Worker asynchronous evaluation');if((await view.readDocument('content://fixture/document/alpha'))[1]!==128)throw Error('Worker document bytes');const local=await view.download({url:'data:text/plain,fixture'});if((await view.getDownload(local.id)).id!=='web:fixture')throw Error('Worker download identity');await view.cancelDownload(local.id);for(const captureKind of ['video','audio'])await view.chooseFiles({captureEnabled:true,captureKind,durationLimitSeconds:3,sizeLimitBytes:1048576,videoQuality:0,timeoutMs:180000});await view.enableDisplayCapture({origin:'https://fixture.invalid'});await view.startBackgroundRecording({audio:true});view.evaluateJavascriptAsync('pendingAsync').catch(()=>{});view.chooseFiles({wait:true,mode:'directory'});parentPort.postMessage(view);setInterval(()=>{},1000);`;
   for(const mode of ['cjs','esm','nested']) {
     let code=mode==='esm'?`import ui from 'ui';import {parentPort} from 'node:worker_threads';${body}`:`const ui=require('ui'),{parentPort}=require('node:worker_threads');(async()=>{${body}})();`;
     if(mode==='nested')code=`const {Worker,parentPort}=require('node:worker_threads');new Worker(${JSON.stringify(code)},{eval:true}).on('message',value=>parentPort.postMessage(value)).on('error',error=>{throw error;});`;
     const worker=new Worker(mode==='esm'?new URL('data:text/javascript,'+encodeURIComponent(code)):code,mode==='esm'?{}:{eval:true});
     const token=await new Promise((resolve,reject)=>{worker.once('message',resolve);worker.once('error',reject);});
     await delay(40);const record=fixture.views.get(token.id),old=record.clients.chrome.clientId;
-    if(mode==='cjs')await ui.view(token).setWebChromeClient({onJsConfirm:()=>false});
+    const oldCamera=record.recording.id;let replacementCamera,replacementDisplay;
+    if(mode==='cjs'){await ui.view(token).setWebChromeClient({onJsConfirm:()=>false});await ui.view(token).cancelBackgroundRecording(oldCamera);replacementCamera=await ui.view(token).startBackgroundRecording({audio:true});replacementDisplay=await ui.view(token).enableDisplayCapture({origin:'https://fixture.invalid'});}
     await worker.terminate();
     for(let i=0;!fixture.cleared.some(value=>value.id===old)&&i<100;i++)await delay(5);
     assert(fixture.cleared.some(value=>value.id===old),'Exited worker must clear its callback registration');
     if(mode==='cjs')assert(record.clients.chrome&&record.clients.chrome.clientId!==old,'Old worker must not clear a replacement client');
     else assert.equal(record.clients.chrome,undefined);
+    if(mode==='cjs'){assert.equal(record.recording.id,replacementCamera.id);assert.equal(record.display,replacementDisplay.id);await ui.view(token).cancelBackgroundRecording(replacementCamera.id);await ui.view(token).disableDisplayCapture(replacementDisplay.id);}else{assert.equal(record.recording,null);assert.equal(record.display,null);}
     await ui.view(token).dispose();
   }
   for(const kind of ['video','audio'])assert.equal(fixture.calls.filter(c=>c.method==='viewCommand'&&c.args[1]==='chooseFiles'&&c.args[2][0].captureKind===kind).length,3,'Every Worker mode forwards '+kind);
