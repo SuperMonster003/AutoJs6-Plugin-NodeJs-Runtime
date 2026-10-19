@@ -5,6 +5,15 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.17.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Bun 與 Node.js Worker 的感應器取樣及訂閱 API, 支援取消和監聽器自動釋放"
+      ],
+      "fix": [
+        "感應器單次取樣取消, 輪詢失敗及宿主銷毀時排隊註冊可能遺留監聽器的問題"
+      ]
+    },
     "v1.16.0": {
       "released_date": "2026/10/19",
       "feature": [

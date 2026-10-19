@@ -65,6 +65,7 @@ AutoJs6 Node.js Runtime 插件為 AutoJs6 提供內嵌 Node.js 24.21.0 原生執
 - 外掛設定頁支援 1-8 個平行執行槽 (預設 2) 與排隊上限 (預設不限), 超額指令碼按 FIFO 等待, 設定調整保留已接受的工作, idleExitMs 可回收閒置執行程序
 - 減少指令碼啟動時不必要的 Web API 初始化, 工作區與 Worker 預設啟用 Node 原生可攜式模組編譯快取, 快取可跨工作區副本重用並由 Node 自動使變更原始碼失效
 - Node.js Worker 與 Bun 的 database/sqlite API, 支援參數化查詢, 交易和資料庫持久化.
+- Bun 與 Node.js Worker 的感測器取樣及訂閱 API, 支援取消和監聽器自動釋放.
 
 ******
 
@@ -120,6 +121,13 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.17.0
+
+###### 2026/10/19
+
+* `新增` Bun 與 Node.js Worker 的感測器取樣及訂閱 API, 支援取消和監聽器自動釋放
+* `修復` 感測器單次取樣取消, 輪詢失敗及宿主銷毀時排隊註冊可能遺留監聽器的問題
+
 # v1.16.0
 
 ###### 2026/10/19
@@ -132,12 +140,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/18
 
 * `新增` Node.js/Bun 的 WebView 螢幕共享適配, 前景服務背景錄音及原生背景攝影機錄影, 包括 Node Worker 封裝
-
-# v1.14.0
-
-###### 2026/10/18
-
-* `新增` WebView getUserMedia/MediaRecorder 串流音訊與影片, 支援等待網頁 Promise, 明確申請 Android 媒體權限及 Worker 生命週期管理
 
 ##### 更多發行歷史可參閱
 

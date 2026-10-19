@@ -4,6 +4,13 @@
 
 ******
 
+# v1.17.0
+
+###### 2026/10/19
+
+* `Ajout` Mesures et abonnements aux capteurs pour Bun et les Workers Node.js, avec annulation et libération automatique des écouteurs
+* `Correction` Écouteurs de capteurs conservés après annulation, échec de lecture ou inscription pendant la destruction du fournisseur
+
 # v1.16.0
 
 ###### 2026/10/19

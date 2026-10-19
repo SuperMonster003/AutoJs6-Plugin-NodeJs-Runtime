@@ -4,6 +4,13 @@
 
 ******
 
+# v1.17.0
+
+###### 2026/10/19
+
+* `Feature` Sensor sampling and subscriptions for Bun and Node.js Workers with cancellation and automatic listener cleanup
+* `Fix` Sensor listeners surviving cancelled samples, failed polling or registration queued during provider destruction
+
 # v1.16.0
 
 ###### 2026/10/19

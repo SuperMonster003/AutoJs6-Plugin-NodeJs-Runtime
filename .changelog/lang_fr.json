@@ -5,6 +5,15 @@
   "changelog_label_improvement": "Amelioration",
   "changelog_label_dependency": "Dependance",
   "$data": {
+    "v1.17.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Mesures et abonnements aux capteurs pour Bun et les Workers Node.js, avec annulation et libération automatique des écouteurs"
+      ],
+      "fix": [
+        "Écouteurs de capteurs conservés après annulation, échec de lecture ou inscription pendant la destruction du fournisseur"
+      ]
+    },
     "v1.16.0": {
       "released_date": "2026/10/19",
       "feature": [

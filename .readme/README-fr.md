@@ -65,6 +65,7 @@ Le plugin AutoJs6 Node.js Runtime fournit a AutoJs6 un runtime natif Node.js 24.
 - La page de réglages du plugin permet de choisir 1-8 exécutions simultanées (2 par défaut) et une limite de file (illimitée par défaut); les scripts excédentaires attendent en FIFO, les changements préservent les tâches acceptées et idleExitMs libère les processus inactifs
 - Démarrage des scripts accéléré en évitant les initialisations Web API inutiles et en activant par défaut le cache de compilation portable natif de Node pour les espaces de travail et les Workers; réutilisation entre copies et invalidation des sources modifiées par Node
 - API hôtes database/sqlite pour Bun et les Workers Node.js, avec requêtes paramétrées, transactions et persistance.
+- Mesures et abonnements aux capteurs pour Bun et les Workers Node.js, avec annulation et libération automatique des écouteurs.
 
 ******
 
@@ -120,6 +121,13 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.17.0
+
+###### 2026/10/19
+
+* `Ajout` Mesures et abonnements aux capteurs pour Bun et les Workers Node.js, avec annulation et libération automatique des écouteurs
+* `Correction` Écouteurs de capteurs conservés après annulation, échec de lecture ou inscription pendant la destruction du fournisseur
+
 # v1.16.0
 
 ###### 2026/10/19
@@ -132,12 +140,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 ###### 2026/10/18
 
 * `Ajout` Adaptateur de partage ecran WebView, capture audio par service de premier plan et enregistrement camera natif en arriere-plan pour Node.js/Bun et Node Worker
-
-# v1.14.0
-
-###### 2026/10/18
-
-* `Ajout` Flux audio et video WebView getUserMedia/MediaRecorder, attente des Promise de page, demandes explicites de permissions multimedia Android et cycle de vie des Worker
 
 ##### Pour plus d'historique des versions
 

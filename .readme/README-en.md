@@ -65,6 +65,7 @@ The AutoJs6 Node.js Runtime Plugin provides an embedded Node.js 24.21.0 native r
 - The plugin settings page provides 1-8 parallel execution slots (default 2) and a queue limit (unlimited by default); surplus scripts wait in FIFO order, settings take effect without interrupting accepted work, and idleExitMs releases idle runtime processes
 - Faster script startup by preserving native Web API initialization and enabling Node's portable module compile cache for workspaces and Workers by default; cache entries survive workspace copies and Node invalidates changed sources
 - Host database/sqlite APIs for Bun and Node.js Workers with parameterized queries, transactions and persistence.
+- Sensor sampling and subscriptions for Bun and Node.js Workers with cancellation and automatic listener cleanup.
 
 ******
 
@@ -120,6 +121,13 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.17.0
+
+###### 2026/10/19
+
+* `Feature` Sensor sampling and subscriptions for Bun and Node.js Workers with cancellation and automatic listener cleanup
+* `Fix` Sensor listeners surviving cancelled samples, failed polling or registration queued during provider destruction
+
 # v1.16.0
 
 ###### 2026/10/19
@@ -132,12 +140,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/18
 
 * `Feature` WebView screen sharing adapter, foreground-service audio capture and native background camera recording in Node.js/Bun, including Node Workers
-
-# v1.14.0
-
-###### 2026/10/18
-
-* `Feature` WebView getUserMedia/MediaRecorder streaming audio and video, awaited page Promises, explicit Android media permission requests and Worker lifecycle support
 
 ##### For more release history
 

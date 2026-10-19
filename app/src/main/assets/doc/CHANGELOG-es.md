@@ -4,6 +4,13 @@
 
 ******
 
+# v1.17.0
+
+###### 2026/10/19
+
+* `Nuevo` Muestras y suscripciones de sensores para Bun y Workers de Node.js, con cancelación y liberación automática de escuchas
+* `Correccion` Escuchas de sensores retenidas tras cancelación, fallo de sondeo o registro durante la destrucción del proveedor
+
 # v1.16.0
 
 ###### 2026/10/19

@@ -8376,6 +8376,8 @@ std::string buildEmbeddedScriptExecutionSource(
         const pending = new Map();
         const recordings = new Set();
         const databases = new Set();
+        const sensors = new Set();
+        const closeSensor = id => invoke("sensors", "unsubscribe", [{id}], {permissions:["sensors"]}).catch(() => {});
         const closeDatabase = id => invoke("database", "close", [id], {permissions:["database"]}).catch(() => {});
         const windows = new Map();
         const webClients = new Map(), webTasks = new Map(), displayCaptures = new Map(), cameraRecordings = new Map(), eventReaders = new Map();
@@ -8396,6 +8398,8 @@ std::string buildEmbeddedScriptExecutionSource(
           recordings.clear();
           for (const id of databases) closeDatabase(id);
           databases.clear();
+          for (const id of sensors) closeSensor(id);
+          sensors.clear();
           for (const [id, module] of windows) closeWindow(id, module);
           windows.clear();
           for (const entry of webClients.values()) clearWebClient(entry);
@@ -8421,13 +8425,18 @@ std::string buildEmbeddedScriptExecutionSource(
           pending.set(message.id, controller);
           try {
             const databaseCall = ["database", "sqlite"].includes(message.module);
+            const createsSensor = message.module === "sensors" && message.method === "subscribe";
             const createsDatabase = databaseCall && message.method === "open";
             const createsWindow = ["ui", "compose"].includes(message.module) && ["showLayout", "mount", "dialog", "floaty", "attach"].includes(message.method);
             const webOperation = message.module === "ui" && message.method === "viewCommand" ? message.args[1] : "";
             const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "enableDisplayCapture", "startBackgroundRecording", "stopBackgroundRecording", "subscribeViewEvents"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+              { ...message.options, signal: createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+            if (createsSensor && value && value.id) {
+              if (closed || controller.signal.aborted) { await closeSensor(value.id); throw Object.assign(new Error("Sensor subscription was aborted"), {code:"ABORT_ERR"}); }
+              sensors.add(value.id);
+            } else if (message.module === "sensors" && message.method === "unsubscribe") sensors.delete(message.args[0].id);
             if (createsDatabase && value && value.id) {
               if (closed || controller.signal.aborted) { await closeDatabase(value.id); throw Object.assign(new Error("Database open was aborted"), {code:"ABORT_ERR"}); }
               databases.add(value.id);
@@ -8500,7 +8509,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8512,6 +8521,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const uiCall = (module, method, args, options = {}) => bridgeCall(module, method, args, { ...options, permissions: ["ui"] });
     if (createUi && methods.ui) modules.set("ui", createUi(uiCall));
     if (createCompose && methods.compose) modules.set("compose", createCompose(uiCall));
+    if (createSensors && methods.sensors) modules.set("sensors", createSensors(bridgeCall, SensorEmitter));
     if (createDatabase && methods.database) for (const [name, value] of Object.entries(createDatabase(bridgeCall))) modules.set(name, value);
     for (const [module, names] of Object.entries(methods)) {
       if (modules.has(module)) continue;
@@ -8631,7 +8641,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return result;
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8723,7 +8733,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8849,7 +8859,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -8879,7 +8889,7 @@ std::string buildEmbeddedScriptExecutionSource(
           pathAliases: __autojs6_path_aliases(),
           moduleSources,
           hostModuleMethods: {
-            database: ["open"], sqlite: ["open"],
+            database: ["open"], sqlite: ["open"], sensors: ["policy", "getAvailableSensors", "once", "subscribe"],
             ui: Object.keys(__autojs6_limited_ui()),
             compose: Object.keys(__autojs6_limited_compose()),
             opencc: Object.keys(__autojs6_limited_opencc()),
@@ -21073,264 +21083,122 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return __autojs6_limited_notifications_cache;
   }
-  const __autojs6_sensors_allowed_types = Object.freeze(["accelerometer", "gyroscope", "light"]);
-  const __autojs6_sensors_policy = Object.freeze({
-    maxSubscriptions: 4,
-    minSamplingIntervalMs: 20,
-    defaultSamplingIntervalMs: 250,
-    maxSamplingIntervalMs: 60000,
-    defaultTimeoutMs: 5000,
-    drainIntervalMs: 100,
-    defaultMaxQueueSize: 16,
-    hardMaxQueueSize: 64
-  });
-  function __autojs6_sensors_options(value) {
-    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
-  }
-  function __autojs6_sensors_invalid_argument_error(methodName, message) {
-    return __autojs6_bridge_error(
-      message,
-      "ERR_AUTOJS6_BRIDGE_INVALID_REQUEST",
-      "sensors",
-      methodName
-    );
-  }
-  function __autojs6_sensors_number(value, fallback, min, max) {
-    const numberValue = value === undefined || value === null ? fallback : Number(value);
-    if (!Number.isFinite(numberValue)) {
-      return fallback;
+  // One implementation for main threads, Workers and the Bun SDK.
+  function __autojs6_create_sensors(call, EventEmitter, attachEvents, createError) {
+    const policy = Object.freeze({maxSubscriptions:4, minSamplingIntervalMs:20, defaultSamplingIntervalMs:250,
+      maxSamplingIntervalMs:60000, defaultTimeoutMs:5000, drainIntervalMs:100, defaultMaxQueueSize:16, hardMaxQueueSize:64});
+    const number = (value, fallback, min, max) => Number.isFinite(Number(value ?? fallback))
+      ? Math.min(max, Math.max(min, Math.trunc(Number(value ?? fallback)))) : fallback;
+    const error = (message, code = "ERR_AUTOJS6_BRIDGE_INVALID_REQUEST") => createError ? createError(message,code) : Object.assign(new Error(message), {code, module:"sensors"});
+    const options = value => value && typeof value === "object" && !Array.isArray(value) ? value : {};
+    function descriptor(type, input) {
+      type = String(type ?? "").trim().toLowerCase();
+      if (!["accelerometer", "gyroscope", "light"].includes(type)) throw error("Sensors support only accelerometer, gyroscope, and light.");
+      return {type, samplingIntervalMs:number(input.samplingIntervalMs ?? input.intervalMs,250,20,60000),
+        maxQueueSize:number(input.maxQueueSize,16,1,64), timeoutMs:number(input.timeoutMs,5000,100,60000)};
     }
-    return Math.min(max, Math.max(min, Math.trunc(numberValue)));
-  }
-  function __autojs6_sensors_type(methodName, value) {
-    const text = String(value === undefined || value === null ? "" : value).trim().toLowerCase();
-    if (__autojs6_sensors_allowed_types.indexOf(text) < 0) {
-      throw __autojs6_sensors_invalid_argument_error(
-        methodName,
-        "sensors." + methodName + " supports only accelerometer, gyroscope, and light."
-      );
+    function callOptions(input, fallback = 5000) {
+      const value = options(input), signal = value.signal;
+      if (signal !== undefined && !(signal instanceof AbortSignal)) throw new TypeError("signal must be an AbortSignal");
+      return {timeoutMs:number(value.timeoutMs,fallback,1,120000),signal,permissions:["sensors"]};
     }
-    return text;
-  }
-  function __autojs6_sensors_descriptor(methodName, type, options) {
-    const opts = __autojs6_sensors_options(options);
-    const samplingSource = opts.samplingIntervalMs === undefined ? opts.intervalMs : opts.samplingIntervalMs;
-    const timeoutMs = __autojs6_sensors_number(
-      opts.timeoutMs,
-      __autojs6_sensors_policy.defaultTimeoutMs,
-      100,
-      60000
-    );
-    return {
-      type: __autojs6_sensors_type(methodName, type),
-      samplingIntervalMs: __autojs6_sensors_number(
-        samplingSource,
-        __autojs6_sensors_policy.defaultSamplingIntervalMs,
-        __autojs6_sensors_policy.minSamplingIntervalMs,
-        __autojs6_sensors_policy.maxSamplingIntervalMs
-      ),
-      timeoutMs,
-      maxQueueSize: __autojs6_sensors_number(
-        opts.maxQueueSize,
-        __autojs6_sensors_policy.defaultMaxQueueSize,
-        1,
-        __autojs6_sensors_policy.hardMaxQueueSize
-      )
-    };
-  }
-  function __autojs6_sensors_call_options(options, fallbackMs) {
-    const opts = __autojs6_sensors_options(options);
-    return {
-      timeoutMs: __autojs6_bridge_timeout_ms(opts.timeoutMs === undefined ? fallbackMs : opts.timeoutMs),
-      signal: __autojs6_bridge_signal_from_options(opts),
-      permissions: ["sensors"]
-    };
-  }
-  function __autojs6_sensors_freeze_event(value) {
-    const source = value && typeof value === "object" ? value : {};
-    const values = Array.isArray(source.values) ? source.values.map(Number) : [];
-    return Object.freeze({
-      type: String(source.type || ""),
-      timestamp: Number(source.timestamp || 0),
-      accuracy: Number(source.accuracy || 0),
-      values: Object.freeze(values)
-    });
-  }
-  function __autojs6_sensors_emit_error(state, error) {
-    if (typeof state.onerror === "function") {
-      try {
-        state.onerror(error);
-      } catch (thrown) {
-        setImmediate(function() { throw thrown; });
+    const eventValue = value => Object.freeze({type:String(value?.type || ""),timestamp:Number(value?.timestamp || 0),
+      accuracy:Number(value?.accuracy || 0),values:Object.freeze(Array.isArray(value?.values) ? value.values.map(Number) : [])});
+    async function getAvailableSensors(input) {
+      const result = await call("sensors","getAvailableSensors",[],callOptions(input));
+      return Object.freeze((Array.isArray(result) ? result : []).map(value => Object.freeze({...value})));
+    }
+    function subscribe(type, callback, input) {
+      if (callback !== undefined && typeof callback !== "function") throw error("sensors.subscribe requires a callback function.");
+      const opts = options(input), request = descriptor(type,opts), transport = callOptions(opts), signal = transport.signal;
+      const emitter = new EventEmitter();
+      if (callback) emitter.on("event",callback);
+      let id = "", subscriptionId, closed = false, timer, drain, stopEvents, closePromise, closeEmitted = false;
+      const report = value => { if (emitter.listenerCount("error")) emitter.emit("error",value); };
+      const closedEvent = () => { if (!closeEmitted) { closeEmitted=true; emitter.emit("close"); } };
+      const detach = () => { clearTimeout(timer); if (stopEvents) { stopEvents(); stopEvents=null; } signal?.removeEventListener("abort",abort); };
+      const abort = () => { subscription.close().catch(report); };
+      function processEvent(event) {
+        if (closed || !event || typeof event !== "object") return;
+        if (event.type === "close") { closed=true; detach(); closedEvent(); }
+        else if (event.type === "event") emitter.emit("event",eventValue(event.event));
+        else if (event.type === "error") report(event.error || event);
+        else if (event.type === "accuracy") emitter.emit("accuracy",event);
       }
-    }
-  }
-  function __autojs6_sensors_process_event(state, event) {
-    if (state.closed || !event || typeof event !== "object") return;
-    try {
-      if (event.type === "event") state.emitter.emit("event", __autojs6_sensors_freeze_event(event.event));
-      else if (event.type === "error") {
-        if (state.emitter.listenerCount("error")) state.emitter.emit("error", event.error || event);
-        else __autojs6_sensors_emit_error(state, event.error || event);
-      } else state.emitter.emit(event.type, event);
-    } catch (error) { setImmediate(function() { throw error; }); }
-    if (event.type === "close") {
-      state.closed = true;
-      if (state.stopEvents) state.stopEvents();
-    }
-  }
-  function __autojs6_sensors_schedule_drain(state) {
-    if (state.closed || state.timer !== null || state.drainPromise !== null || !state.id) {
-      return;
-    }
-    state.timer = setTimeout(function() {
-      state.timer = null;
-      if (state.closed || !state.id) {
-        return;
-      }
-      state.drainPromise = __autojs6_call_autojs(
-        "sensors",
-        "drainEvents",
-        [{ id: state.id }],
-        { timeoutMs: 5000, permissions: ["sensors"] }
-      ).then(function(events) {
-        if (state.closed) {
-          return;
-        }
-        for (const event of (Array.isArray(events) ? events : [])) __autojs6_sensors_process_event(state, event);
-      }, function(error) {
-        if (!state.closed) {
-          state.closed = true;
-          __autojs6_sensors_emit_error(state, error);
-        }
-      }).then(function() {
-        state.drainPromise = null;
-        if (!state.closed) {
-          __autojs6_sensors_schedule_drain(state);
-        }
-      });
-    }, state.drainIntervalMs);
-  }
-  function __autojs6_limited_sensors() {
-    if (__autojs6_limited_sensors_cache) {
-      return __autojs6_limited_sensors_cache;
-    }
-    function getAvailableSensors(options) {
-      const opts = __autojs6_sensors_options(options);
-      return __autojs6_call_autojs(
-        "sensors",
-        "getAvailableSensors",
-        [],
-        __autojs6_sensors_call_options(opts, 5000)
-      ).then(function(result) {
-        return Object.freeze((Array.isArray(result) ? result : []).map(function(item) {
-          return Object.freeze(Object.assign({}, item));
-        }));
-      });
-    }
-    function once(type, options) {
-      let descriptor;
-      try {
-        descriptor = __autojs6_sensors_descriptor("once", type, options);
-      } catch (error) {
-        return Promise.reject(error);
-      }
-      return __autojs6_call_autojs(
-        "sensors",
-        "once",
-        [descriptor],
-        __autojs6_sensors_call_options(options, descriptor.timeoutMs + 1000)
-      ).then(__autojs6_sensors_freeze_event);
-    }
-    function subscribe(type, callback, options) {
-      if (callback !== undefined && typeof callback !== "function") {
-        throw __autojs6_sensors_invalid_argument_error(
-          "subscribe",
-          "sensors.subscribe requires a callback function."
-        );
-      }
-      const opts = __autojs6_sensors_options(options);
-      const descriptor = __autojs6_sensors_descriptor("subscribe", type, opts);
-      const state = {
-        id: "",
-        type: descriptor.type,
-        closed: false,
-        timer: null,
-        drainPromise: null,
-        emitter: new (__autojs6_events_module().EventEmitter)(),
-        stopEvents: null,
-        onerror: null,
-        drainIntervalMs: __autojs6_sensors_number(
-          opts.drainIntervalMs,
-          __autojs6_sensors_policy.drainIntervalMs,
-          25,
-          5000
-        )
-      };
-      if (callback) state.emitter.on("event", callback);
-      const subscription = Object.freeze({
-        on(event, listener) { state.emitter.on(event, listener); return this; },
-        once(event, listener) { state.emitter.once(event, listener); return this; },
-        off(event, listener) { state.emitter.off(event, listener); return this; },
-        get id() { return state.id; },
-        get subscriptionId() { return state.subscriptionId; },
-        get type() { return state.type; },
-        get closed() { return state.closed; },
-        get ready() { return ready; },
-        close(closeOptions) {
-          if (state.closed) {
-            return Promise.resolve(undefined);
-          }
-          state.closed = true;
-          if (state.stopEvents) state.stopEvents();
-          if (state.timer !== null) {
-            clearTimeout(state.timer);
-            state.timer = null;
-          }
-          return ready.then(function() {
-            if (!state.id) {
-              return undefined;
-            }
-            return (state.drainPromise || Promise.resolve()).then(function() {
-              return __autojs6_call_autojs(
-                "sensors",
-                "unsubscribe",
-                [{ id: state.id }],
-                __autojs6_sensors_call_options(closeOptions, 5000)
-              ).then(function() {
-                return undefined;
-              });
-            });
+      function schedule() {
+        if (closed) return;
+        timer=setTimeout(() => {
+          if (closed) return;
+          drain=call("sensors","drainEvents",[{id}],callOptions()).then(events => {
+            for (const event of Array.isArray(events) ? events : []) processEvent(event);
           });
+          drain.then(() => { drain=null; schedule(); }, reason => {
+            drain=null;
+            if (!closed) subscription.close().then(() => report(reason),report);
+          });
+        },number(opts.drainIntervalMs,100,25,5000));
+      }
+      const subscription = Object.freeze({
+        on(event,listener) { emitter.on(event,listener); return this; },
+        once(event,listener) { emitter.once(event,listener); return this; },
+        off(event,listener) { emitter.off(event,listener); return this; },
+        get id() { return id; }, get subscriptionId() { return subscriptionId; },
+        get type() { return request.type; }, get closed() { return closed; }, get ready() { return ready; },
+        close(closeOptions) {
+          if (closePromise) return closePromise;
+          closed=true; detach();
+          // Registration is allowed to finish so cancellation cannot lose its native handle.
+          // Cleanup must not inherit an already-aborted signal from the subscription.
+          closePromise=ready.catch(() => {}).then(async () => {
+            await Promise.resolve(drain).catch(() => {});
+            if (id) await call("sensors","unsubscribe",[{id}],{...callOptions(closeOptions),signal:undefined});
+            closedEvent();
+          });
+          return closePromise;
         }
       });
-      const ready = __autojs6_call_autojs(
-        "sensors",
-        "subscribe",
-        [descriptor],
-        __autojs6_sensors_call_options(opts, 5000)
-      ).then(function(record) {
-        state.id = String(record && record.id || "");
-        state.type = String(record && record.type || descriptor.type);
-        state.subscriptionId = record && record.subscriptionId;
-        if (!state.closed) {
-          state.stopEvents = __autojs6_bridge_attach_events(record, event => __autojs6_sensors_process_event(state, event));
-          if (!state.stopEvents) __autojs6_sensors_schedule_drain(state);
+      const ready=Promise.resolve().then(async () => {
+        if (signal?.aborted) throw signal.reason;
+        const record=await call("sensors","subscribe",[request],{...transport,signal:undefined,events:!!attachEvents});
+        id=String(record?.id || ""); subscriptionId=record?.subscriptionId;
+        if (!id) throw error("Sensor subscription did not return a handle.");
+        if (signal?.aborted) throw signal.reason;
+        if (!closed) {
+          stopEvents=attachEvents?.(record,processEvent);
+          if (!stopEvents) schedule();
         }
-        return undefined;
-      }, function(error) {
-        state.closed = true;
-        throw error;
+      }).catch(reason => {
+        closed=true; detach();
+        if (id) return call("sensors","unsubscribe",[{id}],callOptions()).catch(() => {}).then(() => { id=""; throw reason; });
+        throw reason;
       });
+      if (signal) signal.addEventListener("abort",abort,{once:true});
       return subscription;
     }
-    __autojs6_limited_sensors_cache = Object.freeze({
-      policy: __autojs6_sensors_policy,
-      getAvailableSensors,
-      once,
-      subscribe
-    });
-    return __autojs6_limited_sensors_cache;
+    async function once(type, input) {
+      const opts=options(input), spec=descriptor(type,opts), transport=callOptions(opts);
+      if (transport.signal?.aborted) throw transport.signal.reason;
+      const sub=subscribe(type,undefined,{...opts,signal:undefined});
+      let timeout, abort;
+      try {
+        return await new Promise((resolve,reject) => {
+          abort=() => reject(transport.signal.reason);
+          transport.signal?.addEventListener("abort",abort,{once:true});
+          timeout=setTimeout(() => reject(error("Sensor sampling timed out.","ERR_AUTOJS6_BRIDGE_TIMEOUT")),spec.timeoutMs);
+          sub.once("event",resolve).once("error",reject);
+          sub.ready.catch(reject);
+        });
+      } finally {
+        clearTimeout(timeout); transport.signal?.removeEventListener("abort",abort);
+        await sub.close();
+      }
+    }
+    return Object.freeze({policy,getAvailableSensors,once,subscribe});
+  }
+  // Main-thread sensors facade; preserve negotiated pushed events.
+  function __autojs6_limited_sensors() {
+    return __autojs6_limited_sensors_cache ||= __autojs6_create_sensors(__autojs6_call_autojs,
+      __autojs6_events_module().EventEmitter,__autojs6_bridge_attach_events);
   }
   const __autojs6_input_observer_policy = Object.freeze({
     maxActiveSubscriptions: 8,

@@ -5,6 +5,15 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.17.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Sensor sampling and subscriptions for Bun and Node.js Workers with cancellation and automatic listener cleanup"
+      ],
+      "fix": [
+        "Sensor listeners surviving cancelled samples, failed polling or registration queued during provider destruction"
+      ]
+    },
     "v1.16.0": {
       "released_date": "2026/10/19",
       "feature": [
