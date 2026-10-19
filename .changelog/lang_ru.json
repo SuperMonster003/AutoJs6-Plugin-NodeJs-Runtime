@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.18.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Shell хоста с потоковым вводом и выводом, разрешением Shizuku и очисткой процессов для Bun, Node.js и Workers"
+      ]
+    },
     "v1.17.0": {
       "released_date": "2026/10/19",
       "feature": [

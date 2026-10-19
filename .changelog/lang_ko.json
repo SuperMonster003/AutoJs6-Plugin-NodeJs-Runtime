@@ -5,6 +5,12 @@
   "changelog_label_improvement": "개선",
   "changelog_label_dependency": "의존성",
   "$data": {
+    "v1.18.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Bun, Node.js 및 Worker의 호스트 Shell API, 스트리밍 입출력, Shizuku 승인 및 프로세스 정리"
+      ]
+    },
     "v1.17.0": {
       "released_date": "2026/10/19",
       "feature": [

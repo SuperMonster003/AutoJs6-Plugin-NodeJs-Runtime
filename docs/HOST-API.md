@@ -74,7 +74,7 @@ M23.4 起, 主线程和 Worker 的 `process.dlopen` / `Module._extensions[".node
 | `accessibility` | isEnabled, ensureEnabled, click, back, home, recentApps, findByText, clickText, findOne, findAll, longClick, setText, scrollForward, scrollBackward, **swipe, gesture** (M3.2) | 真无障碍; 有每秒限速; 服务未启用时返回 capabilityProviderMissing。swipe/gesture 需显式声明 `accessibility.gesture` 权限 (不被 `accessibility` 隐含), 时长上限 10s |
 | `clipboard` | getText, setText, hasText | 真剪贴板 |
 | `device` | info, getWidth/Height/Density/DensityDpi, getBrightness/Mode, getBattery/isCharging, getSdkInt/Release/Model/Brand/Product/Board/Bootloader/Hardware/Fingerprint/BuildId, getTotalMem/AvailMem, isScreenOn, wakeUp, vibrate, setBrightness/Mode, keepScreenOn, cancelKeepingAwake, isIgnoringBatteryOptimizations, openBatteryOptimizationSettings | 控制需 device.power; 亮度写入另需 Android 修改系统设置权限; 硬件标识符 (imei/androidId/serial/mac) 仍 blocked |
-| `shell` | exec | 真 ProcessBuilder; execRoot 需 `shell.root` 权限; execShizuku 拒绝 |
+| `shell` / `shizuku` | exec, spawn, open, streams, access/permission | 宿主进程与 Shizuku 用户服务; Root/Shizuku 独立授权, Node/Worker/Bun 共用封装 |
 | `dialogs` | alert, confirm, input/prompt, rawInput, select, singleChoice, multiChoice, progress.show/update/dismiss | Activity 持有真实对话框; 请求超时/关闭/脚本结束释放 |
 | `keys` | notifications, quickSettings, lockScreen, takeScreenshot, splitScreen, powerDialog | 声明 keys 且开启无障碍; 返回 Android 是否接受该全局动作 |
 | `engines` | myEngine, all, stopAll, stopSelf, execScript, execScriptFile | 宿主脚本引擎 |
@@ -828,3 +828,8 @@ Host 5580, Node Runtime 1.16.0 and Bun Runtime 0.5.0 share the public database/s
 ## Sensors in Bun and Node Workers (2026-10-19)
 
 Host 5581, Node Runtime 1.17.0 and Bun Runtime 0.6.0 share sensors.getAvailableSensors/once/subscribe and subscription lifecycle. Bun uses the default-off sensors.control grant; Node uses sensors, including autojs6:sensors in CommonJS/ESM/nested Workers. Only actual accelerometer/gyroscope/light hardware is exposed. Sampling intervals are hints. once uses a temporary subscription and counts toward the shared four-subscription limit. Abort, timeout, Worker termination and abandoned registration clean up listeners. Main threads preserve pushed events; Workers and Bun poll bounded queues. Bun retains its 1024-call execution budget, so continuous polling is not an unlimited streaming channel. See host docs/dev/bun-sensors-2026-10-19.md for device and packaged verification.
+
+
+## Host Shell streams and Shizuku (2026-10-19)
+
+Host 5583, Node Runtime 1.18.0 and Bun Runtime 0.7.0 share shell/shizuku facades in main threads and CJS/ESM/nested Workers. Bun adds independent shell.control/shell.root/shell.shizuku grants. Native streams, line readers, stdin, PTY, explicit Shizuku permission requests and cancellation use execution-owned processes. checkAccess remains a synchronous grant report; getAccess queries Android state. Host paths follow Android permissions. Worker exit, abandoned creation and Bun quota exhaustion release owned shells. Bun retains its bounded transport budget. See host docs/dev/runtime-shell-2026-10-19.md for real-device/package evidence and limitations.

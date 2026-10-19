@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Mejora",
   "changelog_label_dependency": "Dependencia",
   "$data": {
+    "v1.18.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Shell del anfitrión con flujos, autorización Shizuku y limpieza de procesos para Bun, Node.js y Workers"
+      ]
+    },
     "v1.17.0": {
       "released_date": "2026/10/19",
       "feature": [

@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.18.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Bun, Node.js 及 Worker 的宿主 Shell API, 支援串流輸入輸出, Shizuku 授權與程序清理"
+      ]
+    },
     "v1.17.0": {
       "released_date": "2026/10/19",
       "feature": [

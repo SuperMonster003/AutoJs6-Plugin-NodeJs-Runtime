@@ -66,6 +66,7 @@ AutoJs6 Node.js Runtime 플러그인은 AutoJs6 에 내장 Node.js 24.21.0 네�
 - 불필요한 Web API 초기화를 줄여 스크립트 시작을 개선하고 작업 공간과 Worker 에 Node 기본 이식 가능한 모듈 컴파일 캐시 활성화; 작업 공간 복사본 간에 재사용하며 소스 변경은 Node 가 무효화
 - Node.js Worker 및 Bun의 database/sqlite API, 매개변수 쿼리, 트랜잭션 및 데이터베이스 영속성 지원.
 - Bun 및 Node.js Worker 센서 샘플링과 구독 API, 취소 및 리스너 자동 해제.
+- Bun, Node.js 및 Worker의 호스트 Shell API, 스트리밍 입출력, Shizuku 승인 및 프로세스 정리.
 
 ******
 
@@ -121,6 +122,12 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 
 ******
 
+# v1.18.0
+
+###### 2026/10/19
+
+* `추가` Bun, Node.js 및 Worker의 호스트 Shell API, 스트리밍 입출력, Shizuku 승인 및 프로세스 정리
+
 # v1.17.0
 
 ###### 2026/10/19
@@ -134,12 +141,6 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 
 * `추가` Node.js Worker 및 Bun의 database/sqlite API, 매개변수 쿼리, 트랜잭션 및 데이터베이스 영속성 지원
 * `수정` database/sqlite.open이 객체 옵션의 timeoutMs/signal을 무시하고 빈 객체를 유효한 데이터베이스 이름으로 처리하는 문제
-
-# v1.15.0
-
-###### 2026/10/18
-
-* `추가` Node.js/Bun WebView 화면 공유 어댑터, 포그라운드 서비스 녹음 및 네이티브 백그라운드 카메라 녹화, Node Worker 지원
 
 ##### 더 많은 릴리스 기록
 

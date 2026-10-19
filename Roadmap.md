@@ -865,3 +865,10 @@ Host 5580, Node Runtime 1.16.0 and Bun Runtime 0.5.0 share the public database/s
 ## Sensors in Bun and Node Workers (2026-10-19)
 
 Host 5581, Node Runtime 1.17.0 and Bun Runtime 0.6.0 share sensors.getAvailableSensors/once/subscribe and subscription lifecycle. Bun uses the default-off sensors.control grant; Node uses sensors, including autojs6:sensors in CommonJS/ESM/nested Workers. Only actual accelerometer/gyroscope/light hardware is exposed. Sampling intervals are hints. once uses a temporary subscription and counts toward the shared four-subscription limit. Abort, timeout, Worker termination and abandoned registration clean up listeners. Main threads preserve pushed events; Workers and Bun poll bounded queues. Bun retains its 1024-call execution budget, so continuous polling is not an unlimited streaming channel. See host docs/dev/bun-sensors-2026-10-19.md for device and packaged verification.
+
+
+## Host Shell streams and Shizuku (2026-10-19)
+
+Host 5583, Node Runtime 1.18.0 and Bun Runtime 0.7.0 share shell/shizuku facades in main threads and CJS/ESM/nested Workers. Bun adds independent shell.control/shell.root/shell.shizuku grants. Native streams, line readers, stdin, PTY, explicit Shizuku permission requests and cancellation use execution-owned processes. checkAccess remains a synchronous grant report; getAccess queries Android state. Host paths follow Android permissions. Worker exit, abandoned creation and Bun quota exhaustion release owned shells. Bun retains its bounded transport budget. See host docs/dev/runtime-shell-2026-10-19.md for real-device/package evidence and limitations.
+
+Host implementation commit: `9d8c48c7da9168c3f01c040812957714534d5802`. The final report records 130 accepted physical JUnit cases and 80 independent Rhino Shell checks across Android 13/15, including actual Shizuku UID 2000 and four generated APKs. Root success is not claimed; Redmi's first packaged Bun binding timeout is retained separately from the unchanged successful retry.

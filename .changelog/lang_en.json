@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.18.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Host Shell streaming, Shizuku authorization and process cleanup for Bun, Node.js and Workers"
+      ]
+    },
     "v1.17.0": {
       "released_date": "2026/10/19",
       "feature": [

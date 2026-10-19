@@ -8377,6 +8377,8 @@ std::string buildEmbeddedScriptExecutionSource(
         const recordings = new Set();
         const databases = new Set();
         const sensors = new Set();
+        const shells = new Set();
+        const closeShell=id=>invoke("shell","close",[id],{permissions:["shell"]}).catch(()=>{});
         const closeSensor = id => invoke("sensors", "unsubscribe", [{id}], {permissions:["sensors"]}).catch(() => {});
         const closeDatabase = id => invoke("database", "close", [id], {permissions:["database"]}).catch(() => {});
         const windows = new Map();
@@ -8400,6 +8402,8 @@ std::string buildEmbeddedScriptExecutionSource(
           databases.clear();
           for (const id of sensors) closeSensor(id);
           sensors.clear();
+          for(const id of shells)closeShell(id);
+          shells.clear();
           for (const [id, module] of windows) closeWindow(id, module);
           windows.clear();
           for (const entry of webClients.values()) clearWebClient(entry);
@@ -8425,6 +8429,7 @@ std::string buildEmbeddedScriptExecutionSource(
           pending.set(message.id, controller);
           try {
             const databaseCall = ["database", "sqlite"].includes(message.module);
+            const createsShell=message.module==="shell" && ["spawn","open"].includes(message.method);
             const createsSensor = message.module === "sensors" && message.method === "subscribe";
             const createsDatabase = databaseCall && message.method === "open";
             const createsWindow = ["ui", "compose"].includes(message.module) && ["showLayout", "mount", "dialog", "floaty", "attach"].includes(message.method);
@@ -8432,7 +8437,11 @@ std::string buildEmbeddedScriptExecutionSource(
             const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "enableDisplayCapture", "startBackgroundRecording", "stopBackgroundRecording", "subscribeViewEvents"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+              { ...message.options, signal: createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+            if(createsShell && value && value.id){
+              if(closed||controller.signal.aborted){await closeShell(value.id);throw Object.assign(new Error("Shell start was aborted"),{code:"ABORT_ERR"});}
+              shells.add(value.id);
+            }else if(message.module==="shell" && (message.method==="close" || message.method==="drain" && Array.isArray(value) && value.some(e=>e.type==="exit")))shells.delete(message.args[0]);
             if (createsSensor && value && value.id) {
               if (closed || controller.signal.aborted) { await closeSensor(value.id); throw Object.assign(new Error("Sensor subscription was aborted"), {code:"ABORT_ERR"}); }
               sensors.add(value.id);
@@ -8509,7 +8518,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8521,6 +8530,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const uiCall = (module, method, args, options = {}) => bridgeCall(module, method, args, { ...options, permissions: ["ui"] });
     if (createUi && methods.ui) modules.set("ui", createUi(uiCall));
     if (createCompose && methods.compose) modules.set("compose", createCompose(uiCall));
+    if (createShell && methods.shell) for (const [name,value] of Object.entries(createShell(bridgeCall,SensorEmitter,shellStreams,shellBuffer,required=>required.filter(x=>(constants.shellMissing||[]).includes(x))))) modules.set(name,value);
     if (createSensors && methods.sensors) modules.set("sensors", createSensors(bridgeCall, SensorEmitter));
     if (createDatabase && methods.database) for (const [name, value] of Object.entries(createDatabase(bridgeCall))) modules.set(name, value);
     for (const [module, names] of Object.entries(methods)) {
@@ -8641,7 +8651,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return result;
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8733,7 +8743,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8859,7 +8869,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -8889,6 +8899,7 @@ std::string buildEmbeddedScriptExecutionSource(
           pathAliases: __autojs6_path_aliases(),
           moduleSources,
           hostModuleMethods: {
+            shell:Object.keys(__autojs6_limited_shell()), shizuku:Object.keys(__autojs6_limited_shizuku()),
             database: ["open"], sqlite: ["open"], sensors: ["policy", "getAvailableSensors", "once", "subscribe"],
             ui: Object.keys(__autojs6_limited_ui()),
             compose: Object.keys(__autojs6_limited_compose()),
@@ -8903,7 +8914,7 @@ std::string buildEmbeddedScriptExecutionSource(
             screen_metrics: Object.keys(__autojs6_limited_screen_metrics()),
             console: Object.keys(__autojs6_limited_console())
           },
-          hostModuleConstants: { pinyin: Object.fromEntries(Object.entries(__autojs6_limited_pinyin()).filter(([, value]) => typeof value !== "function")) },
+          hostModuleConstants: { shellMissing:__autojs6_bridge_missing_capabilities(["shell","shell.root","shell.shizuku"]), pinyin: Object.fromEntries(Object.entries(__autojs6_limited_pinyin()).filter(([, value]) => typeof value !== "function")) },
           consoleControls: Object.keys(__autojs6_limited_console()).filter(name => __autojs6_limited_console()[name].__autojs6ConsoleControl),
           typeScriptSources: { ...__autojs6_typescript_precompiled_source_names },
           gatedBuiltins: __autojs6_gated_builtin_ids(),
@@ -9743,208 +9754,133 @@ std::string buildEmbeddedScriptExecutionSource(
     }));
     return __autojs6_limited_device_cache;
   }
-  function __autojs6_shell_options(value) {
-    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
-  }
-  function __autojs6_shell_invalid_argument_error(methodName, message) {
-    if (message === undefined) {
-      message = methodName;
-      methodName = "exec";
+  function __autojs6_create_shell(call, EventEmitter, streams, BufferClass, missingCapabilities = () => [], createError) {
+    const fail=(message,code="ERR_AUTOJS6_BRIDGE_INVALID_REQUEST") => createError ? createError(message,code,"shell") : Object.assign(new Error(message),{code,module:"shell"});
+    const abortError=signal => Object.assign(new Error("Shell operation was aborted",{cause:signal?.reason}),{name:"AbortError",code:"ABORT_ERR"});
+    let defaultTimeout=30000;
+    function options(value){if(value==null)return {};if(typeof value!=="object"||Array.isArray(value))throw fail("Shell options must be an object");return value;}
+    function duration(value,fallback){value=value??fallback;if(!Number.isInteger(value)||value<0||value>2147483647)throw fail("Shell timeout must be a nonnegative integer");return value;}
+    const quote=value=>"'"+String(value).replace(/'/g,"'\"'\"'")+"'";
+    function normalize(value,lifetime=0){
+      const opts=options(value),result={root:opts.root===true,shizuku:opts.shizuku===true||opts.adb===true,pty:opts.pty===true,timeoutMs:duration(opts.timeoutMs,lifetime),env:{},cwd:opts.cwd??""};
+      for(const key of ["root","shizuku","adb","pty"])if(opts[key]!==undefined&&typeof opts[key]!=="boolean")throw fail(key+" must be boolean");
+      if(typeof result.cwd!=="string"||result.cwd.includes("\0"))throw fail("cwd must be a string without NUL");
+      if(opts.env!==undefined){const env=options(opts.env);for(const [name,value] of Object.entries(env)){if(!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)||typeof value!=="string"||value.includes("\0"))throw fail("env requires valid names and string values without NUL");result.env[name]=value;}}
+      if(opts.signal!==undefined&&!(opts.signal instanceof AbortSignal))throw fail("signal must be an AbortSignal");
+      return result;
     }
-    return __autojs6_bridge_error(
-      message,
-      "ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED",
-      "shell",
-      methodName
-    );
-  }
-  function __autojs6_shell_shizuku_unsupported_error(methodName) {
-    return __autojs6_bridge_error(
-      "shell." + methodName + " requires Shizuku shell support, which is not available in the Node.js engine yet; P13-24 keeps Shizuku execution blocked until explicit authorization, lifecycle, packaged disclosure, and cleanup evidence land.",
-      "ERR_AUTOJS6_SHELL_SHIZUKU_UNSUPPORTED",
-      "shell",
-      methodName
-    );
-  }
-  function __autojs6_shell_timeout_ms(value, fallbackMs) {
-    return __autojs6_bridge_timeout_ms(value === undefined ? fallbackMs : value);
-  }
-  function __autojs6_shell_bridge_timeout_ms(commandTimeoutMs) {
-    return Math.min(2147483647, Math.max(1, Number(commandTimeoutMs) + 1000));
-  }
-  function __autojs6_shell_normalize_cwd(value) {
-    if (value === undefined || value === null || value === "") {
-      return "";
-    }
-    const text = String(value);
-    if (text.indexOf("\u0000") >= 0) {
-      throw __autojs6_shell_invalid_argument_error("shell.exec cwd must not contain NUL bytes.");
-    }
-    if (text.charAt(0) === "/" || /^[A-Za-z]:[\\/]/.test(text)) {
-      throw __autojs6_shell_invalid_argument_error("shell.exec cwd must be relative to the scoped working directory.");
-    }
-    const parts = text.replace(/\\/g, "/").split("/").filter(Boolean);
-    if (parts.indexOf("..") >= 0) {
-      throw __autojs6_shell_invalid_argument_error("shell.exec cwd must not escape the scoped working directory.");
-    }
-    return text;
-  }
-  function __autojs6_shell_normalize_env(value) {
-    if (value === undefined || value === null) {
-      return {};
-    }
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      throw __autojs6_shell_invalid_argument_error("shell.exec env must be an object with string values.");
-    }
-    const env = {};
-    for (const key of Object.keys(value)) {
-      if (!key || key.indexOf("\u0000") >= 0) {
-        throw __autojs6_shell_invalid_argument_error("shell.exec env keys must be non-empty strings without NUL bytes.");
+    function start(method,command,input){
+      const opts=options(input),descriptor=normalize(opts),signal=opts.signal;
+      if(method==="spawn"&&(typeof command!=="string"||!command.trim()||command.includes("\0")))throw fail("command must be a non-empty string without NUL");
+      if(method==="open"&&opts.cmd!==undefined){if(typeof opts.cmd!=="string"||!opts.cmd.trim()||opts.cmd.includes("\0"))throw fail("cmd must be a non-empty string without NUL");descriptor.cmd=opts.cmd;}
+      const permissions=["shell",...(descriptor.root?["shell.root"]:[]),...(descriptor.shizuku?["shell.shizuku"]:[])];
+      const emitter=new EventEmitter(),claimed={},lineReaders={},lineFlushers={},pipes={},blocked={stdout:false,stderr:false};
+      let id="",pid=-1,mode=descriptor.shizuku?(descriptor.root?"adb+root":"adb"):(descriptor.root?"root":"sh"),closed=false,killed=false,exitCode=null,timedOut=false,timer=null,polling=false,closePromise,aborted=false;
+      let resolveExit,rejectExit;const exited=new Promise((resolve,reject)=>{resolveExit=resolve;rejectExit=reject;});exited.catch(()=>{});
+      const report=error=>{if(emitter.listenerCount("error"))emitter.emit("error",error);};
+      const invoke=(name,args,extra={})=>call("shell",name,args,{timeoutMs:5000,permissions:["shell"],...extra});
+      function end(code,error){
+        if(closed)return;closed=true;exitCode=code;clearTimeout(timer);signal?.removeEventListener("abort",onAbort);
+        for(const [name,stream] of Object.entries(pipes)){if(!stream.readableEnded)stream.push(null);lineFlushers[name]?.();}
+        stdin.destroy();if(error){rejectExit(error);report(error);}else resolveExit(code);
+        emitter.emit("exit",code);emitter.emit("close",code);
       }
-      const item = value[key];
-      if (typeof item !== "string" || item.indexOf("\u0000") >= 0) {
-        throw __autojs6_shell_invalid_argument_error("shell.exec env values must be strings without NUL bytes.");
+      function schedule(delay=0){
+        if(closed||!id||timer!==null||polling||blocked.stdout||blocked.stderr)return;
+        timer=setTimeout(async()=>{
+          timer=null;if(closed)return;polling=true;
+          try{
+            const batch=await invoke("drain",[id]);
+            for(const event of Array.isArray(batch)?batch:[]){
+              if(closed)break;
+              if(event.type==="stdout"||event.type==="stderr"){if(!pipes[event.type].push(BufferClass.from(event.data,"base64")))blocked[event.type]=true;}
+              else if(event.type==="end"){pipes[event.stream]?.push(null);lineFlushers[event.stream]?.();}
+              else if(event.type==="error")throw fail(event.message||"Shell stream failed","ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED");
+              else if(event.type==="exit"){timedOut=event.timedOut===true;end(Number(event.code),aborted?abortError(signal):undefined);}
+            }
+          }catch(error){if(!closed){await invoke("close",[id]).catch(()=>{});end(null,error);}}
+          finally{polling=false;schedule(duration(opts.drainIntervalMs,25));}
+        },delay);
       }
-      env[key] = item;
-    }
-    return env;
-  }
-  function __autojs6_shell_normalize_exec_file_path(value) {
-    const text = value === undefined || value === null ? "" : String(value);
-    if (!text || text.indexOf("\u0000") >= 0) {
-      throw __autojs6_shell_invalid_argument_error("execFile", "shell.execFile path must be non-empty without NUL bytes.");
-    }
-    if (text.charAt(0) === "/" || /^[A-Za-z]:[\\/]/.test(text)) {
-      throw __autojs6_shell_invalid_argument_error("execFile", "shell.execFile path must be relative to the scoped working directory.");
-    }
-    const normalized = text.replace(/\\/g, "/");
-    const parts = normalized.split("/").filter(Boolean);
-    if (parts.length === 0 || parts.indexOf("..") >= 0) {
-      throw __autojs6_shell_invalid_argument_error("execFile", "shell.execFile path must not escape the scoped working directory.");
-    }
-    return normalized.indexOf("/") >= 0 ? normalized : "./" + normalized;
-  }
-  function __autojs6_shell_exec_file_args(value) {
-    if (value === undefined || value === null) {
-      return [];
-    }
-    if (!Array.isArray(value)) {
-      throw __autojs6_shell_invalid_argument_error("execFile", "shell.execFile args must be an array of strings.");
-    }
-    return value.map(function(item, index) {
-      if (typeof item !== "string" || item.indexOf("\u0000") >= 0) {
-        throw __autojs6_shell_invalid_argument_error("execFile", "shell.execFile args[" + index + "] must be a string without NUL bytes.");
+      for(const name of ["stdout","stderr"]){pipes[name]=new streams.Readable({read(){blocked[name]=false;schedule();}});pipes[name].on("error",report);}
+      const stdin=new streams.Writable({
+        write(chunk,encoding,callback){ready.then(async()=>{const data=BufferClass.isBuffer(chunk)?chunk:BufferClass.from(chunk,encoding);for(let i=0;i<data.length;i+=8192)await invoke("write",[id,data.subarray(i,i+8192).toString("base64")]);}).then(()=>callback(),callback);},
+        final(callback){ready.then(()=>invoke("closeInput",[id])).then(()=>callback(),callback);}
+      });stdin.on("error",error=>{report(error);emitter.close().catch(()=>{});});
+      function claim(name,kind){if(claimed[name]&&claimed[name]!==kind)throw fail(name+" is already used through "+claimed[name]);claimed[name]=kind;return pipes[name];}
+      function readLine(name){
+        const stream=claim(name,"lines");let reader=lineReaders[name];
+        if(!reader){stream.setEncoding("utf8");reader=lineReaders[name]={iterator:stream[Symbol.asyncIterator](),text:"",ended:false,tail:Promise.resolve()};}
+        const result=reader.tail.then(async()=>{
+          while(true){const newline=reader.text.indexOf("\n");if(newline>=0){const line=reader.text.slice(0,newline).replace(/\r$/,"");reader.text=reader.text.slice(newline+1);return line;}
+            if(reader.ended){const text=reader.text;reader.text="";return text||null;}
+            const next=await reader.iterator.next();if(next.done)reader.ended=true;else reader.text+=next.value;
+          }
+        });reader.tail=result.catch(()=>{});return result;
       }
-      return item;
-    });
-  }
-  function __autojs6_shell_quote(value) {
-    return "'" + String(value).replace(/'/g, "'\"'\"'") + "'";
-  }
-  function __autojs6_shell_result(value) {
-    const source = value && typeof value === "object" ? value : {};
-    const rawCode = Number(source.code);
-    return Object.freeze({
-      code: Number.isFinite(rawCode) ? Math.trunc(rawCode) : 1,
-      stdout: source.stdout === undefined || source.stdout === null ? "" : String(source.stdout),
-      stderr: source.stderr === undefined || source.stderr === null ? "" : String(source.stderr)
-    });
-  }
-  function __autojs6_limited_shell() {
-    if (__autojs6_limited_shell_cache) {
-      return __autojs6_limited_shell_cache;
-    }
-    let defaultTimeoutMs = 30000;
-    function exec(command, options) {
-      const commandText = command === undefined || command === null ? "" : String(command);
-      if (!commandText || commandText.indexOf("\u0000") >= 0) {
-        return Promise.reject(__autojs6_shell_invalid_argument_error(
-          "shell.exec requires a non-empty command without NUL bytes."
-        ));
+
+      function lineEvents(event){
+        const name=event==="output"?"stdout":event==="errorOutput"?"stderr":null;if(!name||claimed[name]==="events")return;
+        const stream=claim(name,"events");let text="";stream.setEncoding("utf8");
+        stream.on("data",chunk=>{text+=chunk;let n;while((n=text.indexOf("\n"))>=0){const line=text.slice(0,n).replace(/\r$/,"");text=text.slice(n+1);emitter.emit(event,line);}});
+        lineFlushers[name]=()=>{if(text){const rest=text;text="";emitter.emit(event,rest);}};stream.on("end",lineFlushers[name]);
       }
-      let normalizedOptions;
-      let inputOptions;
-      try {
-        inputOptions = __autojs6_shell_options(options);
-        if (inputOptions.shizuku === true) {
-          throw __autojs6_shell_shizuku_unsupported_error("exec");
-        }
-        const timeoutMs = __autojs6_shell_timeout_ms(inputOptions.timeoutMs, defaultTimeoutMs);
-        normalizedOptions = {
-          root: inputOptions.root === true,
-          timeoutMs,
-          cwd: __autojs6_shell_normalize_cwd(inputOptions.cwd),
-          env: __autojs6_shell_normalize_env(inputOptions.env)
-        };
-      } catch (error) {
-        return Promise.reject(error);
-      }
-      const permissions = normalizedOptions.root ? ["shell", "shell.root"] : ["shell"];
-      return __autojs6_call_autojs(
-        "shell",
-        "exec",
-        [commandText, normalizedOptions],
-        {
-          timeoutMs: __autojs6_shell_bridge_timeout_ms(normalizedOptions.timeoutMs),
-          permissions,
-          signal: __autojs6_bridge_signal_from_options(inputOptions)
-        }
-      ).then(__autojs6_shell_result);
-    }
-    function execRoot(command, options) {
-      const inputOptions = __autojs6_shell_options(options);
-      return exec(command, Object.freeze(Object.assign({}, inputOptions, { root: true })));
-    }
-    function execShizuku(command, options) {
-      return Promise.reject(__autojs6_shell_shizuku_unsupported_error("execShizuku"));
-    }
-    function execFile(path, args, options) {
-      let command;
-      try {
-        const target = __autojs6_shell_normalize_exec_file_path(path);
-        const argv = __autojs6_shell_exec_file_args(args);
-        command = [target].concat(argv).map(__autojs6_shell_quote).join(" ");
-      } catch (error) {
-        return Promise.reject(error);
-      }
-      return exec(command, options);
-    }
-    function checkAccess(options) {
-      const opts = __autojs6_shell_options(options);
-      const requested = ["shell"];
-      if (opts.root === true) {
-        requested.push("shell.root");
-      }
-      if (opts.shizuku === true) {
-        requested.push("shell.shizuku");
-      }
-      const missing = __autojs6_bridge_missing_capabilities(requested);
-      const frozenMissing = Object.freeze(missing.slice());
-      return Object.freeze({
-        shell: missing.indexOf("shell") < 0,
-        root: opts.root === true && missing.indexOf("shell.root") < 0,
-        shizuku: false,
-        missingCapabilities: frozenMissing
+      for(const method of ["on","addListener","once","prependListener","prependOnceListener"]){const original=emitter[method];emitter[method]=function(event,listener){lineEvents(event);return original.call(this,event,listener);};}
+      Object.defineProperties(emitter,{
+        id:{get:()=>id},pid:{get:()=>pid},command:{value:method==="open"?descriptor.cmd||"sh /proc/self/fd/0":command},mode:{get:()=>mode},closed:{get:()=>closed},killed:{get:()=>killed},exitCode:{get:()=>exitCode},timedOut:{get:()=>timedOut},
+        ready:{get:()=>ready},exited:{value:exited},stdin:{value:stdin},stdout:{get:()=>claim("stdout","raw")},stderr:{get:()=>claim("stderr","raw")}
       });
+      Object.assign(emitter,{
+        readLine:()=>readLine("stdout"),readErrorLine:()=>readLine("stderr"),
+        write(data){return new Promise((resolve,reject)=>stdin.write(data,error=>error?reject(error):resolve(emitter)));},
+        writeLine(text){if(typeof text!=="string")return Promise.reject(fail("writeLine requires a string"));return emitter.write(text+"\n");},
+        closeInput(){return new Promise((resolve,reject)=>{if(closed||stdin.writableFinished)return resolve(emitter);stdin.end(error=>error?reject(error):resolve(emitter));});},
+        async waitFor(timeoutMs){if(timeoutMs===undefined)return exited;const millis=duration(timeoutMs,0);let timeout;try{return await Promise.race([exited,new Promise(resolve=>timeout=setTimeout(()=>resolve(null),millis))]);}finally{clearTimeout(timeout);}},
+        async kill(){await ready;if(closed)return false;killed=true;const alive=await invoke("kill",[id]);schedule();return alive;},
+        close(){if(closePromise)return closePromise;closePromise=ready.catch(()=>{}).then(async()=>{if(closed)return false;killed=true;try{const status=await invoke("close",[id]);end(Number(status?.code??-1),aborted?abortError(signal):undefined);return status?.wasAlive===true;}catch(error){end(null,error);throw error;}});return closePromise;}
+      });
+      function onAbort(){aborted=true;emitter.close().catch(()=>{});}
+      const ready=Promise.resolve().then(async()=>{
+        if(signal?.aborted)throw abortError(signal);
+        const record=await invoke(method,method==="open"?[descriptor]:[command,descriptor],{permissions,timeoutMs:15000});
+        id=String(record?.id||"");pid=Number(record?.pid??-1);mode=String(record?.mode||mode);
+        if(!id)throw fail("Shell start returned no process handle");
+        if(signal?.aborted){await invoke("close",[id]).catch(()=>{});throw abortError(signal);}
+        schedule();
+      }).catch(error=>{end(null,error);throw error;});ready.catch(()=>{});
+      signal?.addEventListener("abort",onAbort,{once:true});
+      return emitter;
     }
-    function setDefaultTimeout(ms) {
-      const timeoutMs = __autojs6_shell_timeout_ms(ms, defaultTimeoutMs);
-      if (!Number.isFinite(Number(ms)) || Number(ms) <= 0) {
-        throw __autojs6_shell_invalid_argument_error("setDefaultTimeout", "shell.setDefaultTimeout requires a positive timeout in milliseconds.");
-      }
-      defaultTimeoutMs = timeoutMs;
-      return defaultTimeoutMs;
+    function spawn(command,opts){return start("spawn",command,opts);}
+    function open(opts){return start("open",null,opts);}
+    async function exec(command,input){
+      const opts=options(input),limit=opts.maxOutputBytes??1048576;if(!Number.isInteger(limit)||limit<1)throw fail("maxOutputBytes must be a positive integer");
+      const child=spawn(command,{...opts,timeoutMs:duration(opts.timeoutMs,defaultTimeout)}),out=[],err=[];let bytes=0,truncated=false;
+      const collect=target=>chunk=>{const keep=Math.min(chunk.length,Math.max(0,limit-bytes));if(keep)target.push(chunk.subarray(0,keep));bytes+=keep;if(keep<chunk.length)truncated=true;};
+      child.stdout.on("data",collect(out));child.stderr.on("data",collect(err));
+      try{await child.ready;await child.closeInput();const code=await child.waitFor();return Object.freeze({code,stdout:BufferClass.concat(out).toString("utf8"),stderr:BufferClass.concat(err).toString("utf8")+(child.timedOut?"\nAutoJs6 shell command timed out after "+duration(opts.timeoutMs,defaultTimeout)+"ms.":""),timedOut:child.timedOut,truncated});}
+      finally{await child.close().catch(()=>{});}
     }
-    __autojs6_limited_shell_cache = Object.freeze({
-      exec,
-      execRoot,
-      execShizuku,
-      execFile,
-      checkAccess,
-      setDefaultTimeout
-    });
-    return __autojs6_limited_shell_cache;
+    function execRoot(command,opts){return exec(command,{...options(opts),root:true});}
+    function execShizuku(command,opts){return exec(command,{...options(opts),shizuku:true});}
+    function execFile(file,args=[],opts){if(typeof file!=="string"||!file||file.includes("\0")||!Array.isArray(args)||args.some(a=>typeof a!=="string"||a.includes("\0")))return Promise.reject(fail("execFile requires a path and string arguments without NUL"));return exec([file.includes("/")?file:"./"+file,...args].map(quote).join(" "),opts);}
+    function checkAccess(input){const opts=options(input),required=["shell",...(opts.root?["shell.root"]:[]),...(opts.shizuku||opts.adb?["shell.shizuku"]:[])],missing=missingCapabilities(required);return Object.freeze({shell:!missing.includes("shell"),root:opts.root===true&&!missing.includes("shell.root"),shizuku:(opts.shizuku===true||opts.adb===true)&&!missing.includes("shell.shizuku"),missingCapabilities:Object.freeze(missing.slice())});}
+    async function getAccess(opts){return Object.freeze(await call("shell","getAccess",[],{timeoutMs:5000,...options(opts),permissions:["shell"]}));}
+    function setDefaultTimeout(ms){if(!Number.isFinite(ms)||ms<=0)throw fail("Default timeout must be positive");return defaultTimeout=duration(ms,defaultTimeout);}
+    const requestShizukuPermission=opts=>call("shell","requestShizukuPermission",[],{timeoutMs:60000,...options(opts),permissions:["shell","shell.shizuku"]});
+    const shell=Object.freeze({exec,execRoot,execShizuku,execFile,checkAccess,getAccess,setDefaultTimeout,spawn,open,requestShizukuPermission});
+    const shizuku=Object.assign((command,opts)=>execShizuku(command,opts),{exec:execShizuku,spawn:(command,opts)=>spawn(command,{...options(opts),shizuku:true}),open:opts=>open({...options(opts),shizuku:true}),checkAccess:opts=>checkAccess({...options(opts),shizuku:true}),getAccess,requestPermission:requestShizukuPermission});
+    return Object.freeze({shell,shizuku:Object.freeze(shizuku)});
   }
+
+  // Main-thread shell facade; native child_process remains independent.
+  function __autojs6_shell_bundle() {
+    return __autojs6_limited_shell_cache ||= __autojs6_create_shell(__autojs6_call_autojs,
+      __autojs6_events_module().EventEmitter,__autojs6_builtin_module("stream"),__autojs6_builtin_module("buffer").Buffer,
+      __autojs6_bridge_missing_capabilities,__autojs6_bridge_error);
+  }
+  function __autojs6_limited_shell() { return __autojs6_shell_bundle().shell; }
+  function __autojs6_limited_shizuku() { return __autojs6_shell_bundle().shizuku; }
   function __autojs6_work_manager_options(value) {
     return value && typeof value === "object" && !Array.isArray(value) ? value : {};
   }
@@ -13158,7 +13094,8 @@ std::string buildEmbeddedScriptExecutionSource(
       execShizuku: { value: shellModule.execShizuku, enumerable: true },
       execFile: { value: shellModule.execFile, enumerable: true },
       checkAccess: { value: shellModule.checkAccess, enumerable: true },
-      setDefaultTimeout: { value: shellModule.setDefaultTimeout, enumerable: true }
+      setDefaultTimeout: { value: shellModule.setDefaultTimeout, enumerable: true },
+      getAccess: {value:shellModule.getAccess,enumerable:true}, spawn:{value:shellModule.spawn,enumerable:true}, open:{value:shellModule.open,enumerable:true}
     });
     __autojs6_rhino_compat_shell_cache = Object.freeze(shell);
     return __autojs6_rhino_compat_shell_cache;
@@ -27392,6 +27329,7 @@ std::string buildEmbeddedScriptExecutionSource(
     device: function() { return __autojs6_limited_device(); },
     screen_metrics: function() { return __autojs6_limited_screen_metrics(); },
     shell: function() { return __autojs6_limited_shell(); },
+    shizuku: function() { return __autojs6_limited_shizuku(); },
     fetch: function() { return __autojs6_limited_fetch(); },
     keys: function() { return __autojs6_keys(); },
     undici: function() { return __autojs6_limited_undici(); },

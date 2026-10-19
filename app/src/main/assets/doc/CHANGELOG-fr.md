@@ -4,6 +4,12 @@
 
 ******
 
+# v1.18.0
+
+###### 2026/10/19
+
+* `Ajout` Shell hôte avec flux, autorisation Shizuku et nettoyage des processus pour Bun, Node.js et les Workers
+
 # v1.17.0
 
 ###### 2026/10/19

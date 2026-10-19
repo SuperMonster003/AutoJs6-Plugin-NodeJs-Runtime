@@ -157,7 +157,7 @@ async function smoke(): Promise<void> {
     timeoutMs: 1000
   });
   const rootShellResult: shell.ShellResult = await shell.execRoot("id", { timeoutMs: 1000 });
-  const shizukuShellDenied: Promise<never> = shell.execShizuku("id", { timeoutMs: 1000 });
+  const shizukuShellResult: Promise<shell.ShellResult> = shell.execShizuku("id", { timeoutMs: 1000 });
   const compatLaunch: boolean = await rhinoCompat.app.launchPackage(app.packageName, { timeoutMs: 1000 });
   const compatIntent: app.IntentDescriptor = rhinoCompat.app.intent({
     action: "VIEW",
@@ -214,7 +214,7 @@ async function smoke(): Promise<void> {
   const compatShellResult: shell.ShellResult = await rhinoCompat.shell("echo compat", { timeoutMs: 1000 });
   const compatRootShellResult: shell.ShellResult = await rhinoCompat.shell("id", true);
   const compatExecRootResult: shell.ShellResult = await rhinoCompat.shell.execRoot("id", { timeoutMs: 1000 });
-  const compatShizukuDenied: Promise<never> = rhinoCompat.shell.execShizuku("id", { timeoutMs: 1000 });
+  const compatShizukuResult: Promise<shell.ShellResult> = rhinoCompat.shell.execShizuku("id", { timeoutMs: 1000 });
   const compatShellAccess: shell.ShellAccessReport = rhinoCompat.shell.checkAccess({ shizuku: true });
 
   const currentEngine: engines.EngineSnapshot = engines.myEngine();
@@ -1015,7 +1015,7 @@ async function smoke(): Promise<void> {
   void shellAccess;
   void shellFileResult;
   void rootShellResult;
-  void shizukuShellDenied;
+  void shizukuShellResult;
   void compatLaunch;
   void compatScreenOn;
   void compatBatteryIgnored;
@@ -1034,7 +1034,7 @@ async function smoke(): Promise<void> {
   void compatShellResult;
   void compatRootShellResult;
   void compatExecRootResult;
-  void compatShizukuDenied;
+  void compatShizukuResult;
   void compatShellAccess;
   void currentEngine;
   void allEngines;

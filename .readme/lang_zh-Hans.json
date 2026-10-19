@@ -24,7 +24,8 @@
     "插件设置页支持 1-8 个并行执行槽 (默认 2) 与排队上限 (默认不限), 超额脚本按 FIFO 等待, 设置调整保留已接受的任务, idleExitMs 可回收空闲运行进程",
     "减少脚本启动时不必要的 Web API 初始化, 工作区与 Worker 默认启用 Node 原生可移植模块编译缓存, 缓存可跨工作区副本复用并由 Node 自动使变更源码失效",
     "Node.js Worker 与 Bun 的 database/sqlite API, 支持参数化查询, 事务和数据库持久化.",
-    "Bun 与 Node.js Worker 的传感器采样及订阅 API, 支持取消和监听器自动释放."
+    "Bun 与 Node.js Worker 的传感器采样及订阅 API, 支持取消和监听器自动释放.",
+    "Bun, Node.js 及 Worker 的宿主 Shell API, 支持流式输入输出, Shizuku 授权与进程清理."
   ],
   "h3_usage": "使用示例",
   "p_usage_note": "将插件安装并在 AutoJs6 插件中心启用后, 以 `\"nodejs\";` 指令启动 Node.js 脚本. 更多示例位于 `sample/nodejs`.",

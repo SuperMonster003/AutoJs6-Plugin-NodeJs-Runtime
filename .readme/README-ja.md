@@ -66,6 +66,7 @@ AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 24.21
 - 不要な Web API 初期化を抑えてスクリプト起動を高速化し, ワークスペースと Worker で Node のポータブルなモジュールコンパイルキャッシュを既定で有効化; ワークスペースのコピー間で再利用し, ソース変更時は Node が無効化
 - Node.js Worker と Bun の database/sqlite API. パラメーター付きクエリ, トランザクション, 永続化に対応.
 - Bun と Node.js Worker のセンサー取得と購読 API, キャンセルとリスナーの自動解放.
+- Bun, Node.js と Worker のホスト Shell API, ストリーム入出力, Shizuku 許可とプロセス解放.
 
 ******
 
@@ -121,6 +122,12 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 
 ******
 
+# v1.18.0
+
+###### 2026/10/19
+
+* `追加` Bun, Node.js と Worker のホスト Shell API, ストリーム入出力, Shizuku 許可とプロセス解放
+
 # v1.17.0
 
 ###### 2026/10/19
@@ -134,12 +141,6 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 
 * `追加` Node.js Worker と Bun の database/sqlite API. パラメーター付きクエリ, トランザクション, 永続化に対応
 * `修正` database/sqlite.open がオブジェクト引数の timeoutMs/signal を無視し, 空のオブジェクトを有効なデータベース名として扱う問題
-
-# v1.15.0
-
-###### 2026/10/18
-
-* `追加` Node.js/Bun の WebView 画面共有アダプター, フォアグラウンドサービスによる録音とネイティブのバックグラウンド動画録画, Node Worker にも対応
 
 ##### その他のリリース履歴
 

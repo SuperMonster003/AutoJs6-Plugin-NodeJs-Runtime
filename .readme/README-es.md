@@ -66,6 +66,7 @@ El plugin AutoJs6 Node.js Runtime proporciona a AutoJs6 un runtime nativo integr
 - Inicio de scripts más rápido al evitar inicializaciones Web API innecesarias y activar por defecto la caché de compilación portátil nativa de Node para espacios de trabajo y Workers; reutilización entre copias e invalidación de fuentes modificadas a cargo de Node
 - API database/sqlite del anfitrión para Bun y Workers de Node.js, con consultas parametrizadas, transacciones y persistencia.
 - Muestras y suscripciones de sensores para Bun y Workers de Node.js, con cancelación y liberación automática de escuchas.
+- Shell del anfitrión con flujos, autorización Shizuku y limpieza de procesos para Bun, Node.js y Workers.
 
 ******
 
@@ -121,6 +122,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.18.0
+
+###### 2026/10/19
+
+* `Nuevo` Shell del anfitrión con flujos, autorización Shizuku y limpieza de procesos para Bun, Node.js y Workers
+
 # v1.17.0
 
 ###### 2026/10/19
@@ -134,12 +141,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 * `Nuevo` API database/sqlite del anfitrión para Bun y Workers de Node.js, con consultas parametrizadas, transacciones y persistencia
 * `Correccion` database/sqlite.open ignoraba timeoutMs/signal en opciones de objeto y aceptaba objetos vacíos como nombres de bases
-
-# v1.15.0
-
-###### 2026/10/18
-
-* `Nuevo` Adaptador para compartir pantalla WebView, captura de audio mediante servicio en primer plano y grabacion de camara nativa en segundo plano para Node.js/Bun y Node Worker
 
 ##### Para mas historial de versiones
 

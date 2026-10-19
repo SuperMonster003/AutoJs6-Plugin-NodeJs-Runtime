@@ -66,6 +66,7 @@ AutoJs6 Node.js Runtime 插件為 AutoJs6 提供內嵌 Node.js 24.21.0 原生運
 - 減少腳本啟動時不必要的 Web API 初始化, 工作區與 Worker 預設啟用 Node 原生可攜式模組編譯快取, 快取可跨工作區副本重用並由 Node 自動使變更源碼失效
 - Node.js Worker 與 Bun 的 database/sqlite API, 支援參數化查詢, 交易和資料庫持久化.
 - Bun 與 Node.js Worker 的感應器取樣及訂閱 API, 支援取消和監聽器自動釋放.
+- Bun, Node.js 及 Worker 的宿主 Shell API, 支援串流輸入輸出, Shizuku 授權與進程清理.
 
 ******
 
@@ -121,6 +122,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.18.0
+
+###### 2026/10/19
+
+* `新增` Bun, Node.js 及 Worker 的宿主 Shell API, 支援串流輸入輸出, Shizuku 授權與進程清理
+
 # v1.17.0
 
 ###### 2026/10/19
@@ -134,12 +141,6 @@ console.log("AutoJs6 Node.js runtime");
 
 * `新增` Node.js Worker 與 Bun 的 database/sqlite API, 支援參數化查詢, 交易和資料庫持久化
 * `修復` database/sqlite.open 的物件參數忽略 timeoutMs/signal, 並將空物件當作有效資料庫名稱的問題
-
-# v1.15.0
-
-###### 2026/10/18
-
-* `新增` Node.js/Bun 的 WebView 螢幕共享適配, 前景服務背景錄音及原生背景攝影機錄影, 包括 Node Worker 封裝
 
 ##### 更多發行歷史可參閱
 

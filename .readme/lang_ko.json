@@ -24,7 +24,8 @@
     "플러그인 설정에서 동시 실행 슬롯 1-8 개 (기본 2) 및 대기열 한도 (기본 무제한) 설정 지원; 초과 스크립트는 FIFO 로 대기하며 설정 변경 시 수락된 작업을 유지하고 idleExitMs 로 유휴 실행 프로세스 회수",
     "불필요한 Web API 초기화를 줄여 스크립트 시작을 개선하고 작업 공간과 Worker 에 Node 기본 이식 가능한 모듈 컴파일 캐시 활성화; 작업 공간 복사본 간에 재사용하며 소스 변경은 Node 가 무효화",
     "Node.js Worker 및 Bun의 database/sqlite API, 매개변수 쿼리, 트랜잭션 및 데이터베이스 영속성 지원.",
-    "Bun 및 Node.js Worker 센서 샘플링과 구독 API, 취소 및 리스너 자동 해제."
+    "Bun 및 Node.js Worker 센서 샘플링과 구독 API, 취소 및 리스너 자동 해제.",
+    "Bun, Node.js 및 Worker의 호스트 Shell API, 스트리밍 입출력, Shizuku 승인 및 프로세스 정리."
   ],
   "h3_usage": "사용 예",
   "p_usage_note": "AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 `\"nodejs\";` 지시문으로 Node.js 스크립트를 시작합니다. 더 많은 예제는 `sample/nodejs` 에 있습니다.",
