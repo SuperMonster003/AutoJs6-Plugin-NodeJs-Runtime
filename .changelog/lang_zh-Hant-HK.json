@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.20.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Bun 與 Node.js Worker 的裝置控制及對話框 API, 支援亮度, 音量和獨立視窗清理"
+      ]
+    },
     "v1.19.0": {
       "released_date": "2026/10/19",
       "feature": [

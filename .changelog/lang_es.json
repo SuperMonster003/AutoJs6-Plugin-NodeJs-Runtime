@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Mejora",
   "changelog_label_dependency": "Dependencia",
   "$data": {
+    "v1.20.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Control del dispositivo y diálogos para Bun y Workers de Node.js, con brillo, volumen y limpieza independiente de ventanas"
+      ]
+    },
     "v1.19.0": {
       "released_date": "2026/10/19",
       "feature": [

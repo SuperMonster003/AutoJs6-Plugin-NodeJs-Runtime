@@ -122,6 +122,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.20.0
+
+###### 2026/10/19
+
+* `Feature` Device controls and dialogs for Bun and Node.js Workers, including brightness, volume and independent window cleanup
+
 # v1.19.0
 
 ###### 2026/10/19
@@ -133,13 +139,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/19
 
 * `Feature` Host Shell streaming, Shizuku authorization and process cleanup for Bun, Node.js and Workers
-
-# v1.17.0
-
-###### 2026/10/19
-
-* `Feature` Sensor sampling and subscriptions for Bun and Node.js Workers with cancellation and automatic listener cleanup
-* `Fix` Sensor listeners surviving cancelled samples, failed polling or registration queued during provider destruction
 
 ##### For more release history
 

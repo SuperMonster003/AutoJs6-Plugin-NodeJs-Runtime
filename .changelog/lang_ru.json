@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.20.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Управление устройством и диалоги для Bun и Node.js Workers с яркостью, громкостью и независимой очисткой окон"
+      ]
+    },
     "v1.19.0": {
       "released_date": "2026/10/19",
       "feature": [

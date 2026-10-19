@@ -122,6 +122,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.20.0
+
+###### 2026/10/19
+
+* `新增` Bun 與 Node.js Worker 的裝置控制及對話框 API, 支援亮度, 音量和獨立視窗清理
+
 # v1.19.0
 
 ###### 2026/10/19
@@ -133,13 +139,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/19
 
 * `新增` Bun, Node.js 及 Worker 的宿主 Shell API, 支援串流輸入輸出, Shizuku 授權與進程清理
-
-# v1.17.0
-
-###### 2026/10/19
-
-* `新增` Bun 與 Node.js Worker 的感應器取樣及訂閱 API, 支援取消和監聽器自動釋放
-* `修復` 感應器單次取樣取消, 輪詢失敗及宿主銷毀時排隊註冊可能遺留監聽器的問題
 
 ##### 更多發行歷史可參閱
 

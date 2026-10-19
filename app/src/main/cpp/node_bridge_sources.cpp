@@ -8378,6 +8378,9 @@ std::string buildEmbeddedScriptExecutionSource(
         const databases = new Set();
         const sensors = new Set();
         const shells = new Set();
+        const deviceScopes = new Set(), dialogScopes = new Set();
+        const closeDevice = scope => invoke("device","closeScope",[scope],{permissions:["device","device.power"]}).catch(()=>{});
+        const closeDialogs = scope => invoke("dialogs","closeScope",[scope],{permissions:["dialogs"]}).catch(()=>{});
         const hostEvents = new Set(), notifications = new Map();
         const closeHostEvent = id => invoke("events","close",[id],{permissions:["events"]}).catch(()=>{});
         const closeNotification = entry => invoke("notifications","cancel",[entry.id,entry.scope],{permissions:["notifications"]}).catch(()=>{});
@@ -8407,6 +8410,8 @@ std::string buildEmbeddedScriptExecutionSource(
           sensors.clear();
           for(const id of shells)closeShell(id);
           shells.clear();
+          for (const scope of deviceScopes) closeDevice(scope); deviceScopes.clear();
+          for (const scope of dialogScopes) closeDialogs(scope); dialogScopes.clear();
           for(const id of hostEvents)closeHostEvent(id);hostEvents.clear();
           for(const entry of notifications.values())closeNotification(entry);notifications.clear();
           for (const [id, module] of windows) closeWindow(id, module);
@@ -8433,6 +8438,16 @@ std::string buildEmbeddedScriptExecutionSource(
           const controller = new AbortController();
           pending.set(message.id, controller);
           try {
+            const keepsAwake = message.module === "device" && message.method === "keepScreenOn";
+            if (keepsAwake) deviceScopes.add(message.args[1]);
+            if (message.module === "dialogs") {
+              const payload = message.args.at(-1);
+              const scope = payload && typeof payload === "object" ? payload.__scope : null;
+              if (scope) {
+                dialogScopes.add(scope);
+                controller.signal.addEventListener("abort",()=>invoke("dialogs","cancelRequest",[payload.__requestId,scope],{permissions:["dialogs"]}).catch(()=>{}),{once:true});
+              }
+            }
             const databaseCall = ["database", "sqlite"].includes(message.module);
             const createsShell=message.module==="shell" && ["spawn","open"].includes(message.method);
             const createsHostEvent = message.module === "events" && message.method.startsWith("observe");
@@ -8444,7 +8459,11 @@ std::string buildEmbeddedScriptExecutionSource(
             const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "enableDisplayCapture", "startBackgroundRecording", "stopBackgroundRecording", "subscribeViewEvents"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+              { ...message.options, signal: keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+            if (keepsAwake && (closed || controller.signal.aborted)) {
+              await closeDevice(message.args[1]);
+              throw Object.assign(new Error("Keeping the screen awake was aborted"),{code:"ABORT_ERR"});
+            }
             if(createsHostEvent && value && value.id){
               if(closed || controller.signal.aborted){await closeHostEvent(value.id);throw Object.assign(new Error("Event observer was aborted"),{code:"ABORT_ERR"});}
               hostEvents.add(value.id);
@@ -8535,7 +8554,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8548,6 +8567,8 @@ std::string buildEmbeddedScriptExecutionSource(
     if (createUi && methods.ui) modules.set("ui", createUi(uiCall));
     if (createCompose && methods.compose) modules.set("compose", createCompose(uiCall));
     if (createShell && methods.shell) for (const [name,value] of Object.entries(createShell(bridgeCall,SensorEmitter,shellStreams,shellBuffer,required=>required.filter(x=>(constants.shellMissing||[]).includes(x))))) modules.set(name,value);
+    if (createDevice && methods.device) modules.set("device",createDevice(bridgeCall,constants.device));
+    if (createDialogs && methods.dialogs) modules.set("dialogs",createDialogs(bridgeCall));
     if (createHostEvents && methods.events) modules.set("events",createHostEvents(bridgeCall,SensorEmitter));
     if (createNotifications && methods.notifications) modules.set("notifications",createNotifications(bridgeCall));
     if (createSensors && methods.sensors) modules.set("sensors", createSensors(bridgeCall, SensorEmitter));
@@ -8670,7 +8691,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return result;
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8762,7 +8783,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8888,7 +8909,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -8918,6 +8939,7 @@ std::string buildEmbeddedScriptExecutionSource(
           pathAliases: __autojs6_path_aliases(),
           moduleSources,
           hostModuleMethods: {
+            device:Object.keys(__autojs6_limited_device()), dialogs:Object.keys(__autojs6_limited_dialogs()),
             events:Object.keys(__autojs6_host_events()), notifications:Object.keys(__autojs6_limited_notifications()),
             shell:Object.keys(__autojs6_limited_shell()), shizuku:Object.keys(__autojs6_limited_shizuku()),
             database: ["open"], sqlite: ["open"], sensors: ["policy", "getAvailableSensors", "once", "subscribe"],
@@ -8934,7 +8956,7 @@ std::string buildEmbeddedScriptExecutionSource(
             screen_metrics: Object.keys(__autojs6_limited_screen_metrics()),
             console: Object.keys(__autojs6_limited_console())
           },
-          hostModuleConstants: { shellMissing:__autojs6_bridge_missing_capabilities(["shell","shell.root","shell.shizuku"]), pinyin: Object.fromEntries(Object.entries(__autojs6_limited_pinyin()).filter(([, value]) => typeof value !== "function")) },
+          hostModuleConstants: { device:__autojs6_host_device_info(), shellMissing:__autojs6_bridge_missing_capabilities(["shell","shell.root","shell.shizuku"]), pinyin: Object.fromEntries(Object.entries(__autojs6_limited_pinyin()).filter(([, value]) => typeof value !== "function")) },
           consoleControls: Object.keys(__autojs6_limited_console()).filter(name => __autojs6_limited_console()[name].__autojs6ConsoleControl),
           typeScriptSources: { ...__autojs6_typescript_precompiled_source_names },
           gatedBuiltins: __autojs6_gated_builtin_ids(),
@@ -9739,123 +9761,107 @@ std::string buildEmbeddedScriptExecutionSource(
     return __autojs6_host_events_cache ||= __autojs6_create_host_events(__autojs6_call_autojs,
       __autojs6_events_module().EventEmitter,__autojs6_bridge_attach_events,__autojs6_bridge_error);
   }
-  function __autojs6_limited_device() {
-    if (__autojs6_limited_device_cache) {
-      return __autojs6_limited_device_cache;
-    }
-    const info = __autojs6_host_device_info();
-    function isScreenOn(options) {
-      const bridgeOptions = __autojs6_device_options(options);
-      return __autojs6_call_autojs(
-        "device",
-        "isScreenOn",
-        [],
-        __autojs6_device_bridge_options(bridgeOptions, 5000)
-      ).then(function(result) {
-        return result === true;
-      });
-    }
-    function wakeUp(options) {
-      const bridgeOptions = __autojs6_device_options(options);
-      return __autojs6_call_autojs(
-        "device",
-        "wakeUp",
-        [],
-        __autojs6_device_bridge_options(bridgeOptions, 5000)
-      ).then(function() {
-        return undefined;
-      });
-    }
-    function vibrate(ms, options) {
-      let duration;
-      try {
-        duration = __autojs6_device_duration_ms(ms);
-      } catch (error) {
-        return Promise.reject(error);
-      }
-      const bridgeOptions = __autojs6_device_options(options);
-      return __autojs6_call_autojs(
-        "device",
-        "vibrate",
-        [duration],
-        __autojs6_device_bridge_options(bridgeOptions, 5000)
-      ).then(function() {
-        return undefined;
-      });
-    }
-    function isIgnoringBatteryOptimizations(options) {
-      const bridgeOptions = __autojs6_device_options(options);
-      return __autojs6_call_autojs(
-        "device",
-        "isIgnoringBatteryOptimizations",
-        [],
-        __autojs6_device_power_bridge_options(bridgeOptions, 5000)
-      ).then(function(result) {
-        return result === true;
-      });
-    }
-    function openBatteryOptimizationSettings(options) {
-      const bridgeOptions = __autojs6_device_options(options);
-      return __autojs6_call_autojs(
-        "device",
-        "openBatteryOptimizationSettings",
-        [{ dryRun: bridgeOptions.dryRun === true }],
-        __autojs6_device_power_bridge_options(bridgeOptions, 5000)
-      ).then(function(result) {
-        return Object.freeze(Object.assign({}, result || {}));
-      });
-    }
-    function liveInfo(options) {
-      return __autojs6_call_autojs("device", "info", [], __autojs6_device_bridge_options(options, 5000));
-    }
-    function control(method, value, options) {
-      return __autojs6_call_autojs("device", method, value === undefined ? [] : [value],
-        __autojs6_device_power_bridge_options(options, 5000)).then(function() { return undefined; });
-    }
-    const methods = {
-      info: liveInfo,
-      setBrightness: function(value, options) { return control("setBrightness", value, options); },
-      setBrightnessMode: function(value, options) { return control("setBrightnessMode", value, options); },
-      keepScreenOn: function(timeoutMs, options) { return control("keepScreenOn", timeoutMs, options); },
-      cancelKeepingAwake: function(options) { return control("cancelKeepingAwake", undefined, options); }
+  // Shared device and dialog facades for Node main threads, Workers and Bun.
+  function __autojs6_create_device(call, snapshot = {}, scope = "device-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2)) {
+    const invoke = (method, args, options = {}, power = false) => call("device", method, args,
+      { timeoutMs: 5000, ...options, permissions: power ? ["device", "device.power"] : ["device"] });
+    const invalid = message => Object.assign(new TypeError(message), {code:"ERR_AUTOJS6_BRIDGE_INVALID_REQUEST"});
+    const info = options => invoke("info", [], options);
+    const control = async (method, value, options) => {
+      if (!Number.isSafeInteger(value) || (method === "setBrightness" ? value < 0 || value > 255 : value !== 0 && value !== 1)) throw invalid("Invalid device." + method + " value.");
+      await invoke(method, [value], options, true);
     };
-    const fields = {
-      getWidth: ["screen", "width"], getHeight: ["screen", "height"], getDensity: ["screen", "density"],
-      getDensityDpi: ["screen", "densityDpi"], getBrightness: ["screen", "brightness"], getBrightnessMode: ["screen", "brightnessMode"],
-      getBattery: ["battery", "percent"], isCharging: ["battery", "isCharging"],
-      getTotalMem: ["memory", "totalMem"], getAvailMem: ["memory", "availMem"]
+    const api = {...snapshot, info, getInfo: info,
+      setBrightness: (value, opts) => control("setBrightness", value, opts),
+      setBrightnessMode: (value, opts) => control("setBrightnessMode", value, opts),
+      async keepScreenOn(timeoutMs, options = {}) {
+        if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) throw invalid("keepScreenOn requires a positive integer timeout.");
+        const abort = () => Object.assign(new Error("Keeping the screen awake was aborted."), {name:"AbortError",code:"ABORT_ERR"});
+        if (options.signal?.aborted) throw abort();
+        await invoke("keepScreenOn", [timeoutMs, scope], {...options, signal:undefined}, true);
+        if (options.signal?.aborted) { await api.cancelKeepingAwake(); throw abort(); }
+      },
+      async cancelKeepingAwake(options) { await invoke("cancelKeepingAwake", [scope], options, true); },
+      async isScreenOn(options) { return await invoke("isScreenOn", [], options) === true; },
+      async wakeUp(options) { await invoke("wakeUp", [], options); },
+      async vibrate(value, options) {
+        const duration = Number(value);
+        if (!Number.isFinite(duration) || duration < 0) throw invalid("vibrate requires a non-negative finite duration.");
+        await invoke("vibrate", [Math.min(10000, Math.trunc(duration))], options);
+      },
+      async isIgnoringBatteryOptimizations(options) { return await invoke("isIgnoringBatteryOptimizations", [], options, true) === true; },
+      async openBatteryOptimizationSettings(options = {}) { return Object.freeze({...await invoke("openBatteryOptimizationSettings", [{dryRun:options.dryRun === true}], options, true)}); }
     };
-    for (const key of ["sdkInt", "release", "model", "brand", "product", "board", "bootloader", "hardware", "fingerprint", "buildId"]) {
-      fields["get" + key[0].toUpperCase() + key.slice(1)] = ["build", key];
-    }
-    for (const [name, path] of Object.entries(fields)) {
-      methods[name] = function(options) {
-        return liveInfo(options).then(function(value) {
-          const section = value && value[path[0]];
-          if (!section || section[path[1]] === undefined || section[path[1]] === null) {
-            throw new Error("device." + name + ": " + (section && section.error || "device information unavailable"));
-          }
-          return section[path[1]];
-        });
+    const fields = {getWidth:["screen","width"],getHeight:["screen","height"],getDensity:["screen","density"],getDensityDpi:["screen","densityDpi"],
+      getBrightness:["screen","brightness"],getBrightnessMode:["screen","brightnessMode"],getBattery:["battery","percent"],isCharging:["battery","isCharging"],
+      getTotalMem:["memory","totalMem"],getAvailMem:["memory","availMem"]};
+    for (const key of ["sdkInt","release","model","brand","product","board","bootloader","hardware","fingerprint","buildId"]) fields["get"+key[0].toUpperCase()+key.slice(1)] = ["build",key];
+    for (const [method,[section,key]] of Object.entries(fields)) api[method] = async options => {
+      const value = (await info(options))?.[section];
+      if (value?.[key] === undefined || value[key] === null) throw new Error("device."+method+": "+(value?.error || "device information unavailable"));
+      return value[key];
+    };
+    for (const [name,stream] of [["Music","music"],["Notification","notification"],["Alarm","alarm"]]) {
+      const audio = (method,args,options={}) => call("media",method,args,{timeoutMs:5000,...options,permissions:["media","media.audio"]});
+      api["get"+name+"Volume"] = options => audio("getAudioStreamVolume",[stream],options).then(Number);
+      api["get"+name+"MaxVolume"] = options => audio("getAudioStreamMaxVolume",[stream],options).then(Number);
+      api["set"+name+"Volume"] = async (value,options) => {
+        if (!Number.isSafeInteger(value) || value < 0) throw invalid("Volume must be a non-negative integer.");
+        await audio("setAudioStreamVolume",[stream,value],options);
       };
     }
-    for (const [name, stream] of [["Music", "music"], ["Notification", "notification"], ["Alarm", "alarm"]]) {
-      methods["get" + name + "Volume"] = function(options) { return __autojs6_limited_media().getAudioStreamVolume(stream, options); };
-      methods["get" + name + "MaxVolume"] = function(options) { return __autojs6_limited_media().getAudioStreamMaxVolume(stream, options); };
-      methods["set" + name + "Volume"] = function(value, options) { return __autojs6_limited_media().setAudioStreamVolume(stream, value, options); };
+    return Object.freeze(api);
+  }
+  function __autojs6_create_dialogs(call, scope = "dialogs-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2)) {
+    let sequence = 0;
+    const text = value => value == null ? "" : String(value);
+    const invoke = (method,args,options={},timeoutMs=30000) => call("dialogs",method,args,{timeoutMs,...options,permissions:["dialogs"]});
+    const invalid = message => Object.assign(new TypeError(message),{code:"ERR_AUTOJS6_BRIDGE_INVALID_REQUEST"});
+    const presentation = options => Object.fromEntries(["positive","negative","neutral"].filter(key => options?.[key] !== undefined).map(key => [key,text(options[key])]));
+    async function show(method,args,options = {},descriptor) {
+      const token = scope + ":" + (++sequence);
+      const payload = {...(descriptor || presentation(options)),__scope:scope,__requestId:token};
+      const cancel = () => invoke("cancelRequest",[token,scope],{},5000).catch(()=>{});
+      // The native token also covers cancellation before the Activity is attached.
+      try { return await invoke(method,[...args,payload],options,method === "progressShow" ? 10000 : 30000); }
+      catch (error) { await cancel(); throw error; }
     }
-    __autojs6_limited_device_cache = Object.freeze(Object.assign({}, info, methods, {
-      sdkInt: info.sdkInt,
-      width: info.width,
-      height: info.height,
-      density: info.density,
-      isScreenOn,
-      wakeUp,
-      vibrate,
-      isIgnoringBatteryOptimizations,
-      openBatteryOptimizationSettings
-    }));
-    return __autojs6_limited_device_cache;
+    function message(method,title,value,options) {
+      if (value && typeof value === "object" && !Array.isArray(value)) { options=value; value=""; }
+      return show(method,[text(title),text(value)],options);
+    }
+    function choose(method,title,items,selected,options) {
+      if (!Array.isArray(items)) return Promise.reject(invalid("Dialog choices must be an array."));
+      if (method === "singleChoice" && (!Number.isInteger(selected) || selected < -1 || selected >= items.length)) return Promise.reject(invalid("Selected index is out of range."));
+      if (method === "multiChoice" && (!Array.isArray(selected) || selected.some(index => !Number.isInteger(index) || index < 0 || index >= items.length))) return Promise.reject(invalid("Selected indices are out of range."));
+      return show(method,[text(title),items.map(text),...(method === "select" ? [] : [selected])],options);
+    }
+    const progress = Object.freeze({
+      async show(descriptor = {}, options) {
+        let state = await show("progressShow",[],options,descriptor);
+        const handle = {id:state.id,
+          async update(patch,opts) { state = await progress.update(state.id,patch,opts); return state; },
+          async dismiss(opts) { const result = await progress.dismiss(state.id,opts); state={...state,shown:false}; return result; }
+        };
+        for (const key of ["title","message","shown","max","value","indeterminate"]) Object.defineProperty(handle,key,{enumerable:true,get:()=>state[key]});
+        return Object.freeze(handle);
+      },
+      async update(id,patch,options) { return Object.freeze({...await invoke("progressUpdate",[id,patch,scope],options,5000)}); },
+      dismiss:(id,options) => invoke("progressDismiss",[id,scope],options,5000)
+    });
+    const input = (title,value,options) => message("input",title,value,options);
+    return Object.freeze({
+      async alert(title,value,options) { await message("alert",title,value,options); },
+      async confirm(title,value,options) { return await message("confirm",title,value,options) === true; },
+      input,prompt:input,rawInput:(title,value,options)=>message("rawInput",title,value,options),
+      select:(title,items,options)=>choose("select",title,items,undefined,options),
+      singleChoice:(title,items,selected=-1,options)=>choose("singleChoice",title,items,selected,options),
+      multiChoice:(title,items,selected=[],options)=>choose("multiChoice",title,items,selected,options),progress
+    });
+  }
+  // Main-thread device facade.
+  function __autojs6_limited_device() {
+    return __autojs6_limited_device_cache ||= __autojs6_create_device(__autojs6_call_autojs,__autojs6_host_device_info());
   }
   function __autojs6_create_shell(call, EventEmitter, streams, BufferClass, missingCapabilities = () => [], createError) {
     const fail=(message,code="ERR_AUTOJS6_BRIDGE_INVALID_REQUEST") => createError ? createError(message,code,"shell") : Object.assign(new Error(message),{code,module:"shell"});
@@ -16350,96 +16356,7 @@ std::string buildEmbeddedScriptExecutionSource(
     );
   }
   function __autojs6_limited_dialogs() {
-    if (__autojs6_limited_dialogs_cache) {
-      return __autojs6_limited_dialogs_cache;
-    }
-    function alert(title, message, options) {
-      const normalized = __autojs6_dialogs_message_and_options(message, options);
-      return __autojs6_call_autojs(
-        "dialogs",
-        "alert",
-        [__autojs6_dialogs_string(title), normalized.message, __autojs6_dialogs_presentation_options(normalized.options)],
-        __autojs6_dialogs_bridge_options(normalized.options, 30000)
-      ).then(function() {
-        return undefined;
-      });
-    }
-    function confirm(title, message, options) {
-      const normalized = __autojs6_dialogs_message_and_options(message, options);
-      return __autojs6_call_autojs(
-        "dialogs",
-        "confirm",
-        [__autojs6_dialogs_string(title), normalized.message, __autojs6_dialogs_presentation_options(normalized.options)],
-        __autojs6_dialogs_bridge_options(normalized.options, 30000)
-      ).then(function(result) {
-        return result === true;
-      });
-    }
-    function input(title, prefill, options) {
-      let value = prefill;
-      let bridgeOptions = options;
-      if (value && typeof value === "object" && !Array.isArray(value)) {
-        bridgeOptions = value;
-        value = "";
-      }
-      return __autojs6_call_autojs(
-        "dialogs",
-        "input",
-        [__autojs6_dialogs_string(title), __autojs6_dialogs_string(value), __autojs6_dialogs_presentation_options(bridgeOptions)],
-        __autojs6_dialogs_bridge_options(bridgeOptions, 30000)
-      ).then(function(result) {
-        return result === undefined || result === null ? null : String(result);
-      });
-    }
-    function select(title, items, options) {
-      if (!Array.isArray(items)) {
-        return Promise.reject(__autojs6_dialogs_invalid_argument_error(
-          "select",
-          "dialogs.select requires an array of items."
-        ));
-      }
-      return __autojs6_call_autojs(
-        "dialogs",
-        "select",
-        [__autojs6_dialogs_string(title), items.map(__autojs6_dialogs_string), __autojs6_dialogs_presentation_options(options)],
-        __autojs6_dialogs_bridge_options(__autojs6_dialogs_options(arguments, 2), 30000)
-      ).then(function(result) {
-        const index = Number(result);
-        return Number.isFinite(index) ? index : -1;
-      });
-    }
-    function rawInput(title, prefill, options) {
-      return __autojs6_call_autojs("dialogs", "rawInput", [String(title || ""), String(prefill === undefined ? "" : prefill), __autojs6_dialogs_presentation_options(options)],
-        __autojs6_dialogs_bridge_options(options, 30000));
-    }
-    function choose(method, title, items, selected, options) {
-      if (!Array.isArray(items)) return Promise.reject(__autojs6_dialogs_invalid_argument_error(method, "Dialog choices must be an array."));
-      return __autojs6_call_autojs("dialogs", method, [String(title || ""), items.map(String), selected, __autojs6_dialogs_presentation_options(options)],
-        __autojs6_dialogs_bridge_options(options, 30000));
-    }
-    const progress = Object.freeze({
-      async show(descriptor, options) {
-        const record = await __autojs6_call_autojs("dialogs", "progressShow", [descriptor || {}], __autojs6_dialogs_bridge_options(options, 10000));
-        return Object.freeze(Object.assign({}, record, {
-          update(patch, options) { return progress.update(record.id, patch, options); },
-          dismiss(options) { return progress.dismiss(record.id, options); }
-        }));
-      },
-      update(id, patch, options) { return __autojs6_call_autojs("dialogs", "progressUpdate", [id, patch], __autojs6_dialogs_bridge_options(options, 5000)); },
-      dismiss(id, options) { return __autojs6_call_autojs("dialogs", "progressDismiss", [id], __autojs6_dialogs_bridge_options(options, 5000)); }
-    });
-    __autojs6_limited_dialogs_cache = Object.freeze({
-      alert,
-      confirm,
-      input,
-      prompt: input,
-      select,
-      rawInput,
-      singleChoice(title, items, selected, options) { return choose("singleChoice", title, items, selected === undefined ? -1 : selected, options); },
-      multiChoice(title, items, selected, options) { return choose("multiChoice", title, items, selected || [], options); },
-      progress
-    });
-    return __autojs6_limited_dialogs_cache;
+    return __autojs6_limited_dialogs_cache ||= __autojs6_create_dialogs(__autojs6_call_autojs);
   }
   let __autojs6_keys_cache;
   function __autojs6_keys() {
