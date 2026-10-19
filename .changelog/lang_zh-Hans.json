@@ -5,6 +5,15 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.16.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Node.js Worker 与 Bun 的 database/sqlite API, 支持参数化查询, 事务和数据库持久化"
+      ],
+      "fix": [
+        "database/sqlite.open 的对象参数忽略 timeoutMs/signal, 并将空对象当作有效数据库名称的问题"
+      ]
+    },
     "v1.15.0": {
       "released_date": "2026/10/18",
       "feature": [

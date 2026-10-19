@@ -1486,7 +1486,11 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 assert.equal(require('type-module-pkg').kind, 'esm-js');
                 assert.equal(require('ui').state({value:7}).get('value'),7);
                 assert.equal(require('compose').Text({text:'worker'}).get('text'),'worker');
-                for (const name of ['sqlite', 'autojs6:fetch']) {
+                assert.equal(typeof require('database').open, 'function');
+                assert.equal(typeof require('sqlite'), 'function');
+                assert.equal(require('database'), require('autojs6:database'));
+                assert.equal(require('sqlite'), require('autojs6:sqlite'));
+                for (const name of ['autojs6:fetch']) {
                   assert.throws(() => require(name), (e) => e.code === 'MODULE_NOT_FOUND', name);
                 }
                 for (const name of ['node:inspector', 'inspector']) {
@@ -1495,10 +1499,15 @@ public final class NodeRuntimePluginAndroidConformanceTest {
                 parentPort.postMessage('cjs-ok');
                 """);
         files.put("worker.mjs", """
+                import assert from 'node:assert/strict';
+                import database from 'autojs6:database';
+                import sqlite from 'sqlite';
                 import { flavor } from '@scope/cond';
                 import { kind } from 'type-module-pkg';
                 import plain from 'plain-cjs';
                 import { parentPort } from 'node:worker_threads';
+                assert.equal(typeof database.open, 'function');
+                assert.equal(typeof sqlite, 'function');
                 parentPort.postMessage(flavor + '/' + kind + '/' + plain.name);
                 """);
         files.put("main.cjs", """

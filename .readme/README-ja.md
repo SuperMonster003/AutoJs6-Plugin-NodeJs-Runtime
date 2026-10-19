@@ -64,6 +64,7 @@ AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 24.21
 - マルチコール型ターミナルランチャー `libnodexe.so` と npm / corepack アセットを同梱し, `NODE_CLI_*` manifest meta-data で宣言することで, AutoJs6 ターミナル (ホスト 6.8.0 以降) が自身の uid の shell で `node`, `npm`, `npx`, `corepack`, `yarn`, `pnpm` を実行できます.
 - プラグイン設定で同時実行スロットを 1-8 (既定 2), 待機キューの上限を設定可能 (既定は無制限); 超過分は FIFO で待機し, 設定変更後も受理済みの処理を保持, idleExitMs でアイドル状態の実行プロセスを解放
 - 不要な Web API 初期化を抑えてスクリプト起動を高速化し, ワークスペースと Worker で Node のポータブルなモジュールコンパイルキャッシュを既定で有効化; ワークスペースのコピー間で再利用し, ソース変更時は Node が無効化
+- Node.js Worker と Bun の database/sqlite API. パラメーター付きクエリ, トランザクション, 永続化に対応.
 
 ******
 
@@ -119,6 +120,13 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 
 ******
 
+# v1.16.0
+
+###### 2026/10/19
+
+* `追加` Node.js Worker と Bun の database/sqlite API. パラメーター付きクエリ, トランザクション, 永続化に対応
+* `修正` database/sqlite.open がオブジェクト引数の timeoutMs/signal を無視し, 空のオブジェクトを有効なデータベース名として扱う問題
+
 # v1.15.0
 
 ###### 2026/10/18
@@ -130,12 +138,6 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 ###### 2026/10/18
 
 * `追加` WebView の getUserMedia/MediaRecorder による音声と動画のストリーミング, ページの Promise 待機, Android メディア権限の明示的な要求と Worker のライフサイクル管理
-
-# v1.13.0
-
-###### 2026/10/18
-
-* `追加` Node.js/Worker: WebView の動画撮影と前面での AAC/M4A 録音, メディア設定, 選択待ち時間の指定と一時ファイルの削除
 
 ##### その他のリリース履歴
 

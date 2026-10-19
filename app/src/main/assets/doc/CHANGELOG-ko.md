@@ -4,6 +4,13 @@
 
 ******
 
+# v1.16.0
+
+###### 2026/10/19
+
+* `추가` Node.js Worker 및 Bun의 database/sqlite API, 매개변수 쿼리, 트랜잭션 및 데이터베이스 영속성 지원
+* `수정` database/sqlite.open이 객체 옵션의 timeoutMs/signal을 무시하고 빈 객체를 유효한 데이터베이스 이름으로 처리하는 문제
+
 # v1.15.0
 
 ###### 2026/10/18

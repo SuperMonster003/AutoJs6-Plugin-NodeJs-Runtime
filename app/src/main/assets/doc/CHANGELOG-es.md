@@ -4,6 +4,13 @@
 
 ******
 
+# v1.16.0
+
+###### 2026/10/19
+
+* `Nuevo` API database/sqlite del anfitrión para Bun y Workers de Node.js, con consultas parametrizadas, transacciones y persistencia
+* `Correccion` database/sqlite.open ignoraba timeoutMs/signal en opciones de objeto y aceptaba objetos vacíos como nombres de bases
+
 # v1.15.0
 
 ###### 2026/10/18

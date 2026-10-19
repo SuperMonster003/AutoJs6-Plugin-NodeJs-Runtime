@@ -5,6 +5,15 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v1.16.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Node.js Worker と Bun の database/sqlite API. パラメーター付きクエリ, トランザクション, 永続化に対応"
+      ],
+      "fix": [
+        "database/sqlite.open がオブジェクト引数の timeoutMs/signal を無視し, 空のオブジェクトを有効なデータベース名として扱う問題"
+      ]
+    },
     "v1.15.0": {
       "released_date": "2026/10/18",
       "feature": [

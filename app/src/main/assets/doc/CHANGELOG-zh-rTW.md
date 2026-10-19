@@ -4,6 +4,13 @@
 
 ******
 
+# v1.16.0
+
+###### 2026/10/19
+
+* `新增` Node.js Worker 與 Bun 的 database/sqlite API, 支援參數化查詢, 交易和資料庫持久化
+* `修復` database/sqlite.open 的物件參數忽略 timeoutMs/signal, 並將空物件當成有效資料庫名稱的問題
+
 # v1.15.0
 
 ###### 2026/10/18

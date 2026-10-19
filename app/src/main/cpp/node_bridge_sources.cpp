@@ -8375,6 +8375,8 @@ std::string buildEmbeddedScriptExecutionSource(
         }
         const pending = new Map();
         const recordings = new Set();
+        const databases = new Set();
+        const closeDatabase = id => invoke("database", "close", [id], {permissions:["database"]}).catch(() => {});
         const windows = new Map();
         const webClients = new Map(), webTasks = new Map(), displayCaptures = new Map(), cameraRecordings = new Map(), eventReaders = new Map();
         const releaseEventReader = entry => invoke("ui", "viewCommand", [entry.view, "releaseViewEvents", [entry.id]], { permissions: ["ui"] }).catch(() => {});
@@ -8392,6 +8394,8 @@ std::string buildEmbeddedScriptExecutionSource(
           pending.clear();
           for (const id of recordings) cancelRecording(id);
           recordings.clear();
+          for (const id of databases) closeDatabase(id);
+          databases.clear();
           for (const [id, module] of windows) closeWindow(id, module);
           windows.clear();
           for (const entry of webClients.values()) clearWebClient(entry);
@@ -8416,12 +8420,18 @@ std::string buildEmbeddedScriptExecutionSource(
           const controller = new AbortController();
           pending.set(message.id, controller);
           try {
+            const databaseCall = ["database", "sqlite"].includes(message.module);
+            const createsDatabase = databaseCall && message.method === "open";
             const createsWindow = ["ui", "compose"].includes(message.module) && ["showLayout", "mount", "dialog", "floaty", "attach"].includes(message.method);
             const webOperation = message.module === "ui" && message.method === "viewCommand" ? message.args[1] : "";
             const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "enableDisplayCapture", "startBackgroundRecording", "stopBackgroundRecording", "subscribeViewEvents"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+              { ...message.options, signal: createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+            if (createsDatabase && value && value.id) {
+              if (closed || controller.signal.aborted) { await closeDatabase(value.id); throw Object.assign(new Error("Database open was aborted"), {code:"ABORT_ERR"}); }
+              databases.add(value.id);
+            } else if (databaseCall && message.method === "close") databases.delete(message.args[0]);
             if (webOperation === "subscribeViewEvents" && value) {
               const entry = {view:message.args[0], id:message.args[2][0]};
               if (closed || controller.signal.aborted) { await releaseEventReader(entry); throw Object.assign(new Error("View event subscription was aborted"), {code:"ABORT_ERR"}); }
@@ -8490,7 +8500,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8502,6 +8512,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const uiCall = (module, method, args, options = {}) => bridgeCall(module, method, args, { ...options, permissions: ["ui"] });
     if (createUi && methods.ui) modules.set("ui", createUi(uiCall));
     if (createCompose && methods.compose) modules.set("compose", createCompose(uiCall));
+    if (createDatabase && methods.database) for (const [name, value] of Object.entries(createDatabase(bridgeCall))) modules.set(name, value);
     for (const [module, names] of Object.entries(methods)) {
       if (modules.has(module)) continue;
       const value = module === "opencc" || module === "pinyin" ? (text, options) => value.convert(text, options)
@@ -8620,7 +8631,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return result;
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8712,7 +8723,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8838,7 +8849,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -8868,6 +8879,7 @@ std::string buildEmbeddedScriptExecutionSource(
           pathAliases: __autojs6_path_aliases(),
           moduleSources,
           hostModuleMethods: {
+            database: ["open"], sqlite: ["open"],
             ui: Object.keys(__autojs6_limited_ui()),
             compose: Object.keys(__autojs6_limited_compose()),
             opencc: Object.keys(__autojs6_limited_opencc()),
@@ -20684,6 +20696,15 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return moduleValue;
   }
+  function __autojs6_create_database(call, error, normalizeTimeout, signalFromOptions) {
+    let __autojs6_limited_database_cache, __autojs6_limited_sqlite_cache;
+    const __autojs6_call_autojs = call;
+    const __autojs6_bridge_error = error || ((message, code, module, method) => Object.assign(new Error(message), {code, module, method}));
+    const __autojs6_bridge_timeout_ms = normalizeTimeout || (value => {
+      const number = Number(value == null ? 30000 : value);
+      return !Number.isFinite(number) || number <= 0 ? 30000 : Math.max(1, Math.min(Math.floor(number), 2147483647));
+    });
+    const __autojs6_bridge_signal_from_options = signalFromOptions || (options => options && options.signal);
   function __autojs6_database_options(value) {
     return value && typeof value === "object" && !Array.isArray(value) ? value : {};
   }
@@ -20700,7 +20721,8 @@ std::string buildEmbeddedScriptExecutionSource(
     if (typeof value === "string" || typeof value === "number") {
       name = String(value).trim();
     } else if (value && typeof value === "object" && !Array.isArray(value)) {
-      name = String(value.name === undefined || value.name === null ? value.path : value.name).trim();
+      const selected = value.name === undefined || value.name === null ? value.path : value.name;
+      name = selected == null ? "" : String(selected).trim();
     }
     if (!name || name.length > 64 || name.indexOf("\u0000") !== -1) {
       throw __autojs6_database_invalid_argument_error(moduleName, "open", moduleName + ".open requires a non-empty database name up to 64 characters.");
@@ -20885,7 +20907,7 @@ std::string buildEmbeddedScriptExecutionSource(
         moduleName,
         "open",
         [payload],
-        __autojs6_database_bridge_options(options, 10000)
+        __autojs6_database_bridge_options(options === undefined ? nameOrOptions : options, 10000)
       ).then(createDatabaseHandle);
     }
     const moduleValue = moduleName === "sqlite"
@@ -20906,6 +20928,16 @@ std::string buildEmbeddedScriptExecutionSource(
       __autojs6_limited_database_cache = moduleValue;
     }
     return moduleValue;
+  }
+    return Object.freeze({database:__autojs6_limited_database("database"), sqlite:__autojs6_limited_database("sqlite")});
+  }
+  // Main-thread database facade; the same factory is embedded in Worker and Bun clients.
+  function __autojs6_limited_database(moduleName) {
+    if (!__autojs6_limited_database_cache) {
+      const modules = __autojs6_create_database(__autojs6_call_autojs, __autojs6_bridge_error, __autojs6_bridge_timeout_ms, __autojs6_bridge_signal_from_options);
+      __autojs6_limited_database_cache = modules.database; __autojs6_limited_sqlite_cache = modules.sqlite;
+    }
+    return moduleName === "sqlite" ? __autojs6_limited_sqlite_cache : __autojs6_limited_database_cache;
   }
   function __autojs6_notifications_options(value) {
     return value && typeof value === "object" && !Array.isArray(value) ? value : {};

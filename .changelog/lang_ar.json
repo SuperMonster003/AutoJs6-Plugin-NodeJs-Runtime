@@ -5,6 +5,15 @@
   "changelog_label_improvement": "تحسين",
   "changelog_label_dependency": "اعتماد",
   "$data": {
+    "v1.16.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "واجهات database/sqlite للمضيف في Bun وWorkers من Node.js مع استعلامات بمعاملات ومعاملات ذرية وتخزين دائم"
+      ],
+      "fix": [
+        "تجاهل database/sqlite.open لخيارات timeoutMs/signal في الكائن وقبول الكائن الفارغ كاسم قاعدة بيانات"
+      ]
+    },
     "v1.15.0": {
       "released_date": "2026/10/18",
       "feature": [

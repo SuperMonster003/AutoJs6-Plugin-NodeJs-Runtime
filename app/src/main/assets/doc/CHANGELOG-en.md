@@ -4,6 +4,13 @@
 
 ******
 
+# v1.16.0
+
+###### 2026/10/19
+
+* `Feature` Host database/sqlite APIs for Bun and Node.js Workers with parameterized queries, transactions and persistence
+* `Fix` database/sqlite.open ignoring timeoutMs/signal in object options and accepting empty objects as database names
+
 # v1.15.0
 
 ###### 2026/10/18

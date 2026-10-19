@@ -5,6 +5,15 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.16.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Host database/sqlite APIs for Bun and Node.js Workers with parameterized queries, transactions and persistence"
+      ],
+      "fix": [
+        "database/sqlite.open ignoring timeoutMs/signal in object options and accepting empty objects as database names"
+      ]
+    },
     "v1.15.0": {
       "released_date": "2026/10/18",
       "feature": [
