@@ -122,6 +122,13 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.21.0
+
+###### 2026/10/19
+
+* `Feature` Android object helpers for Node.js, Bun and Workers, including Paint, ColorStateList, theme colors and FileProvider URIs
+* `Feature` Persistent calendar and IntentTask APIs for Node.js and Bun, with daily, weekly, monthly, yearly, one-shot, countdown and broadcast tasks
+
 # v1.20.0
 
 ###### 2026/10/19
@@ -133,12 +140,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/19
 
 * `Feature` Host event observers and notifications for Bun and Node.js Workers, with independent subscription and notification cleanup
-
-# v1.18.0
-
-###### 2026/10/19
-
-* `Feature` Host Shell streaming, Shizuku authorization and process cleanup for Bun, Node.js and Workers
 
 ##### For more release history
 

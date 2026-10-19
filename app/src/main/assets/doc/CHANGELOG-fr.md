@@ -4,6 +4,13 @@
 
 ******
 
+# v1.21.0
+
+###### 2026/10/19
+
+* `Ajout` Objets Android pour Node.js, Bun et les Workers, avec Paint, ColorStateList, couleurs du thème et URI FileProvider
+* `Ajout` API persistantes de calendrier et IntentTask pour Node.js et Bun, avec tâches quotidiennes, hebdomadaires, mensuelles, annuelles, ponctuelles, différées et de diffusion
+
 # v1.20.0
 
 ###### 2026/10/19

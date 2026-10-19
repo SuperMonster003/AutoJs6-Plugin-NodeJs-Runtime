@@ -122,6 +122,13 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.21.0
+
+###### 2026/10/19
+
+* `Nuevo` Objetos Android para Node.js, Bun y Workers, con Paint, ColorStateList, colores del tema y URI FileProvider
+* `Nuevo` API persistentes de calendario e IntentTask para Node.js y Bun, con tareas diarias, semanales, mensuales, anuales, únicas, de cuenta atrás y de difusión
+
 # v1.20.0
 
 ###### 2026/10/19
@@ -133,12 +140,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 ###### 2026/10/19
 
 * `Nuevo` Eventos y notificaciones del anfitrión para Bun y Workers de Node.js, con limpieza independiente de suscripciones y notificaciones
-
-# v1.18.0
-
-###### 2026/10/19
-
-* `Nuevo` Shell del anfitrión con flujos, autorización Shizuku y limpieza de procesos para Bun, Node.js y Workers
 
 ##### Para mas historial de versiones
 

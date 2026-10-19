@@ -5,6 +5,13 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.21.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Объекты Android для Node.js, Bun и Workers, включая Paint, ColorStateList, цвета темы и URI FileProvider",
+        "Постоянные календарные задачи и IntentTask для Node.js и Bun, включая ежедневные, еженедельные, ежемесячные, ежегодные, разовые, отложенные и широковещательные задачи"
+      ]
+    },
     "v1.20.0": {
       "released_date": "2026/10/19",
       "feature": [

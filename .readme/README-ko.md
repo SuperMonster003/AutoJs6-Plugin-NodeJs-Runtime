@@ -122,6 +122,13 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 
 ******
 
+# v1.21.0
+
+###### 2026/10/19
+
+* `추가` Node.js, Bun 및 Worker의 Android 객체 도우미, Paint, ColorStateList, 테마 색상 및 FileProvider URI 지원
+* `추가` Node.js 및 Bun의 영구 달력 및 IntentTask API, 일간, 주간, 월간, 연간, 일회성, 카운트다운 및 브로드캐스트 작업 지원
+
 # v1.20.0
 
 ###### 2026/10/19
@@ -133,12 +140,6 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 ###### 2026/10/19
 
 * `추가` Bun 및 Node.js Worker의 호스트 이벤트 및 알림 API, 독립 구독과 알림 정리
-
-# v1.18.0
-
-###### 2026/10/19
-
-* `추가` Bun, Node.js 및 Worker의 호스트 Shell API, 스트리밍 입출력, Shizuku 승인 및 프로세스 정리
 
 ##### 더 많은 릴리스 기록
 

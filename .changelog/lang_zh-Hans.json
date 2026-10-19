@@ -5,6 +5,13 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.21.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Node.js/Bun 的 Android 对象辅助接口及 Worker 封装, 支持 Paint, ColorStateList, 主题色和 FileProvider URI",
+        "Node.js/Bun 的持久日历与 IntentTask API, 支持每日, 每周, 每月, 每年, 一次性, 倒计时和广播任务"
+      ]
+    },
     "v1.20.0": {
       "released_date": "2026/10/19",
       "feature": [

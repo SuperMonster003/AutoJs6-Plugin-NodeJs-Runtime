@@ -87,7 +87,7 @@ async function smoke(): Promise<void> {
   const editedFile: boolean = await app.editFile("README.md", { timeoutMs: 1000 });
   const launchAlias: boolean = await app.launch(app.packageName, { timeoutMs: 1000 });
   const parsedUri: app.UriDescriptor | null = app.parseUri("https://example.invalid/path?q=1#frag");
-  const getUriForFileDenied: () => never = () => app.getUriForFile("README.md");
+  const getUriForFile: () => Promise<import("autojs6:android").UriSnapshot> = () => app.getUriForFile("README.md");
   const killDenied: Promise<never> = app.kill(app.packageName, { timeoutMs: 1000 });
   const launchDualDenied: Promise<never> = app.launchDualPackage(app.packageName, { timeoutMs: 1000 });
   const dualInstalledDenied: Promise<never> = app.isDualInstalled(app.packageName, { timeoutMs: 1000 });
@@ -166,7 +166,7 @@ async function smoke(): Promise<void> {
   });
   const compatShellIntent: string = rhinoCompat.app.intentToShell(compatIntent);
   const compatParsedUri: app.UriDescriptor | null = rhinoCompat.app.parseUri("content://org.autojs6.example/item/1");
-  const compatGetUriForFileDenied: () => never = () => rhinoCompat.app.getUriForFile("README.md");
+  const compatGetUriForFile: () => Promise<import("autojs6:android").UriSnapshot> = () => rhinoCompat.app.getUriForFile("README.md");
   const compatKillDenied: Promise<never> = rhinoCompat.app.kill(app.packageName, { timeoutMs: 1000 });
   await rhinoCompat.app.openUrl("https://example.invalid", { timeoutMs: 1000 });
   const compatBroadcastSent: Promise<void> = rhinoCompat.app.sendBroadcast("inspect_layout_bounds", { timeoutMs: 1000 });
@@ -651,15 +651,15 @@ async function smoke(): Promise<void> {
     delayMs: 1000,
     timeoutMs: 1000
   });
-  const compatTimedTasks: readonly workManager.WorkTask[] = await rhinoCompat.tasks.queryTimedTasks({ timeoutMs: 1000 });
-  const compatTimedTask: workManager.WorkTask | null = await rhinoCompat.tasks.getTimedTask(compatDisposableId, { timeoutMs: 1000 });
-  const compatDailyDenied: Promise<never> = rhinoCompat.tasks.addDailyTask({ path: "main.cjs", time: "08:30" });
-  const compatWeeklyDenied: Promise<never> = rhinoCompat.tasks.addWeeklyTask({ path: "main.cjs", time: "08:30", daysOfWeek: [1] });
-  const compatUpdateDenied: Promise<never> = rhinoCompat.tasks.updateTask({ id: compatDisposableId });
-  const compatIntentAddDenied: Promise<never> = rhinoCompat.tasks.addIntentTask({ path: "main.cjs", action: "org.autojs6.TEST" });
-  const compatIntentQueryDenied: Promise<never> = rhinoCompat.tasks.queryIntentTasks({ action: "org.autojs6.TEST" });
-  const compatIntentGetDenied: Promise<never> = rhinoCompat.tasks.getIntentTask("intent-1");
-  const compatIntentRemoveDenied: Promise<never> = rhinoCompat.tasks.removeIntentTask("intent-1");
+  const compatTimedTasks: readonly (workManager.WorkTask | import("tasks").TimedTask)[] = await rhinoCompat.tasks.queryTimedTasks({ timeoutMs: 1000 });
+  const compatTimedTask: workManager.WorkTask | import("tasks").TimedTask | null = await rhinoCompat.tasks.getTimedTask(compatDisposableId, { timeoutMs: 1000 });
+  const compatDailyTask: Promise<import("tasks").TimedTask> = rhinoCompat.tasks.addDailyTask({ path: "main.cjs", time: "08:30" });
+  const compatWeeklyTask: Promise<import("tasks").TimedTask> = rhinoCompat.tasks.addWeeklyTask({ path: "main.cjs", time: "08:30", daysOfWeek: [1] });
+  const compatUpdatedTask: Promise<import("tasks").TimedTask | null> = rhinoCompat.tasks.updateTask(await compatDailyTask,{time:"09:00"});
+  const compatIntentTask: Promise<import("tasks").IntentTask> = rhinoCompat.tasks.addIntentTask({ path: "main.cjs", action: "org.autojs6.TEST" });
+  const compatIntentTasks: Promise<readonly import("tasks").IntentTask[]> = rhinoCompat.tasks.queryIntentTasks({ action: "org.autojs6.TEST" });
+  const compatIntentResult: Promise<import("tasks").IntentTask | null> = rhinoCompat.tasks.getIntentTask(1);
+  const compatIntentRemoved: Promise<boolean> = rhinoCompat.tasks.removeIntentTask(1);
 
   const packageManagerStatus: packageManager.DiagnosticStatus = packageManager.status();
   const packageManagerPolicy: packageManager.DiagnosticPolicy = packageManager.policy();
@@ -1337,13 +1337,13 @@ async function smoke(): Promise<void> {
   void childProcessProfileRawHandles;
   void compatTimedTasks;
   void compatTimedTask;
-  void compatDailyDenied;
-  void compatWeeklyDenied;
-  void compatUpdateDenied;
-  void compatIntentAddDenied;
-  void compatIntentQueryDenied;
-  void compatIntentGetDenied;
-  void compatIntentRemoveDenied;
+  void compatDailyTask;
+  void compatWeeklyTask;
+  void compatUpdatedTask;
+  void compatIntentTask;
+  void compatIntentTasks;
+  void compatIntentResult;
+  void compatIntentRemoved;
   void packageManagerStatus;
   void packageManagerPolicy;
   void packageManagerSourcePolicy;

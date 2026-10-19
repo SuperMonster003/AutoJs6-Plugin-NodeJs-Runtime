@@ -4,6 +4,13 @@
 
 ******
 
+# v1.21.0
+
+###### 2026/10/19
+
+* `Feature` Android object helpers for Node.js, Bun and Workers, including Paint, ColorStateList, theme colors and FileProvider URIs
+* `Feature` Persistent calendar and IntentTask APIs for Node.js and Bun, with daily, weekly, monthly, yearly, one-shot, countdown and broadcast tasks
+
 # v1.20.0
 
 ###### 2026/10/19

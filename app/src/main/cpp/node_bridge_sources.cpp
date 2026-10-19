@@ -5382,6 +5382,8 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     if (moduleName === "shell") return ["shell"];
     if (moduleName === "fetch" || moduleName === "websocket") return ["network"];
+    if (moduleName === "android") return ["android.objects"];
+    if (moduleName === "tasks") return ["tasks"];
     if (moduleName === "work_manager") return ["work_manager"];
     if (moduleName === "package_manager") {
       if (methodName === "install" || methodName === "update" || methodName === "remove") {
@@ -8378,6 +8380,9 @@ std::string buildEmbeddedScriptExecutionSource(
         const databases = new Set();
         const sensors = new Set();
         const shells = new Set();
+        const androidObjects=new Set();
+        const closeAndroid=id=>invoke("android","close",[id],{permissions:["android.objects"]}).catch(()=>{});
+        const removeTask=task=>invoke("tasks",task.kind==="intent"?"removeIntentTask":"removeTimedTask",[task.id],{permissions:["tasks"]}).catch(()=>{});
         const deviceScopes = new Set(), dialogScopes = new Set();
         const closeDevice = scope => invoke("device","closeScope",[scope],{permissions:["device","device.power"]}).catch(()=>{});
         const closeDialogs = scope => invoke("dialogs","closeScope",[scope],{permissions:["dialogs"]}).catch(()=>{});
@@ -8410,6 +8415,7 @@ std::string buildEmbeddedScriptExecutionSource(
           sensors.clear();
           for(const id of shells)closeShell(id);
           shells.clear();
+          for(const id of androidObjects)closeAndroid(id);androidObjects.clear();
           for (const scope of deviceScopes) closeDevice(scope); deviceScopes.clear();
           for (const scope of dialogScopes) closeDialogs(scope); dialogScopes.clear();
           for(const id of hostEvents)closeHostEvent(id);hostEvents.clear();
@@ -8448,6 +8454,8 @@ std::string buildEmbeddedScriptExecutionSource(
                 controller.signal.addEventListener("abort",()=>invoke("dialogs","cancelRequest",[payload.__requestId,scope],{permissions:["dialogs"]}).catch(()=>{}),{once:true});
               }
             }
+            const createsAndroid=message.module==="android" && ["createPaint","createColorStateList"].includes(message.method);
+            const createsTask=message.module==="tasks" && ["addTimedTask","addIntentTask"].includes(message.method);
             const databaseCall = ["database", "sqlite"].includes(message.module);
             const createsShell=message.module==="shell" && ["spawn","open"].includes(message.method);
             const createsHostEvent = message.module === "events" && message.method.startsWith("observe");
@@ -8459,11 +8467,17 @@ std::string buildEmbeddedScriptExecutionSource(
             const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "enableDisplayCapture", "startBackgroundRecording", "stopBackgroundRecording", "subscribeViewEvents"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+              { ...message.options, signal: createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
             if (keepsAwake && (closed || controller.signal.aborted)) {
               await closeDevice(message.args[1]);
               throw Object.assign(new Error("Keeping the screen awake was aborted"),{code:"ABORT_ERR"});
             }
+            if(createsAndroid && value?.id) {
+              if(closed||controller.signal.aborted){await closeAndroid(value.id);throw Object.assign(new Error("Android object creation was aborted"),{code:"ABORT_ERR"});}
+              androidObjects.add(value.id);
+            } else if(message.module==="android"&&message.method==="close")androidObjects.delete(message.args[0]);
+            // Confirmed registrations intentionally persist after Worker/execution exit.
+            if(createsTask && value?.id && (closed||controller.signal.aborted)){await removeTask(value);throw Object.assign(new Error("Task registration was aborted"),{code:"ABORT_ERR"});}
             if(createsHostEvent && value && value.id){
               if(closed || controller.signal.aborted){await closeHostEvent(value.id);throw Object.assign(new Error("Event observer was aborted"),{code:"ABORT_ERR"});}
               hostEvents.add(value.id);
@@ -8554,7 +8568,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8567,6 +8581,11 @@ std::string buildEmbeddedScriptExecutionSource(
     if (createUi && methods.ui) modules.set("ui", createUi(uiCall));
     if (createCompose && methods.compose) modules.set("compose", createCompose(uiCall));
     if (createShell && methods.shell) for (const [name,value] of Object.entries(createShell(bridgeCall,SensorEmitter,shellStreams,shellBuffer,required=>required.filter(x=>(constants.shellMissing||[]).includes(x))))) modules.set(name,value);
+    if(createAndroid && createColors && methods.android) {
+      let colors;const android=createAndroid(bridgeCall,value=>colors.toInt(value));colors=createColors(android);
+      modules.set("android",android);modules.set("colors",colors);
+    }
+    if(createTasks && methods.tasks)modules.set("tasks",createTasks(bridgeCall));
     if (createDevice && methods.device) modules.set("device",createDevice(bridgeCall,constants.device));
     if (createDialogs && methods.dialogs) modules.set("dialogs",createDialogs(bridgeCall));
     if (createHostEvents && methods.events) modules.set("events",createHostEvents(bridgeCall,SensorEmitter));
@@ -8691,7 +8710,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return result;
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8783,7 +8802,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8909,7 +8928,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -8939,6 +8958,7 @@ std::string buildEmbeddedScriptExecutionSource(
           pathAliases: __autojs6_path_aliases(),
           moduleSources,
           hostModuleMethods: {
+            android:Object.keys(__autojs6_limited_android()), tasks:Object.keys(__autojs6_limited_tasks()), colors:Object.keys(__autojs6_limited_colors()),
             device:Object.keys(__autojs6_limited_device()), dialogs:Object.keys(__autojs6_limited_dialogs()),
             events:Object.keys(__autojs6_host_events()), notifications:Object.keys(__autojs6_limited_notifications()),
             shell:Object.keys(__autojs6_limited_shell()), shizuku:Object.keys(__autojs6_limited_shizuku()),
@@ -10973,6 +10993,84 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return __autojs6_limited_base64_cache;
   }
+  // Shared native Android helpers, colors and calendar task facades.
+  function __autojs6_create_android(call, toColor = value => Number(value)) {
+    const invoke=(method,args,options={})=>call("android",method,args,{timeoutMs:5000,...options,permissions:["android.objects"]});
+    const freeze=value=>{if(value&&typeof value==="object"){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
+    const id=value=>typeof value==='string'?value:value?.id;
+    async function create(method,payload,options={}) {
+      const abort=()=>Object.assign(new Error('Android object creation was aborted.'),{name:'AbortError',code:'ABORT_ERR'});
+      if(options.signal?.aborted)throw abort();
+      let state=await invoke(method,[payload],{...options,signal:undefined}),closed=false;
+      if(options.signal?.aborted){await invoke('close',[state.id]).catch(()=>{});throw abort();}
+      state=freeze(state);const handle={};
+      for(const key of Object.keys(state))Object.defineProperty(handle,key,{enumerable:true,get:()=>state[key]});
+      const methods={toJSON:()=>state,async close(opts){if(closed)return false;const result=await invoke('close',[state.id],opts);closed=true;return result;}};
+      if(method==='createPaint')Object.assign(methods,{
+        async getInfo(opts){state=freeze(await invoke('getPaintInfo',[state.id],opts));return state;},
+        async setColor(color,opts){await invoke('setPaintColor',[state.id,toColor(color)],opts);state=freeze({...state,color:toColor(color)});},
+        measureText:(text,opts)=>invoke('measureText',[state.id,String(text)],opts)
+      });else methods.getColorForState=(states=[],fallback=state.defaultColor,opts)=>invoke('getColorForState',[state.id,states,toColor(fallback)],opts);
+      for(const [key,value] of Object.entries(methods))Object.defineProperty(handle,key,{value});
+      return Object.freeze(handle);
+    }
+    const api={
+      createPaint(options={},control){return create('createPaint',{...options,...(options.color===undefined?{}:{color:toColor(options.color)})},control);},
+      createColorStateList(descriptor,control){
+        if(!descriptor||!Array.isArray(descriptor.colors)||!Array.isArray(descriptor.states)||descriptor.colors.length!==descriptor.states.length||!descriptor.colors.length)throw new TypeError('Color states and colors must have equal non-zero lengths.');
+        return create('createColorStateList',{states:descriptor.states,colors:descriptor.colors.map(toColor)},control);
+      },
+      async setPaintColor(paint,color,options){
+        if(paint?.__autojs6AndroidObject!=='paint'||!id(paint))throw new TypeError('setPaintColor requires a Paint handle.');
+        if(typeof paint.setColor==='function')await paint.setColor(color,options);else await invoke('setPaintColor',[id(paint),toColor(color)],options);
+      },
+      async getThemeColor(options){return freeze(await invoke('getThemeColor',[],options));},
+      async getUriForFile(path,options){return freeze(await invoke('getUriForFile',[String(path)],options));},
+      async parseUri(uri,options){return uri==null?null:freeze(await invoke('parseUri',[String(uri)],options));}
+    };
+    return Object.freeze(api);
+  }
+  function __autojs6_create_tasks(call) {
+    const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
+    const options=value=>{if(!value||typeof value!=='object'||Array.isArray(value))throw new TypeError('Task options must be an object.');return value;};
+    const payload=input=>{const {signal,timeoutMs,...value}=options(input);for(const key of ['time','date'])if(value[key] instanceof Date)value[key]=value[key].getTime();return value;};
+    const invoke=(method,args,input={})=>call('tasks',method,args,{timeoutMs:5000,...input,permissions:['tasks']});
+    const identity=value=>{
+      const n=Number(value&&typeof value==='object'?value.id:value);
+      if(!Number.isSafeInteger(n)||n<=0)throw new TypeError('Task id must be a positive integer.');return n;
+    };
+    async function add(method,input) {
+      const opts=options(input),abort=()=>Object.assign(new Error('Task registration was aborted.'),{name:'AbortError',code:'ABORT_ERR'});
+      if(opts.signal?.aborted)throw abort();
+      const task=await invoke(method,[payload(opts)],{...opts,signal:undefined});
+      if(opts.signal?.aborted){await invoke(task.kind==='intent'?'removeIntentTask':'removeTimedTask',[task.id]).catch(()=>{});throw abort();}
+      return freeze(task);
+    }
+    const api={
+      addTask:input=>input?.kind==='intent'||input?.action!==undefined?add('addIntentTask',input):add('addTimedTask',input),
+      addTimedTask:input=>add('addTimedTask',input),addIntentTask:input=>add('addIntentTask',input),addBroadcastIntentTask:input=>add('addIntentTask',input),
+      async queryTimedTasks(input={}){return freeze(await invoke('queryTimedTasks',[payload(input)],input));},
+      async queryIntentTasks(input={}){return freeze(await invoke('queryIntentTasks',[payload(input)],input));},
+      async queryTasks(input={}){return freeze([...(await api.queryTimedTasks(input)),...(await api.queryIntentTasks(input))]);},
+      async getTimedTask(value,opts){return freeze(await invoke('getTimedTask',[identity(value)],opts));},
+      async getIntentTask(value,opts){return freeze(await invoke('getIntentTask',[identity(value)],opts));},
+      removeTimedTask:(value,opts)=>invoke('removeTimedTask',[identity(value)],opts),
+      removeIntentTask:(value,opts)=>invoke('removeIntentTask',[identity(value)],opts),
+      removeTask:(value,opts)=>value?.kind==='intent'?api.removeIntentTask(value,opts):api.removeTimedTask(value,opts),
+      async updateTask(task,patch={}) {
+        const input={...(task.options?{}:task),...patch,id:identity(task),kind:task.kind};delete input.options;
+        return freeze(await invoke('updateTask',[payload(input)],patch));
+      },
+      sendLocalBroadcastSync:(action,opts)=>invoke('sendLocalBroadcastSync',[typeof action==='string'?action:payload(action)],opts),
+      daysToTimeFlag(days){if(!Array.isArray(days)||days.some(day=>!Number.isInteger(day)||day<0||day>6))throw new TypeError('Days must be integers in 0..6.');return days.reduce((mask,day)=>mask|(1<<day),0);},
+      timeFlagToDays(flag){if(!Number.isInteger(flag)||flag<0||flag>127)throw new TypeError('Weekday flag must be an integer in 0..127.');return Object.freeze([0,1,2,3,4,5,6].filter(day=>(flag&(1<<day))!==0));}
+    };
+    for(const mode of ['Daily','Weekly','Monthly','Yearly','Disposable','Countdown'])api['add'+mode+'Task']=input=>add('addTimedTask',{...options(input),repeatMode:mode.toLowerCase()});
+    return Object.freeze(api);
+  }
+  function __autojs6_create_colors(android) {
+    let __autojs6_limited_colors_cache;
+    const __autojs6_invalid_arg_type=message=>new TypeError(message);
   const __autojs6_color_names = Object.freeze({
     black: 0xff000000,
     white: 0xffffffff,
@@ -11039,6 +11137,9 @@ std::string buildEmbeddedScriptExecutionSource(
     if (value && typeof value === "object") {
       if (typeof value.color === "number") {
         return value.color >>> 0;
+      }
+      if (typeof value.colorPrimary === "number") {
+        return value.colorPrimary >>> 0;
       }
       if ("a" in value || "r" in value || "g" in value || "b" in value) {
         return __autojs6_color_argb_uint(
@@ -11309,22 +11410,37 @@ std::string buildEmbeddedScriptExecutionSource(
         const color = __autojs6_color_int(value);
         return "Color { " + colorsModule.toHex(color) + " | " + colorsModule.toRgbaString(color) + " | int(" + color + ") }";
       },
-      toColorStateList: function() {
-        throw __autojs6_rhino_compat_blocked_by_design("colors.toColorStateList", "ColorStateList is an Android object and is not exposed in the Safe Node Profile.");
+      toColorStateList: function(...colors) {
+        if(!colors.length)throw new TypeError("At least one color is required.");
+        return android.createColorStateList({states:[[]],colors:[colorsModule.toInt(colors[0])]});
       },
-      setPaintColor: function() {
-        throw __autojs6_rhino_compat_blocked_by_design("colors.setPaintColor", "Paint is an Android object and is not exposed in the Safe Node Profile.");
-      }
+      createColorStateList: (descriptor,options)=>android.createColorStateList(descriptor,options),
+      createPaint: (options,control)=>android.createPaint(options,control),
+      setPaintColor: (paint,color,options)=>android.setPaintColor(paint,color,options),
+      getThemeColor: options=>android.getThemeColor(options)
     };
     Object.defineProperty(colorsModule, "all", { value: __autojs6_color_names, enumerable: true });
     Object.defineProperty(colorsModule, "themeColor", {
       enumerable: true,
       get: function() {
-        throw __autojs6_rhino_compat_blocked_by_design("colors.themeColor", "ThemeColor is an Android theme object and is not exposed in the Safe Node Profile.");
+        const result=android.getThemeColor();result.catch(()=>{});return result;
       }
     });
     __autojs6_limited_colors_cache = Object.freeze(colorsModule);
     return __autojs6_limited_colors_cache;
+  }
+    return __autojs6_limited_colors();
+  }
+  // Main-thread native Android and calendar modules.
+  let __autojs6_android_cache, __autojs6_tasks_cache;
+  function __autojs6_limited_android() {
+    return __autojs6_android_cache ||= __autojs6_create_android(__autojs6_call_autojs,value=>__autojs6_limited_colors().toInt(value));
+  }
+  function __autojs6_limited_colors() {
+    return __autojs6_limited_colors_cache ||= __autojs6_create_colors(__autojs6_limited_android());
+  }
+  function __autojs6_limited_tasks() {
+    return __autojs6_tasks_cache ||= __autojs6_create_tasks(__autojs6_call_autojs);
   }
   const __autojs6_bytes_constants = Object.freeze({
     UNITS: "KMGTPEZYRQ",
@@ -14222,29 +14338,12 @@ std::string buildEmbeddedScriptExecutionSource(
       return true;
     });
   }
-  function __autojs6_rhino_compat_tasks_reject_wall_clock(apiName) {
-    return Promise.reject(__autojs6_rhino_compat_unsupported(
-      apiName,
-      "P12-17 keeps daily/weekly wall-clock user task database compatibility unpromoted; use compat.tasks.addDisposableTask for one-shot work, keep Rhino for AutoJs6 user-visible wall-clock tasks, or use work_manager.schedulePeriodic only when OS-managed cadence is intended."
-    ));
-  }
-  function __autojs6_rhino_compat_tasks_reject_update() {
-    return Promise.reject(__autojs6_rhino_compat_blocked_by_design(
-      "tasks.updateTask",
-      "P12-17 has no JSON patch/update provider for the AutoJs6 user task database; raw TimedTask/IntentTask objects cannot cross into Node."
-    ));
-  }
-  function __autojs6_rhino_compat_tasks_reject_intent(apiName) {
-    return Promise.reject(__autojs6_rhino_compat_unsupported(
-      apiName,
-      "P12-18 keeps IntentTask and broadcast-triggered task compatibility unpromoted; Node cannot register boot, package-event, exact-alarm, startup, or custom broadcast receivers until a user-visible broadcast task provider is designed."
-    ));
-  }
   function __autojs6_rhino_compat_tasks() {
     if (__autojs6_rhino_compat_tasks_cache) {
       return __autojs6_rhino_compat_tasks_cache;
     }
     __autojs6_rhino_compat_tasks_cache = Object.freeze({
+      ...__autojs6_limited_tasks(),
       addDisposableTask: function(options) {
         let descriptor;
         try {
@@ -14255,30 +14354,37 @@ std::string buildEmbeddedScriptExecutionSource(
         return __autojs6_limited_work_manager().scheduleOnce(descriptor);
       },
       addDailyTask: function(options) {
-        return __autojs6_rhino_compat_tasks_reject_wall_clock("tasks.addDailyTask");
+        return __autojs6_limited_tasks().addDailyTask(options);
       },
       addWeeklyTask: function(options) {
-        return __autojs6_rhino_compat_tasks_reject_wall_clock("tasks.addWeeklyTask");
+        return __autojs6_limited_tasks().addWeeklyTask(options);
       },
       addIntentTask: function(options) {
-        return __autojs6_rhino_compat_tasks_reject_intent("tasks.addIntentTask");
+        return __autojs6_limited_tasks().addIntentTask(options);
       },
       removeTask: function(taskId, options) {
+        if(typeof taskId!=="string"||/^\d+$/.test(taskId))return __autojs6_limited_tasks().removeTask(taskId,options);
         return __autojs6_rhino_compat_tasks_remove_node_owned(taskId, options, "removeTask");
       },
       queryTasks: function(options) {
         return __autojs6_rhino_compat_tasks_query_node_owned(options, "queryTasks");
       },
       queryIntentTasks: function(options) {
-        return __autojs6_rhino_compat_tasks_reject_intent("tasks.queryIntentTasks");
+        return __autojs6_limited_tasks().queryIntentTasks(options);
       },
       queryTimedTasks: function(options) {
-        return __autojs6_rhino_compat_tasks_query_node_owned(options, "queryTimedTasks");
+        if(__autojs6_bridge_missing_capabilities(["tasks"]).length)return __autojs6_rhino_compat_tasks_query_node_owned(options,"queryTimedTasks");
+        return __autojs6_limited_tasks().queryTimedTasks(options).then(async nativeTasks=>{
+          if(__autojs6_bridge_missing_capabilities(["work_manager"]).length || options && (options.path || options.scriptPath || options.repeatMode!==undefined))return nativeTasks;
+          const legacy=await __autojs6_rhino_compat_tasks_query_node_owned(options,"queryTimedTasks");
+          return Object.freeze([...nativeTasks,...legacy]);
+        });
       },
       getIntentTask: function(taskId, options) {
-        return __autojs6_rhino_compat_tasks_reject_intent("tasks.getIntentTask");
+        return __autojs6_limited_tasks().getIntentTask(taskId,options);
       },
       getTimedTask: function(taskId, options) {
+        if(typeof taskId!=="string"||/^\d+$/.test(taskId))return __autojs6_limited_tasks().getTimedTask(taskId,options);
         let id;
         try {
           id = __autojs6_rhino_compat_timed_task_id(taskId, "getTimedTask");
@@ -14293,13 +14399,14 @@ std::string buildEmbeddedScriptExecutionSource(
         });
       },
       removeTimedTask: function(taskId, options) {
+        if(typeof taskId!=="string"||/^\d+$/.test(taskId))return __autojs6_limited_tasks().removeTimedTask(taskId,options);
         return __autojs6_rhino_compat_tasks_remove_node_owned(taskId, options, "removeTimedTask");
       },
       removeIntentTask: function(taskId, options) {
-        return __autojs6_rhino_compat_tasks_reject_intent("tasks.removeIntentTask");
+        return __autojs6_limited_tasks().removeIntentTask(taskId,options);
       },
       updateTask: function(task) {
-        return __autojs6_rhino_compat_tasks_reject_update();
+        return __autojs6_limited_tasks().updateTask(task);
       }
     });
     return __autojs6_rhino_compat_tasks_cache;
@@ -15758,8 +15865,8 @@ std::string buildEmbeddedScriptExecutionSource(
     function parseUri(uri) {
       return __autojs6_app_parse_uri_descriptor(uri, "parseUri");
     }
-    function getUriForFile(path) {
-      throw __autojs6_app_raw_uri_unavailable_error("getUriForFile");
+    function getUriForFile(path, options) {
+      return __autojs6_limited_android().getUriForFile(path,options);
     }
     function intentToShell(options) {
       return __autojs6_app_intent_to_shell(
@@ -27224,6 +27331,8 @@ std::string buildEmbeddedScriptExecutionSource(
     undici: function() { return __autojs6_limited_undici(); },
     axios: function() { return __autojs6_limited_axios(); },
     websocket: function() { return __autojs6_limited_websocket(); },
+    android: function() { return __autojs6_limited_android(); },
+    tasks: function() { return __autojs6_limited_tasks(); },
     work_manager: function() { return __autojs6_limited_work_manager(); },
     package_manager: function() { return __autojs6_limited_package_manager(); },
     npm: function() { return __autojs6_limited_npm(); },

@@ -4,6 +4,13 @@
 
 ******
 
+# v1.21.0
+
+###### 2026/10/19
+
+* `新增` Node.js/Bun 的 Android 对象辅助接口及 Worker 封装, 支持 Paint, ColorStateList, 主题色和 FileProvider URI
+* `新增` Node.js/Bun 的持久日历与 IntentTask API, 支持每日, 每周, 每月, 每年, 一次性, 倒计时和广播任务
+
 # v1.20.0
 
 ###### 2026/10/19
