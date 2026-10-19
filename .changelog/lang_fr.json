@@ -5,6 +5,15 @@
   "changelog_label_improvement": "Amelioration",
   "changelog_label_dependency": "Dependance",
   "$data": {
+    "v1.22.0": {
+      "released_date": "2026/10/20",
+      "feature": [
+        "Interopérabilité Java/Android pour Node.js, Bun et Workers, avec constructeurs et membres publics, tableaux, valeurs long exactes, surcharges explicites et handles Context"
+      ],
+      "fix": [
+        "Échec des imports ESM Node.js lorsque le module hôte exporte un nom réservé tel que java.new"
+      ]
+    },
     "v1.21.0": {
       "released_date": "2026/10/19",
       "feature": [

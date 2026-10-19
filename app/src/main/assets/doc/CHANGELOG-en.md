@@ -4,6 +4,13 @@
 
 ******
 
+# v1.22.0
+
+###### 2026/10/20
+
+* `Feature` Java/Android object interop for Node.js, Bun and Workers, including public constructors and members, arrays, exact long values, explicit overloads and application Context handles
+* `Fix` Node.js ESM imports fail when a host module exports a reserved name such as java.new
+
 # v1.21.0
 
 ###### 2026/10/19

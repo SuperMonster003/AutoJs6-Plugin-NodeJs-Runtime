@@ -5,6 +5,15 @@
   "changelog_label_improvement": "تحسين",
   "changelog_label_dependency": "اعتماد",
   "$data": {
+    "v1.22.0": {
+      "released_date": "2026/10/20",
+      "feature": [
+        "تكامل Java/Android في Node.js وBun وWorkers مع المنشئات والأعضاء العامة والمصفوفات وقيم long الدقيقة والتحميل الزائد الصريح ومراجع Context للتطبيق"
+      ],
+      "fix": [
+        "فشل استيراد ESM في Node.js عندما تصدر وحدة المضيف اسما محجوزا مثل java.new"
+      ]
+    },
     "v1.21.0": {
       "released_date": "2026/10/19",
       "feature": [

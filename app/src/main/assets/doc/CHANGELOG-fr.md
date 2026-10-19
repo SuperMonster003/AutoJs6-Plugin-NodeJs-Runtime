@@ -4,6 +4,13 @@
 
 ******
 
+# v1.22.0
+
+###### 2026/10/20
+
+* `Ajout` Interopérabilité Java/Android pour Node.js, Bun et Workers, avec constructeurs et membres publics, tableaux, valeurs long exactes, surcharges explicites et handles Context
+* `Correction` Échec des imports ESM Node.js lorsque le module hôte exporte un nom réservé tel que java.new
+
 # v1.21.0
 
 ###### 2026/10/19

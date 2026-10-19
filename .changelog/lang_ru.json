@@ -5,6 +5,15 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.22.0": {
+      "released_date": "2026/10/20",
+      "feature": [
+        "Взаимодействие Java/Android для Node.js, Bun и Workers: открытые конструкторы и члены, массивы, точные значения long, явные перегрузки и ссылки Context приложения"
+      ],
+      "fix": [
+        "Ошибка импорта ESM в Node.js при экспорте зарезервированного имени, например java.new, модулем приложения"
+      ]
+    },
     "v1.21.0": {
       "released_date": "2026/10/19",
       "feature": [

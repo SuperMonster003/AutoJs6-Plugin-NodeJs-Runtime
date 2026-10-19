@@ -5,6 +5,15 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v1.22.0": {
+      "released_date": "2026/10/20",
+      "feature": [
+        "Node.js/Bun/Worker の Java/Android 相互運用で公開コンストラクターとメンバー, 配列, 正確な long 値, 明示的なオーバーロードとアプリの Context ハンドルに対応"
+      ],
+      "fix": [
+        "Node.js のホストモジュールに java.new などの予約語があると ESM インポートが失敗する問題"
+      ]
+    },
     "v1.21.0": {
       "released_date": "2026/10/19",
       "feature": [

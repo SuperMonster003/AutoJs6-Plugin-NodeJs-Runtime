@@ -122,6 +122,13 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.22.0
+
+###### 2026/10/20
+
+* `新增` Node.js/Bun/Worker 的 Java/Android 对象互操作, 支持公开构造器和成员, 数组, 精确 long 值, 显式重载及应用 Context 句柄
+* `修复` Node.js 宿主模块包含 java.new 等保留字成员时 ESM 导入失败的问题
+
 # v1.21.0
 
 ###### 2026/10/19
@@ -134,12 +141,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/19
 
 * `新增` Bun 与 Node.js Worker 的设备控制和对话框 API, 支持亮度, 音量和独立窗口清理
-
-# v1.19.0
-
-###### 2026/10/19
-
-* `新增` Bun 与 Node.js Worker 的宿主事件和通知 API, 支持独立订阅与通知清理
 
 ##### 更多发行历史可参阅
 

@@ -8380,6 +8380,9 @@ std::string buildEmbeddedScriptExecutionSource(
         const databases = new Set();
         const sensors = new Set();
         const shells = new Set();
+        const javaObjects=new Set();
+        const closeJava=handle=>invoke("java","release",[{handle}],{permissions:["java_interop"]}).catch(()=>{});
+        const javaIds=value=>Array.isArray(value)?value.flatMap(javaIds):value&&typeof value==="object"&&value.__autojs6JavaHandle?[value.__autojs6JavaHandle]:[];
         const androidObjects=new Set();
         const closeAndroid=id=>invoke("android","close",[id],{permissions:["android.objects"]}).catch(()=>{});
         const removeTask=task=>invoke("tasks",task.kind==="intent"?"removeIntentTask":"removeTimedTask",[task.id],{permissions:["tasks"]}).catch(()=>{});
@@ -8415,6 +8418,7 @@ std::string buildEmbeddedScriptExecutionSource(
           sensors.clear();
           for(const id of shells)closeShell(id);
           shells.clear();
+          for(const id of javaObjects)closeJava(id);javaObjects.clear();
           for(const id of androidObjects)closeAndroid(id);androidObjects.clear();
           for (const scope of deviceScopes) closeDevice(scope); deviceScopes.clear();
           for (const scope of dialogScopes) closeDialogs(scope); dialogScopes.clear();
@@ -8467,10 +8471,16 @@ std::string buildEmbeddedScriptExecutionSource(
             const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "enableDisplayCapture", "startBackgroundRecording", "stopBackgroundRecording", "subscribeViewEvents"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+              { ...message.options, signal: message.module === "java" || createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
             if (keepsAwake && (closed || controller.signal.aborted)) {
               await closeDevice(message.args[1]);
               throw Object.assign(new Error("Keeping the screen awake was aborted"),{code:"ABORT_ERR"});
+            }
+            if(message.module==="java") {
+              const ids=javaIds(value);
+              if(closed||controller.signal.aborted){for(const id of ids)await closeJava(id);throw Object.assign(new Error("Java call was aborted"),{code:"ABORT_ERR"});}
+              for(const id of ids)javaObjects.add(id);
+              if(["release","dispose"].includes(message.method))javaObjects.delete(message.args[0].handle);
             }
             if(createsAndroid && value?.id) {
               if(closed||controller.signal.aborted){await closeAndroid(value.id);throw Object.assign(new Error("Android object creation was aborted"),{code:"ABORT_ERR"});}
@@ -8568,7 +8578,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8585,6 +8595,7 @@ std::string buildEmbeddedScriptExecutionSource(
       let colors;const android=createAndroid(bridgeCall,value=>colors.toInt(value));colors=createColors(android);
       modules.set("android",android);modules.set("colors",colors);
     }
+    if(createJava && methods.java) modules.set("java",createJava(bridgeCall,constants.javaPolicy||{},constants.javaEnabled!==false));
     if(createTasks && methods.tasks)modules.set("tasks",createTasks(bridgeCall));
     if (createDevice && methods.device) modules.set("device",createDevice(bridgeCall,constants.device));
     if (createDialogs && methods.dialogs) modules.set("dialogs",createDialogs(bridgeCall));
@@ -8710,7 +8721,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return result;
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8802,7 +8813,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8871,8 +8882,8 @@ std::string buildEmbeddedScriptExecutionSource(
       load(url, context, nextLoad) {
         if (url.startsWith("autojs6:") && hostModules.has(url.slice(8))) {
           const name = url.slice(8);
-          const exports = config.hostModuleMethods[name].map(method =>
-            "export const " + method + " = value[" + JSON.stringify(method) + "];").join("\n");
+          const exports = config.hostModuleMethods[name].filter(method=>method!=="default"&&/^[A-Za-z_$][0-9A-Za-z_$]*$/.test(method)).map((method,index) =>
+            "const binding"+index+" = value["+JSON.stringify(method)+"]; export { binding"+index+" as "+method+" };").join("\n");
           return { format: "module", shortCircuit: true, source:
             "const value = globalThis.__autojs6_worker_host_modules.get(" + JSON.stringify(name) + ");\n" +
             "export default value; export { value as 'module.exports' };\n" + exports };
@@ -8928,7 +8939,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -8958,6 +8969,7 @@ std::string buildEmbeddedScriptExecutionSource(
           pathAliases: __autojs6_path_aliases(),
           moduleSources,
           hostModuleMethods: {
+            java:Object.keys(__autojs6_create_java(()=>{})),
             android:Object.keys(__autojs6_limited_android()), tasks:Object.keys(__autojs6_limited_tasks()), colors:Object.keys(__autojs6_limited_colors()),
             device:Object.keys(__autojs6_limited_device()), dialogs:Object.keys(__autojs6_limited_dialogs()),
             events:Object.keys(__autojs6_host_events()), notifications:Object.keys(__autojs6_limited_notifications()),
@@ -8976,7 +8988,8 @@ std::string buildEmbeddedScriptExecutionSource(
             screen_metrics: Object.keys(__autojs6_limited_screen_metrics()),
             console: Object.keys(__autojs6_limited_console())
           },
-          hostModuleConstants: { device:__autojs6_host_device_info(), shellMissing:__autojs6_bridge_missing_capabilities(["shell","shell.root","shell.shizuku"]), pinyin: Object.fromEntries(Object.entries(__autojs6_limited_pinyin()).filter(([, value]) => typeof value !== "function")) },
+          hostModuleConstants: {
+            javaPolicy:__autojs6_java_policy_snapshot(),javaEnabled:__autojs6_java_interop_enabled, device:__autojs6_host_device_info(), shellMissing:__autojs6_bridge_missing_capabilities(["shell","shell.root","shell.shizuku"]), pinyin: Object.fromEntries(Object.entries(__autojs6_limited_pinyin()).filter(([, value]) => typeof value !== "function")) },
           consoleControls: Object.keys(__autojs6_limited_console()).filter(name => __autojs6_limited_console()[name].__autojs6ConsoleControl),
           typeScriptSources: { ...__autojs6_typescript_precompiled_source_names },
           gatedBuiltins: __autojs6_gated_builtin_ids(),
@@ -14799,405 +14812,146 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return __autojs6_limited_work_manager_cache;
   }
-  function __autojs6_java_interop_error(message, code, className, methodName) {
-    const error = __autojs6_error(message, code || "ERR_AUTOJS6_JAVA_METHOD_DENIED");
-    if (className) __autojs6_define_error_property(error, "className", String(className));
-    if (methodName) __autojs6_define_error_property(error, "javaMethod", String(methodName));
-    return error;
-  }
-  function __autojs6_java_interop_disabled_error() {
-    return __autojs6_java_interop_error(
-      "AutoJs6 Java interop is unavailable for this request; the stable allowlist policy remains enforced.",
-      "ERR_AUTOJS6_JAVA_INTEROP_DISABLED"
-    );
-  }
-  function __autojs6_java_policy_snapshot() {
-    const host = __autojs6_java_host_policy();
-    return Object.freeze({
-      enabled: __autojs6_java_interop_enabled,
-      limitsEnforcedBy: "host_provider",
-      published: !!host,
-      allowedClasses: host && Array.isArray(host.allowedClasses) ? host.allowedClasses : Object.freeze([]),
-      deniedClassPrefixes: host && Array.isArray(host.deniedClassPrefixes) ? host.deniedClassPrefixes : Object.freeze([]),
-      classes: host && host.classes && typeof host.classes === "object" ? host.classes : Object.freeze({})
-    });
-  }
-  function __autojs6_java_check_enabled() {
-    if (!__autojs6_java_interop_enabled) {
-      throw __autojs6_java_interop_disabled_error();
-    }
-  }
-  function __autojs6_java_class_name(value) {
-    __autojs6_java_check_enabled();
-    const className = value === undefined || value === null ? "" : String(value).trim();
-    if (!className) {
-      throw __autojs6_java_interop_error(
-        "AutoJs6 Java interop requires a non-empty class name.",
-        "ERR_AUTOJS6_JAVA_CLASS_DENIED"
-      );
-    }
-    // Whether the class is admitted is the host allowlist's decision (java.policy shows it).
-    return className;
-  }
-  function __autojs6_java_method_name(value, className) {
-    const methodName = value === undefined || value === null ? "" : String(value).trim();
-    if (!methodName) {
-      throw __autojs6_java_interop_error(
-        "AutoJs6 Java interop requires a non-empty method name.",
-        "ERR_AUTOJS6_JAVA_METHOD_DENIED",
-        className
-      );
-    }
-    return methodName;
-  }
-  function __autojs6_java_argument_value(value, className, methodName) {
-    if (value === undefined) {
-      return null;
-    }
-    if (value === null || typeof value === "string" || typeof value === "boolean") {
-      return value;
-    }
-    if (typeof value === "number") {
-      if (!Number.isFinite(value)) {
-        throw __autojs6_java_interop_error(
-          "AutoJs6 Java interop numeric arguments must be finite.",
-          "ERR_AUTOJS6_JAVA_METHOD_DENIED",
-          className,
-          methodName
-        );
-      }
-      return value;
-    }
-    if (value && typeof value === "object") {
-      // M20.2 batch 15: handles of objects the host already admitted travel as their id.
-      const handle = __autojs6_java_handle_id(value);
-      if (handle) {
-        return { __autojs6JavaHandle: handle };
-      }
-    }
-    throw __autojs6_java_interop_error(
-      "AutoJs6 Java interop arguments must be JSON primitives or Java object handles.",
-      "ERR_AUTOJS6_JAVA_METHOD_DENIED",
-      className,
-      methodName
-    );
-  }
-  function __autojs6_java_argument_array(value, className, methodName) {
-    if (value === undefined || value === null) {
-      return [];
-    }
-    if (!Array.isArray(value)) {
-      throw __autojs6_java_interop_error(
-        "AutoJs6 Java interop args must be an array.",
-        "ERR_AUTOJS6_JAVA_METHOD_DENIED",
-        className,
-        methodName
-      );
-    }
-    return value.map(function(item) {
-      return __autojs6_java_argument_value(item, className, methodName);
-    });
-  }
-  function __autojs6_java_timeout(options) {
-    const opts = options && typeof options === "object" ? options : {};
-    return __autojs6_bridge_timeout_ms(opts.timeoutMs || 5000);
-  }
-  function __autojs6_java_class_descriptor(className) {
-    const checkedClassName = __autojs6_java_class_name(className);
-    return Object.freeze({
-      className: checkedClassName,
-      name: checkedClassName,
-      callStatic: function(methodName, args, options) {
-        return __autojs6_java_call_static(checkedClassName, methodName, args, options);
-      },
-      new: function(args, options) {
-        return __autojs6_java_new(checkedClassName, args, options);
-      },
-      create: function(args, options) {
-        return __autojs6_java_new(checkedClassName, args, options);
-      },
-      getStatic: function(fieldName, options) {
-        return __autojs6_java_get_static(checkedClassName, fieldName, options);
-      },
-      describe: function(options) {
-        return __autojs6_java_describe(checkedClassName, options);
-      }
-    });
-  }
-  function __autojs6_java_call_static(className, methodName, args, options) {
-    let descriptor;
-    try {
-      const checkedClassName = __autojs6_java_class_name(className);
-      const checkedMethodName = __autojs6_java_method_name(methodName, checkedClassName);
-      descriptor = {
-        className: checkedClassName,
-        method: checkedMethodName,
-        args: __autojs6_java_argument_array(args, checkedClassName, checkedMethodName)
-      };
-    } catch (error) {
-      return Promise.reject(error);
-    }
-    return __autojs6_call_autojs(
-      "java",
-      "callStatic",
-      [descriptor],
-      {
-        timeoutMs: __autojs6_java_timeout(options),
-        signal: __autojs6_bridge_signal_from_options(options),
-        permissions: ["java_interop"]
-      }
-    ).then(__autojs6_java_handle_descriptor);
-  }
-  function __autojs6_java_new(className, args, options) {
-    let descriptor;
-    try {
-      const checkedClassName = __autojs6_java_class_name(className);
-      descriptor = {
-        className: checkedClassName,
-        args: __autojs6_java_argument_array(args, checkedClassName, "<init>")
-      };
-    } catch (error) {
-      return Promise.reject(error);
-    }
-    return __autojs6_call_autojs(
-      "java",
-      "new",
-      [descriptor],
-      {
-        timeoutMs: __autojs6_java_timeout(options),
-        signal: __autojs6_bridge_signal_from_options(options),
-        permissions: ["java_interop"]
-      }
-    ).then(function(result) {
-      return __autojs6_java_handle_descriptor(result);
-    });
-  }
-  function __autojs6_java_handle_id(value) {
-    if (typeof value === "string") {
-      return value.trim();
-    }
-    if (value && typeof value === "object") {
-      if (typeof value.__autojs6JavaHandle === "string") {
-        return value.__autojs6JavaHandle.trim();
-      }
-      if (typeof value.handle === "string") {
-        return value.handle.trim();
-      }
-    }
-    return "";
-  }
-  function __autojs6_java_handle_class_name(value) {
-    return value && typeof value === "object" && typeof value.className === "string"
-      ? value.className
-      : "";
-  }
-  function __autojs6_java_handle_descriptor(result) {
-    if (!result || typeof result !== "object") {
+  // Shared Java object facade for Node, Bun and Worker transports.
+  function __autojs6_create_java(call, policy = {}, enabled = true) {
+    const error = (message, code = "ERR_AUTOJS6_JAVA_METHOD_DENIED") => Object.assign(new TypeError(message), {code});
+    const check = () => { if (!enabled) throw error("Java interop is disabled for this execution.", "ERR_AUTOJS6_JAVA_INTEROP_DISABLED"); };
+    const name = (value, code = "ERR_AUTOJS6_JAVA_CLASS_DENIED") => {
+      check(); const result = typeof value === "string" ? value.trim() : value && (value.className || value.name);
+      if (!result || typeof result !== "string") throw error("A non-empty Java class/member name is required.", code);
       return result;
-    }
-    const handleId = __autojs6_java_handle_id(result);
-    if (!handleId) {
-      return Object.freeze(result);
-    }
-    const handle = Object.assign({}, result);
-    Object.defineProperties(handle, {
-      call: {
-        value: function(methodName, args, options) {
-          return __autojs6_java_call_instance(handle, methodName, args, options);
+    };
+    const id = value => {
+      check(); const result = typeof value === "string" ? value : value && (value.__autojs6JavaHandle || value.handle);
+      if (!result || typeof result !== "string") throw error("A Java object handle is required.");
+      return result;
+    };
+    const argument = (value, seen = new Set()) => {
+      if (value === undefined || value === null) return null;
+      if (typeof value === "bigint") return {__autojs6JavaType:"long", value:String(value)};
+      if (typeof value === "number") {
+        if (!Number.isFinite(value)) return {__autojs6JavaType:"double", value:String(value)};
+        if (Number.isInteger(value) && !Number.isSafeInteger(value)) throw error("Unsafe Java integer; use bigint or java.cast('long', decimalString).");
+        return value;
+      }
+      if (typeof value === "string" || typeof value === "boolean") return value;
+      if (typeof value !== "object") throw error("Java arguments accept primitives, arrays, typed values and Java handles.");
+      if (value.__autojs6JavaHandle) return {__autojs6JavaHandle:id(value)};
+      if (seen.has(value)) throw error("Cyclic Java argument array.");
+      seen.add(value);
+      try {
+        if (Array.isArray(value) || ArrayBuffer.isView(value) && !(value instanceof DataView)) return Array.from(value, item => argument(item, seen));
+        if (value.__autojs6JavaType) {
+          const type = name(value.__autojs6JavaType);
+          const raw = typeof value.value === "bigint" || typeof value.value === "number" && !Number.isFinite(value.value) ? String(value.value) : argument(value.value, seen);
+          return {__autojs6JavaType:type, value:raw};
         }
-      },
-      callInstance: {
-        value: function(methodName, args, options) {
-          return __autojs6_java_call_instance(handle, methodName, args, options);
-        }
-      },
-      getField: {
-        value: function(fieldName, options) {
-          return __autojs6_java_get_field(handle, fieldName, options);
-        }
-      },
-      release: {
-        value: function(options) {
-          return __autojs6_java_release(handle, options);
-        }
-      },
-      dispose: {
-        value: function(options) {
-          return __autojs6_java_release(handle, options);
-        }
+      } finally { seen.delete(value); }
+      throw error("Plain objects are not Java objects; construct a Bundle/Map or pass a Java handle.");
+    };
+    const args = value => {
+      if (value == null) return [];
+      if (!Array.isArray(value)) throw error("Java args must be an array.");
+      return value.map(item => argument(item));
+    };
+    const releaseRaw = async value => {
+      if (Array.isArray(value)) { for (const item of value) await releaseRaw(item); }
+      else if (value && typeof value === "object" && value.__autojs6JavaHandle)
+        await call("java", "release", [{handle:value.__autojs6JavaHandle}], {timeoutMs:5000,permissions:["java_interop"]});
+    };
+    const invoke = async (method, payload, options = {}) => {
+      check(); if (options.signal?.aborted) throw error("Java call aborted.", "ABORT_ERR");
+      if (options.thread !== undefined && !["default","main"].includes(options.thread)) throw error("Java thread must be default or main.");
+      if (options.parameterTypes !== undefined) {
+        if (!Array.isArray(options.parameterTypes)) throw error("parameterTypes must be an array of class names.");
+        payload.parameterTypes = options.parameterTypes.map(value=>name(value));
       }
-    });
-    return Object.freeze(handle);
+      if (options.thread !== undefined) payload.thread = options.thread;
+      // Keep the transport reply after JS cancellation so newly returned references can be released.
+      const pending = Promise.resolve(call("java", method, [payload], {timeoutMs:5000,...options,signal:undefined,permissions:["java_interop"]}));
+      return new Promise((resolve,reject)=>{
+        let aborted=false;
+        const abort=()=>{aborted=true;reject(error("Java call aborted.","ABORT_ERR"));};
+        options.signal?.addEventListener("abort",abort,{once:true});
+        if(options.signal?.aborted)abort();
+        pending.then(value=>{
+          options.signal?.removeEventListener("abort",abort);
+          if(aborted){releaseRaw(value).catch(()=>{});return;}
+          try{resolve(decode(value));}catch(cause){reject(cause);}
+        },cause=>{options.signal?.removeEventListener("abort",abort);if(!aborted)reject(cause);});
+      });
+    };
+    const decode = value => {
+      if (!value || typeof value !== "object") return value;
+      if (value.__autojs6JavaLong !== undefined) return BigInt(value.__autojs6JavaLong);
+      if (value.__autojs6JavaNumber !== undefined) return Number(value.__autojs6JavaNumber);
+      if (Array.isArray(value)) return Object.freeze(value.map(decode));
+      if (!value.__autojs6JavaHandle) return Object.freeze(Object.fromEntries(Object.entries(value).map(([k,v])=>[k,decode(v)])));
+      const target = {...value, ...(value.value ? {value:decode(value.value)} : {})};
+      // Methods are non-enumerable so handles can be cloned through MessagePort.
+      Object.defineProperties(target, Object.fromEntries(Object.entries({
+        call:(method,values,options)=>api.call(target,method,values,options),
+        callInstance:(method,values,options)=>api.call(target,method,values,options),
+        getField:(field,options)=>api.getField(target,field,options),
+        setField:(field,value,options)=>api.setField(target,field,value,options),
+        getClassName:options=>api.getClassName(target,options),
+        instanceOf:(type,options)=>api.instanceOf(target,type,options),
+        arrayLength:options=>api.arrayLength(target,options),
+        getArrayItem:(index,options)=>api.getArrayItem(target,index,options),
+        setArrayItem:(index,value,options)=>api.setArrayItem(target,index,value,options),
+        toArray:options=>api.toArray(target,options),
+        release:options=>api.release(target,options),
+        dispose:options=>api.release(target,options),
+        toJSON:()=>value
+      }).map(([key,fn])=>[key,{value:fn}])));
+      return Object.freeze(target);
+    };
+    const descriptor = value => {
+      const className = name(value);
+      return Object.freeze({className,name:className,
+        callStatic:(method,values,options)=>api.callStatic(className,method,values,options),
+        new:(values,options)=>api.new(className,values,options),create:(values,options)=>api.new(className,values,options),
+        getStatic:(field,options)=>api.getStatic(className,field,options),
+        setStatic:(field,value,options)=>api.setStatic(className,field,value,options),
+        describe:options=>api.describe(className,options)
+      });
+    };
+    const api = {
+      policy:Object.freeze({enabled,limitsEnforcedBy:"host_provider",published:!!policy,allowedClasses:[],deniedClassPrefixes:[],classes:{},...policy}),
+      findClass:descriptor,type:descriptor,
+      cast:(type,value)=>Object.freeze({__autojs6JavaType:name(type),value}),
+      callStatic:async(type,method,values,options)=>invoke("callStatic",{className:name(type),method:name(method,"ERR_AUTOJS6_JAVA_METHOD_DENIED"),args:args(values)},options),
+      new:async(type,values,options)=>invoke("new",{className:name(type),args:args(values)},options),
+      call:async(target,method,values,options)=>invoke("call",{handle:id(target),method:name(method,"ERR_AUTOJS6_JAVA_METHOD_DENIED"),args:args(values)},options),
+      getField:async(target,field,options)=>invoke("getField",{handle:id(target),field:name(field,"ERR_AUTOJS6_JAVA_METHOD_DENIED")},options),
+      setField:async(target,field,value,options)=>invoke("setField",{handle:id(target),field:name(field,"ERR_AUTOJS6_JAVA_METHOD_DENIED"),value:argument(value)},options),
+      getStatic:async(type,field,options)=>invoke("getStatic",{className:name(type),field:name(field,"ERR_AUTOJS6_JAVA_METHOD_DENIED")},options),
+      setStatic:async(type,field,value,options)=>invoke("setStatic",{className:name(type),field:name(field,"ERR_AUTOJS6_JAVA_METHOD_DENIED"),value:argument(value)},options),
+      describe:async(type,options)=>invoke("type",{className:name(type)},options),
+      getContext:options=>invoke("getContext",{},options),
+      newArray:async(type,value,options)=>invoke("newArray",{className:name(type),value:argument(value)},options),
+      arrayLength:async(target,options)=>invoke("arrayLength",{handle:id(target)},options),
+      getArrayItem:async(target,index,options)=>invoke("getArrayItem",{handle:id(target),index},options),
+      setArrayItem:async(target,index,value,options)=>invoke("setArrayItem",{handle:id(target),index,value:argument(value)},options),
+      toArray:async(target,options)=>invoke("toArray",{handle:id(target)},options),
+      getClassName:async(target,options)=>invoke("getClassName",{handle:id(target)},options),
+      instanceOf:async(target,type,options)=>invoke("instanceOf",{handle:id(target),className:name(type)},options),
+      release:async(target,options)=>invoke("release",{handle:id(target)},options),
+      defineClass:()=>{ throw error("Java subclass/callback generation is not implemented."); }
+    };
+    api.create=api.new;api.callInstance=api.call;api.dispose=api.release;
+    return Object.freeze(api);
   }
-  function __autojs6_java_call_instance(target, methodName, args, options) {
-    let descriptor;
-    try {
-      __autojs6_java_check_enabled();
-      const handle = __autojs6_java_handle_id(target);
-      const className = __autojs6_java_handle_class_name(target);
-      const checkedMethodName = __autojs6_java_method_name(methodName, className);
-      if (!handle) {
-        throw __autojs6_java_interop_error(
-          "AutoJs6 Java interop requires a Java object handle.",
-          "ERR_AUTOJS6_JAVA_METHOD_DENIED",
-          className,
-          checkedMethodName
-        );
-      }
-      descriptor = {
-        handle,
-        method: checkedMethodName,
-        args: __autojs6_java_argument_array(args, className || "java.handle", checkedMethodName)
-      };
-    } catch (error) {
-      return Promise.reject(error);
-    }
-    return __autojs6_call_autojs(
-      "java",
-      "call",
-      [descriptor],
-      {
-        timeoutMs: __autojs6_java_timeout(options),
-        signal: __autojs6_bridge_signal_from_options(options),
-        permissions: ["java_interop"]
-      }
-    ).then(__autojs6_java_handle_descriptor);
-  }
-  function __autojs6_java_get_field(target, fieldName, options) {
-    let descriptor;
-    try {
-      __autojs6_java_check_enabled();
-      const handle = __autojs6_java_handle_id(target);
-      const className = __autojs6_java_handle_class_name(target);
-      const checkedFieldName = __autojs6_java_method_name(fieldName, className);
-      if (!handle) {
-        throw __autojs6_java_interop_error(
-          "AutoJs6 Java interop requires a Java object handle.",
-          "ERR_AUTOJS6_JAVA_METHOD_DENIED",
-          className,
-          checkedFieldName
-        );
-      }
-      descriptor = {
-        handle,
-        field: checkedFieldName
-      };
-    } catch (error) {
-      return Promise.reject(error);
-    }
-    return __autojs6_call_autojs(
-      "java",
-      "getField",
-      [descriptor],
-      {
-        timeoutMs: __autojs6_java_timeout(options),
-        signal: __autojs6_bridge_signal_from_options(options),
-        permissions: ["java_interop"]
-      }
-    ).then(__autojs6_java_handle_descriptor);
-  }
-  function __autojs6_java_release(target, options) {
-    let descriptor;
-    try {
-      __autojs6_java_check_enabled();
-      const handle = __autojs6_java_handle_id(target);
-      if (!handle) {
-        throw __autojs6_java_interop_error(
-          "AutoJs6 Java interop requires a Java object handle.",
-          "ERR_AUTOJS6_JAVA_METHOD_DENIED",
-          __autojs6_java_handle_class_name(target),
-          "release"
-        );
-      }
-      descriptor = { handle };
-    } catch (error) {
-      return Promise.reject(error);
-    }
-    return __autojs6_call_autojs(
-      "java",
-      "release",
-      [descriptor],
-      {
-        timeoutMs: __autojs6_java_timeout(options),
-        signal: __autojs6_bridge_signal_from_options(options),
-        permissions: ["java_interop"]
-      }
-    );
-  }
-  function __autojs6_java_get_static(className, fieldName, options) {
-    let descriptor;
-    try {
-      const checkedClassName = __autojs6_java_class_name(className);
-      descriptor = {
-        className: checkedClassName,
-        field: __autojs6_java_method_name(fieldName, checkedClassName)
-      };
-    } catch (error) {
-      return Promise.reject(error);
-    }
-    return __autojs6_call_autojs(
-      "java",
-      "getStatic",
-      [descriptor],
-      {
-        timeoutMs: __autojs6_java_timeout(options),
-        signal: __autojs6_bridge_signal_from_options(options),
-        permissions: ["java_interop"]
-      }
-    ).then(__autojs6_java_handle_descriptor);
-  }
-  function __autojs6_java_describe(className, options) {
-    let descriptor;
-    try {
-      descriptor = { className: __autojs6_java_class_name(className) };
-    } catch (error) {
-      return Promise.reject(error);
-    }
-    return __autojs6_call_autojs(
-      "java",
-      "type",
-      [descriptor],
-      {
-        timeoutMs: __autojs6_java_timeout(options),
-        signal: __autojs6_bridge_signal_from_options(options),
-        permissions: ["java_interop"]
-      }
-    ).then(function(result) {
-      return result && typeof result === "object" ? __autojs6_deep_freeze_json(result) : result;
-    });
-  }
-  function __autojs6_java_define_class_unsupported() {
-    __autojs6_java_check_enabled();
-    throw __autojs6_java_interop_error(
-      "AutoJs6 Java defineClass/proxy-interface replacement is design-gated in P13-16; dynamic bytecode, class loaders, unbounded inheritance, and raw callback handles remain denied.",
-      "ERR_AUTOJS6_JAVA_METHOD_DENIED",
-      "",
-      "defineClass"
-    );
-  }
+  // Main Java facade transport.
+
+  function __autojs6_java_interop_error(message, code) { return __autojs6_error(message, code || "ERR_AUTOJS6_JAVA_METHOD_DENIED"); }
+  function __autojs6_java_interop_disabled_error() { return __autojs6_java_interop_error("Java interop is disabled for this execution.", "ERR_AUTOJS6_JAVA_INTEROP_DISABLED"); }
+  function __autojs6_java_check_enabled() { if (!__autojs6_java_interop_enabled) throw __autojs6_java_interop_disabled_error(); }
+  function __autojs6_java_policy_snapshot() { return __autojs6_create_java(()=>{}, __autojs6_java_host_policy() || {}, __autojs6_java_interop_enabled).policy; }
+  function __autojs6_java_define_class_unsupported() { __autojs6_java_check_enabled(); throw __autojs6_java_interop_error("Java subclass/callback generation is not implemented."); }
   function __autojs6_limited_java() {
-    if (!__autojs6_java_interop_enabled) {
-      throw __autojs6_java_interop_disabled_error();
-    }
-    if (__autojs6_limited_java_cache) {
-      return __autojs6_limited_java_cache;
-    }
-    __autojs6_limited_java_cache = Object.freeze({
-      findClass: __autojs6_java_class_descriptor,
-      type: __autojs6_java_class_descriptor,
-      callStatic: __autojs6_java_call_static,
-      new: __autojs6_java_new,
-      create: __autojs6_java_new,
-      call: __autojs6_java_call_instance,
-      callInstance: __autojs6_java_call_instance,
-      getField: __autojs6_java_get_field,
-      getStatic: __autojs6_java_get_static,
-      describe: __autojs6_java_describe,
-      release: __autojs6_java_release,
-      dispose: __autojs6_java_release,
-      defineClass: __autojs6_java_define_class_unsupported,
-      policy: __autojs6_java_policy_snapshot()
-    });
+    __autojs6_java_check_enabled();
+    if (!__autojs6_limited_java_cache) __autojs6_limited_java_cache = __autojs6_create_java(__autojs6_call_autojs, __autojs6_java_host_policy() || {}, true);
     return __autojs6_limited_java_cache;
   }
   function __autojs6_autojs_java_class_name(value) {
@@ -15280,13 +15034,14 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_autojs_java_facade() {
     const enabled = __autojs6_java_interop_enabled;
     return Object.freeze({
+      ...(__autojs6_java_interop_enabled ? __autojs6_limited_java() : {}),
       schema: "autojs6-node-autojs-java-v1",
       enabled,
       stable: enabled,
-      mode: enabled ? "allowlist" : "disabled",
+      mode: enabled ? "public" : "disabled",
       reason: enabled
-        ? "Java interop forwards to the host allowlist; the host publishes its class table as policy."
-        : "AutoJs6 Java interop is unavailable for this request; the stable allowlist policy remains enforced.",
+        ? "Java interop calls public members in the host process under Android permissions."
+        : "Java interop is disabled for this execution.",
       policy: __autojs6_java_policy_snapshot(),
       findClass: __autojs6_autojs_java_find_class,
       type: __autojs6_autojs_java_find_class,
@@ -15303,8 +15058,8 @@ std::string buildEmbeddedScriptExecutionSource(
       defineClass: __autojs6_java_define_class_unsupported,
       loadDex: __autojs6_autojs_java_stable_rejection("loadDex", "dynamic dex loading remains blocked."),
       loadJar: __autojs6_autojs_java_stable_rejection("loadJar", "dynamic jar loading remains blocked."),
-      setThreadMode: __autojs6_autojs_java_stable_rejection("setThreadMode", "Java object thread dispatch remains blocked."),
-      setDefaultThreadMode: __autojs6_autojs_java_stable_rejection("setDefaultThreadMode", "Java class thread dispatch remains blocked."),
+      setThreadMode: __autojs6_autojs_java_stable_rejection("setThreadMode", "Use the per-call thread: main option."),
+      setDefaultThreadMode: __autojs6_autojs_java_stable_rejection("setDefaultThreadMode", "Use the per-call thread: main option."),
       wrap: __autojs6_autojs_java_stable_rejection("wrap", "callback wrapping remains blocked.")
     });
   }
@@ -15315,7 +15070,7 @@ std::string buildEmbeddedScriptExecutionSource(
       proxy: true,
       type: "android.content.Context",
       packageName: host.packageName,
-      reason: "Raw Android Context is not exposed in the Safe Node Profile."
+      reason: "Use java.getContext() for an asynchronous application Context handle."
     });
   }
   function __autojs6_autojs_global() {
@@ -27673,7 +27428,8 @@ std::string buildEmbeddedScriptExecutionSource(
     if (exportsValue !== null && (typeof exportsValue === "object" || typeof exportsValue === "function")) {
       for (const key of Object.keys(exportsValue)) {
         if (key === "default" || !/^[A-Za-z_$][0-9A-Za-z_$]*$/.test(key)) continue;
-        lines.push("export const " + key + " = __autojs6_module[" + JSON.stringify(key) + "];");
+        const binding = "__autojs6_export_" + lines.length;
+        lines.push("const " + binding + " = __autojs6_module[" + JSON.stringify(key) + "]; export { " + binding + " as " + key + " };");
       }
     }
     return { format: "module", source: lines.join("\n"), shortCircuit: true };

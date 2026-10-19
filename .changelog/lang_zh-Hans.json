@@ -5,6 +5,15 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.22.0": {
+      "released_date": "2026/10/20",
+      "feature": [
+        "Node.js/Bun/Worker 的 Java/Android 对象互操作, 支持公开构造器和成员, 数组, 精确 long 值, 显式重载及应用 Context 句柄"
+      ],
+      "fix": [
+        "Node.js 宿主模块包含 java.new 等保留字成员时 ESM 导入失败的问题"
+      ]
+    },
     "v1.21.0": {
       "released_date": "2026/10/19",
       "feature": [

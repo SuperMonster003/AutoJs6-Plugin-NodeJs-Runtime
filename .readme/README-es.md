@@ -122,6 +122,13 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.22.0
+
+###### 2026/10/20
+
+* `Nuevo` Interoperabilidad Java/Android para Node.js, Bun y Workers, con constructores y miembros públicos, matrices, valores long exactos, sobrecargas explícitas y referencias Context
+* `Correccion` Error de importación ESM en Node.js cuando el módulo anfitrión exporta un nombre reservado como java.new
+
 # v1.21.0
 
 ###### 2026/10/19
@@ -134,12 +141,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 ###### 2026/10/19
 
 * `Nuevo` Control del dispositivo y diálogos para Bun y Workers de Node.js, con brillo, volumen y limpieza independiente de ventanas
-
-# v1.19.0
-
-###### 2026/10/19
-
-* `Nuevo` Eventos y notificaciones del anfitrión para Bun y Workers de Node.js, con limpieza independiente de suscripciones y notificaciones
 
 ##### Para mas historial de versiones
 
