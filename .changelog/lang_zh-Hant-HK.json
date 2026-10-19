@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.19.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Bun 與 Node.js Worker 的宿主事件及通知 API, 支援獨立訂閱與通知清理"
+      ]
+    },
     "v1.18.0": {
       "released_date": "2026/10/19",
       "feature": [

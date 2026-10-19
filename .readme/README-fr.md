@@ -122,6 +122,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.19.0
+
+###### 2026/10/19
+
+* `Ajout` Événements et notifications hôtes pour Bun et les Workers Node.js, avec nettoyage indépendant des abonnements et notifications
+
 # v1.18.0
 
 ###### 2026/10/19
@@ -134,13 +140,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 * `Ajout` Mesures et abonnements aux capteurs pour Bun et les Workers Node.js, avec annulation et libération automatique des écouteurs
 * `Correction` Écouteurs de capteurs conservés après annulation, échec de lecture ou inscription pendant la destruction du fournisseur
-
-# v1.16.0
-
-###### 2026/10/19
-
-* `Ajout` API hôtes database/sqlite pour Bun et les Workers Node.js, avec requêtes paramétrées, transactions et persistance
-* `Correction` database/sqlite.open ignorait timeoutMs/signal dans les options objet et acceptait un objet vide comme nom de base
 
 ##### Pour plus d'historique des versions
 

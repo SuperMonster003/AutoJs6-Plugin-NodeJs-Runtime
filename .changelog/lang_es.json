@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Mejora",
   "changelog_label_dependency": "Dependencia",
   "$data": {
+    "v1.19.0": {
+      "released_date": "2026/10/19",
+      "feature": [
+        "Eventos y notificaciones del anfitrión para Bun y Workers de Node.js, con limpieza independiente de suscripciones y notificaciones"
+      ]
+    },
     "v1.18.0": {
       "released_date": "2026/10/19",
       "feature": [

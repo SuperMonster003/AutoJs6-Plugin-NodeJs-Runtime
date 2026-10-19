@@ -122,6 +122,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.19.0
+
+###### 2026/10/19
+
+* `Feature` Host event observers and notifications for Bun and Node.js Workers, with independent subscription and notification cleanup
+
 # v1.18.0
 
 ###### 2026/10/19
@@ -134,13 +140,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 * `Feature` Sensor sampling and subscriptions for Bun and Node.js Workers with cancellation and automatic listener cleanup
 * `Fix` Sensor listeners surviving cancelled samples, failed polling or registration queued during provider destruction
-
-# v1.16.0
-
-###### 2026/10/19
-
-* `Feature` Host database/sqlite APIs for Bun and Node.js Workers with parameterized queries, transactions and persistence
-* `Fix` database/sqlite.open ignoring timeoutMs/signal in object options and accepting empty objects as database names
 
 ##### For more release history
 

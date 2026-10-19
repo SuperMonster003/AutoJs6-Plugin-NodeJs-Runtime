@@ -4,6 +4,12 @@
 
 ******
 
+# v1.19.0
+
+###### 2026/10/19
+
+* `Nuevo` Eventos y notificaciones del anfitrión para Bun y Workers de Node.js, con limpieza independiente de suscripciones y notificaciones
+
 # v1.18.0
 
 ###### 2026/10/19

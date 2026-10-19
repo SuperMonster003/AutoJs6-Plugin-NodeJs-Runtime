@@ -122,6 +122,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.19.0
+
+###### 2026/10/19
+
+* `新增` Bun 與 Node.js Worker 的宿主事件及通知 API, 支援獨立訂閱與通知清理
+
 # v1.18.0
 
 ###### 2026/10/19
@@ -134,13 +140,6 @@ console.log("AutoJs6 Node.js runtime");
 
 * `新增` Bun 與 Node.js Worker 的感測器取樣及訂閱 API, 支援取消和監聽器自動釋放
 * `修復` 感測器單次取樣取消, 輪詢失敗及宿主銷毀時排隊註冊可能遺留監聽器的問題
-
-# v1.16.0
-
-###### 2026/10/19
-
-* `新增` Node.js Worker 與 Bun 的 database/sqlite API, 支援參數化查詢, 交易和資料庫持久化
-* `修復` database/sqlite.open 的物件參數忽略 timeoutMs/signal, 並將空物件當成有效資料庫名稱的問題
 
 ##### 更多發行歷史可參閱
 

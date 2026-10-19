@@ -122,6 +122,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.19.0
+
+###### 2026/10/19
+
+* `Nuevo` Eventos y notificaciones del anfitrión para Bun y Workers de Node.js, con limpieza independiente de suscripciones y notificaciones
+
 # v1.18.0
 
 ###### 2026/10/19
@@ -134,13 +140,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 * `Nuevo` Muestras y suscripciones de sensores para Bun y Workers de Node.js, con cancelación y liberación automática de escuchas
 * `Correccion` Escuchas de sensores retenidas tras cancelación, fallo de sondeo o registro durante la destrucción del proveedor
-
-# v1.16.0
-
-###### 2026/10/19
-
-* `Nuevo` API database/sqlite del anfitrión para Bun y Workers de Node.js, con consultas parametrizadas, transacciones y persistencia
-* `Correccion` database/sqlite.open ignoraba timeoutMs/signal en opciones de objeto y aceptaba objetos vacíos como nombres de bases
 
 ##### Para mas historial de versiones
 
