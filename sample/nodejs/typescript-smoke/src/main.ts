@@ -981,9 +981,9 @@ async function smoke(): Promise<void> {
   const javaHandleArgument: Promise<unknown> = javaRect.then((rect) =>
     java.callStatic("android.graphics.Rect", "intersects", [rect, rect], { timeoutMs: 1000 }));
   const autojsJavaStaticField: Promise<unknown> = $autojs.java.getStatic(autojsJavaClass, "E", { timeoutMs: 1000 });
-  const javaDefineClassDenied: (descriptor?: unknown) => never = java.defineClass;
-  const autojsJavaDefineClassDenied: (descriptor?: unknown) => never = $autojs.java.defineClass;
-  const autojsLoadDex: (dexFile: string) => never = $autojs.java.loadDex;
+  const javaDefineClass: (definition: java.ClassDefinition, options?: java.CallbackOptions) => Promise<java.GeneratedClass> = java.defineClass;
+  const autojsJavaDefineClass: (definition: java.ClassDefinition, options?: java.CallbackOptions) => Promise<java.GeneratedClass> = $autojs.java.defineClass;
+  const autojsLoadDex: (dexFile: string) => Promise<java.ClassLoaderHandle> = $autojs.java.loadDex;
 
   void launched;
   void launchByName;
@@ -1395,8 +1395,8 @@ async function smoke(): Promise<void> {
   void autojsJavaWidth;
   void autojsJavaField;
   void autojsJavaRelease;
-  void javaDefineClassDenied;
-  void autojsJavaDefineClassDenied;
+  void javaDefineClass;
+  void autojsJavaDefineClass;
   void autojsLoadDex;
 }
 

@@ -122,6 +122,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.23.0
+
+###### 2026/10/20
+
+* `Nuevo` Callbacks Java, subclases generadas y carga de JAR/DEX para Node.js, Bun y Workers, con resultados Promise, llamadas a la superclase y limpieza al terminar
+
 # v1.22.0
 
 ###### 2026/10/20
@@ -135,12 +141,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 * `Nuevo` Objetos Android para Node.js, Bun y Workers, con Paint, ColorStateList, colores del tema y URI FileProvider
 * `Nuevo` API persistentes de calendario e IntentTask para Node.js y Bun, con tareas diarias, semanales, mensuales, anuales, únicas, de cuenta atrás y de difusión
-
-# v1.20.0
-
-###### 2026/10/19
-
-* `Nuevo` Control del dispositivo y diálogos para Bun y Workers de Node.js, con brillo, volumen y limpieza independiente de ventanas
 
 ##### Para mas historial de versiones
 

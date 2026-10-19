@@ -5,6 +5,12 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.23.0": {
+      "released_date": "2026/10/20",
+      "feature": [
+        "Node.js/Bun/Worker 的 Java 回调代理, 子类生成和 JAR/DEX 加载, 支持 Promise 返回值, 父类调用及执行结束清理"
+      ]
+    },
     "v1.22.0": {
       "released_date": "2026/10/20",
       "feature": [
