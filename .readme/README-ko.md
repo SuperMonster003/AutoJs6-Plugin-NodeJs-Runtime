@@ -122,6 +122,12 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 
 ******
 
+# v1.24.0
+
+###### 2026/10/20
+
+* `추가` Node.js/Bun/Worker의 음성 합성 API로 엔진과 음성 조회, 읽기, 무음, 오디오 파일 합성 및 작업 이벤트 지원
+
 # v1.23.0
 
 ###### 2026/10/20
@@ -134,13 +140,6 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 
 * `추가` Node.js/Bun/Worker의 Java/Android 상호 운용으로 공개 생성자와 멤버, 배열, 정확한 long 값, 명시적 오버로드 및 앱 Context 핸들 지원
 * `수정` Node.js 호스트 모듈에 java.new 같은 예약어 멤버가 있을 때 ESM 가져오기가 실패하는 문제
-
-# v1.21.0
-
-###### 2026/10/19
-
-* `추가` Node.js, Bun 및 Worker의 Android 객체 도우미, Paint, ColorStateList, 테마 색상 및 FileProvider URI 지원
-* `추가` Node.js 및 Bun의 영구 달력 및 IntentTask API, 일간, 주간, 월간, 연간, 일회성, 카운트다운 및 브로드캐스트 작업 지원
 
 ##### 더 많은 릴리스 기록
 

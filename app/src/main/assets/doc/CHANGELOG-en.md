@@ -4,6 +4,12 @@
 
 ******
 
+# v1.24.0
+
+###### 2026/10/20
+
+* `Feature` Text-to-speech APIs for Node.js, Bun and Workers, with engine and voice queries, speech, silence, audio file synthesis and task events
+
 # v1.23.0
 
 ###### 2026/10/20

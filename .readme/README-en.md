@@ -122,6 +122,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.24.0
+
+###### 2026/10/20
+
+* `Feature` Text-to-speech APIs for Node.js, Bun and Workers, with engine and voice queries, speech, silence, audio file synthesis and task events
+
 # v1.23.0
 
 ###### 2026/10/20
@@ -134,13 +140,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 * `Feature` Java/Android object interop for Node.js, Bun and Workers, including public constructors and members, arrays, exact long values, explicit overloads and application Context handles
 * `Fix` Node.js ESM imports fail when a host module exports a reserved name such as java.new
-
-# v1.21.0
-
-###### 2026/10/19
-
-* `Feature` Android object helpers for Node.js, Bun and Workers, including Paint, ColorStateList, theme colors and FileProvider URIs
-* `Feature` Persistent calendar and IntentTask APIs for Node.js and Bun, with daily, weekly, monthly, yearly, one-shot, countdown and broadcast tasks
 
 ##### For more release history
 

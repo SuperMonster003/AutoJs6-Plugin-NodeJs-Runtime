@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Mejora",
   "changelog_label_dependency": "Dependencia",
   "$data": {
+    "v1.24.0": {
+      "released_date": "2026/10/20",
+      "feature": [
+        "API de síntesis de voz para Node.js, Bun y Workers con consultas de motores y voces, lectura, silencio, archivos de audio y eventos de tareas"
+      ]
+    },
     "v1.23.0": {
       "released_date": "2026/10/20",
       "feature": [

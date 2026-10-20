@@ -122,6 +122,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.24.0
+
+###### 2026/10/20
+
+* `新增` Node.js/Bun/Worker 的文字轉語音介面, 支援引擎與音色查詢, 朗讀, 靜音工作, 音訊檔案合成和工作事件
+
 # v1.23.0
 
 ###### 2026/10/20
@@ -134,13 +140,6 @@ console.log("AutoJs6 Node.js runtime");
 
 * `新增` Node.js/Bun/Worker 的 Java/Android 物件互操作, 支援公開建構函式和成員, 陣列, 精確 long 值, 明確多載及應用程式 Context 控制代碼
 * `修復` Node.js 宿主模組包含 java.new 等保留字成員時 ESM 匯入失敗的問題
-
-# v1.21.0
-
-###### 2026/10/19
-
-* `新增` Node.js/Bun 的 Android 物件輔助介面及 Worker 封裝, 支援 Paint, ColorStateList, 主題色和 FileProvider URI
-* `新增` Node.js/Bun 的持久日曆與 IntentTask API, 支援每日, 每週, 每月, 每年, 單次, 倒數計時和廣播工作
 
 ##### 更多發行歷史可參閱
 

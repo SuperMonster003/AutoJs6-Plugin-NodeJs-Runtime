@@ -122,6 +122,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.24.0
+
+###### 2026/10/20
+
+* `Nuevo` API de síntesis de voz para Node.js, Bun y Workers con consultas de motores y voces, lectura, silencio, archivos de audio y eventos de tareas
+
 # v1.23.0
 
 ###### 2026/10/20
@@ -134,13 +140,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 * `Nuevo` Interoperabilidad Java/Android para Node.js, Bun y Workers, con constructores y miembros públicos, matrices, valores long exactos, sobrecargas explícitas y referencias Context
 * `Correccion` Error de importación ESM en Node.js cuando el módulo anfitrión exporta un nombre reservado como java.new
-
-# v1.21.0
-
-###### 2026/10/19
-
-* `Nuevo` Objetos Android para Node.js, Bun y Workers, con Paint, ColorStateList, colores del tema y URI FileProvider
-* `Nuevo` API persistentes de calendario e IntentTask para Node.js y Bun, con tareas diarias, semanales, mensuales, anuales, únicas, de cuenta atrás y de difusión
 
 ##### Para mas historial de versiones
 

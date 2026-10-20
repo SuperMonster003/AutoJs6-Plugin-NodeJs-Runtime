@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.24.0": {
+      "released_date": "2026/10/20",
+      "feature": [
+        "Node.js/Bun/Worker 的文字轉語音介面, 支援引擎與音色查詢, 朗讀, 靜音工作, 音訊檔案合成和工作事件"
+      ]
+    },
     "v1.23.0": {
       "released_date": "2026/10/20",
       "feature": [

@@ -4976,6 +4976,7 @@ std::string buildEmbeddedScriptExecutionSource(
       normalized === "shell" ||
       normalized === "shell.root" ||
       normalized === "shell.shizuku" ||
+      normalized === "tts" ||
       normalized === "java_interop" ||
       normalized === "rhino" ||
       normalized === "input_observer" ||
@@ -5375,6 +5376,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (methodName === "delete") return ["files", "files.delete"];
       return ["files"];
     }
+    if (moduleName === "tts") return ["tts"];
     if (moduleName === "screen_metrics") return ["device"];
     if (moduleName === "device") {
       if (["isIgnoringBatteryOptimizations", "openBatteryOptimizationSettings", "setBrightness", "setBrightnessMode", "keepScreenOn", "cancelKeepingAwake"].includes(methodName)) return ["device", "device.power"];
@@ -8380,6 +8382,8 @@ std::string buildEmbeddedScriptExecutionSource(
         const databases = new Set();
         const sensors = new Set();
         const shells = new Set();
+        const ttsClients=new Set();
+        const closeTts=id=>invoke("tts","close",[id],{permissions:["tts"]}).catch(()=>{});
         const javaObjects=new Set();
         const closeJava=handle=>invoke("java","release",[{handle}],{permissions:["java_interop"]}).catch(()=>{});
         const javaIds=value=>Array.isArray(value)?value.flatMap(javaIds):value&&typeof value==="object"&&value.__autojs6JavaHandle?[value.__autojs6JavaHandle]:[];
@@ -8418,6 +8422,7 @@ std::string buildEmbeddedScriptExecutionSource(
           sensors.clear();
           for(const id of shells)closeShell(id);
           shells.clear();
+          for(const id of ttsClients)closeTts(id);ttsClients.clear();
           for(const id of javaObjects)closeJava(id);javaObjects.clear();
           for(const id of androidObjects)closeAndroid(id);androidObjects.clear();
           for (const scope of deviceScopes) closeDevice(scope); deviceScopes.clear();
@@ -8458,6 +8463,7 @@ std::string buildEmbeddedScriptExecutionSource(
                 controller.signal.addEventListener("abort",()=>invoke("dialogs","cancelRequest",[payload.__requestId,scope],{permissions:["dialogs"]}).catch(()=>{}),{once:true});
               }
             }
+            const createsTts=message.module==="tts" && message.method==="open";
             const createsAndroid=message.module==="android" && ["createPaint","createColorStateList"].includes(message.method);
             const createsTask=message.module==="tasks" && ["addTimedTask","addIntentTask"].includes(message.method);
             const databaseCall = ["database", "sqlite"].includes(message.module);
@@ -8471,11 +8477,15 @@ std::string buildEmbeddedScriptExecutionSource(
             const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "enableDisplayCapture", "startBackgroundRecording", "stopBackgroundRecording", "subscribeViewEvents"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: message.module === "java" || createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+              { ...message.options, signal: createsTts || message.module === "java" || createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
             if (keepsAwake && (closed || controller.signal.aborted)) {
               await closeDevice(message.args[1]);
               throw Object.assign(new Error("Keeping the screen awake was aborted"),{code:"ABORT_ERR"});
             }
+            if(createsTts && value && value.id){
+              if(closed||controller.signal.aborted){await closeTts(value.id);throw Object.assign(new Error("TTS client creation was aborted"),{code:"ABORT_ERR"});}
+              ttsClients.add(value.id);
+            }else if(message.module==="tts" && message.method==="close")ttsClients.delete(message.args[0]);
             if(message.module==="java") {
               const ids=javaIds(value);
               if(closed||controller.signal.aborted){for(const id of ids)await closeJava(id);throw Object.assign(new Error("Java call was aborted"),{code:"ABORT_ERR"});}
@@ -8578,7 +8588,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8595,6 +8605,7 @@ std::string buildEmbeddedScriptExecutionSource(
       let colors;const android=createAndroid(bridgeCall,value=>colors.toInt(value));colors=createColors(android);
       modules.set("android",android);modules.set("colors",colors);
     }
+    if(createTts && methods.tts) modules.set("tts",createTts(bridgeCall));
     if(createJava && methods.java) modules.set("java",createJava(bridgeCall,constants.javaPolicy||{},constants.javaEnabled!==false,JavaAsyncContext));
     if(createTasks && methods.tasks)modules.set("tasks",createTasks(bridgeCall));
     if (createDevice && methods.device) modules.set("device",createDevice(bridgeCall,constants.device));
@@ -8721,7 +8732,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return result;
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8813,7 +8824,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8939,7 +8950,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -8969,6 +8980,7 @@ std::string buildEmbeddedScriptExecutionSource(
           pathAliases: __autojs6_path_aliases(),
           moduleSources,
           hostModuleMethods: {
+            tts:Object.keys(__autojs6_create_tts(()=>{})),
             java:Object.keys(__autojs6_create_java(()=>{})),
             android:Object.keys(__autojs6_limited_android()), tasks:Object.keys(__autojs6_limited_tasks()), colors:Object.keys(__autojs6_limited_colors()),
             device:Object.keys(__autojs6_limited_device()), dialogs:Object.keys(__autojs6_limited_dialogs()),
@@ -14519,6 +14531,7 @@ std::string buildEmbeddedScriptExecutionSource(
       recorder: recorder,
       ui: ui,
       tasks: tasks,
+      tts: __autojs6_limited_tts(),
       requestScreenCapture: __autojs6_rhino_compat_request_screen_capture,
       requestScreenCaptureAsync: __autojs6_rhino_compat_request_screen_capture,
       captureScreen: __autojs6_rhino_compat_capture_screen
@@ -14710,6 +14723,7 @@ std::string buildEmbeddedScriptExecutionSource(
       recorder: recorder,
       ui: ui,
       tasks: tasks,
+      tts: __autojs6_limited_tts(),
       requestScreenCapture: __autojs6_rhino_compat_request_screen_capture,
       requestScreenCaptureAsync: __autojs6_rhino_compat_request_screen_capture,
       captureScreen: __autojs6_rhino_compat_capture_screen,
@@ -14812,6 +14826,161 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return __autojs6_limited_work_manager_cache;
   }
+  // Shared TTS facade. Node, Workers and Bun use the same task and event semantics.
+  function __autojs6_create_tts(call) {
+    let opening = null, generation = 0, pumping = false;
+    const tasks = new Map(), listeners = new Map();
+    const error = (message, code = "ABORTED") => Object.assign(new Error(message), {code: "ERR_AUTOJS6_TTS_" + code});
+    const raw = (method, args, options = {}) => call("tts", method, args, {timeoutMs: 60000, ...options, permissions: ["tts"]});
+    function emit(map, name, value) {
+      for (const entry of [...(map.get(name) || [])]) {
+        if (entry.once) map.set(name, (map.get(name) || []).filter(x => x !== entry));
+        try { entry.listener(value); } catch (failure) { setTimeout(() => { throw failure; }, 0); }
+      }
+    }
+    function emitter(target, map) {
+      target.on = (name, listener) => { if (typeof listener !== "function") throw new TypeError("TTS listener must be a function"); map.set(name, [...(map.get(name) || []), {listener}]); return target; };
+      target.once = (name, listener) => { if (typeof listener !== "function") throw new TypeError("TTS listener must be a function"); map.set(name, [...(map.get(name) || []), {listener, once: true}]); return target; };
+      target.off = (name, listener) => { map.set(name, (map.get(name) || []).filter(x => x.listener !== listener)); return target; };
+      target.removeAllListeners = name => { name === undefined ? map.clear() : map.delete(name); return target; };
+      return target;
+    }
+    async function session() {
+      if (!opening) {
+        const epoch = generation;
+        const pending = raw("open", []).then(async value => {
+          if (epoch !== generation) { await raw("close", [value.id]); throw error("TTS client closed during initialization"); }
+          return value.id;
+        });
+        opening = pending;
+        pending.catch(() => { if (opening === pending) opening = null; });
+      }
+      return opening;
+    }
+    async function invoke(method, args, options) {
+      const epoch = generation, id = await session();
+      const value = await raw("invoke", [id, method, args], options);
+      if (epoch !== generation) throw error("TTS client has closed");
+      return value;
+    }
+    function settle(record, failure, value) {
+      if (record.done) return;
+      record.done = true; tasks.delete(record.handle.id); record.removeAbort?.();
+      failure ? record.reject(failure) : record.resolve(value);
+    }
+    async function pump() {
+      if (pumping || !tasks.size) return;
+      pumping = true; const epoch = generation;
+      try {
+        const id = await session();
+        while (tasks.size && epoch === generation) {
+          const events = await raw("drain", [id, [...tasks.keys()]], {timeoutMs: 5000});
+          if (epoch !== generation) break;
+          for (const event of events) {
+            const record = tasks.get(event.id); if (!record) continue;
+            record.state = event.state;
+            let value = event.value;
+            if (event.event === "audio") value = {...value, data: Buffer.from(value.data, "base64")};
+            const failure = ["error", "stop", "cancelled"].includes(event.event) ? Object.assign(error(value.message || "TTS interrupted", value.code || "ABORTED"), value, {code: "ERR_AUTOJS6_TTS_" + (value.code || "ABORTED")}) : null;
+            if (event.terminal) settle(record, failure, value);
+            if (event.event === "cancelled") emit(record.listeners, "stop", value.info);
+            emit(record.listeners, event.event, failure && event.event === "error" ? failure : value?.info ?? value);
+            emit(listeners, event.event, {id: event.id, value: event.event === "error" ? failure : value?.info ?? value});
+          }
+          if (!events.length) await new Promise(resolve => setTimeout(resolve, 25));
+        }
+      } catch (failure) {
+        if (epoch === generation) {
+          for (const record of [...tasks.values()]) { record.state = "error"; emit(record.listeners, "error", failure); settle(record, failure); }
+          const old = opening; opening = null; generation++;
+          if (old) old.then(id => raw("close", [id])).catch(() => {});
+        }
+      } finally { pumping = false; if (tasks.size) setTimeout(pump, 0); }
+    }
+    async function start(method, args, options = {}) {
+      if (options.signal?.aborted) throw error("TTS operation was aborted");
+      const epoch = generation, id = await session();
+      const value = await raw("invoke", [id, method, args], {...options, signal: undefined});
+      if (epoch !== generation) { await raw("close", [id]).catch(() => {}); throw error("TTS client has closed"); }
+      const record = {state: value.state, done: false, listeners: new Map()};
+      const result = new Promise((resolve, reject) => { record.resolve = resolve; record.reject = reject; });
+      result.catch(() => {});
+      const handle = emitter({id: value.id, operation: value.operation, text: value.text, result,
+        get state() { return record.state; }, get isDone() { return record.done; },
+        async stop() { if (!record.done) await raw("stopTask", [id, value.id]); return handle; },
+        async cancel() { return handle.stop(); }
+      }, record.listeners);
+      record.handle = handle; tasks.set(value.id, record);
+      if (options.signal) {
+        const aborted = () => handle.stop().catch(failure => settle(record, failure));
+        options.signal.addEventListener("abort", aborted, {once: true});
+        record.removeAbort = () => options.signal.removeEventListener("abort", aborted);
+        if (options.signal.aborted) aborted();
+      }
+      setTimeout(pump, 0);
+      return handle;
+    }
+    const object = value => {
+      if (value == null) return {};
+      if (typeof value !== "object" || Array.isArray(value)) throw new TypeError("TTS options must be an object");
+      JSON.stringify(value, (key, item) => {
+        if (typeof item === "number" && !Number.isFinite(item) || typeof item === "function" || typeof item === "symbol" || typeof item === "bigint") throw new TypeError("TTS options require finite JSON values");
+        return item;
+      });
+      return value;
+    };
+    function engine(value) {
+      if (value === undefined) return [];
+      if (value === null || typeof value === "string") return [value];
+      const options = object(value);
+      if (Object.keys(options).some(key => key !== "engine")) throw new TypeError("Unknown TTS engine query option");
+      return options.engine === undefined ? [] : engine(options.engine);
+    }
+    const api = async (text, options, callOptions) => api.speak(text, options, callOptions);
+    Object.assign(api, {
+      maxInputLength: 3999, maxSynthesisFileSize: 536870912, QUEUE_FLUSH: "flush", QUEUE_ADD: "add",
+      getMaxInputLength: () => 3999,
+      utterance: (text, options, callOptions) => start("utterance", [text, object(options)], callOptions),
+      enqueueUtterance: (text, options, callOptions) => start("enqueueUtterance", [text, object(options)], callOptions),
+      synthesis: (text, path, options, callOptions) => start("synthesis", [text, path, object(options)], callOptions),
+      silenceTask: (duration, options, callOptions) => {
+        if (!Number.isSafeInteger(duration) || duration < 0) return Promise.reject(new TypeError("TTS silence duration must be a non-negative integer"));
+        return start("silenceTask", [duration, object(options)], callOptions);
+      },
+      speak: async (text, options, callOptions) => (await api.utterance(text, options, callOptions)).result,
+      enqueue: async (text, options, callOptions) => (await api.enqueueUtterance(text, options, callOptions)).result,
+      synthesize: async (text, path, options, callOptions) => (await api.synthesis(text, path, options, callOptions)).result,
+      silence: async (duration, options, callOptions) => (await api.silenceTask(duration, options, callOptions)).result,
+      voices: (value, callOptions) => {
+        const input = value === undefined ? {} : value === null || typeof value === "string" ? {engine: value} : object(value);
+        if (Object.keys(input).some(key => !["engine", "locale", "language", "lang", "offlineOnly", "offline", "installedOnly", "installed"].includes(key))) return Promise.reject(new TypeError("Unknown TTS voice filter"));
+        const filter = {...input};
+        filter.locale = input.locale ?? input.language ?? input.lang;
+        filter.offlineOnly = input.offlineOnly ?? input.offline;
+        filter.installedOnly = input.installedOnly ?? input.installed;
+        for (const key of ["language", "lang", "offline", "installed"]) delete filter[key];
+        return invoke("voices", [filter], callOptions);
+      },
+      configure: (options, callOptions) => invoke("configure", [object(options)], callOptions),
+      async close() {
+        generation++;
+        const old = opening; opening = null;
+        for (const record of [...tasks.values()]) { record.state = "cancelled"; settle(record, error("TTS client closed")); }
+        listeners.clear();
+        return old ? old.then(id => raw("close", [id]), () => false) : false;
+      }
+    });
+    for (const method of ["ready", "engines", "languages", "installData"]) api[method] = (value, options) => invoke(method, engine(value), options);
+    for (const method of ["status", "defaults", "stop", "reset", "isSpeaking", "isBusy", "openSettings"]) api[method] = options => invoke(method, [], options);
+    for (const method of ["isLanguageAvailable", "languageAvailability"]) api[method] = (locale, value, options) => invoke(method, [locale, ...engine(value)], options);
+    for (const [alias, original] of Object.entries({speakTask: "utterance", enqueueTask: "enqueueUtterance", synthesizeToFile: "synthesize", synthesizeTask: "synthesis", synthesisTask: "synthesis", stopAll: "stop", config: "defaults"})) api[alias] = api[original];
+    return Object.freeze(emitter(api, listeners));
+  }
+  // End shared TTS facade.
+
+  let __autojs6_tts_cache = null;
+  function __autojs6_limited_tts() { return __autojs6_tts_cache ||= __autojs6_create_tts(__autojs6_call_autojs); }
+
   // Shared Java object facade for Node, Bun and Worker transports.
   function __autojs6_create_java(call, policy = {}, enabled = true, AsyncContext) {
     const error = (message, code = "ERR_AUTOJS6_JAVA_METHOD_DENIED") => Object.assign(new TypeError(message), {code});
@@ -27146,6 +27315,7 @@ std::string buildEmbeddedScriptExecutionSource(
     axios: function() { return __autojs6_limited_axios(); },
     websocket: function() { return __autojs6_limited_websocket(); },
     android: function() { return __autojs6_limited_android(); },
+    tts: function() { return __autojs6_limited_tts(); },
     tasks: function() { return __autojs6_limited_tasks(); },
     work_manager: function() { return __autojs6_limited_work_manager(); },
     package_manager: function() { return __autojs6_limited_package_manager(); },
