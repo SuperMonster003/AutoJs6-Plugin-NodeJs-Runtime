@@ -122,6 +122,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.26.0
+
+###### 2026/10/21
+
+* `新增` Node.js/Worker: EPUB 书籍读取, 资源导出, 搜索及带事件的阅读器会话
+
 # v1.25.0
 
 ###### 2026/10/20
@@ -133,12 +139,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/20
 
 * `新增` Node.js/Bun/Worker 的文字转语音接口, 支持引擎与音色查询, 朗读, 静音任务, 音频文件合成和任务事件
-
-# v1.23.0
-
-###### 2026/10/20
-
-* `新增` Node.js/Bun/Worker 的 Java 回调代理, 子类生成和 JAR/DEX 加载, 支持 Promise 返回值, 父类调用及执行结束清理
 
 ##### 更多发行历史可参阅
 

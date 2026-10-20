@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.26.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js/Worker: EPUB 書籍讀取, 資源匯出, 搜尋及帶事件的閱讀器會話"
+      ]
+    },
     "v1.25.0": {
       "released_date": "2026/10/20",
       "feature": [

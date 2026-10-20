@@ -122,6 +122,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.26.0
+
+###### 2026/10/21
+
+* `Ajout` Node.js/Worker: Lecture EPUB, export des ressources, recherche et sessions du lecteur avec événements
+
 # v1.25.0
 
 ###### 2026/10/20
@@ -133,12 +139,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 ###### 2026/10/20
 
 * `Ajout` API de synthèse vocale pour Node.js, Bun et Workers avec requêtes des moteurs et voix, lecture, silence, fichiers audio et événements des tâches
-
-# v1.23.0
-
-###### 2026/10/20
-
-* `Ajout` Callbacks Java, sous-classes générées et chargement JAR/DEX pour Node.js, Bun et Workers, avec retours Promise, appels de la superclasse et libération en fin de session
 
 ##### Pour plus d'historique des versions
 

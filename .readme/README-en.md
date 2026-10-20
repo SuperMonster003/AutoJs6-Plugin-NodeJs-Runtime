@@ -122,6 +122,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.26.0
+
+###### 2026/10/21
+
+* `Feature` Node.js/Worker: EPUB book reading, resource export, search and reader sessions with events
+
 # v1.25.0
 
 ###### 2026/10/20
@@ -133,12 +139,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/20
 
 * `Feature` Text-to-speech APIs for Node.js, Bun and Workers, with engine and voice queries, speech, silence, audio file synthesis and task events
-
-# v1.23.0
-
-###### 2026/10/20
-
-* `Feature` Java callbacks, generated subclasses and JAR/DEX loading for Node.js, Bun and Workers, with Promise results, superclass calls and execution cleanup
 
 ##### For more release history
 

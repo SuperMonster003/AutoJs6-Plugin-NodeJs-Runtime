@@ -5,6 +5,12 @@
   "changelog_label_improvement": "개선",
   "changelog_label_dependency": "의존성",
   "$data": {
+    "v1.26.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js/Worker: EPUB 도서 읽기, 리소스 내보내기, 검색 및 이벤트를 지원하는 리더 세션"
+      ]
+    },
     "v1.25.0": {
       "released_date": "2026/10/20",
       "feature": [

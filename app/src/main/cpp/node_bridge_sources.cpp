@@ -4976,6 +4976,7 @@ std::string buildEmbeddedScriptExecutionSource(
       normalized === "shell" ||
       normalized === "shell.root" ||
       normalized === "shell.shizuku" ||
+      normalized === "epub" ||
       normalized === "speech" ||
       normalized === "tts" ||
       normalized === "java_interop" ||
@@ -5377,6 +5378,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (methodName === "delete") return ["files", "files.delete"];
       return ["files"];
     }
+    if (moduleName === "epub") return ["epub"];
     if (moduleName === "speech") return ["speech"];
     if (moduleName === "tts") return ["tts"];
     if (moduleName === "screen_metrics") return ["device"];
@@ -8384,6 +8386,8 @@ std::string buildEmbeddedScriptExecutionSource(
         const databases = new Set();
         const sensors = new Set();
         const shells = new Set();
+        const epubClients=new Set();
+        const closeEpub=id=>invoke("epub","close",[id],{permissions:["epub"]}).catch(()=>{});
         const speechClients=new Set();
         const closeSpeech=id=>invoke("speech","close",[id],{permissions:["speech"]}).catch(()=>{});
         const ttsClients=new Set();
@@ -8426,6 +8430,7 @@ std::string buildEmbeddedScriptExecutionSource(
           sensors.clear();
           for(const id of shells)closeShell(id);
           shells.clear();
+          for(const id of epubClients)closeEpub(id);epubClients.clear();
           for(const id of speechClients)closeSpeech(id);speechClients.clear();
           for(const id of ttsClients)closeTts(id);ttsClients.clear();
           for(const id of javaObjects)closeJava(id);javaObjects.clear();
@@ -8468,6 +8473,7 @@ std::string buildEmbeddedScriptExecutionSource(
                 controller.signal.addEventListener("abort",()=>invoke("dialogs","cancelRequest",[payload.__requestId,scope],{permissions:["dialogs"]}).catch(()=>{}),{once:true});
               }
             }
+            const createsEpub=message.module==="epub" && message.method==="open";
             const createsSpeech=message.module==="speech" && message.method==="open";
             const createsTts=message.module==="tts" && message.method==="open";
             const createsAndroid=message.module==="android" && ["createPaint","createColorStateList"].includes(message.method);
@@ -8483,11 +8489,15 @@ std::string buildEmbeddedScriptExecutionSource(
             const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "enableDisplayCapture", "startBackgroundRecording", "stopBackgroundRecording", "subscribeViewEvents"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: createsSpeech || createsTts || message.module === "java" || createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+              { ...message.options, signal: createsEpub || createsSpeech || createsTts || message.module === "java" || createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
             if (keepsAwake && (closed || controller.signal.aborted)) {
               await closeDevice(message.args[1]);
               throw Object.assign(new Error("Keeping the screen awake was aborted"),{code:"ABORT_ERR"});
             }
+            if(createsEpub && value && value.id){
+              if(closed||controller.signal.aborted){await closeEpub(value.id);throw Object.assign(new Error("EPUB client creation was aborted"),{code:"ABORT_ERR"});}
+              epubClients.add(value.id);
+            }else if(message.module==="epub" && message.method==="close")epubClients.delete(message.args[0]);
             if(createsSpeech && value && value.id){
               if(closed||controller.signal.aborted){await closeSpeech(value.id);throw Object.assign(new Error("Speech client creation was aborted"),{code:"ABORT_ERR"});}
               speechClients.add(value.id);
@@ -8598,7 +8608,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8615,6 +8625,7 @@ std::string buildEmbeddedScriptExecutionSource(
       let colors;const android=createAndroid(bridgeCall,value=>colors.toInt(value));colors=createColors(android);
       modules.set("android",android);modules.set("colors",colors);
     }
+    if(createEpub && methods.epub) modules.set("epub",createEpub(bridgeCall));
     if(createSpeech && methods.speech) modules.set("speech",createSpeech(bridgeCall));
     if(createTts && methods.tts) modules.set("tts",createTts(bridgeCall));
     if(createJava && methods.java) modules.set("java",createJava(bridgeCall,constants.javaPolicy||{},constants.javaEnabled!==false,JavaAsyncContext));
@@ -8743,7 +8754,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return result;
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8835,7 +8846,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8961,7 +8972,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -8991,6 +9002,7 @@ std::string buildEmbeddedScriptExecutionSource(
           pathAliases: __autojs6_path_aliases(),
           moduleSources,
           hostModuleMethods: {
+            epub:Object.keys(__autojs6_create_epub(()=>{})),
             speech:Object.keys(__autojs6_create_speech(()=>{})),
             tts:Object.keys(__autojs6_create_tts(()=>{})),
             java:Object.keys(__autojs6_create_java(()=>{})),
@@ -14543,6 +14555,7 @@ std::string buildEmbeddedScriptExecutionSource(
       recorder: recorder,
       ui: ui,
       tasks: tasks,
+      epub: __autojs6_limited_epub(),
       speech: __autojs6_limited_speech(),
       tts: __autojs6_limited_tts(),
       requestScreenCapture: __autojs6_rhino_compat_request_screen_capture,
@@ -14736,6 +14749,7 @@ std::string buildEmbeddedScriptExecutionSource(
       recorder: recorder,
       ui: ui,
       tasks: tasks,
+      epub: __autojs6_limited_epub(),
       speech: __autojs6_limited_speech(),
       tts: __autojs6_limited_tts(),
       requestScreenCapture: __autojs6_rhino_compat_request_screen_capture,
@@ -14840,6 +14854,281 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return __autojs6_limited_work_manager_cache;
   }
+  // Shared EPUB facade. Operations and reader callbacks stay on the owning JS thread.
+  function __autojs6_create_epub(call) {
+    let opening = null, generation = 0, pumping = false;
+    const records = new Map(), pending = new Set();
+    function EpubError(message = "", code = "INTERNAL") {
+      const error = new Error(String(message));
+      Object.setPrototypeOf(error, EpubError.prototype);
+      error.name = "EpubError"; error.code = String(code ?? "INTERNAL");
+      return error;
+    }
+    EpubError.prototype = Object.create(Error.prototype, {
+      constructor: {value: EpubError, writable: true, configurable: true},
+      toString: {value() { return "EpubError [" + this.code + "]: " + this.message; }, configurable: true}
+    });
+    const failure = error => error instanceof EpubError ? error :
+      EpubError(error?.message || String(error), String(error?.code || "INTERNAL").replace(/^ERR_AUTOJS6_EPUB_/, ""));
+    const raw = (method, args) => Promise.resolve().then(() =>
+      call("epub", method, args, {timeoutMs: 10000, permissions: ["epub"]})).catch(error => { throw failure(error); });
+    const closedError = () => EpubError("EPUB client or handle is closed", "SESSION_CLOSED");
+    function validate(args) {
+      try {
+        JSON.stringify(args, (_, value) => {
+          if (typeof value === "number" && !Number.isFinite(value) ||
+              ["function", "symbol", "bigint"].includes(typeof value))
+            throw EpubError("EPUB arguments must contain finite JSON values", "INVALID_ARGUMENT");
+          return value;
+        });
+      } catch (error) { throw error instanceof EpubError ? error : EpubError(error.message, "INVALID_ARGUMENT"); }
+    }
+    async function client() {
+      if (!opening) {
+        const epoch = generation;
+        const value = raw("open", []).then(async descriptor => {
+          if (epoch !== generation) { await raw("close", [descriptor.id]); throw closedError(); }
+          return descriptor.id;
+        });
+        opening = value;
+        value.catch(() => { if (opening === value) opening = null; });
+      }
+      return opening;
+    }
+    function forget(record) {
+      if (record.key) records.delete(record.key);
+      pending.delete(record); record.cleanup?.(); record.fragments = [];
+    }
+    function settle(record, error, value) {
+      if (record.settled) return;
+      record.settled = true;
+      forget(record);
+      error ? record.reject(error) : record.resolve(value);
+    }
+    function emit(record, name, value) {
+      const listeners = [...(record.listeners.get(name) || [])];
+      if (!listeners.length) {
+        const values = record.buffered.get(name) || [];
+        // Preserve startup/terminal events for listeners installed after awaiting read().
+        if (values.length < 32) values.push(value);
+        record.buffered.set(name, values);
+      }
+      for (const entry of listeners) {
+        if (entry.once) record.listeners.set(name, record.listeners.get(name).filter(x => x !== entry));
+        try { entry.listener(value); } catch (error) { setTimeout(() => { throw error; }, 0); }
+      }
+    }
+    function readerEvent(record, event) {
+      if (record.state === "closed") return;
+      if (event.type === "open") { record.state = "open"; record.title = event.title ?? null; }
+      if ("locator" in event) record.locator = event.locator;
+      record.progress = event.totalProgression ?? event.locator?.locations?.totalProgression ?? record.progress;
+      if ("href" in event) record.href = event.href;
+      if ("positions" in event) record.positions = event.positions;
+      if (event.type === "progress") {
+        record.chapterTitle = event.chapterTitle ?? null;
+        event = {...event, totalProgression: record.progress < 0 ? null : record.progress};
+      }
+      if (event.type === "close") {
+        record.state = "closed"; record.reason = event.reason || "host"; forget(record);
+      }
+      const {type, ...payload} = event;
+      emit(record, type, type === "error" ? failure(payload) : payload);
+    }
+    function makeReader(record, descriptor) {
+      record.kind = "reader"; record.state = "pending"; record.reason = null;
+      record.locator = null; record.progress = -1; record.title = null;
+      record.chapterTitle = null; record.href = null; record.positions = 0;
+      record.listeners = new Map(); record.buffered = new Map();
+      const handle = {path: descriptor.path};
+      for (const key of ["state", "reason", "locator", "progress", "title", "chapterTitle", "href", "positions"])
+        Object.defineProperty(handle, key, {enumerable: true, get: () => record[key]});
+      Object.defineProperties(handle, {
+        isOpen: {enumerable: true, get: () => record.state === "open"},
+        isClosed: {enumerable: true, get: () => record.state === "closed"}
+      });
+      for (const method of ["on", "once"]) handle[method] = (name, listener) => {
+        if (typeof listener !== "function") throw new TypeError("EPUB listener must be a function");
+        record.listeners.set(name, [...(record.listeners.get(name) || []), {listener, once: method === "once"}]);
+        if (record.buffered.has(name)) queueMicrotask(() => {
+          const values = record.buffered.get(name) || []; record.buffered.delete(name);
+          for (const value of values) emit(record, name, value);
+        });
+        return handle;
+      };
+      handle.addListener = handle.on;
+      handle.off = handle.removeListener = (name, listener) => {
+        record.listeners.set(name, (record.listeners.get(name) || []).filter(x => x.listener !== listener)); return handle;
+      };
+      handle.removeAllListeners = name => {
+        name === undefined ? record.listeners.clear() : record.listeners.delete(name); return handle;
+      };
+      handle.listenerCount = name => (record.listeners.get(name) || []).length;
+      for (const method of ["goTo", "next", "prev", "nextChapter", "prevChapter", "setPreferences", "bookmarks"]) {
+        const hasValue = method === "goTo" || method === "setPreferences";
+        handle[method] = (value, options) => {
+          if (record.state === "closed" || record.epoch !== generation) return Promise.reject(closedError());
+          return run("reader." + method, [descriptor.id, ...(hasValue ? [value] : [])],
+            hasValue ? options : value).then(result => method === "bookmarks" ? result : handle);
+        };
+      }
+      handle.close = (options, callOptions) => {
+        if (record.state === "closed") return Promise.resolve(handle);
+        return run("reader.close", [descriptor.id, options], callOptions).then(() => handle);
+      };
+      record.handle = handle;
+      for (const event of record.early.splice(0)) readerEvent(record, event);
+      return handle;
+    }
+    function makeBook(descriptor, epoch) {
+      let closed = false;
+      const book = {};
+      for (const key of ["path", "metadata", "toc", "readingOrder", "positions"])
+        Object.defineProperty(book, key, {enumerable: true, value: descriptor[key]});
+      Object.defineProperty(book, "isClosed", {enumerable: true, get: () => closed || epoch !== generation});
+      const operation = (name, args, options) => book.isClosed ? Promise.reject(closedError()) :
+        run("book." + name, [descriptor.id, ...args], options).then(value =>
+          name === "cover" && value && typeof value.base64 === "string" ? Buffer.from(value.base64, "base64") : value);
+      book.text = (target, options, callOptions) => operation("text", [target, options], callOptions);
+      book.textAll = (options, callOptions) => operation("textAll", [options], callOptions);
+      book.cover = (path, options, callOptions) => operation("cover", [path, options], callOptions);
+      book.resource = (href, path, options, callOptions) => operation("resource", [href, path, options], callOptions);
+      book.search = (query, options, callOptions) => operation("search", [query, options], callOptions);
+      book.annotations = options => operation("annotations", [], options);
+      book.close = async options => {
+        if (book.isClosed) return;
+        closed = true;
+        try { await run("book.close", [descriptor.id], options); }
+        catch (error) { closed = epoch !== generation; throw error; }
+      };
+      for (const name of ["text", "textAll", "cover", "resource", "search", "annotations"]) book[name + "Async"] = book[name];
+      return book;
+    }
+    function deliver(record, message) {
+      if (message.type === "event") {
+        if (record.kind === "reader") readerEvent(record, message.value);
+        else record.early.push(message.value);
+      } else if (message.type === "reject") settle(record, failure(message.value));
+      else if (message.type === "resolve") {
+        if (record.method === "read") {
+          const handle = makeReader(record, message.value);
+          record.settled = true; pending.delete(record); record.clearTimeout?.(); record.resolve(handle);
+        } else settle(record, null, record.method === "openBook" ? makeBook(message.value, record.epoch) : message.value);
+      }
+    }
+    async function pump() {
+      if (pumping || !records.size) return;
+      pumping = true; const epoch = generation;
+      try {
+        const id = await client();
+        while (epoch === generation && records.size) {
+          const parts = await raw("poll", [id, [...records.keys()]]);
+          if (epoch !== generation) break;
+          for (const part of parts) {
+            const record = records.get(part.id); if (!record) continue;
+            record.fragments.push(Buffer.from(part.data, "base64"));
+            if (part.last) {
+              const value = JSON.parse(Buffer.concat(record.fragments).toString("utf8"));
+              record.fragments = []; deliver(record, value);
+            }
+          }
+          if (!parts.length) await new Promise(resolve => setTimeout(resolve, 25));
+        }
+      } catch (error) {
+        if (epoch === generation) {
+          for (const record of [...records.values()]) {
+            if (record.kind === "reader") { readerEvent(record, {type: "error", code: failure(error).code, message: failure(error).message}); readerEvent(record, {type: "close", reason: "error"}); }
+            else settle(record, failure(error));
+          }
+          const old = opening; opening = null; generation++;
+          old?.then(id => raw("close", [id])).catch(() => {});
+        }
+      } finally { pumping = false; if (records.size) setTimeout(pump, 0); }
+    }
+    function run(method, args, options = {}) {
+      return new Promise((resolve, reject) => {
+        let timer;
+        const record = {method, resolve, reject, key: null, client: null, epoch: generation,
+          kind: "operation", fragments: [], early: [], settled: false};
+        const cancel = error => {
+          record.cancelError ||= error;
+          if (record.key) raw("cancel", [record.client, record.key]).catch(() => {});
+          if (record.kind === "reader") readerEvent(record, {type: "close", reason: "cancelled"});
+          else settle(record, record.cancelError);
+        };
+        try {
+          validate(args);
+          if (!options || typeof options !== "object" || Array.isArray(options)) throw EpubError("Call options must be an object", "INVALID_ARGUMENT");
+          const timeout = options.timeoutMs ?? 60000, signal = options.signal;
+          if (!Number.isFinite(timeout) || timeout <= 0) throw EpubError("timeoutMs must be positive and finite", "INVALID_ARGUMENT");
+          if (signal != null && (typeof signal.addEventListener !== "function" || typeof signal.removeEventListener !== "function"))
+            throw EpubError("signal must be an AbortSignal", "INVALID_ARGUMENT");
+          const abort = () => cancel(EpubError("EPUB operation cancelled", "CANCELLED"));
+          record.clearTimeout = () => clearTimeout(timer);
+          record.cleanup = () => { clearTimeout(timer); signal?.removeEventListener("abort", abort); };
+          pending.add(record);
+          const deadline = Date.now() + timeout;
+          const watchDeadline = () => {
+            const remaining = deadline - Date.now();
+            if (remaining <= 0) cancel(EpubError("EPUB operation timed out", "TIMEOUT"));
+            else timer = setTimeout(watchDeadline, Math.min(remaining, 2147483647));
+          };
+          signal?.addEventListener("abort", abort, {once: true});
+          if (signal?.aborted) { abort(); return; }
+          watchDeadline();
+          if (record.cancelError) return;
+          (async () => {
+            record.client = await client();
+            if (record.cancelError || record.epoch !== generation) throw record.cancelError || closedError();
+            const value = await raw("start", [record.client, method, args]);
+            record.key = value.id;
+            if (record.cancelError || record.epoch !== generation) {
+              await raw("cancel", [record.client, record.key]).catch(() => {});
+              throw record.cancelError || closedError();
+            }
+            records.set(record.key, record); pump();
+          })().catch(error => settle(record, failure(error)));
+        } catch (error) { settle(record, failure(error)); }
+      });
+    }
+    const api = {
+      EpubError,
+      isAvailable: options => run("isAvailable", [], options),
+      open: (source, options) => run("openBook", [source], options),
+      read: (source, options, callOptions) => run("read", [source, options], callOptions),
+      async close() {
+        generation++;
+        const old = opening; opening = null;
+        for (const record of new Set([...pending, ...records.values()])) {
+          if (record.kind === "reader") readerEvent(record, {type: "close", reason: "host"});
+          else settle(record, closedError());
+        }
+        if (old) await old.then(id => raw("close", [id]), () => {});
+      }
+    };
+    const withBook = async (source, method, args, options) => {
+      const book = await api.open(source, options);
+      try { return await book[method](...args, options); } finally { await book.close(); }
+    };
+    for (const name of ["metadata", "toc", "readingOrder"])
+      api[name] = async (source, options) => {
+        const book = await api.open(source, options);
+        try { return book[name]; } finally { await book.close(); }
+      };
+    api.text = (source, target, options, callOptions) => withBook(source, "text", [target, options], callOptions);
+    api.cover = (source, outputPath, options, callOptions) => withBook(source, "cover", [outputPath, options], callOptions);
+    api.search = (source, query, options, callOptions) => withBook(source, "search", [query, options], callOptions);
+    api.annotations = (source, options) => withBook(source, "annotations", [], options);
+    for (const name of ["isAvailable", "open", "metadata", "toc", "readingOrder", "text", "cover", "search", "annotations", "read"])
+      api[name + "Async"] = api[name];
+    return api;
+  }
+  // End shared EPUB facade.
+
+
+  let __autojs6_epub_cache = null;
+  function __autojs6_limited_epub() { return __autojs6_epub_cache ||= __autojs6_create_epub(__autojs6_call_autojs); }
+
   // Shared speech facade. All runtimes keep their sessions and callbacks on their own JS thread.
   function __autojs6_create_speech(call) {
     let opening = null, generation = 0, pumping = false;
@@ -27635,6 +27924,7 @@ std::string buildEmbeddedScriptExecutionSource(
     axios: function() { return __autojs6_limited_axios(); },
     websocket: function() { return __autojs6_limited_websocket(); },
     android: function() { return __autojs6_limited_android(); },
+    epub: function() { return __autojs6_limited_epub(); },
     speech: function() { return __autojs6_limited_speech(); },
     tts: function() { return __autojs6_limited_tts(); },
     tasks: function() { return __autojs6_limited_tasks(); },

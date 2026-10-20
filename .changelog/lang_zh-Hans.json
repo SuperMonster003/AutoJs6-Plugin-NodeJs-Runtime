@@ -5,6 +5,12 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.26.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js/Worker: EPUB 书籍读取, 资源导出, 搜索及带事件的阅读器会话"
+      ]
+    },
     "v1.25.0": {
       "released_date": "2026/10/20",
       "feature": [

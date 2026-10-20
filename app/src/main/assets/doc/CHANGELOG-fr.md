@@ -4,6 +4,12 @@
 
 ******
 
+# v1.26.0
+
+###### 2026/10/21
+
+* `Ajout` Node.js/Worker: Lecture EPUB, export des ressources, recherche et sessions du lecteur avec événements
+
 # v1.25.0
 
 ###### 2026/10/20

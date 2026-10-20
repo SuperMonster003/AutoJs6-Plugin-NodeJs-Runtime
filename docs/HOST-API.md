@@ -872,3 +872,13 @@ PCM views preserve offsets and are transferred in chunks. Speech operations use 
 See the [runtime reference](https://docs.autojs6.com/#/runtimeApis) for signatures, event types, limits and model license options. Regression commands: `node tools/host-client/sync-speech.mjs --check` in Bun, and `node --test tools/nodejs/api/test-speech.js tools/nodejs/api/test-worker-speech.js` in Node.
 
 Independently signed applications need the build 5621 Runtime Kit and the separate packaged entry of 3-Macaw Speech 1.1.0/build 69 or later. The builder requests org.autojs.plugin.speech.permission.RUNTIME for speech access. Microphone/wake calls also require the application's own declared and granted RECORD_AUDIO permission; WAV/PCM and model operations do not. Applications share the plugin model store and defaults. The original host signature entry stays protected.
+
+## EPUB books and reader sessions (2026-10-21)
+
+Node 1.26.0 adds `epub` / `autojs6:epub` and explicit `$autojs.epub` in main threads and the shared EPUB factory in CJS/ESM/nested Workers. Declare `epub` in the project capabilities. All 20 registered root method names have asynchronous counterparts, including the `Async` aliases. Books provide ready metadata/toc/spine/position properties and Promise text, resource export, search, annotation and close methods. `cover()` returns encoded image bytes; a supplied output path exports the resource instead.
+
+Reader controls return Promises and events stay on the owning JS thread. Their fields match the EPUB script contract, including `totalProgression` and `chapterTitle`; startup events are buffered for listeners attached after `read()`. An operation defaults to a 60000 ms deadline and accepts an AbortSignal. Closing a client or Worker releases its own books and sessions, including late creation results; the default session close leaves the user's reader visible, while `close({finish:true})` closes it.
+
+The host uses the actual 3-Folio EPUB implementation and its existing file/resource limits. Independently signed applications require its separate permissioned service and reader alias from 2.1.0, plus a paired Runtime Kit. Builder derives `org.autojs.plugin.epub.permission.RUNTIME` from the declared capability. The plugin checks each book/control handle's creating UID. Protocol versions and AIDL transaction order are unchanged.
+
+See [Runtime APIs](https://docs.autojs6.com/#/runtimeApis) for signatures and shared reader state. Local regressions are `node --test tools/nodejs/api/test-epub.js tools/nodejs/api/test-worker-epub.js`; physical acceptance is recorded separately in the host audit.

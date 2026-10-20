@@ -4,6 +4,12 @@
 
 ******
 
+# v1.26.0
+
+###### 2026/10/21
+
+* `Feature` Node.js/Worker: EPUB book reading, resource export, search and reader sessions with events
+
 # v1.25.0
 
 ###### 2026/10/20
