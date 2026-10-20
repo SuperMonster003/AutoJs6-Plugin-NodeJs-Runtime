@@ -122,6 +122,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.25.0
+
+###### 2026/10/20
+
+* `Feature` Speech recognition and model management APIs for Node.js, Bun and Workers, with WAV/PCM, dictation and wake sessions, model installation/import, synthesis and cancellation cleanup
+
 # v1.24.0
 
 ###### 2026/10/20
@@ -133,13 +139,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/20
 
 * `Feature` Java callbacks, generated subclasses and JAR/DEX loading for Node.js, Bun and Workers, with Promise results, superclass calls and execution cleanup
-
-# v1.22.0
-
-###### 2026/10/20
-
-* `Feature` Java/Android object interop for Node.js, Bun and Workers, including public constructors and members, arrays, exact long values, explicit overloads and application Context handles
-* `Fix` Node.js ESM imports fail when a host module exports a reserved name such as java.new
 
 ##### For more release history
 

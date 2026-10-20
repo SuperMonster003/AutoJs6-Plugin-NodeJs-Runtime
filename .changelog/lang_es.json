@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Mejora",
   "changelog_label_dependency": "Dependencia",
   "$data": {
+    "v1.25.0": {
+      "released_date": "2026/10/20",
+      "feature": [
+        "API speech de reconocimiento y gestión de modelos para Node.js, Bun y Workers con WAV/PCM, dictado y activación por voz, instalación/importación, síntesis y cancelación"
+      ]
+    },
     "v1.24.0": {
       "released_date": "2026/10/20",
       "feature": [

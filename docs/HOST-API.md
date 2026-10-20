@@ -861,3 +861,12 @@ Host 5592, Node Runtime 1.23.0 and Bun Runtime 0.12.0 share Java interface adapt
 ## Runtime TTS
 
 Host 5603, Node 1.24.0 and Bun 0.13.0 add the explicit tts/autojs6:tts module and host.tts. The shared Android TTS actor supports engine/voice/language queries, speech, silence, atomic file synthesis and observable task events, with isolated Worker clients and execution cleanup. Await task creation, then await task.result; audio events contain Uint8Array. Bun requires the independent default-off tts.control grant and retains its transport budgets. Node projects declare tts. No microphone permission or model installation is implied. See Documentation api/runtimeApis.md and host docs/dev/runtime-tts-2026-10-20.md for the contract and validation.
+
+
+## Speech recognition and model management
+
+The speech facade is available through `require("autojs6:speech")` in Node main threads and CJS/ESM/nested Workers, and through `host.speech` in Bun. It provides WAV/PCM recognition, VAD, microphone and wake sessions, model listing/install/import/default/removal/catalog refresh, and plugin synthesis. All host calls return Promises; callbacks stay on the originating JS thread. Node declares `speech`; Bun explicitly grants `speech.control`, including in packaged projects. The speech plugin owns the microphone permission and installed models.
+
+PCM views preserve offsets and are transferred in chunks. Speech operations use short requests with cancellable event polling; Bun speech calls do not consume the ordinary 1024-call budget, while request/result, grant and concurrency bounds remain. `speech.close()` cancels owned work; Worker exit releases its own client, including a late creation reply. No global speech object or automatic model/license installation is added.
+
+See the [runtime reference](https://docs.autojs6.com/#/runtimeApis) for signatures, event types, limits and model license options. Regression commands: `node tools/host-client/sync-speech.mjs --check` in Bun, and `node --test tools/nodejs/api/test-speech.js tools/nodejs/api/test-worker-speech.js` in Node.

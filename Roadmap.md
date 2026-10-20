@@ -902,3 +902,6 @@ Host 5592, Node Runtime 1.23.0 and Bun Runtime 0.12.0 share Java interface adapt
 ## Runtime TTS API follow-up (2026-10-20)
 
 The shared TTS facade covers 31 Rhino method names and four constants, with asynchronous observable tasks, typed audio events, file synthesis, client closure and Node CJS/ESM/nested Worker ownership. Bun requires tts.control; no microphone or global audio-setting permission is added. Real Xiaomi-engine WAV generation, muted speech, cancellation and Worker isolation pass on Android 13/15; real Builder-generated applications pass before and after relaunch. TTS capability support begins at host 5603, with final paired build receipts in host docs/dev/runtime-tts-2026-10-20.md. The final host build number may advance with concurrent commits; API source, APK hashes and paired-template metadata are recorded explicitly. SDK/unit/type/Ace checks and CI coverage include TTS and prior Java interop/callback cases. Existing Bun native payloads, compatibility matrices and release acceptance remain unchanged. No acoustic tone or model download is used.
+
+
+2026-10-20 speech API: Node/Bun/Worker 的文件与 PCM 识别, VAD, 听写/唤醒, 模型管理及插件合成已接入共享 speech provider. 自动化回归与本批设备验证见宿主 docs/dev/runtime-speech-2026-10-20.md; 本次不修改 Bun 原生载荷或兼容矩阵, 不表示公开发布.

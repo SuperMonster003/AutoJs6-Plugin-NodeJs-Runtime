@@ -4976,6 +4976,7 @@ std::string buildEmbeddedScriptExecutionSource(
       normalized === "shell" ||
       normalized === "shell.root" ||
       normalized === "shell.shizuku" ||
+      normalized === "speech" ||
       normalized === "tts" ||
       normalized === "java_interop" ||
       normalized === "rhino" ||
@@ -5376,6 +5377,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (methodName === "delete") return ["files", "files.delete"];
       return ["files"];
     }
+    if (moduleName === "speech") return ["speech"];
     if (moduleName === "tts") return ["tts"];
     if (moduleName === "screen_metrics") return ["device"];
     if (moduleName === "device") {
@@ -8382,6 +8384,8 @@ std::string buildEmbeddedScriptExecutionSource(
         const databases = new Set();
         const sensors = new Set();
         const shells = new Set();
+        const speechClients=new Set();
+        const closeSpeech=id=>invoke("speech","close",[id],{permissions:["speech"]}).catch(()=>{});
         const ttsClients=new Set();
         const closeTts=id=>invoke("tts","close",[id],{permissions:["tts"]}).catch(()=>{});
         const javaObjects=new Set();
@@ -8422,6 +8426,7 @@ std::string buildEmbeddedScriptExecutionSource(
           sensors.clear();
           for(const id of shells)closeShell(id);
           shells.clear();
+          for(const id of speechClients)closeSpeech(id);speechClients.clear();
           for(const id of ttsClients)closeTts(id);ttsClients.clear();
           for(const id of javaObjects)closeJava(id);javaObjects.clear();
           for(const id of androidObjects)closeAndroid(id);androidObjects.clear();
@@ -8463,6 +8468,7 @@ std::string buildEmbeddedScriptExecutionSource(
                 controller.signal.addEventListener("abort",()=>invoke("dialogs","cancelRequest",[payload.__requestId,scope],{permissions:["dialogs"]}).catch(()=>{}),{once:true});
               }
             }
+            const createsSpeech=message.module==="speech" && message.method==="open";
             const createsTts=message.module==="tts" && message.method==="open";
             const createsAndroid=message.module==="android" && ["createPaint","createColorStateList"].includes(message.method);
             const createsTask=message.module==="tasks" && ["addTimedTask","addIntentTask"].includes(message.method);
@@ -8477,11 +8483,15 @@ std::string buildEmbeddedScriptExecutionSource(
             const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "enableDisplayCapture", "startBackgroundRecording", "stopBackgroundRecording", "subscribeViewEvents"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: createsTts || message.module === "java" || createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+              { ...message.options, signal: createsSpeech || createsTts || message.module === "java" || createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
             if (keepsAwake && (closed || controller.signal.aborted)) {
               await closeDevice(message.args[1]);
               throw Object.assign(new Error("Keeping the screen awake was aborted"),{code:"ABORT_ERR"});
             }
+            if(createsSpeech && value && value.id){
+              if(closed||controller.signal.aborted){await closeSpeech(value.id);throw Object.assign(new Error("Speech client creation was aborted"),{code:"ABORT_ERR"});}
+              speechClients.add(value.id);
+            }else if(message.module==="speech" && message.method==="close")speechClients.delete(message.args[0]);
             if(createsTts && value && value.id){
               if(closed||controller.signal.aborted){await closeTts(value.id);throw Object.assign(new Error("TTS client creation was aborted"),{code:"ABORT_ERR"});}
               ttsClients.add(value.id);
@@ -8588,7 +8598,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8605,6 +8615,7 @@ std::string buildEmbeddedScriptExecutionSource(
       let colors;const android=createAndroid(bridgeCall,value=>colors.toInt(value));colors=createColors(android);
       modules.set("android",android);modules.set("colors",colors);
     }
+    if(createSpeech && methods.speech) modules.set("speech",createSpeech(bridgeCall));
     if(createTts && methods.tts) modules.set("tts",createTts(bridgeCall));
     if(createJava && methods.java) modules.set("java",createJava(bridgeCall,constants.javaPolicy||{},constants.javaEnabled!==false,JavaAsyncContext));
     if(createTasks && methods.tasks)modules.set("tasks",createTasks(bridgeCall));
@@ -8732,7 +8743,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return result;
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8824,7 +8835,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8950,7 +8961,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -8980,6 +8991,7 @@ std::string buildEmbeddedScriptExecutionSource(
           pathAliases: __autojs6_path_aliases(),
           moduleSources,
           hostModuleMethods: {
+            speech:Object.keys(__autojs6_create_speech(()=>{})),
             tts:Object.keys(__autojs6_create_tts(()=>{})),
             java:Object.keys(__autojs6_create_java(()=>{})),
             android:Object.keys(__autojs6_limited_android()), tasks:Object.keys(__autojs6_limited_tasks()), colors:Object.keys(__autojs6_limited_colors()),
@@ -14531,6 +14543,7 @@ std::string buildEmbeddedScriptExecutionSource(
       recorder: recorder,
       ui: ui,
       tasks: tasks,
+      speech: __autojs6_limited_speech(),
       tts: __autojs6_limited_tts(),
       requestScreenCapture: __autojs6_rhino_compat_request_screen_capture,
       requestScreenCaptureAsync: __autojs6_rhino_compat_request_screen_capture,
@@ -14723,6 +14736,7 @@ std::string buildEmbeddedScriptExecutionSource(
       recorder: recorder,
       ui: ui,
       tasks: tasks,
+      speech: __autojs6_limited_speech(),
       tts: __autojs6_limited_tts(),
       requestScreenCapture: __autojs6_rhino_compat_request_screen_capture,
       requestScreenCaptureAsync: __autojs6_rhino_compat_request_screen_capture,
@@ -14826,6 +14840,311 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return __autojs6_limited_work_manager_cache;
   }
+  // Shared speech facade. All runtimes keep their sessions and callbacks on their own JS thread.
+  function __autojs6_create_speech(call) {
+    let opening = null, generation = 0, pumping = false;
+    const records = new Map();
+    function SpeechError(message = "", code = "INTERNAL") {
+      const failure = new Error(String(message));
+      Object.setPrototypeOf(failure, SpeechError.prototype);
+      failure.name = "SpeechError"; failure.code = code == null ? "INTERNAL" : String(code);
+      return failure;
+    }
+    SpeechError.prototype = Object.create(Error.prototype, {
+      constructor: {value: SpeechError, writable: true, configurable: true},
+      toString: {value() { return "SpeechError [" + this.code + "]: " + this.message; }, configurable: true}
+    });
+    const failure = value => value instanceof SpeechError ? value :
+      SpeechError(value?.message || String(value), String(value?.code || "INTERNAL").replace(/^ERR_AUTOJS6_SPEECH_/, ""));
+    const aborted = () => SpeechError("Speech operation cancelled", "SESSION_CANCELLED");
+    const raw = (method, args) => Promise.resolve().then(() =>
+      call("speech", method, args, {timeoutMs: 10000, permissions: ["speech"]})).catch(error => { throw failure(error); });
+    function check(signal, epoch = generation, deadline = Infinity) {
+      if (signal?.aborted) throw aborted();
+      if (epoch !== generation) throw SpeechError("Speech client closed", "SESSION_CLOSED");
+      if (Date.now() >= deadline) throw SpeechError("Speech operation timed out", "TIMEOUT");
+    }
+    function json(value, progress = false) {
+      if (value == null) return {};
+      if (typeof value !== "object" || Array.isArray(value)) throw SpeechError("Options must be an object", "INVALID_OPTIONS");
+      const copy = {...value};
+      if (progress && "onProgress" in copy) {
+        if (copy.onProgress != null && typeof copy.onProgress !== "function") throw SpeechError("onProgress must be a function", "INVALID_OPTIONS");
+        delete copy.onProgress;
+      }
+      JSON.stringify(copy, (_, entry) => {
+        if (typeof entry === "number" && !Number.isFinite(entry) || ["function", "symbol", "bigint"].includes(typeof entry))
+          throw SpeechError("Options must contain finite JSON values", "INVALID_OPTIONS");
+        return entry;
+      });
+      return copy;
+    }
+    async function client() {
+      if (!opening) {
+        const epoch = generation;
+        const pending = raw("open", []).then(async value => {
+          if (epoch !== generation) { await raw("close", [value.id]); check(null, epoch); }
+          return value.id;
+        });
+        opening = pending;
+        pending.catch(() => { if (opening === pending) opening = null; });
+      }
+      return opening;
+    }
+    function emit(record, name, value) {
+      for (const entry of [...(record.listeners.get(name) || [])]) {
+        if (entry.once) record.listeners.set(name, record.listeners.get(name).filter(x => x !== entry));
+        try { entry.listener(value); } catch (error) { setTimeout(() => { throw error; }, 0); }
+      }
+    }
+    function emitter(handle, record) {
+      for (const method of ["on", "once"]) handle[method] = (name, listener) => {
+        if (typeof listener !== "function") throw new TypeError("Speech listener must be a function");
+        record.listeners.set(name, [...(record.listeners.get(name) || []), {listener, once: method === "once"}]); return handle;
+      };
+      handle.off = handle.removeListener = (name, listener) => {
+        record.listeners.set(name, (record.listeners.get(name) || []).filter(x => x.listener !== listener)); return handle;
+      };
+      handle.removeAllListeners = name => { name === undefined ? record.listeners.clear() : record.listeners.delete(name); return handle; };
+      return handle;
+    }
+    function forget(record) {
+      records.delete(record.key); record.cleanup?.(); record.fragments = [];
+    }
+    function settle(record, error, value) {
+      forget(record);
+      error ? record.reject(error) : record.resolve(value);
+    }
+    function joined(parts) {
+      return parts.map(x => x.trim()).filter(Boolean).reduce((a, b) => a + (/[a-zA-Z0-9]$/.test(a) && /^[a-zA-Z0-9]/.test(b) ? " " : "") + b, "");
+    }
+    function deliverSession(record, event) {
+      if (record.state === "ended") return;
+      let value = event.value || {};
+      if (event.type === "ready") { record.id = value.sessionId; record.modelId = value.modelId; record.state = "active"; }
+      if (event.type === "final") record.finals.push(value.text || "");
+      if (event.type === "error") value = failure(value);
+      if (event.type === "end") {
+        record.state = "ended"; record.reason = value.reason;
+        record.text = typeof value.text === "string" ? value.text : joined(record.finals);
+        if (record.round < 0) {
+          for (const round of record.rounds.values()) deliverSession(round, {type: "end", value: {reason: value.reason}});
+          record.rounds.clear(); forget(record);
+        }
+        if (record.kind !== "wake") value = {...value, text: record.text};
+      }
+      emit(record, event.type, event.type === "endpoint" ? undefined : value);
+    }
+    function route(record, event) {
+      if (record.kind === "operation") {
+        if (event.type === "progress") {
+          try { record.progress?.(...event.value); } catch (error) { setTimeout(() => { throw error; }, 0); }
+        } else if (event.type === "resolve") settle(record, record.cancelError, event.value);
+        else if (event.type === "reject") settle(record, record.cancelError || failure(event.value));
+        return;
+      }
+      if (record.kind === "wake" && event.type === "wake") {
+        const index = event.round ?? record.hits++;
+        let round;
+        if (record.thenListen) {
+          round = record.rounds.get(index);
+          if (!round) { round = newSession({...record.descriptor, kind: "listen", source: "mic"}, record.options, index); record.rounds.set(index, round); }
+        }
+        emit(record, "wake", {...event.value, ...(round ? {listen: round.handle} : {})});
+        if (round) {
+          round.announced = true;
+          for (const buffered of round.buffered.splice(0)) deliverSession(round, buffered);
+          if (round.state === "ended") record.rounds.delete(index);
+        }
+      } else if (record.kind === "wake" && event.round != null) {
+        let round = record.rounds.get(event.round);
+        if (!round) { round = newSession({...record.descriptor, kind: "listen", source: "mic"}, record.options, event.round); record.rounds.set(event.round, round); }
+        if (round.announced) {
+          deliverSession(round, event);
+          if (round.state === "ended") record.rounds.delete(event.round);
+        } else round.buffered.push(event);
+      } else deliverSession(record, event);
+    }
+    async function pump() {
+      if (pumping || !records.size) return;
+      pumping = true; const epoch = generation;
+      try {
+        const id = await client();
+        while (epoch === generation && records.size) {
+          const batch = await raw("poll", [id, [...records.keys()]]);
+          if (epoch !== generation) break;
+          for (const part of batch) {
+            const record = records.get(part.id); if (!record) continue;
+            record.fragments.push(Buffer.from(part.data, "base64"));
+            if (part.last) {
+              const event = JSON.parse(Buffer.concat(record.fragments).toString("utf8")); record.fragments = [];
+              route(record, event);
+            }
+          }
+          if (!batch.length) await new Promise(resolve => setTimeout(resolve, 25));
+        }
+      } catch (error) {
+        if (epoch === generation) {
+          for (const record of [...records.values()]) {
+            if (record.kind === "operation") settle(record, failure(error));
+            else { deliverSession(record, {type: "error", value: error}); deliverSession(record, {type: "end", value: {reason: "error"}}); }
+          }
+          const old = opening; opening = null; generation++;
+          old?.then(id => raw("close", [id])).catch(() => {});
+        }
+      } finally { pumping = false; if (records.size) setTimeout(pump, 0); }
+    }
+    function attachCancellation(record, id, options, deadline) {
+      const cancel = error => {
+        record.cancelError ||= error;
+        return raw("cancel", [id, record.key]).catch(error => {
+        if (!records.has(record.key)) return;
+        if (record.kind === "operation") settle(record, error);
+        else { deliverSession(record, {type: "error", value: error}); deliverSession(record, {type: "end", value: {reason: "error"}}); }
+        });
+      };
+      const onAbort = () => cancel(aborted());
+      options.signal?.addEventListener("abort", onAbort, {once: true});
+      const timer = deadline === Infinity ? null : setTimeout(() => cancel(SpeechError("Speech operation timed out", "TIMEOUT")), Math.max(0, deadline - Date.now()));
+      record.cleanup = () => { options.signal?.removeEventListener("abort", onAbort); if (timer != null) clearTimeout(timer); };
+      if (options.signal?.aborted) onAbort();
+    }
+    function callDeadline(options, startedAt) {
+      if (options.signal !== undefined && (!options.signal || typeof options.signal.addEventListener !== "function" || typeof options.signal.removeEventListener !== "function"))
+        throw SpeechError("signal must be an AbortSignal", "INVALID_OPTIONS");
+      if (options.timeoutMs != null && (!Number.isSafeInteger(options.timeoutMs) || options.timeoutMs < 1 || options.timeoutMs > 2147483647))
+        throw SpeechError("timeoutMs must be an integer in 1..2147483647", "INVALID_OPTIONS");
+      return options.timeoutMs == null ? Infinity : startedAt + options.timeoutMs;
+    }
+    async function start(method, args, options = {}, progress, prepared, startedAt = Date.now()) {
+      const deadline = callDeadline(options, startedAt);
+      const epoch = generation; check(options.signal, epoch);
+      const id = await client(); check(options.signal, epoch, deadline);
+      const descriptor = await raw("start", [id, method, args]);
+      if (epoch !== generation) { await raw("close", [id]).catch(() => {}); check(null, epoch); }
+      let record, result;
+      if (descriptor.kind === "operation") {
+        record = {key: descriptor.id, kind: "operation", progress, fragments: []};
+        result = new Promise((resolve, reject) => { record.resolve = resolve; record.reject = reject; });
+      } else {
+        record = newSession(descriptor, options);
+        record.thenListen = prepared?.thenListen;
+        result = record.handle;
+      }
+      records.set(record.key, record); attachCancellation(record, id, options, deadline);
+      setTimeout(pump, 0); return result;
+    }
+    function pcm(value, max = 200 * 1024 * 1024 - 44) {
+      let bytes;
+      if (value instanceof ArrayBuffer) bytes = Buffer.from(value);
+      else if (ArrayBuffer.isView(value)) bytes = Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+      else throw SpeechError("PCM must be an ArrayBuffer or a typed array view", "INVALID_OPTIONS");
+      if (bytes.length % 2) throw SpeechError("PCM16 must have an even byte count", "INVALID_OPTIONS");
+      if (bytes.length > max) throw SpeechError("PCM exceeds the speech protocol limit", "LIMIT_EXCEEDED");
+      return Buffer.from(bytes);
+    }
+    async function upload(bytes, options, deadline = Infinity) {
+      const epoch = generation; check(options?.signal, epoch);
+      const id = await client(); check(options?.signal, epoch);
+      const value = await raw("uploadBegin", [id, bytes.length]);
+      try {
+        for (let offset = 0; offset < bytes.length; offset += 12 * 1024) {
+          check(options?.signal, epoch, deadline);
+          await raw("uploadChunk", [id, value.id, offset, bytes.subarray(offset, offset + 12 * 1024).toString("base64")]);
+        }
+        check(options?.signal, epoch, deadline);
+        return {id: value.id, dispose: () => raw("uploadDiscard", [id, value.id]).catch(() => {})};
+      } catch (error) { await raw("uploadDiscard", [id, value.id]).catch(() => {}); throw error; }
+    }
+    async function audio(method, source, options, callOptions) {
+      const startedAt = Date.now(), deadline = callDeadline(callOptions || {}, startedAt);
+      const parsed = json(options);
+      if (typeof source === "string") return start(method, [source, parsed], callOptions);
+      const transfer = await upload(pcm(source), callOptions, deadline);
+      try { return await start(method, [{upload: transfer.id}, parsed], callOptions, undefined, undefined, startedAt); }
+      finally { await transfer.dispose(); }
+    }
+    function newSession(descriptor, options, round = -1) {
+      const epoch = generation;
+      const record = {key: descriptor.id, descriptor, options, kind: descriptor.kind, round, state: "pending", id: null, modelId: null,
+        reason: null, text: null, finals: [], fragments: [], listeners: new Map(), rounds: new Map(), hits: 0, buffered: [], announced: round < 0};
+      let commands = Promise.resolve(), stopping = false;
+      const enqueue = action => { const result = commands.then(action); commands = result.catch(() => {}); return result; };
+      const control = method => {
+        stopping = true;
+        return enqueue(async () => {
+          check(null, epoch);
+          if (record.state !== "ended") await start(method, [record.key, null, round]);
+          return handle;
+        });
+      };
+      const handle = emitter({
+        get id() { return record.id; }, get modelId() { return record.modelId; },
+        startedAt: descriptor.startedAt, get state() { return record.state; },
+        get reason() { return record.reason; }, get isEnded() { return record.state === "ended"; },
+        isActive: () => record.state !== "ended",
+        stop: () => control("session.stop"),
+        toString: () => (record.kind === "wake" ? "SpeechWakeSession" : "SpeechSession") + " { state: " + record.state + " }"
+      }, record);
+      if (record.kind === "wake") handle.keywords = [...descriptor.keywords];
+      else Object.assign(handle, {
+        source: descriptor.source, round, result: () => record.text ?? joined(record.finals),
+        cancel: () => control("session.cancel"),
+        feed(value) {
+          if (stopping || record.state === "ended") return Promise.reject(SpeechError("Session has ended or is stopping", "SESSION_CLOSED"));
+          if (descriptor.source !== "external") return Promise.reject(SpeechError("feed requires an external session", "INVALID_OPTIONS"));
+          const bytes = pcm(value, 1024 * 1024);
+          return enqueue(async () => {
+            check(null, epoch);
+            if (record.state === "ended") throw SpeechError("Session has ended", "SESSION_CLOSED");
+            const transfer = await upload(bytes, {});
+            try { await start("session.feed", [record.key, transfer.id]); return handle; }
+            finally { await transfer.dispose(); }
+          });
+        }
+      });
+      record.handle = Object.freeze(handle); return record;
+    }
+    const api = {
+      SpeechError,
+      isAvailable: options => start("isAvailable", [], options),
+      capabilities: options => start("capabilities", [], options),
+      recognize: (source, options, callOptions) => audio("recognize", source, options, callOptions),
+      recognizeAsync: (source, options, callOptions) => audio("recognizeAsync", source, options, callOptions),
+      detectVoice: (source, options, callOptions) => audio("detectVoice", source, options, callOptions),
+      listen: (options, callOptions) => start("listen", [json(options)], callOptions),
+      wake: (keywords, options, callOptions) => { const parsed = json(options); return start("wake", [keywords, parsed], callOptions, null, parsed); },
+      synthesize: (text, path, options, callOptions) => start("synthesize", [text, path, json(options)], callOptions),
+      synthesizeAsync: (text, path, options, callOptions) => start("synthesizeAsync", [text, path, json(options)], callOptions),
+      speak: (text, options, callOptions) => start("speak", [text, json(options)], callOptions),
+      models: Object.freeze({
+        list: (filter, callOptions) => start("models.list", [json(filter)], callOptions),
+        install: (id, options, callOptions) => start("models.install", [id, json(options, true)], callOptions, options?.onProgress),
+        installAsync: (id, options, callOptions) => start("models.installAsync", [id, json(options, true)], callOptions, options?.onProgress),
+        importFile: (path, options, callOptions) => start("models.importFile", [path, json(options, true)], callOptions, options?.onProgress),
+        remove: (id, options) => start("models.remove", [id], options),
+        setDefault: (kind, id, options) => start("models.setDefault", [kind, id], options),
+        getDefault: (kind, options) => start("models.getDefault", [kind], options),
+        refreshCatalog: options => start("models.refreshCatalog", [], options)
+      }),
+      async close() {
+        generation++;
+        const old = opening; opening = null;
+        for (const record of [...records.values()]) {
+          if (record.kind === "operation") settle(record, SpeechError("Speech client closed", "SESSION_CLOSED"));
+          else deliverSession(record, {type: "end", value: {reason: "script-exit"}});
+        }
+        return old ? old.then(id => raw("close", [id]), () => false) : false;
+      }
+    };
+    return Object.freeze(api);
+  }
+  // End shared speech facade.
+
+
+  let __autojs6_speech_cache = null;
+  function __autojs6_limited_speech() { return __autojs6_speech_cache ||= __autojs6_create_speech(__autojs6_call_autojs); }
+
   // Shared TTS facade. Node, Workers and Bun use the same task and event semantics.
   function __autojs6_create_tts(call) {
     let opening = null, generation = 0, pumping = false;
@@ -27315,6 +27634,7 @@ std::string buildEmbeddedScriptExecutionSource(
     axios: function() { return __autojs6_limited_axios(); },
     websocket: function() { return __autojs6_limited_websocket(); },
     android: function() { return __autojs6_limited_android(); },
+    speech: function() { return __autojs6_limited_speech(); },
     tts: function() { return __autojs6_limited_tts(); },
     tasks: function() { return __autojs6_limited_tasks(); },
     work_manager: function() { return __autojs6_limited_work_manager(); },

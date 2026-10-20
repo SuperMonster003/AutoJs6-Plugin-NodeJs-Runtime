@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.25.0": {
+      "released_date": "2026/10/20",
+      "feature": [
+        "Node.js/Bun/Worker 的 speech 語音辨識與模型管理介面, 支援 WAV/PCM, 聽寫與喚醒工作階段, 模型安裝/匯入, 語音合成及取消清理"
+      ]
+    },
     "v1.24.0": {
       "released_date": "2026/10/20",
       "feature": [

@@ -122,6 +122,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.25.0
+
+###### 2026/10/20
+
+* `Ajout` API speech de reconnaissance vocale et de gestion des modèles pour Node.js, Bun et Workers avec WAV/PCM, dictée et activation vocale, installation/importation, synthèse et annulation
+
 # v1.24.0
 
 ###### 2026/10/20
@@ -133,13 +139,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 ###### 2026/10/20
 
 * `Ajout` Callbacks Java, sous-classes générées et chargement JAR/DEX pour Node.js, Bun et Workers, avec retours Promise, appels de la superclasse et libération en fin de session
-
-# v1.22.0
-
-###### 2026/10/20
-
-* `Ajout` Interopérabilité Java/Android pour Node.js, Bun et Workers, avec constructeurs et membres publics, tableaux, valeurs long exactes, surcharges explicites et handles Context
-* `Correction` Échec des imports ESM Node.js lorsque le module hôte exporte un nom réservé tel que java.new
 
 ##### Pour plus d'historique des versions
 

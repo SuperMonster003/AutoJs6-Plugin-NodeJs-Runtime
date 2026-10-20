@@ -122,6 +122,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.25.0
+
+###### 2026/10/20
+
+* `新增` Node.js/Bun/Worker 的 speech 語音辨識與模型管理介面, 支援 WAV/PCM, 聽寫與喚醒工作階段, 模型安裝/匯入, 語音合成及取消清理
+
 # v1.24.0
 
 ###### 2026/10/20
@@ -133,13 +139,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/20
 
 * `新增` Node.js/Bun/Worker 的 Java 回呼代理, 子類別產生和 JAR/DEX 載入, 支援 Promise 回傳值, 父類別呼叫及執行結束清理
-
-# v1.22.0
-
-###### 2026/10/20
-
-* `新增` Node.js/Bun/Worker 的 Java/Android 物件互操作, 支援公開建構函式和成員, 陣列, 精確 long 值, 明確多載及應用程式 Context 控制代碼
-* `修復` Node.js 宿主模組包含 java.new 等保留字成員時 ESM 匯入失敗的問題
 
 ##### 更多發行歷史可參閱
 
