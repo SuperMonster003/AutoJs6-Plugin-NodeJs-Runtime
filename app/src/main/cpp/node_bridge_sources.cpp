@@ -14944,7 +14944,8 @@ std::string buildEmbeddedScriptExecutionSource(
         return;
       }
       if (record.kind === "wake" && event.type === "wake") {
-        const index = event.round ?? record.hits++;
+        const index = event.round ?? record.hits;
+        record.hits++;
         let round;
         if (record.thenListen) {
           round = record.rounds.get(index);

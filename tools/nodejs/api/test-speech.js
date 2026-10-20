@@ -100,6 +100,10 @@ test('early wake round events wait until the wake listener has attached its roun
     round.on('ready', () => events.push('ready')).on('final', () => events.push('final')).on('end', resolve);
   }));
   await done; assert.deepEqual(events, ['wake', 'ready', 'final']); assert.equal(round.result(), 'command');
+  f.send(client, id, 'ready', {sessionId: 'round-1', modelId: 'asr'}, 1);
+  f.send(client, id, 'wake', {keyword: 'hello', timestampMillis: 20, score: null});
+  const next = await new Promise(resolve => wake.once('wake', resolve));
+  assert.equal(next.listen.round, 1, 'implicit round follows an explicitly numbered hit');
   await wake.stop(); await f.speech.close();
 });
 
