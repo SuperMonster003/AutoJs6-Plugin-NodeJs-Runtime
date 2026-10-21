@@ -63,5 +63,8 @@ async function checkFlowScopesAndGestures() {
   const gestureCallback: string = await scopeFlow.of(7).gesture(200, [10, 20], [30, 40], value => value.toFixed());
   const strokesCallback: string = await scopeFlow.of(7).gestures([200, [10, 20]], value => value.toFixed());
   const withinCallback: string = await scopeFlow.of(7).within({text: "ready"}, node => node.text);
+  await scopeFlow.whenPresent("ready", text => text.toUpperCase(), {resultType: "text"});
+  const projectedRepeat: scopeFlow.PointValue[] = await scopeFlow.repeatUntil(() => {}, "ready", {resultType: "points"});
+  const directSnapshotWait: boolean = await scopeFlow.waitWhile(first, {timeout: 0});
   return {text, points, stillText, first, acted, kept, callback};
 }
