@@ -15012,6 +15012,10 @@ std::string buildEmbeddedScriptExecutionSource(
       bind(value, "load", load); bind(value, "loadAsync", load);
       return value;
     }
+    const messageTargets = new Set(["get", "fetchBody", "raw", "setFlags", "markRead", "markUnread", "flag", "unflag", "move", "copy", "delete"]);
+    function messageReference(value) {
+      return value && typeof value === "object" && !Array.isArray(value) ? {uid: value.uid, folder: value.folder} : value;
+    }
     const arities = {
       test: 0, send: 2, folders: 1, folderStatus: 1, createFolder: 1, deleteFolder: 1, renameFolder: 2,
       fetch: 1, search: 2, get: 2, fetchBody: 2, download: 3, raw: 3, setFlags: 4,
@@ -15030,6 +15034,7 @@ std::string buildEmbeddedScriptExecutionSource(
         client[name] = (...input) => {
           if (client.isClosed) return Promise.reject(closedError());
           const args = Array.from({length: count}, (_, i) => input[i]);
+          if (messageTargets.has(name)) args[0] = Array.isArray(args[0]) ? args[0].map(messageReference) : messageReference(args[0]);
           const callOptions = input[count];
           let onProgress;
           if (name === "download" || name === "raw") {

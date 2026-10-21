@@ -142,6 +142,27 @@ test('mail watches buffer initial events, track generation and close on account 
   await watch.stop(); await f.mail.dispose(); assert.equal(f.watches.size, 0);
 });
 
+test('whole message references never resend large bodies or serialize unrelated fields', async () => {
+  const f = fixture(), client = await f.mail.connect(options);
+  const item = await client.get(7);
+  item.text = '\u96ea\ud83d\udce7'.repeat(50000);
+  Object.defineProperty(item, 'unrelated', {enumerable: true, get() { throw Error('Message body must stay local'); }});
+  const reference = {uid: 7, folder: 'INBOX'};
+  for (const name of ['get','fetchBody','raw','setFlags','markRead','markUnread','flag','unflag','move','copy','delete']) {
+    await client[name](item);
+    const call = f.calls.findLast(value => value.method === 'start' && value.args[1] === 'client.' + name);
+    assert.deepEqual(call.args[2][1], reference);
+    assert(Buffer.byteLength(JSON.stringify(call.args)) < 1024);
+  }
+  await client.delete([item, 8, {uid: 'pop3-id', folder: 'INBOX', text: item.text}]);
+  assert.deepEqual(f.calls.findLast(value => value.method === 'start').args[2][1],
+    [reference, 8, {uid: 'pop3-id', folder: 'INBOX'}]);
+  const outgoing = {to: 'fixture@example.invalid', subject: 'retained', text: 'outgoing body'};
+  await client.send(outgoing);
+  assert.deepEqual(f.calls.findLast(value => value.method === 'start').args[2][1], outgoing);
+  await f.mail.dispose();
+});
+
 test('mail token providers are awaited under the operation deadline and can refresh on the owner thread', async () => {
   let refreshed = false, invocations = 0;
   const f = fixture(({owner,name,input,id,send,tokens}) => {
