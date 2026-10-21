@@ -909,3 +909,10 @@ The shared TTS facade covers 31 Rhino method names and four constants, with asyn
 ## Runtime EPUB follow-up (2026-10-21)
 
 Node 1.26.0 supplies the shared async EPUB facade in main threads and CJS/ESM/nested Workers, including all 20 registered root names, book operations, reader events and scoped cleanup. The Node engine version, libnode binaries and AIDL transactions are unchanged. The standalone client/Worker suite, native syntax and plugin JVM/build checks pass. Host and independently signed Node/Worker and Bun applications pass on Redmi/API 33 and Xiaomi/API 35, including CJS/ESM/nested Worker cleanup, eight first/restart launches and twelve program results. Host implementation f58d824ad8fc310e6d631a14010d23699303acdb pairs with Runtime Kit build 5679. The host docs/dev/runtime-epub-2026-10-21.md report records 185 accepted physical cases, original failures/corrections and complete device restoration.
+
+
+## Runtime Mail acceptance (2026-10-21)
+
+Portable mail is accepted with host/Runtime Kit build 5702, Node 1.27.0/build 278, Bun 0.16.0/build 278 and 3-Stamp Mail 2.1.0/build 162. The 57 registered names, message/attachment helpers, watch events and token callbacks are covered across main threads and CJS/ESM/nested Workers. Independently signed apps use their own inline credentials; saved accounts/background watches retain the signed-host boundary.
+
+Redmi/API 33 and Xiaomi/API 35 each pass 96 consolidated device checks, including real generated Bun and Node/Worker apps on first start and after force-stop. Eight final launches yield twelve program results; unchanged component APK evidence is reused without duplicate counts. All mail uses isolated loopback synthetic accounts. Both devices are restored; Xiaomi preserves its fresh build 5679 takeover state. Host acceptance report: `AutoJs6/docs/dev/runtime-mail-2026-10-21.md`. Native engine versions/compatibility matrices are unchanged. No push, tag or release was performed.
