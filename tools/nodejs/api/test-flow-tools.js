@@ -62,9 +62,11 @@ test('Callbacks may asynchronously reenter native tools without blocking the pol
   }finally{await f.flow.dispose();}
 });
 test('Callback failures retain their exact Error identity across the bridge', async()=>{
-  const error=new Error('owned callback failure'),f=fixture(task=>task.invoke(task.options.verify));
-  try {await assert.rejects(f.flow.smartClick('ready',{verify:()=>{throw error;}}).toPromise(),value=>value===error);}
-  finally{await f.flow.dispose();}
+  const f=fixture(task=>task.invoke(task.options.verify));
+  try {
+    for(const error of [new Error('owned callback failure'),null,undefined,false,0,''])
+      await assert.rejects(f.flow.smartClick('ready',{verify:()=>{throw error;}}).toPromise(),value=>value===error);
+  }finally{await f.flow.dispose();}
 });
 test('Cancellation precedes delayed start completion and suppresses its side effects', async()=>{
   let release,ran=0;const gate=new Promise(resolve=>release=resolve),f=fixture(()=>{ran++;return true;},{startGate:gate});
