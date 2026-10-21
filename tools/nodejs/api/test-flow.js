@@ -3,7 +3,8 @@ const fs = require('node:fs'), path = require('node:path');
 const source = fs.readFileSync(process.env.AUTOJS6_FLOW_SOURCE || path.join(__dirname, '../../../app/src/main/cpp/node_bridge_sources.cpp'), 'utf8');
 const block = source.slice(source.indexOf('  // Shared flow core.'), source.indexOf('  // End shared flow core.'));
 assert(block.length > 1000);
-const create = new Function(block + ';return __autojs6_create_flow;')();
+const factory = new Function(block + ';return __autojs6_create_flow;')();
+const create = (call, logger) => factory(call, logger, require('node:async_hooks').AsyncLocalStorage);
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const local = () => create(() => { throw Error('Unexpected host call'); });
 const rejects = (value, code, reason) => assert.rejects(value.toPromise(), error => error.code === code && (reason === undefined || error.reason === reason));
@@ -134,4 +135,13 @@ test('Self adoption rejects; cancellation stops owned callback flows and cancelA
   let child; const parent = flow.run(() => { child = flow.sleep(10000); return child; }); await delay(2); parent.cancel();
   await rejects(parent, 'CANCELLED'); assert.equal(child.state, 'cancelled');
   flow.sleep(10000); flow.wait(() => false, {timeout: Infinity}); assert(flow.cancelAll() >= 2); await delay(2); assert.equal(flow.pending, 0);
+});
+test('Flows created after an asynchronous callback resumes still belong to the cancelled step', async () => {
+  const flow = local(); let late;
+  try {
+    const parent = flow.run(async () => { await delay(20); late = flow.sleep(10000); return late; });
+    await delay(2); parent.cancel(); await rejects(parent, 'CANCELLED');
+    await delay(40); assert.equal(late.state, 'cancelled'); assert.equal(flow.pending, 0);
+    assert.equal(await flow.run(async () => { await delay(1); return flow.of(8); }), 8);
+  } finally { flow.cancelAll(); }
 });

@@ -8635,7 +8635,7 @@ std::string buildEmbeddedScriptExecutionSource(
       let colors;const android=createAndroid(bridgeCall,value=>colors.toInt(value));colors=createColors(android);
       modules.set("android",android);modules.set("colors",colors);
     }
-    if(createFlow && methods.flow) modules.set("flow",createFlow(bridgeCall));
+    if(createFlow && methods.flow) modules.set("flow",createFlow(bridgeCall,nativeConsole,JavaAsyncContext));
     if(createMail && methods.mail) modules.set("mail",createMail(bridgeCall));
     if(createEpub && methods.epub) modules.set("epub",createEpub(bridgeCall));
     if(createSpeech && methods.speech) modules.set("speech",createSpeech(bridgeCall));
@@ -14873,8 +14873,9 @@ std::string buildEmbeddedScriptExecutionSource(
     return __autojs6_limited_work_manager_cache;
   }
   // Shared flow core. Callbacks and timers belong to the importing JavaScript runtime.
-  function __autojs6_create_flow(call, logger = globalThis.console) {
+  function __autojs6_create_flow(call, logger = globalThis.console, AsyncContext) {
     const records = new WeakMap(), pending = new Set();
+    const creationContext = AsyncContext ? new AsyncContext() : null;
     const clock = () => globalThis.performance?.now?.() ?? Date.now();
     let defaults = {timeout: 10000, interval: 200, stableFor: 100, recoverService: false, trace: false};
     let creating = null;
@@ -14988,8 +14989,11 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     async function invoke(r, callback, args) {
       checkpoint(r);
-      const previous = creating; let result;
-      try { creating = r; result = callback(...args); } finally { creating = previous; }
+      const run = () => {
+        const previous = creating;
+        try { creating = r; return callback(...args); } finally { creating = previous; }
+      };
+      const result = creationContext ? creationContext.run(r, run) : run();
       return waitPromise(r, result);
     }
     function make(step, parent, execute, acceptsError = false, rerunnable = true) {
@@ -15000,9 +15004,11 @@ std::string buildEmbeddedScriptExecutionSource(
       // Flow rejections may be observed later through state/error, retry, catch or toPromise.
       r.promise.catch(() => {});
       records.set(handle, r); pending.add(r); parent?.children.add(r);
-      if (creating) {
-        const owner = creating; owner.owned.add(r);
+      const owner = creationContext?.getStore() ?? creating;
+      if (owner) {
+        owner.owned.add(r);
         const release = () => owner.owned.delete(r); r.promise.then(release, release);
+        if (owner.controller.signal.aborted || own(owner.handle).state !== 'pending') stop(r, failure(r, 'CANCELLED'));
       }
       async function start() {
         if (r.state !== 'pending') return;
@@ -15281,7 +15287,7 @@ std::string buildEmbeddedScriptExecutionSource(
   // End shared flow core.
 
   let __autojs6_flow_cache;
-  function __autojs6_limited_flow() { return __autojs6_flow_cache ||= __autojs6_create_flow(__autojs6_call_autojs); }
+  function __autojs6_limited_flow() { return __autojs6_flow_cache ||= __autojs6_create_flow(__autojs6_call_autojs,undefined,__autojs6_builtin_module("async_hooks").AsyncLocalStorage); }
 
   // Shared mail facade. Protocol callbacks run on the owning JavaScript thread.
   function __autojs6_create_mail(call) {
