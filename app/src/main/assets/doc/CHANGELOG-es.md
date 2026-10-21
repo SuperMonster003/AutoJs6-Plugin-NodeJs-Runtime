@@ -4,6 +4,12 @@
 
 ******
 
+# v1.29.0
+
+###### 2026/10/21
+
+* `Nuevo` Clics avanzados, desplazamiento, entrada, recopilación de listas y espera de eventos reales de Flow para Node.js, Bun y Workers, con suscripciones listas, validación de instantáneas y cancelación
+
 # v1.28.0
 
 ###### 2026/10/21

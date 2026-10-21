@@ -122,6 +122,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.29.0
+
+###### 2026/10/21
+
+* `Feature` Flow advanced clicks, scrolling, text entry, list collection and real event waits for Node.js, Bun and Workers, with subscription readiness, snapshot validation and cancellation
+
 # v1.28.0
 
 ###### 2026/10/21
@@ -133,12 +139,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/21
 
 * `Feature` Node.js/Worker: Mail account connections, message operations, attachments and mailbox watches, with cancellation and Worker cleanup
-
-# v1.26.0
-
-###### 2026/10/21
-
-* `Feature` Node.js/Worker: EPUB book reading, resource export, search and reader sessions with events
 
 ##### For more release history
 

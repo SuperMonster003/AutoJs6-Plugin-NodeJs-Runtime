@@ -5,6 +5,12 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v1.29.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js, Bun と Worker の Flow 高度なクリック, スクロール, 入力, リスト収集と実際のイベント待機, 監視準備完了, スナップショット検証とキャンセルに対応"
+      ]
+    },
     "v1.28.0": {
       "released_date": "2026/10/21",
       "feature": [

@@ -122,6 +122,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.29.0
+
+###### 2026/10/21
+
+* `Ajout` Clics avancés, défilement, saisie, collecte de listes et attente des événements réels Flow pour Node.js, Bun et Workers, avec préparation des abonnements, validation des instantanés et annulation
+
 # v1.28.0
 
 ###### 2026/10/21
@@ -133,12 +139,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 ###### 2026/10/21
 
 * `Ajout` Node.js/Worker: Connexions aux comptes mail, messages, pièces jointes et surveillance des boîtes, avec annulation et nettoyage des Workers
-
-# v1.26.0
-
-###### 2026/10/21
-
-* `Ajout` Node.js/Worker: Lecture EPUB, export des ressources, recherche et sessions du lecteur avec événements
 
 ##### Pour plus d'historique des versions
 

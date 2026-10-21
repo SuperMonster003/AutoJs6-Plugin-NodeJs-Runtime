@@ -5,6 +5,12 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.29.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js, Bun 及 Worker 的 Flow 高级点击, 滚动, 输入, 列表采集与真实事件等待, 支持监听就绪, 快照校验和取消"
+      ]
+    },
     "v1.28.0": {
       "released_date": "2026/10/21",
       "feature": [

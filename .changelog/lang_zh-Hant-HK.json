@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.29.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js, Bun 及 Worker 的 Flow 進階點擊, 捲動, 輸入, 清單擷取與真實事件等待, 支援監聽就緒, 快照驗證和取消"
+      ]
+    },
     "v1.28.0": {
       "released_date": "2026/10/21",
       "feature": [

@@ -8388,6 +8388,8 @@ std::string buildEmbeddedScriptExecutionSource(
         const databases = new Set();
         const sensors = new Set();
         const shells = new Set();
+        const flowClients=new Set();
+        const closeFlow=id=>invoke("flow","close",[id],{permissions:["accessibility"]}).catch(()=>{});
         const mailClients=new Set();
         const epubClients=new Set();
         const closeMail=id=>invoke("mail","close",[id],{permissions:["mail"]}).catch(()=>{});
@@ -8434,6 +8436,7 @@ std::string buildEmbeddedScriptExecutionSource(
           sensors.clear();
           for(const id of shells)closeShell(id);
           shells.clear();
+          for(const id of flowClients)closeFlow(id);flowClients.clear();
           for(const id of mailClients)closeMail(id);mailClients.clear();
           for(const id of epubClients)closeEpub(id);epubClients.clear();
           for(const id of speechClients)closeSpeech(id);speechClients.clear();
@@ -8478,6 +8481,7 @@ std::string buildEmbeddedScriptExecutionSource(
                 controller.signal.addEventListener("abort",()=>invoke("dialogs","cancelRequest",[payload.__requestId,scope],{permissions:["dialogs"]}).catch(()=>{}),{once:true});
               }
             }
+            const createsFlow = message.module === "flow" && message.method === "open";
             const createsMail=message.module==="mail" && message.method==="open";
             const createsEpub=message.module==="epub" && message.method==="open";
             const createsSpeech=message.module==="speech" && message.method==="open";
@@ -8495,11 +8499,15 @@ std::string buildEmbeddedScriptExecutionSource(
             const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "enableDisplayCapture", "startBackgroundRecording", "stopBackgroundRecording", "subscribeViewEvents"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: createsMail || createsEpub || createsSpeech || createsTts || message.module === "java" || createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+              { ...message.options, signal: createsFlow || createsMail || createsEpub || createsSpeech || createsTts || message.module === "java" || createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
             if (keepsAwake && (closed || controller.signal.aborted)) {
               await closeDevice(message.args[1]);
               throw Object.assign(new Error("Keeping the screen awake was aborted"),{code:"ABORT_ERR"});
             }
+            if(createsFlow && value && value.id){
+              if(closed||controller.signal.aborted){await closeFlow(value.id);throw Object.assign(new Error("Flow client creation was aborted"),{code:"ABORT_ERR"});}
+              flowClients.add(value.id);
+            }else if(message.module==="flow" && message.method==="close")flowClients.delete(message.args[0]);
             if(createsMail && value && value.id){
               if(closed||controller.signal.aborted){await closeMail(value.id);throw Object.assign(new Error("MAIL client creation was aborted"),{code:"ABORT_ERR"});}
               mailClients.add(value.id);
@@ -14877,7 +14885,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const records = new WeakMap(), pending = new Set();
     const creationContext = AsyncContext ? new AsyncContext() : null;
     const clock = () => globalThis.performance?.now?.() ?? Date.now();
-    let defaults = {timeout: 10000, interval: 200, stableFor: 100, recoverService: false, trace: false};
+    let defaults = {timeout: 10000, interval: 200, stableFor: 100, recoverService: false, trace: false, strictActions: true, humanize: false};
     let creating = null;
     function FlowError(code, step, selector = null, elapsed = 0, attempts = 0, reason = null) {
       const error = new Error(code + ' in flow.' + step + (reason ? ' (' + reason + ')' : ''));
@@ -15133,7 +15141,7 @@ std::string buildEmbeddedScriptExecutionSource(
       let selector;
       if (typeof value === 'string') selector = {content: value};
       else if (value instanceof RegExp) selector = {contentMatches: {pattern: value.source, flags: value.flags}};
-      else if (value && typeof value === 'object' && !Array.isArray(value)) selector = JSON.parse(JSON.stringify(value));
+      else if (value && typeof value === 'object' && !Array.isArray(value)) selector = JSON.parse(JSON.stringify(value,(_,v)=>v instanceof RegExp?{pattern:v.source,flags:v.flags}:v));
       else throw new TypeError('Expected a predicate, Promise, selector descriptor, string or RegExp');
       return {description: JSON.stringify(selector), async probe(r) {
         const result = await query(r, 'flowProbe', [selector]); return {found: result !== null, value: result};
@@ -15256,9 +15264,11 @@ std::string buildEmbeddedScriptExecutionSource(
           object(value, Object.keys(defaults)); const next = {...defaults, ...value};
           number(next.timeout, 'timeout', true); number(next.interval, 'interval'); number(next.stableFor, 'stableFor');
           if (typeof next.trace !== 'boolean' || typeof next.recoverService !== 'boolean') throw new TypeError('trace and recoverService must be boolean');
+          if(typeof next.strictActions!=='boolean')throw new TypeError('strictActions must be boolean');
+          next.humanize=validateHumanize(next.humanize);
           defaults = next;
         }
-        return {...defaults};
+        return capture(defaults);
       },
       trace(value) { if (value !== undefined) { if (typeof value !== 'boolean') throw new TypeError('trace must be boolean'); defaults = {...defaults, trace: value}; } return defaults.trace; }
     });
@@ -15281,7 +15291,267 @@ std::string buildEmbeddedScriptExecutionSource(
         } finally { for (const child of created) { stop(child, failure(child, 'CANCELLED')); r.owned.delete(child); } }
       });
     };
-    Object.defineProperties(flow, {pending: {get: () => pending.size}, workers: {get: () => 0}});
+    // Native tools share one owned client. The poll pump never waits for a JS callback.
+    let clientPromise, disposed = false, pumping = false, serial = 0;
+    const nativeTasks = new Map();
+    const idPrefix = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+    const uid = () => idPrefix + '-' + (++serial);
+    const extraPermissions = (name, args, opts) => {
+      const caps = new Set(['accessibility']);
+      if (['smartClick', 'clickIfExists', 'clickAny'].includes(name) && opts.gestureFallback !== false ||
+          ['smartClickBounds', 'clickBoundsIfExists', 'clickBoundsAny'].includes(name) ||
+          ['toggle', 'dismissPopups'].includes(name) && opts.click?.gestureFallback !== false ||
+          ['scrollUntil', 'collectList'].includes(name) && opts.method?.toLowerCase() === 'gesture') caps.add('accessibility.gesture');
+      if (name === 'launchAndWait') { caps.add('app.query'); caps.add('app.launch'); }
+      if (name === 'backToApp') caps.add('app.query');
+      if (eventNames.includes(name)) caps.add('events');
+      if (name === 'waitForToast') caps.add('events.toast');
+      if (name === 'waitForNotification') caps.add('events.notification');
+      if (name === 'nodeAction') {
+        if (args[1] === 'clickBounds') caps.add('accessibility.gesture');
+        if (['copy', 'cut', 'paste'].includes(args[1]) || args[1] === 'performAction' && [16384, 32768, 65536].includes(args[2][0])) caps.add('clipboard');
+      }
+      if (name === 'globalAction' && !['back', 'home', 'recents'].includes(args[0])) caps.add('keys');
+      return [...caps];
+    };
+    const rpc = (method, args, permissions = ['accessibility']) => call('flow', method, args, {permissions, timeoutMs: 10000});
+    function client() {
+      if (disposed) return Promise.reject(new Error('Flow facade is disposed'));
+      if (!clientPromise) clientPromise = rpc('open', []).then(async value => {
+        if (typeof value?.id !== 'string') throw new TypeError('Unsupported host: Flow tools require the matching AutoJs6 host');
+        if (disposed) { await rpc('close', [value.id]); throw new Error('Flow facade is disposed'); }
+        return value.id;
+      }).catch(error => { clientPromise = undefined; throw error; });
+      return clientPromise;
+    }
+    function encode(value, task, seen = new Set()) {
+      if (typeof value === 'function') { const id = uid(); task.callbacks.set(id, value); return {__flowCallback: id}; }
+      if (typeof value === 'number' && !Number.isFinite(value)) return {__flowNumber: String(value)};
+      if (value == null) return null;
+      if (value instanceof RegExp) {
+        if (/[^ims]/.test(value.flags)) throw new TypeError('Flow patterns support only i/m/s flags');
+        return {pattern: value.source, flags: value.flags};
+      }
+      if (thenable(value)) throw new TypeError('Tool arguments accept callbacks that return Promises, not Promise objects');
+      if (typeof value !== 'object') {
+        if (!['string', 'number', 'boolean'].includes(typeof value)) throw new TypeError('Unsupported Flow value');
+        return value;
+      }
+      if (seen.has(value)) throw new TypeError('Flow arguments must be acyclic');
+      seen.add(value);
+      let result;
+      if (Number.isInteger(value.windowId) && Number.isInteger(value.indexInParent) && value.bounds && typeof value.packageName === 'string') result = {__flowNode: {...value}};
+      else result = Array.isArray(value) ? value.map(v => encode(v, task, seen)) : Object.fromEntries(Object.keys(value).map(k => [k, encode(value[k], task, seen)]));
+      seen.delete(value); return result;
+    }
+    function decode(value, task) {
+      if (value == null || typeof value !== 'object') return value;
+      if (value.__flowNumber) return Number(value.__flowNumber);
+      if (value.__flowCallback) return task.callbacks.get(value.__flowCallback);
+      if (value.__flowNode) return value.__flowNode;
+      return Array.isArray(value) ? value.map(v => decode(v, task)) : Object.fromEntries(Object.entries(value).map(([k,v]) => [k, decode(v, task)]));
+    }
+    function finishNative(task, ok, value) {
+      if (!nativeTasks.delete(task.id)) return;
+      task.r.controller.signal.removeEventListener('abort', task.abort);
+      task.r.cleanups.delete(task.abort);
+      if (!ok) task.ready?.reject(value);
+      (ok ? task.resolve : task.reject)(value);
+      task.parts.length = 0;
+    }
+    async function pump() {
+      if (pumping) return;
+      pumping = true;
+      try {
+        while (nativeTasks.size && !disposed) {
+          const id = await client();
+          const packets = await rpc('poll', [id, [...nativeTasks.keys()].slice(0, 64)]);
+          if (!Array.isArray(packets)) throw new TypeError('Invalid Flow poll response');
+          for (const packet of packets) {
+            const task = nativeTasks.get(packet.id); if (!task) continue;
+            task.parts.push(Buffer.from(packet.data, 'base64'));
+            if (!packet.last) continue;
+            const message = JSON.parse(Buffer.concat(task.parts).toString('utf8')); task.parts.length = 0;
+            if (message.type === 'ready') { task.ready?.resolve(); continue; }
+            if (message.type === 'callback') {
+              const {token, callback, args} = message.value;
+              Promise.resolve().then(async () => {
+                try {
+                  const result = await invoke(task.r, fn(task.callbacks.get(callback)), decode(args, task));
+                  if (nativeTasks.has(task.id)) await rpc('answer', [id, task.id, token, true, encode(result, task)]);
+                } catch (error) {
+                  task.errors.set(token, error);
+                  if (nativeTasks.has(task.id)) await rpc('answer', [id, task.id, token, false, null]);
+                }
+              }).catch(error => { if (nativeTasks.has(task.id)) { finishNative(task, false, error); rpc('cancel',[id,task.id]).catch(()=>{}); } });
+              continue;
+            }
+            if (message.type === 'resolve') finishNative(task, true, decode(message.value, task));
+            else if (message.type === 'reject') {
+              const v = message.value;
+              const error = task.errors.get(v.callbackError) ?? Object.assign(v.name === 'FlowError' ? FlowError(v.code, v.step) : new Error(v.message), v);
+              finishNative(task, false, error);
+            } else throw new TypeError('Invalid Flow packet');
+          }
+          if (nativeTasks.size) await new Promise(resolve => setTimeout(resolve, packets.length ? 0 : 10));
+        }
+      } catch (error) {
+        for (const task of [...nativeTasks.values()]) { finishNative(task, false, error); clientPromise?.then(id=>rpc('cancel',[id,task.id])).catch(()=>{}); }
+      } finally { pumping = false; if (nativeTasks.size && !disposed) void pump(); }
+    }
+    async function native(r, name, args, opts, budget, ready) {
+      checkpoint(r);
+      if (disposed) throw new Error('Flow facade is disposed');
+      if (nativeTasks.size >= 64) throw new RangeError('At most 64 Flow tools may be pending');
+      const task = {id: uid(), r, parts: [], callbacks: new Map(), errors: new Map(), ready};
+      const encodedArgs = encode(args, task), encodedOptions = encode(opts, task);
+      const permissions = extraPermissions(name, args, opts);
+      const result = new Promise((resolve,reject) => { task.resolve=resolve;task.reject=reject; });
+      result.catch(()=>{});
+      task.abort = () => {
+        if (!nativeTasks.has(task.id)) return;
+        finishNative(task, false, r.controller.signal.reason ?? failure(r, 'CANCELLED'));
+        if(task.sent)clientPromise?.then(id=>rpc('cancel',[id,task.id])).catch(()=>{});
+      };
+      nativeTasks.set(task.id, task); r.cleanups.add(task.abort);
+      r.controller.signal.addEventListener('abort', task.abort, {once:true});
+      if (r.controller.signal.aborted) task.abort();
+      void (async () => {
+        try {
+          const id = await client();
+          if (!nativeTasks.has(task.id)) return;
+          // Cancellation knows this ID even if the start reply is late.
+          task.sent = true;
+          const started = rpc('start', [id, task.id, name, encodedArgs, encodedOptions, encode(Math.min(budget, Math.max(0,r.deadline-clock())),task)], permissions);
+          void pump();
+          await started;
+        } catch (error) { finishNative(task,false,error); if(task.sent)clientPromise?.then(id=>rpc('cancel',[id,task.id])).catch(()=>{}); }
+      })();
+      return waitPromise(r,result);
+    }
+    const capture = (value, seen = new Set()) => {
+      if (value == null || typeof value !== 'object' || value instanceof RegExp) return value;
+      if (seen.has(value)) throw new TypeError('Flow options must be acyclic'); seen.add(value);
+      const result = Array.isArray(value) ? value.map(v=>capture(v,seen)) : Object.fromEntries(Object.entries(value).map(([k,v])=>[k,capture(v,seen)]));
+      seen.delete(value);return result;
+    };
+    function callbacks(args) {
+      if (args.length>2) throw new TypeError('At most two callbacks are accepted');
+      args.forEach(v=>{if(v!=null)fn(v);}); return args;
+    }
+    const eventNames = ['waitForIdle','waitForEvent','waitForToast','waitForNotification'];
+    const toolCounts = {smartClick:1,smartClickBounds:1,clickIfExists:1,clickBoundsIfExists:1,clickAny:1,clickBoundsAny:1,findAny:1,
+      scrollUntil:1,typeInto:2,dismissPopups:1,collectList:2,launchAndWait:1,backUntil:1,backToApp:1,toggle:2};
+    const inputTools = new Set(['smartClick','smartClickBounds','typeInto','collectList','toggle']);
+    function tool(parent,name,values) {
+      const all=[...values], count=toolCounts[name]-(parent&&inputTools.has(name)?1:0);
+      if(all.length<count)throw new TypeError('Missing '+name+' arguments');
+      const args=capture(all.splice(0,count)); let opts={};
+      if(all.length && typeof all[0]!=='function') {
+        const value=all.shift();
+        if(typeof value==='number') {
+          if(['clickIfExists','clickBoundsIfExists','clickAny','clickBoundsAny','findAny','dismissPopups','launchAndWait'].includes(name))opts={timeout:value};
+          else if(['backUntil','backToApp'].includes(name))opts={maxTimes:value};
+          else throw new TypeError(name+' requires an options object');
+        } else if(value!=null) {if(typeof value!=='object'||Array.isArray(value))throw new TypeError('Expected tool options');opts=capture(value);}
+      }
+      const cb=callbacks(all), fallback=defaults.timeout, humanize=capture(defaults.humanize);
+      if(!['launchAndWait','backUntil','backToApp'].includes(name))opts={timeout:fallback,interval:defaults.interval,humanize,...opts};
+      if(opts.humanize===true)opts.humanize=humanize;
+      if(opts.click?.humanize===true)opts.click.humanize=humanize;
+      const budget=number(opts.timeout??fallback,'timeout',true)||fallback||10000;
+      let handle=make(name,parent,async(r,input)=>{
+        const actual=parent&&inputTools.has(name)?[input.value,...args]:args;
+        const plan=name==='scrollUntil'&&parent&&opts.container==null?{...opts,container:input.value}:opts;
+        const value=await bounded(r,budget,()=>failure(r,'TIMEOUT','operation'),local=>native(local,name,actual,plan,budget));
+        return name==='dismissPopups'&&parent?input.value:value;
+      });
+      if(cb.length)handle=handle.then(...cb);return handle;
+    }
+    for(const name of Object.keys(toolCounts)) {
+      flow[name]=(...args)=>tool(null,name,args);
+      method(name,function(...args){return tool(own(this),name,args);});
+    }
+    const nodeActions={click:[0,0],longClick:[0,0],clickBounds:[0,2],setText:[1,1],appendText:[1,1],clear:[0,0],paste:[0,0],copy:[0,0],cut:[0,0],select:[0,0],focus:[0,0],clearFocus:[0,0],scrollForward:[0,0],scrollBackward:[0,0],scrollUp:[0,0],scrollDown:[0,0],scrollLeft:[0,0],scrollRight:[0,0],expand:[0,0],collapse:[0,0],dismiss:[0,0],show:[0,0],contextClick:[0,0],imeEnter:[0,0],performAction:[1,2]};
+    function action(parent,name,all,strict=defaults.strictActions,humanize=capture(defaults.humanize),global=false) {
+      const rest=[...all], cb=[];
+      while(rest.length&&typeof rest[rest.length-1]==='function')cb.unshift(rest.pop()); callbacks(cb);
+      const args=capture(rest), range=global?[0,0]:nodeActions[name];
+      if(args.length<range[0]||args.length>range[1])throw new TypeError('Wrong number of arguments for '+name);
+      const budget=defaults.timeout||10000;
+      let handle=make(name,parent,async(r,input)=>{
+        const result=await bounded(r,budget,()=>failure(r,'TIMEOUT','operation'),local=>native(local,global?'globalAction':'nodeAction',global?[name]:[input.value,name,args],{strict,humanize},budget));
+        return global?input.value:result;
+      });
+      if(cb.length)handle=handle.then(...cb);return handle;
+    }
+    for(const name of Object.keys(nodeActions))method(name,function(...args){return action(own(this),name,args);});
+    for(const name of ['back','home','recents','notifications','quickSettings','powerDialog','splitScreen','lockScreen','takeScreenshot','dismissNotificationShade'])
+      method(name,function(...args){return action(own(this),name,args,defaults.strictActions,capture(defaults.humanize),true);});
+    for(const name of ['click','clickBounds','longClick'])method(name+'After',function(min,max){return action(own(sleep(own(this),min,max)),name,[]);});
+    const clickWaits={waitThenClick:['wait','click'],waitThenClickBounds:['wait','clickBounds'],waitThenLongClick:['wait','longClick'],
+      waitForStableThenClick:['waitForStable','click'],waitForStableThenClickBounds:['waitForStable','clickBounds'],
+      clickWhenStableAfter:['waitForStable','click',true],clickBoundsWhenStableAfter:['waitForStable','clickBounds',true]};
+    function clickWait(parent,name,value,all) {
+      const [kind,act,after]=clickWaits[name];let params=[...all], delay;
+      if(after&&typeof params[0]!=='object') {
+        let n=0;while(n<params.length&&typeof params[n]!=='function')n++;
+        if(n<3||n>4)throw new TypeError(name+' requires timeout, interval, delayMin and optional delayMax');
+        delay=params.splice(2,n-2);
+      }
+      const {p,callbacks:cb}=options(params,['strict','delay']);
+      const strict=p.strict??defaults.strictActions;if(typeof strict!=='boolean')throw new TypeError('strict must be boolean');
+      const cond=condition(value,kind);let handle=make(name,parent,r=>polling(r,cond,p,kind));
+      if(after) {delay=delay??p.delay;if(delay===undefined)throw new TypeError('delay is required');const pair=Array.isArray(delay)?delay:[delay];if(pair.length<1||pair.length>2)throw new TypeError('Invalid delay');handle=sleep(own(handle),...pair);}
+      handle=action(own(handle),act,[],strict,capture(defaults.humanize));if(cb.length)handle=handle.then(...cb);return handle;
+    }
+    for(const name of Object.keys(clickWaits)){flow[name]=(value,...args)=>clickWait(null,name,value,args);method(name,function(value,...args){return clickWait(own(this),name,value,args);});}
+    for(const [alias,name] of Object.entries({clickWait:'waitThenClick',clickBoundsWait:'waitThenClickBounds',clickWhenStable:'waitForStableThenClick',clickBoundsWhenStable:'waitForStableThenClickBounds'})){
+      flow[alias]=flow[name];method(alias,Flow.prototype[name]);
+    }
+    function eventWait(parent,name,all) {
+      const args=[...all];let opts={};
+      if(name==='waitForIdle'){
+        if(args[0]!=null&&typeof args[0]==='object')opts={...object(args.shift(),['quietFor','timeout','eventTypes'])};
+        else {if(args.length&&typeof args[0]!=='function')opts.quietFor=args.shift();if(args.length&&typeof args[0]!=='function')opts.timeout=args.shift();}
+      }else{
+        if(name==='waitForEvent')opts.eventTypes=args.shift()??'*';
+        const maximum=name==='waitForEvent'?2:2;
+        if(args.length>maximum)throw new TypeError('Too many event wait arguments');
+        for(const item of args.splice(0)) {
+          if(item==null)continue;
+          if(typeof item==='number'){if(opts.timeout!==undefined)throw new TypeError('Duplicate timeout');opts.timeout=item;}
+          else {if(opts.filter!==undefined)throw new TypeError('Duplicate filter');opts.filter=item;}
+        }
+      }
+      opts=capture({...opts,timeout:opts.timeout??defaults.timeout});
+      const budget=number(opts.timeout,'timeout',true), cb=callbacks(args);
+      let resolve,reject;const ready=new Promise((a,b)=>{resolve=a;reject=b;});ready.catch(()=>{});
+      const readiness={resolve,reject};
+      let handle=make(name,parent,async(r,input)=>{
+        const value=await bounded(r,budget,()=>failure(r,'TIMEOUT','operation'),local=>native(local,name,[],opts,budget,readiness));
+        return parent&&name==='waitForIdle'?input.value:value;
+      });
+      own(handle).promise.catch(reject);if(cb.length)handle=handle.then(...cb);
+      Object.defineProperty(handle,'ready',{value:ready});return handle;
+    }
+    for(const name of eventNames){flow[name]=(...args)=>eventWait(null,name,args);method(name,function(...args){return eventWait(own(this),name,args);});}
+    flow.dispose=async()=>{
+      if(disposed)return;disposed=true;flow.cancelAll();
+      const existing=clientPromise;if(existing){const id=await existing.catch(()=>null);if(id)await rpc('close',[id]);}
+    };
+    function validateHumanize(value) {
+      if(value===false||value==null)return false;
+      object(value,['offset','delay']);
+      for(const key of ['offset','delay'])if(value[key]!=null){
+        const pair=Array.isArray(value[key])?value[key]:[value[key],value[key]];
+        if(pair.length!==2)throw new TypeError('humanize.'+key+' requires two numbers');
+        pair.forEach(v=>{integer(v,'humanize.'+key);if(v>2147483646)throw new RangeError('humanize value too large');});
+        if(key==='delay'&&pair[1]<pair[0])throw new RangeError('humanize delay maximum must follow minimum');
+      }
+      return capture(value);
+    }
+    Object.defineProperties(flow, {pending: {get: () => pending.size}, workers: {get: () => nativeTasks.size}});
     return Object.freeze(flow);
   }
   // End shared flow core.

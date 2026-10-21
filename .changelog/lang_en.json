@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.29.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Flow advanced clicks, scrolling, text entry, list collection and real event waits for Node.js, Bun and Workers, with subscription readiness, snapshot validation and cancellation"
+      ]
+    },
     "v1.28.0": {
       "released_date": "2026/10/21",
       "feature": [
