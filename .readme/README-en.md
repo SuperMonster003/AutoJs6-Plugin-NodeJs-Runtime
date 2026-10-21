@@ -122,6 +122,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.27.0
+
+###### 2026/10/21
+
+* `Feature` Node.js/Worker: Mail account connections, message operations, attachments and mailbox watches, with cancellation and Worker cleanup
+
 # v1.26.0
 
 ###### 2026/10/21
@@ -133,12 +139,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/20
 
 * `Feature` Speech recognition and model management APIs for Node.js, Bun and Workers, with WAV/PCM, dictation and wake sessions, model installation/import, synthesis and cancellation cleanup
-
-# v1.24.0
-
-###### 2026/10/20
-
-* `Feature` Text-to-speech APIs for Node.js, Bun and Workers, with engine and voice queries, speech, silence, audio file synthesis and task events
 
 ##### For more release history
 

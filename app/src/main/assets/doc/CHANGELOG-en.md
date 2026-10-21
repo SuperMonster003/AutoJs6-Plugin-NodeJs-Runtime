@@ -4,6 +4,12 @@
 
 ******
 
+# v1.27.0
+
+###### 2026/10/21
+
+* `Feature` Node.js/Worker: Mail account connections, message operations, attachments and mailbox watches, with cancellation and Worker cleanup
+
 # v1.26.0
 
 ###### 2026/10/21

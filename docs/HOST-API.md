@@ -882,3 +882,16 @@ Reader controls return Promises and events stay on the owning JS thread. Their f
 The host uses the actual 3-Folio EPUB implementation and its existing file/resource limits. Independently signed applications require its separate permissioned service and reader alias from 2.1.0, plus a paired Runtime Kit. Builder derives `org.autojs.plugin.epub.permission.RUNTIME` from the declared capability. The plugin checks each book/control handle's creating UID. Protocol versions and AIDL transaction order are unchanged.
 
 See [Runtime APIs](https://docs.autojs6.com/#/runtimeApis) for signatures and shared reader state. Local regressions are `node --test tools/nodejs/api/test-epub.js tools/nodejs/api/test-worker-epub.js`; physical acceptance is recorded separately in the host audit.
+
+
+## Mail accounts, messages and watches (2026-10-21)
+
+Node 1.27.0 exposes `mail` / `autojs6:mail` and explicit `$autojs.mail` in the main thread, with the same facade in CommonJS, ESM and nested Workers. Bun 0.16.0 exposes `host.mail` under the independent, default-off `mail.control` grant. The 57 registered root names cover default-account forwarding, provider presets and saved-account queries. Network operations return Promises; Async names are aliases and `folder()` is a local helper. Clients also support folder/message/attachment helpers and observable watches.
+
+Each client owns its account and watches. `mail.close()` closes the default account; `mail.dispose()` releases all accounts and watches belonging to that facade. Worker exit releases only its own resources. Message dates are Date objects, attachments can download to files with progress, and watch callbacks run on the originating JS thread. Token providers may return Promises, including the one refresh after an authentication failure. Operations default to a 60000 ms deadline and accept AbortSignal cancellation; the deadline includes token callbacks and late results are cleaned up.
+
+The bridge reuses the host mail argument checks, streaming downloads and watch recovery. Bun mail polling and response fragments are exempt from the ordinary 1024-call execution quota; permissions, payload sizes, concurrency and per-request deadlines still apply. Native Node/Bun payloads and the Bun compatibility matrix are unchanged.
+
+Independently signed apps need 3-Stamp Mail 2.1.0 and the matching Runtime Kit. Builder derives `org.autojs.plugin.mail.permission.RUNTIME`. This separate entry accepts only credentials supplied by the calling app and pins session/watch handles to its UID. Saved account aliases, account enumeration and background watches remain restricted to the original signature-protected host entry. Account credentials are never bundled automatically.
+
+See [Runtime APIs](https://docs.autojs6.com/#/runtimeApis) for the shared contract. Node regressions are `node --test tools/nodejs/api/test-mail.js tools/nodejs/api/test-worker-mail.js`; Bun checks are `node tools/host-client/sync-mail.mjs --check` and `node --test tools/host-client/mail.test.mjs`. Physical and packaged-app acceptance is recorded separately in the host audit.

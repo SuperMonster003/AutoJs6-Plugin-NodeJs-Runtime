@@ -5,6 +5,12 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.27.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js/Worker: 邮件账户连接, 邮件操作, 附件与邮箱监听, 支持取消及 Worker 退出清理"
+      ]
+    },
     "v1.26.0": {
       "released_date": "2026/10/21",
       "feature": [

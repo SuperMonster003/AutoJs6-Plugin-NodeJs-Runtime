@@ -5,6 +5,12 @@
   "changelog_label_improvement": "개선",
   "changelog_label_dependency": "의존성",
   "$data": {
+    "v1.27.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js/Worker: 메일 계정 연결, 메시지 작업, 첨부 파일 및 메일함 감시, 취소와 Worker 종료 시 정리"
+      ]
+    },
     "v1.26.0": {
       "released_date": "2026/10/21",
       "feature": [

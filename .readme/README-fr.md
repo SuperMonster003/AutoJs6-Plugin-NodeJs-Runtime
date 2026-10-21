@@ -122,6 +122,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.27.0
+
+###### 2026/10/21
+
+* `Ajout` Node.js/Worker: Connexions aux comptes mail, messages, pièces jointes et surveillance des boîtes, avec annulation et nettoyage des Workers
+
 # v1.26.0
 
 ###### 2026/10/21
@@ -133,12 +139,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 ###### 2026/10/20
 
 * `Ajout` API speech de reconnaissance vocale et de gestion des modèles pour Node.js, Bun et Workers avec WAV/PCM, dictée et activation vocale, installation/importation, synthèse et annulation
-
-# v1.24.0
-
-###### 2026/10/20
-
-* `Ajout` API de synthèse vocale pour Node.js, Bun et Workers avec requêtes des moteurs et voix, lecture, silence, fichiers audio et événements des tâches
 
 ##### Pour plus d'historique des versions
 

@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.27.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js/Worker: Mail account connections, message operations, attachments and mailbox watches, with cancellation and Worker cleanup"
+      ]
+    },
     "v1.26.0": {
       "released_date": "2026/10/21",
       "feature": [

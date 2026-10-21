@@ -4,6 +4,12 @@
 
 ******
 
+# v1.27.0
+
+###### 2026/10/21
+
+* `Nuevo` Node.js/Worker: Conexiones de correo, mensajes, adjuntos y vigilancia de buzones, con cancelación y limpieza de Workers
+
 # v1.26.0
 
 ###### 2026/10/21

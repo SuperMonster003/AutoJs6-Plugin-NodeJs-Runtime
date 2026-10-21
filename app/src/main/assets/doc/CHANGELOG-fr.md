@@ -4,6 +4,12 @@
 
 ******
 
+# v1.27.0
+
+###### 2026/10/21
+
+* `Ajout` Node.js/Worker: Connexions aux comptes mail, messages, pièces jointes et surveillance des boîtes, avec annulation et nettoyage des Workers
+
 # v1.26.0
 
 ###### 2026/10/21

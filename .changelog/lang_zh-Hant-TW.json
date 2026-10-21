@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.27.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js/Worker: 郵件帳戶連線, 郵件操作, 附件與信箱監聽, 支援取消及 Worker 結束清理"
+      ]
+    },
     "v1.26.0": {
       "released_date": "2026/10/21",
       "feature": [

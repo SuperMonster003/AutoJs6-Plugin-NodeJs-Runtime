@@ -122,6 +122,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.27.0
+
+###### 2026/10/21
+
+* `Nuevo` Node.js/Worker: Conexiones de correo, mensajes, adjuntos y vigilancia de buzones, con cancelación y limpieza de Workers
+
 # v1.26.0
 
 ###### 2026/10/21
@@ -133,12 +139,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 ###### 2026/10/20
 
 * `Nuevo` API speech de reconocimiento y gestión de modelos para Node.js, Bun y Workers con WAV/PCM, dictado y activación por voz, instalación/importación, síntesis y cancelación
-
-# v1.24.0
-
-###### 2026/10/20
-
-* `Nuevo` API de síntesis de voz para Node.js, Bun y Workers con consultas de motores y voces, lectura, silencio, archivos de audio y eventos de tareas
 
 ##### Para mas historial de versiones
 

@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Amelioration",
   "changelog_label_dependency": "Dependance",
   "$data": {
+    "v1.27.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js/Worker: Connexions aux comptes mail, messages, pièces jointes et surveillance des boîtes, avec annulation et nettoyage des Workers"
+      ]
+    },
     "v1.26.0": {
       "released_date": "2026/10/21",
       "feature": [

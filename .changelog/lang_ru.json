@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.27.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js/Worker: Подключение почтовых аккаунтов, операции с письмами, вложения и наблюдение за почтой с отменой и очисткой при выходе Worker"
+      ]
+    },
     "v1.26.0": {
       "released_date": "2026/10/21",
       "feature": [
