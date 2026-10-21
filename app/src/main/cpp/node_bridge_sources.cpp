@@ -8618,7 +8618,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail, createFlow) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8635,6 +8635,7 @@ std::string buildEmbeddedScriptExecutionSource(
       let colors;const android=createAndroid(bridgeCall,value=>colors.toInt(value));colors=createColors(android);
       modules.set("android",android);modules.set("colors",colors);
     }
+    if(createFlow && methods.flow) modules.set("flow",createFlow(bridgeCall));
     if(createMail && methods.mail) modules.set("mail",createMail(bridgeCall));
     if(createEpub && methods.epub) modules.set("epub",createEpub(bridgeCall));
     if(createSpeech && methods.speech) modules.set("speech",createSpeech(bridgeCall));
@@ -8765,7 +8766,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return result;
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub, createMail) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub, createMail, createFlow) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8857,7 +8858,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail, createFlow);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8983,7 +8984,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ", " + __autojs6_create_flow.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -9013,6 +9014,7 @@ std::string buildEmbeddedScriptExecutionSource(
           pathAliases: __autojs6_path_aliases(),
           moduleSources,
           hostModuleMethods: {
+            flow:Object.keys(__autojs6_create_flow(()=>{})),
             mail:Object.keys(__autojs6_create_mail(()=>{})),
             epub:Object.keys(__autojs6_create_epub(()=>{})),
             speech:Object.keys(__autojs6_create_speech(()=>{})),
@@ -14567,6 +14569,7 @@ std::string buildEmbeddedScriptExecutionSource(
       recorder: recorder,
       ui: ui,
       tasks: tasks,
+      flow: __autojs6_limited_flow(),
       mail: __autojs6_limited_mail(),
       epub: __autojs6_limited_epub(),
       speech: __autojs6_limited_speech(),
@@ -14762,6 +14765,7 @@ std::string buildEmbeddedScriptExecutionSource(
       recorder: recorder,
       ui: ui,
       tasks: tasks,
+      flow: __autojs6_limited_flow(),
       mail: __autojs6_limited_mail(),
       epub: __autojs6_limited_epub(),
       speech: __autojs6_limited_speech(),
@@ -14868,6 +14872,417 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return __autojs6_limited_work_manager_cache;
   }
+  // Shared flow core. Callbacks and timers belong to the importing JavaScript runtime.
+  function __autojs6_create_flow(call, logger = globalThis.console) {
+    const records = new WeakMap(), pending = new Set();
+    const clock = () => globalThis.performance?.now?.() ?? Date.now();
+    let defaults = {timeout: 10000, interval: 200, stableFor: 100, recoverService: false, trace: false};
+    let creating = null;
+    function FlowError(code, step, selector = null, elapsed = 0, attempts = 0, reason = null) {
+      const error = new Error(code + ' in flow.' + step + (reason ? ' (' + reason + ')' : ''));
+      Object.setPrototypeOf(error, FlowError.prototype);
+      Object.assign(error, {name: 'FlowError', code, step, selector, elapsed, attempts, reason});
+      return error;
+    }
+    FlowError.prototype = Object.create(Error.prototype, {constructor: {value: FlowError}});
+    const number = (value, name, infinite = false) => {
+      if (typeof value !== 'number' || value < 0 || !(Number.isFinite(value) || infinite && value === Infinity))
+        throw new TypeError(name + ' must be a non-negative ' + (infinite ? 'number' : 'finite number'));
+      return value;
+    };
+    const integer = (value, name, infinite = false) => {
+      number(value, name, infinite);
+      if (value !== Infinity && !Number.isSafeInteger(value)) throw new TypeError(name + ' must be a safe integer');
+      return value;
+    };
+    const object = (value, keys) => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError('Options must be an object');
+      for (const key of Object.keys(value)) if (!keys.includes(key)) throw new TypeError('Unsupported flow option: ' + key);
+      return value;
+    };
+    const fn = value => { if (typeof value !== 'function') throw new TypeError('A callback is required'); return value; };
+    const thenable = value => value != null && typeof value.then === 'function';
+    const failure = (r, code, reason = null, attempts = 0) => FlowError(code, r.step, r.selector ?? null, clock() - r.started, attempts, reason);
+    function trace(r, event) {
+      if (r.tracing) try { logger?.log?.('[flow] ' + r.step + ' ' + event + ' ' + Math.round(clock() - r.started) + ' ms'); } catch (_) {}
+    }
+    function settle(r, ok, value) {
+      if (r.state !== 'pending') return;
+      r.state = ok ? 'fulfilled' : value?.code === 'CANCELLED' ? 'cancelled' : 'rejected';
+      if (ok) r.value = value; else r.error = value;
+      pending.delete(r);
+      for (const cleanup of r.cleanups) cleanup();
+      r.cleanups.clear();
+      trace(r, r.state);
+      (ok ? r.resolve : r.reject)(value);
+    }
+    function stop(r, error, upward = true) {
+      if (r.state !== 'pending') return false;
+      r.controller.abort(error);
+      settle(r, false, error);
+      for (const owned of r.owned) stop(owned, failure(owned, 'CANCELLED'));
+      r.owned.clear();
+      if (upward && r.parent?.state === 'pending' && [...r.parent.children].every(child => child.state === 'cancelled'))
+        stop(r.parent, failure(r.parent, 'CANCELLED'));
+      return true;
+    }
+    function checkpoint(r) {
+      if (r.controller.signal.aborted) throw r.controller.signal.reason;
+      if (clock() >= r.deadline) throw failure(r, 'TIMEOUT', 'chain');
+    }
+    function waitPromise(r, value) {
+      if (value === r.handle) return Promise.reject(new TypeError('A Flow cannot resolve to itself'));
+      const adopted = records.get(value);
+      if (adopted) {
+        for (let parent = adopted; parent; parent = parent.parent)
+          if (parent === r) return Promise.reject(new TypeError('Cyclic Flow adoption'));
+        value = adopted.promise;
+      }
+      const source = Promise.resolve(value);
+      source.catch(() => {});
+      try { checkpoint(r); } catch (error) { return Promise.reject(error); }
+      return new Promise((resolve, reject) => {
+        const signal = r.controller.signal;
+        const abort = () => { cleanup(); reject(signal.reason); };
+        const cleanup = () => { signal.removeEventListener('abort', abort); r.cleanups.delete(cleanup); };
+        r.cleanups.add(cleanup); signal.addEventListener('abort', abort, {once: true});
+        source.then(result => { cleanup(); resolve(result); }, error => { cleanup(); reject(error); });
+      });
+    }
+    function pause(r, ms) {
+      checkpoint(r);
+      return waitPromise(r, new Promise(resolve => {
+        const started = clock(); let timer;
+        const cleanup = () => clearTimeout(timer);
+        const tick = () => {
+          const left = ms - (clock() - started);
+          if (left <= 0) { r.cleanups.delete(cleanup); resolve(); }
+          else timer = setTimeout(tick, Math.min(left, 2147483647));
+        };
+        r.cleanups.add(cleanup); timer = setTimeout(tick, Math.min(ms, 2147483647));
+      }));
+    }
+    async function bounded(r, duration, error, work) {
+      const local = {...r, controller: new AbortController(), cleanups: new Set()};
+      const existing = new Set(r.owned);
+      const start = clock(); let timer;
+      const abort = () => local.controller.abort(r.controller.signal.reason);
+      r.controller.signal.addEventListener('abort', abort, {once: true});
+      if (r.controller.signal.aborted) abort();
+      const expire = () => {
+        const left = duration - (clock() - start);
+        if (left <= 0) local.controller.abort(error());
+        else timer = setTimeout(expire, Math.min(left, 2147483647));
+      };
+      if (Number.isFinite(duration)) timer = setTimeout(expire, Math.min(duration, 2147483647));
+      try { return await waitPromise(local, work(local)); }
+      catch (error) {
+        if (local.controller.signal.aborted) for (const child of r.owned)
+          if (!existing.has(child)) stop(child, failure(child, 'CANCELLED'));
+        throw error;
+      }
+      finally {
+        clearTimeout(timer); r.controller.signal.removeEventListener('abort', abort);
+        for (const cleanup of local.cleanups) cleanup(); local.cleanups.clear();
+      }
+    }
+    async function invoke(r, callback, args) {
+      checkpoint(r);
+      const previous = creating; let result;
+      try { creating = r; result = callback(...args); } finally { creating = previous; }
+      return waitPromise(r, result);
+    }
+    function make(step, parent, execute, acceptsError = false, rerunnable = true) {
+      const handle = Object.create(Flow.prototype), controller = new AbortController();
+      const r = {handle, step, parent, execute, acceptsError, rerunnable, controller, state: 'pending', value: undefined,
+        error: undefined, started: clock(), deadline: Infinity, cleanups: new Set(), children: new Set(), owned: new Set(), tracing: defaults.trace};
+      r.promise = new Promise((resolve, reject) => { r.resolve = resolve; r.reject = reject; });
+      // Flow rejections may be observed later through state/error, retry, catch or toPromise.
+      r.promise.catch(() => {});
+      records.set(handle, r); pending.add(r); parent?.children.add(r);
+      if (creating) {
+        const owner = creating; owner.owned.add(r);
+        const release = () => owner.owned.delete(r); r.promise.then(release, release);
+      }
+      async function start() {
+        if (r.state !== 'pending') return;
+        r.started = clock(); r.deadline = parent?.deadline ?? Infinity;
+        const input = parent ? {ok: parent.state === 'fulfilled', value: parent.state === 'fulfilled' ? parent.value : parent.error} : {ok: true, value: undefined};
+        r.input = input;
+        if (!input.ok && !acceptsError) { settle(r, false, input.value); return; }
+        // Recovery handlers must still observe a timeout or cancellation from their parent.
+        if (acceptsError && !input.ok) r.deadline = Infinity;
+        trace(r, 'start');
+        try {
+          checkpoint(r);
+          const value = await bounded(r, r.deadline - clock(), () => failure(r, 'TIMEOUT', 'chain'), local => execute(local, input));
+          settle(r, true, value);
+        } catch (error) {
+          settle(r, false, error);
+          for (const child of r.owned) stop(child, failure(child, 'CANCELLED'));
+          r.owned.clear();
+        }
+      }
+      if (parent) parent.promise.then(start, start); else queueMicrotask(start);
+      return handle;
+    }
+    function Flow(value) {
+      if (records.has(value)) return value;
+      return make(thenable(value) ? 'promise' : 'of', null, r => waitPromise(r, value), false, false);
+    }
+    const own = handle => { const r = records.get(handle); if (!r) throw new TypeError('Invalid Flow receiver'); return r; };
+    Object.defineProperties(Flow.prototype, Object.fromEntries(['state', 'step', 'value', 'error'].map(key => [key, {get() { return own(this)[key]; }}])));
+    function method(name, callback) { Object.defineProperty(Flow.prototype, name, {value: callback}); }
+    method('then', function(onOk, onError) {
+      if (onOk != null) fn(onOk); if (onError != null) fn(onError);
+      return make('then', own(this), async (r, input) => {
+        const callback = input.ok ? onOk : onError;
+        if (callback) return invoke(r, callback, [input.value]);
+        if (!input.ok) throw input.value;
+        return input.value;
+      }, true);
+    });
+    method('catch', function(callback) { fn(callback); return this.then(undefined, callback); });
+    method('else', Flow.prototype.catch);
+    method('finally', function(callback) {
+      fn(callback); return make('finally', own(this), async (r, input) => {
+        await invoke(r, callback, []); if (!input.ok) throw input.value; return input.value;
+      }, true);
+    });
+    for (const name of ['map', 'run', 'filter', 'peek']) method(name, function(callback) {
+      fn(callback); return make(name, own(this), async (r, input) => {
+        const result = await invoke(r, callback, [input.value]);
+        if (name === 'filter' && !result) throw failure(r, 'INVALID_TARGET', 'filtered out');
+        return name === 'filter' || name === 'peek' ? input.value : result;
+      });
+    });
+    method('toPromise', function() { return own(this).promise; });
+    method('cancel', function() { const r = own(this); return stop(r, failure(r, 'CANCELLED')); });
+    method('toString', function() { const r = own(this); return 'Flow(' + r.step + ', ' + r.state + ')'; });
+    method('timeout', function(ms) {
+      number(ms, 'timeout'); return make('timeout', own(this), (r, input) => {
+        own(r.handle).deadline = Math.min(r.deadline, clock() + ms); return input.value;
+      }, false, false);
+    });
+    method('retry', function(times = 1, delay = 0) {
+      integer(times, 'times'); number(delay, 'delay'); const target = own(this);
+      return make('retry', target, async (r, input) => {
+        if (input.ok) return input.value;
+        let error = input.value;
+        own(r.handle).deadline = target.deadline;
+        if (error?.code !== 'CANCELLED' && target.rerunnable) for (let i = 0; i < times; i++) {
+          try { return await bounded(r, Math.max(0, target.deadline - clock()), () => failure(r, 'TIMEOUT', 'chain'), async local => {
+            local.deadline = target.deadline; await pause(local, delay); return target.execute(local, target.input);
+          }); }
+          catch (next) { error = next; if (error?.code === 'CANCELLED') break; }
+        }
+        throw error;
+      }, true, false);
+    });
+    function sleep(parent, min, max = min) {
+      number(min, 'min'); number(max, 'max'); if (max < min) throw new RangeError('max must be at least min');
+      return make('sleep', parent, async (r, input) => { await pause(r, min + Math.random() * (max - min)); return input.value; });
+    }
+    method('sleep', function(min, max) { return sleep(own(this), min, max); });
+    method('delay', Flow.prototype.sleep);
+    function options(args, extra = []) {
+      const remaining = [...args];
+      let value = {};
+      if (remaining[0] != null && typeof remaining[0] === 'object') {
+        value = object(remaining.shift(), ['timeout', 'interval', 'times', 'stableFor', 'compare', 'snapshot', 'missing', 'recoverService', ...extra]);
+      } else {
+        for (const key of ['timeout', 'interval']) if (remaining.length && typeof remaining[0] !== 'function') {
+          const item = remaining.shift(); if (item != null) value[key] = item;
+        }
+      }
+      const callbacks = remaining;
+      if (callbacks.length > 2) throw new TypeError('At most two wait callbacks are accepted');
+      for (const callback of callbacks) if (callback != null) fn(callback);
+      const p = {...defaults, times: Infinity, compare: 'fingerprint', missing: 'reset', ...value};
+      number(p.timeout, 'timeout', true); number(p.interval, 'interval'); number(p.stableFor, 'stableFor'); integer(p.times, 'times', true);
+      if (p.times < 1) throw new RangeError('times must be positive');
+      if (p.snapshot != null) { fn(p.snapshot); if (value.compare != null) throw new TypeError('snapshot and compare are mutually exclusive'); }
+      if (!['fingerprint', 'bounds', 'content'].includes(p.compare) && typeof p.compare !== 'function') throw new TypeError('Invalid stability comparator');
+      if (!['reset', 'fail'].includes(p.missing)) throw new TypeError('Invalid missing policy');
+      if (typeof p.recoverService !== 'boolean') throw new TypeError('recoverService must be a boolean');
+      return {p, callbacks};
+    }
+    function condition(value, name) {
+      if (name === 'waitForActivity' || name === 'waitForPackage') {
+        if (typeof value !== 'string' || !value) throw new TypeError('Expected a non-empty component name');
+        return {description: value, async probe(r) {
+          const component = await query(r, 'flowForeground', []);
+          return {found: component[name === 'waitForActivity' ? 'activityName' : 'packageName'] === value, value: true};
+        }};
+      }
+      if (typeof value === 'function') return {description: 'function', async probe(r) {
+        const result = await invoke(r, value, []);
+        return {found: result != null && result !== false && !(typeof result === 'number' && Number.isNaN(result)), value: result};
+      }};
+      if (thenable(value)) {
+        // A settled Promise is found even if it fulfilled with false or undefined.
+        const result = records.get(value)?.promise ?? Promise.resolve(value); result.catch(() => {});
+        return {description: 'promise', async probe(r) { return {found: true, value: await waitPromise(r, result)}; }};
+      }
+      let selector;
+      if (typeof value === 'string') selector = {content: value};
+      else if (value instanceof RegExp) selector = {contentMatches: {pattern: value.source, flags: value.flags}};
+      else if (value && typeof value === 'object' && !Array.isArray(value)) selector = JSON.parse(JSON.stringify(value));
+      else throw new TypeError('Expected a predicate, Promise, selector descriptor, string or RegExp');
+      return {description: JSON.stringify(selector), async probe(r) {
+        const result = await query(r, 'flowProbe', [selector]); return {found: result !== null, value: result};
+      }};
+    }
+    async function query(r, method, args) {
+      const result = await waitPromise(r, call('accessibility', method, args, {permissions: ['accessibility'], timeoutMs: 10000, signal: r.controller.signal}));
+      if (typeof result?.available !== 'boolean') throw new TypeError('Unsupported host: Flow queries require the matching AutoJs6 host');
+      if (!result.available) throw failure(r, 'A11Y_UNAVAILABLE');
+      return result.value;
+    }
+    function snapshot(value, seen = new Set()) {
+      if (value === null || typeof value !== 'object') return value;
+      if (seen.has(value)) throw new TypeError('Flow stability snapshots must be acyclic');
+      seen.add(value); const result = Array.isArray(value) ? value.map(item => snapshot(item, seen)) :
+        Object.fromEntries(Object.keys(value).sort().map(key => [key, snapshot(value[key], seen)]));
+      seen.delete(value); return result;
+    }
+    const equal = (a, b) => Object.is(a, b) || a != null && b != null && typeof a === 'object' && typeof b === 'object' &&
+      Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(key => Object.hasOwn(b, key) && equal(a[key], b[key]));
+    async function polling(r, cond, p, kind) {
+      const start = clock(), stable = ['waitForStable', 'waitForVisible', 'waitForHidden'].includes(kind);
+      const deadline = Math.min(r.deadline, p.timeout === Infinity ? Infinity : start + p.timeout);
+      let attempts = 0, since = null, previous, seen = false, outage = null, lastFound = false;
+      r.selector = cond.description;
+      const timedOut = () => outage ?? failure(r, 'TIMEOUT', deadline === r.deadline ? 'chain' : stable ? lastFound ? 'unstable' : 'missing' : null, attempts);
+      return bounded(r, Math.max(0, deadline - clock()), timedOut, async local => {
+        r = local;
+        while (true) {
+          checkpoint(r); attempts++;
+          let sample;
+          try { sample = await cond.probe(r); outage = null; }
+          catch (error) { if (!p.recoverService || error?.code !== 'A11Y_UNAVAILABLE') throw error; outage = error; since = null; }
+          checkpoint(r);
+          if (sample) {
+            const visible = sample.found && sample.value?.visibleToUser !== false;
+            const found = kind === 'waitForHidden' ? !visible : kind === 'waitForVisible' ? visible : kind === 'waitWhile' ? !sample.found : sample.found;
+            lastFound = found;
+            if (!stable && found) return kind === 'waitWhile' ? true : sample.value;
+            if (stable && found) {
+              const value = kind === 'waitForHidden' ? true : sample.value;
+              const projected = p.snapshot ? await invoke(r, p.snapshot, [value]) : p.compare === 'bounds' ? value?.bounds : p.compare === 'content' ? [value?.text, value?.desc] : value;
+              const key = snapshot(projected);
+              const same = since !== null && (typeof p.compare === 'function' ? await invoke(r, p.compare, [previous, key]) : equal(previous, key));
+              if (!same) since = clock();
+              seen = true; previous = key;
+              if (clock() - since >= p.stableFor) return value;
+            } else if (stable) {
+              if (seen && p.missing === 'fail') throw failure(r, 'INVALID_TARGET', kind === 'waitForHidden' ? 'reappeared' : 'missing', attempts);
+              since = null;
+            }
+          }
+          if (attempts >= p.times || clock() >= deadline || p.timeout === 0) throw timedOut();
+          await pause(r, Math.min(p.interval, Math.max(0, deadline - clock())));
+        }
+      });
+    }
+    function wait(parent, name, value, args) {
+      const {p, callbacks} = options(args), cond = condition(value, name);
+      let handle = make(name, parent, r => polling(r, cond, p, name));
+      if (callbacks.length) handle = handle.then(...callbacks);
+      return handle;
+    }
+    const flow = (value, ...args) => wait(null, 'wait', value, args);
+    const waits = ['wait', 'waitUntil', 'waitWhile', 'waitForStable', 'waitForVisible', 'waitForHidden', 'waitForActivity', 'waitForPackage'];
+    for (const name of waits) {
+      flow[name] = (value, ...args) => wait(null, name, value, args);
+      method(name, function(value, ...args) { return wait(own(this), name, value, args); });
+    }
+    flow.waitAsync = flow.wait; flow.waitForGone = flow.waitForHidden;
+    method('waitForGone', Flow.prototype.waitForHidden);
+    function whenPresent(parent, value, callback, opts = {}) {
+      fn(callback); const {p} = options([object(opts, ['timeout', 'interval', 'times', 'recoverService'])]); condition(value, 'wait');
+      return make('whenPresent', parent, async (r, input) => {
+        let found;
+        // Optional absence is a recoverable result, so its local deadline must not settle the chain.
+        const child = wait(null, 'wait', value, [{timeout: p.timeout, interval: p.interval, times: p.times, recoverService: p.recoverService}]); const childRecord = own(child); r.owned.add(childRecord);
+        try { found = await waitPromise(r, child); }
+        catch (error) { if (error?.code === 'TIMEOUT' && error.reason !== 'chain') return input.value; throw error; }
+        finally { r.owned.delete(childRecord); if (childRecord.state === 'pending') child.cancel(); }
+        await invoke(r, callback, [found]); return input.value;
+      });
+    }
+    flow.whenPresent = (value, callback, opts) => whenPresent(null, value, callback, opts);
+    method('whenPresent', function(value, callback, opts) { return whenPresent(own(this), value, callback, opts); });
+    function repeatUntil(parent, action, value, opts = {}) {
+      fn(action); object(opts, ['timeout', 'interval', 'maxAttempts', 'retryOn']);
+      const timeout = number(opts.timeout ?? defaults.timeout, 'timeout'), interval = number(opts.interval ?? defaults.interval, 'interval');
+      const max = integer(opts.maxAttempts ?? 0, 'maxAttempts'); if (opts.retryOn != null) fn(opts.retryOn);
+      const cond = condition(value, 'wait');
+      return make('repeatUntil', parent, async outer => {
+        const start = clock(); let attempts = 0;
+        return bounded(outer, timeout, () => failure(outer, 'TIMEOUT', 'timeout', attempts), async r => {
+        while (true) {
+          const sample = await cond.probe(r);
+          if (sample.found) return sample.value;
+          if (timeout === 0 || max > 0 && attempts >= max) throw failure(r, 'TIMEOUT', timeout === 0 ? 'timeout' : 'attempts', attempts);
+          checkpoint(r); attempts++;
+          try { await invoke(r, action, [attempts]); }
+          catch (error) {
+            if (error?.code === 'CANCELLED' || !opts.retryOn) throw error;
+            const retry = await invoke(r, opts.retryOn, [error, attempts]);
+            if (typeof retry !== 'boolean') throw new TypeError('retryOn must return a boolean');
+            if (!retry) throw error;
+          }
+          const after = await cond.probe(r); if (after.found) return after.value;
+          if (max > 0 && attempts >= max) throw failure(r, 'TIMEOUT', 'attempts', attempts);
+          await pause(r, interval);
+        }
+        });
+      });
+    }
+    flow.repeatUntil = (action, value, opts) => repeatUntil(null, action, value, opts);
+    method('repeatUntil', function(action, value, opts) { return repeatUntil(own(this), action, value, opts); });
+    Object.assign(flow, {Flow, FlowError, of: value => Flow(value), run: callback => { fn(callback); return make('run', null, r => invoke(r, callback, [])); },
+      sleep: (min, max) => sleep(null, min, max),
+      cancelAll() { const list = [...pending]; for (const r of list) stop(r, failure(r, 'CANCELLED')); return list.length; },
+      defaults(value) {
+        if (value != null) {
+          object(value, Object.keys(defaults)); const next = {...defaults, ...value};
+          number(next.timeout, 'timeout', true); number(next.interval, 'interval'); number(next.stableFor, 'stableFor');
+          if (typeof next.trace !== 'boolean' || typeof next.recoverService !== 'boolean') throw new TypeError('trace and recoverService must be boolean');
+          defaults = next;
+        }
+        return {...defaults};
+      },
+      trace(value) { if (value !== undefined) { if (typeof value !== 'boolean') throw new TypeError('trace must be boolean'); defaults = {...defaults, trace: value}; } return defaults.trace; }
+    });
+    flow.delay = flow.sleep;
+    for (const kind of ['all', 'race', 'any']) flow[kind] = (...values) => {
+      const sources = values.length === 1 && Array.isArray(values[0]) ? [...values[0]] : values;
+      const policy = {timeout: defaults.timeout, interval: defaults.interval, recoverService: defaults.recoverService};
+      return make(kind, null, async r => {
+        if (!sources.length && kind !== 'all') throw failure(r, 'INVALID_TARGET', 'no sources');
+        const created = [];
+        const promises = sources.map(value => {
+          if (thenable(value)) return records.get(value)?.promise ?? Promise.resolve(value);
+          const child = flow.wait(value, policy), childRecord = own(child); created.push(childRecord); r.owned.add(childRecord); return childRecord.promise;
+        });
+        try {
+          if (kind !== 'any') return await waitPromise(r, Promise[kind](promises));
+          return await waitPromise(r, new Promise((resolve, reject) => {
+            let left = promises.length; promises.forEach(promise => promise.then(resolve, error => { if (--left === 0) reject(error); }));
+          }));
+        } finally { for (const child of created) { stop(child, failure(child, 'CANCELLED')); r.owned.delete(child); } }
+      });
+    };
+    Object.defineProperties(flow, {pending: {get: () => pending.size}, workers: {get: () => 0}});
+    return Object.freeze(flow);
+  }
+  // End shared flow core.
+
+  let __autojs6_flow_cache;
+  function __autojs6_limited_flow() { return __autojs6_flow_cache ||= __autojs6_create_flow(__autojs6_call_autojs); }
+
   // Shared mail facade. Protocol callbacks run on the owning JavaScript thread.
   function __autojs6_create_mail(call) {
     let opening = null, generation = 0, pumping = false, defaultClient = null;
@@ -28344,6 +28759,7 @@ std::string buildEmbeddedScriptExecutionSource(
     axios: function() { return __autojs6_limited_axios(); },
     websocket: function() { return __autojs6_limited_websocket(); },
     android: function() { return __autojs6_limited_android(); },
+    flow: function() { return __autojs6_limited_flow(); },
     mail: function() { return __autojs6_limited_mail(); },
     epub: function() { return __autojs6_limited_epub(); },
     speech: function() { return __autojs6_limited_speech(); },

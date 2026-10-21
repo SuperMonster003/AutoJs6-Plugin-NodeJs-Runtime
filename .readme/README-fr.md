@@ -122,6 +122,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.28.0
+
+###### 2026/10/21
+
+* `Ajout` Chaînes asynchrones flow et attentes de condition/stabilité pour Node.js, Bun et Workers, avec annulation des branches, reprise des étapes et instantanés de l'interface hôte
+
 # v1.27.0
 
 ###### 2026/10/21
@@ -133,12 +139,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 ###### 2026/10/21
 
 * `Ajout` Node.js/Worker: Lecture EPUB, export des ressources, recherche et sessions du lecteur avec événements
-
-# v1.25.0
-
-###### 2026/10/20
-
-* `Ajout` API speech de reconnaissance vocale et de gestion des modèles pour Node.js, Bun et Workers avec WAV/PCM, dictée et activation vocale, installation/importation, synthèse et annulation
 
 ##### Pour plus d'historique des versions
 

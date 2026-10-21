@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Улучшение",
   "changelog_label_dependency": "Зависимость",
   "$data": {
+    "v1.28.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Асинхронные цепочки flow и ожидание условий/стабильности для Node.js, Bun и Worker с отменой ветвей, повтором шагов и снимками интерфейса хоста"
+      ]
+    },
     "v1.27.0": {
       "released_date": "2026/10/21",
       "feature": [

@@ -122,6 +122,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.28.0
+
+###### 2026/10/21
+
+* `Feature` Flow asynchronous chains and condition/stability waits for Node.js, Bun and Workers, with branch cancellation, step retries and host UI snapshots
+
 # v1.27.0
 
 ###### 2026/10/21
@@ -133,12 +139,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/21
 
 * `Feature` Node.js/Worker: EPUB book reading, resource export, search and reader sessions with events
-
-# v1.25.0
-
-###### 2026/10/20
-
-* `Feature` Speech recognition and model management APIs for Node.js, Bun and Workers, with WAV/PCM, dictation and wake sessions, model installation/import, synthesis and cancellation cleanup
 
 ##### For more release history
 

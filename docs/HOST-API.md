@@ -895,3 +895,8 @@ The bridge reuses the host mail argument checks, streaming downloads and watch r
 Independently signed apps need 3-Stamp Mail 2.1.0 and the matching Runtime Kit. Builder derives `org.autojs.plugin.mail.permission.RUNTIME`. This separate entry accepts only credentials supplied by the calling app and pins session/watch handles to its UID. Saved account aliases, account enumeration and background watches remain restricted to the original signature-protected host entry. Account credentials are never bundled automatically.
 
 See [Runtime APIs](https://docs.autojs6.com/#/runtimeApis) for the shared contract. Node regressions are `node --test tools/nodejs/api/test-mail.js tools/nodejs/api/test-worker-mail.js`; Bun checks are `node tools/host-client/sync-mail.mjs --check` and `node --test tools/host-client/mail.test.mjs`. Physical and packaged-app acceptance is recorded separately in the host audit.
+
+
+## 2026-10-21 Flow core
+
+Node 1.28.0 and Bun 0.17.0 share asynchronous Flow chains, predicate/selector/stability waits, Promise combinators, branch cancellation and single-step retry across main threads and CJS/ESM/nested Workers. Node uses flow/autojs6:flow and explicit $autojs.flow; Bun uses host.flow. Host UI snapshots and foreground waits require accessibility or the existing default-off accessibility.control grant and the calling application's bound Android service. Local callbacks need no host grant. Bun retains its 1024-call budget; native payloads and compatibility are unchanged. Toolkit actions, event waits, within/scope and synchronous Rhino terminals remain separate work. See Documentation api/runtimeApis.md and host docs/dev/runtime-flow-core-2026-10-21.md for semantics and acceptance.

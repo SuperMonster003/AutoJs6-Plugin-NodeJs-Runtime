@@ -5,6 +5,12 @@
   "changelog_label_improvement": "개선",
   "changelog_label_dependency": "의존성",
   "$data": {
+    "v1.28.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js, Bun, Worker의 flow 비동기 체인 및 조건/안정성 대기, 분기 취소, 단계 재시도, 호스트 화면 스냅샷 지원"
+      ]
+    },
     "v1.27.0": {
       "released_date": "2026/10/21",
       "feature": [

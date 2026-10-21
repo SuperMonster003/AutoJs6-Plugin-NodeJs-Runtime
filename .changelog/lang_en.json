@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.28.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Flow asynchronous chains and condition/stability waits for Node.js, Bun and Workers, with branch cancellation, step retries and host UI snapshots"
+      ]
+    },
     "v1.27.0": {
       "released_date": "2026/10/21",
       "feature": [

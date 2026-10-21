@@ -4,6 +4,12 @@
 
 ******
 
+# v1.28.0
+
+###### 2026/10/21
+
+* `Ajout` Chaînes asynchrones flow et attentes de condition/stabilité pour Node.js, Bun et Workers, avec annulation des branches, reprise des étapes et instantanés de l'interface hôte
+
 # v1.27.0
 
 ###### 2026/10/21

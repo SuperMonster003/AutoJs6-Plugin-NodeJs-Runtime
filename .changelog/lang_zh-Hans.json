@@ -5,6 +5,12 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.28.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Node.js, Bun 及 Worker 的 flow 异步链与条件/稳定性等待, 支持分支取消, 单步骤重试及宿主界面快照"
+      ]
+    },
     "v1.27.0": {
       "released_date": "2026/10/21",
       "feature": [

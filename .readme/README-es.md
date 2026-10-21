@@ -122,6 +122,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.28.0
+
+###### 2026/10/21
+
+* `Nuevo` Cadenas asíncronas flow y esperas de condición/estabilidad para Node.js, Bun y Workers, con cancelación de ramas, reintentos por paso e instantáneas de la interfaz del anfitrión
+
 # v1.27.0
 
 ###### 2026/10/21
@@ -133,12 +139,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 ###### 2026/10/21
 
 * `Nuevo` Node.js/Worker: Lectura de EPUB, exportación de recursos, búsqueda y sesiones del lector con eventos
-
-# v1.25.0
-
-###### 2026/10/20
-
-* `Nuevo` API speech de reconocimiento y gestión de modelos para Node.js, Bun y Workers con WAV/PCM, dictado y activación por voz, instalación/importación, síntesis y cancelación
 
 ##### Para mas historial de versiones
 
