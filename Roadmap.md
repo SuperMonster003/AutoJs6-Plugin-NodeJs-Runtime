@@ -925,3 +925,6 @@ Node 1.28.0 and Bun 0.17.0 share asynchronous Flow chains, predicate/selector/st
 ## 2026-10-21 Flow scopes and gestures
 
 Node 1.30.0 and Bun 0.19.0 add Flow instance within/scope, inherited root/compass/resultType, branch-local overrides, and press/swipe/gesture/gestures overloads. Search roots are relocated snapshots; stale roots reject instead of widening the search. Result aliases use the core picker table, compass uses the core parser, and projections return data or navigation snapshots rather than Java objects. Node arrays can perform actions on every element. Global gestures retain their input and validate gesture permission before dispatch; cancellation cannot undo strokes already accepted by Android. Scope reads retain the accessibility query grant; gesture actions also use flow.control in Bun. See Documentation api/runtimeApis.md for overloads and type inference. Native Node/Bun payloads and compatibility matrices are unchanged. Physical/package acceptance will be recorded in host docs/dev/runtime-flow-scope-2026-10-21.md.
+
+
+2026-10-22 AI 基础批次: ai/autojs6:ai 与显式 $autojs.ai 提供生成, 流, 目录与持久会话, 支持 Worker 退出清理. 独立打包应用使用 Android AI_RUNTIME 授权入口. AI Agent 任务面另行实施; 验收及边界见宿主 docs/dev/runtime-ai-core-2026-10-22.md.

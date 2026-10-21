@@ -4977,6 +4977,7 @@ std::string buildEmbeddedScriptExecutionSource(
       normalized === "shell.root" ||
       normalized === "shell.shizuku" ||
       normalized === "mail" ||
+      normalized === "ai" ||
       normalized === "epub" ||
       normalized === "speech" ||
       normalized === "tts" ||
@@ -5380,6 +5381,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return ["files"];
     }
     if (moduleName === "mail") return ["mail"];
+    if (moduleName === "ai") return ["ai"];
     if (moduleName === "epub") return ["epub"];
     if (moduleName === "speech") return ["speech"];
     if (moduleName === "tts") return ["tts"];
@@ -8391,8 +8393,10 @@ std::string buildEmbeddedScriptExecutionSource(
         const flowClients=new Set();
         const closeFlow=id=>invoke("flow","close",[id],{permissions:["accessibility"]}).catch(()=>{});
         const mailClients=new Set();
+        const aiClients=new Set();
         const epubClients=new Set();
         const closeMail=id=>invoke("mail","close",[id],{permissions:["mail"]}).catch(()=>{});
+        const closeAi=id=>invoke("ai","close",[id],{permissions:["ai"]}).catch(()=>{});
         const closeEpub=id=>invoke("epub","close",[id],{permissions:["epub"]}).catch(()=>{});
         const speechClients=new Set();
         const closeSpeech=id=>invoke("speech","close",[id],{permissions:["speech"]}).catch(()=>{});
@@ -8438,6 +8442,7 @@ std::string buildEmbeddedScriptExecutionSource(
           shells.clear();
           for(const id of flowClients)closeFlow(id);flowClients.clear();
           for(const id of mailClients)closeMail(id);mailClients.clear();
+          for(const id of aiClients)closeAi(id);aiClients.clear();
           for(const id of epubClients)closeEpub(id);epubClients.clear();
           for(const id of speechClients)closeSpeech(id);speechClients.clear();
           for(const id of ttsClients)closeTts(id);ttsClients.clear();
@@ -8483,6 +8488,7 @@ std::string buildEmbeddedScriptExecutionSource(
             }
             const createsFlow = message.module === "flow" && message.method === "open";
             const createsMail=message.module==="mail" && message.method==="open";
+            const createsAi=message.module==="ai" && message.method==="open";
             const createsEpub=message.module==="epub" && message.method==="open";
             const createsSpeech=message.module==="speech" && message.method==="open";
             const createsTts=message.module==="tts" && message.method==="open";
@@ -8499,7 +8505,7 @@ std::string buildEmbeddedScriptExecutionSource(
             const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "enableDisplayCapture", "startBackgroundRecording", "stopBackgroundRecording", "subscribeViewEvents"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: createsFlow || createsMail || createsEpub || createsSpeech || createsTts || message.module === "java" || createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+              { ...message.options, signal: createsAi || createsFlow || createsMail || createsEpub || createsSpeech || createsTts || message.module === "java" || createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
             if (keepsAwake && (closed || controller.signal.aborted)) {
               await closeDevice(message.args[1]);
               throw Object.assign(new Error("Keeping the screen awake was aborted"),{code:"ABORT_ERR"});
@@ -8512,6 +8518,10 @@ std::string buildEmbeddedScriptExecutionSource(
               if(closed||controller.signal.aborted){await closeMail(value.id);throw Object.assign(new Error("MAIL client creation was aborted"),{code:"ABORT_ERR"});}
               mailClients.add(value.id);
             }else if(message.module==="mail" && message.method==="close")mailClients.delete(message.args[0]);
+            if(createsAi && value && value.id){
+              if(closed||controller.signal.aborted){await closeAi(value.id);throw Object.assign(new Error("AI client creation was aborted"),{code:"ABORT_ERR"});}
+              aiClients.add(value.id);
+            }else if(message.module==="ai" && message.method==="close")aiClients.delete(message.args[0]);
             if(createsEpub && value && value.id){
               if(closed||controller.signal.aborted){await closeEpub(value.id);throw Object.assign(new Error("EPUB client creation was aborted"),{code:"ABORT_ERR"});}
               epubClients.add(value.id);
@@ -8626,7 +8636,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail, createFlow) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail, createFlow, createAi) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8645,6 +8655,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     if(createFlow && methods.flow) modules.set("flow",createFlow(bridgeCall,nativeConsole,JavaAsyncContext));
     if(createMail && methods.mail) modules.set("mail",createMail(bridgeCall));
+    if(createAi && methods.ai) modules.set("ai",createAi(bridgeCall));
     if(createEpub && methods.epub) modules.set("epub",createEpub(bridgeCall));
     if(createSpeech && methods.speech) modules.set("speech",createSpeech(bridgeCall));
     if(createTts && methods.tts) modules.set("tts",createTts(bridgeCall));
@@ -8774,7 +8785,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return result;
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub, createMail, createFlow) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub, createMail, createFlow, createAi) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8866,7 +8877,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail, createFlow);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail, createFlow, createAi);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8992,7 +9003,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ", " + __autojs6_create_flow.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ", " + __autojs6_create_flow.toString() + ", " + __autojs6_create_ai.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -9024,6 +9035,7 @@ std::string buildEmbeddedScriptExecutionSource(
           hostModuleMethods: {
             flow:Object.keys(__autojs6_create_flow(()=>{})),
             mail:Object.keys(__autojs6_create_mail(()=>{})),
+            ai:Object.keys(__autojs6_create_ai(()=>{})),
             epub:Object.keys(__autojs6_create_epub(()=>{})),
             speech:Object.keys(__autojs6_create_speech(()=>{})),
             tts:Object.keys(__autojs6_create_tts(()=>{})),
@@ -14579,6 +14591,7 @@ std::string buildEmbeddedScriptExecutionSource(
       tasks: tasks,
       flow: __autojs6_limited_flow(),
       mail: __autojs6_limited_mail(),
+      ai: __autojs6_limited_ai(),
       epub: __autojs6_limited_epub(),
       speech: __autojs6_limited_speech(),
       tts: __autojs6_limited_tts(),
@@ -14775,6 +14788,7 @@ std::string buildEmbeddedScriptExecutionSource(
       tasks: tasks,
       flow: __autojs6_limited_flow(),
       mail: __autojs6_limited_mail(),
+      ai: __autojs6_limited_ai(),
       epub: __autojs6_limited_epub(),
       speech: __autojs6_limited_speech(),
       tts: __autojs6_limited_tts(),
@@ -16005,6 +16019,220 @@ std::string buildEmbeddedScriptExecutionSource(
 
   let __autojs6_mail_cache = null;
   function __autojs6_limited_mail() { return __autojs6_mail_cache ||= __autojs6_create_mail(__autojs6_call_autojs); }
+
+  // Shared AI facade. Provider calls and events belong to their originating JS runtime.
+  function __autojs6_create_ai(call) {
+    let opening = null, generation = 0, pumping = false;
+    const records = new Map(), pending = new Set(), sessions = new Set();
+    class AiError extends Error {
+      constructor(message = '', code = 'INTERNAL_FAILURE') {
+        super(String(message)); this.name = 'AiError'; this.code = code; this.route = 'plugin';
+      }
+    }
+    const failure = value => value instanceof AiError ? value : new AiError(value?.message || String(value),
+      String(value?.code || 'INTERNAL_FAILURE').replace(/^ERR_AUTOJS6_AI_/, ''));
+    const closedError = () => new AiError('AI client or session is closed', 'SESSION_CLOSED');
+    const raw = (method, args) => Promise.resolve().then(() => call('ai', method, args,
+      {timeoutMs: 10000, permissions: ['ai']})).catch(error => { throw failure(error); });
+    const deferred = () => {
+      let resolve, reject;
+      const promise = new Promise((a, b) => { resolve = a; reject = b; });
+      promise.catch(() => {});
+      return {promise, resolve, reject};
+    };
+    function json(value) {
+      try {
+        return JSON.parse(JSON.stringify(value, (_, item) => {
+          if (typeof item === 'number' && !Number.isFinite(item) || ['function', 'symbol', 'bigint'].includes(typeof item))
+            throw new TypeError('AI arguments must contain finite JSON values');
+          return item;
+        }));
+      } catch (error) { throw new AiError(error.message, 'INVALID_REQUEST'); }
+    }
+    async function client() {
+      if (!opening) {
+        const epoch = generation;
+        const promise = raw('open', []).then(async value => {
+          if (epoch !== generation) { await raw('close', [value.id]); throw closedError(); }
+          return value.id;
+        });
+        opening = promise;
+        promise.catch(() => { if (opening === promise) opening = null; });
+      }
+      return opening;
+    }
+    function forget(record) {
+      pending.delete(record); if (record.id) records.delete(record.id);
+      record.cleanup?.(); record.fragments = [];
+    }
+    function emit(record, name, ...args) {
+      if (!record.listeners) return;
+      for (const entry of [...(record.listeners.get(name) || [])]) {
+        if (entry.once) record.listeners.set(name, (record.listeners.get(name) || []).filter(item => item !== entry));
+        entry.listener(...args);
+      }
+    }
+    function settle(record, error, value, cancelled = false) {
+      if (record.settled) return;
+      record.settled = true; forget(record);
+      let listenerFailed = false;
+      if (record.stream) {
+        record.state = cancelled ? 'cancelled' : error ? 'error' : 'done';
+        error ? record.ready.reject(error) : record.ready.resolve(record.stream);
+        try { emit(record, cancelled ? 'cancelled' : error ? 'error' : 'done', ...(cancelled ? [] : [error || value])); }
+        catch (listenerError) { error = listenerError; listenerFailed = true; record.state = 'error'; }
+      }
+      if (record.owner && record.id && !cancelled) {
+        if (listenerFailed && record.session) record.session.closed = true;
+        raw(listenerFailed ? 'cancel' : 'ack', [record.owner, record.id]).catch(() => {});
+      }
+      error ? record.result.reject(error) : record.result.resolve(value);
+    }
+    function cancel(record, error = new AiError('AI operation cancelled', 'CANCELLED')) {
+      if (record.settled) return;
+      if (record.session && record.owner) record.session.closed = true;
+      settle(record, error, undefined, true);
+      if (record.owner && record.id) raw('cancel', [record.owner, record.id]).catch(() => {});
+    }
+    function makeStream(record) {
+      record.listeners = new Map(); record.ready = deferred(); record.state = 'created';
+      const stream = {};
+      Object.defineProperties(stream, {
+        state: {enumerable: true, get: () => record.state},
+        isDone: {enumerable: true, get: () => record.settled},
+        ready: {enumerable: true, value: record.ready.promise},
+        result: {enumerable: true, value: record.result.promise}
+      });
+      for (const method of ['on', 'once']) stream[method] = (name, listener) => {
+        if (typeof listener !== 'function') throw new TypeError('AI listener must be a function');
+        record.listeners.set(name, [...(record.listeners.get(name) || []), {listener, once: method === 'once'}]);
+        return stream;
+      };
+      stream.addListener = stream.on;
+      stream.off = stream.removeListener = (name, listener) => {
+        record.listeners.set(name, (record.listeners.get(name) || []).filter(item => item.listener !== listener)); return stream;
+      };
+      stream.removeAllListeners = name => { name === undefined ? record.listeners.clear() : record.listeners.delete(name); return stream; };
+      stream.listenerCount = name => (record.listeners.get(name) || []).length;
+      stream.cancel = () => { cancel(record); return stream; };
+      record.stream = stream;
+      return stream;
+    }
+    function makeSession(value, epoch) {
+      const record = {closed: false}; sessions.add(record);
+      const session = {};
+      for (const name of ['provider', 'model', 'target', 'profile', 'backend'])
+        Object.defineProperty(session, name, {enumerable: true, value: value[name] ?? null});
+      Object.defineProperties(session, {
+        isClosed: {enumerable: true, get: () => record.closed || epoch !== generation},
+        state: {enumerable: true, get: () => session.isClosed ? 'closed' : 'ready'}
+      });
+      for (const name of ['ask', 'chat', 'stream']) session[name] = (prompt, options) => {
+        const result = run('session.' + name, [value.id, prompt], options, name === 'stream', record,
+          session.isClosed ? closedError() : null);
+        return result;
+      };
+      session.close = async () => {
+        if (session.isClosed) return;
+        record.closed = true; sessions.delete(record);
+        await run('session.close', [value.id]);
+      };
+      return Object.freeze(session);
+    }
+    function accept(record, event) {
+      if (record.settled) return;
+      if (event.type === 'sessionClosed') { if (record.session) record.session.closed = true; return; }
+      if (event.type === 'reject') { settle(record, failure(event.value)); return; }
+      if (event.type === 'resolve') {
+        settle(record, null, record.method === 'session' ? makeSession(event.value, record.epoch) : event.value); return;
+      }
+      if (!record.stream) return;
+      if (event.type === 'open') { record.state = 'open'; record.ready.resolve(record.stream); emit(record, 'open', event.value); }
+      else if (event.type === 'chunk') {
+        record.state = 'open'; emit(record, 'chunk', event.value);
+        if (!record.settled) emit(record, 'delta', event.value.text, event.value);
+      } else if (event.type === 'usage') emit(record, 'usage', event.value);
+    }
+    async function pump() {
+      if (pumping) return;
+      pumping = true;
+      try {
+        while (records.size) {
+          const grouped = new Map();
+          for (const record of records.values()) grouped.set(record.owner, [...(grouped.get(record.owner) || []), record.id]);
+          for (const [owner, ids] of grouped) {
+            let packets;
+            try { packets = await raw('poll', [owner, ids]); }
+            catch (error) { for (const id of ids) { const record = records.get(id); if (record) cancel(record, error); } continue; }
+            for (const packet of packets) {
+              const record = records.get(packet.id); if (!record || record.owner !== owner) continue;
+              try {
+                record.fragments.push(Buffer.from(packet.data, 'base64'));
+                if (packet.last) {
+                  const event = JSON.parse(Buffer.concat(record.fragments).toString('utf8')); record.fragments = [];
+                  accept(record, event);
+                }
+              } catch (error) { cancel(record, failure(error)); }
+            }
+          }
+          if (records.size) await new Promise(resolve => setTimeout(resolve, 40));
+        }
+      } finally { pumping = false; if (records.size) pump(); }
+    }
+    function run(method, args, options, streaming = false, session = null, initialError = null) {
+      const record = {method, epoch: generation, result: deferred(), fragments: [], settled: false, session};
+      const result = streaming ? makeStream(record) : record.result.promise;
+      pending.add(record);
+      try {
+        if (initialError) throw initialError;
+        const input = json(args);
+        options ??= {};
+        if (typeof options !== 'object' || Array.isArray(options)) throw new TypeError('AI call options must be an object');
+        const {signal, timeoutMs} = options;
+        if (signal != null && (typeof signal.addEventListener !== 'function' || typeof signal.removeEventListener !== 'function'))
+          throw new TypeError('AI signal must be an AbortSignal');
+        if (timeoutMs != null && (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2147483647))
+          throw new TypeError('AI timeoutMs must be positive and at most 2147483647');
+        const abort = () => cancel(record);
+        const timer = timeoutMs == null ? null : setTimeout(() => cancel(record, new AiError('AI operation timed out', 'TIMEOUT')), timeoutMs);
+        record.cleanup = () => { if (timer != null) clearTimeout(timer); signal?.removeEventListener('abort', abort); };
+        signal?.addEventListener('abort', abort, {once: true});
+        if (signal?.aborted) { cancel(record); return result; }
+        Promise.resolve().then(async () => {
+          if (record.settled) return;
+          const owner = await client(); record.owner = owner;
+          if (record.settled || record.epoch !== generation) { cancel(record, closedError()); return; }
+          const value = await raw('start', [owner, method, input]); record.id = value.id;
+          if (record.settled || record.epoch !== generation) {
+            await raw('cancel', [owner, value.id]); cancel(record, closedError()); return;
+          }
+          records.set(value.id, record); pump();
+        }).catch(error => settle(record, failure(error)));
+      } catch (error) { settle(record, failure(error)); }
+      return result;
+    }
+    const ai = (input, options, callOptions) => run('ask', [input, options], callOptions);
+    Object.assign(ai, {AiError, ask: ai,
+      chat: (input, options, callOptions) => run('chat', [input, options], callOptions),
+      stream: (input, options, callOptions) => run('stream', [input, options], callOptions, true),
+      session: (options, callOptions) => run('session', [options], callOptions),
+      catalog: (options, callOptions) => run('catalog', [options], callOptions),
+      hasAccess: options => run('hasAccess', [], options),
+      requestAccess: options => run('requestAccess', [], options),
+      close: async () => {
+        const previous = opening; opening = null; generation++;
+        for (const record of [...pending]) cancel(record, closedError());
+        for (const record of sessions) record.closed = true;
+        sessions.clear();
+        return previous ? previous.then(owner => raw('close', [owner]), () => false) : false;
+      }
+    });
+    return Object.freeze(ai);
+  }
+  // End shared AI facade.
+
+  let __autojs6_ai_cache = null;
+  function __autojs6_limited_ai() { return __autojs6_ai_cache ||= __autojs6_create_ai(__autojs6_call_autojs); }
 
   // Shared EPUB facade. Operations and reader callbacks stay on the owning JS thread.
   function __autojs6_create_epub(call) {
@@ -29078,6 +29306,7 @@ std::string buildEmbeddedScriptExecutionSource(
     android: function() { return __autojs6_limited_android(); },
     flow: function() { return __autojs6_limited_flow(); },
     mail: function() { return __autojs6_limited_mail(); },
+    ai: function() { return __autojs6_limited_ai(); },
     epub: function() { return __autojs6_limited_epub(); },
     speech: function() { return __autojs6_limited_speech(); },
     tts: function() { return __autojs6_limited_tts(); },

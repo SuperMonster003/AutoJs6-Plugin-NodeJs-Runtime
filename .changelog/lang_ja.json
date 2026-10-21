@@ -5,6 +5,12 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v1.31.0": {
+      "released_date": "2026/10/22",
+      "feature": [
+        "Node.js, Bun と Worker の AI テキスト生成, ストリーミング, モデル一覧と永続セッション, キャンセルとパッケージアプリの Android アクセス許可に対応"
+      ]
+    },
     "v1.30.0": {
       "released_date": "2026/10/21",
       "feature": [

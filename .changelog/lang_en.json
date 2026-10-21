@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.31.0": {
+      "released_date": "2026/10/22",
+      "feature": [
+        "AI text generation, streaming, model catalog and persistent sessions for Node.js, Bun and Workers, with cancellation and Android authorization for packaged apps"
+      ]
+    },
     "v1.30.0": {
       "released_date": "2026/10/21",
       "feature": [
