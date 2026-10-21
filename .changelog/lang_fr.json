@@ -8,7 +8,7 @@
     "v1.31.0": {
       "released_date": "2026/10/22",
       "feature": [
-        "Génération de texte IA, flux, catalogue de modèles et sessions persistantes pour Node.js, Bun et Workers, avec annulation et autorisation Android des applications générées"
+        "Génération de texte IA, flux, catalogue de modèles et sessions persistantes pour Node.js, Bun et Workers, avec annulation et consentement par application dans 3-Stone AI"
       ]
     },
     "v1.30.0": {

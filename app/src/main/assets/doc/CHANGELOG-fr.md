@@ -8,7 +8,7 @@
 
 ###### 2026/10/22
 
-* `Ajout` Génération de texte IA, flux, catalogue de modèles et sessions persistantes pour Node.js, Bun et Workers, avec annulation et autorisation Android des applications générées
+* `Ajout` Génération de texte IA, flux, catalogue de modèles et sessions persistantes pour Node.js, Bun et Workers, avec annulation et consentement par application dans 3-Stone AI
 
 # v1.30.0
 

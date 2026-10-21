@@ -8,7 +8,7 @@
     "v1.31.0": {
       "released_date": "2026/10/22",
       "feature": [
-        "Generación de texto con IA, transmisión, catálogo de modelos y sesiones persistentes para Node.js, Bun y Workers, con cancelación y autorización Android de aplicaciones empaquetadas"
+        "Generación de texto con IA, transmisión, catálogo de modelos y sesiones persistentes para Node.js, Bun y Workers, con cancelación y consentimiento por aplicación en 3-Stone AI"
       ]
     },
     "v1.30.0": {
