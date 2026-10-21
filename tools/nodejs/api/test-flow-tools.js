@@ -130,3 +130,27 @@ test('Invalid delayed-click arguments do not create an unreachable polling chain
   for(const delay of [undefined,-1,[3,2],[1,2,3]])assert.throws(()=>flow.clickWhenStableAfter('ready',{delay}));
   assert.equal(flow.pending,0);
 });
+
+test('Gesture actions preserve their input and callbacks, snapshot arguments and require only gesture capability',async()=>{
+  const seen=[], f=fixture(task=>{seen.push(task);return true;});
+  try {
+    const point=[10,20], original={token:'kept'};
+    const pending=f.flow.of(original).press(point,100,value=>({...value,callback:true}));point[0]=99;
+    assert.deepEqual(await pending,{token:'kept',callback:true});assert.deepEqual(seen[0].args,['press',[[10,20],100]]);
+    assert.strictEqual(await f.flow.of(original).swipe([10,20],[30,40],200),original);
+    assert.strictEqual(await f.flow.of(original).gesture(200,[[10,20],[30,40]]),original);
+    assert.strictEqual(await f.flow.of(original).gestures([200,[10,20],[30,40]],[50,100,[40,50]]),original);
+    for(const call of f.calls.filter(call=>call.method==='start'))assert.deepEqual(call.opts.permissions,['accessibility','accessibility.gesture']);
+    assert.throws(()=>f.flow.of(0).press());
+  }finally{await f.flow.dispose();}
+});
+
+test('Scoped tools inherit the chain root while explicit root wins and projections stay local to waits',async()=>{
+  const seen=[], f=fixture(task=>{seen.push(task);return null;});
+  try {
+    const other={...node,indexInParent:1}, scoped=f.flow.of(node).scope({root:node,compass:'p',resultType:'text'});
+    await scoped.findAny(['child']);assert.deepEqual(seen[0].options.root,{__flowNode:node});assert.equal(seen[0].options.compass,undefined);
+    await scoped.findAny(['child'],{root:other});assert.deepEqual(seen[1].options.root,{__flowNode:other});
+    await f.flow.of([node,other]).click();assert.deepEqual(seen[2].args[0],[{__flowNode:node},{__flowNode:other}]);
+  }finally{await f.flow.dispose();}
+});

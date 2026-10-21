@@ -4,6 +4,12 @@
 
 ******
 
+# v1.30.0
+
+###### 2026/10/21
+
+* `추가` Node.js, Bun 및 Worker의 Flow within/scope 검색 범위 상속, 나침반 탐색 및 결과 투영과 press/swipe/gesture/gestures 오버로드
+
 # v1.29.0
 
 ###### 2026/10/21

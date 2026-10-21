@@ -122,6 +122,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.30.0
+
+###### 2026/10/21
+
+* `Nuevo` Flow within/scope para Node.js, Bun y Workers, con raíces de búsqueda heredadas, navegación por brújula, proyecciones tipadas y sobrecargas press/swipe/gesture/gestures
+
 # v1.29.0
 
 ###### 2026/10/21
@@ -133,12 +139,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 ###### 2026/10/21
 
 * `Nuevo` Cadenas asíncronas flow y esperas de condición/estabilidad para Node.js, Bun y Workers, con cancelación de ramas, reintentos por paso e instantáneas de la interfaz del anfitrión
-
-# v1.27.0
-
-###### 2026/10/21
-
-* `Nuevo` Node.js/Worker: Conexiones de correo, mensajes, adjuntos y vigilancia de buzones, con cancelación y limpieza de Workers
 
 ##### Para mas historial de versiones
 

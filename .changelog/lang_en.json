@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.30.0": {
+      "released_date": "2026/10/21",
+      "feature": [
+        "Flow within/scope with inherited search roots, compass navigation and typed result projections, plus press/swipe/gesture/gestures overloads for Node.js, Bun and Workers"
+      ]
+    },
     "v1.29.0": {
       "released_date": "2026/10/21",
       "feature": [

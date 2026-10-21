@@ -46,3 +46,22 @@ async function verifyPublicEntry(): Promise<void> {
     fetchRequest, axiosError, inspectorEnabled, processPermissions, ratioCoordinate];
 }
 void verifyPublicEntry;
+
+// Scope projections retain their result type across callbacks and gestures.
+import scopeFlow = require("autojs6:flow");
+async function checkFlowScopesAndGestures() {
+  const context = scopeFlow.of(7).scope({resultType: "text"});
+  const text: string = await context.map(async value => value + 1).sleep(1).wait({text: "ready"});
+  const points: scopeFlow.PointValue[] = await context.wait({text: "ready"}, {resultType: "points"});
+  const stillText: string = await context.wait({text: "ready"});
+  const first: scopeFlow.NodeSnapshot = await scopeFlow.wait({desc: "container"}, {resultType: ["child", 0]});
+  const nodes: scopeFlow.NodeSnapshot[] = await scopeFlow.wait({text: "ready"}, {resultType: ["#"]});
+  const acted: scopeFlow.NodeSnapshot[] | false = await scopeFlow.of(nodes).click();
+  const kept: number = await scopeFlow.of(7).press([10, 20], 100).swipe(200, [[10, 20], [30, 40]]).gesture(200, [10, 20, 30, 40]).gestures([200, [10, 20]], [20, 200, [30, 40]]);
+  const callback: string = await scopeFlow.of(7).press(10, 20, value => value.toFixed());
+  const swipeCallback: string = await scopeFlow.of(7).swipe([10, 20], [30, 40], 200, value => value.toFixed());
+  const gestureCallback: string = await scopeFlow.of(7).gesture(200, [10, 20], [30, 40], value => value.toFixed());
+  const strokesCallback: string = await scopeFlow.of(7).gestures([200, [10, 20]], value => value.toFixed());
+  const withinCallback: string = await scopeFlow.of(7).within({text: "ready"}, node => node.text);
+  return {text, points, stillText, first, acted, kept, callback};
+}

@@ -15007,7 +15007,7 @@ std::string buildEmbeddedScriptExecutionSource(
     function make(step, parent, execute, acceptsError = false, rerunnable = true) {
       const handle = Object.create(Flow.prototype), controller = new AbortController();
       const r = {handle, step, parent, execute, acceptsError, rerunnable, controller, state: 'pending', value: undefined,
-        error: undefined, started: clock(), deadline: Infinity, cleanups: new Set(), children: new Set(), owned: new Set(), tracing: defaults.trace};
+        error: undefined, started: clock(), deadline: Infinity, scope: {}, cleanups: new Set(), children: new Set(), owned: new Set(), tracing: defaults.trace};
       r.promise = new Promise((resolve, reject) => { r.resolve = resolve; r.reject = reject; });
       // Flow rejections may be observed later through state/error, retry, catch or toPromise.
       r.promise.catch(() => {});
@@ -15020,7 +15020,7 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       async function start() {
         if (r.state !== 'pending') return;
-        r.started = clock(); r.deadline = parent?.deadline ?? Infinity;
+        r.started = clock(); r.deadline = parent?.deadline ?? Infinity; r.scope = {...parent?.scope};
         const input = parent ? {ok: parent.state === 'fulfilled', value: parent.state === 'fulfilled' ? parent.value : parent.error} : {ok: true, value: undefined};
         r.input = input;
         if (!input.ok && !acceptsError) { settle(r, false, input.value); return; }
@@ -15078,6 +15078,23 @@ std::string buildEmbeddedScriptExecutionSource(
         own(r.handle).deadline = Math.min(r.deadline, clock() + ms); return input.value;
       }, false, false);
     });
+    const scopeKeys = ['root', 'compass', 'resultType'];
+    const isNode = value => value && typeof value === 'object' && Number.isInteger(value.windowId) &&
+      Number.isInteger(value.indexInParent) && value.bounds && typeof value.packageName === 'string';
+    function scopeOptions(value) {
+      const scope = {};
+      if (value.root != null) { if (!isNode(value.root)) throw new TypeError('Flow scope root must be a node snapshot'); scope.root = capture(value.root); }
+      if (value.compass != null) { if (typeof value.compass !== 'string') throw new TypeError('Flow compass must be a string'); scope.compass = value.compass; }
+      if (value.resultType != null) {
+        if (typeof value.resultType !== 'string' && !Array.isArray(value.resultType)) throw new TypeError('Flow resultType must be a string or an array');
+        scope.resultType = capture(value.resultType);
+      }
+      return scope;
+    }
+    method('scope', function(value) {
+      const update = scopeOptions(object(value, scopeKeys));
+      return make('scope', own(this), (r, input) => { own(r.handle).scope = {...r.scope, ...update}; return input.value; }, false, false);
+    });
     method('retry', function(times = 1, delay = 0) {
       integer(times, 'times'); number(delay, 'delay'); const target = own(this);
       return make('retry', target, async (r, input) => {
@@ -15103,7 +15120,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const remaining = [...args];
       let value = {};
       if (remaining[0] != null && typeof remaining[0] === 'object') {
-        value = object(remaining.shift(), ['timeout', 'interval', 'times', 'stableFor', 'compare', 'snapshot', 'missing', 'recoverService', ...extra]);
+        value = object(remaining.shift(), ['timeout', 'interval', 'times', 'stableFor', 'compare', 'snapshot', 'missing', 'recoverService', ...scopeKeys, ...extra]);
       } else {
         for (const key of ['timeout', 'interval']) if (remaining.length && typeof remaining[0] !== 'function') {
           const item = remaining.shift(); if (item != null) value[key] = item;
@@ -15119,9 +15136,9 @@ std::string buildEmbeddedScriptExecutionSource(
       if (!['fingerprint', 'bounds', 'content'].includes(p.compare) && typeof p.compare !== 'function') throw new TypeError('Invalid stability comparator');
       if (!['reset', 'fail'].includes(p.missing)) throw new TypeError('Invalid missing policy');
       if (typeof p.recoverService !== 'boolean') throw new TypeError('recoverService must be a boolean');
-      return {p, callbacks};
+      return {p: {...p, ...scopeOptions(value)}, callbacks};
     }
-    function condition(value, name) {
+    function condition(value, name, scope = {}) {
       if (name === 'waitForActivity' || name === 'waitForPackage') {
         if (typeof value !== 'string' || !value) throw new TypeError('Expected a non-empty component name');
         return {description: value, async probe(r) {
@@ -15144,13 +15161,16 @@ std::string buildEmbeddedScriptExecutionSource(
       else if (value && typeof value === 'object' && !Array.isArray(value)) selector = JSON.parse(JSON.stringify(value,(_,v)=>v instanceof RegExp?{pattern:v.source,flags:v.flags}:v));
       else throw new TypeError('Expected a predicate, Promise, selector descriptor, string or RegExp');
       return {description: JSON.stringify(selector), async probe(r) {
-        const result = await query(r, 'flowProbe', [selector]); return {found: result !== null, value: result};
+        const effective = isNode(selector) ? {} : {...r.scope, ...scope};
+        const args = Object.keys(effective).length || isNode(selector) ? [selector, effective] : [selector];
+        const result = await query(r, 'flowProbe', args); return {found: result !== null, value: result};
       }};
     }
     async function query(r, method, args) {
       const result = await waitPromise(r, call('accessibility', method, args, {permissions: ['accessibility'], timeoutMs: 10000, signal: r.controller.signal}));
       if (typeof result?.available !== 'boolean') throw new TypeError('Unsupported host: Flow queries require the matching AutoJs6 host');
       if (!result.available) throw failure(r, 'A11Y_UNAVAILABLE');
+      if (result.error) throw Object.assign(FlowError(result.error.code, r.step), result.error);
       return result.value;
     }
     function snapshot(value, seen = new Set()) {
@@ -15200,8 +15220,15 @@ std::string buildEmbeddedScriptExecutionSource(
       });
     }
     function wait(parent, name, value, args) {
-      const {p, callbacks} = options(args), cond = condition(value, name);
-      let handle = make(name, parent, r => polling(r, cond, p, name));
+      const {p, callbacks} = options(args), cond = condition(value, name, scopeOptions(p));
+      let handle = make(name, parent, async r => {
+        const found = await polling(r, cond, p, name);
+        if (name === 'within') {
+          if (!isNode(found)) throw failure(r, 'INVALID_TARGET', 'within requires a node snapshot');
+          own(r.handle).scope = {...r.scope, root: capture(found)};
+        }
+        return found;
+      });
       if (callbacks.length) handle = handle.then(...callbacks);
       return handle;
     }
@@ -15213,12 +15240,13 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     flow.waitAsync = flow.wait; flow.waitForGone = flow.waitForHidden;
     method('waitForGone', Flow.prototype.waitForHidden);
+    method('within', function(value, ...args) { return wait(own(this), 'within', value, args); });
     function whenPresent(parent, value, callback, opts = {}) {
-      fn(callback); const {p} = options([object(opts, ['timeout', 'interval', 'times', 'recoverService'])]); condition(value, 'wait');
+      fn(callback); const {p} = options([object(opts, ['timeout', 'interval', 'times', 'recoverService', ...scopeKeys])]); condition(value, 'wait');
       return make('whenPresent', parent, async (r, input) => {
         let found;
         // Optional absence is a recoverable result, so its local deadline must not settle the chain.
-        const child = wait(null, 'wait', value, [{timeout: p.timeout, interval: p.interval, times: p.times, recoverService: p.recoverService}]); const childRecord = own(child); r.owned.add(childRecord);
+        const child = wait(null, 'wait', value, [{timeout: p.timeout, interval: p.interval, times: p.times, recoverService: p.recoverService, ...r.scope, ...scopeOptions(p)}]); const childRecord = own(child); r.owned.add(childRecord);
         try { found = await waitPromise(r, child); }
         catch (error) { if (error?.code === 'TIMEOUT' && error.reason !== 'chain') return input.value; throw error; }
         finally { r.owned.delete(childRecord); if (childRecord.state === 'pending') child.cancel(); }
@@ -15228,10 +15256,10 @@ std::string buildEmbeddedScriptExecutionSource(
     flow.whenPresent = (value, callback, opts) => whenPresent(null, value, callback, opts);
     method('whenPresent', function(value, callback, opts) { return whenPresent(own(this), value, callback, opts); });
     function repeatUntil(parent, action, value, opts = {}) {
-      fn(action); object(opts, ['timeout', 'interval', 'maxAttempts', 'retryOn']);
+      fn(action); object(opts, ['timeout', 'interval', 'maxAttempts', 'retryOn', ...scopeKeys]);
       const timeout = number(opts.timeout ?? defaults.timeout, 'timeout'), interval = number(opts.interval ?? defaults.interval, 'interval');
       const max = integer(opts.maxAttempts ?? 0, 'maxAttempts'); if (opts.retryOn != null) fn(opts.retryOn);
-      const cond = condition(value, 'wait');
+      const cond = condition(value, 'wait', scopeOptions(opts));
       return make('repeatUntil', parent, async outer => {
         const start = clock(); let attempts = 0;
         return bounded(outer, timeout, () => failure(outer, 'TIMEOUT', 'timeout', attempts), async r => {
@@ -15311,7 +15339,10 @@ std::string buildEmbeddedScriptExecutionSource(
         if (args[1] === 'clickBounds') caps.add('accessibility.gesture');
         if (['copy', 'cut', 'paste'].includes(args[1]) || args[1] === 'performAction' && [16384, 32768, 65536].includes(args[2][0])) caps.add('clipboard');
       }
-      if (name === 'globalAction' && !['back', 'home', 'recents'].includes(args[0])) caps.add('keys');
+      if (name === 'globalAction') {
+        if (gestureNames.includes(args[0])) caps.add('accessibility.gesture');
+        else if (!['back', 'home', 'recents'].includes(args[0])) caps.add('keys');
+      }
       return [...caps];
     };
     const rpc = (method, args, permissions = ['accessibility']) => call('flow', method, args, {permissions, timeoutMs: 10000});
@@ -15462,7 +15493,8 @@ std::string buildEmbeddedScriptExecutionSource(
       const budget=number(opts.timeout??fallback,'timeout',true)||fallback||10000;
       let handle=make(name,parent,async(r,input)=>{
         const actual=parent&&inputTools.has(name)?[input.value,...args]:args;
-        const plan=name==='scrollUntil'&&parent&&opts.container==null?{...opts,container:input.value}:opts;
+        let plan=name==='scrollUntil'&&parent&&opts.container==null?{...opts,container:input.value}:opts;
+        if (name !== 'launchAndWait' && plan.root == null && r.scope.root != null) plan = {...plan, root:r.scope.root};
         const value=await bounded(r,budget,()=>failure(r,'TIMEOUT','operation'),local=>native(local,name,actual,plan,budget));
         return name==='dismissPopups'&&parent?input.value:value;
       });
@@ -15473,20 +15505,22 @@ std::string buildEmbeddedScriptExecutionSource(
       method(name,function(...args){return tool(own(this),name,args);});
     }
     const nodeActions={click:[0,0],longClick:[0,0],clickBounds:[0,2],setText:[1,1],appendText:[1,1],clear:[0,0],paste:[0,0],copy:[0,0],cut:[0,0],select:[0,0],focus:[0,0],clearFocus:[0,0],scrollForward:[0,0],scrollBackward:[0,0],scrollUp:[0,0],scrollDown:[0,0],scrollLeft:[0,0],scrollRight:[0,0],expand:[0,0],collapse:[0,0],dismiss:[0,0],show:[0,0],contextClick:[0,0],imeEnter:[0,0],performAction:[1,2]};
+    const gestureNames = ['press','swipe','gesture','gestures'];
+    const gestureArity = {press:[1,3], swipe:[2,5], gesture:[2,Infinity], gestures:[1,Infinity]};
     function action(parent,name,all,strict=defaults.strictActions,humanize=capture(defaults.humanize),global=false) {
       const rest=[...all], cb=[];
       while(rest.length&&typeof rest[rest.length-1]==='function')cb.unshift(rest.pop()); callbacks(cb);
-      const args=capture(rest), range=global?[0,0]:nodeActions[name];
+      const args=capture(rest), range=global?(gestureArity[name]??[0,0]):nodeActions[name];
       if(args.length<range[0]||args.length>range[1])throw new TypeError('Wrong number of arguments for '+name);
       const budget=defaults.timeout||10000;
       let handle=make(name,parent,async(r,input)=>{
-        const result=await bounded(r,budget,()=>failure(r,'TIMEOUT','operation'),local=>native(local,global?'globalAction':'nodeAction',global?[name]:[input.value,name,args],{strict,humanize},budget));
+        const result=await bounded(r,budget,()=>failure(r,'TIMEOUT','operation'),local=>native(local,global?'globalAction':'nodeAction',global?[name,args]:[input.value,name,args],{strict,humanize},budget));
         return global?input.value:result;
       });
       if(cb.length)handle=handle.then(...cb);return handle;
     }
     for(const name of Object.keys(nodeActions))method(name,function(...args){return action(own(this),name,args);});
-    for(const name of ['back','home','recents','notifications','quickSettings','powerDialog','splitScreen','lockScreen','takeScreenshot','dismissNotificationShade'])
+    for(const name of ['back','home','recents','notifications','quickSettings','powerDialog','splitScreen','lockScreen','takeScreenshot','dismissNotificationShade',...gestureNames])
       method(name,function(...args){return action(own(this),name,args,defaults.strictActions,capture(defaults.humanize),true);});
     for(const name of ['click','clickBounds','longClick'])method(name+'After',function(min,max){return action(own(sleep(own(this),min,max)),name,[]);});
     const clickWaits={waitThenClick:['wait','click'],waitThenClickBounds:['wait','clickBounds'],waitThenLongClick:['wait','longClick'],
@@ -15508,7 +15542,7 @@ std::string buildEmbeddedScriptExecutionSource(
         number(pair[0],'delayMin');number(pair[1]??pair[0],'delayMax');
         if((pair[1]??pair[0])<pair[0])throw new RangeError('delayMax must be at least delayMin');
       }
-      const cond=condition(value,kind);let handle=make(name,parent,r=>polling(r,cond,p,kind));
+      const cond=condition(value,kind,scopeOptions(p));let handle=make(name,parent,r=>polling(r,cond,p,kind));
       if(after)handle=sleep(own(handle),...pair);
       handle=action(own(handle),act,[],strict,capture(defaults.humanize));if(cb.length)handle=handle.then(...cb);return handle;
     }

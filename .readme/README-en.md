@@ -122,6 +122,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.30.0
+
+###### 2026/10/21
+
+* `Feature` Flow within/scope with inherited search roots, compass navigation and typed result projections, plus press/swipe/gesture/gestures overloads for Node.js, Bun and Workers
+
 # v1.29.0
 
 ###### 2026/10/21
@@ -133,12 +139,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/21
 
 * `Feature` Flow asynchronous chains and condition/stability waits for Node.js, Bun and Workers, with branch cancellation, step retries and host UI snapshots
-
-# v1.27.0
-
-###### 2026/10/21
-
-* `Feature` Node.js/Worker: Mail account connections, message operations, attachments and mailbox watches, with cancellation and Worker cleanup
 
 ##### For more release history
 

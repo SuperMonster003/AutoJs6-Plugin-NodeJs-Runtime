@@ -122,6 +122,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.30.0
+
+###### 2026/10/21
+
+* `新增` Node.js, Bun 与 Worker 的 Flow within/scope 范围继承, 罗盘导航和结果投影, 以及 press/swipe/gesture/gestures 手势重载
+
 # v1.29.0
 
 ###### 2026/10/21
@@ -133,12 +139,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/21
 
 * `新增` Node.js, Bun 及 Worker 的 flow 异步链与条件/稳定性等待, 支持分支取消, 单步骤重试及宿主界面快照
-
-# v1.27.0
-
-###### 2026/10/21
-
-* `新增` Node.js/Worker: 邮件账户连接, 邮件操作, 附件与邮箱监听, 支持取消及 Worker 退出清理
 
 ##### 更多发行历史可参阅
 

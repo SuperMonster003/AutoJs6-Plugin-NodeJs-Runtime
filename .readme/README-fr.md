@@ -122,6 +122,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.30.0
+
+###### 2026/10/21
+
+* `Ajout` Flow within/scope pour Node.js, Bun et les Workers, avec racines de recherche héritées, navigation par boussole, projections typées et surcharges press/swipe/gesture/gestures
+
 # v1.29.0
 
 ###### 2026/10/21
@@ -133,12 +139,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 ###### 2026/10/21
 
 * `Ajout` Chaînes asynchrones flow et attentes de condition/stabilité pour Node.js, Bun et Workers, avec annulation des branches, reprise des étapes et instantanés de l'interface hôte
-
-# v1.27.0
-
-###### 2026/10/21
-
-* `Ajout` Node.js/Worker: Connexions aux comptes mail, messages, pièces jointes et surveillance des boîtes, avec annulation et nettoyage des Workers
 
 ##### Pour plus d'historique des versions
 

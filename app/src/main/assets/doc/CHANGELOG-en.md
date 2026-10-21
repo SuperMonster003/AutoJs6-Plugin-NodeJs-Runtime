@@ -4,6 +4,12 @@
 
 ******
 
+# v1.30.0
+
+###### 2026/10/21
+
+* `Feature` Flow within/scope with inherited search roots, compass navigation and typed result projections, plus press/swipe/gesture/gestures overloads for Node.js, Bun and Workers
+
 # v1.29.0
 
 ###### 2026/10/21

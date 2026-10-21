@@ -37,6 +37,44 @@ test('Defaults are validated atomically and captured when each step is created',
   flow.defaults({timeout: 1000, interval: 1}); const step = flow.wait(() => true); flow.defaults({timeout: 0}); assert.equal(await step, true);
   assert.equal(flow.wait, flow.waitAsync); assert.equal(flow.sleep, flow.delay); assert.equal(flow.waitForHidden, flow.waitForGone);
 });
+
+test('Scope inherits after settlement, captures inputs and isolates sibling branches', async () => {
+  const seen=[], root={windowId:7,indexInParent:0,packageName:'fixture',bounds:{left:0,top:0,right:90,bottom:90}};
+  const flow=create(async(module,method,args)=>{seen.push(args);return {available:true,value:args[1]?.resultType==='text'?'inside':root};});
+  const options={root,compass:'p',resultType:'text'};
+  const base=flow.of('input'), scoped=base.scope(options);options.root.bounds.right=5;options.compass='c0';
+  assert.equal(await scoped,'input');assert.equal(await scoped.wait('row'),'inside');
+  assert.equal(seen[0][1].root.bounds.right,90);assert.equal(seen[0][1].compass,'p');
+  await base.wait('outside');assert.equal(seen[1].length,1);
+  await scoped.wait('override',{compass:'%',resultType:'#'});
+  assert.equal(seen[2][1].compass,'%');assert.equal(seen[2][1].resultType,'#');
+  await scoped.scope({root:null,compass:null}).wait('still scoped');assert.equal(seen[3][1].compass,'p');
+  await scoped.wait('later');assert.equal(seen[4][1].resultType,'text');
+  assert.throws(()=>base.scope({root:{}}));assert.throws(()=>base.scope({compass:42}));assert.throws(()=>base.scope({resultType:42}));
+});
+
+test('Within updates only its branch root; polling helpers retain that root', async () => {
+  const root={windowId:8,indexInParent:0,packageName:'fixture',bounds:{left:0,top:0,right:90,bottom:90}}, seen=[];
+  const flow=create(async(module,method,args)=>{seen.push(args);return {available:true,value:root};});
+  const base=flow.of(0), scoped=base.within('container',value=>value);
+  assert.deepEqual(await scoped,root);
+  await scoped.sleep(1).wait('child');assert.deepEqual(seen.at(-1)[1].root,root);
+  let optional;
+  await scoped.whenPresent('optional',value=>{optional=value;});assert.deepEqual(optional,root);assert.deepEqual(seen.at(-1)[1].root,root);
+  await scoped.repeatUntil(()=>{throw Error('already found');},'done');assert.deepEqual(seen.at(-1)[1].root,root);
+  await base.wait('global');assert.equal(seen.at(-1).length,1);
+  await rejects(base.within(()=>42),'INVALID_TARGET');
+  const cancelled=base.within(()=>false,{interval:1});cancelled.cancel();await rejects(cancelled,'CANCELLED');
+});
+
+test('Scoped host failures retain Flow error information and direct snapshots request relocation',async()=>{
+  const root={windowId:9,indexInParent:0,packageName:'fixture',bounds:{left:0,top:0,right:90,bottom:90}};
+  const flow=create(async(module,method,args)=>{
+    assert.equal(args.length,2);return {available:true,error:{code:'INVALID_TARGET',step:'target',reason:'stale snapshot'}};
+  });
+  await rejects(flow.of(0).scope({root}).wait('child'),'INVALID_TARGET','stale snapshot');
+  await rejects(flow.wait(root),'INVALID_TARGET','stale snapshot');
+});
 test('Cancelling one fork preserves its sibling; cancelling the sole branch stops its parent', async () => {
   const flow = local(), parent = flow.sleep(30), a = parent.map(() => 'a'), b = parent.map(() => 'b');
   assert(a.cancel()); await rejects(a, 'CANCELLED'); assert.equal(await b, 'b'); assert.equal(parent.state, 'fulfilled');
