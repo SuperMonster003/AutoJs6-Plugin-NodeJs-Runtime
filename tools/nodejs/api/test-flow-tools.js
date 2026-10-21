@@ -122,3 +122,9 @@ test('Infinite deadlines are encoded explicitly and transport rejection is prese
   const error=Object.assign(new Error('not granted'),{code:'NOT_GRANTED'}),flow=factory(()=>Promise.reject(error));
   await assert.rejects(flow.findAny(['ready']).toPromise(),e=>e===error);await flow.dispose();
 });
+
+test('Invalid delayed-click arguments do not create an unreachable polling chain',()=>{
+  const flow=factory(()=>{throw Error('No host request expected');});
+  for(const delay of [undefined,-1,[3,2],[1,2,3]])assert.throws(()=>flow.clickWhenStableAfter('ready',{delay}));
+  assert.equal(flow.pending,0);
+});

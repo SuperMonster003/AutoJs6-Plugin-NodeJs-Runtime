@@ -15501,8 +15501,15 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       const {p,callbacks:cb}=options(params,['strict','delay']);
       const strict=p.strict??defaults.strictActions;if(typeof strict!=='boolean')throw new TypeError('strict must be boolean');
+      let pair;
+      if(after) {
+        delay=delay??p.delay;if(delay===undefined)throw new TypeError('delay is required');pair=Array.isArray(delay)?delay:[delay];
+        if(pair.length<1||pair.length>2)throw new TypeError('Invalid delay');
+        number(pair[0],'delayMin');number(pair[1]??pair[0],'delayMax');
+        if((pair[1]??pair[0])<pair[0])throw new RangeError('delayMax must be at least delayMin');
+      }
       const cond=condition(value,kind);let handle=make(name,parent,r=>polling(r,cond,p,kind));
-      if(after) {delay=delay??p.delay;if(delay===undefined)throw new TypeError('delay is required');const pair=Array.isArray(delay)?delay:[delay];if(pair.length<1||pair.length>2)throw new TypeError('Invalid delay');handle=sleep(own(handle),...pair);}
+      if(after)handle=sleep(own(handle),...pair);
       handle=action(own(handle),act,[],strict,capture(defaults.humanize));if(cb.length)handle=handle.then(...cb);return handle;
     }
     for(const name of Object.keys(clickWaits)){flow[name]=(value,...args)=>clickWait(null,name,value,args);method(name,function(value,...args){return clickWait(own(this),name,value,args);});}
