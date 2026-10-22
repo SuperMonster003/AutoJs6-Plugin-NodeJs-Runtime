@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.32.0": {
+      "released_date": "2026/10/22",
+      "feature": [
+        "ai.agent task controls, events and registered-script context/results for Node.js, Bun and Workers, with explicit authorization for packaged applications"
+      ]
+    },
     "v1.31.0": {
       "released_date": "2026/10/22",
       "feature": [

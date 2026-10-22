@@ -122,6 +122,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.32.0
+
+###### 2026/10/22
+
+* `新增` Node.js/Bun/Worker 的 ai.agent 任務控制與事件, 註冊指令碼上下文和結果回傳, 以及封裝應用程式的獨立授權
+
 # v1.31.0
 
 ###### 2026/10/22
@@ -133,12 +139,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/21
 
 * `新增` Node.js, Bun 與 Worker 的 Flow within/scope 範圍繼承, 羅盤導覽和結果投影, 以及 press/swipe/gesture/gestures 手勢多載
-
-# v1.29.0
-
-###### 2026/10/21
-
-* `新增` Node.js, Bun 及 Worker 的 Flow 進階點擊, 捲動, 輸入, 清單擷取與真實事件等待, 支援監聽就緒, 快照驗證和取消
 
 ##### 更多發行歷史可參閱
 

@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.32.0": {
+      "released_date": "2026/10/22",
+      "feature": [
+        "Node.js/Bun/Worker 的 ai.agent 任務控制與事件, 登記指令碼上下文和結果回傳, 以及打包應用程式的獨立授權"
+      ]
+    },
     "v1.31.0": {
       "released_date": "2026/10/22",
       "feature": [

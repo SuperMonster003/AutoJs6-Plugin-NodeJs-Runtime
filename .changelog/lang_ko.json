@@ -5,6 +5,12 @@
   "changelog_label_improvement": "개선",
   "changelog_label_dependency": "의존성",
   "$data": {
+    "v1.32.0": {
+      "released_date": "2026/10/22",
+      "feature": [
+        "Node.js/Bun/Worker의 ai.agent 작업 제어와 이벤트, 등록된 스크립트의 컨텍스트와 결과, 패키징된 앱의 명시적 승인"
+      ]
+    },
     "v1.31.0": {
       "released_date": "2026/10/22",
       "feature": [
