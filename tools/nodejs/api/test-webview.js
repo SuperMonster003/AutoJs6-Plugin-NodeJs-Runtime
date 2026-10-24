@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {pathToFileURL}=require('node:url');
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function createWebFixture() {
-  let next=0;const views=new Map(),calls=[],cleared=[],cancelled=[],cameraCancelled=[];
+  let next=0;const views=new Map(),calls=[],cleared=[],cancelled=[],cameraCancelled=[],timing={subscribeDelayMs:0};
   function emit(record,event){if(record.readers.size)for(const events of record.readers.values())events.push(event);else record.events.push(event);}
   async function invoke(module,method,args) {
     assert.equal(module,'ui');calls.push({method,args:structuredClone(args)});
@@ -17,7 +17,7 @@ function createWebFixture() {
     if(method==='viewGet')return args.length>1?record.props[args[1]]:record.props;
     if(method==='disposeView'){for(const done of record.requests.values())done(null);record.requests.clear();return null;}
     assert.equal(method,'viewCommand');const [_,name,parameters]=args;
-    if(name==='subscribeViewEvents'){if(!record.readers.has(parameters[0]))record.readers.set(parameters[0],record.events.splice(0));return true;}
+    if(name==='subscribeViewEvents'){if(timing.subscribeDelayMs)await delay(timing.subscribeDelayMs);if(!record.readers.has(parameters[0]))record.readers.set(parameters[0],record.events.splice(0));return true;}
     if(name==='releaseViewEvents'){record.readers.delete(parameters[0]);return true;}
     if(name==='configureWebClient') {
       const config=parameters[0];assert(config.callbacks.every(value=>typeof value==='string'));
@@ -45,11 +45,16 @@ function createWebFixture() {
     if(name==='chooseFiles') {
       const taskId='task-'+ ++next,pickerId='picker-'+next;
       if(!parameters[0].wait)emit(record,{type:'webTaskResult',taskId,value:['content://fixture/document/alpha']});
-      else record.tasks.set(taskId,()=>emit(record,{type:'webTaskResult',taskId,value:null}));
+      else {record.tasks.set(taskId,()=>emit(record,{type:'webTaskResult',taskId,value:null}));record.pickers=(record.pickers||new Set()).add(taskId);}
       // Exercise an event that reaches the client before the command's creation acknowledgement.
       await delay(20);return {taskId,pickerId};
     }
-    if(name==='cancelFileChooser'){cancelled.push(parameters[0]);return true;}
+    if(name==='cancelFileChooser'){
+      cancelled.push(parameters[0]);
+      // Like the host, an unscoped cancel closes only pickers that are already registered.
+      if(parameters[0]==null)for(const taskId of record.pickers||[]){record.pickers.delete(taskId);const done=record.tasks.get(taskId);record.tasks.delete(taskId);done?.();}
+      return true;
+    }
     if(name==='cancelWebTask'){cancelled.push(parameters[0]);const done=record.tasks.get(parameters[0]);record.tasks.delete(parameters[0]);done?.();return !!done;}
     if(name==='download')return {id:parameters[0].url.startsWith('data:')?'web:fixture':7,url:parameters[0].url,fileName:'fixture.txt'};
     if(name==='getDownload')return {id:parameters[0],status:'successful'};
@@ -70,7 +75,7 @@ function createWebFixture() {
     }
     throw Error('Unexpected command '+name);
   }
-  return {invoke,views,calls,cleared,cancelled,cameraCancelled,emit};
+  return {invoke,views,calls,cleared,cancelled,cameraCancelled,emit,timing};
 }
 async function exercise(ui,fixture) {
   const web=await ui.createView('WebView',{javaScriptEnabled:true}),record=fixture.views.get(web.id),errors=[];
@@ -111,6 +116,13 @@ async function exercise(ui,fixture) {
       await web.chooseFiles(options);
       assert.deepEqual(fixture.calls.findLast(call=>call.method==='viewCommand'&&call.args[1]==='chooseFiles').args[2][0],options,'Media capture options reach the host unchanged');
     }
+    const late=await ui.createView('WebView');
+    try {
+      // chooseFiles first subscribes to View events; an unscoped cancel must not overtake that submission.
+      fixture.timing.subscribeDelayMs=60;
+      const chosen=late.chooseFiles({wait:true});await late.cancelFileChooser();
+      assert.equal(await Promise.race([chosen,delay(1000).then(()=>'pending')]),null,'An unscoped cancel closes a chooser still being submitted');
+    } finally {fixture.timing.subscribeDelayMs=0;await late.dispose();}
     assert.deepEqual([...await web.readDocument('content://fixture/document/alpha')],[0,128,255,42]);
     const display=await web.enableDisplayCapture({origin:'https://fixture.invalid',frameRate:5,maxWidth:640,maxHeight:480});
     assert.equal(display.audio,false);assert.equal(await web.disableDisplayCapture('stale-id'),false);assert.equal(await web.disableDisplayCapture(display.id),true);

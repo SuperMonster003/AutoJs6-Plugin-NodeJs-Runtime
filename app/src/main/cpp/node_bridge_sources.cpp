@@ -18814,12 +18814,12 @@ std::string buildEmbeddedScriptExecutionSource(
         if (task) { webTasks.delete(event.taskId); if (event.error) task.reject(new Error(event.error)); else task.resolve(event.value); }
         else if (startingWebTasks) earlyWebTasks.set(event.taskId, event);
       }
-      async function webTask(name, args, ordered = false) {
+      async function webTask(name, args, ordered = false, submitted = () => {}) {
         usable(); startingWebTasks++; poll();
         try {
           await subscribeEvents();
           // Only submission occupies the UI command queue; user decisions do not hold a Bun RPC open.
-          const task = await (ordered ? command(name, args) : directWebCommand(name, args)); usable();
+          const task = await (ordered ? command(name, args) : directWebCommand(name, args)); submitted(); usable();
           return await new Promise((resolve, reject) => {
             webTasks.set(task.taskId, { resolve, reject });
             const early = earlyWebTasks.get(task.taskId);
@@ -18827,7 +18827,14 @@ std::string buildEmbeddedScriptExecutionSource(
           });
         } finally { startingWebTasks--; if (!startingWebTasks) earlyWebTasks.clear(); }
       }
-      function chooseFiles(options = {}) { return webTask("chooseFiles", [options]); }
+      // chooseFiles subscribes to View events before it submits, so an unscoped cancel waits for submissions in flight.
+      const chooserSubmissions = new Set();
+      function chooseFiles(options = {}) {
+        let submitted;
+        const submission = new Promise(resolve => { submitted = () => { chooserSubmissions.delete(submission); resolve(); }; });
+        chooserSubmissions.add(submission);
+        return webTask("chooseFiles", [options], false, submitted).finally(submitted);
+      }
       async function webCallback(event) {
         const client = clientVersions.get(event.clientId);
         if (!client) return;
@@ -18883,7 +18890,7 @@ std::string buildEmbeddedScriptExecutionSource(
         setWebChromeClient: { value: (client, options) => configureWebClient("chrome", client, options) },
         setDownloadListener: { value: callback => configureWebClient("download", callback === null ? null : { onDownloadStart: callback }) },
         chooseFiles: { value: chooseFiles },
-        cancelFileChooser: { value: async () => { await directWebCommand("cancelFileChooser", []); } },
+        cancelFileChooser: { value: async () => { await Promise.all(chooserSubmissions); await directWebCommand("cancelFileChooser", []); } },
         findView: { value: name => findView(value, name) },
         dispose: { value: async () => {
           if (closed) return;
