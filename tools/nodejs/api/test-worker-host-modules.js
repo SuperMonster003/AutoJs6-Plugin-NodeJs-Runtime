@@ -93,12 +93,13 @@ function run(code,options={eval:true}) {return new Promise((resolve,reject)=>{
   const shadow=path.join(directory,'shadow.cjs');fs.writeFileSync(shadow,`const a=require('node:assert/strict');a.equal(require('opencc'),'npm-opencc');a.equal(typeof require('autojs6:opencc'),'function');require('node:worker_threads').parentPort.postMessage('shadow');`);
   assert.equal(await run(shadow,{}),'shadow');
   assert(calls.some(call=>call.method==='fromBytes'));
+  // The section also holds the parent-side helpers of the Worker storages and axios (P3.2b).
   const invokeSource=section('  async function __autojs6_worker_invoke(', '  function __autojs6_worker_preload(');
   let finish, recycled=0;
   const imageApi={copy:()=>new Promise(resolve=>{finish=resolve}),recycle:async()=>{recycled++},
     toBytes:async(_image,options)=>{assert(options.signal instanceof AbortSignal);return Buffer.from([1])}};
   const invoke=new Function('__autojs6_call_autojs','__autojs6_limited_image','__autojs6_limited_opencc','__autojs6_invalid_arg_type',
-    'return ('+invokeSource+')')(()=>{throw Error('Unexpected raw call')},()=>imageApi,()=>({}),message=>new TypeError(message));
+    invokeSource+';return __autojs6_worker_invoke;')(()=>{throw Error('Unexpected raw call')},()=>imageApi,()=>({}),message=>new TypeError(message));
   const controller=new AbortController();
   const orphan=invoke('autojs6:worker-module:images','copy',[handle],{signal:controller.signal});
   controller.abort();finish(handle);await assert.rejects(orphan,{code:'ABORT_ERR'});assert.equal(recycled,1);

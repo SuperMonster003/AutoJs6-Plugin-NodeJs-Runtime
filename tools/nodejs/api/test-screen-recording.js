@@ -32,6 +32,8 @@ const setup = new Function("__autojs6_call_autojs", `
   const __autojs6_image_options=x=>x||{}, __autojs6_media_options=__autojs6_image_options;
   const __autojs6_media_projection_bridge_options=x=>x, __autojs6_media_bridge_options=(_m,_n,x)=>x;
   const __autojs6_media_freeze_record=x=>Object.freeze(x), __autojs6_track_image_creation=(_m,_n,fn)=>fn();
+  // The audio members join the timing recorder of the shared JS tools core (P3.2b).
+  const __autojs6_js_tools=()=>({recorder:function recorder() {}});
   ${section("  function __autojs6_media_projection_handle_id(", "  function __autojs6_limited_image(")}
   ${section("  function __autojs6_limited_recorder(", "  function __autojs6_media_file_path(")}
   ${section("  async function __autojs6_worker_invoke(", "  function __autojs6_worker_preload(")}
