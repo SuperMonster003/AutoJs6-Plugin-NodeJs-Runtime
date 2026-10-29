@@ -6,9 +6,12 @@
 
 # v1.32.0
 
-###### 2026/10/22
+###### 2026/10/29
 
 * `추가` Node.js/Bun/Worker의 ai.agent 작업 제어와 이벤트, 등록된 스크립트의 컨텍스트와 결과, 패키징된 앱의 명시적 승인
+* `추가` Node.js/Worker에 AutoJs6 스크립트와 같은 util, species, s13n, fmt/cvt, jsox 도구 모듈과 전역 데이터 함수 추가, autojs6:util 등의 모듈 이름으로 가져오기
+* `수정` chooseFiles() 직후 web.cancelFileChooser()를 호출하면 파일 선택기가 닫히지 않을 수 있는 문제
+* `개선` jsox와 바이트 단위 변환의 결과와 오류를 AutoJs6 스크립트와 일치시키고, jsox.extend/extendAll은 현재 스레드의 Math, Array, Number를 직접 확장
 
 # v1.31.0
 

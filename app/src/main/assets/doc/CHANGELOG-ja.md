@@ -6,9 +6,12 @@
 
 # v1.32.0
 
-###### 2026/10/22
+###### 2026/10/29
 
 * `追加` Node.js/Bun/Worker の ai.agent タスク制御とイベント, 登録済みスクリプトのコンテキストと結果, パッケージ化アプリの明示的な認可
+* `追加` Node.js/Worker に AutoJs6 スクリプトと同じ util, species, s13n, fmt/cvt, jsox ツールモジュールとグローバルデータ関数を追加, autojs6:util などのモジュール名で読み込み
+* `修正` chooseFiles() の直後に web.cancelFileChooser() を呼ぶとファイル選択画面が閉じない場合がある問題
+* `改善` jsox とバイト単位換算の結果とエラーを AutoJs6 スクリプトと一致させ, jsox.extend/extendAll は現在のスレッドの Math, Array, Number を直接拡張
 
 # v1.31.0
 

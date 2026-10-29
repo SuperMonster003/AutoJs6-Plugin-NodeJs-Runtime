@@ -124,9 +124,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 # v1.32.0
 
-###### 2026/10/22
+###### 2026/10/29
 
 * `Ajout` Contrôle des tâches ai.agent, événements et contexte/résultats des scripts enregistrés pour Node.js, Bun et Workers, avec autorisation explicite des applications empaquetées
+* `Ajout` Modules d'outils util, species, s13n, fmt/cvt et jsox et fonctions globales de données pour Node.js et Workers, conformes aux scripts AutoJs6 et importables via des noms comme autojs6:util
+* `Correction` web.cancelFileChooser() appelé juste après chooseFiles() pouvait laisser le sélecteur de fichiers ouvert
+* `Amelioration` Les résultats et erreurs de jsox et de la conversion d'unités d'octets correspondent désormais aux scripts AutoJs6, et jsox.extend/extendAll étendent directement Math, Array et Number du thread courant
 
 # v1.31.0
 

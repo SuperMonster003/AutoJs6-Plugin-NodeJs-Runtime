@@ -6,9 +6,12 @@
 
 # v1.32.0
 
-###### 2026/10/22
+###### 2026/10/29
 
 * `Feature` ai.agent task controls, events and registered-script context/results for Node.js, Bun and Workers, with explicit authorization for packaged applications
+* `Feature` util, species, s13n, fmt/cvt and jsox tool modules and global data functions for Node.js and Workers, matching AutoJs6 scripts and imported by module names such as autojs6:util
+* `Fix` web.cancelFileChooser() called right after chooseFiles() could leave the file chooser open
+* `Improvement` jsox and byte-unit conversion results and errors now match AutoJs6 scripts, and jsox.extend/extendAll extend Math, Array and Number of the current thread directly
 
 # v1.31.0
 

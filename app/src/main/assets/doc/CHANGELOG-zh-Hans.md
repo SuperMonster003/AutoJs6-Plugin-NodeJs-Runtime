@@ -6,9 +6,12 @@
 
 # v1.32.0
 
-###### 2026/10/22
+###### 2026/10/29
 
 * `新增` Node.js/Bun/Worker 的 ai.agent 任务控制与事件, 注册脚本上下文和结果回传, 以及打包应用的独立授权
+* `新增` Node.js 与 Worker 的 util, species, s13n, fmt/cvt 和 jsox 工具模块及全局数据函数, 与 AutoJs6 脚本一致, 以 autojs6:util 等模块名引入
+* `修复` chooseFiles() 之后立即调用 web.cancelFileChooser() 时文件选择器可能没有关闭的问题
+* `优化` jsox 与字节单位换算的结果和报错改为与 AutoJs6 脚本一致, jsox.extend/extendAll 直接扩展当前线程的 Math, Array 和 Number
 
 # v1.31.0
 
