@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class NodeJsRuntimePluginService extends Service {
 
     private static final String TAG = "NodeJsRuntimePlugin";
-    static final String NODE_VERSION = "24.21.0";
+    static final String NODE_VERSION = "26.13.0";
     static final String NATIVE_LIBRARY_NAME = "node";
     static final String BRIDGE_LIBRARY_NAME = "autojs6-node";
     static final String DEFAULT_SOURCE_NAME = "<plugin-node-script.js>";

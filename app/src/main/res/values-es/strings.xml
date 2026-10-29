@@ -8,7 +8,7 @@
     <string name="local_network_not_required">Esta versión de Android no requiere un permiso independiente.</string>
     <string name="local_network_settings">Abrir ajustes de la aplicación</string>
     <string name="local_network_title">Acceso a la red local</string>
-    <string name="plugin_description">Proporciona el runtime nativo Node.js 24.21.0 para AutoJs6</string>
+    <string name="plugin_description">Proporciona el runtime nativo Node.js 26.13.0 para AutoJs6</string>
     <string name="runtime_settings_explanation" tools:ignore="TypographyDashes">Deje el límite vacío para una espera ilimitada (predeterminado), o introduzca 0 para rechazar la espera. Ejecuciones simultáneas: 1-8, 2 por defecto. Los cambios se aplican a las siguientes asignaciones; se conservan los scripts en ejecución y en espera.</string>
     <string name="runtime_settings_invalid_queue">Introduzca un entero de 0 a 2147483647, o deje vacío.</string>
     <string name="runtime_settings_queue">Límite de la cola</string>

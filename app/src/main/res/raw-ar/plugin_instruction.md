@@ -1,6 +1,6 @@
 # AutoJs6 Node.js Runtime
 
-يوفر هذا الملحق بيئة تشغيل Node.js 24.21.0 الاصلية ل AutoJs6.
+يوفر هذا الملحق بيئة تشغيل Node.js 26.13.0 الاصلية ل AutoJs6.
 
 ثبت الملحق وفعله في مركز ملحقات AutoJs6, ثم ابدأ سكربتا باستخدام:
 
@@ -10,7 +10,7 @@
 console.log(process.version);
 ```
 
-فتحة بيئة التشغيل هي `node24_21`. يدعم builds `arm64-v8a`, `armeabi-v7a`, و `x86_64`, اضافة الى APK `universal`.
+فتحة بيئة التشغيل هي `node26_13`. يدعم builds `arm64-v8a`, `armeabi-v7a`, و `x86_64`, اضافة الى APK `universal`.
 
 توجد مشاريع الامثلة في `sample/nodejs`.
 

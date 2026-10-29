@@ -64,7 +64,7 @@ public final class PluginInfoContractTest {
             assertEquals("@raw/plugin_instruction", info.getInstruction());
             assertEquals("nodejs", info.getId());
             assertEquals("nodejs", info.getEngine());
-            assertEquals("node24_21", info.getVariant());
+            assertEquals("node26_13", info.getVariant());
             assertTrue(info.getSupportedAbis().length > 0);
             // The advertised set is the project-level support (manifest meta-data written by the
             // build); a split install packages a subset of it, never an ABI outside it.

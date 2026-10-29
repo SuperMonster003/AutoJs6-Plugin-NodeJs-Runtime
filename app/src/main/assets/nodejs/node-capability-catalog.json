@@ -1,11 +1,11 @@
 {
   "schema": "autojs6-node-capability-catalog-v1",
-  "catalogVersion": "1.15.0",
+  "catalogVersion": "1.16.0",
   "runtime": {
     "pluginId": "nodejs",
     "engine": "nodejs",
-    "runtimeSlot": "node24_21",
-    "nodeVersion": "24.21.0",
+    "runtimeSlot": "node26_13",
+    "nodeVersion": "26.13.0",
     "profileName": "AutoJs6 Safe Node Profile",
     "profileVersion": "autojs6-node-profile-v1.3",
     "nativeLibraryName": "node",
@@ -773,7 +773,7 @@
         "runtimeInstall": "bundled_npm_cli",
         "registryDownload": true,
         "lifecycleScripts": "npm_default",
-        "npmVersion": "11.19.0",
+        "npmVersion": "11.20.0",
         "legacyObjectRequests": "host_capability_provider"
       },
       {

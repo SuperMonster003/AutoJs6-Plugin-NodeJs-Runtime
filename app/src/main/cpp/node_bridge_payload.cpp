@@ -294,12 +294,16 @@ bool readJsResultGlobal(
 
     alignas(v8::String::Utf8Value) unsigned char utf8Storage[sizeof(v8::String::Utf8Value)] = {};
     auto* utf8Value = reinterpret_cast<v8::String::Utf8Value*>(utf8Storage);
+#if V8_MAJOR_VERSION >= 14
+    utf8ValueConstructor(utf8Value, isolate, stringValue.As<v8::Value>());
+#else
     utf8ValueConstructor(
             utf8Value,
             isolate,
             stringValue.As<v8::Value>(),
             v8::String::REPLACE_INVALID_UTF8
     );
+#endif
     const char* chars = **utf8Value;
     if (chars == nullptr) {
         utf8ValueDestructor(utf8Value);

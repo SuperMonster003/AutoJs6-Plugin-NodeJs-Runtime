@@ -8,7 +8,7 @@
     <string name="local_network_not_required">Эта версия Android не требует отдельного разрешения.</string>
     <string name="local_network_settings">Открыть настройки приложения</string>
     <string name="local_network_title">Доступ к локальной сети</string>
-    <string name="plugin_description">Предоставляет нативную среду выполнения Node.js 24.21.0 для AutoJs6</string>
+    <string name="plugin_description">Предоставляет нативную среду выполнения Node.js 26.13.0 для AutoJs6</string>
     <string name="runtime_settings_explanation" tools:ignore="TypographyDashes">Пустое поле означает неограниченную очередь (по умолчанию), 0 запрещает ожидание. Параллельных запусков: 1-8, по умолчанию 2. Изменения применяются к следующим назначениям; уже запущенные и ожидающие скрипты сохраняются.</string>
     <string name="runtime_settings_invalid_queue">Введите целое число от 0 до 2147483647 или оставьте поле пустым.</string>
     <string name="runtime_settings_queue">Размер очереди</string>

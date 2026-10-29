@@ -5,6 +5,21 @@ namespace autojs6::node_bridge::internal {
 
 using namespace autojs6::node_bridge;
 
+#if V8_MAJOR_VERSION >= 14
+// V8 14 defines the HandleScope constructor and destructor inline, so libnode no longer exports them.
+static void constructInlineHandleScope(v8::HandleScope* scope, v8::Isolate* isolate) {
+    ::new (static_cast<void*>(scope)) v8::HandleScope(isolate);
+}
+
+static void destructInlineHandleScope(v8::HandleScope* scope) {
+    scope->~HandleScope();
+}
+
+// The V8 14 Utf8Value constructor drops the WriteOptions parameter.
+static const char* const kV8StringUtf8ValueConstructorV14Symbol =
+        "_ZN2v86String9Utf8ValueC1EPNS_7IsolateENS_5LocalINS_5ValueEEE";
+#endif
+
 class LifecyclePlatformRef {
 public:
     explicit LifecyclePlatformRef(node::MultiIsolatePlatform* borrowed = nullptr)
@@ -411,8 +426,19 @@ void runEmbeddedScriptNodeLifecycle(
         freeEnvironmentLookup = lookupSymbol(handle, kFreeEnvironmentSymbol);
         isolateEnterLookup = lookupSymbol(handle, kV8IsolateEnterSymbol);
         isolateExitLookup = lookupSymbol(handle, kV8IsolateExitSymbol);
+#if V8_MAJOR_VERSION >= 14
+        handleScopeConstructorLookup = {
+                true, "inline v8::HandleScope::HandleScope(v8::Isolate*)", {},
+                reinterpret_cast<void*>(&constructInlineHandleScope)
+        };
+        handleScopeDestructorLookup = {
+                true, "inline v8::HandleScope::~HandleScope()", {},
+                reinterpret_cast<void*>(&destructInlineHandleScope)
+        };
+#else
         handleScopeConstructorLookup = lookupSymbol(handle, kV8HandleScopeConstructorSymbol);
         handleScopeDestructorLookup = lookupSymbol(handle, kV8HandleScopeDestructorSymbol);
+#endif
         contextEnterLookup = lookupSymbol(handle, kV8ContextEnterSymbol);
         contextExitLookup = lookupSymbol(handle, kV8ContextExitSymbol);
     }
@@ -431,7 +457,11 @@ void runEmbeddedScriptNodeLifecycle(
         stringNewFromUtf8Lookup = lookupSymbol(handle, kV8StringNewFromUtf8Symbol);
         objectGetLookup = lookupSymbol(handle, kV8ObjectGetSymbol);
         valueToStringLookup = lookupSymbol(handle, kV8ValueToStringSymbol);
+#if V8_MAJOR_VERSION >= 14
+        stringUtf8ValueConstructorLookup = lookupSymbol(handle, kV8StringUtf8ValueConstructorV14Symbol);
+#else
         stringUtf8ValueConstructorLookup = lookupSymbol(handle, kV8StringUtf8ValueConstructorSymbol);
+#endif
         stringUtf8ValueDestructorLookup = lookupSymbol(handle, kV8StringUtf8ValueDestructorSymbol);
     }
 

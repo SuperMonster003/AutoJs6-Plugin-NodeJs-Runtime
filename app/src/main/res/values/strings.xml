@@ -8,7 +8,7 @@
     <string name="local_network_not_required">No separate permission is required on this Android version.</string>
     <string name="local_network_settings">Open app settings</string>
     <string name="local_network_title">Local network access</string>
-    <string name="plugin_description">Provides the Node.js 24.21.0 native runtime for AutoJs6</string>
+    <string name="plugin_description">Provides the Node.js 26.13.0 native runtime for AutoJs6</string>
     <string name="runtime_settings_explanation" tools:ignore="TypographyDashes">Leave the queue limit blank for unlimited waiting (default), or enter 0 to reject waiting scripts. Parallel slots: 1-8, default 2. Changes apply to new work; running scripts and accepted queued scripts are preserved.</string>
     <string name="runtime_settings_invalid_queue">Enter a whole number from 0 to 2147483647, or leave blank.</string>
     <string name="runtime_settings_queue">Queue limit</string>

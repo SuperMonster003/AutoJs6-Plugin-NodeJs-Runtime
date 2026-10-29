@@ -29,8 +29,8 @@ public class NodeJsPluginInfoService extends Service {
             }
             Bundle capabilities = new Bundle();
             capabilities.putInt(PluginCapabilityKeys.REQUIRES_HOST_VERSION, 3923);
-            capabilities.putString(NodeJsPluginCapabilityKeys.NODE_VERSION, "24.21.0");
-            capabilities.putString(NodeJsPluginCapabilityKeys.RUNTIME_SLOT, NodeJsPluginIds.VARIANT_NODE_24_21);
+            capabilities.putString(NodeJsPluginCapabilityKeys.NODE_VERSION, "26.13.0");
+            capabilities.putString(NodeJsPluginCapabilityKeys.RUNTIME_SLOT, NodeJsPluginIds.VARIANT_NODE_26_13);
             capabilities.putString(NodeJsPluginCapabilityKeys.NATIVE_LIBRARY_NAME, "node");
             capabilities.putInt(
                     NodeJsPluginCapabilityKeys.RUNTIME_CONTRACT_VERSION,
@@ -59,7 +59,7 @@ public class NodeJsPluginInfoService extends Service {
                     BuildConfig.VERSION_DATE,
                     NodeJsPluginIds.ID,
                     NodeJsPluginIds.ENGINE,
-                    NodeJsPluginIds.VARIANT_NODE_24_21,
+                    NodeJsPluginIds.VARIANT_NODE_26_13,
                     NodePluginAbis.supported(NodeJsPluginInfoService.this),
                     capabilities
             );

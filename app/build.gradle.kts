@@ -104,7 +104,7 @@ android {
                 arguments += "-DANDROID_STL=c++_shared"
                 arguments += "-DAUTOJS6_NODE_ENABLE_EMBEDDED_LIFECYCLE_PROBE=OFF"
                 arguments += "-DAUTOJS6_NODE_ENABLE_EMBEDDED_SCRIPT_EXECUTION=ON"
-                arguments += "-DAUTOJS6_NODE_RUNTIME_SLOT=node24_21"
+                arguments += "-DAUTOJS6_NODE_RUNTIME_SLOT=node26_13"
                 arguments += "-DAUTOJS6_NODE_CLI_OUTPUT_ROOT=${nodeCliCmakeOutputRoot.get().asFile.invariantSeparatorsPath}"
                 cppFlags += "-std=c++20"
             }

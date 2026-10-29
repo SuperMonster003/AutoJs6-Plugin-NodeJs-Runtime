@@ -113,8 +113,14 @@ using V8ObjectGet =
         v8::MaybeLocal<v8::Value> (*)(v8::Object*, v8::Local<v8::Context>, v8::Local<v8::Value>);
 using V8ValueToString =
         v8::MaybeLocal<v8::String> (*)(const v8::Value*, v8::Local<v8::Context>);
+#if V8_MAJOR_VERSION >= 14
+// V8 14 removed String::WriteOptions; Utf8Value always replaces invalid UTF-8.
+using V8StringUtf8ValueConstructor =
+        void (*)(v8::String::Utf8Value*, v8::Isolate*, v8::Local<v8::Value>);
+#else
 using V8StringUtf8ValueConstructor =
         void (*)(v8::String::Utf8Value*, v8::Isolate*, v8::Local<v8::Value>, v8::String::WriteOptions);
+#endif
 using V8StringUtf8ValueDestructor = void (*)(v8::String::Utf8Value*);
 using V8IsolateDispose = void (*)(v8::Isolate*);
 using NodeMultiIsolatePlatformDisposeIsolate =

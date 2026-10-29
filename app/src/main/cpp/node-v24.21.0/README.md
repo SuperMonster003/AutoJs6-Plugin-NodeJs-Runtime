@@ -9,5 +9,5 @@ upstream bytes and copyright notices; the complete upstream license is in
 [LICENSE](LICENSE).
 
 CMake selects this directory together with `node_runtime_adapter_24_21.cpp`
-when `AUTOJS6_NODE_RUNTIME_SLOT=node24_21`, the default runtime slot.
+when `AUTOJS6_NODE_RUNTIME_SLOT=node24_21`, retained for the 1.x (Node 24) line.
 Source libraries and device checks are recorded in Roadmap M17.2.

@@ -1,8 +1,8 @@
 {
   "schema": "autojs6-node-plugin-runtime-kit-v1",
   "schemaVersion": 1,
-  "kitId": "autojs6-node-plugin-runtime-kit-v1.15.0-node24_21",
-  "kitVersion": "1.15.0",
+  "kitId": "autojs6-node-plugin-runtime-kit-v1.16.0-node26_13",
+  "kitVersion": "1.16.0",
   "owner": {
     "pluginId": "nodejs",
     "applicationId": "io.github.supermonster003.autojs6.plugin.nodejs",
@@ -10,8 +10,8 @@
   },
   "runtime": {
     "engine": "nodejs",
-    "runtimeSlot": "node24_21",
-    "nodeVersion": "24.21.0",
+    "runtimeSlot": "node26_13",
+    "nodeVersion": "26.13.0",
     "bridgeApiVersion": 1,
     "nativeLibraryName": "node",
     "bridgeNativeLibraryName": "autojs6-node",
@@ -32,15 +32,15 @@
     "moduleSourceProvider": 3
   },
   "nodeJsApi": {
-    "coordinate": "org.autojs.plugin.nodejs:nodejs-api:1.8.0",
-    "version": "1.8.0",
-    "sha256": "4fc3ec5d3aa23a2e24be474d723b4a907bd43098602616bf2ea733c1f54b18f9",
+    "coordinate": "org.autojs.plugin.nodejs:nodejs-api:1.9.0",
+    "version": "1.9.0",
+    "sha256": "850882f9d89ee7eb73505ff33629799d55805236e4446df79900593e3ab7726f",
     "aidlTransactionsSha256": "c781e229418850724100564332b83141e461259b1356bae5b100a01481ca7323"
   },
   "capabilityCatalog": {
     "schema": "autojs6-node-capability-catalog-v1",
-    "version": "1.15.0",
-    "sha256": "4df6a180aea2daf249d421c7fe958012ba09c2ef8f9f1ada635d74c65ffd0e93"
+    "version": "1.16.0",
+    "sha256": "fe46b0ab7b5d7cf67d3f5e33026b2ccc4d3548999e76f3558e3e7a1313721621"
   },
   "reproducibility": {
     "artifactMaterialization": "source_build",
@@ -98,8 +98,8 @@
       "variant": "release_universal",
       "gradleTask": ":app:assembleRelease",
       "cmakeFile": "app/src/main/cpp/CMakeLists.txt",
-      "cmakeSha256": "6fde966f9c3ccde4ea5ac63485686d042f8bc2ed5306694585b6fd98d1dfac68",
-      "runtimeSlotArgument": "node24_21"
+      "cmakeSha256": "b76b42fd20eebe9e196581b5c5493d58fd4960ddd90d23ac886215ff9ed69c43",
+      "runtimeSlotArgument": "node26_13"
     },
     "sourceBuildEnvironment": {
       "containerImageId": "sha256:aab5d6b491066aad55da3890e88e97429b4dbb7da2b5697287b7d2b95566d046",
@@ -124,7 +124,7 @@
       "delivery": "source_tree",
       "required": true,
       "size": 104518,
-      "sha256": "4df6a180aea2daf249d421c7fe958012ba09c2ef8f9f1ada635d74c65ffd0e93",
+      "sha256": "fe46b0ab7b5d7cf67d3f5e33026b2ccc4d3548999e76f3558e3e7a1313721621",
       "buildId": null
     },
     {

@@ -8,7 +8,7 @@
     <string name="local_network_not_required">لا يحتاج إصدار Android هذا إلى إذن منفصل.</string>
     <string name="local_network_settings">فتح إعدادات التطبيق</string>
     <string name="local_network_title">الوصول إلى الشبكة المحلية</string>
-    <string name="plugin_description">يوفر بيئة تشغيل Node.js 24.21.0 الاصلية ل AutoJs6</string>
+    <string name="plugin_description">يوفر بيئة تشغيل Node.js 26.13.0 الاصلية ل AutoJs6</string>
     <string name="runtime_settings_explanation" tools:ignore="TypographyDashes">اترك حد القائمة فارغا لانتظار غير محدود (الافتراضي), أو أدخل 0 لرفض الانتظار. عدد العمليات المتزامنة: 1-8, والافتراضي 2. تطبق التغييرات على التوزيع التالي مع الحفاظ على البرامج الجارية والمنتظرة.</string>
     <string name="runtime_settings_invalid_queue">أدخل عددا صحيحا من 0 إلى 2147483647 أو اترك الحقل فارغا.</string>
     <string name="runtime_settings_queue">حد قائمة الانتظار</string>

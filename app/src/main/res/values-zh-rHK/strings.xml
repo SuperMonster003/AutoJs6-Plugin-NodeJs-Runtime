@@ -8,7 +8,7 @@
     <string name="local_network_not_required">此 Android 版本不需要單獨授權.</string>
     <string name="local_network_settings">開啟應用程式設定</string>
     <string name="local_network_title">本地網絡存取</string>
-    <string name="plugin_description">為 AutoJs6 提供 Node.js 24.21.0 原生運行時</string>
+    <string name="plugin_description">為 AutoJs6 提供 Node.js 26.13.0 原生運行時</string>
     <string name="runtime_settings_explanation" tools:ignore="TypographyDashes">排隊上限留空表示不限 (預設), 輸入 0 則不接受等待腳本. 並行槽數為 1-8, 預設 2. 修改後影響後續排程, 已執行和已排隊的腳本會保留.</string>
     <string name="runtime_settings_invalid_queue">請輸入 0 到 2147483647 之間的整數, 或留空.</string>
     <string name="runtime_settings_queue">排隊上限</string>

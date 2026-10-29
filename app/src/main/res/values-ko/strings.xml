@@ -8,7 +8,7 @@
     <string name="local_network_not_required">이 Android 버전에서는 별도 권한이 필요하지 않습니다.</string>
     <string name="local_network_settings">앱 설정 열기</string>
     <string name="local_network_title">로컬 네트워크 접근</string>
-    <string name="plugin_description">AutoJs6 에 Node.js 24.21.0 네이티브 런타임 제공</string>
+    <string name="plugin_description">AutoJs6 에 Node.js 26.13.0 네이티브 런타임 제공</string>
     <string name="runtime_settings_explanation" tools:ignore="TypographyDashes">대기열 한도를 비워 두면 무제한 (기본값), 0 을 입력하면 대기를 거부합니다. 슬롯 수는 1-8, 기본값은 2 입니다. 변경 사항은 이후 배정에 적용되며 실행 중이거나 대기 중인 스크립트는 유지됩니다.</string>
     <string name="runtime_settings_invalid_queue">0 에서 2147483647 사이의 정수를 입력하거나 비워 두세요.</string>
     <string name="runtime_settings_queue">대기열 한도</string>
