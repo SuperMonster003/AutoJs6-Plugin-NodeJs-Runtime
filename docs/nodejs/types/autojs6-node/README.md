@@ -74,6 +74,10 @@ Request worker policy supplies `resourceLimits` defaults; each Worker may
 override them. Nested Workers are supported. WorkerPool uses CPU parallelism
 by default, an unbounded queue and no automatic task deadline; callers may
 choose their own pool limits and cancellation/timeout options.
+`worker_threads.d.ts` declares Node's worker_threads exports and the root
+script additions `WorkerPool`, `policy`, `nativeAvailable` and `diagnostics()`.
+A pool Worker receives `{ __autojs6PoolTaskId, value }` from `parentPort` and
+replies with the same task id and either `value` or `error`.
 
 Inspector endpoint activation and Session creation require the explicit
 `inspectorEnabled` request in Debug and Release. Endpoints listen on localhost
