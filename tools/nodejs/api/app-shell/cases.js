@@ -36,15 +36,17 @@ var APP_SHELL_CASES = [
         "(async () => { shell.setDefaultOptions({root: false}); const r = (await shell.execCommand('echo p31a')).code; shell.setDefaultOptions(null); return r; })()"],
 
     // Shizuku
-    ["shizuku.state", "appShellState(shizuku.state)", "shizuku.state.then(appShellState)"],
-    ["shizuku.functions", "appShellState(shizuku.state)",
-        "Promise.all([shizuku.isInstalled(), shizuku.hasService(), shizuku.isRunning(), shizuku.hasPermission(), shizuku.isOperational()])" +
-        ".then(v => ({isInstalled: v[0], hasService: v[1], isRunning: v[2], hasPermission: v[3], isOperational: v[4]}))"],
     ["shizuku.exec", "appShellResult(shizuku('echo p31a'))", "shizuku.execCommand('echo p31a').then(appShellResult)"],
     ["shizuku.exec.code", "shizuku('exit 3').code", "shizuku.execCommand('exit 3').then(r => r.code)"],
     ["shizuku.currentPackage", "String(shizuku.currentPackage())", "shizuku.currentPackage()"],
     ["shizuku.currentComponent", "String(shizuku.currentComponent())", "shizuku.currentComponent()"],
     ["shizuku.kill", "shizuku.kill('com.android.settings')", "shizuku.kill('com.android.settings')"],
+    // hasService tells whether the host has bound its Shizuku user service, which the first command through Shizuku
+    // starts; the state cases follow the commands so that Rhino and Node, run one after the other, see the same service.
+    ["shizuku.state", "appShellState(shizuku.state)", "shizuku.state.then(appShellState)"],
+    ["shizuku.functions", "appShellState(shizuku.state)",
+        "Promise.all([shizuku.isInstalled(), shizuku.hasService(), shizuku.isRunning(), shizuku.hasPermission(), shizuku.isOperational()])" +
+        ".then(v => ({isInstalled: v[0], hasService: v[1], isRunning: v[2], hasPermission: v[3], isOperational: v[4]}))"],
 
     // app queries and D-4
     ["app.getAppByAlias", "(function (a) { return a ? String(a.packageName) : null; })(app.getAppByAlias('QQ'))",
