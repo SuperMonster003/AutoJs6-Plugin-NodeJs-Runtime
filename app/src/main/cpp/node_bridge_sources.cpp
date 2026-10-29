@@ -28591,7 +28591,7 @@ std::string buildEmbeddedScriptExecutionSource(
           "accessibility.click requires finite x and y coordinates."
         ));
       }
-      const scale = __autojs6_limited_system().scale;
+      const scale = __autojs6_accessibility_point_scale();
       return __autojs6_call_autojs(
         "accessibility",
         "click",
@@ -28739,8 +28739,8 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_call_autojs(
         "accessibility",
         "swipe",
-        [__autojs6_limited_system().scale.x(coordinates[0]), __autojs6_limited_system().scale.y(coordinates[1]),
-          __autojs6_limited_system().scale.x(coordinates[2]), __autojs6_limited_system().scale.y(coordinates[3]), duration],
+        [__autojs6_accessibility_point_scale().x(coordinates[0]), __autojs6_accessibility_point_scale().y(coordinates[1]),
+          __autojs6_accessibility_point_scale().x(coordinates[2]), __autojs6_accessibility_point_scale().y(coordinates[3]), duration],
         gestureBridgeOptions(bridgeOptions, duration + 10000)
       ).then(function(result) {
         return result === true;
@@ -28764,7 +28764,7 @@ std::string buildEmbeddedScriptExecutionSource(
       return __autojs6_call_autojs(
         "accessibility",
         "gesture",
-        [duration, path.map(function(point) { return [__autojs6_limited_system().scale.x(point[0]), __autojs6_limited_system().scale.y(point[1])]; })],
+        [duration, path.map(function(point) { return [__autojs6_accessibility_point_scale().x(point[0]), __autojs6_accessibility_point_scale().y(point[1])]; })],
         gestureBridgeOptions(bridgeOptions, duration + 10000)
       ).then(function(result) {
         return result === true;
@@ -28849,6 +28849,11 @@ std::string buildEmbeddedScriptExecutionSource(
       gesture
     });
     return __autojs6_limited_accessibility_cache;
+  }
+  // setScreenMetrics of autojs6:system scales the coordinates (Rhino ScreenMetrics.scaleX / scaleY); hosts of these
+  // adapters without the system family (the Bun client copies them) keep the coordinates.
+  function __autojs6_accessibility_point_scale() {
+    return typeof __autojs6_limited_system === "function" ? __autojs6_limited_system().scale : { x: value => value, y: value => value };
   }
   function __autojs6_number_property(object, name) {
     const number = object && object[name] !== undefined && object[name] !== null ? Number(object[name]) : 0;
