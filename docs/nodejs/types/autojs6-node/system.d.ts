@@ -28,7 +28,7 @@ declare module "autojs6:system" {
       requiresApi(api: number): void;
       requiresAutojsVersion(version: string | number): void;
       setScreenMetrics(width: number, height: number): void;
-      isAutoJs6(): true;
+      readonly isAutoJs6: true;
       /** Rhino's getClip / setClip: the system clipboard (capability clipboard). */
       getClip(options?: AutoJs6Node.BridgeCallOptions): Promise<string>;
       setClip(text: unknown, options?: AutoJs6Node.BridgeCallOptions): Promise<void>;

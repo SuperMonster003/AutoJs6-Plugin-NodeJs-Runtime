@@ -5408,6 +5408,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (
       required === "shell.root" ||
       required === "shell.shizuku" ||
+      required === "plugin_tools.user_granted" ||
       required === "notifications.settings" ||
       required === "device.power" ||
       required === "events.notification" ||
@@ -8839,12 +8840,18 @@ std::string buildEmbeddedScriptExecutionSource(
     if (methods.engines) {
       const engines = { myEngine: () => constants.engineInfo };
       for (const method of methods.engines) if (method !== "myEngine") engines[method] = forwardTo("engines", method);
+      // The lists are frozen, as on the main thread.
+      for (const method of ["all", "getEngines"]) if (engines[method]) {
+        const list = engines[method];
+        engines[method] = (...args) => list(...args).then(value => Array.isArray(value) ? Object.freeze(value.map(item => Object.freeze(item))) : value);
+      }
       modules.set("engines", Object.freeze(engines));
     }
     if (createSystem && methods.autojs) {
       let stopped = false;
       const system = createSystem(bridgeCall, { engine: constants.engineRecord || {}, device: constants.device || {}, EventEmitter: SensorEmitter,
         jsox: () => modules.get("jsox"), shell: () => modules.get("shell"), shizuku: () => modules.get("shizuku"),
+        userGrantedTools: () => constants.pluginToolsUserGranted === true,
         lifecycle: { isStopped: () => stopped, exit(error) {
           stopped = true;
           return forwardTo("system", "exit")(error === undefined ? undefined : { name: error && error.name, message: error && error.message !== undefined ? String(error.message) : String(error), stack: error && error.stack });
@@ -9308,7 +9315,7 @@ std::string buildEmbeddedScriptExecutionSource(
             engines: Object.keys(__autojs6_limited_engines())
           },
           hostModuleConstants: {
-            appInfo:__autojs6_host_app_info(), engineRecord: { ...__autojs6_host_app_info(), ...__autojs6_engine_record() }, engineInfo: __autojs6_current_engine_info(), appMissing:__autojs6_bridge_missing_capabilities(["app.launch","app.settings","app.activity","app.query","shell","shell.root","shell.shizuku"]),
+            appInfo:__autojs6_host_app_info(), engineRecord: { ...__autojs6_host_app_info(), ...__autojs6_engine_record() }, engineInfo: __autojs6_current_engine_info(), pluginToolsUserGranted: __autojs6_bridge_missing_capabilities(["plugin_tools.user_granted"]).length === 0, appMissing:__autojs6_bridge_missing_capabilities(["app.launch","app.settings","app.activity","app.query","shell","shell.root","shell.shizuku"]),
             librariesDir: __autojs6_internal_request_env_value("AUTOJS6_NODE_JS_LIBRARIES_DIR"),
             librariesError: __autojs6_internal_request_env_value("AUTOJS6_NODE_JS_LIBRARIES_ERROR"), axiosPolicy: __autojs6_fetch_policy_snapshot(),
             hostAppDirs: __autojs6_host_app_dirs(), sdcardPath: __autojs6_sdcard_path(),
@@ -25026,7 +25033,7 @@ std::string buildEmbeddedScriptExecutionSource(
     };
     const power_manager = {
       isIgnoringBatteryOptimizations: async (packageName, options) =>
-        await invoke("power_manager", "isIgnoringBatteryOptimizations", [nullish(packageName) ? null : String(packageName)], ["device"], options) === true,
+        await invoke("power_manager", "isIgnoringBatteryOptimizations", [nullish(packageName) ? null : String(packageName)], ["device", "device.power"], options) === true,
       async requestIgnoreBatteryOptimizations(forceRequest, packageName, options) {
         await invoke("power_manager", "requestIgnoreBatteryOptimizations", [forceRequest === true, nullish(packageName) ? null : String(packageName)], ["device", "device.power"], options);
       }
@@ -25143,11 +25150,12 @@ std::string buildEmbeddedScriptExecutionSource(
         metrics.width = w;
         metrics.height = h;
       },
-      isAutoJs6: () => true,
       // Rhino's global getClip / setClip (the system clipboard; Workers have no Rhino compat module).
       getClip: async options => text(await invoke("clipboard", "getText", [], ["clipboard"], options, 5000)),
       async setClip(value, options) { await invoke("clipboard", "setText", [text(value)], ["clipboard"], options, 5000); }
     };
+    // Rhino's isAutoJs6 is a property.
+    system.isAutoJs6 = true;
     Object.defineProperties(system, {
       WIDTH: { get: () => Number(device.width) || 0, enumerable: true },
       HEIGHT: { get: () => Number(device.height) || 0, enumerable: true }
@@ -25162,7 +25170,9 @@ std::string buildEmbeddedScriptExecutionSource(
     const BUILT_INS = ["Mathx", "Arrayx", "Numberx"];
     const builtInName = name => { const s = String(name); const base = s.endsWith("x") ? s.slice(0, -1) : s; return base.charAt(0).toUpperCase() + base.slice(1) + "x"; };
     let invocation = 0;
-    const toolsCall = (method, args, options, timeoutMs = 60000) => invoke("plugin_tools", method, args, ["plugin_tools"], options, timeoutMs);
+    // The host lists and runs the tools of USER_GRANTED providers only for requests that carry plugin_tools.user_granted.
+    const toolsCall = (method, args, options, timeoutMs = 60000) => invoke("plugin_tools", method, args,
+      host.userGrantedTools && host.userGrantedTools() ? ["plugin_tools", "plugin_tools.user_granted"] : ["plugin_tools"], options, timeoutMs);
     async function callTool(name, args, options) {
       const value = options && typeof options === "object" ? options : {};
       const invocationId = value.invocationId || "node-" + Date.now().toString(36) + "-" + (++invocation);
@@ -25173,14 +25183,18 @@ std::string buildEmbeddedScriptExecutionSource(
       try { return freezeDeep(await toolsCall("invoke", [String(name), nullish(args) ? {} : args, { ...rest, invocationId, timeoutMs }], { signal }, timeoutMs + 5000)); }
       finally { if (signal) signal.removeEventListener("abort", cancel); }
     }
+    // As Rhino, extendAllBut ignores unknown names and keeps the excluded ones for the later extendAll calls of this thread.
+    const excluded = new Set();
     const plugins = {
       extend(...names) { host.jsox().extend(...names); },
-      extendAll() { host.jsox().extendAll(); },
-      extendAllBut(...names) {
-        const excluded = new Set(names.flat(Infinity).filter(name => !nullish(name)).map(builtInName));
-        for (const name of excluded) if (!BUILT_INS.includes(name)) throw outOfRange("plugins.extendAllBut", "Unknown built-in object extension \"" + name + "\", expected one of " + BUILT_INS.join(", "));
+      extendAll() {
+        if (excluded.size === 0) return host.jsox().extendAll();
         const included = BUILT_INS.filter(name => !excluded.has(name));
         if (included.length > 0) host.jsox().extend(...included);
+      },
+      extendAllBut(...names) {
+        for (const name of names.flat(Infinity)) if (!nullish(name)) excluded.add(builtInName(name));
+        plugins.extendAll();
       },
       tools: Object.freeze({
         list: async options => freezeDeep((await toolsCall("list", [], options) || {}).tools || []),
@@ -26273,6 +26287,7 @@ std::string buildEmbeddedScriptExecutionSource(
       jsox: () => __autojs6_js_tools().jsox,
       shell: () => __autojs6_limited_shell(),
       shizuku: () => __autojs6_limited_shizuku(),
+      userGrantedTools: () => __autojs6_bridge_missing_capabilities(["plugin_tools.user_granted"]).length === 0,
       lifecycle: {
         isStopped() {
           if (!__autojs6_system_stop_watch) {

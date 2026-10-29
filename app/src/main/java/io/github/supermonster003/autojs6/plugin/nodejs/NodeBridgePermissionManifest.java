@@ -95,6 +95,9 @@ public final class NodeBridgePermissionManifest {
     private static final String MEMORY_DUMP = "memory.dump";
     private static final String INSTALLER = "installer";
     private static final String INSTALLER_MUTATE = "installer.mutate";
+    // plugins.tools: the host's capabilities; USER_GRANTED providers need plugin_tools.user_granted (never implied).
+    private static final String PLUGIN_TOOLS = "plugin_tools";
+    private static final String PLUGIN_TOOLS_USER_GRANTED = "plugin_tools.user_granted";
 
     private static final String ANDROID_PERMISSION_INTERNET = "android.permission.INTERNET";
     private static final String ANDROID_PERMISSION_FOREGROUND_SERVICE = "android.permission.FOREGROUND_SERVICE";
@@ -192,7 +195,9 @@ public final class NodeBridgePermissionManifest {
             MEMORY,
             MEMORY_DUMP,
             INSTALLER,
-            INSTALLER_MUTATE
+            INSTALLER_MUTATE,
+            PLUGIN_TOOLS,
+            PLUGIN_TOOLS_USER_GRANTED
     );
     private static final Set<String> DEFINED_CAPABILITY_SET =
             Collections.unmodifiableSet(new HashSet<>(DEFINED_CAPABILITIES));

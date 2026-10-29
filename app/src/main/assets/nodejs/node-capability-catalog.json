@@ -882,6 +882,11 @@
         "id": "power_manager",
         "aliases": [],
         "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "plugin_tools",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
       }
     ],
     "operations": [
@@ -3993,7 +3998,8 @@
         "module": "power_manager",
         "method": "isIgnoringBatteryOptimizations",
         "requiredCapabilities": [
-          "device"
+          "device",
+          "device.power"
         ]
       },
       {
@@ -4002,6 +4008,27 @@
         "requiredCapabilities": [
           "device",
           "device.power"
+        ]
+      },
+      {
+        "module": "plugin_tools",
+        "method": "list",
+        "requiredCapabilities": [
+          "plugin_tools"
+        ]
+      },
+      {
+        "module": "plugin_tools",
+        "method": "invoke",
+        "requiredCapabilities": [
+          "plugin_tools"
+        ]
+      },
+      {
+        "module": "plugin_tools",
+        "method": "cancel",
+        "requiredCapabilities": [
+          "plugin_tools"
         ]
       },
       {
@@ -4598,6 +4625,16 @@
       },
       {
         "id": "installer.mutate",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "plugin_tools",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "plugin_tools.user_granted",
         "aliases": [],
         "androidPermissions": []
       }

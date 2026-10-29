@@ -1,6 +1,6 @@
 /**
  * Rhino's powerManager module (api-coverage P3.1b); packageName defaults to AutoJs6. The request opens the system
- * dialog, which the user answers. Capabilities: device; the request also needs device.power.
+ * dialog, which the user answers. Capabilities: device and device.power (as device.isIgnoringBatteryOptimizations).
  */
 declare module "autojs6:power_manager" {
   namespace powerManager {

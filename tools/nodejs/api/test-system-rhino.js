@@ -147,7 +147,7 @@ test('global system functions: current* by mode, waitFor*, the stop state and re
  assert.throws(()=>s.requiresAutojsVersion('6.8.1'));
  assert.throws(()=>s.requiresAutojsVersion(460),RangeError);
  assert.throws(()=>s.requiresAutojsVersion(7));
- assert.deepEqual([s.WIDTH,s.HEIGHT,s.isAutoJs6()],[1080,2400,true]);
+ assert.deepEqual([s.WIDTH,s.HEIGHT,s.isAutoJs6],[1080,2400,true]);
 });
 
 test('setScreenMetrics scales the coordinates of this thread as ScreenMetrics.scaleX / scaleY',()=>{
@@ -166,7 +166,10 @@ test('plugins.extend* use the shared jsox, plugins.tools the host plugin tools',
  system.plugins.extendAll();
  system.plugins.extendAllBut('arrayx',['Numberx']);
  assert.deepEqual(extended,[['Mathx'],'all',['Mathx']]);
- assert.throws(()=>system.plugins.extendAllBut('Stringx'),RangeError);
+ // Rhino ignores unknown names and keeps the exclusions for extendAll.
+ system.plugins.extendAllBut('Stringx');
+ system.plugins.extendAll();
+ assert.deepEqual(extended.slice(3),[['Mathx'],['Mathx']]);
  assert.deepEqual(await system.plugins.tools.list(),[{name:'a'}]);
  assert.deepEqual(await system.plugins.tools.providers(),[{packageName:'p'}]);
  assert.deepEqual(await system.plugins.tools.call('a',{x:1},{timeoutMs:1000}),{ok:true});
