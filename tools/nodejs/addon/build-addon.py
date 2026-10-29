@@ -16,6 +16,7 @@ def main():
     parser.add_argument("--ninja", default="ninja")
     parser.add_argument("--abi", action="append", choices=ABIS)
     parser.add_argument("--build-dir", type=Path, default=ROOT / "app/build/native-addon")
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "sample/nodejs/native-addon/prebuilds")
     args = parser.parse_args()
     toolchain = args.ndk.resolve() / "build/cmake/android.toolchain.cmake"
     if not toolchain.is_file():
@@ -32,10 +33,10 @@ def main():
             f"-DANDROID_ABI={abi}", "-DANDROID_PLATFORM=android-24", "-DCMAKE_BUILD_TYPE=Release",
         ], check=True)
         subprocess.run([args.cmake, "--build", str(build), "--target", "hello"], check=True)
-        target = ROOT / "sample/nodejs/native-addon/prebuilds" / abi / "hello.node"
+        target = args.output_dir.resolve() / abi / "hello.node"
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(build / "hello.node", target)
-        print(f"Built {target.relative_to(ROOT)} ({target.stat().st_size} bytes)", flush=True)
+        print(f"Built {target} ({target.stat().st_size} bytes)", flush=True)
 
 
 if __name__ == "__main__":

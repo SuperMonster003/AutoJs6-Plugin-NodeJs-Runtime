@@ -6,7 +6,7 @@ if(NOT ANDROID)
 endif()
 
 get_filename_component(REPOSITORY_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
-set(NODE_HEADERS "${REPOSITORY_ROOT}/app/src/main/cpp/node-v24.21.0/include/node")
+set(NODE_HEADERS "${REPOSITORY_ROOT}/app/src/main/cpp/node-v26.13.0/include/node")
 set(NODE_LIBRARY "${REPOSITORY_ROOT}/app/src/main/jniLibs/${ANDROID_ABI}/libnode.so")
 if(NOT EXISTS "${NODE_HEADERS}/node_api.h" OR NOT EXISTS "${NODE_LIBRARY}")
     message(FATAL_ERROR "The repository's Node headers and materialized libnode.so are required")

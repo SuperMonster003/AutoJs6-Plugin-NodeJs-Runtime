@@ -7,14 +7,14 @@ for arm64-v8a, armeabi-v7a and x86_64. Use an installed Android NDK and CMake/Ni
 py tools/nodejs/addon/build-addon.py --ndk <ndk-directory> --cmake <cmake-executable> --ninja <ninja-executable>
 ```
 
-The build is offline. It uses this repository's Node 24.21 headers and each ABI's
+The build is offline. It uses this repository's Node 26.13 headers and each ABI's
 materialized `libnode.so`, producing a `DT_NEEDED` dependency on `libnode.so`.
 No Node binaries from another repository are used. Build intermediates live in
 `app/build/native-addon`; checked-in `.node` files use Git LFS.
 
 The addon uses Node-API 8, stores no environment-specific handles globally, and
 can initialize in separate workers and repeated script executions. See the
-[Node-API documentation](https://r2.nodejs.org/docs/latest-v24.x/api/n-api.html).
+[Node-API documentation](https://r2.nodejs.org/docs/latest-v26.x/api/n-api.html).
 The linker uses `-Wl,-z,max-page-size=16384` for Android's
 [16 KB page support](https://developer.android.com/guide/practices/page-sizes).
 

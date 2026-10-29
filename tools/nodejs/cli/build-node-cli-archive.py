@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Build or verify the npm + corepack asset archive used by the AutoJs6 terminal launcher.
 
-npm and corepack are platform-independent JavaScript, so they are taken from the official
-Node.js Linux x64 tarball of the exact version the plugin runtime is built from and stored
-as a deterministic zip under app/src/main/assets (with a .bin suffix because *.zip is
-ignored by Git). The AutoJs6 host verifies the SHA-256 declared in the plugin manifest and
-extracts the archive root into its terminal prefix; the libnodexe.so launcher resolves
-npm/bin/npm-cli.js and corepack/dist/*.js below that root.
+npm and corepack are platform-independent JavaScript. npm is taken from the official Node.js
+Linux x64 tarball of the exact version the plugin runtime is built from. Node.js 25 and later
+no longer bundle corepack, so corepack is a pinned release from the npm registry, checked
+against the registry integrity. Both are stored as a deterministic zip under
+app/src/main/assets (with a .bin suffix because *.zip is ignored by Git). The AutoJs6 host
+verifies the SHA-256 declared in the plugin manifest and extracts the archive root into its
+terminal prefix; the libnodexe.so launcher resolves npm/bin/npm-cli.js and corepack/dist/*.js
+below that root.
 """
 import argparse
+import base64
 import hashlib
 import io
 import json
@@ -23,7 +26,7 @@ CLI_DIR = ROOT / 'tools/nodejs/cli'
 LOCK_FILE = CLI_DIR / 'node-cli.lock.json'
 RUNTIME_LOCK_FILE = ROOT / 'tools/nodejs/runtime-build/runtime-build.lock.json'
 ASSET_DIR = ROOT / 'app/src/main/assets'
-SCHEMA = 'autojs6-node-cli-archive-v1'
+SCHEMA = 'autojs6-node-cli-archive-v2'
 ARCHIVE_ROOT = 'lib/node_modules'
 PACKAGES = ('npm', 'corepack')
 REQUIRED_ENTRIES = (
@@ -39,6 +42,8 @@ REQUIRED_ENTRIES = (
 )
 PRUNED_DIRECTORIES = ('npm/docs', 'npm/man')
 DIST_BASE = 'https://nodejs.org/dist'
+REGISTRY_BASE = 'https://registry.npmjs.org'
+COREPACK_VERSION = '0.36.0'
 ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 
 
@@ -77,15 +82,15 @@ def official_sha256(shasums, file_name):
     raise ValueError(f'{file_name} is not listed in {shasums}')
 
 
-def collect_members(tarball, node_version):
-    prefix = f'node-v{node_version}-linux-x64/{ARCHIVE_ROOT}/'
+def collect_package(tarball, mode, prefix, package):
+    """Collect the regular files below prefix as lib/node_modules/<package>/..."""
     files = {}
-    with tarfile.open(tarball, 'r:xz') as tar:
+    with tarfile.open(tarball, mode) as tar:
         for member in tar:
             if not member.name.startswith(prefix):
                 continue
-            relative = member.name[len(prefix):]
-            if relative.partition('/')[0] not in PACKAGES or is_pruned(relative):
+            relative = f'{package}/{member.name[len(prefix):]}'
+            if is_pruned(relative):
                 continue
             if member.issym() or member.islnk():
                 # Symbolic links cannot be recreated portably by the host extractor; npm and
@@ -98,6 +103,53 @@ def collect_members(tarball, node_version):
     if not files:
         raise ValueError(f'{tarball} does not contain {prefix}')
     return files
+
+
+def fetch_npm(node_version, cache):
+    file_name = f'node-v{node_version}-linux-x64.tar.xz'
+    shasums = cache / f'SHASUMS256-{node_version}.txt'
+    tarball = cache / file_name
+    download(f'{DIST_BASE}/v{node_version}/SHASUMS256.txt', shasums)
+    download(f'{DIST_BASE}/v{node_version}/{file_name}', tarball)
+    expected = official_sha256(shasums, file_name)
+    actual = sha256_of(tarball)
+    if actual != expected:
+        raise ValueError(f'{tarball}: sha256 {actual} does not match SHASUMS256 {expected}')
+    files = collect_package(tarball, 'r:xz', f'node-v{node_version}-linux-x64/{ARCHIVE_ROOT}/npm/', 'npm')
+    return files, {
+        'fileName': file_name,
+        'url': f'{DIST_BASE}/v{node_version}/{file_name}',
+        'sha256': actual,
+        'shasumsUrl': f'{DIST_BASE}/v{node_version}/SHASUMS256.txt',
+    }
+
+
+def fetch_corepack(corepack_version, cache):
+    file_name = f'corepack-{corepack_version}.tgz'
+    url = f'{REGISTRY_BASE}/corepack/-/{file_name}'
+    metadata_url = f'{REGISTRY_BASE}/corepack/{corepack_version}'
+    metadata_path = cache / f'corepack-{corepack_version}.json'
+    tarball = cache / file_name
+    download(metadata_url, metadata_path)
+    download(url, tarball)
+    dist = json.loads(metadata_path.read_text(encoding='utf-8'))['dist']
+    if dist['tarball'] != url:
+        raise ValueError(f'registry tarball {dist["tarball"]} differs from {url}')
+    algorithm, _, expected = dist['integrity'].partition('-')
+    if algorithm != 'sha512':
+        raise ValueError(f'unexpected registry integrity {dist["integrity"]!r}')
+    with tarball.open('rb') as stream:
+        actual = base64.b64encode(hashlib.file_digest(stream, 'sha512').digest()).decode('ascii')
+    if actual != expected:
+        raise ValueError(f'{tarball}: sha512 {actual} does not match the registry integrity {expected}')
+    files = collect_package(tarball, 'r:gz', 'package/', 'corepack')
+    return files, {
+        'fileName': file_name,
+        'url': url,
+        'integrity': dist['integrity'],
+        'sha256': sha256_of(tarball),
+        'metadataUrl': metadata_url,
+    }
 
 
 def write_archive(files, destination):
@@ -147,11 +199,12 @@ def describe_archive(path):
         }, versions
 
 
-def build_lock(node_version, source, archive_path, facts, versions):
+def build_lock(node_version, sources, facts, versions):
+    archive_path = ASSET_DIR / 'nodejs/cli' / f'node-cli-{node_version}.bin'
     return {
         'schema': SCHEMA,
         'nodeVersion': node_version,
-        'source': source,
+        'sources': sources,
         'archive': {
             'assetPath': archive_path.relative_to(ASSET_DIR).as_posix(),
             'sourcePath': archive_path.relative_to(ROOT).as_posix(),
@@ -164,16 +217,11 @@ def build_lock(node_version, source, archive_path, facts, versions):
     }
 
 
-def check(lock_path):
-    lock = json.loads(lock_path.read_text(encoding='utf-8'))
+def verify(lock, archive_path):
     if lock.get('schema') != SCHEMA:
-        raise ValueError(f'{lock_path}: unsupported schema {lock.get("schema")!r}')
-    runtime_version = json.loads(RUNTIME_LOCK_FILE.read_text(encoding='utf-8'))['node']['targetVersion']
-    if lock['nodeVersion'] != runtime_version:
-        raise ValueError(f'lock Node version {lock["nodeVersion"]} differs from the runtime target {runtime_version}')
-    archive_path = ROOT / lock['archive']['sourcePath']
-    if lock['archive']['assetPath'] != archive_path.relative_to(ASSET_DIR).as_posix():
-        raise ValueError('archive assetPath and sourcePath disagree')
+        raise ValueError(f'unsupported lock schema {lock.get("schema")!r}')
+    if lock['archive']['assetPath'] != (ASSET_DIR / 'nodejs/cli' / archive_path.name).relative_to(ASSET_DIR).as_posix():
+        raise ValueError('archive assetPath does not name the verified archive')
     if lock['archive']['root'] != ARCHIVE_ROOT:
         raise ValueError(f'unexpected archive root {lock["archive"]["root"]!r}')
     facts, versions = describe_archive(archive_path)
@@ -182,44 +230,60 @@ def check(lock_path):
         raise ValueError(f'archive facts drifted: lock={recorded} actual={facts}')
     if lock['packages'] != versions:
         raise ValueError(f'package versions drifted: lock={lock["packages"]} actual={versions}')
-    print(f'{archive_path.relative_to(ROOT).as_posix()}: sha256 {facts["sha256"]}, '
-          f'{facts["entryCount"]} entries, {facts["uncompressedBytes"]} bytes, '
+    if lock['sources']['corepack']['fileName'] != f'corepack-{versions["corepack"]}.tgz':
+        raise ValueError(f'corepack source {lock["sources"]["corepack"]["fileName"]} differs from corepack {versions["corepack"]}')
+    print(f'{archive_path.name}: sha256 {facts["sha256"]}, {facts["entryCount"]} entries, '
+          f'{facts["uncompressedBytes"]} bytes, {facts["compressedBytes"]} compressed, '
           f'npm {versions["npm"]}, corepack {versions["corepack"]}: OK')
+
+
+def check(lock_path):
+    lock = json.loads(lock_path.read_text(encoding='utf-8'))
+    runtime_version = json.loads(RUNTIME_LOCK_FILE.read_text(encoding='utf-8'))['node']['targetVersion']
+    if lock['nodeVersion'] != runtime_version:
+        raise ValueError(f'lock Node version {lock["nodeVersion"]} differs from the runtime target {runtime_version}')
+    archive_path = ROOT / lock['archive']['sourcePath']
+    if lock['archive']['assetPath'] != archive_path.relative_to(ASSET_DIR).as_posix():
+        raise ValueError('archive assetPath and sourcePath disagree')
+    verify(lock, archive_path)
 
 
 def build(args):
     node_version = args.node_version or json.loads(RUNTIME_LOCK_FILE.read_text(encoding='utf-8'))['node']['targetVersion']
-    file_name = f'node-v{node_version}-linux-x64.tar.xz'
     cache = args.cache_dir.resolve()
-    shasums = cache / f'SHASUMS256-{node_version}.txt'
-    tarball = cache / file_name
-    download(f'{DIST_BASE}/v{node_version}/SHASUMS256.txt', shasums)
-    download(f'{DIST_BASE}/v{node_version}/{file_name}', tarball)
-    expected = official_sha256(shasums, file_name)
-    actual = sha256_of(tarball)
-    if actual != expected:
-        raise ValueError(f'{tarball}: sha256 {actual} does not match SHASUMS256 {expected}')
-    files = collect_members(tarball, node_version)
-    archive_path = ASSET_DIR / 'nodejs/cli' / f'node-cli-{node_version}.bin'
+    npm_files, npm_source = fetch_npm(node_version, cache)
+    corepack_files, corepack_source = fetch_corepack(args.corepack_version, cache)
+    files = {**npm_files, **corepack_files}
+    lock = build_lock(node_version, {'npm': npm_source, 'corepack': corepack_source}, {}, {})
+    if args.output_dir:
+        output = args.output_dir.resolve()
+        archive_path = output / Path(lock['archive']['assetPath']).name
+        lock_path = output / LOCK_FILE.name
+    else:
+        archive_path = ROOT / lock['archive']['sourcePath']
+        lock_path = LOCK_FILE
     write_archive(files, archive_path)
     facts, versions = describe_archive(archive_path)
-    source = {
-        'fileName': file_name,
-        'url': f'{DIST_BASE}/v{node_version}/{file_name}',
-        'sha256': actual,
-        'shasumsUrl': f'{DIST_BASE}/v{node_version}/SHASUMS256.txt',
-    }
-    lock = build_lock(node_version, source, archive_path, facts, versions)
-    LOCK_FILE.write_text(json.dumps(lock, indent=2) + '\n', encoding='utf-8', newline='\n')
-    print(f'wrote {archive_path.relative_to(ROOT).as_posix()} and {LOCK_FILE.relative_to(ROOT).as_posix()}')
-    check(LOCK_FILE)
+    if versions['corepack'] != args.corepack_version:
+        raise ValueError(f'{corepack_source["fileName"]} contains corepack {versions["corepack"]}')
+    lock = build_lock(node_version, lock['sources'], facts, versions)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path.write_text(json.dumps(lock, indent=2) + '\n', encoding='utf-8', newline='\n')
+    print(f'wrote {archive_path} and {lock_path}')
+    if args.output_dir:
+        # The runtime target check runs once the archive and lock are copied into the repository.
+        verify(lock, archive_path)
+    else:
+        check(LOCK_FILE)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--check', action='store_true', help='Only verify the committed archive against the lock (offline)')
-    parser.add_argument('--node-version', help='Node.js version to take npm / corepack from; defaults to the runtime build lock')
+    parser.add_argument('--node-version', help='Node.js version to take npm from; defaults to the runtime build lock')
+    parser.add_argument('--corepack-version', default=COREPACK_VERSION, help='corepack release to take from the npm registry')
     parser.add_argument('--cache-dir', type=Path, default=ROOT / 'build/node-cli-cache', help='Where downloaded tarballs are kept')
+    parser.add_argument('--output-dir', type=Path, help='Write the archive and lock here for review instead of into the repository')
     args = parser.parse_args()
     if args.check:
         check(LOCK_FILE)

@@ -1,23 +1,32 @@
 {
-  "schema": "autojs6-node-cli-archive-v1",
-  "nodeVersion": "24.21.0",
-  "source": {
-    "fileName": "node-v24.21.0-linux-x64.tar.xz",
-    "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.xz",
-    "sha256": "fd8e59d5a511510f6a298afb548f18c7d2b1be404d8b4a27d94fbe49f56cb2d6",
-    "shasumsUrl": "https://nodejs.org/dist/v24.21.0/SHASUMS256.txt"
+  "schema": "autojs6-node-cli-archive-v2",
+  "nodeVersion": "26.13.0",
+  "sources": {
+    "npm": {
+      "fileName": "node-v26.13.0-linux-x64.tar.xz",
+      "url": "https://nodejs.org/dist/v26.13.0/node-v26.13.0-linux-x64.tar.xz",
+      "sha256": "d28a96af6c38596f6d9d97c0ee531c13d238d757742387d1928de822d959e997",
+      "shasumsUrl": "https://nodejs.org/dist/v26.13.0/SHASUMS256.txt"
+    },
+    "corepack": {
+      "fileName": "corepack-0.36.0.tgz",
+      "url": "https://registry.npmjs.org/corepack/-/corepack-0.36.0.tgz",
+      "integrity": "sha512-SiiJsBhZqdBiPHTEl6OT3sASrRrKIcYTQMsVGXx6EE/gM8WFMwYjeIX8Tt8RiU4Iv2J6LbT8KpGfCOsBpRWB/w==",
+      "sha256": "9128cfe26aee0c99f4fc68c15c6b8b12309a68be0de2c012cdfea2a463cb722f",
+      "metadataUrl": "https://registry.npmjs.org/corepack/0.36.0"
+    }
   },
   "archive": {
-    "assetPath": "nodejs/cli/node-cli-24.21.0.bin",
-    "sourcePath": "app/src/main/assets/nodejs/cli/node-cli-24.21.0.bin",
+    "assetPath": "nodejs/cli/node-cli-26.13.0.bin",
+    "sourcePath": "app/src/main/assets/nodejs/cli/node-cli-26.13.0.bin",
     "root": "lib/node_modules",
-    "sha256": "ffc84169358de90653149de864563fddcca2c115859279a3c54ef0ab34d44bc3",
+    "sha256": "b7ed9a6ea66e2aaee713aef424c27c6d95566012514575dbf0e21081ad2f97a1",
     "entryCount": 1699,
-    "uncompressedBytes": 10068758,
-    "compressedBytes": 3356977
+    "uncompressedBytes": 10095530,
+    "compressedBytes": 3365439
   },
   "packages": {
-    "npm": "11.19.0",
+    "npm": "11.20.0",
     "corepack": "0.36.0"
   },
   "prunedDirectories": [

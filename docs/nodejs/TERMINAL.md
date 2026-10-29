@@ -1,6 +1,6 @@
 # Terminal launcher (node / npm / corepack for 3-Shell Terminal)
 
-Last reviewed: 2026-10-08.
+Last reviewed: 2026-10-29.
 
 The independent [3-Shell Terminal plugin](https://github.com/SuperMonster003/AutoJs6-Plugin-Three-Shell-Terminal)
 provides the terminal used by AutoJs6 6.8.0 and runs `/system/bin/sh` under the **terminal plugin** uid.
@@ -63,19 +63,23 @@ launcher itself, so npm lifecycle scripts and `npx` spawn the same binary.
 
 ## Archive (`assets/nodejs/cli/node-cli-<version>.bin`)
 
-npm and corepack are pure JavaScript, so they are taken from the official
-`node-v<version>-linux-x64.tar.xz` of the exact Node version the runtime is built from and
-stored as a deterministic zip (fixed timestamps, sorted entries; `.bin` because `*.zip` is
-ignored by Git). Layout: `lib/node_modules/npm/**` and `lib/node_modules/corepack/**`,
-minus `npm/docs`, `npm/man`, top-level `*.md` (LICENSE files stay) and symbolic links.
+npm and corepack are pure JavaScript. npm is taken from the official
+`node-v<version>-linux-x64.tar.xz` of the exact Node version the runtime is built from.
+Node.js 25 and later no longer ship corepack, so corepack is a pinned release
+(`corepack-<version>.tgz`) from the npm registry. Both are stored as one deterministic zip
+(fixed timestamps, sorted entries; `.bin` because `*.zip` is ignored by Git). Layout:
+`lib/node_modules/npm/**` and `lib/node_modules/corepack/**`, minus `npm/docs`, `npm/man`,
+top-level `*.md` (LICENSE files stay) and symbolic links.
 
-`tools/nodejs/cli/node-cli.lock.json` records the source tarball URL and SHA-256, the
-archive SHA-256 / entry count / sizes and the npm / corepack versions. `app/build.gradle.kts`
-feeds the lock into manifest placeholders and `BuildConfig`, and `preBuild` depends on
-`verifyNodeCliArchive`, which fails when the packaged asset drifts from the lock.
+`tools/nodejs/cli/node-cli.lock.json` records both sources (the Node tarball URL and its
+SHA-256 from `SHASUMS256.txt`; the corepack tarball URL, registry integrity and SHA-256),
+the archive SHA-256 / entry count / sizes and the npm / corepack versions.
+`app/build.gradle.kts` feeds the lock into manifest placeholders and `BuildConfig`, and
+`preBuild` depends on `verifyNodeCliArchive`, which fails when the packaged asset drifts from
+the lock.
 
 ```powershell
-py tools/nodejs/cli/build-node-cli-archive.py          # download, verify SHASUMS256, rebuild archive + lock (network)
+py tools/nodejs/cli/build-node-cli-archive.py          # download, verify SHASUMS256 and registry integrity, rebuild archive + lock (network)
 py tools/nodejs/cli/build-node-cli-archive.py --check  # offline: packaged asset matches the lock
 ```
 
