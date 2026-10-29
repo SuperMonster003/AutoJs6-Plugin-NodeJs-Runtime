@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-version="${1:-24.21.0}"
+version="${1:-26.13.0}"
 abi="${2:-arm64-v8a}"
 case "$version" in
-  24.20.0) source_sha=2732fc3f588dd335cd6779c06864f7cd424bb1b5ff9a1743059a66c54f9ca4a1 ;;
-  24.21.0) source_sha=a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc ;;
+  26.13.0) source_sha=263f639ecfa7a17b49438d76cdbf9aff73179e3c7cb789da69b900718427fa2e ;;
   *) echo "Unpinned Node source version: $version" >&2; exit 2 ;;
 esac
 case "$abi" in
@@ -29,14 +28,18 @@ toolchain="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
 export PATH="$toolchain/bin:$PATH"
 export CC="$toolchain/bin/$triple-clang" CXX="$toolchain/bin/$triple-clang++"
 export AR="$toolchain/bin/llvm-ar" RANLIB="$toolchain/bin/llvm-ranlib"
-export CC_host=clang-18 CXX_host=clang++-18 AR_host=ar RANLIB_host=ranlib
+export CC_host=clang-19 CXX_host=clang++-19 AR_host=ar RANLIB_host=ranlib
 export GYP_DEFINES="target_arch=$cpu v8_target_arch=$cpu android_target_arch=$cpu host_os=linux OS=android android_ndk_path=$ANDROID_NDK_HOME android_ndk_sysroot=$toolchain/sysroot"
 export CFLAGS='-fPIC -ffile-prefix-map=/work/node=. -fdebug-prefix-map=/work/node=.'
 export CXXFLAGS="$CFLAGS"
 export LDFLAGS='-Wl,-z,max-page-size=16384 -Wl,--build-id=sha1'
+export RUSTFLAGS='--remap-path-prefix=/work/node=.'
+# Node 26 removed the corepack configure switch. Temporal support is required
+# so a missing Rust toolchain fails configure instead of silently disabling it.
 if [ ! -f out/Release/build.ninja ]; then
   ./configure --dest-cpu="$cpu" --dest-os=android --cross-compiling --shared --ninja \
-    --without-node-snapshot --without-npm --without-corepack --openssl-no-asm --with-intl=full-icu
+    --without-node-snapshot --without-npm --openssl-no-asm --with-intl=full-icu \
+    --v8-enable-temporal-support
 fi
 ninja -C out/Release -j "${JOBS:-6}" libnode
 library=$(find out/Release -name 'libnode.so*' -type f -print -quit)

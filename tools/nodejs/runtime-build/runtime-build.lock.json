@@ -1,43 +1,31 @@
 {
   "schema": "autojs6-node-runtime-build-lock-v1",
   "node": {
-    "currentVersion": "24.21.0",
-    "targetVersion": "24.21.0",
+    "currentVersion": "26.13.0",
+    "targetVersion": "26.13.0",
     "upstreamRepository": "https://github.com/nodejs/node",
-    "upstreamTag": "v24.21.0",
-    "upstreamTagUrl": "https://github.com/nodejs/node/tree/v24.21.0",
-    "upstreamReleaseUrl": "https://github.com/nodejs/node/releases/tag/v24.21.0",
-    "upstreamCommitUrl": "https://github.com/nodejs/node/commit/955266bfdd854cd280dffd47548673914484e4c0",
-    "upstreamTagObject": "f37d7da830134b5314a14ced553273786a2bb4cd",
-    "ltsCodename": "Krypton",
+    "upstreamTag": "v26.13.0",
+    "upstreamTagUrl": "https://github.com/nodejs/node/tree/v26.13.0",
+    "upstreamReleaseUrl": "https://github.com/nodejs/node/releases/tag/v26.13.0",
+    "upstreamCommitUrl": "https://github.com/nodejs/node/commit/18b32a3b1552e199a01f1a8d9fd64aa756d3b75b",
+    "upstreamTagObject": "daaa22aeddb87085542376ea1f4854dcea080baf",
+    "ltsCodename": "Lithium",
     "releaseKind": "lts",
-    "publishedAt": "2026-09-08T21:51:09Z",
-    "sourceUrl": "https://nodejs.org/dist/v24.21.0/node-v24.21.0.tar.xz",
-    "headersUrl": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-headers.tar.xz",
-    "sourceCommit": "955266bfdd854cd280dffd47548673914484e4c0",
-    "sourceSha256": "a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc",
-    "headersSha256": "7497abc2fac1d332fae580046b6b39d0de283dfaf267207a32b59753739c1517",
+    "publishedAt": "2026-10-28T16:57:41Z",
+    "sourceUrl": "https://nodejs.org/dist/v26.13.0/node-v26.13.0.tar.xz",
+    "headersUrl": "https://nodejs.org/dist/v26.13.0/node-v26.13.0-headers.tar.xz",
+    "sourceCommit": "18b32a3b1552e199a01f1a8d9fd64aa756d3b75b",
+    "sourceSha256": "263f639ecfa7a17b49438d76cdbf9aff73179e3c7cb789da69b900718427fa2e",
+    "headersSha256": "519e269c3e78bf513fdf53d2ab114b763173a7c9424bd477d4e182d782ea366f",
     "nodejsMobileForkCommit": "116bad1dc919702d4a701d49df26d960403ee4a4",
     "patchSeries": "patches/*.patch",
-    "patchSet": "node24.21-android-linux-host-stderr-openssl3.5.9",
+    "patchSet": "node26.13-android-linux-host-stderr-rust-cross-host-libatomic",
     "patchFiles": {
       "0001-nodejs-mobile-android.patch": "2933143f3280dc40c32de05df2a5a9f3dd9c6b8f5586a3e599cf699cdcd330c7",
       "0002-linux-host-trap-handlers.patch": "abf7fa4764c3cfbd0b90e2368a0568b1f75d024aa8ad13e59be5b83354ffd870",
       "0004-android-stderr-passthrough.patch": "b141d17c799fbf8d7532d46f538151aba547af8ecaf4ec42b10c5e5bc371115e",
-      "0005-openssl-3.5.9-sources.patch": "3a0373cfa3228338236407d9a88a7092a1f74413a3d1aadc2d173ec3f524282a",
-      "0006-openssl-3.5.9-archs.patch": "7781c884cf126ac318646c0bb1ce5c74eae56fcbdce0895d6039cd132cd0430a"
-    },
-    "opensslBackport": {
-      "fromVersion": "3.5.8",
-      "targetVersion": "3.5.9",
-      "advisoryUrl": "https://openssl-library.org/news/secadv/20260929.txt",
-      "upstreamPullRequest": "https://github.com/nodejs/node/pull/66396",
-      "sourceCommit": "bee7e2403cedcd8c5e11e34bfaa922a37b5faaa1",
-      "archsCommit": "6b5ac2ab5d36030e7916b0f4c57b23b515b2d96e",
-      "adaptation": "Omit doc/build.info, which is absent from the official Node v24.21.0 release tarball; runtime source and architecture configuration hunks are unchanged.",
-      "node24BranchCheckedOn": "2026-10-11",
-      "node24BranchOpenSslVersion": "3.5.8",
-      "status": "validated"
+      "0007-android-cross-rust-crates.patch": "49678a48c1d8f5eb0356a9076ebb558ebbf5491c39d96fdfec6ff42b20e3943c",
+      "0008-android-cross-host-libatomic.patch": "85f3fd40af67ebda53f038a02f4538cf6bfd4504c135f87ee36901b50b69c7d7"
     }
   },
   "androidFork": {
@@ -77,12 +65,12 @@
       },
       "description": "Historical Node 24.5 binary archive; retained for reconstruction of that version."
     },
-    "targetPortStatus": "node24.21-source-build-validated"
+    "targetPortStatus": "node26.13-source-build"
   },
   "promotionDecision": {
-    "defaultRuntimeSlot": "node24_21",
-    "defaultRuntimeVersion": "24.21.0",
-    "reason": "Node 24.21.0 with full ICU and the upstream OpenSSL 3.5.9 security backport; three Android ABI source builds use the existing locked container and toolchain.",
+    "defaultRuntimeSlot": "node26_13",
+    "defaultRuntimeVersion": "26.13.0",
+    "reason": "Node 26.13.0 LTS with full ICU, bundled OpenSSL 3.5.9 and V8 Temporal; three Android ABI source builds use the NDK r29 container with Rust for temporal_rs. Adapter, headers and slot follow in M25.2b.",
     "requiredBeforePromotion": [],
     "targetPromotion": "promoted"
   },
@@ -90,7 +78,7 @@
     "artifactMaterialization": {
       "status": "ready",
       "classification": "source_build",
-      "description": "Official Node 24.21.0 source with three Android/host patches and the two upstream OpenSSL 3.5.9 patches."
+      "description": "Official Node 26.13.0 source with three Android/host patches and two cross-build patches (Rust crates, host libatomic)."
     },
     "sourceBuild": {
       "status": "ready",
@@ -514,14 +502,260 @@
           "pageSizeCoverage": "arm64-v8a/API31/API35 and armeabi-v7a/API28 physical devices use 4 KB pages; x86_64/API37 AVD reports 16 KB userspace on a 4 KB kernel. No new physical arm64 16 KB result is claimed.",
           "cryptoCoverage": "TLS 1.2/1.3, RSA/EC SNI switching, untrusted CA and wrong-host rejection, Brainpool/NIST ECDSA/ECDH, RSA-PSS, AES-GCM and WebCrypto via CJS, ESM, Workers and terminal. Functional signing tests do not establish constant-time behavior."
         }
+      },
+      "node26Update": {
+        "nodeVersion": "26.13.0",
+        "status": "built",
+        "previous": {
+          "nodeVersion": "24.21.0",
+          "upstreamTag": "v24.21.0",
+          "upstreamTagObject": "f37d7da830134b5314a14ced553273786a2bb4cd",
+          "sourceCommit": "955266bfdd854cd280dffd47548673914484e4c0",
+          "ltsCodename": "Krypton",
+          "publishedAt": "2026-09-08T21:51:09Z",
+          "sourceSha256": "a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc",
+          "headersSha256": "7497abc2fac1d332fae580046b6b39d0de283dfaf267207a32b59753739c1517",
+          "patchSet": "node24.21-android-linux-host-stderr-openssl3.5.9",
+          "patchFiles": {
+            "0001-nodejs-mobile-android.patch": "2933143f3280dc40c32de05df2a5a9f3dd9c6b8f5586a3e599cf699cdcd330c7",
+            "0002-linux-host-trap-handlers.patch": "abf7fa4764c3cfbd0b90e2368a0568b1f75d024aa8ad13e59be5b83354ffd870",
+            "0004-android-stderr-passthrough.patch": "b141d17c799fbf8d7532d46f538151aba547af8ecaf4ec42b10c5e5bc371115e",
+            "0005-openssl-3.5.9-sources.patch": "3a0373cfa3228338236407d9a88a7092a1f74413a3d1aadc2d173ec3f524282a",
+            "0006-openssl-3.5.9-archs.patch": "7781c884cf126ac318646c0bb1ce5c74eae56fcbdce0895d6039cd132cd0430a"
+          },
+          "opensslBackport": {
+            "fromVersion": "3.5.8",
+            "targetVersion": "3.5.9",
+            "advisoryUrl": "https://openssl-library.org/news/secadv/20260929.txt",
+            "upstreamPullRequest": "https://github.com/nodejs/node/pull/66396",
+            "sourceCommit": "bee7e2403cedcd8c5e11e34bfaa922a37b5faaa1",
+            "archsCommit": "6b5ac2ab5d36030e7916b0f4c57b23b515b2d96e",
+            "adaptation": "Omit doc/build.info, which is absent from the official Node v24.21.0 release tarball; runtime source and architecture configuration hunks are unchanged.",
+            "node24BranchCheckedOn": "2026-10-11",
+            "node24BranchOpenSslVersion": "3.5.8",
+            "status": "validated"
+          },
+          "configureArgs": [
+            "--dest-cpu=$AUTOJS6_NODE_TARGET_CPU",
+            "--dest-os=android",
+            "--cross-compiling",
+            "--shared",
+            "--ninja",
+            "--without-node-snapshot",
+            "--without-npm",
+            "--without-corepack",
+            "--openssl-no-asm",
+            "--with-intl=full-icu"
+          ],
+          "runtimeConfig": {
+            "icu": "full-icu",
+            "openssl": "bundled-node-openssl",
+            "libuv": "bundled-node-libuv",
+            "snapshot": "node-snapshot-disabled-v8-default",
+            "npm": "disabled",
+            "corepack": "disabled",
+            "inspector": "enabled",
+            "opensslVersion": "3.5.9"
+          },
+          "toolchain": {
+            "host": "linux-x86_64",
+            "ndkVersion": "28.2.13676358",
+            "clangVersion": "19.0.1",
+            "hostClangVersion": "18.1.3",
+            "pythonVersion": "3.12.3",
+            "ninjaVersion": "1.11.1",
+            "minSdk": 24,
+            "pageSizeBytes": [
+              4096,
+              16384
+            ],
+            "containerImage": "autojs6/node-source:r28c-20260908",
+            "containerImageId": "sha256:aab5d6b491066aad55da3890e88e97429b4dbb7da2b5697287b7d2b95566d046",
+            "containerRepoDigest": null,
+            "baseImage": "ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517",
+            "dockerfile": "tools/nodejs/runtime-build/container/Dockerfile.source",
+            "sourceDateEpoch": 1754006400,
+            "ndkArchive": {
+              "url": "https://dl.google.com/android/repository/android-ndk-r28c-linux.zip",
+              "size": 722261334,
+              "sha1": "a7b54a5de87fecd125a17d54f73c446199e72a64"
+            }
+          },
+          "abis": {
+            "arm64-v8a": {
+              "expectedLibnodeSha256": "b6bfbc7c5890244e25a9fad68e3f6a8c633badc1462409b8c36c9d4fc65cb91e",
+              "expectedBuildId": "5bb623c8d260b4cff4bd0b1e2d2d95d677bb8127",
+              "size": 110393088
+            },
+            "armeabi-v7a": {
+              "expectedLibnodeSha256": "4559fb5cfedc31fbdf1000f06bbd4f63f35039bf6c59a815b1b7bb4ea82104c8",
+              "expectedBuildId": "41bf3c6b9f4a6540a0cba728d1de1d8793003158",
+              "size": 103612376
+            },
+            "x86_64": {
+              "expectedLibnodeSha256": "69e3fd9e81917c6add91fe6534a3ed859c31a0383ea257e15603ffac5e75cfef",
+              "expectedBuildId": "a615ced972579d91f85c90d82aa2a2faf04086bf",
+              "size": 115193760
+            }
+          },
+          "headerArchive": "node-v24.21.0-headers.tar.xz",
+          "promotionDecision": {
+            "defaultRuntimeSlot": "node24_21",
+            "defaultRuntimeVersion": "24.21.0",
+            "reason": "Node 24.21.0 with full ICU and the upstream OpenSSL 3.5.9 security backport; three Android ABI source builds use the existing locked container and toolchain.",
+            "requiredBeforePromotion": [],
+            "targetPromotion": "promoted"
+          }
+        },
+        "removedPatches": {
+          "0005-openssl-3.5.9-sources.patch": "Node 26.13.0 ships OpenSSL 3.5.9; the 24.21.0 security backport is already upstream.",
+          "0006-openssl-3.5.9-archs.patch": "Node 26.13.0 ships the regenerated OpenSSL 3.5.9 architecture configuration."
+        },
+        "addedPatches": {
+          "0007-android-cross-rust-crates.patch": "Upstream deps/crates sets a Rust target only for Windows and macOS. Android cross builds need the target triple for libnode and a separate Linux host triple for mksnapshot (i686 for ARMv7, x86_64 otherwise).",
+          "0008-android-cross-host-libatomic.patch": "Upstream node.gyp links -latomic only when OS is linux. In Android cross builds the host tool node_js2c links simdutf, whose atomic base64 helpers call __atomic_load/__atomic_store on the 32-bit x86 host used for ARMv7. The patch adds -latomic to host-toolset links only; target link commands are unchanged."
+        },
+        "configureChange": "--without-corepack removed (Node 25+ no longer has the switch or deps/corepack); --v8-enable-temporal-support added so a missing Rust toolchain fails configure.",
+        "builtOn": "2026-10-30",
+        "method": "One clean source build per ABI in a fresh Linux workspace, run-id m25-2a, --jobs 10 --memory 16g, sequential armeabi-v7a, x86_64, arm64-v8a, in the NDK r29 container with five patches, full ICU, --openssl-no-asm and --v8-enable-temporal-support. The host shared its CPU with unrelated Gradle builds, so buildSeconds are wall-clock figures, not benchmarks. An earlier arm64-v8a build without 0008 is kept under firstArm64Build for comparison. No repeat build was run (Roadmap M25 Q5).",
+        "firstArm64Build": {
+          "abi": "arm64-v8a",
+          "size": 120544496,
+          "sha256": "95011070e6094a377682915faa3aa39706fa77b1fc7ca12c114735b7c7a4d430",
+          "buildId": "130c2412ce3c1f2d0dd8bd403a9ede97799bb315",
+          "v8Version": "14.6.202.34-node.40",
+          "loadAlignments": [
+            16384,
+            16384,
+            16384
+          ],
+          "neededLibraries": [
+            "libm.so",
+            "libdl.so",
+            "liblog.so",
+            "libc++_shared.so",
+            "libc.so"
+          ],
+          "soname": "libnode.so",
+          "embeddingSymbolCount": 35,
+          "directBridgeImportCount": 0,
+          "adapterExports": [],
+          "deviceValidation": "required separately before promotion",
+          "buildSeconds": 13533,
+          "patchFiles": {
+            "0001-nodejs-mobile-android.patch": "2933143f3280dc40c32de05df2a5a9f3dd9c6b8f5586a3e599cf699cdcd330c7",
+            "0002-linux-host-trap-handlers.patch": "abf7fa4764c3cfbd0b90e2368a0568b1f75d024aa8ad13e59be5b83354ffd870",
+            "0004-android-stderr-passthrough.patch": "b141d17c799fbf8d7532d46f538151aba547af8ecaf4ec42b10c5e5bc371115e",
+            "0007-android-cross-rust-crates.patch": "49678a48c1d8f5eb0356a9076ebb558ebbf5491c39d96fdfec6ff42b20e3943c"
+          },
+          "note": "Built before 0008 existed (arm64 did not need it): started with --jobs 8, stopped once and resumed in the same workspace with --jobs 10. Its ELF check first failed on the V8 14 symbol changes and passed on the unchanged output after the verify-source-runtime.py fix.",
+          "matchesFinalBuild": true
+        },
+        "buildScriptSha256": "6e3efcde578d018ddfc6d285c6876e1257f634e18989876e4827e8a0d4aae56c",
+        "buildSeconds": {
+          "arm64-v8a": 8846,
+          "armeabi-v7a": 8902,
+          "x86_64": 7179
+        },
+        "outputs": {
+          "arm64-v8a": {
+            "abi": "arm64-v8a",
+            "size": 120544496,
+            "sha256": "95011070e6094a377682915faa3aa39706fa77b1fc7ca12c114735b7c7a4d430",
+            "buildId": "130c2412ce3c1f2d0dd8bd403a9ede97799bb315",
+            "v8Version": "14.6.202.34-node.40",
+            "loadAlignments": [
+              16384,
+              16384,
+              16384
+            ],
+            "neededLibraries": [
+              "libm.so",
+              "libdl.so",
+              "liblog.so",
+              "libc++_shared.so",
+              "libc.so"
+            ],
+            "soname": "libnode.so",
+            "embeddingSymbolCount": 35,
+            "directBridgeImportCount": 0,
+            "adapterExports": [],
+            "deviceValidation": "required separately before promotion",
+            "previousSha256": "b6bfbc7c5890244e25a9fad68e3f6a8c633badc1462409b8c36c9d4fc65cb91e",
+            "previousSize": 110393088
+          },
+          "armeabi-v7a": {
+            "abi": "armeabi-v7a",
+            "size": 113194496,
+            "sha256": "5914bf96ffcb2600ce1db79556141091678263323ae433c50695d6a23b6dc098",
+            "buildId": "2b82a415431c187e1a8157841cabbe5e1ea42536",
+            "v8Version": "14.6.202.34-node.40",
+            "loadAlignments": [
+              16384,
+              16384,
+              16384
+            ],
+            "neededLibraries": [
+              "libm.so",
+              "libdl.so",
+              "liblog.so",
+              "libc++_shared.so",
+              "libc.so"
+            ],
+            "soname": "libnode.so",
+            "embeddingSymbolCount": 35,
+            "directBridgeImportCount": 0,
+            "adapterExports": [],
+            "deviceValidation": "required separately before promotion",
+            "previousSha256": "4559fb5cfedc31fbdf1000f06bbd4f63f35039bf6c59a815b1b7bb4ea82104c8",
+            "previousSize": 103612376
+          },
+          "x86_64": {
+            "abi": "x86_64",
+            "size": 125836688,
+            "sha256": "d258e619b2ac8b48a45affb14fe39de9210728ed92752c8e4d0d8b18a6495708",
+            "buildId": "4b5a6d99d84012b18e55ae8ccf587dc4f1ad82a4",
+            "v8Version": "14.6.202.34-node.40",
+            "loadAlignments": [
+              16384,
+              16384,
+              16384
+            ],
+            "neededLibraries": [
+              "libm.so",
+              "libdl.so",
+              "liblog.so",
+              "libc++_shared.so",
+              "libc.so"
+            ],
+            "soname": "libnode.so",
+            "embeddingSymbolCount": 35,
+            "directBridgeImportCount": 0,
+            "adapterExports": [],
+            "deviceValidation": "required separately before promotion",
+            "previousSha256": "69e3fd9e81917c6add91fe6534a3ed859c31a0383ea257e15603ffac5e75cfef",
+            "previousSize": 115193760
+          }
+        },
+        "libcxxCompatibility": {
+          "packagedLibcxxNdk": "28.2.13676358",
+          "checkedOn": "2026-10-30",
+          "method": "llvm-nm: every non-weak undefined dynamic symbol of each libnode.so resolves against the r28c API 24 libc/libm/libdl/liblog stubs and the r28c libc++_shared.so packaged by the Android Gradle Plugin.",
+          "unresolved": {
+            "arm64-v8a": 0,
+            "armeabi-v7a": 0,
+            "x86_64": 0
+          }
+        },
+        "deviceValidation": "M25.2d"
       }
     }
   },
   "toolchain": {
     "host": "linux-x86_64",
-    "ndkVersion": "28.2.13676358",
-    "clangVersion": "19.0.1",
-    "hostClangVersion": "18.1.3",
+    "ndkVersion": "29.0.14206865",
+    "clangVersion": "21.0.0",
+    "hostClangVersion": "19.1.1",
     "pythonVersion": "3.12.3",
     "ninjaVersion": "1.11.1",
     "minSdk": 24,
@@ -529,16 +763,38 @@
       4096,
       16384
     ],
-    "containerImage": "autojs6/node-source:r28c-20260908",
-    "containerImageId": "sha256:aab5d6b491066aad55da3890e88e97429b4dbb7da2b5697287b7d2b95566d046",
+    "containerImage": "autojs6/node-source:r29-20261029",
+    "containerImageId": "sha256:4f8947fa66da54f22d9ebf940a128baf43dce91d0f4f3e6603eac507e1d34cce",
     "containerRepoDigest": null,
     "baseImage": "ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517",
     "dockerfile": "tools/nodejs/runtime-build/container/Dockerfile.source",
     "sourceDateEpoch": 1754006400,
     "ndkArchive": {
-      "url": "https://dl.google.com/android/repository/android-ndk-r28c-linux.zip",
-      "size": 722261334,
-      "sha1": "a7b54a5de87fecd125a17d54f73c446199e72a64"
+      "url": "https://dl.google.com/android/repository/android-ndk-r29-linux.zip",
+      "size": 783549481,
+      "sha1": "87e2bb7e9be5d6a1c6cdf5ec40dd4e0c6d07c30b"
+    },
+    "ndkClangRevision": "r563880c",
+    "rust": {
+      "rustupVersion": "1.29.2",
+      "rustupInitUrl": "https://static.rust-lang.org/rustup/archive/1.29.2/x86_64-unknown-linux-gnu/rustup-init",
+      "rustupInitSha256": "5be191e8c70a5007074254cb74d78dbfdd25cd5a61c27de7b8e5410122ec24f4",
+      "profile": "minimal",
+      "rustcVersion": "1.99.1 (58cf8f9c3 2026-10-13)",
+      "cargoVersion": "1.99.1 (5f94df478 2026-08-27)",
+      "targets": [
+        "aarch64-linux-android",
+        "armv7-linux-androideabi",
+        "x86_64-linux-android",
+        "i686-unknown-linux-gnu",
+        "x86_64-unknown-linux-gnu"
+      ],
+      "cargoFlags": [
+        "--frozen"
+      ],
+      "rustflags": [
+        "--remap-path-prefix=/work/node=."
+      ]
     }
   },
   "runtimeConfig": {
@@ -547,9 +803,10 @@
     "libuv": "bundled-node-libuv",
     "snapshot": "node-snapshot-disabled-v8-default",
     "npm": "disabled",
-    "corepack": "disabled",
+    "corepack": "not-bundled-upstream",
     "inspector": "enabled",
-    "opensslVersion": "3.5.9"
+    "opensslVersion": "3.5.9",
+    "temporal": "enabled-rust-temporal_rs"
   },
   "configureArgs": [
     "--dest-cpu=$AUTOJS6_NODE_TARGET_CPU",
@@ -559,9 +816,9 @@
     "--ninja",
     "--without-node-snapshot",
     "--without-npm",
-    "--without-corepack",
     "--openssl-no-asm",
-    "--with-intl=full-icu"
+    "--with-intl=full-icu",
+    "--v8-enable-temporal-support"
   ],
   "abis": {
     "arm64-v8a": {
@@ -576,9 +833,11 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": "b6bfbc7c5890244e25a9fad68e3f6a8c633badc1462409b8c36c9d4fc65cb91e",
-      "expectedBuildId": "5bb623c8d260b4cff4bd0b1e2d2d95d677bb8127",
-      "size": 110393088
+      "expectedLibnodeSha256": "95011070e6094a377682915faa3aa39706fa77b1fc7ca12c114735b7c7a4d430",
+      "expectedBuildId": "130c2412ce3c1f2d0dd8bd403a9ede97799bb315",
+      "size": 120544496,
+      "rustTarget": "aarch64-linux-android",
+      "rustHostTarget": "x86_64-unknown-linux-gnu"
     },
     "armeabi-v7a": {
       "targetCpu": "arm",
@@ -592,9 +851,11 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": "4559fb5cfedc31fbdf1000f06bbd4f63f35039bf6c59a815b1b7bb4ea82104c8",
-      "expectedBuildId": "41bf3c6b9f4a6540a0cba728d1de1d8793003158",
-      "size": 103612376
+      "expectedLibnodeSha256": "5914bf96ffcb2600ce1db79556141091678263323ae433c50695d6a23b6dc098",
+      "expectedBuildId": "2b82a415431c187e1a8157841cabbe5e1ea42536",
+      "size": 113194496,
+      "rustTarget": "armv7-linux-androideabi",
+      "rustHostTarget": "i686-unknown-linux-gnu"
     },
     "x86_64": {
       "targetCpu": "x64",
@@ -608,9 +869,11 @@
         "-Wl,-z,max-page-size=16384",
         "-Wl,--build-id=sha1"
       ],
-      "expectedLibnodeSha256": "69e3fd9e81917c6add91fe6534a3ed859c31a0383ea257e15603ffac5e75cfef",
-      "expectedBuildId": "a615ced972579d91f85c90d82aa2a2faf04086bf",
-      "size": 115193760
+      "expectedLibnodeSha256": "d258e619b2ac8b48a45affb14fe39de9210728ed92752c8e4d0d8b18a6495708",
+      "expectedBuildId": "4b5a6d99d84012b18e55ae8ccf587dc4f1ad82a4",
+      "size": 125836688,
+      "rustTarget": "x86_64-linux-android",
+      "rustHostTarget": "x86_64-unknown-linux-gnu"
     }
   },
   "linker": {
@@ -622,6 +885,6 @@
   "outputs": {
     "manifest": "output/runtime-artifact.json",
     "libraryName": "libnode.so",
-    "headerArchive": "node-v24.21.0-headers.tar.xz"
+    "headerArchive": "node-v26.13.0-headers.tar.xz"
   }
 }

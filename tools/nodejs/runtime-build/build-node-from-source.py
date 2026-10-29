@@ -71,7 +71,7 @@ def main():
             'docker', 'run', '--rm', '-v', f'{workspace}:/work', '-v', f'{root}:/repo:ro', image,
             'python3', '/repo/tools/nodejs/runtime-build/verify-source-runtime.py',
             '--library', '/work/output/libnode.so', '--abi', abi,
-            '--llvm-bin', '/opt/android-ndk-r28c/toolchains/llvm/prebuilt/linux-x86_64/bin',
+            '--llvm-bin', '/opt/android-ndk-r29/toolchains/llvm/prebuilt/linux-x86_64/bin',
             '--report', '/work/output/runtime-artifact.json',
         ], check=True)
         print(f'Built and checked: {workspace}/output/libnode.so; Android tests are still required.', flush=True)

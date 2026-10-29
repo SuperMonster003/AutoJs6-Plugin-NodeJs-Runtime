@@ -14,7 +14,7 @@ app/src/main/jniLibs/x86_64/libnode.so filter=lfs diff=lfs merge=lfs -text
 /tools/nodejs/runtime-build/container/build-source.sh text eol=lf
 /app/src/main/cpp/CMakeLists.txt text eol=lf
 # Unified diff context uses a single space for an empty source line.
-/tools/nodejs/runtime-build/patches/*.patch text eol=lf whitespace=-blank-at-eol
+/tools/nodejs/runtime-build/patches/*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof
 /releases/nodejs-capability-catalog/** text eol=lf
 /releases/nodejs-plugin-runtime-kit/** text eol=lf
 /.github/**/*.sh text eol=lf

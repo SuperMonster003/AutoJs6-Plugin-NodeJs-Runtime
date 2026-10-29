@@ -1,0 +1,18 @@
+--- a/node.gyp
++++ b/node.gyp
+@@ -581,6 +581,15 @@
+       ['OS=="linux" and clang==1', {
+         'libraries': ['-latomic'],
+       }],
++      # Android cross builds run host tools such as node_js2c on Linux. simdutf's
++      # atomic base64 helpers need libatomic there, as in the Linux branch above.
++      ['OS=="android" and clang==1', {
++        'target_conditions': [
++          ['_toolset=="host"', {
++            'libraries': ['-latomic'],
++          }],
++        ],
++      }],
+     ],
+   },
+ 

@@ -44,10 +44,21 @@ def main():
     if not build_id:
         raise ValueError('ELF Build ID is missing')
     exported = symbols(args.library)
+    v8_version = re.search(rb'(?<![0-9.])(\d+)\.\d+\.\d+\.\d+-node\.\d+', data)
+    if not v8_version:
+        raise ValueError('Embedded V8 version string is missing')
     source = (root / 'app/src/main/cpp/node_bridge_sources.cpp').read_text(encoding='utf-8')
     required = dict(re.findall(r'const char\* const (k\w*Symbol)\s*=\s*"([^"]+)";', source))
     # Disposal has a documented fallback to Isolate::Dispose; all startup/execution symbols are mandatory.
     required.pop('kMultiIsolatePlatformDisposeIsolateSymbol', None)
+    if int(v8_version.group(1)) >= 14:
+        # Mirrors node_bridge_lifecycle.cpp: V8 14 defines HandleScope inline, and each kXxxV14Symbol
+        # replaces the kXxxSymbol lookup.
+        required.pop('kV8HandleScopeConstructorSymbol', None)
+        required.pop('kV8HandleScopeDestructorSymbol', None)
+        lifecycle = (root / 'app/src/main/cpp/node_bridge_lifecycle.cpp').read_text(encoding='utf-8')
+        for name, symbol in re.findall(r'const char\* const (k\w*)V14Symbol\s*=\s*"([^"]+)";', lifecycle):
+            required[name + 'Symbol'] = symbol
     missing = {name: symbol for name, symbol in required.items() if symbol not in exported}
     if missing:
         raise ValueError('Missing dynamic embedding symbols: ' + json.dumps(missing))
@@ -71,6 +82,7 @@ def main():
         'size': len(data),
         'sha256': hashlib.sha256(data).hexdigest(),
         'buildId': build_id.group(1),
+        'v8Version': v8_version.group(0).decode(),
         'loadAlignments': alignments,
         'neededLibraries': re.findall(r'\(NEEDED\).*?\[([^]]+)\]', dynamic),
         'soname': (re.findall(r'\(SONAME\).*?\[([^]]+)\]', dynamic) or [None])[0],

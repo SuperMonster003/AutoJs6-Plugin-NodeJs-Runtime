@@ -4,29 +4,71 @@ This directory contains the Android Node source build and the original pinned
 Node 24.5 binary materializer. Both are manual maintenance tools; neither runs
 in the default APK or PR build.
 
-Current status: the default Android runtime is Node 24.21.0, built from official
-Node sources with three Android/host patches, the OpenSSL 3.5.9 backport described
-below, and `--with-intl=full-icu` (ICU 78 with full locale data since plugin 1.6.0 /
-M23.1; `small-icu` from 1.5.1 to 1.5.7). Current build and device acceptance,
-historical independent rebuild results, and the exact Docker image, NDK and
-patch hashes are recorded in
-[runtime-build.lock.json](runtime-build.lock.json). Published Runtime Kit 1.6.0
-and APKs remain unchanged; the security backport belongs to the 1.7.0 development version.
+Current status: the Android runtime is Node 26.13.0 LTS (M25.2a), built from
+official Node sources with five Android/host patches and `--with-intl=full-icu`
+(ICU 78 with full locale data since plugin 1.6.0 / M23.1; `small-icu` from 1.5.1
+to 1.5.7). The exact Docker image, NDK, Rust toolchain, patch hashes and per-ABI
+outputs are recorded in [runtime-build.lock.json](runtime-build.lock.json). The
+replaced Node 24.21.0 facts stay in the lock under `reproducibility.sourceBuild`
+(`node26Update.previous` and the earlier update records). Node 24.21.0 builds for
+plugin 1.32.x and `release/1.x` use this directory as of the `v1.32.*` tag.
 
-## OpenSSL 3.5.9 security backport (M25.1a)
+## Node 26.13 changes (M25.2a)
+
+- **Toolchain.** Node 26 requires Clang >= 19.1 and Python >= 3.10. The container
+  moved from NDK r28c (clang 19.0.1) and host clang-18 to NDK r29 (29.0.14206865,
+  clang 21.0.0 based on r563880c) and host clang-19 (19.1.1); Python stays 3.12.
+- **Corepack.** Node 25 removed `deps/corepack` and the `--without-corepack`
+  configure switch, so the switch is gone. The terminal packages corepack
+  separately (M25.2c).
+- **Temporal.** V8 14.6 implements `Temporal` with the vendored Rust crates in
+  `deps/crates` (temporal_rs), built by cargo during the Node build. Configure
+  silently disables Temporal when cargo or rustc is missing, so the build passes
+  `--v8-enable-temporal-support` to make that a configure error. The container
+  installs a pinned Rust toolchain through a checksummed rustup-init, with the
+  three Android targets and `i686-unknown-linux-gnu`.
+- **Rust cross build.** Upstream `deps/crates/crates.gyp` passes a Rust target
+  only on Windows and macOS. `0007-android-cross-rust-crates.patch` makes
+  `configure.py` set an Android target triple for libnode and a separate Linux
+  host triple for host tools such as `mksnapshot` (`i686-unknown-linux-gnu` when
+  the target is 32-bit, matching the `-m32` host toolchain; otherwise
+  `x86_64-unknown-linux-gnu`). Each GYP toolset then runs its own cargo action and
+  links its own static library; the outputs live under different triple
+  directories, so they do not collide. Native and macOS/Windows builds keep the
+  upstream path.
+- **Host libatomic.** The host tool `node_js2c` links simdutf, whose atomic
+  base64 helpers call `__atomic_load` / `__atomic_store` on the 32-bit x86 host
+  used for ARMv7. Upstream `node.gyp` adds `-latomic` only when GYP's `OS` is
+  `linux`, so `0008-android-cross-host-libatomic.patch` adds it to host-toolset
+  links of Android cross builds. Target link commands are unchanged.
+- **OpenSSL.** Node 26.13.0 ships OpenSSL 3.5.9, so the M25.1a backport patches
+  `0005-openssl-3.5.9-sources.patch` and `0006-openssl-3.5.9-archs.patch` were
+  removed. Their provenance and digests stay in the lock
+  (`node26Update.previous`) and in the `v1.32.*` tag.
+- **Verification.** V8 14 defines the `HandleScope` constructor and destructor
+  inline and drops the `WriteOptions` parameter from the `String::Utf8Value`
+  constructor, so libnode no longer exports the old symbols.
+  `verify-source-runtime.py` reads the V8 version embedded in libnode and, from
+  V8 14 on, applies the same substitutions as `node_bridge_lifecycle.cpp`.
+- **C++ runtime.** libnode links `libc++_shared.so` dynamically, and the APK
+  packages the copy from the NDK selected by the Android Gradle Plugin (r28c at
+  the time of this update). Every non-weak libnode import resolves against the
+  r28c API 24 libc/libm/libdl/liblog stubs and its `libc++_shared.so` (checked
+  with `llvm-nm` on 2026-10-30). Repeat the check when either NDK changes.
+
+Each ABI was built once from a fresh source tree; no independent rebuild was run
+for this update (Roadmap M25 Q5).
+
+## OpenSSL 3.5.9 security backport (M25.1a, Node 24.21 only)
 
 The 2026-10-11 check found OpenSSL 3.5.8 in both Node v24.21.0 and the Node
-`v24.x` maintenance branch. This project backports the complete OpenSSL update
-from [Node PR 66396](https://github.com/nodejs/node/pull/66396), already landed
-on `v26.x`, without changing the Node/V8 version or runtime slot:
-
-- `0005-openssl-3.5.9-sources.patch` comes from Node commit
-  [`bee7e2403cedcd8c5e11e34bfaa922a37b5faaa1`](https://github.com/nodejs/node/commit/bee7e2403cedcd8c5e11e34bfaa922a37b5faaa1).
-  Only the `deps/openssl/openssl/doc/build.info` diff is omitted because Node's
-  release tarball excludes that generated documentation file. Runtime hunks are unchanged.
-- `0006-openssl-3.5.9-archs.patch` is the unmodified architecture update from
-  [`6b5ac2ab5d36030e7916b0f4c57b23b515b2d96e`](https://github.com/nodejs/node/commit/6b5ac2ab5d36030e7916b0f4c57b23b515b2d96e),
-  including the `no-asm` headers and source lists consumed by this build.
+`v24.x` maintenance branch. Node 24.21.0 builds backported the complete OpenSSL
+update from [Node PR 66396](https://github.com/nodejs/node/pull/66396) without
+changing the Node/V8 version or runtime slot: `0005` came from Node commit
+[`bee7e2403cedcd8c5e11e34bfaa922a37b5faaa1`](https://github.com/nodejs/node/commit/bee7e2403cedcd8c5e11e34bfaa922a37b5faaa1)
+without the `deps/openssl/openssl/doc/build.info` diff (absent from the release
+tarball), and `0006` was the unmodified architecture update from
+[`6b5ac2ab5d36030e7916b0f4c57b23b515b2d96e`](https://github.com/nodejs/node/commit/6b5ac2ab5d36030e7916b0f4c57b23b515b2d96e).
 
 The [OpenSSL advisory](https://openssl-library.org/news/secadv/20260929.txt)
 describes the fixes. `OpenSslSecuritySmokeTest` checks TLS 1.2/1.3, SNI context
@@ -35,25 +77,23 @@ terminal. Its relative CRLDP fixture exercises CVE-2026-35189 in a fresh process
 with a 32 MiB RSS-growth ceiling. Signing/verification tests establish functional
 compatibility, not a statistical proof of constant-time execution.
 
-Use the normal source-build command below with a fresh run ID. Each ABI is built
-from a fresh source tree; no new repeat-build proof is required for this maintenance
-update. Current build and device acceptance facts are recorded in the lock and Roadmap.
-
-## Build Node 24.21 from source
+## Build Node 26.13 from source
 
 Run on Linux x86_64 with Docker, or inside WSL2. Put build directories on the
 Linux filesystem; compiling V8 through `/mnt/c` or `/mnt/d` is much slower.
 Python 3.11+ is required by the launcher. Build the environment once (network
-required for Ubuntu packages and the official NDK archive):
+required for Ubuntu packages, the official NDK archive and the Rust toolchain).
+The Dockerfile needs no build context, so pass it on stdin:
 
 ```sh
-docker build -t autojs6/node-source:r28c-local \
-  -f tools/nodejs/runtime-build/container/Dockerfile.source .
-docker image inspect --format '{{.Id}}' autojs6/node-source:r28c-local
+docker build -t autojs6/node-source:r29-local - \
+  < tools/nodejs/runtime-build/container/Dockerfile.source
+docker image inspect --format '{{.Id}}' autojs6/node-source:r29-local
 ```
 
-The Dockerfile pins the Ubuntu base by registry digest and verifies the NDK
-archive against its official checksum. Ubuntu package repository contents can
+The Dockerfile pins the Ubuntu base by registry digest, verifies the NDK archive
+against its official checksum and rustup-init against its published SHA-256, and
+installs a fixed Rust version. Ubuntu package repository contents can
 change, so rebuilding this Dockerfile later may produce a different image ID.
 Use the **same full `sha256:...` image ID** for both runtime reproducibility
 runs. The lock records the image actually used for this maintenance run; its
@@ -67,8 +107,8 @@ source build itself offline:
 
 ```sh
 mkdir -p /var/tmp/autojs6-node/sources
-curl -fL --retry 2 -o /var/tmp/autojs6-node/sources/node-v24.21.0.tar.xz \
-  https://nodejs.org/dist/v24.21.0/node-v24.21.0.tar.xz
+curl -fL --retry 2 -o /var/tmp/autojs6-node/sources/node-v26.13.0.tar.xz \
+  https://nodejs.org/dist/v26.13.0/node-v26.13.0.tar.xz
 python3 tools/nodejs/runtime-build/build-node-from-source.py \
   --source-dir /var/tmp/autojs6-node/sources \
   --work-root /var/tmp/autojs6-node/builds --run-id first --jobs 6
@@ -84,7 +124,7 @@ clean builds, use a fresh `--run-id repeat` with identical inputs and compare
 each ABI's `output/libnode.so` SHA-256. Record actual differences if unequal;
 an incremental no-op rebuild is not a clean repeat.
 
-The earlier maintenance run first built Node 24.20 from source, resumed after
+For Node 24, the earlier maintenance run first built Node 24.20 from source, resumed after
 the Linux host-tool fix, and compared it with an independent clean build using
 the corrected inputs. Node 24.21 was then rebuilt separately from each of those
 two workspaces, overlaying the verified new source and applying the STORE fix.
@@ -94,7 +134,7 @@ are independent maintenance rebuilds, not two fresh clean builds. The launcher
 above also supports fresh source builds for future maintenance.
 
 Artifacts and ELF reports are under
-`<work-root>/24.21.0-<abi>-<run-id>/output/`. The build uses Android API 24,
+`<work-root>/26.13.0-<abi>-<run-id>/output/`. The build uses Android API 24,
 16 KB LOAD alignment, SHA-1 ELF Build IDs, fixed source paths/timestamp, ICU 78
 with full locale data (`--with-intl=full-icu`, M23.1), no Node startup snapshot, and keeps
 the inspector backend for explicit Debug and Release requests. See Roadmap
@@ -104,7 +144,7 @@ the real stderr in addition to logcat.
 
 The Android patch is extracted from degaso/nodejs-mobile commit
 `116bad1dc919702d4a701d49df26d960403ee4a4` relative to official Node 24.5.0,
-and applied to official 24.21.0. It retains Android/host toolchain, 32-bit,
+and applies to official 26.13.0 with line offsets only. It retains Android/host toolchain, 32-bit,
 libuv/OpenSSL/zlib and V8 build fixes. iOS changes, mobile product branding
 and the fork's blanket V8 trap-handler disable are excluded; upstream already
 handles Android trap-handler support. A separate local patch adds the POSIX
@@ -113,8 +153,9 @@ for the cross build. This fixes the observed host linker errors without
 changing the Android target's trap-handler policy. The former third patch
 (`0003-disable-android-openssl-store.patch`) rejected OpenSSL STORE private-key
 URLs on Android to protect the runtime's own `/proc` boundary; M23.1 removed that
-boundary and the patch with it, so key URLs load as on desktop Node. The three
-Android/host patch digests and two OpenSSL update digests are recorded in the lock.
+boundary and the patch with it, so key URLs load as on desktop Node. `0007`
+(Rust cross build) and `0008` (host libatomic) are described above. The five
+patch digests are recorded in the lock.
 
 `verify-source-runtime.py` checks architecture, 16 KB LOAD alignment, Build ID
 and the Node/V8/libuv symbols dynamically consumed by the current bridge.
@@ -131,7 +172,7 @@ The checked-in lock records the exact upstream Node 24.5 Android archive and
 each ABI entry's path, size, and SHA-256. The executable materializer downloads
 or accepts that archive, verifies it before extraction, and verifies every
 output. This reconstructs the historical Node 24.5 libraries. Use the source
-build above for Node 24.21. The legacy route consumes a pinned upstream binary
+build above for Node 26.13. The legacy route consumes a pinned upstream binary
 archive and does not rebuild that version from source.
 
 Validate or inspect the pinned plan without materializing artifacts:

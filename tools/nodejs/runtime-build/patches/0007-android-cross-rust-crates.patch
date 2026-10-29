@@ -1,0 +1,169 @@
+--- a/configure.py
++++ b/configure.py
+@@ -1945,6 +1945,18 @@
+   # under Rosetta 2.
+   if flavor == 'mac' and target_arch == 'x64':
+     o['variables']['cargo_rust_target'] = 'x86_64-apple-darwin'
++  # Android cross builds compile the crates once per GYP toolset: the target
++  # copy links into libnode, the Linux host copy into mksnapshot (32-bit when
++  # the target is 32-bit, matching the -m32 host toolchain).
++  if flavor == 'android':
++    o['variables']['cargo_rust_target'] = {
++      'arm': 'armv7-linux-androideabi',
++      'arm64': 'aarch64-linux-android',
++      'ia32': 'i686-linux-android',
++      'x64': 'x86_64-linux-android',
++    }[target_arch]
++    o['variables']['cargo_rust_host_target'] = \
++      'i686-unknown-linux-gnu' if target_arch in ('arm', 'ia32') else 'x86_64-unknown-linux-gnu'
+ 
+   # Allow overriding the compiler - needed by embedders.
+   if options.use_clang:
+--- a/deps/crates/crates.gyp
++++ b/deps/crates/crates.gyp
+@@ -6,11 +6,14 @@
+     'zoneinfo64_dir': 'zoneinfo64-v0_3',
+     'temporal_zoneinfo64_data_output': '<(SHARED_INTERMEDIATE_DIR)/src/builtins/builtins-temporal-zoneinfo64-data.cc',
+     'cargo_rust_target%': '',
++    'cargo_rust_host_target%': '',
+   },
+   'conditions': [
+     ['build_type == "Release"', {
+       'variables': {
+         'cargo_build_flags': ['--release'],
++        'cargo_host_build_flags': ['--release', '--target', '<(cargo_rust_host_target)'],
++        'node_crates_host_libpath': '<(SHARED_INTERMEDIATE_DIR)/<(cargo_rust_host_target)/release/<(STATIC_LIB_PREFIX)node_crates<(STATIC_LIB_SUFFIX)',
+       },
+       'conditions': [
+         ['cargo_rust_target!=""', {
+@@ -31,6 +34,8 @@
+     }, {
+       'variables': {
+         'cargo_build_flags': [],
++        'cargo_host_build_flags': ['--target', '<(cargo_rust_host_target)'],
++        'node_crates_host_libpath': '<(SHARED_INTERMEDIATE_DIR)/<(cargo_rust_host_target)/debug/<(STATIC_LIB_PREFIX)node_crates<(STATIC_LIB_SUFFIX)',
+       },
+       'conditions': [
+         ['OS=="win"', {
+@@ -57,10 +62,26 @@
+         'src/lib.rs',
+       ],
+       'link_settings': {
+-        'libraries': [
+-          '<(node_crates_libpath)',
+-        ],
+         'conditions': [
++          ['cargo_rust_host_target==""', {
++            'libraries': [
++              '<(node_crates_libpath)',
++            ],
++          }, {
++            # Cross builds link a separate host copy into host tools such as
++            # mksnapshot; the condition is evaluated in each linking target.
++            'target_conditions': [
++              ['_toolset=="host"', {
++                'libraries': [
++                  '<(node_crates_host_libpath)',
++                ],
++              }, {
++                'libraries': [
++                  '<(node_crates_libpath)',
++                ],
++              }],
++            ],
++          }],
+           ['OS=="win"', {
+             'libraries': [
+               '-lntdll',
+@@ -91,24 +112,74 @@
+             }
+           ],
+         }, {
+-          'actions': [
+-            {
+-              'action_name': 'cargo_build',
+-              'inputs': [
+-                '<@(_sources)'
++          'conditions': [
++            ['cargo_rust_host_target==""', {
++              'actions': [
++                {
++                  'action_name': 'cargo_build',
++                  'inputs': [
++                    '<@(_sources)'
++                  ],
++                  'outputs': [
++                    '<(node_crates_libpath)'
++                  ],
++                  'action': [
++                    '<(cargo)',
++                    'rustc',
++                    '<@(cargo_build_flags)',
++                    '--frozen',
++                    '--target-dir',
++                    '<(SHARED_INTERMEDIATE_DIR)'
++                  ],
++                }
++              ],
++            }, {
++              # Host and target copies use different Rust triples, so their
++              # outputs do not collide in the shared intermediate directory.
++              'target_conditions': [
++                ['_toolset=="host"', {
++                  'actions': [
++                    {
++                      'action_name': 'cargo_build_host',
++                      'inputs': [
++                        '<@(_sources)'
++                      ],
++                      'outputs': [
++                        '<(node_crates_host_libpath)'
++                      ],
++                      'action': [
++                        '<(cargo)',
++                        'rustc',
++                        '<@(cargo_host_build_flags)',
++                        '--frozen',
++                        '--target-dir',
++                        '<(SHARED_INTERMEDIATE_DIR)'
++                      ],
++                    }
++                  ],
++                }, {
++                  'actions': [
++                    {
++                      'action_name': 'cargo_build',
++                      'inputs': [
++                        '<@(_sources)'
++                      ],
++                      'outputs': [
++                        '<(node_crates_libpath)'
++                      ],
++                      'action': [
++                        '<(cargo)',
++                        'rustc',
++                        '<@(cargo_build_flags)',
++                        '--frozen',
++                        '--target-dir',
++                        '<(SHARED_INTERMEDIATE_DIR)'
++                      ],
++                    }
++                  ],
++                }],
+               ],
+-              'outputs': [
+-                '<(node_crates_libpath)'
+-              ],
+-              'action': [
+-                '<(cargo)',
+-                'rustc',
+-                '<@(cargo_build_flags)',
+-                '--frozen',
+-                '--target-dir',
+-                '<(SHARED_INTERMEDIATE_DIR)'
+-              ],
+-            }
++            }],
+           ],
+         }],
+       ],
