@@ -3105,18 +3105,12 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_limited_files_cache = null;
   let __autojs6_limited_base64_cache = null;
   let __autojs6_limited_colors_cache = null;
-  let __autojs6_limited_formatter_cache = null;
-  let __autojs6_limited_converter_cache = null;
-  let __autojs6_limited_s13n_cache = null;
+  let __autojs6_js_tools_cache = null;
   let __autojs6_limited_mime_cache = null;
   let __autojs6_limited_nanoid_cache = null;
   let __autojs6_limited_opencc_cache = null;
   let __autojs6_limited_pinyin_cache = null;
   let __autojs6_limited_pinyin4j_cache = null;
-  let __autojs6_limited_jsox_mathx_cache = null;
-  let __autojs6_limited_jsox_arrayx_cache = null;
-  let __autojs6_limited_jsox_numberx_cache = null;
-  let __autojs6_limited_jsox_cache = null;
   let __autojs6_rhino_compat_facade_cache = null;
   let __autojs6_lifecycle_config_cache = undefined;
   const __autojs6_lifecycle_checkpoint_handlers = [];
@@ -8648,7 +8642,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail, createFlow, createAi) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8672,6 +8666,15 @@ std::string buildEmbeddedScriptExecutionSource(
     if(createSpeech && methods.speech) modules.set("speech",createSpeech(bridgeCall));
     if(createTts && methods.tts) modules.set("tts",createTts(bridgeCall));
     if(createJava && methods.java) modules.set("java",createJava(bridgeCall,constants.javaPolicy||{},constants.javaEnabled!==false,JavaAsyncContext));
+    if (createJsTools && methods.util) {
+      const tools = createJsTools({ device: constants.device || {}, log: text => nativeConsole.log(text), warn: text => nativeConsole.warn(text), java: () => {
+        if (!modules.has("java")) throw Object.assign(new Error("Java interop is unavailable in this Worker."), { code: "ERR_AUTOJS6_JAVA_INTEROP_DISABLED" });
+        return modules.get("java");
+      } });
+      for (const name of ["util", "species", "global", "s13n", "formatter", "converter", "jsox", "jsox.mathx", "jsox.arrayx", "jsox.numberx"]) modules.set(name, tools[name]);
+      modules.set("fmt", tools.formatter);
+      modules.set("cvt", tools.converter);
+    }
     if(createTasks && methods.tasks)modules.set("tasks",createTasks(bridgeCall));
     if (createDevice && methods.device) modules.set("device",createDevice(bridgeCall,constants.device));
     if (createDialogs && methods.dialogs) modules.set("dialogs",createDialogs(bridgeCall));
@@ -8797,7 +8800,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return result;
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub, createMail, createFlow, createAi) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -8889,7 +8892,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail, createFlow, createAi);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8926,7 +8929,8 @@ std::string buildEmbeddedScriptExecutionSource(
       resolve(specifier, context, nextResolve) {
         if (specifier === "autojs6:bridge") return { url: specifier, shortCircuit: true };
         const hostName = specifier === "node:console" ? "console" : specifier.startsWith("autojs6:") ? specifier.slice(8) : specifier;
-        if (hostModules.has(hostName) && (hostName !== "events" || specifier === "autojs6:events")) {
+        // events, util and global answer only to their autojs6: names (bare util is node:util).
+        if (hostModules.has(hostName) && (!["events", "util", "global"].includes(hostName) || specifier === "autojs6:" + hostName)) {
           // Match the main thread: an installed npm opencc package shadows only the bare name.
           if (specifier === "opencc") {
             try { return nextResolve(specifier, context); } catch (error) {
@@ -9015,7 +9019,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ", " + __autojs6_create_flow.toString() + ", " + __autojs6_create_ai.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ", " + __autojs6_create_flow.toString() + ", " + __autojs6_create_ai.toString() + ", " + __autojs6_create_js_tools.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -9052,6 +9056,14 @@ std::string buildEmbeddedScriptExecutionSource(
             speech:Object.keys(__autojs6_create_speech(()=>{})),
             tts:Object.keys(__autojs6_create_tts(()=>{})),
             java:Object.keys(__autojs6_create_java(()=>{})),
+            util: Object.keys(__autojs6_js_tools().util), species: Object.keys(__autojs6_js_tools().species),
+            // No axios getter: the Worker has no axios facade (api-coverage Q61).
+            global: ["random", "randomInt", "randomFloat", "isInteger", "isPrimitive", "isObject", "isReference", "isBigInt", "isEmptyObject", "isObjectSpecies"],
+            s13n: Object.keys(__autojs6_js_tools().s13n),
+            formatter: Object.keys(__autojs6_js_tools().formatter), fmt: Object.keys(__autojs6_js_tools().formatter),
+            converter: Object.keys(__autojs6_js_tools().converter), cvt: Object.keys(__autojs6_js_tools().converter),
+            jsox: Object.keys(__autojs6_js_tools().jsox), "jsox.mathx": Object.keys(__autojs6_js_tools()["jsox.mathx"]),
+            "jsox.arrayx": Object.keys(__autojs6_js_tools()["jsox.arrayx"]), "jsox.numberx": Object.keys(__autojs6_js_tools()["jsox.numberx"]),
             android:Object.keys(__autojs6_limited_android()), tasks:Object.keys(__autojs6_limited_tasks()), colors:Object.keys(__autojs6_limited_colors()),
             device:Object.keys(__autojs6_limited_device()), dialogs:Object.keys(__autojs6_limited_dialogs()),
             events:Object.keys(__autojs6_host_events()), notifications:Object.keys(__autojs6_limited_notifications()),
@@ -9709,6 +9721,7 @@ std::string buildEmbeddedScriptExecutionSource(
         density: Math.max(0, __autojs6_device_number_property(parsed.density, fallback.density)),
         densityDpi: Math.max(0, Math.trunc(__autojs6_device_number_property(parsed.densityDpi, 0)))
       };
+      info.scaledDensity = Math.max(0, __autojs6_device_number_property(parsed.scaledDensity, info.density));
       for (const key of ["release", "model", "brand", "product", "board", "bootloader", "hardware", "fingerprint", "buildId"]) {
         info[key] = typeof parsed[key] === "string" ? parsed[key] : "unknown";
       }
@@ -11537,256 +11550,9 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_limited_tasks() {
     return __autojs6_tasks_cache ||= __autojs6_create_tasks(__autojs6_call_autojs);
   }
-  const __autojs6_bytes_constants = Object.freeze({
-    UNITS: "KMGTPEZYRQ",
-    AUTO: "AUTO",
-    IEC_DIV: 1024,
-    SI_DIV: 1000
-  });
-  function __autojs6_bytes_unit(unit, strict) {
-    const text = unit === undefined || unit === null || unit === "" ? "B" : String(unit).trim().toUpperCase();
-    if (text === __autojs6_bytes_constants.AUTO) {
-      return { auto: true, base: __autojs6_bytes_constants.IEC_DIV, exp: -1, label: __autojs6_bytes_constants.AUTO };
-    }
-    const normalized = strict ? text : text.replace(/I(?=B$)/, "");
-    const coreRaw = normalized.endsWith("B") ? normalized.slice(0, -1) : normalized;
-    const isIec = strict && coreRaw.endsWith("I");
-    const core = isIec ? coreRaw.slice(0, -1) : coreRaw;
-    if (core === "") {
-      return { auto: false, base: strict && !isIec ? __autojs6_bytes_constants.SI_DIV : __autojs6_bytes_constants.IEC_DIV, exp: 0, label: "B", iec: isIec };
-    }
-    const index = __autojs6_bytes_constants.UNITS.indexOf(core);
-    if (index < 0) {
-      throw __autojs6_invalid_arg_type("bytes unit is invalid: " + unit);
-    }
-    return {
-      auto: false,
-      base: strict && !isIec ? __autojs6_bytes_constants.SI_DIV : __autojs6_bytes_constants.IEC_DIV,
-      exp: index + 1,
-      label: core + (strict && isIec ? "iB" : "B"),
-      iec: isIec
-    };
-  }
-  function __autojs6_bytes_options(args, mode, tough) {
-    const options = {
-      source: args[0],
-      fromUnit: undefined,
-      toUnit: __autojs6_bytes_constants.AUTO,
-      fractionDigits: 2,
-      useIecIdentifier: undefined,
-      useSpace: true,
-      trimTrailingZero: false,
-      autoCarryThreshold: __autojs6_bytes_constants.IEC_DIV,
-      strict: tough === "strict"
-    };
-    if (tough === "loose") {
-      options.strict = false;
-    }
-    function merge(object) {
-      if (!object || typeof object !== "object" || Array.isArray(object)) return;
-      Object.keys(object).forEach(function(key) {
-        if (Object.prototype.hasOwnProperty.call(options, key)) {
-          options[key] = object[key];
-        }
-      });
-    }
-    if (args.length >= 2) {
-      const second = args[1];
-      if (second && typeof second === "object" && !Array.isArray(second)) {
-        merge(second);
-      } else if (typeof second === "string") {
-        options.toUnit = second;
-      } else if (typeof second === "number") {
-        options.fractionDigits = second;
-      } else if (typeof second === "boolean" && mode === "format") {
-        options.useIecIdentifier = second;
-      }
-    }
-    if (args.length >= 3) {
-      const second = args[1];
-      const third = args[2];
-      if (typeof second === "string" && typeof third === "string") {
-        options.fromUnit = second;
-        options.toUnit = third;
-      } else if (third && typeof third === "object" && !Array.isArray(third)) {
-        if (typeof second === "string") {
-          options.toUnit = second;
-        }
-        merge(third);
-      } else if (typeof third === "number") {
-        if (typeof second === "string") options.toUnit = second;
-        options.fractionDigits = third;
-      } else if (typeof third === "boolean" && mode === "format") {
-        if (typeof second === "string") options.toUnit = second;
-        options.useIecIdentifier = third;
-      }
-    }
-    if (args.length >= 4) {
-      options.fromUnit = args[1];
-      options.toUnit = args[2];
-      const fourth = args[3];
-      if (fourth && typeof fourth === "object" && !Array.isArray(fourth)) {
-        merge(fourth);
-      } else if (typeof fourth === "number") {
-        options.fractionDigits = fourth;
-      } else if (typeof fourth === "boolean" && mode === "format") {
-        options.useIecIdentifier = fourth;
-      }
-    }
-    if (tough === "strict") options.strict = true;
-    if (tough === "loose") options.strict = false;
-    options.fractionDigits = Math.max(0, Math.floor(Number(options.fractionDigits) || 0));
-    options.autoCarryThreshold = Math.max(1, Number(options.autoCarryThreshold) || __autojs6_bytes_constants.IEC_DIV);
-    options.useSpace = options.useSpace !== false;
-    options.trimTrailingZero = options.trimTrailingZero === true;
-    return options;
-  }
-  function __autojs6_bytes_parse_source(source, fromUnit, strict) {
-    let value;
-    let parsedUnit = "";
-    if (typeof source === "number" || typeof source === "bigint") {
-      value = Number(source);
-    } else {
-      const match = /^(\d+(?:\.\d+)?)\s*([A-Za-z]*)$/.exec(String(source === undefined || source === null ? 0 : source).trim());
-      if (!match) {
-        throw __autojs6_invalid_arg_type("bytes source is invalid: " + source);
-      }
-      value = Number(match[1]);
-      parsedUnit = match[2] || "";
-    }
-    if (!Number.isFinite(value) || value < 0) {
-      throw __autojs6_invalid_arg_type("bytes source must be a non-negative finite number.");
-    }
-    const incoming = fromUnit === undefined || fromUnit === null || fromUnit === "" ? "" : String(fromUnit);
-    const normalizedIncoming = strict ? incoming.trim() : incoming.trim().toUpperCase().replace(/I(?=B$)/, "");
-    const normalizedParsed = strict ? parsedUnit.trim() : parsedUnit.trim().toUpperCase().replace(/I(?=B$)/, "");
-    let unit = normalizedIncoming || normalizedParsed || "B";
-    if (normalizedIncoming && normalizedParsed && normalizedIncoming.toUpperCase() !== normalizedParsed.toUpperCase()) {
-      throw __autojs6_invalid_arg_type("bytes source has ambiguous units.");
-    }
-    unit = unit.toUpperCase();
-    return { value: value, unit: unit };
-  }
-  function __autojs6_bytes_value(options) {
-    const parsed = __autojs6_bytes_parse_source(options.source, options.fromUnit, options.strict);
-    const from = __autojs6_bytes_unit(parsed.unit, options.strict);
-    return parsed.value * Math.pow(from.base, from.exp);
-  }
-  function __autojs6_bytes_pick_auto(bytes, strict, threshold) {
-    const base = __autojs6_bytes_constants.IEC_DIV;
-    let exp = 0;
-    for (let index = 1; index <= __autojs6_bytes_constants.UNITS.length; index += 1) {
-      if (bytes >= Math.pow(base, index)) {
-        exp = index;
-      } else {
-        break;
-      }
-    }
-    if (exp > 0 && bytes / Math.pow(base, exp) >= threshold && exp < __autojs6_bytes_constants.UNITS.length) {
-      exp += 1;
-    }
-    const core = exp === 0 ? "" : __autojs6_bytes_constants.UNITS.charAt(exp - 1);
-    return { exp: exp, base: base, label: core ? core + (strict ? "iB" : "B") : "B" };
-  }
-  function __autojs6_bytes_number(args, tough) {
-    const options = __autojs6_bytes_options(args, "number", tough);
-    const bytes = __autojs6_bytes_value(options);
-    const target = String(options.toUnit || __autojs6_bytes_constants.AUTO).toUpperCase() === __autojs6_bytes_constants.AUTO
-      ? __autojs6_bytes_pick_auto(bytes, options.strict, options.autoCarryThreshold)
-      : __autojs6_bytes_unit(options.toUnit, options.strict);
-    const divisor = Math.pow(target.base, target.exp);
-    const value = target.exp === 0 ? bytes : bytes / divisor;
-    const scale = Math.pow(10, options.fractionDigits);
-    return Math.round(value * scale) / scale;
-  }
-  function __autojs6_bytes_string(args, tough) {
-    const options = __autojs6_bytes_options(args, "format", tough);
-    const bytes = __autojs6_bytes_value(options);
-    const target = String(options.toUnit || __autojs6_bytes_constants.AUTO).toUpperCase() === __autojs6_bytes_constants.AUTO
-      ? __autojs6_bytes_pick_auto(bytes, options.strict, options.autoCarryThreshold)
-      : __autojs6_bytes_unit(options.toUnit, options.strict);
-    const value = target.exp === 0 ? bytes : bytes / Math.pow(target.base, target.exp);
-    let text = value.toFixed(options.fractionDigits);
-    if (options.trimTrailingZero) {
-      text = text.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
-    }
-    let label = target.label;
-    if (!options.strict && options.useIecIdentifier === true && label !== "B" && label.indexOf("iB") < 0) {
-      label = label.replace(/B$/, "iB");
-    }
-    if (!options.strict && options.useIecIdentifier === false && label.indexOf("iB") >= 0) {
-      label = label.replace(/iB$/, "B");
-    }
-    return text + (options.useSpace ? " " : "") + label;
-  }
-  function __autojs6_limited_formatter() {
-    if (__autojs6_limited_formatter_cache) {
-      return __autojs6_limited_formatter_cache;
-    }
-    const bytes = function() {
-      return __autojs6_bytes_string(Array.prototype.slice.call(arguments), "none");
-    };
-    Object.defineProperties(bytes, {
-      UNITS: { value: __autojs6_bytes_constants.UNITS, enumerable: true },
-      AUTO: { value: __autojs6_bytes_constants.AUTO, enumerable: true },
-      IEC_DIV: { value: __autojs6_bytes_constants.IEC_DIV, enumerable: true },
-      SI_DIV: { value: __autojs6_bytes_constants.SI_DIV, enumerable: true },
-      strict: { value: function() { return __autojs6_bytes_string(Array.prototype.slice.call(arguments), "strict"); }, enumerable: true },
-      loose: { value: function() { return __autojs6_bytes_string(Array.prototype.slice.call(arguments), "loose"); }, enumerable: true }
-    });
-    __autojs6_limited_formatter_cache = Object.freeze({ bytes: Object.freeze(bytes) });
-    return __autojs6_limited_formatter_cache;
-  }
-  function __autojs6_limited_converter() {
-    if (__autojs6_limited_converter_cache) {
-      return __autojs6_limited_converter_cache;
-    }
-    const bytes = function() {
-      return __autojs6_bytes_number(Array.prototype.slice.call(arguments), "none");
-    };
-    Object.defineProperties(bytes, {
-      UNITS: { value: __autojs6_bytes_constants.UNITS, enumerable: true },
-      AUTO: { value: __autojs6_bytes_constants.AUTO, enumerable: true },
-      IEC_DIV: { value: __autojs6_bytes_constants.IEC_DIV, enumerable: true },
-      SI_DIV: { value: __autojs6_bytes_constants.SI_DIV, enumerable: true },
-      strict: { value: function() { return __autojs6_bytes_number(Array.prototype.slice.call(arguments), "strict"); }, enumerable: true },
-      loose: { value: function() { return __autojs6_bytes_number(Array.prototype.slice.call(arguments), "loose"); }, enumerable: true }
-    });
-    __autojs6_limited_converter_cache = Object.freeze({ bytes: Object.freeze(bytes) });
-    return __autojs6_limited_converter_cache;
-  }
-  function __autojs6_s13n_unsupported(methodName) {
-    throw __autojs6_rhino_compat_unsupported(
-      "s13n." + methodName,
-      "Only s13n.bytes is provided in Node; this helper has no JSON-safe host contract."
-    );
-  }
-  function __autojs6_s13n_bytes() {
-    const args = Array.prototype.slice.call(arguments);
-    if (args.length < 1 || args.length > 2) {
-      throw __autojs6_invalid_arg_type("s13n.bytes expects source and optional fromUnit.");
-    }
-    if (args.length === 2 && typeof args[1] !== "string") {
-      throw __autojs6_invalid_arg_type("s13n.bytes fromUnit must be a string when provided.");
-    }
-    const normalized = args.length === 2
-      ? [args[0], args[1], "B", { fractionDigits: 0 }]
-      : [args[0], "B", { fractionDigits: 0 }];
-    return __autojs6_bytes_number(normalized, "none");
-  }
-  function __autojs6_limited_s13n() {
-    if (__autojs6_limited_s13n_cache) {
-      return __autojs6_limited_s13n_cache;
-    }
-    __autojs6_limited_s13n_cache = Object.freeze({
-      bytes: __autojs6_s13n_bytes,
-      color: function() { __autojs6_s13n_unsupported("color"); },
-      point: function() { __autojs6_s13n_unsupported("point"); },
-      throwable: function() { __autojs6_s13n_unsupported("throwable"); },
-      time: function() { __autojs6_s13n_unsupported("time"); }
-    });
-    return __autojs6_limited_s13n_cache;
-  }
+  function __autojs6_limited_formatter() { return __autojs6_js_tools().formatter; }
+  function __autojs6_limited_converter() { return __autojs6_js_tools().converter; }
+  function __autojs6_limited_s13n() { return __autojs6_js_tools().s13n; }
   function __autojs6_mime_parse(value) {
     const raw = value === undefined || value === null ? "" : String(value);
     const parts = raw.split(/\s*;\s*/).filter(function(part) { return part.length > 0; });
@@ -12065,757 +11831,2366 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_limited_screen_metrics_cache = Object.freeze(result);
     return __autojs6_limited_screen_metrics_cache;
   }
-  function __autojs6_jsox_mathx_flatten(input, output) {
-    const target = output || [];
-    Array.prototype.slice.call(input).forEach(function(value) {
-      if (Array.isArray(value)) {
-        __autojs6_jsox_mathx_flatten(value, target);
-      } else {
-        target.push(value);
-      }
-    });
-    return target;
-  }
-  function __autojs6_jsox_mathx_number(value) {
-    return Number(value);
-  }
-  function __autojs6_jsox_mathx_to_fixed_num(value, fraction) {
-    const number = Number(value);
-    const places = Math.trunc(Number(fraction));
-    if (Number.isNaN(number) || Number.isNaN(places)) return NaN;
-    if (!Number.isFinite(number)) return number;
-    const factor = Math.pow(10, places);
-    const scaled = number * factor;
-    return (scaled >= 0 ? Math.floor(scaled + 0.5) : Math.ceil(scaled - 0.5)) / factor;
-  }
-  function __autojs6_jsox_mathx_calc(callback, argsLike) {
-    const args = Array.prototype.slice.call(argsLike);
-    if (args.length === 0) return NaN;
-    if (args.length >= 2) {
-      const last = args[args.length - 1];
-      const fraction = Array.isArray(last) ? NaN : Number(last);
-      const values = args.slice(0, args.length - 1);
-      if (!Number.isNaN(fraction) && values.every(Array.isArray)) {
-        return __autojs6_jsox_mathx_to_fixed_num(callback(values), fraction);
-      }
-    }
-    return callback(args);
-  }
-  function __autojs6_jsox_mathx_values(argsLike) {
-    return __autojs6_jsox_mathx_flatten(argsLike).map(__autojs6_jsox_mathx_number);
-  }
-  function __autojs6_jsox_mathx_random_int() {
-    const values = __autojs6_jsox_mathx_values(arguments);
-    if (values.length === 0) return __autojs6_jsox_mathx_random_int(0, 1);
-    if (values.length === 1) {
-      const value = values[0];
-      if (value === Math.trunc(value)) return Math.trunc(value);
-      return Math.random() < 0.5 ? Math.floor(value) : Math.ceil(value);
-    }
-    const low = Math.ceil(Math.min.apply(Math, values));
-    const high = Math.floor(Math.max.apply(Math, values));
-    if (low > high) {
-      throw __autojs6_rhino_compat_error(
-        "jsox.mathx.randomInt range does not contain an integer.",
-        __autojs6_rhino_compat_error_codes.invalidOption,
-        "jsox.mathx.randomInt",
-        "invalid-option"
-      );
-    }
-    return Math.floor(Math.random() * (high - low + 1)) + low;
-  }
-  function __autojs6_jsox_mathx_random_float() {
-    const values = __autojs6_jsox_mathx_values(arguments);
-    if (values.length === 0) return Math.random();
-    if (values.length === 1) {
-      const value = values[0];
-      let high = Math.ceil(value);
-      if (Math.floor(value) === high) high += 1;
-      return __autojs6_jsox_mathx_random_float(value, high);
-    }
-    const low = Math.min.apply(Math, values);
-    const high = Math.max.apply(Math, values);
-    return Math.random() * (high - low) + low;
-  }
-  function __autojs6_jsox_mathx_sum_raw(argsLike) {
-    const values = __autojs6_jsox_mathx_values(argsLike);
-    return values.reduce(function(total, value) { return total + value; }, 0);
-  }
-  function __autojs6_jsox_mathx_sum() {
-    return __autojs6_jsox_mathx_calc(__autojs6_jsox_mathx_sum_raw, arguments);
-  }
-  function __autojs6_jsox_mathx_mean_raw(argsLike) {
-    const values = __autojs6_jsox_mathx_values(argsLike);
-    return values.reduce(function(total, value) { return total + value; }, 0) / values.length;
-  }
-  function __autojs6_jsox_mathx_mean() {
-    return __autojs6_jsox_mathx_calc(__autojs6_jsox_mathx_mean_raw, arguments);
-  }
-  function __autojs6_jsox_mathx_median_raw(argsLike) {
-    const values = __autojs6_jsox_mathx_values(argsLike);
-    if (values.some(Number.isNaN)) return NaN;
-    const sorted = values.slice().sort(function(left, right) { return left - right; });
-    if (sorted.length === 0) return NaN;
-    const middle = Math.floor(sorted.length / 2);
-    return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
-  }
-  function __autojs6_jsox_mathx_median() {
-    return __autojs6_jsox_mathx_calc(__autojs6_jsox_mathx_median_raw, arguments);
-  }
-  function __autojs6_jsox_mathx_variance_raw(argsLike) {
-    const values = __autojs6_jsox_mathx_values(argsLike);
-    if (values.length === 0 || values.some(Number.isNaN)) return NaN;
-    const mean = values.reduce(function(total, value) { return total + value; }, 0) / values.length;
-    return values.reduce(function(total, value) {
-      return total + Math.pow(value - mean, 2);
-    }, 0) / values.length;
-  }
-  function __autojs6_jsox_mathx_variance() {
-    return __autojs6_jsox_mathx_calc(__autojs6_jsox_mathx_variance_raw, arguments);
-  }
-  function __autojs6_jsox_mathx_std_raw(argsLike) {
-    return Math.sqrt(__autojs6_jsox_mathx_variance_raw(argsLike));
-  }
-  function __autojs6_jsox_mathx_std() {
-    return __autojs6_jsox_mathx_calc(__autojs6_jsox_mathx_std_raw, arguments);
-  }
-  function __autojs6_jsox_mathx_cv_raw(argsLike) {
-    return __autojs6_jsox_mathx_std_raw(argsLike) / __autojs6_jsox_mathx_mean_raw(argsLike);
-  }
-  function __autojs6_jsox_mathx_cv() {
-    return __autojs6_jsox_mathx_calc(__autojs6_jsox_mathx_cv_raw, arguments);
-  }
-  function __autojs6_jsox_mathx_mode_raw(argsLike) {
-    const values = __autojs6_jsox_mathx_values(argsLike);
-    if (values.length === 0 || values.some(Number.isNaN)) return NaN;
-    const counts = new Map();
-    values.forEach(function(value) {
-      counts.set(value, (counts.get(value) || 0) + 1);
-    });
-    let winner = values[0];
-    let winnerCount = -1;
-    counts.forEach(function(count, value) {
-      if (count > winnerCount) {
-        winner = value;
-        winnerCount = count;
-      }
-    });
-    return winner;
-  }
-  function __autojs6_jsox_mathx_mode() {
-    return __autojs6_jsox_mathx_calc(__autojs6_jsox_mathx_mode_raw, arguments);
-  }
-  function __autojs6_jsox_mathx_max_raw(argsLike) {
-    const values = __autojs6_jsox_mathx_values(argsLike);
-    return values.length === 0 ? NaN : Math.max.apply(Math, values);
-  }
-  function __autojs6_jsox_mathx_max() {
-    return __autojs6_jsox_mathx_calc(__autojs6_jsox_mathx_max_raw, arguments);
-  }
-  function __autojs6_jsox_mathx_min_raw(argsLike) {
-    const values = __autojs6_jsox_mathx_values(argsLike);
-    return values.length === 0 ? NaN : Math.min.apply(Math, values);
-  }
-  function __autojs6_jsox_mathx_min() {
-    return __autojs6_jsox_mathx_calc(__autojs6_jsox_mathx_min_raw, arguments);
-  }
-  function __autojs6_jsox_mathx_point(value, apiName) {
-    let x;
-    let y;
-    if (Array.isArray(value)) {
-      if (value.length !== 2) {
-        throw __autojs6_rhino_compat_error(
-          apiName + " point arrays must have exactly two entries.",
-          __autojs6_rhino_compat_error_codes.invalidOption,
-          apiName,
-          "invalid-option"
-        );
-      }
-      x = value[0];
-      y = value[1];
-    } else if (value && typeof value === "object") {
-      x = value.x;
-      y = value.y;
-    } else {
-      throw __autojs6_rhino_compat_error(
-        apiName + " requires JSON-safe point arrays or { x, y } objects.",
-        __autojs6_rhino_compat_error_codes.invalidOption,
-        apiName,
-        "invalid-option"
-      );
-    }
-    x = Number(x);
-    y = Number(y);
-    if (Number.isNaN(x) || Number.isNaN(y)) {
-      throw __autojs6_rhino_compat_error(
-        apiName + " requires numeric point coordinates.",
-        __autojs6_rhino_compat_error_codes.invalidOption,
-        apiName,
-        "invalid-option"
-      );
-    }
-    return { x: x, y: y };
-  }
-  function __autojs6_jsox_mathx_dist(a, b, fraction) {
-    const apiName = "jsox.mathx.dist";
-    if (arguments.length === 0) return NaN;
-    if (arguments.length < 2 || arguments.length > 3) {
-      throw __autojs6_rhino_compat_error(
-        apiName + " accepts two point inputs and an optional fraction.",
-        __autojs6_rhino_compat_error_codes.invalidOption,
-        apiName,
-        "invalid-option"
-      );
-    }
-    const pointA = __autojs6_jsox_mathx_point(a, apiName);
-    const pointB = __autojs6_jsox_mathx_point(b, apiName);
-    const distance = Math.sqrt(Math.pow(pointA.x - pointB.x, 2) + Math.pow(pointA.y - pointB.y, 2));
-    return arguments.length === 3 ? __autojs6_jsox_mathx_to_fixed_num(distance, fraction) : distance;
-  }
-  function __autojs6_jsox_mathx_log_mn(baseInput, antilogarithmInput, fractionInput) {
-    const base = Number(baseInput);
-    const antilogarithm = Number(antilogarithmInput);
-    if (Number.isNaN(base) || Number.isNaN(antilogarithm)) {
-      throw __autojs6_rhino_compat_error(
-        "jsox.mathx.logMn requires numeric base and antilogarithm.",
-        __autojs6_rhino_compat_error_codes.invalidOption,
-        "jsox.mathx.logMn",
-        "invalid-option"
-      );
-    }
-    const fraction = fractionInput === undefined || fractionInput === null ? 13 : fractionInput;
-    return __autojs6_jsox_mathx_to_fixed_num(Math.log(antilogarithm) / Math.log(base), fraction);
-  }
-  function __autojs6_jsox_mathx_floor_log(base, antilogarithm) {
-    return Math.floor(__autojs6_jsox_mathx_log_mn(base, antilogarithm));
-  }
-  function __autojs6_jsox_mathx_ceil_log(base, antilogarithm) {
-    return Math.ceil(__autojs6_jsox_mathx_log_mn(base, antilogarithm));
-  }
-  function __autojs6_jsox_mathx_round_log(base, antilogarithm) {
-    return Math.round(__autojs6_jsox_mathx_log_mn(base, antilogarithm));
-  }
-  function __autojs6_jsox_mathx_floor_pow(base, antilogarithm) {
-    return Math.pow(Number(base), __autojs6_jsox_mathx_floor_log(base, antilogarithm));
-  }
-  function __autojs6_jsox_mathx_ceil_pow(base, antilogarithm) {
-    return Math.pow(Number(base), __autojs6_jsox_mathx_ceil_log(base, antilogarithm));
-  }
-  function __autojs6_jsox_mathx_round_pow(base, antilogarithm) {
-    return Math.pow(Number(base), __autojs6_jsox_mathx_round_log(base, antilogarithm));
-  }
-  function __autojs6_jsox_arrayx_require_array(value, apiName) {
-    if (!Array.isArray(value)) {
-      throw __autojs6_rhino_compat_error(
-        apiName + " requires a JavaScript Array.",
-        __autojs6_rhino_compat_error_codes.invalidOption,
-        apiName,
-        "invalid-option"
-      );
-    }
-    return value;
-  }
-  function __autojs6_jsox_arrayx_require_function(value, apiName) {
-    if (typeof value !== "function") {
-      throw __autojs6_rhino_compat_error(
-        apiName + " requires a JavaScript Function selector.",
-        __autojs6_rhino_compat_error_codes.invalidOption,
-        apiName,
-        "invalid-option"
-      );
-    }
-    return value;
-  }
-  function __autojs6_jsox_arrayx_ensure_array() {
-    Array.prototype.slice.call(arguments).forEach(function(value) {
-      __autojs6_jsox_arrayx_require_array(value, "jsox.arrayx.ensureArray");
-    });
-  }
-  function __autojs6_jsox_arrayx_distinct(arr) {
-    const input = __autojs6_jsox_arrayx_require_array(arr, "jsox.arrayx.distinct");
-    return Array.from(new Set(input));
-  }
-  function __autojs6_jsox_arrayx_distinct_by(arr, selector) {
-    const input = __autojs6_jsox_arrayx_require_array(arr, "jsox.arrayx.distinctBy");
-    const select = __autojs6_jsox_arrayx_require_function(selector, "jsox.arrayx.distinctBy");
-    const seen = new Set();
-    const result = [];
-    input.forEach(function(value) {
-      const key = select(value);
-      if (!seen.has(key)) {
-        seen.add(key);
-        result.push(value);
-      }
-    });
-    return result;
-  }
-  function __autojs6_jsox_arrayx_union() {
-    const args = Array.prototype.slice.call(arguments);
-    if (args.length === 0) {
-      throw __autojs6_rhino_compat_error(
-        "jsox.arrayx.union requires at least one array.",
-        __autojs6_rhino_compat_error_codes.invalidOption,
-        "jsox.arrayx.union",
-        "invalid-option"
-      );
-    }
-    const result = [];
-    const seen = new Set();
-    args.forEach(function(value) {
-      __autojs6_jsox_arrayx_require_array(value, "jsox.arrayx.union").forEach(function(item) {
-        if (!seen.has(item)) {
-          seen.add(item);
-          result.push(item);
+  // Shared JS tools core.
+  // util, species, the global data functions, s13n, cvt / fmt bytes and jsox of AutoJs6 Rhino scripts for the Node main
+  // thread, Node Workers and the Bun runtime (which syncs this section), ported from the host modules of the same names
+  // and compared with Rhino on a device (AutoJs6 api-coverage P3.2a, tools/nodejs/api/js-tools). Self-contained: Workers
+  // and Bun receive its source. host: { device: { sdkInt, density, densityDpi, scaledDensity }, java() (the Java facade,
+  // asked for on first use), log(text), warn(text), axios() (optional, main thread) }.
+  function __autojs6_create_js_tools(host) {
+    function __autojs6_js_tools_jsox() {
+      const BUILT_IN_EXTENSIONS = ["Mathx", "Numberx", "Arrayx"];
+      const STATIC = 1;
+      const PROTOTYPE = 2;
+      const GLOBAL = 4;
+      const BUILT_IN_ONLY = 8;
+      const MIN_SAFE_INTEGER = -9007199254740991;
+      const MAX_SAFE_INTEGER = 9007199254740991;
+      // Kotlin Char.isWhitespace (String.trim): Java whitespace plus every space separator, no U+FEFF.
+      const KOTLIN_SPACE = "[\\t-\\r\\x1c-\\x20\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]";
+      const KOTLIN_TRIM = new RegExp(`^${KOTLIN_SPACE}+|${KOTLIN_SPACE}+$`, "g");
+      const DECIMAL = /^\s*([+-]?(?:Infinity|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?))/;
+      const PERCENT = /^([+-]?\d+(?:\.\d+)?)(%*)$/;
+      const OPERATORS = new Map([
+        ["<", (a, b) => a < b],
+        ["<=", (a, b) => a <= b],
+        [">", (a, b) => a > b],
+        [">=", (a, b) => a >= b],
+        ["=", (a, b) => a === b],
+        ["==", (a, b) => a === b],
+        ["!=", (a, b) => a !== b],
+        ["<>", (a, b) => a !== b],
+      ]);
+      const random = Math.random;
+      const sortArray = Array.prototype.sort;
+      const objectToString = Object.prototype.toString;
+
+      const isNullish = v => v === null || v === undefined;
+      // A Rhino BigInt is a java.lang.Number, so the host's "is Number" checks accept it.
+      const isNumber = v => typeof v === "number" || typeof v === "bigint";
+      const toNumber = v => typeof v === "bigint" ? Number(v) : +v;
+      const str = v => `${v}`;
+      const kotlinTrim = s => s.replace(KOTLIN_TRIM, "");
+      const tagOf = v => objectToString.call(v).slice(8, -1);
+      const compareDouble = (a, b) => a < b ? -1 : a > b ? 1 : Object.is(a, b) ? 0 : Object.is(a, -0) ? -1 : 1;
+      // Kotlin pow on ART is bionic's pow (C99 Annex F): pow(1, y) and pow(-1, +-Infinity) are 1, where Math.pow gives NaN.
+      const pow = (x, y) => x === 1 || (x === -1 && (y === Infinity || y === -Infinity)) ? 1 : Math.pow(x, y);
+      const own = (arr, i) => Object.hasOwn(arr, i) ? arr[i] : undefined;
+      const elements = arr => Array.from({length: arr.length}, (_, i) => own(arr, i));
+      const dropTrailingUndefined = args => {
+        let n = args.length;
+        while (n > 0 && args[n - 1] === undefined) n--;
+        return args.slice(0, n);
+      };
+
+      function flattenInto(value, out) {
+        if (Array.isArray(value)) {
+          for (let i = 0; i < value.length; i++) if (Object.hasOwn(value, i)) flattenInto(value[i], out);
+        } else {
+          out.push(value);
         }
+        return out;
+      }
+
+      const flatten = values => values.reduce((out, value) => flattenInto(value, out), []);
+
+      function describe(v) {
+        if (v === null) return "null";
+        switch (typeof v) {
+          case "number":
+          case "bigint":
+            return "number";
+          case "object":
+            return Array.isArray(v) ? "Array" : tagOf(v);
+          default:
+            return typeof v;
+        }
+      }
+
+      const failure = (fn, cause) => `Failed to call method "${fn}": [ ${cause} ]`;
+      const typeError = (fn, cause) => new TypeError(failure(fn, cause));
+      const rangeError = (fn, cause) => new RangeError(failure(fn, cause));
+      const argumentType = (fn, param, expected, value) => typeError(fn, `Argument "${param}" must be of type ${expected}, got ${describe(value)}`);
+      const argumentCannotBe = (param, actual) => `Argument "${param}" cannot be ${actual}`;
+
+      function arityError(fn, min, max) {
+        const args = n => n === 1 ? "argument" : "arguments";
+        if (max < 0) return typeError(fn, `Method only accepts no less than ${min} ${args(min)}`);
+        if (min === max) return typeError(fn, `Method only accepts ${min} ${args(min)}`);
+        return typeError(fn, `Method only accepts a number of arguments in the range [${min}..${max}]`);
+      }
+
+      // Argument conversions of ScriptArgs.
+
+      function double(v, fn, param) {
+        if (isNumber(v)) return Number(v);
+        if (typeof v === "string") {
+          const d = +v;
+          if (d === d || kotlinTrim(v) === "NaN") return d;
+        }
+        throw argumentType(fn, param, "number", v);
+      }
+
+      function bool(v, fn, param) {
+        if (typeof v === "boolean") return v;
+        throw argumentType(fn, param, "boolean", v);
+      }
+
+      function list(v, fn, param) {
+        if (Array.isArray(v)) return elements(v);
+        throw argumentType(fn, param, "Array", v);
+      }
+
+      function array(v, fn, param) {
+        if (Array.isArray(v)) return v;
+        throw argumentType(fn, param, "Array", v);
+      }
+
+      function callable(v, fn, param) {
+        if (typeof v === "function") return v;
+        throw argumentType(fn, param, "function", v);
+      }
+
+      // Number.prototype.toFixed as a number (JsoxValues.toFixed, Rhino's DecimalFormatter: exact, half up).
+      function toFixed(x, fraction) {
+        const digits = Math.trunc(+fraction) || 0;
+        if (digits < 0 || digits > 100) throw new RangeError(`Precision ${str(fraction)} out of range.`);
+        return Number.isFinite(x) ? +x.toFixed(digits) : x;
+      }
+
+      // The global parseFloat (JsoxValues.parseFloat), independent of the global the Number extension replaces.
+      function parseDecimal(s) {
+        const match = DECIMAL.exec(s);
+        return match ? +match[1] : NaN;
+      }
+
+      const digitOf = c => c >= 48 && c <= 57 ? c - 48 : c >= 97 && c <= 122 ? c - 87 : c >= 65 && c <= 90 ? c - 55 : 36;
+
+      // JsoxValues.parseInt: other radixes than 10 are converted exactly, as BigInteger.toDouble.
+      function parseInteger(s, radix) {
+        let i = /^\s*/.exec(s)[0].length;
+        const negative = s[i] === "-";
+        if (s[i] === "+" || s[i] === "-") i++;
+        let r = radix;
+        let stripPrefix = true;
+        if (r !== 0) {
+          if (r < 2 || r > 36) return NaN;
+          if (r !== 16) stripPrefix = false;
+        } else {
+          r = 10;
+        }
+        if (stripPrefix && i + 1 < s.length && s[i] === "0" && (s[i + 1] === "x" || s[i + 1] === "X")) {
+          i += 2;
+          r = 16;
+        }
+        const begin = i;
+        while (i < s.length && digitOf(s.charCodeAt(i)) < r) i++;
+        if (i === begin) return NaN;
+        const digits = s.slice(begin, i);
+        let value;
+        if (r === 10) {
+          value = +digits;
+        } else {
+          let big = 0n;
+          for (let k = 0; k < digits.length; k++) big = big * BigInt(r) + BigInt(digitOf(digits.charCodeAt(k)));
+          value = Number(big);
+        }
+        return negative ? -value : value;
+      }
+
+      // Mathx
+
+      const numbersOf = values => flatten(values).map(toNumber);
+      const hasNaN = values => values.some(Number.isNaN);
+
+      function total(values) {
+        let sum = 0;
+        for (const x of values) sum += x;
+        return sum;
+      }
+
+      const meanOf = values => total(values) / values.length;
+
+      function squaredDeviations(values, mean) {
+        let sum = 0;
+        for (const x of values) {
+          const d = x - mean;
+          sum += d * d;
+        }
+        return sum;
+      }
+
+      const varianceOf = values => values.length === 0 || hasNaN(values) ? NaN : squaredDeviations(values, meanOf(values)) / values.length;
+
+      function median(values) {
+        if (values.length === 0 || hasNaN(values)) return NaN;
+        const sorted = [...values].sort(compareDouble);
+        const half = Math.trunc(sorted.length / 2);
+        return sorted.length % 2 !== 0 ? sorted[half] : (sorted[half - 1] + sorted[half]) / 2;
+      }
+
+      function cv(values) {
+        if (values.length < 2 || hasNaN(values)) return NaN;
+        const mean = total(values) / values.length;
+        return Math.sqrt(squaredDeviations(values, mean) / (values.length - 1)) / mean;
+      }
+
+      function mode(values) {
+        if (values.length === 0 || hasNaN(values)) return NaN;
+        // Kotlin Double keys: -0 and 0 are counted apart.
+        const frequencies = new Map();
+        for (const x of values) {
+          const key = Object.is(x, -0) ? "-0" : x;
+          const entry = frequencies.get(key);
+          if (entry) entry[1]++;
+          else frequencies.set(key, [x, 1]);
+        }
+        let most = 0;
+        for (const [, count] of frequencies.values()) most = Math.max(most, count);
+        for (const [x, count] of frequencies.values()) if (count === most) return x;
+      }
+
+      const maxOf = values => values.reduce((acc, x) => Math.max(acc, x), -Infinity);
+      const minOf = values => values.reduce((acc, x) => Math.min(acc, x), Infinity);
+
+      // Trailing undefined arguments are omitted; when every argument but the last is an array and the last is a number,
+      // it is the count of fraction digits.
+      function statistic(args, compute) {
+        const values = dropTrailingUndefined(args);
+        if (values.length >= 2) {
+          const last = values[values.length - 1];
+          const head = values.slice(0, -1);
+          if (!isNullish(last) && !Array.isArray(last) && head.every(Array.isArray)) {
+            const fraction = toNumber(last);
+            if (fraction === fraction) return toFixed(compute(numbersOf(head)), fraction);
+          }
+        }
+        return compute(numbersOf(values));
+      }
+
+      function rangeOf(fn, range) {
+        const values = flatten(dropTrailingUndefined(range));
+        if (values.length === 0) return null;
+        if (values.length === 1) {
+          const x = isNullish(values[0]) ? NaN : toNumber(values[0]);
+          if (x !== x) throw argumentType(fn, "range", "number", range.length === 1 ? range[0] : values[0]);
+          return x > 0 ? [0, x] : [x, 0];
+        }
+        let min = NaN;
+        let max = NaN;
+        for (const v of values) {
+          const d = toNumber(v);
+          if (d !== d) continue;
+          if (min !== min) {
+            min = d;
+            max = d;
+          } else {
+            min = Math.min(min, d);
+            max = Math.max(max, d);
+          }
+        }
+        if (min !== min) throw rangeError(fn, `Argument "range" contains no valid number`);
+        return [min, max];
+      }
+
+      function randomIntIn(fn, low, high) {
+        const min = Math.ceil(low);
+        const max = Math.floor(high);
+        if (min > max) throw rangeError(fn, `No integer lies within the range [${low}, ${high}]`);
+        return Math.floor(random() * (max - min + 1)) + min;
+      }
+
+      function randomInt(fn, range) {
+        const bounds = rangeOf(fn, range);
+        return bounds ? randomIntIn(fn, bounds[0], bounds[1]) : randomIntIn(fn, MIN_SAFE_INTEGER, MAX_SAFE_INTEGER);
+      }
+
+      function randomFloat(fn, range) {
+        const bounds = rangeOf(fn, range);
+        return bounds ? random() * (bounds[1] - bounds[0]) + bounds[0] : random();
+      }
+
+      function coordinates(x, y) {
+        const nx = isNullish(x) ? NaN : toNumber(x);
+        const ny = isNullish(y) ? NaN : toNumber(y);
+        return nx !== nx || ny !== ny ? null : [nx, ny];
+      }
+
+      function pointOf(o, param) {
+        let point = null;
+        if (Array.isArray(o)) {
+          if (o.length !== 2) throw typeError("Mathx.dist", `Argument "${param}" must have a length of 2, got ${o.length}`);
+          point = coordinates(own(o, 0), own(o, 1));
+        } else if (o !== null && typeof o === "object" && tagOf(o) === "Object") {
+          point = coordinates(o.x, o.y);
+        }
+        if (!point) throw argumentType("Mathx.dist", param, "point ([x, y], { x, y }, Point or Rect)", o);
+        return point;
+      }
+
+      function distance(a, b) {
+        const dx = a[0] - b[0];
+        const dy = a[1] - b[1];
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      function dist(args) {
+        const points = dropTrailingUndefined([args[0], args[1], args[2]]);
+        switch (points.length) {
+          case 0:
+            return NaN;
+          case 1:
+            throw argumentType("Mathx.dist", "pointA", "android.graphics.Rect", points[0]);
+          case 2:
+            return distance(pointOf(points[0], "pointA"), pointOf(points[1], "pointB"));
+          default:
+            return toFixed(distance(pointOf(points[0], "pointA"), pointOf(points[1], "pointB")), points[2]);
+        }
+      }
+
+      function logMn(base, antilogarithm, fraction) {
+        let digits = 13;
+        if (!isNullish(fraction)) {
+          digits = toNumber(fraction);
+          if (digits !== digits) throw argumentType("Mathx.logMn", "fraction", "number", fraction);
+        }
+        return toFixed(Math.log(antilogarithm) / Math.log(base), digits);
+      }
+
+      // f(base, logarithm with 13 fraction digits); a base or antilogarithm that is NaN is a RangeError.
+      function logarithm(fn, args, f) {
+        const base = double(args[0], fn, "base");
+        const antilogarithm = double(args[1], fn, "antilogarithm");
+        if (base !== base) throw rangeError(fn, argumentCannotBe("base", "NaN"));
+        if (antilogarithm !== antilogarithm) throw rangeError(fn, argumentCannotBe("antilogarithm", "NaN"));
+        return f(base, logMn(base, antilogarithm, null));
+      }
+
+      // Java Math.round gives a long, so never -0.
+      const round = x => Number.isFinite(x) ? Math.round(x) + 0 : x;
+
+      // Arrayx
+
+      const sameZero = (a, b) => a === b || (a !== a && b !== b);
+
+      function distinctValues(values) {
+        const seen = new Set();
+        return values.filter(v => !seen.has(v) && seen.add(v));
+      }
+
+      // ">" / "<", then the string forms (ArrayxModule.compare).
+      function compare(a, b) {
+        if (a > b) return 1;
+        if (a < b) return -1;
+        if (Object.is(a, b)) return 0;
+        const sa = str(a);
+        const sb = str(b);
+        return sa > sb ? 1 : sa < sb ? -1 : 0;
+      }
+
+      function comparator(selector, descending) {
+        return (a, b) => {
+          if (selector) {
+            a = selector.call(undefined, a);
+            b = selector.call(undefined, b);
+          }
+          return descending ? compare(b, a) : compare(a, b);
+        };
+      }
+
+      function sort(arr, cmp) {
+        sortArray.call(arr, cmp);
+        return arr;
+      }
+
+      function union(args, fn) {
+        const values = list(args[0], fn, "arr");
+        for (const other of args.slice(1)) {
+          if (Array.isArray(other)) values.push(...elements(other));
+          else values.push(other);
+        }
+        return distinctValues(values);
+      }
+
+      function intersect(args, fn) {
+        const arr = list(args[0], fn, "arr");
+        const others = args.slice(1);
+        if (arr.length === 0 || others.length === 0) return [];
+        return distinctValues(arr).filter(candidate => others.every(other => (
+          Array.isArray(other) ? elements(other).some(e => sameZero(candidate, e)) : candidate === other
+        )));
+      }
+
+      function differ(args, fn) {
+        const arr = list(args[0], fn, "arr");
+        const other = list(args[1], fn, "other");
+        const inArr = new Set(arr);
+        const inOther = new Set(other);
+        return distinctValues([...distinctValues(arr).filter(x => !inOther.has(x)), ...distinctValues(other).filter(x => !inArr.has(x))]);
+      }
+
+      function sortedBy(args, fn, descending) {
+        const copy = list(args[0], fn, "arr");
+        const selector = callable(args[1], fn, "selector");
+        return copy.length < 2 ? copy : sort(copy, comparator(selector, descending));
+      }
+
+      function sortBy(args, fn, descending) {
+        const arr = array(args[0], fn, "arr");
+        const selector = callable(args[1], fn, "selector");
+        return arr.length < 2 ? arr : sort(arr, comparator(selector, descending));
+      }
+
+      // Numberx
+
+      function parsePercent(percentage) {
+        if (isNullish(percentage)) return NaN;
+        if (isNumber(percentage)) return Number(percentage);
+        const match = PERCENT.exec(str(percentage).replace(/\s/g, ""));
+        return match ? +match[1] / pow(100, match[2].length) : NaN;
+      }
+
+      function parseRatio(ratio) {
+        if (isNullish(ratio)) return NaN;
+        const parts = kotlinTrim(str(ratio)).split(":").map(kotlinTrim);
+        return parts.length < 2 ? NaN : parseDecimal(parts[0]) / parseDecimal(parts[1]);
+      }
+
+      function parseAny(o) {
+        if (isNullish(o)) return NaN;
+        if (isNumber(o)) return Number(o);
+        const text = kotlinTrim(str(o));
+        if (text.includes(":")) return parseRatio(text);
+        if (text.includes("%")) return parsePercent(text);
+        return +text;
+      }
+
+      function parseFloatRadix(string, radix) {
+        if (string === null) return NaN;
+        let text = str(string);
+        if (isNullish(radix)) return parseDecimal(text);
+        let r = numberLike("Numberx.parseFloat", "radix", radix, true);
+        if (!Number.isFinite(r)) r = 10;
+        const parts = text.split(".");
+        let fractionLength = 0;
+        if (parts.length > 1) {
+          text = parts.join("");
+          fractionLength = parts[1].length;
+        }
+        return parseInteger(text, Math.round(r)) / pow(r, fractionLength);
+      }
+
+      function numberLike(fn, param, value, allowNaN) {
+        if (isNullish(value)) throw typeError(fn, argumentCannotBe(param, describe(value)));
+        if (typeof value === "number" && value !== value) {
+          if (!allowNaN) throw rangeError(fn, argumentCannotBe(param, "NaN"));
+          return NaN;
+        }
+        const x = parseAny(value);
+        if (x !== x) throw argumentType(fn, param, "number", value);
+        return x;
+      }
+
+      function check(values) {
+        switch (values.length) {
+          case 0:
+            return false;
+          case 1:
+            return isNumber(values[0]);
+          case 2:
+            return isNumber(values[0]) && isNumber(values[1]) && Number(values[0]) === Number(values[1]);
+        }
+        for (let i = 1; i < values.length; i += 2) {
+          const operator = typeof values[i] === "string" ? OPERATORS.get(values[i]) : undefined;
+          if (!operator) {
+            throw argumentType("Numberx.check", `numOrOpr[${i}]`, `comparison operator (${[...OPERATORS.keys()].join(", ")})`, values[i]);
+          }
+          const a = numberLike("Numberx.check", `numOrOpr[${i - 1}]`, values[i - 1], false);
+          const b = numberLike("Numberx.check", `numOrOpr[${i + 1}]`, i + 1 < values.length ? values[i + 1] : null, false);
+          if (!operator(a, b)) return false;
+        }
+        return true;
+      }
+
+      const bounds = values => flatten(values)
+        .map(v => isNumber(v) ? Number(v) : typeof v === "string" ? parseAny(v) : toNumber(v))
+        .filter(x => x === x)
+        .sort(compareDouble);
+
+      function clamp(args, fn) {
+        const x = numberLike(fn, "num", args[0], false);
+        const b = bounds(args.slice(1));
+        if (b.length === 0) return x;
+        const min = b[0];
+        const max = b[b.length - 1];
+        return x < min ? min : x > max ? max : x;
+      }
+
+      function clampTo(args, n, fn) {
+        const range = list(args[1], fn, "range");
+        const x = numberLike(fn, "num", args[0], false);
+        const b = bounds(range);
+        if (b.length === 0) return x;
+        const min = b[0];
+        const max = b[b.length - 1];
+        const cycle = n > 2 ? args[2] : null;
+        const t = isNullish(cycle) ? max - min : numberLike(fn, "cycle", cycle, false);
+        if (!(t > 0)) throw rangeError(fn, `Argument "cycle" must be a positive number, got ${t}`);
+        if (x < min) return x + Math.ceil((min - x) / t) * t;
+        if (x > max) return x - Math.ceil((x - max) / t) * t;
+        return x;
+      }
+
+      function pad(fn, num, targetLength, filler, start) {
+        const length = toNumber(targetLength);
+        if (!Number.isFinite(length)) throw argumentType(fn, "targetLength", "number", targetLength);
+        const padString = isNullish(filler) ? "0" : isNumber(filler) ? str(Number(filler)) : str(filler);
+        const text = str(parseAny(num));
+        const target = length <= 0 ? 0 : Math.trunc(Math.min(length, 2147483647));
+        if (text.length >= target || padString.length === 0) return text;
+        const missing = target - text.length;
+        const padding = padString.repeat(Math.trunc(missing / padString.length)) + padString.slice(0, missing % padString.length);
+        return start ? padding + text : text + padding;
+      }
+
+      function ensureNumbersLike(args, n, fn) {
+        const values = list(args[0], fn, "values");
+        const allowNaN = n > 1 && bool(args[1], fn, "allowNaN");
+        const containsNaN = n > 2 && bool(args[2], fn, "containsNaN");
+        const result = [];
+        values.forEach((value, index) => {
+          const x = numberLike(fn, `values[${index}]`, value, allowNaN);
+          if (x === x || containsNaN) result.push(x);
+        });
+        return result;
+      }
+
+      // Members in declaration order: [name, min, max (-1: no limit), body(args, n, function name), built-in flags]; the
+      // data properties (Numberx.ICU) are static members of the built-in as well.
+      const MODULES = {
+        Mathx: {
+          builtIn: "Math",
+          data: [],
+          functions: [
+            ["randInt", 0, -1, (a, n, fn) => randomInt(fn, a), STATIC],
+            ["randomInt", 0, -1, (a, n, fn) => randomInt(fn, a), STATIC],
+            ["randFloat", 0, -1, (a, n, fn) => randomFloat(fn, a), STATIC],
+            ["randomFloat", 0, -1, (a, n, fn) => randomFloat(fn, a), STATIC],
+            ["random", 0, -1, (a, n, fn) => randomFloat(fn, a), STATIC],
+            ["sum", 0, -1, a => statistic(a, values => values.length === 0 ? NaN : total(values)), STATIC],
+            ["mean", 0, -1, a => statistic(a, meanOf), STATIC],
+            ["avg", 0, -1, a => statistic(a, meanOf), STATIC],
+            ["median", 0, -1, a => statistic(a, median), STATIC],
+            ["var", 0, -1, a => statistic(a, varianceOf), STATIC],
+            ["std", 0, -1, a => statistic(a, values => Math.sqrt(varianceOf(values))), STATIC],
+            ["cv", 0, -1, a => statistic(a, cv), STATIC],
+            ["mode", 0, -1, a => statistic(a, mode), STATIC],
+            ["dist", 0, 3, dist, STATIC],
+            ["logMn", 2, 3, (a, n, fn) => logMn(double(a[0], fn, "base"), double(a[1], fn, "antilogarithm"), n > 2 ? a[2] : null), STATIC],
+            ["floorLog", 2, 2, (a, n, fn) => logarithm(fn, a, (base, x) => Math.floor(x)), STATIC],
+            ["ceilLog", 2, 2, (a, n, fn) => logarithm(fn, a, (base, x) => Math.ceil(x)), STATIC],
+            ["roundLog", 2, 2, (a, n, fn) => logarithm(fn, a, (base, x) => round(x)), STATIC],
+            ["floorPow", 2, 2, (a, n, fn) => logarithm(fn, a, (base, x) => pow(base, Math.floor(x))), STATIC],
+            ["ceilPow", 2, 2, (a, n, fn) => logarithm(fn, a, (base, x) => pow(base, Math.ceil(x))), STATIC],
+            ["roundPow", 2, 2, (a, n, fn) => logarithm(fn, a, (base, x) => pow(base, round(x))), STATIC],
+            ["max", 0, -1, a => statistic(a, maxOf), 0],
+            ["maxi", 0, -1, a => statistic(a, maxOf), STATIC | BUILT_IN_ONLY],
+            ["min", 0, -1, a => statistic(a, minOf), 0],
+            ["mini", 0, -1, a => statistic(a, minOf), STATIC | BUILT_IN_ONLY],
+          ],
+        },
+        Numberx: {
+          builtIn: "Number",
+          data: [["ICU", 996]],
+          functions: [
+            ["ensureNumber", 0, -1, (a, n, fn) => {
+              for (const o of a) if (!isNumber(o)) throw argumentType(fn, "o", "number", o);
+            }, STATIC],
+            ["ensureNumberLike", 1, 2, (a, n, fn) => numberLike(fn, "value", a[0], n > 1 && bool(a[1], fn, "allowNaN")), STATIC],
+            ["ensureNumbersLike", 1, 3, ensureNumbersLike, STATIC],
+            ["check", 0, -1, check, STATIC],
+            ["clamp", 1, -1, (a, n, fn) => clamp(a, fn), PROTOTYPE],
+            ["clampTo", 2, 3, clampTo, PROTOTYPE],
+            ["toFixedNum", 1, 2, (a, n) => toFixed(parseAny(a[0]), n > 1 ? a[1] : 0), PROTOTYPE],
+            ["padStart", 2, 3, (a, n, fn) => pad(fn, a[0], a[1], n > 2 ? a[2] : null, true), PROTOTYPE],
+            ["padEnd", 2, 3, (a, n, fn) => pad(fn, a[0], a[1], n > 2 ? a[2] : null, false), PROTOTYPE],
+            ["parseFloat", 1, 2, (a, n) => parseFloatRadix(a[0], n > 1 ? a[1] : null), STATIC | GLOBAL],
+            ["parsePercent", 1, 1, a => parsePercent(a[0]), STATIC],
+            ["parseRatio", 1, 1, a => parseRatio(a[0]), STATIC],
+            ["parseAny", 1, 1, a => parseAny(a[0]), STATIC],
+          ],
+        },
+        Arrayx: {
+          builtIn: "Array",
+          data: [],
+          functions: [
+            ["ensureArray", 0, -1, (a, n, fn) => {
+              for (const o of a) if (!Array.isArray(o)) throw argumentType(fn, "o", "Array", o);
+            }, STATIC],
+            ["distinct", 1, 1, (a, n, fn) => distinctValues(list(a[0], fn, "arr")), PROTOTYPE],
+            ["distinctBy", 2, 2, (a, n, fn) => {
+              const arr = list(a[0], fn, "arr");
+              const selector = callable(a[1], fn, "selector");
+              const keys = new Set();
+              return arr.filter(element => {
+                const key = selector.call(undefined, element);
+                return !keys.has(key) && keys.add(key);
+              });
+            }, PROTOTYPE],
+            ["union", 1, -1, (a, n, fn) => union(a, fn), PROTOTYPE],
+            ["intersect", 1, -1, (a, n, fn) => intersect(a, fn), PROTOTYPE],
+            ["subtract", 2, 2, (a, n, fn) => {
+              const arr = list(a[0], fn, "arr");
+              const other = new Set(list(a[1], fn, "other"));
+              return distinctValues(arr).filter(x => !other.has(x));
+            }, PROTOTYPE],
+            ["differ", 2, 2, (a, n, fn) => differ(a, fn), PROTOTYPE],
+            ["sortBy", 2, 2, (a, n, fn) => sortBy(a, fn, false), PROTOTYPE],
+            ["sortByDescending", 2, 2, (a, n, fn) => sortBy(a, fn, true), PROTOTYPE],
+            ["sortDescending", 1, 1, (a, n, fn) => sort(array(a[0], fn, "arr"), comparator(null, true)), PROTOTYPE],
+            ["sorted", 1, 1, (a, n, fn) => sort(list(a[0], fn, "arr"), comparator(null, false)), PROTOTYPE],
+            ["sortedDescending", 1, 1, (a, n, fn) => sort(list(a[0], fn, "arr"), comparator(null, true)), PROTOTYPE],
+            ["sortedBy", 2, 2, (a, n, fn) => sortedBy(a, fn, false), PROTOTYPE],
+            ["sortedByDescending", 2, 2, (a, n, fn) => sortedBy(a, fn, true), PROTOTYPE],
+            ["shuffle", 1, 1, (a, n, fn) => sort(array(a[0], fn, "arr"), () => random() < 0.5 ? 1 : -1), PROTOTYPE],
+          ],
+        },
+      };
+
+      // Script module layer: trailing undefined arguments beyond the required ones count as omitted (ScriptArgs.count).
+      function invoker(fn, min, max, body) {
+        return args => {
+          let n = args.length;
+          while (n > min && args[n - 1] === undefined) n--;
+          if (n < min || (max >= 0 && n > max)) throw arityError(fn, min, max);
+          return body(args, n, fn);
+        };
+      }
+
+      const named = (f, name, length) => Object.defineProperties(f, {name: {value: name}, length: {value: length}});
+      const scriptFunction = (name, length, invoke) => named((...args) => invoke(args), name, length);
+      // The primitive value of a Number, String or Boolean receiver, as ScriptBuiltInExtender.receiverOf.
+      function receiverOf(o) {
+        if (o === null || typeof o !== "object") return o;
+        switch (tagOf(o)) {
+          case "Number":
+            return Number(o);
+          case "String":
+            return String(o);
+          case "Boolean":
+            return Boolean(o);
+          default:
+            return o;
+        }
+      }
+
+      // As the host: a "prototype" object whose "constructor" is the function, both DONTENUM (so still configurable).
+      function prototypeFunction(name, length, invoke) {
+        const f = named({
+          [name](...args) {
+            return invoke([receiverOf(this), ...args]);
+          },
+        }[name], name, length);
+        const hidden = value => ({value, writable: true, enumerable: false, configurable: true});
+        return Object.defineProperty(f, "prototype", hidden(Object.defineProperty({}, "constructor", hidden(f))));
+      }
+      // ScriptAttributes.PERMANENT: writable and enumerable, not configurable.
+      const define = (target, name, value) => Object.defineProperty(target, name, {value, writable: true, enumerable: true, configurable: false});
+
+      function moduleObject(moduleName) {
+        const spec = MODULES[moduleName];
+        const obj = {};
+        for (const [name, value] of spec.data) define(obj, name, value);
+        for (const [name, min, max, body, flags] of spec.functions) {
+          if (!(flags & BUILT_IN_ONLY)) define(obj, name, scriptFunction(name, min, invoker(`${moduleName}.${name}`, min, max, body)));
+        }
+        return obj;
+      }
+
+      // ScriptBuiltInExtender.extend: data properties, then static, prototype and global functions, each a new function.
+      function extendBuiltIn(moduleName) {
+        const spec = MODULES[moduleName];
+        const target = globalThis[spec.builtIn];
+        for (const [name, value] of spec.data) define(target, name, value);
+        const functions = spec.functions.map(([name, min, max, body, flags]) => ({name, min, flags, invoke: invoker(`${moduleName}.${name}`, min, max, body)}));
+        for (const f of functions) if (f.flags & STATIC) define(target, f.name, scriptFunction(f.name, f.min, f.invoke));
+        for (const f of functions) if (f.flags & PROTOTYPE) define(target.prototype, f.name, prototypeFunction(f.name, Math.max(0, f.min - 1), f.invoke));
+        for (const f of functions) if (f.flags & GLOBAL) define(globalThis, f.name, scriptFunction(f.name, f.min, f.invoke));
+      }
+
+      function extendAll() {
+        for (const name of BUILT_IN_EXTENSIONS) extendBuiltIn(name);
+      }
+
+      // Names, arrays or nested arrays; "Math" or "mathx" alike. Names before an unknown one are already applied.
+      function extendNamed(fn, modules) {
+        const names = [...new Set(flatten(modules).map(str))];
+        if (names.length === 0) return extendAll();
+        for (const name of names) {
+          const suffixed = `${name.endsWith("x") ? name.slice(0, -1) : name}x`;
+          const module = suffixed.charAt(0).toUpperCase() + suffixed.slice(1);
+          if (!BUILT_IN_EXTENSIONS.includes(module)) {
+            throw rangeError(fn, `Unknown built-in object extension "${name}", expected one of ${BUILT_IN_EXTENSIONS.join(", ")}`);
+          }
+          extendBuiltIn(module);
+        }
+      }
+
+      const jsox = scriptFunction("jsox", 0, invoker("jsox", 0, -1, (a, n, fn) => extendNamed(fn, a)));
+      define(jsox, "extend", scriptFunction("extend", 0, invoker("jsox.extend", 0, -1, (a, n, fn) => extendNamed(fn, a))));
+      define(jsox, "extendAll", scriptFunction("extendAll", 0, invoker("jsox.extendAll", 0, 0, extendAll)));
+
+      return {Mathx: moduleObject("Mathx"), Arrayx: moduleObject("Arrayx"), Numberx: moduleObject("Numberx"), jsox};
+    }
+    function __autojs6_js_tools_bytes() {
+      const UNITS = "KMGTPEZYRQ";
+      const AUTO = "AUTO";
+      const IEC = 1024n;
+      const SI = 1000n;
+      const MAX_SAFE = 9007199254740991n;
+      const LONG_MAX = (1n << 63n) - 1n;
+      const LONG_MIN = -(1n << 63n);
+
+      // Android's ICU regex: \d is \p{Nd}, \s is [\t\n\f\r\p{Z}]
+      const SOURCE_TEXT = /^([0-9]+(?:\.[0-9]+)?)[\t\n\f\r\p{Z}]*([A-Za-z]*)$/u;
+      const TIME_TEXT_SPACES = /[\t\n\f\r\p{Z}]+(?!\p{Nd})|(^|\P{Nd})[\t\n\f\r\p{Z}]+/gu;
+      const TIME_UNITS = [
+        [/^NANO(?:SECONDS?|S)?$/iu, 1n],
+        [/^MICRO(?:SECONDS?|S)?$/iu, 1000n],
+        [/^(?:MILLI(?:SECONDS?|S)?|MS)$/iu, 1000000n],
+        [/^(?:S(?:ECONDS?)?|SECS?)$/iu, 1000000000n],
+        [/^(?:M(?:INUTES?)?|MINS?)$/iu, 60000000000n],
+        [/^(?:H(?:OURS?)?|HRS?)$/iu, 3600000000000n],
+        [/^D(?:AYS?)?$/iu, 86400000000000n],
+      ];
+      // ColorTable (Android, Css, Web, Material; the first class defining a name wins), names without underscores
+      const COLOR_TABLE = `
+        aqua 00ffff black 000000 blue 0000ff cyan 00ffff darkgray 444444 darkgrey 444444 dkgray 444444 fuchsia ff00ff
+        gray 888888 green 00ff00 grey 888888 lightgray cccccc lightgrey cccccc lime 00ff00 ltgray cccccc magenta ff00ff
+        maroon 800000 navy 000080 olive 808000 purple 800080 red ff0000 silver c0c0c0 teal 008080 transparent 00000000
+        white ffffff yellow ffff00 aliceblue f0f8ff antiquewhite faebd7 aquamarine 7fffd4 azure f0ffff beige f5f5dc
+        bisque ffe4c4 blanchedalmond ffebcd blueviolet 8a2be2 brown a52a2a burlywood deb887 cadetblue 5f9ea0
+        chartreuse 7fff00 chocolate d2691e coral ff7f50 cornflowerblue 6495ed cornsilk fff8dc crimson dc143c
+        darkblue 00008b darkcyan 008b8b darkgoldenrod b8860b darkgreen 006400 darkkhaki bdb76b darkmagenta 8b008b
+        darkolivegreen 556b2f darkorange ff8c00 darkorchid 9932cc darkred 8b0000 darksalmon e9967a darkseagreen 8fbc8f
+        darkslateblue 483d8b darkslategray 2f4f4f darkslategrey 2f4f4f darkturquoise 00ced1 darkviolet 9400d3
+        deeppink ff1493 deepskyblue 00bfff dimgray 696969 dimgrey 696969 dodgerblue 1e90ff firebrick b22222
+        floralwhite fffaf0 forestgreen 228b22 gainsboro dcdcdc ghostwhite f8f8ff gold ffd700 goldenrod daa520
+        greenyellow adff2f honeydew f0fff0 hotpink ff69b4 indianred cd5c5c indigo 4b0082 ivory fffff0 khaki f0e68c
+        lavender e6e6fa lavenderblush fff0f5 lawngreen 7cfc00 lemonchiffon fffacd lightblue add8e6 lightcoral f08080
+        lightcyan e0ffff lightgoldenrodyellow fafad2 lightgreen 90ee90 lightpink ffb6c1 lightsalmon ffa07a
+        lightseagreen 20b2aa lightskyblue 87cefa lightslategray 778899 lightslategrey 778899 lightsteelblue b0c4de
+        lightyellow ffffe0 limegreen 32cd32 linen faf0e6 mediumaquamarine 66cdaa mediumblue 0000cd
+        mediumlavendermagenta dda0dd mediumorchid ba55d3 mediumpurple 9370db mediumseagreen 3cb371
+        mediumslateblue 7b68ee mediumspringgreen 00fa9a mediumturquoise 48d1cc mediumvioletred c71585
+        midnightblue 191970 mintcream f5fffa mistyrose ffe4e1 moccasin ffe4b5 navajowhite ffdead oldlace fdf5e6
+        olivedrab 6b8e23 orange ffa500 orangered ff4500 orchid da70d6 palegoldenrod eee8aa palegreen 98fb98
+        paleturquoise afeeee palevioletred db7093 papayawhip ffefd5 patriarch 800080 peachpuff ffdab9 peru cd853f
+        pink ffc0cb powderblue b0e0e6 rebeccapurple 663399 rosybrown bc8f8f royalblue 4169e1 saddlebrown 8b4513
+        salmon fa8072 sandbrown f4a460 seashell fff5ee seagreen 2e8b57 sienna a0522d skyblue 87ceeb slateblue 6a5acd
+        slategray 708090 slategrey 708090 snow fffafa springgreen 00ff7f steelblue 4682b4 tan d2b48c thistle d8bfd8
+        tomato ff6347 turquoise 40e0d0 violet ee82ee wheat f5deb3 whitesmoke f5f5f5 yellowgreen 9acd32
+        alizarincrimson e32636 amber ffbf00 amethyst 9966cc applegreen 8ce600 apricot e69966 aquablue 66ffe6
+        babyblue 89cff0 babypink ffd9e6 brightgreen 66ff00 bronze cd7f32 burgundy 800020 burntorange cc5500 camel a16b47
+        camellia e63995 canaryyellow ffef00 cardinalred 990036 carmine e6005c celadon ace1af cerise de3163
+        ceruleanblue 2a52be champagneyellow ffff99 chromeyellow e6b800 clematis cca3cc cobaltblue 0047ab
+        cobaltgreen 66ff59 coconutbrown 4d1f00 coffee 4d3900 coralpink ff80bf cream fffdd0 cyanblue 0dbf8c
+        darkmineralblue 24367d darkpowderblue 003399 emerald 50c878 flamingo e68ab8 foliagegreen 73b839
+        freshleaves 99ff4d golden ffd700 grassgreen 99e64d grayishpurple 8674a1 heliotrope df73ff honeyorange ffb366
+        horizonblue b8ddc8 internationalkleinblue 002fa7 irongray 625b57 ivygreen 36bf36 jasmine e6c35c
+        lapislazuli 26619c lavenderblue ccccff lavendermagenta ee82ee lavendermist e6e6fa lightkhaki f0e68c
+        lightlime ccff00 lightviolet b09db9 lilac c8a2c8 magentarose ff0da6 malachite 22c32e mallow d94dff
+        marigold ff9900 marineblue 00477d mauve e0b0ff mimosa e6d933 mineralblue 004d99 mineralviolet a39dae mint 16982b
+        moonyellow ffff4d mossgreen 697723 mustard cccc4d navyblue 000080 ocher cc7722 oldrose c08081 operamauve b784a7
+        paillilac e6cfe6 paleblue d1edf2 paledenim 5e86c1 paleochre ccb38c pansy 7400a1 peach ffe5b4 peachpearl fbbea1
+        peacockblue 00808c peacockgreen 00a15c pearlpink ffb3e6 periwinkle ccccff persimmon ff4d40 plum 8e4585
+        prussianblue 003153 rose ff007f rosepink ff66cc ruby cc0080 salmonpink ff8099 salviablue 4d80e6 sandbeige e6c3c3
+        sapphire 082567 saxeblue 4798b3 scarlet ff2400 sepia 704214 shellpink ffb3bf spinelred ff73b3 strongblue 006374
+        strongred e60000 sunorange ff7300 tangerine f28500 tangerineyellow ffcc00 tropicalorange ff8033
+        turquoiseblue 00ffef turquoisegreen 4de680 ultramarine 0033ff vermilion e34234 verylightmalachitegreen 73e68c
+        viridian 127436 wedgwoodblue 5686bf wisteria c9a0dc amber100 ffecb3 amber200 ffe082 amber300 ffd54f
+        amber400 ffca28 amber50 fff8e1 amber500 ffc107 amber600 ffb300 amber700 ffa000 amber800 ff8f00 amber900 ff6f00
+        ambera100 ffe57f ambera200 ffd740 ambera400 ffc400 ambera700 ffab00 black1000 000000 blue100 bbdefb
+        blue200 90caf9 blue300 64b5f6 blue400 42a5f5 blue50 e3f2fd blue500 2196f3 blue600 1e88e5 blue700 1976d2
+        blue800 1565c0 blue900 0d47a1 bluea100 82b1ff bluea200 448aff bluea400 2979ff bluea700 2962ff bluegray 607d8b
+        bluegray100 cfd8dc bluegray200 b0bbc5 bluegray300 90a4ae bluegray400 78909c bluegray50 eceff1 bluegray500 607d8b
+        bluegray600 546e7a bluegray700 455a64 bluegray800 37474f bluegray900 263238 bluegrey 607d8b bluegrey100 cfd8dc
+        bluegrey200 b0bbc5 bluegrey300 90a4ae bluegrey400 78909c bluegrey50 eceff1 bluegrey500 607d8b bluegrey600 546e7a
+        bluegrey700 455a64 bluegrey800 37474f bluegrey900 263238 brown100 d7ccc8 brown200 bcaaa4 brown300 a1887f
+        brown400 8d6e63 brown50 efebe9 brown500 795548 brown600 6d4c41 brown700 5d4037 brown800 4e342e brown900 3e2723
+        cyan100 b2ebf2 cyan200 80deea cyan300 4dd0e1 cyan400 26c6da cyan50 e0f7fa cyan500 00bcd4 cyan600 00acc1
+        cyan700 0097a7 cyan800 00838f cyan900 006064 cyana100 84ffff cyana200 18ffff cyana400 00e5ff cyana700 00b8d4
+        deeporange ff5722 deeporange100 ffccbc deeporange200 ffab91 deeporange300 ff8a65 deeporange400 ff7043
+        deeporange50 fbe9a7 deeporange500 ff5722 deeporange600 f4511e deeporange700 e64a19 deeporange800 d84315
+        deeporange900 bf360c deeporangea100 ff9e80 deeporangea200 ff6e40 deeporangea400 ff3d00 deeporangea700 dd2600
+        deeppurple 673ab7 deeppurple100 d1c4e9 deeppurple200 b39ddb deeppurple300 9575cd deeppurple400 7e57c2
+        deeppurple50 ede7f6 deeppurple500 673ab7 deeppurple600 5e35b1 deeppurple700 512da8 deeppurple800 4527a0
+        deeppurple900 311b92 deeppurplea100 b388ff deeppurplea200 7c4dff deeppurplea400 651fff deeppurplea700 6200ea
+        gray100 f5f5f5 gray200 eeeeee gray300 e0e0e0 gray400 bdbdbd gray50 fafafa gray500 9e9e9e gray600 757575
+        gray700 616161 gray800 424242 gray900 212121 green100 c8e6c9 green200 a5d6a7 green300 81c784 green400 66bb6a
+        green50 e8f5e9 green500 4caf50 green600 43a047 green700 388e3c green800 2e7d32 green900 1b5e20 greena100 b9f6ca
+        greena200 69f0ae greena400 00e676 greena700 00c853 grey100 f5f5f5 grey200 eeeeee grey300 e0e0e0 grey400 bdbdbd
+        grey50 fafafa grey500 9e9e9e grey600 757575 grey700 616161 grey800 424242 grey900 212121 indigo100 c5cae9
+        indigo200 9fa8da indigo300 7986cb indigo400 5c6bc0 indigo50 e8eaf6 indigo500 3f51b5 indigo600 3949ab
+        indigo700 303f9f indigo800 283593 indigo900 1a237e indigoa100 8c9eff indigoa200 536dfe indigoa400 3d5afe
+        indigoa700 304ffe lightblue100 b3e5fc lightblue200 81d4fa lightblue300 4fc3f7 lightblue400 29b6fc
+        lightblue50 e1f5fe lightblue500 03a9f4 lightblue600 039be5 lightblue700 0288d1 lightblue800 0277bd
+        lightblue900 01579b lightbluea100 80d8ff lightbluea200 40c4ff lightbluea400 00b0ff lightbluea700 0091ea
+        lightgreen100 dcedc8 lightgreen200 c5e1a5 lightgreen300 aed581 lightgreen400 9ccc65 lightgreen50 f1f8e9
+        lightgreen500 8bc34a lightgreen600 7cb342 lightgreen700 689f38 lightgreen800 558b2f lightgreen900 33691e
+        lightgreena100 ccff90 lightgreena200 b2ff59 lightgreena400 76ff03 lightgreena700 64dd17 lime100 f0f4c3
+        lime200 e6ee9c lime300 dce775 lime400 d4e157 lime50 f9fbe7 lime500 cddc39 lime600 c0ca33 lime700 a4b42b
+        lime800 9e9d24 lime900 827717 limea100 f4ff81 limea200 eeff41 limea400 c6ff00 limea700 aeea00 orange100 ffe0b2
+        orange200 ffcc80 orange300 ffb74d orange400 ffa726 orange50 fff3e0 orange500 ff9800 orange600 fb8c00
+        orange700 f57c00 orange800 ef6c00 orange900 e65100 orangea100 ffd180 orangea200 ffab40 orangea400 ff9100
+        orangea700 ff6d00 pink100 f8bbd0 pink200 f48fb1 pink300 f06292 pink400 ec407a pink50 fce4ec pink500 e91e63
+        pink600 d81b60 pink700 c2185b pink800 ad1457 pink900 880e4f pinka100 ff80ab pinka200 ff4081 pinka400 f50057
+        pinka700 c51162 purple100 e1bee7 purple200 ce93d8 purple300 ba68c8 purple400 ab47bc purple50 f3e5f5
+        purple500 9c27b0 purple600 8e24aa purple700 7b1fa2 purple800 6a1b9a purple900 4a148c purplea100 ea80fc
+        purplea200 e040fb purplea400 d500f9 purplea700 aa00ff red100 ffcdd2 red200 ef9a9a red300 e57373 red400 ef5350
+        red50 ffebee red500 f44336 red600 e53935 red700 d32f2f red800 c62828 red900 b71c1c reda100 ff8a80 reda200 ff5252
+        reda400 ff1744 reda700 d50000 teal100 b2dfdb teal200 80cbc4 teal300 4db6ac teal400 26a69a teal50 e0f2f1
+        teal500 009688 teal600 00897b teal700 00796b teal800 00695c teal900 004d40 teala100 a7ffeb teala200 64ffda
+        teala400 1de9b6 teala700 00bfa5 white1000 ffffff yellow100 fff9c4 yellow200 fff590 yellow300 fff176
+        yellow400 ffee58 yellow50 fffde7 yellow500 ffeb3b yellow600 fdd835 yellow700 fbc02d yellow800 f9a825
+        yellow900 f57f17 yellowa100 ffff82 yellowa200 ffff00 yellowa400 ffea00 yellowa700 ffd600
+      `;
+      let colorNames = null;
+
+      const nullish = (value) => value === undefined || value === null;
+      const describe = (value) => {
+        if (value === null) return "null";
+        if (Array.isArray(value)) return "Array";
+        if (typeof value === "object") return Object.prototype.toString.call(value).slice(8, -1);
+        return typeof value === "bigint" ? "number" : typeof value;
+      };
+      const failed = (fn, cause) => `Failed to call method "${fn}": [ ${cause} ]`;
+      const typeError = (fn, cause) => new TypeError(failed(fn, cause));
+      const rangeError = (fn, cause) => new RangeError(failed(fn, cause));
+      const cannotBe = (param, actual) => `Argument "${param}" cannot be ${actual}`;
+      const mustBe = (param, expected, value) => `Argument "${param}" must be of type ${expected}, got ${describe(value)}`;
+      const plural = (n) => `${n} argument${n === 1 ? "" : "s"}`;
+      const arityText = (min, max) => max < 0 ? `Method only accepts no less than ${plural(min)}`
+        : min === max ? `Method only accepts ${plural(min)}` : `Method only accepts a number of arguments in the range [${min}..${max}]`;
+      // ScriptArgs.count: trailing undefined arguments beyond the required ones count as omitted
+      const arity = (fn, args, min, max) => {
+        let n = args.length;
+        while (n > min && args[n - 1] === undefined) n--;
+        if (n < min || (max >= 0 && n > max)) throw typeError(fn, arityText(min, max));
+      };
+      // Kotlin String.trim (Char.isWhitespace)
+      const trim = (text) => text.replace(/^[\t-\r\x1c-\x1f\p{Z}]+|[\t-\r\x1c-\x1f\p{Z}]+$/gu, "");
+      const textOf = (value, fallback) => nullish(value) ? fallback : `${value}`;
+      // Kotlin Double.toLong
+      const toLong = (d) => Number.isNaN(d) ? 0n : d >= 2 ** 63 ? LONG_MAX : d <= -(2 ** 63) ? LONG_MIN : BigInt(Math.trunc(d));
+
+      // The decimal value of Java's Double.toString(d) (the FloatingDecimal.dtoa of OpenJDK 8 - 18 in Android's libcore),
+      // which BigDecimal.valueOf(d) reads: [digits, exponent] for digits * 10^exponent, d > 0. It differs from the shortest
+      // Number#toString for many doubles, e.g. 2^60 is 1152921504606846980.
+      const javaDecimal = (d) => {
+        const view = new DataView(new ArrayBuffer(8));
+        view.setFloat64(0, d);
+        const raw = view.getBigUint64(0);
+        let fract = raw & 0xfffffffffffffn;
+        let binExp = Number((raw >> 52n) & 0x7ffn);
+        let nSignificantBits = 53;
+        if (binExp === 0) {
+          const leadingZeros = 64 - fract.toString(2).length;
+          fract <<= BigInt(leadingZeros - 11);
+          binExp = 12 - leadingZeros;
+          nSignificantBits = 64 - leadingZeros;
+        } else {
+          fract |= 1n << 52n;
+        }
+        binExp -= 1023;
+        const binary = fract.toString(2);
+        const tailZeros = binary.length - 1 - binary.lastIndexOf("1");
+        const nFractBits = 53 - tailZeros;
+        const nTinyBits = Math.max(0, nFractBits - binExp - 1);
+        if (nTinyBits === 0 && binExp <= 62) {
+          const insignificant = binExp > nSignificantBits ? [0, 0, 0, 0, 1, 1, 1, 2, 2][binExp - nSignificantBits - 1] : 0;
+          let value = binExp >= 52 ? fract << BigInt(binExp - 52) : fract >> BigInt(52 - binExp);
+          if (insignificant > 0) {
+            const unit = 10n ** BigInt(insignificant);
+            value = value / unit + (value % unit >= unit / 2n ? 1n : 0n);
+          }
+          return [value, insignificant];
+        }
+        const d2 = 1 + Number(fract & 0xfffffffffffffn) / 2 ** 52;
+        let decExp = Math.floor((d2 - 1.5) * 0.289529654 + 0.176091259 + binExp * 0.301029995663981) | 0;
+        const B5 = Math.max(0, -decExp);
+        const S5 = Math.max(0, decExp);
+        let B2 = B5 + nTinyBits + binExp - (nFractBits - 1);
+        let S2 = S5 + nTinyBits;
+        let M2 = B5 + nTinyBits + binExp - nSignificantBits;
+        const common = Math.min(B2, S2);
+        B2 -= common;
+        S2 -= common;
+        M2 -= common;
+        if (nFractBits === 1) M2 -= 1;
+        if (M2 < 0) {
+          B2 -= M2;
+          S2 -= M2;
+          M2 = 0;
+        }
+        const bits5 = (i) => i === 0 ? 0 : i < 27 ? (5n ** BigInt(i)).toString(2).length : i * 3;
+        const Bbits = nFractBits + B2 + bits5(B5);
+        const tenSbits = S2 + 1 + bits5(S5 + 1);
+        // dtoa iterates in int or long arithmetic (overflow included, b + m > tens) when the estimates fit, else in
+        // FDBigInteger (b + m >= tens)
+        const width = Bbits < 32 && tenSbits < 32 ? 32 : Bbits < 64 && tenSbits < 64 ? 64 : 0;
+        const w = width ? (x) => BigInt.asIntN(width, x) : (x) => x;
+        const isHigh = (b, m, tens) => width ? w(b + m) > tens : b + m >= tens;
+        let b = w(w((fract >> BigInt(tailZeros)) * 5n ** BigInt(B5)) << BigInt(B2));
+        const s = w(5n ** BigInt(S5) << BigInt(S2));
+        let m = w(5n ** BigInt(B5) << BigInt(M2));
+        const tens = w(s * 10n);
+        let q = b / s;
+        b = w(10n * (b % s));
+        m = w(m * 10n);
+        let low = b < m;
+        let high = isHigh(b, m, tens);
+        let digits = "";
+        if (q === 0n && !high) decExp--;
+        else digits += q;
+        if (decExp < -3 || decExp >= 8) low = high = false;
+        while (!low && !high) {
+          q = b / s;
+          b = w(10n * (b % s));
+          m = w(m * 10n);
+          if (m > 0n) {
+            low = b < m;
+            high = isHigh(b, m, tens);
+          } else {
+            low = high = true;
+          }
+          digits += q;
+        }
+        let value = BigInt(digits);
+        const tie = w(w(b << 1n) - tens);
+        if (high && (!low || tie > 0n || (tie === 0n && value % 2n === 1n))) value += 1n;
+        return [value, decExp + 1 - digits.length];
+      };
+      // A BigDecimal as { u, s }: u * 10^-s
+      const decimalOf = (d) => {
+        if (d === 0) return { u: 0n, s: 0 };
+        const [digits, exponent] = javaDecimal(d);
+        return exponent >= 0 ? { u: digits * 10n ** BigInt(exponent), s: 0 } : { u: digits, s: -exponent };
+      };
+      const pow10 = (n) => 10n ** BigInt(n);
+      // a / b rounded HALF_UP, a >= 0, b > 0
+      const divide = (a, b) => (a % b) * 2n >= b ? a / b + 1n : a / b;
+      const plainString = (q, scale) => {
+        if (scale === 0) return `${q}`;
+        const digits = `${q}`.padStart(scale + 1, "0");
+        return `${digits.slice(0, -scale)}.${digits.slice(-scale)}`;
+      };
+
+      // ByteUnits
+      const normalize = (unit, strict) => {
+        const trimmed = trim(unit);
+        if (strict) return trimmed;
+        const upper = trimmed.toUpperCase();
+        return upper.endsWith("IB") ? `${upper.slice(0, -2)}B` : upper;
+      };
+      // { core, iec, index } of an upper-case unit: index -1 for no prefix, null for an unknown one (a prefix is one letter)
+      const unitOf = (upper, strict) => {
+        const coreRaw = upper.endsWith("B") ? upper.slice(0, -1) : upper;
+        const iec = strict && coreRaw.endsWith("I");
+        const core = iec ? coreRaw.slice(0, -1) : coreRaw;
+        const index = core === "" ? -1 : core.length === 1 && UNITS.includes(core) ? UNITS.indexOf(core) : null;
+        return { core, iec, index };
+      };
+      const numberOption = (fn, param, value, fallback) => {
+        if (nullish(value)) return fallback;
+        let d;
+        if (typeof value === "number") d = value;
+        else if (typeof value === "bigint") d = Number(value);
+        else if (typeof value === "string") {
+          d = +value;
+          if (Number.isNaN(d) && trim(value) !== "NaN") throw typeError(fn, mustBe(param, "number", value));
+        } else throw typeError(fn, mustBe(param, "number", value));
+        if (!Number.isFinite(d)) throw rangeError(fn, cannotBe(param, `${d}`));
+        return d;
+      };
+      const sourceOf = (r) => {
+        const source = r.source;
+        if (nullish(source)) throw typeError(r.fn, mustBe("source", "number / string", source));
+        let value;
+        let parsedUnit = "";
+        if (typeof source === "number") {
+          value = source;
+          if (!Number.isFinite(value) || value < 0) throw rangeError(r.fn, cannotBe("source", `${value}`));
+        } else {
+          const text = trim(`${source}`);
+          const match = SOURCE_TEXT.exec(text);
+          value = match ? +match[1] : NaN;
+          // a digit run beyond the double range fails in BigDecimal.valueOf on the host
+          if (!Number.isFinite(value)) throw rangeError(r.fn, cannotBe("source", `"${text}"`));
+          parsedUnit = match[2];
+        }
+        const incoming = normalize(textOf(r.fromUnit, ""), r.strict);
+        const parsed = normalize(parsedUnit, r.strict);
+        if (incoming !== "" && parsed !== "" && incoming !== parsed) throw rangeError(r.fn, cannotBe("fromUnit", `"${textOf(r.fromUnit, "")}"`));
+        return [value, (incoming || parsed || "B").toUpperCase()];
+      };
+      const targetUnit = (res) => {
+        const unit = unitOf(res.toUnit.toUpperCase(), res.strict);
+        if (unit.index === null) throw rangeError(res.fn, cannotBe("toUnit", `"${res.toUnitText}"`));
+        return unit;
+      };
+      const resolve = (r) => {
+        const [value, fromUnit] = sourceOf(r);
+        const toUnitText = textOf(r.toUnit, AUTO);
+        const toUnit = normalize(toUnitText, r.strict) || AUTO;
+        const fractionDigits = numberOption(r.fn, "fractionDigits", r.fractionDigits, 2);
+        if (fractionDigits !== Math.floor(fractionDigits) || fractionDigits > 2147483647) {
+          throw rangeError(r.fn, `Argument "fractionDigits" must be a 32-bit integer, got ${fractionDigits}`);
+        }
+        if (fractionDigits < 0) throw rangeError(r.fn, cannotBe("fractionDigits", `${fractionDigits}`));
+        if (!nullish(r.autoCarryThreshold) && toUnit.toUpperCase() !== AUTO) {
+          throw typeError(r.fn, cannotBe("autoCarryThreshold", describe(r.autoCarryThreshold)));
+        }
+        let threshold = { u: IEC, s: 0 };
+        if (!nullish(r.autoCarryThreshold)) {
+          const d = numberOption(r.fn, "autoCarryThreshold", r.autoCarryThreshold, 0);
+          if (d <= 0) throw rangeError(r.fn, `Argument "autoCarryThreshold" must be a positive number, got ${d}`);
+          threshold = decimalOf(d);
+        }
+        const from = unitOf(fromUnit, r.strict);
+        const base = !r.strict || from.iec ? IEC : SI;
+        if (from.index === null) throw rangeError(r.fn, cannotBe("fromUnit", `"${textOf(r.fromUnit, fromUnit)}"`));
+        const bytes = decimalOf(value);
+        const res = {
+          fn: r.fn,
+          strict: r.strict,
+          u: from.index < 0 ? bytes.u : bytes.u * base ** BigInt(from.index + 1),
+          s: bytes.s,
+          base,
+          toUnit: toUnit.toUpperCase() === AUTO ? AUTO : toUnit,
+          toUnitText,
+          fractionDigits: fractionDigits + 0,
+          threshold,
+        };
+        if (res.toUnit !== AUTO) targetUnit(res);
+        return res;
+      };
+      // Strict AUTO keeps the base of the source unit (SI for B), loose mode always uses 1024
+      const autoBase = (res) => res.strict ? res.base : IEC;
+      // The exponent of the AUTO unit, carried one step early when the value reaches the threshold
+      const autoExponent = (res, base) => {
+        if (res.u === 0n) return 0;
+        const scale = pow10(res.s);
+        let exponent = 0;
+        while (exponent < UNITS.length && res.u >= base ** BigInt(exponent + 1) * scale) exponent++;
+        if (exponent >= 1 && exponent < UNITS.length) {
+          const current = divide(res.u * pow10(6), base ** BigInt(exponent) * scale);
+          if (current * pow10(res.threshold.s) >= res.threshold.u * pow10(6)) exponent++;
+        }
+        return exponent;
+      };
+      // The converted value as an unscaled integer of scale fractionDigits
+      const quotient = (res) => {
+        let divisor = 1n;
+        if (res.toUnit === AUTO) {
+          const base = autoBase(res);
+          divisor = base ** BigInt(autoExponent(res, base));
+        } else {
+          const unit = targetUnit(res);
+          if (unit.index >= 0) divisor = (!res.strict || unit.iec ? IEC : SI) ** BigInt(unit.index + 1);
+        }
+        return divide(res.u * pow10(res.fractionDigits), divisor * pow10(res.s));
+      };
+      // A number, or a bigint for an integer beyond the safe integer range (as ByteUnits.number)
+      const toNumber = (r) => {
+        const res = resolve(r);
+        const q = quotient(res);
+        const scale = pow10(res.fractionDigits);
+        return q <= MAX_SAFE * scale || q % scale !== 0n ? Number(plainString(q, res.fractionDigits)) : q / scale;
+      };
+      const toText = (r) => {
+        const res = resolve(r);
+        if (r.strict && !nullish(r.useIecIdentifier)) throw typeError(r.fn, cannotBe("useIecIdentifier", describe(r.useIecIdentifier)));
+        const useIec = !nullish(r.useIecIdentifier) && Boolean(r.useIecIdentifier);
+        const space = nullish(r.useSpace) || r.useSpace ? " " : "";
+        let text = plainString(quotient(res), res.fractionDigits);
+        if (!nullish(r.trimTrailingZero) && r.trimTrailingZero) text = text.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+        let core;
+        let iec;
+        if (res.toUnit === AUTO) {
+          const base = autoBase(res);
+          const exponent = autoExponent(res, base);
+          core = exponent > 0 ? UNITS[exponent - 1] : "";
+          iec = r.strict ? base === IEC : useIec;
+        } else {
+          const unit = targetUnit(res);
+          core = unit.core;
+          iec = r.strict ? unit.iec : useIec;
+        }
+        return `${text}${space}${core === "" ? "B" : iec ? `${core}iB` : `${core}B`}`;
+      };
+      // The overloads (source, toUnit | options | fractionDigits | useIecIdentifier), (source, toUnit, options | ...),
+      // (source, fromUnit, toUnit) and (source, fromUnit, toUnit, options | ...), decided by the type of the last argument
+      const request = (fn, args, mode) => {
+        arity(fn, args, 1, -1);
+        let n = args.length - 1;
+        while (n > 0 && args[n] === undefined) n--;
+        const size = n + 1;
+        if (size > 4) throw typeError(fn, arityText(1, 4));
+        const r = { fn, source: args[0], strict: mode === "strict" };
+        if (n === 0) return r;
+        const last = args[n];
+        const kind = typeof last;
+        if ((kind === "object" && last !== null) || kind === "symbol") {
+          const option = (name) => nullish(last[name]) ? undefined : last[name];
+          r.fromUnit = option("fromUnit") ?? (size === 4 ? args[1] : undefined);
+          r.toUnit = option("toUnit") ?? (size >= 3 ? args[size - 2] : undefined);
+          r.fractionDigits = option("fractionDigits");
+          r.autoCarryThreshold = option("autoCarryThreshold");
+          const strict = option("strict");
+          if (mode === "default") r.strict = strict !== undefined && Boolean(strict);
+          else if (strict !== undefined) throw typeError(fn, cannotBe("options.strict", describe(strict)));
+          r.useIecIdentifier = option("useIecIdentifier");
+          r.useSpace = option("useSpace");
+          r.trimTrailingZero = option("trimTrailingZero");
+          return r;
+        }
+        const key = kind === "string" ? "toUnit" : kind === "boolean" ? "useIecIdentifier" : kind === "number" || kind === "bigint" ? "fractionDigits" : null;
+        if (key === null || (key === "toUnit" && size === 4)) {
+          throw typeError(fn, mustBe("options", size === 4 || key !== null ? "number / boolean / Object" : "string / number / boolean / Object", last));
+        }
+        r[key] = last;
+        if (key === "toUnit") {
+          if (size === 3) r.fromUnit = args[1];
+        } else if (size === 3) {
+          r.toUnit = args[1];
+        } else if (size === 4) {
+          r.fromUnit = args[1];
+          r.toUnit = args[2];
+        }
+        return r;
+      };
+      const bytesModule = (name, convert) => {
+        const make = (fn, mode) => (...args) => convert(request(fn, args, mode));
+        const bytes = make(name, "default");
+        Object.defineProperties(bytes, {
+          UNITS: { value: UNITS, enumerable: true },
+          AUTO: { value: AUTO, enumerable: true },
+          IEC_DIV: { value: 1024, enumerable: true },
+          SI_DIV: { value: 1000, enumerable: true },
+          strict: { value: make(`${name}.strict`, "strict"), enumerable: true },
+          loose: { value: make(`${name}.loose`, "loose"), enumerable: true },
+        });
+        return Object.freeze(bytes);
+      };
+
+      // s13n.time
+      const timeUnit = (unit, param) => {
+        if (nullish(unit)) return 1000000n;
+        const entry = typeof unit === "string" ? TIME_UNITS.find(([pattern]) => pattern.test(unit)) : undefined;
+        if (entry === undefined) throw typeError("s13n.time", mustBe(param, "TimeUnit / string", unit));
+        return entry[1];
+      };
+      // TimeUnit.toNanos, saturated
+      const toNanos = (scale, duration) => {
+        const max = LONG_MAX / scale;
+        return duration > max ? LONG_MAX : duration < -max ? LONG_MIN : duration * scale;
+      };
+      const isPlainObject = (value) => value !== null && typeof value === "object" && Object.prototype.toString.call(value) === "[object Object]";
+      const isLeapYear = (year) => year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+      const daysInMonth = (year, month) => month === 2 ? (isLeapYear(year) ? 29 : 28) : month >= 8 ? 31 - (month & 1) : 30 + (month & 1);
+      // Rhino NativeDate.date_parseString("y/m/d h:m:s") in local time: its non-ISO parser, reduced to these separators
+      const localTime = (parts) => {
+        let year = -1;
+        let mon = -1;
+        let mday = -1;
+        let hour = -1;
+        let min = -1;
+        let sec = -1;
+        const separators = ["/", "/", " ", ":", ":", ""];
+        for (let k = 0; k < 6; k++) {
+          if (/[^0-9]/.test(parts[k])) return NaN;
+          let n = 0;
+          for (const digit of parts[k]) n = (n * 10 + (digit.charCodeAt(0) - 48)) | 0;
+          const c = separators[k];
+          const prevc = separators[k - 1];
+          if (n >= 70 || (prevc === "/" && mon >= 0 && mday >= 0 && year < 0)) {
+            if (year >= 0 || c === ":") return NaN;
+            year = n < 100 ? n + 1900 : n;
+          } else if (c === ":") {
+            if (hour < 0) hour = n;
+            else if (min < 0) min = n;
+            else return NaN;
+          } else if (c === "/") {
+            if (mon < 0) mon = n - 1;
+            else if (mday < 0) mday = n;
+            else return NaN;
+          } else if (hour >= 0 && min < 0) {
+            min = n;
+          } else if (min >= 0 && sec < 0) {
+            sec = n;
+          } else if (mday < 0) {
+            mday = n;
+          } else {
+            return NaN;
+          }
+        }
+        if (year < 0 || mon < 0 || mon > 11 || mday < 1 || mday > daysInMonth(year, mon + 1)) return NaN;
+        if (hour < 0) hour = 0;
+        else if (hour > 24 || (hour === 24 && (min > 0 || sec > 0))) return NaN;
+        if (min < 0) min = 0;
+        else if (min > 59) return NaN;
+        if (sec < 0) sec = 0;
+        else if (sec > 59) return NaN;
+        const date = new Date(year, mon, mday, hour, min, sec);
+        if (year >= 0 && year < 100) date.setFullYear(year, mon, mday);
+        return date.getTime();
+      };
+      const time = (source, fromUnit, toUnit) => {
+        if (typeof source === "number" && Number.isNaN(source)) return NaN;
+        if (source instanceof Date) return time(source.getTime(), fromUnit, toUnit);
+        let niceSource = source;
+        if (typeof source === "string") {
+          const text = source.replace(TIME_TEXT_SPACES, "$1");
+          const parts = text.match(/\p{Nd}+/gu) ?? [];
+          if (parts.length === 0 || parts.length > 6) return NaN;
+          if (parts.length === 6) return time(localTime(parts), fromUnit, toUnit);
+          niceSource = text;
+        }
+        if (isPlainObject(fromUnit)) return time(niceSource, fromUnit.fromUnit, fromUnit.toUnit);
+        const number = nullish(niceSource) ? NaN : +niceSource;
+        if (Number.isNaN(number)) throw typeError("s13n.time", mustBe("source", "number / string / Date", source));
+        const from = timeUnit(fromUnit, "fromUnit");
+        const to = timeUnit(toUnit, "toUnit");
+        return Number(toNanos(from, toLong(number))) / Number(to);
+      };
+
+      // s13n.color: ColorUtils.toInt of a ColorHex (#RGB, #RRGGBB, #AARRGGBB), a decimal ColorInt text or a color name
+      const colorOf = (text) => {
+        let hex = text;
+        if (hex.startsWith("#")) {
+          if (hex.length === 4) hex = hex.replace(/(#)(\w)(\w)(\w)/, "$1$2$2$3$3$4$4");
+        } else if (/^[+-]?[0-9]+$/.test(hex)) {
+          const value = BigInt(hex);
+          return value < LONG_MIN || value > LONG_MAX ? undefined : Number(BigInt.asIntN(32, value));
+        } else {
+          if (colorNames === null) {
+            const words = COLOR_TABLE.trim().split(/\s+/);
+            colorNames = new Map();
+            for (let i = 0; i < words.length; i += 2) {
+              const value = Number.parseInt(words[i + 1], 16);
+              colorNames.set(words[i].toUpperCase(), (words[i + 1].length === 6 ? value + 0xff000000 : value) | 0);
+            }
+          }
+          return colorNames.get(hex.replace(/-/g, "_").toUpperCase().replace(/_/g, ""));
+        }
+        if (!/^#(?:[0-9A-F]{6}|[0-9A-F]{8})$/i.test(hex)) return undefined;
+        const value = Number.parseInt(hex.slice(1), 16);
+        return (hex.length === 7 ? value + 0xff000000 : value) | 0;
+      };
+
+      const s13n = {
+        bytes(...args) {
+          arity("s13n.bytes", args, 1, 2);
+          const fromUnit = args[1];
+          if (!nullish(fromUnit) && typeof fromUnit !== "string") throw typeError("s13n.bytes", mustBe("fromUnit", "string", fromUnit));
+          return toNumber({ fn: "s13n.bytes", source: args[0], fromUnit, toUnit: "B", fractionDigits: 0, strict: false });
+        },
+        time(...args) {
+          arity("s13n.time", args, 1, 3);
+          return time(args[0], args[1], args[2]);
+        },
+        color(...args) {
+          arity("s13n.color", args, 1, 1);
+          const o = args[0];
+          if (typeof o === "number") return Number(BigInt.asIntN(32, toLong(o)));
+          if (typeof o === "bigint") return Number(BigInt.asIntN(32, o));
+          if (typeof o === "string") {
+            const color = colorOf(o);
+            if (color === undefined) throw rangeError("s13n.color", cannotBe("o", `"${o}"`));
+            return color;
+          }
+          throw typeError("s13n.color", mustBe("o", "ColorHex / ColorInt / ColorName / Color / ThemeColor", o));
+        },
+      };
+
+      return {
+        cvt: { bytes: bytesModule("cvt.bytes", toNumber) },
+        fmt: { bytes: bytesModule("fmt.bytes", toText) },
+        s13n,
+      };
+    }
+    // util.java, s13n.point / s13n.throwable and the Morse code vibration run the host's own classes through the Java
+    // facade (java_interop), so they return Promises like the facade; arguments are checked as UtilJavaModule /
+    // S13nModule / UtilMorseCodeModule check them. Shared with the Bun runtime (api-coverage P4.2a).
+    function __autojs6_js_tools_java(host) {
+      const PRIMITIVES = { string: "java.lang.String", int: "int", long: "long", double: "double", char: "char", byte: "byte",
+        float: "float", short: "short", boolean: "boolean" };
+      const isHandle = value => value !== null && typeof value === "object" && typeof value.__autojs6JavaHandle === "string";
+      const isClass = value => value !== null && typeof value === "object" && !isHandle(value) &&
+        typeof value.className === "string" && typeof value.callStatic === "function";
+      const isNullish = value => value === undefined || value === null;
+      const isPlainObject = value => value !== null && typeof value === "object" && !isHandle(value) && !isClass(value) &&
+        Object.prototype.toString.call(value) === "[object Object]";
+      function javaKind(value) {
+        if (isHandle(value)) return String(value.className).startsWith("[") ? "array" : "object";
+        return isClass(value) ? "class" : null;
+      }
+      function describe(value) {
+        if (value === null) return "null";
+        if (Array.isArray(value)) return "Array";
+        if (isHandle(value) || isClass(value)) return value.className;
+        return typeof value;
+      }
+      const fail = (name, cause, Type = TypeError) => new Type("Failed to call method \"" + name + "\": [ " + cause + " ]");
+      const typeError = (name, param, expected, value) =>
+        fail(name, "Argument \"" + param + "\" must be of type " + expected + ", got " + describe(value));
+      // ScriptArgs.count: trailing undefined arguments beyond the required ones count as omitted.
+      function arity(name, args, min, max = min) {
+        let n = args.length;
+        while (n > min && args[n - 1] === undefined) n--;
+        if (n >= min && n <= max) return n;
+        const range = max === Infinity ? "no less than " + min : min === max ? String(min) : "[" + min + ".." + max + "]";
+        throw new TypeError("Failed to call method \"" + name + "\": [ Method only accepts " + range + " argument(s) ]");
+      }
+      // Kotlin Double.toInt(): truncation, NaN as 0, saturated to 32 bits.
+      const toInt = value => Number.isNaN(value) ? 0 : Math.max(-2147483648, Math.min(2147483647, Math.trunc(value)));
+      const typeName = type => typeof type === "string" ? PRIMITIVES[type] || type : isClass(type) ? type.className : String(type);
+      // A java.lang.Class handle; a zero-length array of the type yields it through the facade's own class lookup (primitives included).
+      async function classHandle(type) {
+        if (isHandle(type)) return type;
+        const java = host.java();
+        const array = await java.newArray(typeName(type), 0);
+        try {
+          return await (await array.call("getClass")).call("getComponentType");
+        } finally {
+          await java.release(array).catch(() => {});
+        }
+      }
+      // The facade returns a Java array result (toArray) as a script array of values and handles.
+      const elements = async array => Array.from(isHandle(array) ? await array.toArray() : array);
+      // A Java array of the type with the dimensions, as a handle (the facade would return the result of
+      // java.lang.reflect.Array.newInstance as nested script arrays); the rows are filled like Array.newInstance does.
+      async function newArray(type, dims) {
+        const java = host.java();
+        const array = await java.newArray(type + "[]".repeat(dims.length - 1), dims[0]);
+        for (let i = 0; dims.length > 1 && i < dims[0]; i++) {
+          const row = await newArray(type, dims.slice(1));
+          await java.setArrayItem(array, i, row);
+          await java.release(row).catch(() => {});
+        }
+        return array;
+      }
+      const utilJava = {
+        async instanceof(...args) {
+          const name = "util.java.instanceof";
+          arity(name, args, 2);
+          const [obj, clazz] = args;
+          if (isNullish(obj)) throw fail(name, "Argument \"obj\" cannot be " + (obj === null ? "null" : "undefined"));
+          if (isNullish(clazz)) return false;
+          const java = host.java();
+          if (isHandle(obj)) return java.instanceOf(obj, isHandle(clazz) ? await clazz.call("getName") : typeName(clazz));
+          // Script objects and functions are no Java instances in Node (Rhino's NativeObject is a java.util.Map).
+          if (typeof obj === "object" || typeof obj === "function" || typeof obj === "symbol") return false;
+          return (await classHandle(clazz)).call("isInstance", [obj], { parameterTypes: ["java.lang.Object"] });
+        },
+        async array(...args) {
+          const name = "util.java.array";
+          arity(name, args, 2, Infinity);
+          const dims = args.slice(1).map(value => toInt(Number(value)));
+          return newArray(isHandle(args[0]) ? String(await args[0].call("getName")) : typeName(args[0]), dims);
+        },
+        async toJsArray(...args) {
+          const name = "util.java.toJsArray";
+          arity(name, args, 1, 2);
+          const [list, nullListToEmptyArray] = args;
+          if (isNullish(list)) return !isNullish(nullListToEmptyArray) && Boolean(nullListToEmptyArray) ? [] : null;
+          // A script array is a java.util.List in Rhino.
+          if (Array.isArray(list)) return list.slice();
+          const java = host.java();
+          if (!isHandle(list) || !await java.instanceOf(list, "java.lang.Iterable")) throw typeError(name, "list", "java.lang.Iterable", list);
+          if (await java.instanceOf(list, "java.util.Collection")) return elements(await list.call("toArray", [], { parameterTypes: [] }));
+          const stream = await java.callStatic("java.util.stream.StreamSupport", "stream", [await list.call("spliterator"), false]);
+          return elements(await stream.call("toArray", [], { parameterTypes: [] }));
+        },
+        async objectToMap(...args) {
+          const name = "util.java.objectToMap";
+          arity(name, args, 1);
+          const [o] = args;
+          if (isNullish(o)) return null;
+          if (!isPlainObject(o)) throw typeError(name, "o", "Object", o);
+          const map = await host.java().new("java.util.HashMap", []);
+          for (const key of Object.keys(o)) await map.call("put", [key, o[key]], { parameterTypes: ["java.lang.Object", "java.lang.Object"] });
+          return map;
+        },
+        async mapToObject(...args) {
+          const name = "util.java.mapToObject";
+          arity(name, args, 1);
+          const [map] = args;
+          if (isNullish(map)) return null;
+          // A script object is a java.util.Map in Rhino.
+          if (isPlainObject(map)) return Object.assign({}, map);
+          if (!isHandle(map) || !await host.java().instanceOf(map, "java.util.Map")) throw typeError(name, "map", "java.util.Map", map);
+          // One snapshot of the entries keeps keys and values paired.
+          const result = {};
+          for (const entry of await elements(await (await map.call("entrySet")).call("toArray", [], { parameterTypes: [] }))) {
+            result[String(await entry.call("getKey"))] = await entry.call("getValue");
+            await host.java().release(entry).catch(() => {});
+          }
+          return result;
+        }
+      };
+      utilJava.instanceOf = utilJava.instanceof;
+      // A coordinate truncated toward zero, as S13nModule.coordinate.
+      function coordinate(value, param) {
+        const number = isNullish(value) ? NaN : Number(value);
+        if (Number.isNaN(number)) throw typeError("s13n.point", param, "number", value);
+        if (!Number.isFinite(number) || number < -2147483648 || number > 2147483647) {
+          throw fail("s13n.point", "Argument \"" + param + "\" must be a 32-bit integer, got " + number, RangeError);
+        }
+        return Math.trunc(number);
+      }
+      async function point(...args) {
+        const name = "s13n.point";
+        arity(name, args, 1, 2);
+        const [source, y] = args;
+        let x, other;
+        if (isHandle(source)) {
+          if (source.className === "android.graphics.Point") return source;
+          if (source.className !== "org.opencv.core.Point") throw typeError(name, "source", "Point / number[] / { x, y } / number", source);
+          x = toInt(Number(await source.getField("x")));
+          other = toInt(Number(await source.getField("y")));
+        } else if (Array.isArray(source)) {
+          x = coordinate(source[0], "source[0]");
+          other = coordinate(source[1], "source[1]");
+        } else if (typeof source === "number" || typeof source === "bigint") {
+          x = coordinate(source, "source");
+          const second = isNullish(y) ? NaN : Number(y);
+          other = Number.isNaN(second) ? x : coordinate(second, "y");
+        } else if (isPlainObject(source)) {
+          x = coordinate(source.x, "source.x");
+          other = coordinate(source.y, "source.y");
+        } else {
+          throw typeError(name, "source", "Point / number[] / { x, y } / number", source);
+        }
+        return host.java().new("android.graphics.Point", [x, other], { parameterTypes: ["int", "int"] });
+      }
+      async function throwable(...args) {
+        const name = "s13n.throwable";
+        arity(name, args, 1);
+        const [o] = args;
+        const java = host.java();
+        if (isHandle(o) && await java.instanceOf(o, "java.lang.Throwable")) return o;
+        if (typeof o === "string") return java.new("java.lang.Exception", [o], { parameterTypes: ["java.lang.String"] });
+        if (o instanceof Error) return java.new("java.lang.Exception", [isNullish(o.message) ? "" : String(o.message)], { parameterTypes: ["java.lang.String"] });
+        throw typeError(name, "o", "Throwable / string / Error", o);
+      }
+      // The timings (start delay first) vibrate through the host's Device.doVibrate, as util.morseCode.vibrate does in Rhino.
+      async function vibrate(timings) {
+        await host.java().callStatic("org.autojs.autojs.runtime.api.Device", "doVibrate", [timings], { parameterTypes: ["long[]"] });
+      }
+      return { utilJava, point, throwable, vibrate, javaKind };
+    }
+    function __autojs6_js_tools_util(host) {
+      const failedToCall = (fn, cause) => `Failed to call method "${fn}": [ ${cause} ]`;
+      const argumentType = (param, expected, actual) => `Argument "${param}" must be of type ${expected}, got ${actual}`;
+      const plural = (n, text) => `${text} ${n} argument${n === 1 ? "" : "s"}`;
+      const arity = (min, max) => {
+        if (max < 0) return plural(min, "Method only accepts no less than");
+        if (min === max) return plural(min, "Method only accepts");
+        return `Method only accepts a number of arguments in the range [${min}..${max}]`;
+      };
+
+      const isNullish = v => v === null || v === undefined;
+      const isNonNullObject = v => typeof v === "object" && v !== null;
+      const isReference = v => isNonNullObject(v) || typeof v === "function";
+      // Rhino ScriptRuntime.toString / toNumber: a symbol (and for toNumber a bigint) is a TypeError.
+      const toStr = v => `${v}`;
+      const toNum = v => +v;
+
+      // Rhino class names of script objects, from internal slots where a brand check exists (Object.prototype.toString
+      // alone follows Symbol.toStringTag, which Object.create(Map.prototype) also inherits).
+      const objectToString = Object.prototype.toString;
+      const getter = (proto, key) => Object.getOwnPropertyDescriptor(proto, key).get;
+      const regExpPrototype = RegExp.prototype;
+      const typedArrayName = getter(Object.getPrototypeOf(Int8Array.prototype), Symbol.toStringTag);
+      const branded = f => o => {
+        try {
+          f.call(o);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+      const tagged = () => true;
+      const BRANDS = new Map([
+        ["Error", o => Error.isError(o)],
+        ["Date", branded(Date.prototype.getTime)],
+        ["RegExp", branded(getter(RegExp.prototype, "source"))],
+        ["Boolean", branded(Boolean.prototype.valueOf)],
+        ["Number", branded(Number.prototype.valueOf)],
+        ["String", branded(String.prototype.valueOf)],
+        ["Symbol", branded(Symbol.prototype.valueOf)],
+        ["BigInt", branded(BigInt.prototype.valueOf)],
+        ["Map", branded(getter(Map.prototype, "size"))],
+        ["Set", branded(getter(Set.prototype, "size"))],
+        ["WeakMap", branded(WeakMap.prototype.has)],
+        ["WeakSet", branded(WeakSet.prototype.has)],
+        ["ArrayBuffer", branded(getter(ArrayBuffer.prototype, "byteLength"))],
+        ["DataView", branded(getter(DataView.prototype, "buffer"))],
+        ["Arguments", tagged],
+        ["Promise", tagged],
+        ["Generator", tagged],
+        ["Array Iterator", tagged],
+        ["Map Iterator", tagged],
+        ["Set Iterator", tagged],
+        ["String Iterator", tagged],
+      ]);
+      const JAVA_SPECIES = {object: "JavaObject", array: "JavaArray", class: "JavaClass", package: "JavaPackage"};
+      const javaKind = o => (isReference(o) ? host.javaKind(o) : null);
+      const classNameOf = o => {
+        if (Array.isArray(o)) return "Array";
+        if (o === Math) return "Math";
+        if (o === JSON) return "JSON";
+        if (o === globalThis) return "global";
+        if (o === regExpPrototype) return "RegExp";
+        const typed = typedArrayName.call(o);
+        if (typed !== undefined) return typed;
+        const tag = objectToString.call(o).slice(8, -1);
+        const brand = BRANDS.get(tag);
+        return brand && brand(o) ? tag : "Object";
+      };
+      const speciesOf = o => {
+        switch (typeof o) {
+          case "undefined":
+            return "Undefined";
+          case "boolean":
+            return "Boolean";
+          case "string":
+            return "String";
+          case "bigint":
+            return "BigInt";
+          case "number":
+            return "Number";
+          case "symbol":
+            return "Symbol";
+        }
+        if (o === null) return "Null";
+        const java = host.javaKind(o);
+        if (java) return JAVA_SPECIES[java];
+        return typeof o === "function" ? "Function" : classNameOf(o);
+      };
+
+      // ScriptArgs.describe: a bigint is a Java Number there.
+      const describe = v => {
+        if (v === null) return "null";
+        const type = typeof v;
+        if (type === "bigint") return "number";
+        if (type !== "object") return type;
+        const species = speciesOf(v);
+        return species === "Symbol" ? "symbol" : species;
+      };
+      const quote = v => {
+        if (typeof v === "string") return `"${v}"`;
+        return typeof v === "number" ? String(v) : describe(v);
+      };
+      const typeError = (fn, param, expected, value) => new TypeError(failedToCall(fn, argumentType(param, expected, describe(value))));
+      const cannotBe = (fn, param, value) => new TypeError(failedToCall(fn, `Argument "${param}" cannot be ${describe(value)}`));
+
+      // Script functions: named after the member, length = the required parameter count (the host binding's length).
+      const named = (display, length, f) => Object.defineProperties(f, {
+        name: {value: display.slice(display.lastIndexOf(".") + 1)},
+        length: {value: length},
       });
-    });
-    return result;
-  }
-  function __autojs6_jsox_arrayx_intersect() {
-    const args = Array.prototype.slice.call(arguments);
-    if (args.length === 0) {
-      throw __autojs6_rhino_compat_error(
-        "jsox.arrayx.intersect requires at least one array.",
-        __autojs6_rhino_compat_error_codes.invalidOption,
-        "jsox.arrayx.intersect",
-        "invalid-option"
-      );
-    }
-    const first = __autojs6_jsox_arrayx_require_array(args[0], "jsox.arrayx.intersect");
-    const rest = args.slice(1).map(function(value) {
-      return new Set(__autojs6_jsox_arrayx_require_array(value, "jsox.arrayx.intersect"));
-    });
-    const seen = new Set();
-    const result = [];
-    first.forEach(function(item) {
-      if (!seen.has(item) && rest.every(function(set) { return set.has(item); })) {
-        seen.add(item);
-        result.push(item);
-      }
-    });
-    return result;
-  }
-  function __autojs6_jsox_arrayx_subtract(left, right) {
-    const source = __autojs6_jsox_arrayx_require_array(left, "jsox.arrayx.subtract");
-    const deny = new Set(__autojs6_jsox_arrayx_require_array(right, "jsox.arrayx.subtract"));
-    const seen = new Set();
-    const result = [];
-    source.forEach(function(item) {
-      if (!deny.has(item) && !seen.has(item)) {
-        seen.add(item);
-        result.push(item);
-      }
-    });
-    return result;
-  }
-  function __autojs6_jsox_arrayx_differ(left, right) {
-    return __autojs6_jsox_arrayx_union(
-      __autojs6_jsox_arrayx_subtract(left, right),
-      __autojs6_jsox_arrayx_subtract(right, left)
-    );
-  }
-  function __autojs6_jsox_arrayx_compare_asc(a, b) {
-    if (a > b) return 1;
-    if (a < b) return -1;
-    if (a === b) return 0;
-    const as = String(a);
-    const bs = String(b);
-    if (as > bs) return 1;
-    if (as < bs) return -1;
-    return 0;
-  }
-  function __autojs6_jsox_arrayx_compare_desc(a, b) {
-    return -__autojs6_jsox_arrayx_compare_asc(a, b);
-  }
-  function __autojs6_jsox_arrayx_compare_by(selector, descending) {
-    const select = __autojs6_jsox_arrayx_require_function(selector, descending ? "jsox.arrayx.sortByDescending" : "jsox.arrayx.sortBy");
-    return function(a, b) {
-      const left = select(a);
-      const right = select(b);
-      return descending
-        ? __autojs6_jsox_arrayx_compare_desc(left, right)
-        : __autojs6_jsox_arrayx_compare_asc(left, right);
-    };
-  }
-  function __autojs6_jsox_arrayx_sort_by(arr, selector) {
-    return __autojs6_jsox_arrayx_require_array(arr, "jsox.arrayx.sortBy")
-      .sort(__autojs6_jsox_arrayx_compare_by(selector, false));
-  }
-  function __autojs6_jsox_arrayx_sort_by_descending(arr, selector) {
-    return __autojs6_jsox_arrayx_require_array(arr, "jsox.arrayx.sortByDescending")
-      .sort(__autojs6_jsox_arrayx_compare_by(selector, true));
-  }
-  function __autojs6_jsox_arrayx_sort_descending(arr) {
-    return __autojs6_jsox_arrayx_require_array(arr, "jsox.arrayx.sortDescending")
-      .sort(__autojs6_jsox_arrayx_compare_desc);
-  }
-  function __autojs6_jsox_arrayx_sorted(arr) {
-    return __autojs6_jsox_arrayx_require_array(arr, "jsox.arrayx.sorted")
-      .slice()
-      .sort(__autojs6_jsox_arrayx_compare_asc);
-  }
-  function __autojs6_jsox_arrayx_sorted_descending(arr) {
-    return __autojs6_jsox_arrayx_require_array(arr, "jsox.arrayx.sortedDescending")
-      .slice()
-      .sort(__autojs6_jsox_arrayx_compare_desc);
-  }
-  function __autojs6_jsox_arrayx_sorted_by(arr, selector) {
-    return __autojs6_jsox_arrayx_require_array(arr, "jsox.arrayx.sortedBy")
-      .slice()
-      .sort(__autojs6_jsox_arrayx_compare_by(selector, false));
-  }
-  function __autojs6_jsox_arrayx_sorted_by_descending(arr, selector) {
-    return __autojs6_jsox_arrayx_require_array(arr, "jsox.arrayx.sortedByDescending")
-      .slice()
-      .sort(__autojs6_jsox_arrayx_compare_by(selector, true));
-  }
-  function __autojs6_jsox_arrayx_shuffle(arr) {
-    const target = __autojs6_jsox_arrayx_require_array(arr, "jsox.arrayx.shuffle");
-    for (let index = target.length - 1; index > 0; index -= 1) {
-      const swapIndex = Math.floor(Math.random() * (index + 1));
-      const value = target[index];
-      target[index] = target[swapIndex];
-      target[swapIndex] = value;
-    }
-    return target;
-  }
-  function __autojs6_limited_jsox_arrayx() {
-    if (__autojs6_limited_jsox_arrayx_cache) {
-      return __autojs6_limited_jsox_arrayx_cache;
-    }
-    __autojs6_limited_jsox_arrayx_cache = Object.freeze({
-      ensureArray: __autojs6_jsox_arrayx_ensure_array,
-      distinct: __autojs6_jsox_arrayx_distinct,
-      distinctBy: __autojs6_jsox_arrayx_distinct_by,
-      union: __autojs6_jsox_arrayx_union,
-      intersect: __autojs6_jsox_arrayx_intersect,
-      subtract: __autojs6_jsox_arrayx_subtract,
-      differ: __autojs6_jsox_arrayx_differ,
-      sortBy: __autojs6_jsox_arrayx_sort_by,
-      sortByDescending: __autojs6_jsox_arrayx_sort_by_descending,
-      sortDescending: __autojs6_jsox_arrayx_sort_descending,
-      sorted: __autojs6_jsox_arrayx_sorted,
-      sortedBy: __autojs6_jsox_arrayx_sorted_by,
-      sortedByDescending: __autojs6_jsox_arrayx_sorted_by_descending,
-      sortedDescending: __autojs6_jsox_arrayx_sorted_descending,
-      shuffle: __autojs6_jsox_arrayx_shuffle
-    });
-    return __autojs6_limited_jsox_arrayx_cache;
-  }
-  function __autojs6_jsox_numberx_invalid(apiName, message) {
-    throw __autojs6_rhino_compat_error(
-      message,
-      __autojs6_rhino_compat_error_codes.invalidOption,
-      apiName,
-      "invalid-option"
-    );
-  }
-  function __autojs6_jsox_numberx_parse_percent(percent) {
-    if (percent === undefined || percent === null) return NaN;
-    const match = String(percent).trim().match(/^([+-]?\d+(?:\.\d+)?)(%*)$/);
-    if (!match) return NaN;
-    return Number(match[1]) / Math.pow(100, match[2].length);
-  }
-  function __autojs6_jsox_numberx_parse_ratio(ratio) {
-    if (ratio === undefined || ratio === null) return NaN;
-    const parts = String(ratio).trim().split(":").map(function(value) { return value.trim(); });
-    if (parts.length < 2) return NaN;
-    return Number(parts[0]) / Number(parts[1]);
-  }
-  function __autojs6_jsox_numberx_parse_any(value) {
-    if (value === undefined || value === null) return NaN;
-    if (typeof value === "number") return value;
-    const string = String(value).trim();
-    if (string.indexOf(":") >= 0) return __autojs6_jsox_numberx_parse_ratio(string);
-    if (string.indexOf("%") >= 0) return __autojs6_jsox_numberx_parse_percent(string);
-    return Number(string);
-  }
-  function __autojs6_jsox_numberx_ensure_number() {
-    const values = Array.prototype.slice.call(arguments);
-    if (values.length === 0) {
-      __autojs6_jsox_numberx_invalid("jsox.numberx.ensureNumber", "jsox.numberx.ensureNumber requires at least one argument.");
-    }
-    values.forEach(function(value) {
-      if (typeof value !== "number") {
-        __autojs6_jsox_numberx_invalid("jsox.numberx.ensureNumber", "Argument must be a number.");
-      }
-    });
-  }
-  function __autojs6_jsox_numberx_ensure_number_like(value, allowNaN) {
-    if (value === undefined || value === null) {
-      __autojs6_jsox_numberx_invalid("jsox.numberx.ensureNumberLike", "Argument for jsox.numberx.ensureNumberLike must not be null or undefined.");
-    }
-    if (typeof value === "number" && Number.isNaN(value)) {
-      if (allowNaN) return NaN;
-      __autojs6_jsox_numberx_invalid("jsox.numberx.ensureNumberLike", "Argument is NaN, which is not allowed for jsox.numberx.ensureNumberLike.");
-    }
-    const number = __autojs6_jsox_numberx_parse_any(value);
-    if (Number.isNaN(number)) {
-      __autojs6_jsox_numberx_invalid("jsox.numberx.ensureNumberLike", "Argument cannot be taken as a number for jsox.numberx.ensureNumberLike.");
-    }
-    return number;
-  }
-  function __autojs6_jsox_numberx_ensure_numbers_like(values, allowNaN, containsNaN) {
-    if (!Array.isArray(values)) {
-      __autojs6_jsox_numberx_invalid("jsox.numberx.ensureNumbersLike", "Argument \"numbers\" must be an array for jsox.numberx.ensureNumbersLike.");
-    }
-    const result = [];
-    values.forEach(function(value, index) {
-      if (value === undefined || value === null) {
-        __autojs6_jsox_numberx_invalid("jsox.numberx.ensureNumbersLike", "Argument[" + index + "] for jsox.numberx.ensureNumbersLike must not be null or undefined.");
-      }
-      if (typeof value === "number" && Number.isNaN(value)) {
-        if (!allowNaN) {
-          __autojs6_jsox_numberx_invalid("jsox.numberx.ensureNumbersLike", "Argument[" + index + "] is NaN, which is not allowed for jsox.numberx.ensureNumbersLike.");
+      // The generated bindings count trailing undefined arguments beyond the required ones as omitted (ScriptArgs.count);
+      // omitted parameters are not passed on, so their host defaults apply.
+      const fixed = (display, min, max, body) => named(display, min, (...args) => {
+        let n = args.length;
+        while (n > min && args[n - 1] === undefined) n--;
+        if (n < min || n > max) throw new TypeError(failedToCall(display, arity(min, max)));
+        return body(...(n < args.length ? args.slice(0, n) : args));
+      });
+      const predicate = (display, test) => fixed(display, 1, 1, test);
+      const string = (fn, param, value) => {
+        if (typeof value !== "string") throw typeError(fn, param, "string", value);
+        return value;
+      };
+      const number = (fn, param, value) => {
+        if (typeof value === "number") return value;
+        if (typeof value === "bigint") return Number(value);
+        if (typeof value === "string") {
+          const n = +value;
+          if (!Number.isNaN(n) || value.trim() === "NaN") return n;
         }
-        if (containsNaN) result.push(NaN);
-        return;
-      }
-      const number = __autojs6_jsox_numberx_parse_any(value);
-      if (Number.isNaN(number)) {
-        __autojs6_jsox_numberx_invalid("jsox.numberx.ensureNumbersLike", "Argument[" + index + "] cannot be taken as a number for jsox.numberx.ensureNumbersLike.");
-      }
-      result.push(number);
-    });
-    return result;
-  }
-  function __autojs6_jsox_numberx_check() {
-    const inputs = Array.prototype.slice.call(arguments);
-    if (inputs.length === 0) return false;
-    if (inputs.length === 1) return typeof inputs[0] === "number";
-    if (inputs.length === 2) return __autojs6_jsox_numberx_check(inputs[0], "==", inputs[1]);
-    const operators = {
-      "<": function(a, b) { return a < b; },
-      "<=": function(a, b) { return a <= b; },
-      ">": function(a, b) { return a > b; },
-      ">=": function(a, b) { return a >= b; },
-      "=": function(a, b) { return a === b; },
-      "==": function(a, b) { return a === b; },
-      "!=": function(a, b) { return a !== b; },
-      "<>": function(a, b) { return a !== b; }
-    };
-    for (let index = 1; index < inputs.length; index += 2) {
-      const operator = inputs[index];
-      if (typeof operator !== "string" || !Object.prototype.hasOwnProperty.call(operators, operator)) {
-        __autojs6_jsox_numberx_invalid("jsox.numberx.check", "Arguments[" + index + "] for jsox.numberx.check must be a supported operator.");
-      }
-      const left = __autojs6_jsox_numberx_ensure_number_like(inputs[index - 1]);
-      const right = __autojs6_jsox_numberx_ensure_number_like(inputs[index + 1]);
-      if (!operators[operator](left, right)) return false;
-    }
-    return true;
-  }
-  function __autojs6_jsox_numberx_clamp(num) {
-    const x = __autojs6_jsox_numberx_ensure_number_like(num);
-    const values = __autojs6_jsox_mathx_flatten(Array.prototype.slice.call(arguments, 1));
-    const clamps = __autojs6_jsox_numberx_ensure_numbers_like(values).sort(function(a, b) { return a - b; });
-    if (clamps.length === 0) return x;
-    const min = clamps[0];
-    const max = clamps[clamps.length - 1];
-    if (x < min) return min;
-    if (x > max) return max;
-    return x;
-  }
-  function __autojs6_jsox_numberx_clamp_to(num, range, cycle) {
-    const x = __autojs6_jsox_numberx_ensure_number_like(num);
-    const sortedRange = __autojs6_jsox_numberx_ensure_numbers_like(range).sort(function(a, b) { return a - b; });
-    if (sortedRange.length === 0) return x;
-    const min = sortedRange[0];
-    const max = sortedRange[sortedRange.length - 1];
-    const t = cycle === undefined || cycle === null ? max - min : __autojs6_jsox_numberx_ensure_number_like(cycle);
-    if (!(t > 0)) {
-      __autojs6_jsox_numberx_invalid("jsox.numberx.clampTo", "Cycle must be a positive number.");
-    }
-    if (x < min) return x + Math.ceil((min - x) / t) * t;
-    if (x > max) return x - Math.ceil((x - max) / t) * t;
-    return x;
-  }
-  function __autojs6_jsox_numberx_to_fixed_num(num, fraction) {
-    return __autojs6_jsox_mathx_to_fixed_num(
-      __autojs6_jsox_numberx_parse_any(num),
-      fraction === undefined || fraction === null ? 0 : __autojs6_jsox_numberx_parse_any(fraction)
-    );
-  }
-  function __autojs6_jsox_numberx_parse_float(value, radix) {
-    if (value === undefined || value === null) return NaN;
-    const string = String(value);
-    if (radix === undefined || radix === null) return parseFloat(string);
-    let base = __autojs6_jsox_numberx_ensure_number_like(radix, true);
-    if (Number.isNaN(base) || !Number.isFinite(base)) base = 10;
-    const parts = string.split(".");
-    const fractionLength = parts.length > 1 ? parts[1].length : 0;
-    const compact = parts.join("");
-    return parseInt(compact, Math.round(base)) / Math.pow(base, fractionLength);
-  }
-  function __autojs6_jsox_numberx_pad_start(num, targetLength, pad) {
-    const length = Number(targetLength);
-    if (Number.isNaN(length) || !Number.isFinite(length)) {
-      __autojs6_jsox_numberx_invalid("jsox.numberx.padStart", "Argument \"targetLength\" for jsox.numberx.padStart must be a number.");
-    }
-    const padding = pad === undefined || pad === null ? "0" : String(pad);
-    return String(__autojs6_jsox_numberx_parse_any(num)).padStart(Math.round(length), padding);
-  }
-  function __autojs6_jsox_numberx_pad_end(num, targetLength, pad) {
-    const length = Number(targetLength);
-    if (Number.isNaN(length) || !Number.isFinite(length)) {
-      __autojs6_jsox_numberx_invalid("jsox.numberx.padEnd", "Argument \"targetLength\" for jsox.numberx.padEnd must be a number.");
-    }
-    const padding = pad === undefined || pad === null ? "0" : String(pad);
-    return String(__autojs6_jsox_numberx_parse_any(num)).padEnd(Math.round(length), padding);
-  }
-  function __autojs6_limited_jsox_numberx() {
-    if (__autojs6_limited_jsox_numberx_cache) {
-      return __autojs6_limited_jsox_numberx_cache;
-    }
-    __autojs6_limited_jsox_numberx_cache = Object.freeze({
-      ICU: 996,
-      ensureNumber: __autojs6_jsox_numberx_ensure_number,
-      ensureNumberLike: __autojs6_jsox_numberx_ensure_number_like,
-      ensureNumbersLike: __autojs6_jsox_numberx_ensure_numbers_like,
-      check: __autojs6_jsox_numberx_check,
-      clamp: __autojs6_jsox_numberx_clamp,
-      clampTo: __autojs6_jsox_numberx_clamp_to,
-      toFixedNum: __autojs6_jsox_numberx_to_fixed_num,
-      padStart: __autojs6_jsox_numberx_pad_start,
-      padEnd: __autojs6_jsox_numberx_pad_end,
-      parseFloat: __autojs6_jsox_numberx_parse_float,
-      parsePercent: __autojs6_jsox_numberx_parse_percent,
-      parseRatio: __autojs6_jsox_numberx_parse_ratio,
-      parseAny: __autojs6_jsox_numberx_parse_any
-    });
-    return __autojs6_limited_jsox_numberx_cache;
-  }
-  function __autojs6_limited_jsox_mathx() {
-    if (__autojs6_limited_jsox_mathx_cache) {
-      return __autojs6_limited_jsox_mathx_cache;
-    }
-    __autojs6_limited_jsox_mathx_cache = Object.freeze({
-      randInt: __autojs6_jsox_mathx_random_int,
-      randomInt: __autojs6_jsox_mathx_random_int,
-      randFloat: __autojs6_jsox_mathx_random_float,
-      randomFloat: __autojs6_jsox_mathx_random_float,
-      random: __autojs6_jsox_mathx_random_float,
-      sum: __autojs6_jsox_mathx_sum,
-      mean: __autojs6_jsox_mathx_mean,
-      avg: __autojs6_jsox_mathx_mean,
-      median: __autojs6_jsox_mathx_median,
-      var: __autojs6_jsox_mathx_variance,
-      std: __autojs6_jsox_mathx_std,
-      cv: __autojs6_jsox_mathx_cv,
-      mode: __autojs6_jsox_mathx_mode,
-      dist: __autojs6_jsox_mathx_dist,
-      logMn: __autojs6_jsox_mathx_log_mn,
-      floorLog: __autojs6_jsox_mathx_floor_log,
-      ceilLog: __autojs6_jsox_mathx_ceil_log,
-      roundLog: __autojs6_jsox_mathx_round_log,
-      floorPow: __autojs6_jsox_mathx_floor_pow,
-      ceilPow: __autojs6_jsox_mathx_ceil_pow,
-      roundPow: __autojs6_jsox_mathx_round_pow,
-      max: __autojs6_jsox_mathx_max,
-      maxi: __autojs6_jsox_mathx_max,
-      min: __autojs6_jsox_mathx_min,
-      mini: __autojs6_jsox_mathx_min
-    });
-    return __autojs6_limited_jsox_mathx_cache;
-  }
-  function __autojs6_jsox_module_names(argsLike) {
-    const values = __autojs6_jsox_mathx_flatten(argsLike);
-    return values.length === 0 ? ["Mathx"] : values.map(function(value) {
-      return String(value === undefined || value === null ? "" : value).trim();
-    }).filter(Boolean);
-  }
-  function __autojs6_jsox_extend_target(target, moduleNames) {
-    const names = __autojs6_jsox_module_names(moduleNames);
-    names.forEach(function(name) {
-      const normalized = (name.replace(/x$/i, "") + "x").toLowerCase();
-      const moduleValue = normalized === "mathx"
-        ? __autojs6_limited_jsox_mathx()
-        : normalized === "arrayx"
-          ? __autojs6_limited_jsox_arrayx()
-          : normalized === "numberx"
-            ? __autojs6_limited_jsox_numberx()
-            : null;
-      if (!moduleValue) {
-        throw __autojs6_rhino_compat_error(
-          "jsox.extend currently supports the pure Mathx, Arrayx, and Numberx facades only.",
-          __autojs6_rhino_compat_error_codes.unsupported,
-          "jsox.extend",
-          "unsupported"
-        );
-      }
-      Object.keys(moduleValue).forEach(function(key) {
-        Object.defineProperty(target, key, {
-          value: moduleValue[key],
-          enumerable: true,
-          configurable: true,
-          writable: true
+        throw typeError(fn, param, "number", value);
+      };
+
+      // util type predicates
+      const isInteger = v => (typeof v === "bigint" ? Number.isFinite(Number(v)) : Number.isInteger(v));
+      const isEmptyObject = v => {
+        if (!isNonNullObject(v) || javaKind(v)) return false;
+        // A Rhino array is empty when it has no elements, whatever its other properties.
+        return Array.isArray(v) ? v.length === 0 : Reflect.ownKeys(v).length === 0;
+      };
+      const isError = v => isNonNullObject(v) && (speciesOf(v) === "Error" || Error.prototype.isPrototypeOf(v));
+
+      const extend = (d, b) => {
+        const fn = "util.extend";
+        if (!isReference(d)) throw typeError(fn, "d", "function", d);
+        if (b === undefined) throw new TypeError(failedToCall(fn, "Cannot convert undefined to an object"));
+        const base = b === null ? null : Object(b);
+        Object.setPrototypeOf(d, base);
+        let prototype = Object.create(null);
+        if (base !== null) {
+          const inherited = base.prototype;
+          prototype = Object.create(isReference(inherited) ? inherited : null);
+          Object.defineProperty(prototype, "constructor", {value: d, writable: false, enumerable: false, configurable: false});
+        }
+        const current = d.prototype;
+        if (current === null || (current === undefined && !("prototype" in d))) d.prototype = prototype;
+        else if (isReference(current)) Object.setPrototypeOf(current, prototype);
+        else throw typeError(fn, "d.prototype", "object", current);
+      };
+
+      const assignFunctions = (src, target, funcNames) => {
+        const fn = "util.__assignFunctions__";
+        if (!isReference(src)) throw typeError(fn, "src", "object", src);
+        if (!isReference(target)) throw typeError(fn, "target", "object", target);
+        if (!Array.isArray(funcNames)) throw typeError(fn, "funcNames", "Array", funcNames);
+        for (let i = 0; i < funcNames.length; i++) {
+          const name = toStr(funcNames[i]);
+          const func = src[name];
+          if (typeof func !== "function") throw typeError(fn, `src.${name}`, "function", name in src ? func : null);
+          target[name] = func.bind(src);
+        }
+      };
+
+      // util.inspect: the host's Inspector (UtilInspectModule.kt), the legacy Node format of the obsolete module.
+      const COLORS = [["bold", 1, 22], ["italic", 3, 23], ["underline", 4, 24], ["inverse", 7, 27], ["white", 37, 39], ["gray", 90, 39],
+        ["grey", 90, 39], ["black", 30, 39], ["blue", 34, 39], ["cyan", 36, 39], ["green", 32, 39], ["magenta", 35, 39], ["red", 31, 39],
+        ["yellow", 33, 39]];
+      const STYLES = [["regexp", "red"], ["date", "magenta"], ["special", "cyan"], ["number", "yellow"], ["boolean", "yellow"],
+        ["string", "green"], ["undefined", "gray"], ["null", "bold"]];
+      const COLOR_CODES = new Map(COLORS.map(([name, start, end]) => [name, [start, end]]));
+      const STYLE_COLORS = new Map(STYLES);
+      const ESC = String.fromCharCode(27);
+      const SGR = /\x1b\[\d+?m/g;
+      const DIGITS = /^\d+$/;
+      const IDENTIFIER = /^"[a-zA-Z_]\w*"$/;
+      const QUOTE_ENDS = /^"|"$/g;
+      const INT_MAX = 2147483647;
+      const INSPECT_DEFAULTS = Object.freeze({
+        showHidden: false, depth: 2, colors: false, customInspect: false, maxArrayItems: 10000, maxObjectKeys: 10000, maxStringLength: 100000,
+      });
+      const clampInt = x => (x >= INT_MAX ? INT_MAX : x <= -INT_MAX - 1 ? -INT_MAX - 1 : Math.trunc(x));
+      const builtInToString = [Object.prototype.toString, Array.prototype.toString, Function.prototype.toString];
+      const errorToString = Error.prototype.toString;
+      const regExpToString = RegExp.prototype.toString;
+      const dateToString = Date.prototype.toString;
+      const dateToUTCString = Date.prototype.toUTCString;
+      const hasOwn = (o, key) => Object.prototype.hasOwnProperty.call(o, key);
+      // Single-quoted as the obsolete module: JSON escapes, ' escaped and " kept.
+      const quoteText = text => JSON.stringify(text).slice(1, -1).replaceAll("'", "\\'").replaceAll("\\\"", "\"");
+
+      // Inspector.of: positional values first, then an options object (a plain object) overriding them.
+      const inspectOptions = (showHiddenOrOptions, depth, colors) => {
+        const fn = "util.inspect";
+        const options = {...INSPECT_DEFAULTS};
+        if (!isNullish(depth)) {
+          if (typeof depth !== "number" && typeof depth !== "bigint") throw typeError(fn, "depth", "number", depth);
+          options.depth = Number(depth);
+        }
+        if (!isNullish(colors)) {
+          if (typeof colors !== "boolean") throw typeError(fn, "colors", "boolean", colors);
+          options.colors = colors;
+        }
+        const v = showHiddenOrOptions;
+        if (typeof v === "boolean") {
+          options.showHidden = v;
+        } else if (!isNullish(v)) {
+          if (speciesOf(v) !== "Object") throw typeError(fn, "showHiddenOrOptions", "boolean | Object", v);
+          const option = key => (isNullish(v[key]) ? null : v[key]);
+          const numberOption = key => {
+            const x = option(key);
+            if (x === null) return null;
+            const n = toNum(x);
+            if (Number.isNaN(n)) throw typeError(fn, `options.${key}`, "number", x);
+            return n;
+          };
+          if (option("showHidden") !== null) options.showHidden = Boolean(v.showHidden);
+          // Node semantics: null (and Infinity) means no limit, undefined the default.
+          if ("depth" in v) {
+            if (v.depth === null) options.depth = null;
+            else if (v.depth !== undefined) options.depth = numberOption("depth");
+          }
+          if (option("colors") !== null) options.colors = Boolean(v.colors);
+          if (option("customInspect") !== null) options.customInspect = Boolean(v.customInspect);
+          for (const key of ["maxArrayItems", "maxObjectKeys", "maxStringLength"]) {
+            const n = numberOption(key);
+            if (n !== null) options[key] = clampInt(n);
+          }
+        }
+        if (options.depth === Infinity) options.depth = null;
+        return options;
+      };
+
+      // One formatting pass of util.inspect, also used by util.format.
+      const inspector = ({showHidden, depth, colors, customInspect, maxArrayItems, maxObjectKeys, maxStringLength}) => {
+        const seen = new Set();
+        const stylize = (text, style) => {
+          const codes = colors ? COLOR_CODES.get(STYLE_COLORS.get(style)) : undefined;
+          return codes ? `${ESC}[${codes[0]}m${text}${ESC}[${codes[1]}m` : text;
+        };
+        const errorName = value => `[${toStr(errorToString.call(value))}]`;
+        const regExpName = value => toStr(regExpToString.call(value));
+        const functionName = value => {
+          const name = value.name;
+          const text = isNullish(name) ? "" : toStr(name);
+          return text === "" ? "[Function]" : `[Function ${text}()]`;
+        };
+        const formatPrimitive = value => {
+          switch (typeof value) {
+            case "undefined":
+              return stylize("undefined", "undefined");
+            case "string": {
+              const quoted = `'${quoteText(value)}'`;
+              if (maxStringLength > 0 && quoted.length > maxStringLength) {
+                const cut = quoted.slice(0, maxStringLength);
+                return stylize(`${cut}... (${quoted.length - cut.length} more chars)`, "string");
+              }
+              return stylize(quoted, "string");
+            }
+            // A Rhino BigInt is a java.math.BigInteger, printed as a number.
+            case "number":
+            case "bigint":
+              return stylize(String(value), "number");
+            case "boolean":
+              return stylize(String(value), "boolean");
+          }
+          return null;
+        };
+        // The first own toString up the prototype chain of a plain object, unless it is the standard one.
+        const customToString = value => {
+          let owner = value;
+          while (owner !== null && !hasOwn(owner, "toString")) owner = Object.getPrototypeOf(owner);
+          if (owner === null) return null;
+          const f = owner.toString;
+          if (typeof f !== "function" || builtInToString.includes(f)) return null;
+          return toStr(f.call(value));
+        };
+        const isUtilInspect = f => f.name === "inspect" && hasOwn(f, "colors") && hasOwn(f, "styles");
+        const isPrototypeObject = value => {
+          const ctor = value.constructor;
+          return isReference(ctor) && ctor.prototype === value;
+        };
+        const formatProperty = (value, recurseTimes, visible, key, array, typed) => {
+          // Rhino keeps typed array elements out of the property slots: they have no descriptor.
+          const desc = typed && DIGITS.test(key) ? undefined : Object.getOwnPropertyDescriptor(value, key);
+          if (desc === undefined) return null;
+          const hasGetter = typeof desc.get === "function";
+          const hasSetter = typeof desc.set === "function";
+          let str = null;
+          if (hasGetter && hasSetter) str = stylize("[Getter/Setter]", "special");
+          else if (hasGetter) str = stylize("[Getter]", "special");
+          else if (hasSetter) str = stylize("[Setter]", "special");
+          const enumerable = visible !== null ? visible.has(key) : Boolean(desc.enumerable);
+          let name = enumerable ? null : `[${key}]`;
+          if (str === null) {
+            const v = desc.value;
+            if (isReference(v) && seen.has(v)) {
+              str = stylize("[Circular]", "special");
+            } else {
+              str = formatValue(v, recurseTimes === null ? null : recurseTimes - 1);
+              if (str.includes("\n")) {
+                str = array
+                  ? str.split("\n").map(line => "  " + line).join("\n").slice(2)
+                  : "\n" + str.split("\n").map(line => "   " + line).join("\n");
+              }
+            }
+          }
+          if (name === null) {
+            if (array && DIGITS.test(key)) return str;
+            const json = JSON.stringify(key);
+            name = IDENTIFIER.test(json)
+              ? stylize(json.slice(1, -1), "name")
+              : stylize(json.replaceAll("'", "\\'").replaceAll("\\\"", "\"").replace(QUOTE_ENDS, "'"), "string");
+          }
+          return `${name}: ${str}`;
+        };
+        // Up to maxArrayItems elements; a longer array shows its first 100 (at most) and last 20, then other keys.
+        const formatArray = (value, recurseTimes, keys) => {
+          const output = [];
+          const len = Math.min(value.length, INT_MAX);
+          const max = maxArrayItems > 0 ? maxArrayItems : INT_MAX;
+          const head = len <= max ? len : Math.min(max, 100);
+          const tail = len <= max ? 0 : Math.max(Math.min(20, max - head), 0);
+          const element = i => (hasOwn(value, i) ? formatProperty(value, recurseTimes, null, String(i), true, false) ?? "" : "");
+          for (let i = 0; i < head; i++) output.push(element(i));
+          if (len > head + tail) output.push(stylize(`... ${len - head - tail} more items ...`, "special"));
+          for (let i = Math.max(head, len - tail); i < len; i++) output.push(element(i));
+          for (const key of keys) {
+            const property = DIGITS.test(key) ? null : formatProperty(value, recurseTimes, null, key, true, false);
+            if (property !== null) output.push(property);
+          }
+          return output;
+        };
+        const reduceToSingleString = (output, base, braces) => {
+          const length = output.reduce((sum, item) => sum + item.replace(SGR, "").length + 1, 0);
+          if (length > 60) return `${braces[0]}${base === "" ? "" : base + "\n "} ${output.join(",\n  ")} ${braces[1]}`;
+          return `${braces[0]}${base} ${output.join(", ")} ${braces[1]}`;
+        };
+        const formatValue = (value, recurseTimes) => {
+          if (value === globalThis) return "[object global]";
+          if (isReference(value)) {
+            let readable;
+            try {
+              readable = value.toStringReadable;
+            } catch {
+              readable = undefined;
+            }
+            if (typeof readable === "function") return formatValue(toStr(readable.call(value)), recurseTimes);
+          }
+          // The value's own inspect(recurseTimes, context) when customInspect is on; util.inspect itself and prototype
+          // objects are left out. A string result is used as it is.
+          if (customInspect && isNonNullObject(value)) {
+            const f = value.inspect;
+            if (typeof f === "function" && !isUtilInspect(f) && !isPrototypeObject(value)) {
+              const result = f.call(value, recurseTimes, {showHidden, depth, colors, customInspect});
+              return typeof result === "string" ? result : formatValue(result, recurseTimes);
+            }
+          }
+          const primitive = formatPrimitive(value);
+          if (primitive !== null) return primitive;
+          if (value === null) return stylize("null", "null");
+          // A symbol: Rhino's ToString is a TypeError.
+          if (!isReference(value)) return toStr(value);
+
+          const species = speciesOf(value);
+          if (species === "Object") {
+            const custom = customToString(value);
+            if (custom !== null) return custom;
+          }
+          const callable = typeof value === "function";
+          const array = species === "Array";
+          const typed = !array && typedArrayName.call(value) !== undefined;
+          const keys = showHidden ? Object.getOwnPropertyNames(value) : Object.keys(value);
+          const visible = array || !showHidden ? null : new Set(Object.keys(value));
+          const isError = species === "Error" || Error.prototype.isPrototypeOf(value);
+          if (isError && keys.some(key => key === "message" || key === "description")) return errorName(value);
+          if (keys.length === 0) {
+            if (callable) return stylize(functionName(value), "special");
+            if (species === "RegExp") return stylize(regExpName(value), "regexp");
+            if (species === "Date") return stylize(toStr(dateToString.call(value)), "date");
+            if (species === "Error") return errorName(value);
+          }
+
+          let base = "";
+          if (callable) base = " " + functionName(value);
+          else if (species === "RegExp") base = " " + regExpName(value);
+          else if (species === "Date") base = " " + toStr(dateToUTCString.call(value));
+          else if (species === "Error") base = " " + errorName(value);
+          const braces = array ? ["[", "]"] : ["{", "}"];
+          if (keys.length === 0 && (!array || value.length === 0)) return braces[0] + base + braces[1];
+          if (recurseTimes !== null && recurseTimes < 0) {
+            return species === "RegExp" ? stylize(regExpName(value), "regexp") : stylize("[Object]", "special");
+          }
+
+          seen.add(value);
+          let output;
+          if (array) {
+            output = formatArray(value, recurseTimes, keys);
+          } else {
+            try {
+              output = [];
+              for (const key of keys.slice(0, maxObjectKeys > 0 ? maxObjectKeys : INT_MAX)) {
+                const property = formatProperty(value, recurseTimes, visible, key, false, typed);
+                if (property !== null) output.push(property);
+              }
+            } catch {
+              seen.delete(value);
+              try {
+                return toStr(value);
+              } catch {
+                return toStr(Object.prototype.toString.call(value));
+              }
+            }
+          }
+          seen.delete(value);
+          return reduceToSingleString(output, base, braces);
+        };
+        return value => formatValue(value, depth);
+      };
+      const inspectDefault = value => inspector(INSPECT_DEFAULTS)(value);
+      const inspect = fixed("util.inspect", 0, 4, (value, showHiddenOrOptions, depth, colors) =>
+        inspector(inspectOptions(showHiddenOrOptions, depth, colors))(value));
+      Object.defineProperties(inspect, {
+        colors: {get: () => Object.fromEntries(COLORS.map(([name, start, end]) => [name, [start, end]])), enumerable: true},
+        styles: {get: () => Object.fromEntries(STYLES), enumerable: true},
+      });
+
+      const json = v => {
+        try {
+          return String(JSON.stringify(v));
+        } catch {
+          return "[Circular]";
+        }
+      };
+      // Rhino semantics: %s is ToString (objects give "[object Object]"), %d ToNumber, %j JSON; a first argument that is no
+      // string makes every argument inspected.
+      const format = (...args) => {
+        if (args.length === 0) return "";
+        const fmt = args[0];
+        if (typeof fmt !== "string") return args.map(inspectDefault).join(" ");
+        let index = 1;
+        let out = "";
+        for (let i = 0; i < fmt.length; i++) {
+          const ch = fmt[i];
+          if (ch !== "%" || i + 1 >= fmt.length) {
+            out += ch;
+            continue;
+          }
+          const spec = fmt[++i];
+          if (spec === "%") {
+            out += "%";
+          } else if ((spec === "s" || spec === "d" || spec === "j") && index < args.length) {
+            const arg = args[index++];
+            out += spec === "s" ? toStr(arg) : spec === "d" ? String(toNum(arg)) : json(arg);
+          } else {
+            out += "%" + spec;
+          }
+        }
+        while (index < args.length) {
+          const x = args[index++];
+          out += " " + (isNonNullObject(x) ? inspectDefault(x) : toStr(x));
+        }
+        return out;
+      };
+
+      const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const pad2 = n => String(n).padStart(2, "0");
+      const NOT_FOR_AUTOJS6 = "This method is not designed for AutoJs6.";
+      const log = (...args) => {
+        const now = new Date();
+        const timestamp = `${pad2(now.getDate())} ${MONTHS[now.getMonth()]} ${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
+        host.log(`${timestamp} - ${format(...args)}`);
+      };
+
+      const surround = (text, start, end) => {
+        const started = text.startsWith(start) ? text : start + text;
+        return started.endsWith(end) ? started : started + end;
+      };
+      const checkString = (fn, src, pattern, objects) => {
+        let source;
+        if (typeof pattern === "string") source = surround(pattern, "^", "$");
+        else if (speciesOf(pattern) === "RegExp") source = toStr(pattern.source);
+        else throw typeError(fn, "pattern", "string | RegExp", pattern);
+        let text;
+        if (isNullish(src)) {
+          throw cannotBe(fn, "src", src);
+        } else if (!isReference(src)) {
+          text = toStr(src);
+        } else if (objects) {
+          const toString = src.toString;
+          if (typeof toString !== "function") throw typeError(fn, "src.toString", "function", "toString" in src ? toString : null);
+          text = toStr(toString.call(src));
+        } else {
+          throw typeError(fn, "src", "string | number | boolean | bigint", src);
+        }
+        let regExp;
+        try {
+          regExp = new RegExp(source, "i");
+        } catch {
+          // Rhino's regular expressions accept patterns V8 rejects ("^[$"), which then match nothing.
+          return false;
+        }
+        return regExp.test(text.trim());
+      };
+
+      const TYPES = ["object", "string", "undefined", "symbol", "bigint", "number", "function", "boolean"];
+      const TYPE_UNION = TYPES.map(t => `'${t}'`).join(" | ");
+      const ensureType = (o, type) => {
+        const fn = "util.ensureType";
+        const name = string(fn, "type", type).toLowerCase();
+        if (!TYPES.includes(name)) throw new RangeError(failedToCall(fn, argumentType("type", TYPE_UNION, quote(type))));
+        if (typeof o !== name) throw typeError(fn, "o", name, o);
+      };
+      const ensureEach = (fn, type) => named(fn, 0, (...values) => {
+        values.forEach((v, i) => {
+          if (typeof v !== type) throw typeError(fn, `values[${i}]`, type, v);
         });
       });
-    });
-    return target;
-  }
-  function __autojs6_jsox_extend() {
-    const args = Array.prototype.slice.call(arguments);
-    const target = args[0];
-    if (args.length === 0 || target === undefined || target === null || typeof target === "string" || typeof target === "number" || typeof target === "boolean" || Array.isArray(target)) {
-      throw __autojs6_rhino_compat_blocked_by_design(
-        "jsox.extend",
-        "default global Math/prototype mutation is disabled in the Node facade; pass an explicit target object."
-      );
-    }
-    if (typeof target !== "object" && typeof target !== "function") {
-      throw __autojs6_rhino_compat_error(
-        "jsox.extend target must be an object or function.",
-        __autojs6_rhino_compat_error_codes.invalidOption,
-        "jsox.extend",
-        "invalid-option"
-      );
-    }
-    return __autojs6_jsox_extend_target(target, args.slice(1));
-  }
-  function __autojs6_jsox_extend_all(target) {
-    if (target === undefined || target === null) {
-      throw __autojs6_rhino_compat_blocked_by_design(
-        "jsox.extendAll",
-        "default global Math/prototype mutation is disabled in the Node facade; pass an explicit target object."
-      );
-    }
-    return __autojs6_jsox_extend_target(target, ["Mathx", "Numberx", "Arrayx"]);
-  }
-  function __autojs6_limited_jsox() {
-    if (__autojs6_limited_jsox_cache) {
-      return __autojs6_limited_jsox_cache;
-    }
-    const jsox = function() {
-      return __autojs6_jsox_extend.apply(null, arguments);
-    };
-    Object.defineProperties(jsox, {
-      mathx: { value: __autojs6_limited_jsox_mathx(), enumerable: true },
-      Mathx: { value: __autojs6_limited_jsox_mathx(), enumerable: true },
-      arrayx: { value: __autojs6_limited_jsox_arrayx(), enumerable: true },
-      Arrayx: { value: __autojs6_limited_jsox_arrayx(), enumerable: true },
-      numberx: { value: __autojs6_limited_jsox_numberx(), enumerable: true },
-      Numberx: { value: __autojs6_limited_jsox_numberx(), enumerable: true },
-      extend: { value: __autojs6_jsox_extend, enumerable: true },
-      extendAll: { value: __autojs6_jsox_extend_all, enumerable: true },
-      status: {
-        value: function() {
-          return Object.freeze({
-            schema: "autojs6-node-jsox-v1",
-            task: "P13-27",
-            modules: Object.freeze(["Mathx", "Numberx", "Arrayx"]),
-            nodeModules: Object.freeze(["jsox", "jsox.mathx", "jsox.arrayx", "jsox.numberx"]),
-            safeDefault: true,
-            defaultGlobalMutation: false,
-            rawAndroidObjects: false
+
+      const toRegular = f => {
+        if (typeof f !== "function") throw typeError("util.toRegular", "f", "function", f);
+        if (isNonNullObject(f.prototype)) return f;
+        // Like the host's BaseFunction: callable and constructible, calls f with a null this, no prototype object.
+        const regular = function (...args) {
+          return Reflect.apply(f, null, args);
+        };
+        regular.prototype = undefined;
+        Object.defineProperty(regular, "name", {value: ""});
+        Object.defineProperty(regular, "toString", {
+          value: function toString() {
+            const target = this === regular ? f : this;
+            return toStr(isReference(target) ? target.toString() : target);
+          },
+          writable: false,
+          enumerable: false,
+          configurable: false,
+        });
+        return regular;
+      };
+      const obsoleted = name => named(`util.${name}`, 0, () => {
+        const e = new Error(`Function "${name}" can no longer be used as it has been obsoleted`);
+        e.name = "ObsoletedRhinoFunctionException";
+        throw e;
+      });
+
+      // DisplayUtils: TypedValue float math, sp linear. pxToDp divides by densityDpi / 160 below API 34 and by density
+      // (TypedValue.deriveDimension) from API 34.
+      const f32 = Math.fround;
+      const scaled = (display, param, factorOf, multiply) => fixed(display, 1, 1, v => {
+        const value = f32(number(display, param, v));
+        const factor = factorOf(host.device);
+        return f32(multiply ? value * factor : value / factor);
+      });
+      const dpFactor = device => f32(device.density);
+      const spFactor = device => f32(device.scaledDensity);
+      const pxPerDp = device => (device.sdkInt >= 34 ? f32(device.density) : f32(f32(device.densityDpi) / 160));
+
+      // morseCode: a dot is 1 unit, a dash 3, the gap within a character 1, between characters 3, between words 7.
+      const DOT = "\u00B7";
+      const MORSE = new Map(Object.entries({
+        A: ".-", B: "-...", C: "-.-.", D: "-..", E: ".", F: "..-.", G: "--.", H: "....", I: "..", J: ".---", K: "-.-", L: ".-..",
+        M: "--", N: "-.", O: "---", P: ".--.", Q: "--.-", R: ".-.", S: "...", T: "-", U: "..-", V: "...-", W: ".--", X: "-..-",
+        Y: "-.--", Z: "--..", 1: ".----", 2: "..---", 3: "...--", 4: "....-", 5: ".....", 6: "-....", 7: "--...", 8: "---..",
+        9: "----.", 0: "-----", ".": ".-.-.-", ":": "---...", ",": "--..--", ";": "-.-.-.", "?": "..--..", "=": "-...-",
+        "'": ".----.", "/": "-..-.", "!": "-.-.--", "-": "-....-", _: "..--.-", "\"": ".-..-.", "(": "-.--.", ")": "-.--.-",
+        $: "...-..-", "&": ".-...", "@": ".--.-.", "+": ".-.-.",
+      }).map(([key, marks]) => [key, marks.replaceAll(".", DOT)]));
+      const MORSE_SOURCE = "text of A-Z, 0-9 and . : , ; ? = ' / ! - _ \" ( ) $ & @ +";
+      // Java's \s, which the host splits words with.
+      const MORSE_WORDS = /[ \t\n\v\f\r]+/;
+      const morseOf = (fn, source, timeSpan) => {
+        const text = source === null ? "" : toStr(source);
+        let span = 100;
+        if (!isNullish(timeSpan)) {
+          const x = toNum(timeSpan);
+          if (Number.isNaN(x)) throw new RangeError(failedToCall(fn, argumentType("timeSpan", "number", quote(timeSpan))));
+          span = Math.max(100, Number.isFinite(x) ? Math.min(Math.max(Math.round(x), -2147483648), 2147483647) : 2147483647);
+        }
+        let code = "";
+        const pattern = [];
+        const words = text.split(MORSE_WORDS);
+        words.forEach((word, i) => {
+          for (let j = 0; j < word.length; j++) {
+            const upper = word[j].toUpperCase();
+            const marks = MORSE.get(upper);
+            if (marks === undefined) throw new RangeError(failedToCall(fn, argumentType("source", MORSE_SOURCE, quote(upper))));
+            for (let k = 0; k < marks.length; k++) {
+              pattern.push((marks[k] === "-" ? 3 : 1) * span);
+              if (k !== marks.length - 1) pattern.push(span);
+            }
+            code += marks;
+            if (j !== word.length - 1) {
+              pattern.push(3 * span);
+              code += "   ";
+            }
+          }
+          if (i !== words.length - 1) {
+            pattern.push(7 * span);
+            code += "       ";
+          }
+        });
+        return {code, pattern};
+      };
+      const vibrateMorse = (morse, delay) => {
+        if (morse.pattern.length === 0) return undefined;
+        const d = isNullish(delay) ? 0 : toNum(delay);
+        return host.vibrate([Number.isNaN(d) ? 0 : Math.max(0, Math.trunc(d)), ...morse.pattern]);
+      };
+      const describeMorse = morse => ["MorseCode {", `  code: '${morse.code}',`, `  pattern: [${morse.pattern.join(", ")}],`, "}"].join("\n");
+      const morseMethod = (name, max, body) => named(name, 0, (...args) => {
+        if (args.length > max) throw new TypeError(failedToCall(`MorseCode.${name}`, arity(0, max)));
+        return body(...args);
+      });
+      const morseResult = morse => {
+        const result = {};
+        const permanent = value => ({value, writable: true, enumerable: true, configurable: false});
+        Object.defineProperties(result, {
+          toString: permanent(morseMethod("toString", 0, () => describeMorse(morse))),
+          getPattern: permanent(morseMethod("getPattern", 0, () => morse.pattern.slice())),
+          getCode: permanent(morseMethod("getCode", 0, () => morse.code)),
+          vibrate: permanent(morseMethod("vibrate", 1, delay => vibrateMorse(morse, delay))),
+          toStringReadable: {value: morseMethod("toStringReadable", 0, () => describeMorse(morse))},
+          pattern: {get: () => morse.pattern.slice(), enumerable: true},
+          code: {get: () => morse.code, enumerable: true},
+        });
+        return result;
+      };
+      const morseCode = fixed("util.morseCode", 1, 2, (source, timeSpan) => morseResult(morseOf("util.morseCode", source, timeSpan)));
+      Object.assign(morseCode, {
+        getPattern: fixed("util.morseCode.getPattern", 1, 2, (source, timeSpan) => morseOf("util.morseCode.getPattern", source, timeSpan).pattern),
+        getCode: fixed("util.morseCode.getCode", 1, 2, (source, timeSpan) => morseOf("util.morseCode.getCode", source, timeSpan).code),
+        vibrate: fixed("util.morseCode.vibrate", 1, 2, (source, delay) => vibrateMorse(morseOf("util.morseCode.vibrate", source, null), delay)),
+      });
+
+      // versionCodes: [versionCode, releaseName, internalCodename, platformVersion, apiLevel, releaseDate], newest first.
+      const VERSION_CODES = [
+        ["CINNAMON_BUN", "Android 17", "Cinnamon Bun", "17", "37", "June 16, 2026"],
+        ["BAKLAVA", "Android 16", "Baklava", "16", "36", "June 10, 2025"],
+        ["VANILLA_ICE_CREAM", "Android 15", "Vanilla Ice Cream", "15", "35", "September 3, 2024"],
+        ["UPSIDE_DOWN_CAKE", "Android 14", "Upside Down Cake", "14", "34", "October 4, 2023"],
+        ["TIRAMISU", "Android 13", "Tiramisu", "13", "33", "August 15, 2022"],
+        ["S_V2", "Android 12L", "Snow Cone v2", "12.1", "32", "March 7, 2022"],
+        ["S", "Android 12", "Snow Cone", "12", "31", "October 4, 2021"],
+        ["R", "Android 11", "Red Velvet Cake", "11", "30", "September 8, 2020"],
+        ["Q", "Android 10", "Quince Tart", "10", "29", "September 3, 2019"],
+        ["P", "Android Pie", "Pistachio Ice Cream", "9", "28", "August 6, 2018"],
+        ["O_MR1", "Android Oreo", "Oatmeal Cookie", "8.1", "27", "December 5, 2017"],
+        ["O", "Android Oreo", "Oatmeal Cookie", "8.0", "26", "August 21, 2017"],
+        ["N_MR1", "Android Nougat", "New York Cheesecake", "7.1-7.1.2", "25", "October 4, 2016"],
+        ["N", "Android Nougat", "New York Cheesecake", "7.0", "24", "August 22, 2016"],
+        ["M", "Android Marshmallow", "Macadamia Nut Cookie", "6.0-6.0.1", "23", "September 29, 2015"],
+        ["LOLLIPOP_MR1", "Android Lollipop", "Lemon Meringue Pie", "5.1-5.1.1", "22", "March 2, 2015"],
+        ["LOLLIPOP", "Android Lollipop", "Lemon Meringue Pie", "5.0-5.0.2", "21", "November 4, 2014"],
+        ["KITKAT_WATCH", "Android KitKat", "Key Lime Pie", "4.4W-4.4W.2", "20", "June 25, 2014"],
+        ["KITKAT", "Android KitKat", "Key Lime Pie", "4.4-4.4.4", "19", "October 31, 2013"],
+        ["JELLY_BEAN_MR2", "Android Jelly Bean", "Jelly Bean", "4.3-4.3.1", "18", "July 24, 2013"],
+        ["JELLY_BEAN_MR1", "Android Jelly Bean", "Jelly Bean", "4.2-4.2.2", "17", "November 13, 2012"],
+        ["JELLY_BEAN", "Android Jelly Bean", "Jelly Bean", "4.1-4.1.2", "16", "July 9, 2012"],
+        ["ICE_CREAM_SANDWICH_MR1", "Android Ice Cream Sandwich", "Ice Cream Sandwich", "4.0.3-4.0.4", "15", "December 16, 2011"],
+        ["ICE_CREAM_SANDWICH", "Android Ice Cream Sandwich", "Ice Cream Sandwich", "4.0-4.0.2", "14", "October 18, 2011"],
+        ["HONEYCOMB_MR2", "Android Honeycomb", "Honeycomb", "3.2-3.2.6", "13", "July 15, 2011"],
+        ["HONEYCOMB_MR1", "Android Honeycomb", "Honeycomb", "3.1", "12", "May 10, 2011"],
+        ["HONEYCOMB", "Android Honeycomb", "Honeycomb", "3.0", "11", "February 22, 2011"],
+        ["GINGERBREAD_MR1", "Android Gingerbread", "Gingerbread", "2.3.3-2.3.7", "10", "February 9, 2011"],
+        ["GINGERBREAD", "Android Gingerbread", "Gingerbread", "2.3-2.3.2", "9", "December 6, 2010"],
+        ["FROYO", "Android Froyo", "Froyo", "2.2-2.2.3", "8", "May 20, 2010"],
+        ["ECLAIR_MR1", "Android Eclair", "Eclair", "2.1", "7", "January 11, 2010"],
+        ["ECLAIR_0_1", "Android Eclair", "Eclair", "2.0.1", "6", "December 3, 2009"],
+        ["ECLAIR", "Android Eclair", "Eclair", "2.0", "5", "October 27, 2009"],
+        ["DONUT", "Android Donut", "Donut", "1.6", "4", "September 15, 2009"],
+        ["CUPCAKE", "Android Cupcake", "Cupcake", "1.5", "3", "April 27, 2009"],
+        ["BASE_1_1", "Android 1.1", "Petit Four", "1.1", "2", "February 9, 2009"],
+        ["BASE", "Android 1.0", "", "1.0", "1", "September 23, 2008"],
+      ].map(([versionCode, releaseName, internalCodename, platformVersion, apiLevel, releaseDate]) =>
+        ({versionCode, releaseName, internalCodename, platformVersion, apiLevel, releaseDate}));
+      // Local midnight of the release date, as the host's Calendar.
+      const timestampOf = info => {
+        const [, month, day, year] = /^(\w{3})\w* (\d\d?), (\d+)$/.exec(info.releaseDate);
+        return new Date(+year, MONTHS.indexOf(month), +day).getTime();
+      };
+      const versionInfo = info => {
+        const o = {};
+        const readonly = value => ({value, writable: false, enumerable: true, configurable: false});
+        Object.defineProperties(o, {
+          versionCode: readonly(info.versionCode),
+          apiLevel: readonly(+info.apiLevel),
+          releaseName: readonly(info.releaseName),
+          platformVersion: readonly(info.platformVersion),
+          internalCodename: readonly(info.internalCodename),
+          releaseDate: readonly(info.releaseDate),
+          releaseTimestamp: readonly(timestampOf(info)),
+          valueOf: {
+            value: function valueOf() {
+              return isReference(this) ? this.apiLevel : null;
+            },
+          },
+        });
+        return o;
+      };
+      const queryText = query => {
+        if (query === null) return null;
+        if (typeof query === "string") return query;
+        if (typeof query === "number" || typeof query === "bigint") return String(Number(query));
+        if (speciesOf(query) === "Date") return String(Date.prototype.getTime.call(query));
+        throw typeError("util.versionCodes.search", "query", "string | number | Date", query);
+      };
+      const versionMatches = (info, text) =>
+        info.apiLevel === text || info.versionCode === text ||
+        info.releaseName === text || info.releaseName.split(/\s+/).includes(text) ||
+        info.internalCodename === text || info.internalCodename.split(/\s+/).includes(text) ||
+        String(timestampOf(info)) === text || info.releaseDate === text ||
+        info.platformVersion === text || info.platformVersion.split(/\D+/)[0] === text;
+      const summary = isInDetail => {
+        const detail = !isNullish(isInDetail) && Boolean(isInDetail);
+        return VERSION_CODES.map(info => (detail
+          ? [info.versionCode, info.apiLevel, info.releaseName, info.platformVersion, info.internalCodename, info.releaseDate, timestampOf(info)].join(", ")
+          : `${info.versionCode}: ${info.apiLevel} / ${info.releaseName} / ${info.platformVersion}`)).join("\n");
+      };
+      const versionCodes = Object.create(Object.create(Object.prototype, Object.fromEntries(VERSION_CODES.map(info =>
+        [info.versionCode, {get: () => versionInfo(info), enumerable: true}]))));
+      Object.assign(versionCodes, {
+        toString: fixed("util.versionCodes.toString", 0, 1, isInDetail => summary(isInDetail)),
+        search: fixed("util.versionCodes.search", 1, 1, query => {
+          const text = queryText(query);
+          const found = text === null ? undefined : VERSION_CODES.find(info => versionMatches(info, text));
+          return found === undefined ? null : versionInfo(found);
+        }),
+        searchAll: fixed("util.versionCodes.searchAll", 1, 1, query => {
+          const text = queryText(query);
+          return text === null ? [] : VERSION_CODES.filter(info => versionMatches(info, text)).map(versionInfo);
+        }),
+        summary: fixed("util.versionCodes.summary", 0, 1, isInDetail => summary(isInDetail)),
+      });
+
+      const version = Object.defineProperty({}, "sdkInt", {get: () => host.device.sdkInt, enumerable: true});
+
+      const util = {
+        isArray: predicate("util.isArray", o => Array.isArray(o)),
+        isBoolean: predicate("util.isBoolean", o => typeof o === "boolean"),
+        isNull: predicate("util.isNull", o => o === null),
+        isNullOrUndefined: predicate("util.isNullOrUndefined", isNullish),
+        isNumber: predicate("util.isNumber", o => typeof o === "number"),
+        isString: predicate("util.isString", o => typeof o === "string"),
+        isSymbol: predicate("util.isSymbol", o => typeof o === "symbol"),
+        isUndefined: predicate("util.isUndefined", o => o === undefined),
+        isRegExp: predicate("util.isRegExp", o => speciesOf(o) === "RegExp"),
+        isObject: predicate("util.isObject", isNonNullObject),
+        isDate: predicate("util.isDate", o => speciesOf(o) === "Date"),
+        isError: predicate("util.isError", isError),
+        isFunction: predicate("util.isFunction", o => typeof o === "function"),
+        isBigInt: predicate("util.isBigInt", o => typeof o === "bigint"),
+        isJavaObject: predicate("util.isJavaObject", o => javaKind(o) === "object"),
+        isJavaArray: predicate("util.isJavaArray", o => javaKind(o) === "array"),
+        isInteger: predicate("util.isInteger", isInteger),
+        isPrimitive: predicate("util.isPrimitive", o => !isReference(o)),
+        isReference: predicate("util.isReference", isReference),
+        isEmptyObject: predicate("util.isEmptyObject", isEmptyObject),
+        extend: fixed("util.extend", 2, 2, extend),
+        format: named("util.format", 0, format),
+        deprecate: named("util.deprecate", 0, () => {
+          host.warn(NOT_FOR_AUTOJS6);
+        }),
+        debuglog: named("util.debuglog", 0, () => {
+          host.warn(NOT_FOR_AUTOJS6);
+        }),
+        log: named("util.log", 0, log),
+        checkStringParam: fixed("util.checkStringParam", 2, 2, (src, pattern) => checkString("util.checkStringParam", src, pattern, true)),
+        checkStringArgument: fixed("util.checkStringArgument", 2, 2, (src, pattern) => checkString("util.checkStringArgument", src, pattern, false)),
+        assureStringStartsWith: fixed("util.assureStringStartsWith", 2, 2, (s, start) => {
+          const text = string("util.assureStringStartsWith", "s", s);
+          const prefix = string("util.assureStringStartsWith", "start", start);
+          return text.startsWith(prefix) ? text : prefix + text;
+        }),
+        assureStringEndsWith: fixed("util.assureStringEndsWith", 2, 2, (s, end) => {
+          const text = string("util.assureStringEndsWith", "s", s);
+          const suffix = string("util.assureStringEndsWith", "end", end);
+          return text.endsWith(suffix) ? text : text + suffix;
+        }),
+        assureStringSurroundsWith: fixed("util.assureStringSurroundsWith", 2, 3, (s, start, end) => {
+          const fn = "util.assureStringSurroundsWith";
+          const text = string(fn, "s", s);
+          const prefix = string(fn, "start", start);
+          return surround(text, prefix, isNullish(end) ? prefix : string(fn, "end", end));
+        }),
+        ensureType: fixed("util.ensureType", 2, 2, ensureType),
+        ensureStringType: ensureEach("util.ensureStringType", "string"),
+        ensureNumberType: ensureEach("util.ensureNumberType", "number"),
+        ensureUndefinedType: ensureEach("util.ensureUndefinedType", "undefined"),
+        ensureBooleanType: ensureEach("util.ensureBooleanType", "boolean"),
+        ensureSymbolType: ensureEach("util.ensureSymbolType", "symbol"),
+        ensureBigIntType: ensureEach("util.ensureBigIntType", "bigint"),
+        ensureObjectType: ensureEach("util.ensureObjectType", "object"),
+        ensureFunctionType: ensureEach("util.ensureFunctionType", "function"),
+        ensureNonNullObjectType: named("util.ensureNonNullObjectType", 0, (...values) => {
+          values.forEach((v, i) => {
+            if (v === null) throw cannotBe("util.ensureNonNullObjectType", `values[${i}]`, v);
+            if (typeof v !== "object") throw typeError("util.ensureNonNullObjectType", `values[${i}]`, "object", v);
           });
-        },
-        enumerable: true
-      }
+        }),
+        ensureArrayType: named("util.ensureArrayType", 0, (...values) => {
+          values.forEach((v, i) => {
+            if (!Array.isArray(v)) throw typeError("util.ensureArrayType", `values[${i}]`, "Array", v);
+          });
+        }),
+        toRegular: fixed("util.toRegular", 1, 1, toRegular),
+        toRegularAndCall: obsoleted("toRegularAndCall"),
+        toRegularAndApply: obsoleted("toRegularAndApply"),
+        dpToPx: scaled("util.dpToPx", "dp", dpFactor, true),
+        spToPx: scaled("util.spToPx", "sp", spFactor, true),
+        pxToDp: scaled("util.pxToDp", "px", pxPerDp, false),
+        pxToSp: scaled("util.pxToSp", "px", spFactor, false),
+        java: host.utilJava,
+        version,
+        versionCodes,
+        inspect,
+        morseCode,
+      };
+      util.ensureBigintType = util.ensureBigIntType;
+      Object.defineProperty(util, "__assignFunctions__", {
+        value: fixed("util.__assignFunctions__", 3, 3, assignFunctions),
+        writable: false,
+        enumerable: false,
+        configurable: false,
+      });
+
+      const SPECIES = ["Array", "ArrayBuffer", "BigInt", "Boolean", "Continuation", "DataView", "Date", "Error", "Float32Array",
+        "Float64Array", "Function", "HTMLDocument", "Int16Array", "Int32Array", "Int8Array", "JavaObject", "JavaClass", "JavaPackage",
+        "Map", "Namespace", "Null", "Number", "Object", "QName", "RegExp", "Set", "String", "Uint16Array", "Uint32Array", "Uint8Array",
+        "Uint8ClampedArray", "Undefined", "WeakMap", "WeakSet", "Window", "XML", "XMLList"];
+      const species = predicate("species", speciesOf);
+      SPECIES.forEach(name => {
+        species["is" + name] = predicate(`species.is${name}`, o => speciesOf(o) === name);
+      });
+
+      const global = {
+        random: fixed("random", 0, 2, (...range) => {
+          if (range.length === 0) return Math.random();
+          if (range.length === 1) return NaN;
+          const lower = toNum(range[0]);
+          const upper = toNum(range[1]);
+          return Math.floor(Math.random() * (upper - lower + 1)) + lower;
+        }),
+        isInteger: predicate("isInteger", isInteger),
+        isPrimitive: predicate("isPrimitive", o => !isReference(o)),
+        isObject: species.isObject,
+        isReference: predicate("isReference", isReference),
+        isBigInt: predicate("isBigInt", o => typeof o === "bigint"),
+        isEmptyObject: predicate("isEmptyObject", isEmptyObject),
+        isObjectSpecies: predicate("isObjectSpecies", isNonNullObject),
+      };
+
+      return {util, species, global};
+    }
+    const { Mathx, Arrayx, Numberx, jsox } = __autojs6_js_tools_jsox();
+    // The earlier Node jsox also carried the three modules; kept and not enumerable, so its exports stay the host's.
+    for (const [key, value] of [["mathx", Mathx], ["Mathx", Mathx], ["arrayx", Arrayx], ["Arrayx", Arrayx], ["numberx", Numberx], ["Numberx", Numberx]]) {
+      Object.defineProperty(jsox, key, { value, configurable: true });
+    }
+    const bytes = __autojs6_js_tools_bytes();
+    const java = __autojs6_js_tools_java(host);
+    const { util, species, global } = __autojs6_js_tools_util({ device: host.device, log: host.log, warn: host.warn, vibrate: java.vibrate,
+      utilJava: Object.freeze(java.utilJava), javaKind: java.javaKind });
+    global.randomInt = Mathx.randomInt;
+    global.randomFloat = Mathx.randomFloat;
+    if (host.axios) Object.defineProperty(global, "axios", { get: host.axios, enumerable: true });
+    return Object.freeze({
+      util: Object.freeze(util), species: Object.freeze(species), global: Object.freeze(global),
+      s13n: Object.freeze({ ...bytes.s13n, point: java.point, throwable: java.throwable }),
+      formatter: bytes.fmt, converter: bytes.cvt, jsox, "jsox.mathx": Mathx, "jsox.arrayx": Arrayx, "jsox.numberx": Numberx
     });
-    __autojs6_limited_jsox_cache = Object.freeze(jsox);
-    return __autojs6_limited_jsox_cache;
   }
+  // End shared JS tools core.
+  // The main thread's JS tools modules.
+  function __autojs6_js_tools() {
+    if (!__autojs6_js_tools_cache) {
+      __autojs6_js_tools_cache = __autojs6_create_js_tools({
+        inspect: __autojs6_builtin_module("util").inspect,
+        device: __autojs6_host_device_info(),
+        java: __autojs6_limited_java,
+        log: text => globalThis.console.log(text),
+        warn: text => globalThis.console.warn(text),
+        axios: __autojs6_limited_axios
+      });
+    }
+    return __autojs6_js_tools_cache;
+  }
+  function __autojs6_limited_jsox() { return __autojs6_js_tools().jsox; }
+  function __autojs6_limited_jsox_mathx() { return __autojs6_js_tools()["jsox.mathx"]; }
+  function __autojs6_limited_jsox_arrayx() { return __autojs6_js_tools()["jsox.arrayx"]; }
+  function __autojs6_limited_jsox_numberx() { return __autojs6_js_tools()["jsox.numberx"]; }
   const __autojs6_rhino_shim_error_codes = Object.freeze({
     shimDisabled: "ERR_AUTOJS6_RHINO_SHIM_DISABLED",
     installUnsupported: "ERR_AUTOJS6_RHINO_INSTALL_UNSUPPORTED",
@@ -17547,7 +18922,7 @@ std::string buildEmbeddedScriptExecutionSource(
       engine: profile.engineVersion,
       node: profile.node
     });
-    __autojs6_autojs_global_cache = Object.freeze({
+    const value = {
       schema: "autojs6-node-autojs-global-v1",
       version,
       versionName: host.versionName,
@@ -17556,7 +18931,12 @@ std::string buildEmbeddedScriptExecutionSource(
       profile,
       androidContext: __autojs6_autojs_android_context_descriptor(host),
       java: __autojs6_autojs_java_facade()
-    });
+    };
+    // The JS tools modules are built on first use.
+    for (const [key, name] of [["util", "util"], ["species", "species"], ["global", "global"], ["jsox", "jsox"], ["s13n", "s13n"], ["fmt", "formatter"], ["cvt", "converter"]]) {
+      Object.defineProperty(value, key, { get: () => __autojs6_js_tools()[name], enumerable: true });
+    }
+    __autojs6_autojs_global_cache = Object.freeze(value);
     return __autojs6_autojs_global_cache;
   }
   function __autojs6_install_autojs_global() {
@@ -29520,6 +30900,9 @@ std::string buildEmbeddedScriptExecutionSource(
     "jsox.mathx": function() { return __autojs6_limited_jsox_mathx(); },
     "jsox.arrayx": function() { return __autojs6_limited_jsox_arrayx(); },
     "jsox.numberx": function() { return __autojs6_limited_jsox_numberx(); },
+    species: function() { return __autojs6_js_tools().species; },
+    "autojs6:util": function() { return __autojs6_js_tools().util; },
+    "autojs6:global": function() { return __autojs6_js_tools().global; },
     toast: function() { return __autojs6_limited_toast(); },
     app: function() { return __autojs6_limited_app(); },
     engines: function() { return __autojs6_limited_engines(); },

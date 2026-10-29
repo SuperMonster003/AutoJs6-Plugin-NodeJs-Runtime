@@ -41,6 +41,8 @@ jobs:
         run: node --test tools/nodejs/api/test-database-facade.js tools/nodejs/api/test-worker-database.js tools/nodejs/api/test-sensors-facade.js tools/nodejs/api/test-worker-sensors.js tools/nodejs/api/test-shell-facade.js tools/nodejs/api/test-worker-shell.js tools/nodejs/api/test-event-facades.js tools/nodejs/api/test-worker-events.js tools/nodejs/api/test-device-dialog-facades.js tools/nodejs/api/test-worker-device-dialogs.js tools/nodejs/api/test-android-tasks.js tools/nodejs/api/test-worker-android-tasks.js tools/nodejs/api/test-java-interop.js tools/nodejs/api/test-worker-java-interop.js tools/nodejs/api/test-java-callbacks.js tools/nodejs/api/test-worker-java-callbacks.js tools/nodejs/api/test-tts.js tools/nodejs/api/test-worker-tts.js tools/nodejs/api/test-speech.js tools/nodejs/api/test-worker-speech.js
       - name: Agent task facade and Worker ownership
         run: node --test tools/nodejs/api/test-ai-agent.js tools/nodejs/api/test-worker-ai-agent.js
+      - name: JS tools core against Rhino values
+        run: node --test tools/nodejs/api/test-js-tools.js
       - uses: actions/upload-artifact@v7
         if: always()
         with:

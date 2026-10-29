@@ -1,0 +1,2509 @@
+{
+ "cases": {
+  "Arrayx.differ.arrays": {
+   "ok": [
+    1,
+    2,
+    4
+   ]
+  },
+  "Arrayx.distinct.objects": {
+   "ok": 2
+  },
+  "Arrayx.distinct.type": {
+   "th": {
+    "message": "Failed to call method \"Arrayx.distinct\": [ Argument \"arr\" must be of type Array, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "Arrayx.distinct.values": {
+   "ok": [
+    1,
+    "1",
+    {
+     "n": "NaN"
+    },
+    0,
+    null,
+    {
+     "u": 1
+    }
+   ]
+  },
+  "Arrayx.distinctBy.key": {
+   "ok": [
+    "a",
+    "b"
+   ]
+  },
+  "Arrayx.distinctBy.selectorType": {
+   "th": {
+    "message": "Failed to call method \"Arrayx.distinctBy\": [ Argument \"selector\" must be of type function, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "Arrayx.ensureArray.bad": {
+   "th": {
+    "message": "Failed to call method \"Arrayx.ensureArray\": [ Argument \"o\" must be of type Array, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "Arrayx.ensureArray.ok": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "Arrayx.intersect.arrays": {
+   "ok": [
+    2,
+    3
+   ]
+  },
+  "Arrayx.intersect.none": {
+   "ok": []
+  },
+  "Arrayx.intersect.value": {
+   "ok": []
+  },
+  "Arrayx.shuffle.same": {
+   "ok": [
+    true,
+    [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   ]
+  },
+  "Arrayx.shuffle.type": {
+   "th": {
+    "message": "Failed to call method \"Arrayx.shuffle\": [ Argument \"arr\" must be of type Array, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "Arrayx.sortBy.inPlace": {
+   "ok": [
+    true,
+    [
+     1,
+     2,
+     3
+    ]
+   ]
+  },
+  "Arrayx.sortBy.key": {
+   "ok": [
+    1,
+    2,
+    3
+   ]
+  },
+  "Arrayx.sortByDescending.key": {
+   "ok": [
+    "c",
+    "b",
+    "a"
+   ]
+  },
+  "Arrayx.sortDescending.mixed": {
+   "ok": [
+    100,
+    "20",
+    3
+   ]
+  },
+  "Arrayx.sortDescending.values": {
+   "ok": [
+    "b",
+    "a",
+    10,
+    2,
+    1
+   ]
+  },
+  "Arrayx.sorted.copy": {
+   "ok": [
+    false,
+    [
+     3,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     3
+    ]
+   ]
+  },
+  "Arrayx.sorted.numbers": {
+   "ok": [
+    1,
+    9,
+    10,
+    100
+   ]
+  },
+  "Arrayx.sorted.strings": {
+   "ok": [
+    "A",
+    "B",
+    "a",
+    "b"
+   ]
+  },
+  "Arrayx.sortedBy.key": {
+   "ok": [
+    "a",
+    "bb",
+    "ccc"
+   ]
+  },
+  "Arrayx.sortedByDescending.key": {
+   "ok": [
+    "ccc",
+    "bb",
+    "a"
+   ]
+  },
+  "Arrayx.sortedDescending.values": {
+   "ok": [
+    100,
+    10,
+    9,
+    1
+   ]
+  },
+  "Arrayx.subtract.arrays": {
+   "ok": [
+    1,
+    3
+   ]
+  },
+  "Arrayx.subtract.type": {
+   "th": {
+    "message": "Failed to call method \"Arrayx.subtract\": [ Argument \"other\" must be of type Array, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "Arrayx.union.arrays": {
+   "ok": [
+    1,
+    2,
+    3,
+    4,
+    [
+     5
+    ]
+   ]
+  },
+  "Arrayx.union.single": {
+   "ok": [
+    1
+   ]
+  },
+  "Mathx.avg.values": {
+   "ok": 3
+  },
+  "Mathx.ceilLog.values": {
+   "ok": 4
+  },
+  "Mathx.ceilPow.values": {
+   "ok": 16
+  },
+  "Mathx.cv.fraction": {
+   "ok": 0.5
+  },
+  "Mathx.cv.values": {
+   "ok": 0.427617987059879
+  },
+  "Mathx.cv.zero": {
+   "ok": {
+    "n": "NaN"
+   }
+  },
+  "Mathx.dist.arrays": {
+   "ok": 5
+  },
+  "Mathx.dist.badLength": {
+   "th": {
+    "message": "Failed to call method \"Mathx.dist\": [ Argument \"pointA\" must have a length of 2, got 3 ]",
+    "name": "TypeError"
+   }
+  },
+  "Mathx.dist.badPoint": {
+   "th": {
+    "message": "Failed to call method \"Mathx.dist\": [ Argument \"pointA\" must be of type point ([x, y], { x, y }, Point or Rect), got string ]",
+    "name": "TypeError"
+   }
+  },
+  "Mathx.dist.fraction": {
+   "ok": 1.414
+  },
+  "Mathx.dist.missing": {
+   "th": {
+    "message": "Failed to call method \"Mathx.dist\": [ Argument \"pointA\" must be of type android.graphics.Rect, got Array ]",
+    "name": "TypeError"
+   }
+  },
+  "Mathx.dist.objects": {
+   "ok": 5
+  },
+  "Mathx.floorLog.nan": {
+   "th": {
+    "message": "Failed to call method \"Mathx.floorLog\": [ Argument \"antilogarithm\" cannot be NaN ]",
+    "name": "RangeError"
+   }
+  },
+  "Mathx.floorLog.values": {
+   "ok": 3
+  },
+  "Mathx.floorPow.values": {
+   "ok": 8
+  },
+  "Mathx.logMn.default": {
+   "ok": 2.0959032742894
+  },
+  "Mathx.logMn.fraction": {
+   "ok": 2.1
+  },
+  "Mathx.logMn.nan": {
+   "ok": {
+    "n": "NaN"
+   }
+  },
+  "Mathx.logMn.values": {
+   "ok": 3
+  },
+  "Mathx.max.empty": {
+   "ok": {
+    "n": "-Infinity"
+   }
+  },
+  "Mathx.max.fraction": {
+   "ok": 2.3
+  },
+  "Mathx.max.nan": {
+   "ok": {
+    "n": "NaN"
+   }
+  },
+  "Mathx.max.values": {
+   "ok": 5
+  },
+  "Mathx.mean.empty": {
+   "ok": {
+    "n": "NaN"
+   }
+  },
+  "Mathx.mean.fraction": {
+   "ok": 1.667
+  },
+  "Mathx.mean.values": {
+   "ok": 2.3333333333333335
+  },
+  "Mathx.median.empty": {
+   "ok": {
+    "n": "NaN"
+   }
+  },
+  "Mathx.median.even": {
+   "ok": 2.5
+  },
+  "Mathx.median.odd": {
+   "ok": 2
+  },
+  "Mathx.min.empty": {
+   "ok": {
+    "n": "Infinity"
+   }
+  },
+  "Mathx.min.values": {
+   "ok": -2
+  },
+  "Mathx.mode.empty": {
+   "ok": {
+    "n": "NaN"
+   }
+  },
+  "Mathx.mode.single": {
+   "ok": 5
+  },
+  "Mathx.mode.values": {
+   "ok": 2
+  },
+  "Mathx.randFloat.range": {
+   "ok": true
+  },
+  "Mathx.randInt.range": {
+   "ok": true
+  },
+  "Mathx.random.none": {
+   "ok": true
+  },
+  "Mathx.random.range": {
+   "ok": true
+  },
+  "Mathx.randomFloat.single": {
+   "ok": true
+  },
+  "Mathx.randomInt.array": {
+   "ok": true
+  },
+  "Mathx.randomInt.empty": {
+   "th": {
+    "message": "Failed to call method \"Mathx.randomInt\": [ No integer lies within the range [1.2, 1.8] ]",
+    "name": "RangeError"
+   }
+  },
+  "Mathx.randomInt.nanOnly": {
+   "th": {
+    "message": "Failed to call method \"Mathx.randomInt\": [ Argument \"range\" contains no valid number ]",
+    "name": "RangeError"
+   }
+  },
+  "Mathx.randomInt.none": {
+   "ok": true
+  },
+  "Mathx.randomInt.null": {
+   "th": {
+    "message": "Failed to call method \"Mathx.randomInt\": [ Argument \"range\" must be of type number, got null ]",
+    "name": "TypeError"
+   }
+  },
+  "Mathx.randomInt.single": {
+   "ok": true
+  },
+  "Mathx.roundLog.infinity": {
+   "ok": {
+    "n": "Infinity"
+   }
+  },
+  "Mathx.roundLog.values": {
+   "ok": 3
+  },
+  "Mathx.roundPow.values": {
+   "ok": 1000
+  },
+  "Mathx.std.fraction": {
+   "ok": 1.12
+  },
+  "Mathx.std.values": {
+   "ok": 2
+  },
+  "Mathx.sum.arrays": {
+   "ok": 10
+  },
+  "Mathx.sum.empty": {
+   "ok": {
+    "n": "NaN"
+   }
+  },
+  "Mathx.sum.fraction": {
+   "ok": 0.3
+  },
+  "Mathx.sum.holes": {
+   "ok": 4
+  },
+  "Mathx.sum.nan": {
+   "ok": {
+    "n": "NaN"
+   }
+  },
+  "Mathx.sum.strings": {
+   "ok": 3
+  },
+  "Mathx.sum.trailingUndefined": {
+   "ok": 3
+  },
+  "Mathx.sum.values": {
+   "ok": 6.5
+  },
+  "Mathx.var.empty": {
+   "ok": {
+    "n": "NaN"
+   }
+  },
+  "Mathx.var.fraction": {
+   "ok": 1.25
+  },
+  "Mathx.var.values": {
+   "ok": 4
+  },
+  "Numberx.ICU": {
+   "ok": 996
+  },
+  "Numberx.check.chain": {
+   "ok": [
+    true,
+    true,
+    false,
+    true
+   ]
+  },
+  "Numberx.check.one": {
+   "ok": [
+    true,
+    false,
+    false
+   ]
+  },
+  "Numberx.check.operator": {
+   "th": {
+    "message": "Failed to call method \"Numberx.check\": [ Argument \"numOrOpr[1]\" must be of type comparison operator (<, <=, >, >=, =, ==, !=, <>), got string ]",
+    "name": "TypeError"
+   }
+  },
+  "Numberx.check.two": {
+   "ok": [
+    true,
+    false,
+    false
+   ]
+  },
+  "Numberx.clamp.bad": {
+   "th": {
+    "message": "Failed to call method \"Numberx.clamp\": [ Argument \"num\" must be of type number, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "Numberx.clamp.values": {
+   "ok": [
+    3,
+    1,
+    4,
+    9
+   ]
+  },
+  "Numberx.clampTo.cycle": {
+   "th": {
+    "message": "Failed to call method \"Numberx.clampTo\": [ Argument \"cycle\" must be a positive number, got -1 ]",
+    "name": "RangeError"
+   }
+  },
+  "Numberx.clampTo.range": {
+   "th": {
+    "message": "Failed to call method \"Numberx.clampTo\": [ Argument \"range\" must be of type Array, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "Numberx.clampTo.values": {
+   "ok": [
+    10,
+    350,
+    5,
+    8
+   ]
+  },
+  "Numberx.ensureNumber.bad": {
+   "th": {
+    "message": "Failed to call method \"Numberx.ensureNumber\": [ Argument \"o\" must be of type number, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "Numberx.ensureNumber.ok": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "Numberx.ensureNumberLike.nan": {
+   "th": {
+    "message": "Failed to call method \"Numberx.ensureNumberLike\": [ Argument \"value\" cannot be NaN ]",
+    "name": "RangeError"
+   }
+  },
+  "Numberx.ensureNumberLike.nanAllowed": {
+   "ok": {
+    "n": "NaN"
+   }
+  },
+  "Numberx.ensureNumberLike.null": {
+   "th": {
+    "message": "Failed to call method \"Numberx.ensureNumberLike\": [ Argument \"value\" cannot be null ]",
+    "name": "TypeError"
+   }
+  },
+  "Numberx.ensureNumberLike.ratio": {
+   "ok": 1.5
+  },
+  "Numberx.ensureNumberLike.string": {
+   "ok": 0.5
+  },
+  "Numberx.ensureNumberLike.text": {
+   "th": {
+    "message": "Failed to call method \"Numberx.ensureNumberLike\": [ Argument \"value\" must be of type number, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "Numberx.ensureNumbersLike.bad": {
+   "th": {
+    "message": "Failed to call method \"Numberx.ensureNumbersLike\": [ Argument \"values[1]\" must be of type number, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "Numberx.ensureNumbersLike.containsNaN": {
+   "ok": [
+    1,
+    {
+     "n": "NaN"
+    }
+   ]
+  },
+  "Numberx.ensureNumbersLike.nan": {
+   "ok": [
+    1
+   ]
+  },
+  "Numberx.ensureNumbersLike.values": {
+   "ok": [
+    1,
+    2,
+    0.5
+   ]
+  },
+  "Numberx.padEnd.values": {
+   "ok": [
+    "500",
+    "5xyx",
+    "5"
+   ]
+  },
+  "Numberx.padStart.bad": {
+   "th": {
+    "message": "Failed to call method \"Numberx.padStart\": [ Argument \"targetLength\" must be of type number, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "Numberx.padStart.values": {
+   "ok": [
+    "005",
+    "  5",
+    "12345",
+    "aba7",
+    "991.5"
+   ]
+  },
+  "Numberx.parseAny.values": {
+   "ok": [
+    2,
+    0.25,
+    0.2,
+    7,
+    16,
+    {
+     "n": "NaN"
+    },
+    {
+     "n": "NaN"
+    },
+    {
+     "n": "NaN"
+    }
+   ]
+  },
+  "Numberx.parseFloat.radix": {
+   "ok": [
+    0.625,
+    255.5,
+    12
+   ]
+  },
+  "Numberx.parseFloat.values": {
+   "ok": [
+    3.14,
+    -2000,
+    {
+     "n": "NaN"
+    },
+    {
+     "n": "NaN"
+    }
+   ]
+  },
+  "Numberx.parsePercent.values": {
+   "ok": [
+    0.5,
+    0.0001,
+    0.25,
+    0.3,
+    {
+     "n": "NaN"
+    },
+    {
+     "n": "NaN"
+    }
+   ]
+  },
+  "Numberx.parseRatio.values": {
+   "ok": [
+    1.5,
+    1.7777777777777777,
+    {
+     "n": "NaN"
+    },
+    {
+     "n": "NaN"
+    }
+   ]
+  },
+  "Numberx.toFixedNum.range": {
+   "th": {
+    "message": "Precision 101 out of range.",
+    "name": "RangeError"
+   }
+  },
+  "Numberx.toFixedNum.values": {
+   "ok": [
+    1,
+    3.142,
+    3,
+    0.5
+   ]
+  },
+  "cvt.bytes.ambiguous": {
+   "th": {
+    "message": "Failed to call method \"cvt.bytes\": [ Argument \"fromUnit\" cannot be \"MB\" ]",
+    "name": "RangeError"
+   }
+  },
+  "cvt.bytes.auto": {
+   "ok": [
+    1,
+    1000,
+    1023
+   ]
+  },
+  "cvt.bytes.constants": {
+   "ok": [
+    "KMGTPEZYRQ",
+    "AUTO",
+    1024,
+    1000
+   ]
+  },
+  "cvt.bytes.default": {
+   "ok": [
+    1,
+    1.5,
+    1024,
+    1024,
+    1.43
+   ]
+  },
+  "cvt.bytes.errors": {
+   "th": {
+    "message": "Failed to call method \"cvt.bytes\": [ Argument \"source\" cannot be \"x\" ]",
+    "name": "RangeError"
+   }
+  },
+  "cvt.bytes.fraction": {
+   "ok": [
+    1.177,
+    1206,
+    1205.6
+   ]
+  },
+  "cvt.bytes.loose": {
+   "ok": [
+    1,
+    1024,
+    1
+   ]
+  },
+  "cvt.bytes.negative": {
+   "th": {
+    "message": "Failed to call method \"cvt.bytes\": [ Argument \"source\" cannot be -1 ]",
+    "name": "RangeError"
+   }
+  },
+  "cvt.bytes.null": {
+   "th": {
+    "message": "Failed to call method \"cvt.bytes\": [ Argument \"source\" must be of type number / string, got null ]",
+    "name": "TypeError"
+   }
+  },
+  "cvt.bytes.strict": {
+   "ok": [
+    1,
+    1,
+    1024,
+    1
+   ]
+  },
+  "cvt.bytes.unit": {
+   "th": {
+    "message": "Failed to call method \"cvt.bytes\": [ Argument \"toUnit\" cannot be \"XB\" ]",
+    "name": "RangeError"
+   }
+  },
+  "fmt.bytes.constants": {
+   "ok": [
+    "KMGTPEZYRQ",
+    "AUTO",
+    1024,
+    1000
+   ]
+  },
+  "fmt.bytes.default": {
+   "ok": [
+    "1.00 KB",
+    "1.50 KB",
+    "0.00 B",
+    "1.43 MB",
+    "2.00 GB"
+   ]
+  },
+  "fmt.bytes.error": {
+   "th": {
+    "message": "Failed to call method \"fmt.bytes\": [ Argument \"source\" cannot be \"nope\" ]",
+    "name": "RangeError"
+   }
+  },
+  "fmt.bytes.loose": {
+   "ok": [
+    "1.00 KB",
+    "1.00 KB",
+    "1000.00 B"
+   ]
+  },
+  "fmt.bytes.options": {
+   "ok": [
+    "2 KB",
+    "1.50KB",
+    "1 KB",
+    "1.50 KiB",
+    "1.50 KB"
+   ]
+  },
+  "fmt.bytes.strict": {
+   "ok": [
+    "1.00 KB",
+    "1.00 KiB",
+    "1.5 KB",
+    "2097152.00 B"
+   ]
+  },
+  "fmt.bytes.units": {
+   "ok": [
+    "1024.00 B",
+    "5.00 B",
+    "0.1150 GB"
+   ]
+  },
+  "global.axios.type": {
+   "ok": [
+    "function",
+    "function",
+    "function",
+    "function"
+   ]
+  },
+  "global.cheerio.html": {
+   "ok": "z"
+  },
+  "global.cheerio.text": {
+   "ok": "x"
+  },
+  "global.dayjs.add": {
+   "ok": "2020-02-29"
+  },
+  "global.dayjs.diff": {
+   "ok": 29
+  },
+  "global.dayjs.format": {
+   "ok": "2020-01-02 03:04:05"
+  },
+  "global.dayjs.valid": {
+   "ok": [
+    false,
+    0,
+    "function"
+   ]
+  },
+  "global.i18n.load": {
+   "ok": "Hello X"
+  },
+  "global.i18n.type": {
+   "ok": [
+    "function",
+    "function",
+    "function",
+    "function"
+   ]
+  },
+  "global.isBigInt": {
+   "ok": [
+    true,
+    false
+   ]
+  },
+  "global.isEmptyObject": {
+   "ok": [
+    true,
+    false,
+    false
+   ]
+  },
+  "global.isInteger": {
+   "ok": [
+    true,
+    false,
+    false
+   ]
+  },
+  "global.isObject": {
+   "ok": [
+    true,
+    false,
+    false,
+    false
+   ]
+  },
+  "global.isObjectSpecies": {
+   "ok": [
+    true,
+    true,
+    true,
+    false,
+    false
+   ]
+  },
+  "global.isPrimitive": {
+   "ok": [
+    true,
+    false,
+    true
+   ]
+  },
+  "global.isReference": {
+   "ok": [
+    false,
+    true,
+    true
+   ]
+  },
+  "global.pangu.keys": {
+   "ok": [
+    "undefined",
+    "undefined"
+   ]
+  },
+  "global.pangu.text": {
+   "th": {
+    "message": "Cannot find function spacingText.",
+    "name": "TypeError"
+   }
+  },
+  "global.random.none": {
+   "ok": true
+  },
+  "global.random.nullBound": {
+   "ok": 0
+  },
+  "global.random.one": {
+   "ok": {
+    "n": "NaN"
+   }
+  },
+  "global.random.range": {
+   "ok": true
+  },
+  "global.random.same": {
+   "ok": 4
+  },
+  "global.random.strings": {
+   "ok": [
+    "number",
+    2
+   ]
+  },
+  "global.random.undefinedBound": {
+   "ok": {
+    "n": "NaN"
+   }
+  },
+  "global.randomFloat.range": {
+   "ok": true
+  },
+  "global.randomInt.range": {
+   "ok": true
+  },
+  "jsox.extend.array": {
+   "ok": [
+    "function",
+    [
+     1,
+     2
+    ],
+    1
+   ]
+  },
+  "jsox.extend.math": {
+   "ok": [
+    "function",
+    "function",
+    3,
+    5
+   ]
+  },
+  "jsox.extend.unknown": {
+   "th": {
+    "message": "Failed to call method \"jsox.extend\": [ Unknown built-in object extension \"Stringx\", expected one of Mathx, Numberx, Arrayx ]",
+    "name": "RangeError"
+   }
+  },
+  "jsox.extendAll.number": {
+   "ok": [
+    "function",
+    3,
+    "function",
+    "0012"
+   ]
+  },
+  "probe.species.consString": {
+   "ok": "String"
+  },
+  "s13n.bytes.fromType": {
+   "th": {
+    "message": "Failed to call method \"s13n.bytes\": [ Argument \"fromUnit\" must be of type string, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "s13n.bytes.surplus": {
+   "th": {
+    "message": "Failed to call method \"s13n.bytes\": [ Method only accepts a number of arguments in the range [1..2] ]",
+    "name": "TypeError"
+   }
+  },
+  "s13n.bytes.values": {
+   "ok": [
+    1024,
+    1024,
+    1536,
+    2097152,
+    1024
+   ]
+  },
+  "s13n.color.alpha": {
+   "ok": -2130771968
+  },
+  "s13n.color.bad": {
+   "th": {
+    "message": "Failed to call method \"s13n.color\": [ Argument \"o\" cannot be \"nope\" ]",
+    "name": "RangeError"
+   }
+  },
+  "s13n.color.hex": {
+   "ok": -65536
+  },
+  "s13n.color.int": {
+   "ok": -16711936
+  },
+  "s13n.color.name": {
+   "ok": -16776961
+  },
+  "s13n.color.short": {
+   "ok": -16711936
+  },
+  "s13n.color.type": {
+   "th": {
+    "message": "Failed to call method \"s13n.color\": [ Argument \"o\" must be of type ColorHex / ColorInt / ColorName / Color / ThemeColor, got Object ]",
+    "name": "TypeError"
+   }
+  },
+  "s13n.point.array": {
+   "ok": [
+    1,
+    -2
+   ]
+  },
+  "s13n.point.bad": {
+   "th": {
+    "message": "Failed to call method \"s13n.point\": [ Argument \"source\" must be of type Point / number[] / { x, y } / number, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "s13n.point.number": {
+   "ok": [
+    5,
+    5
+   ]
+  },
+  "s13n.point.object": {
+   "ok": [
+    3,
+    4,
+    "android.graphics.Point"
+   ]
+  },
+  "s13n.throwable.bad": {
+   "th": {
+    "message": "Failed to call method \"s13n.throwable\": [ Argument \"o\" must be of type Throwable / string / Error, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "s13n.throwable.class": {
+   "ok": "java.lang.Exception"
+  },
+  "s13n.throwable.error": {
+   "ok": "bad"
+  },
+  "s13n.throwable.string": {
+   "ok": "boom"
+  },
+  "s13n.time.date": {
+   "ok": 12345
+  },
+  "s13n.time.dateText": {
+   "ok": true
+  },
+  "s13n.time.nan": {
+   "ok": [
+    {
+     "n": "NaN"
+    },
+    {
+     "n": "NaN"
+    },
+    {
+     "n": "NaN"
+    }
+   ]
+  },
+  "s13n.time.options": {
+   "ok": [
+    180,
+    0.12,
+    1000
+   ]
+  },
+  "s13n.time.source": {
+   "th": {
+    "message": "Failed to call method \"s13n.time\": [ Argument \"source\" must be of type number / string / Date, got null ]",
+    "name": "TypeError"
+   }
+  },
+  "s13n.time.unit": {
+   "th": {
+    "message": "Failed to call method \"s13n.time\": [ Argument \"fromUnit\" must be of type TimeUnit / string, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "s13n.time.values": {
+   "ok": [
+    1500,
+    2000,
+    120,
+    1.5,
+    24
+   ]
+  },
+  "species.invoke.buffers": {
+   "ok": [
+    "ArrayBuffer",
+    "DataView",
+    "Uint8Array",
+    "Float64Array"
+   ]
+  },
+  "species.invoke.builtins": {
+   "ok": [
+    "Math",
+    "JSON",
+    "Arguments",
+    "Object",
+    "Object"
+   ]
+  },
+  "species.invoke.collections": {
+   "ok": [
+    "Map",
+    "Set",
+    "WeakMap",
+    "WeakSet"
+   ]
+  },
+  "species.invoke.java": {
+   "ok": "JavaObject"
+  },
+  "species.invoke.javaClass": {
+   "ok": "JavaClass"
+  },
+  "species.invoke.javaPackage": {
+   "ok": "JavaPackage"
+  },
+  "species.invoke.objects": {
+   "ok": [
+    "Object",
+    "Array",
+    "Function",
+    "Date",
+    "RegExp",
+    "Error",
+    "Error"
+   ]
+  },
+  "species.invoke.surplus": {
+   "th": {
+    "message": "Failed to call method \"species\": [ Method only accepts 1 argument ]",
+    "name": "TypeError"
+   }
+  },
+  "species.invoke.values": {
+   "ok": [
+    "Number",
+    "String",
+    "Null",
+    "Undefined",
+    "Boolean",
+    "BigInt",
+    "Symbol"
+   ]
+  },
+  "species.invoke.wrappers": {
+   "ok": [
+    "Boolean",
+    "Number",
+    "String"
+   ]
+  },
+  "species.isArray.false": {
+   "ok": false
+  },
+  "species.isArray.surplus": {
+   "th": {
+    "message": "Failed to call method \"species.isArray\": [ Method only accepts 1 argument ]",
+    "name": "TypeError"
+   }
+  },
+  "species.isArray.true": {
+   "ok": true
+  },
+  "species.isArrayBuffer.false": {
+   "ok": false
+  },
+  "species.isArrayBuffer.true": {
+   "ok": true
+  },
+  "species.isBigInt.false": {
+   "ok": false
+  },
+  "species.isBigInt.true": {
+   "ok": true
+  },
+  "species.isBoolean.false": {
+   "ok": false
+  },
+  "species.isBoolean.object": {
+   "ok": true
+  },
+  "species.isBoolean.true": {
+   "ok": true
+  },
+  "species.isContinuation.false": {
+   "ok": false
+  },
+  "species.isDataView.false": {
+   "ok": false
+  },
+  "species.isDataView.true": {
+   "ok": true
+  },
+  "species.isDate.false": {
+   "ok": false
+  },
+  "species.isDate.true": {
+   "ok": true
+  },
+  "species.isError.false": {
+   "ok": false
+  },
+  "species.isError.true": {
+   "ok": true
+  },
+  "species.isFloat32Array.false": {
+   "ok": false
+  },
+  "species.isFloat32Array.true": {
+   "ok": true
+  },
+  "species.isFloat64Array.false": {
+   "ok": false
+  },
+  "species.isFloat64Array.true": {
+   "ok": true
+  },
+  "species.isFunction.arrow": {
+   "ok": true
+  },
+  "species.isFunction.false": {
+   "ok": false
+  },
+  "species.isFunction.true": {
+   "ok": true
+  },
+  "species.isHTMLDocument.false": {
+   "ok": false
+  },
+  "species.isInt16Array.false": {
+   "ok": false
+  },
+  "species.isInt16Array.true": {
+   "ok": true
+  },
+  "species.isInt32Array.false": {
+   "ok": false
+  },
+  "species.isInt32Array.true": {
+   "ok": true
+  },
+  "species.isInt8Array.false": {
+   "ok": false
+  },
+  "species.isInt8Array.true": {
+   "ok": true
+  },
+  "species.isJavaClass.false": {
+   "ok": false
+  },
+  "species.isJavaClass.true": {
+   "ok": true
+  },
+  "species.isJavaObject.false": {
+   "ok": false
+  },
+  "species.isJavaObject.true": {
+   "ok": true
+  },
+  "species.isJavaPackage.false": {
+   "ok": false
+  },
+  "species.isJavaPackage.true": {
+   "ok": true
+  },
+  "species.isMap.false": {
+   "ok": false
+  },
+  "species.isMap.true": {
+   "ok": true
+  },
+  "species.isNamespace.false": {
+   "ok": false
+  },
+  "species.isNull.false": {
+   "ok": false
+  },
+  "species.isNull.true": {
+   "ok": true
+  },
+  "species.isNumber.false": {
+   "ok": false
+  },
+  "species.isNumber.object": {
+   "ok": true
+  },
+  "species.isNumber.true": {
+   "ok": true
+  },
+  "species.isObject.array": {
+   "ok": false
+  },
+  "species.isObject.null": {
+   "ok": false
+  },
+  "species.isObject.true": {
+   "ok": true
+  },
+  "species.isQName.false": {
+   "ok": false
+  },
+  "species.isRegExp.false": {
+   "ok": false
+  },
+  "species.isRegExp.true": {
+   "ok": true
+  },
+  "species.isSet.false": {
+   "ok": false
+  },
+  "species.isSet.true": {
+   "ok": true
+  },
+  "species.isString.concat": {
+   "ok": true
+  },
+  "species.isString.false": {
+   "ok": false
+  },
+  "species.isString.object": {
+   "ok": true
+  },
+  "species.isString.true": {
+   "ok": true
+  },
+  "species.isUint16Array.false": {
+   "ok": false
+  },
+  "species.isUint16Array.true": {
+   "ok": true
+  },
+  "species.isUint32Array.false": {
+   "ok": false
+  },
+  "species.isUint32Array.true": {
+   "ok": true
+  },
+  "species.isUint8Array.false": {
+   "ok": false
+  },
+  "species.isUint8Array.true": {
+   "ok": true
+  },
+  "species.isUint8ClampedArray.false": {
+   "ok": false
+  },
+  "species.isUint8ClampedArray.true": {
+   "ok": true
+  },
+  "species.isUndefined.false": {
+   "ok": false
+  },
+  "species.isUndefined.none": {
+   "th": {
+    "message": "Failed to call method \"species.isUndefined\": [ Method only accepts 1 argument ]",
+    "name": "TypeError"
+   }
+  },
+  "species.isUndefined.true": {
+   "ok": true
+  },
+  "species.isWeakMap.false": {
+   "ok": false
+  },
+  "species.isWeakMap.true": {
+   "ok": true
+  },
+  "species.isWeakSet.false": {
+   "ok": false
+  },
+  "species.isWeakSet.true": {
+   "ok": true
+  },
+  "species.isWindow.false": {
+   "ok": false
+  },
+  "species.isXML.false": {
+   "ok": false
+  },
+  "species.isXMLList.false": {
+   "ok": false
+  },
+  "util.__assignFunctions__.bind": {
+   "ok": 7
+  },
+  "util.__assignFunctions__.missing": {
+   "th": {
+    "message": "Failed to call method \"util.__assignFunctions__\": [ Argument \"src.zz\" must be of type function, got null ]",
+    "name": "TypeError"
+   }
+  },
+  "util.__assignFunctions__.namesType": {
+   "th": {
+    "message": "Failed to call method \"util.__assignFunctions__\": [ Argument \"funcNames\" must be of type Array, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "util.__assignFunctions__.srcType": {
+   "th": {
+    "message": "Failed to call method \"util.__assignFunctions__\": [ Argument \"src\" must be of type object, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.__assignFunctions__.targetType": {
+   "th": {
+    "message": "Failed to call method \"util.__assignFunctions__\": [ Argument \"target\" must be of type object, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.assureStringEndsWith.add": {
+   "ok": "abc"
+  },
+  "util.assureStringEndsWith.keep": {
+   "ok": "abc"
+  },
+  "util.assureStringEndsWith.type": {
+   "th": {
+    "message": "Failed to call method \"util.assureStringEndsWith\": [ Argument \"s\" must be of type string, got null ]",
+    "name": "TypeError"
+   }
+  },
+  "util.assureStringStartsWith.add": {
+   "ok": "abc"
+  },
+  "util.assureStringStartsWith.keep": {
+   "ok": "abc"
+  },
+  "util.assureStringStartsWith.startType": {
+   "th": {
+    "message": "Failed to call method \"util.assureStringStartsWith\": [ Argument \"start\" must be of type string, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.assureStringStartsWith.type": {
+   "th": {
+    "message": "Failed to call method \"util.assureStringStartsWith\": [ Argument \"s\" must be of type string, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.assureStringSurroundsWith.keep": {
+   "ok": "[b]"
+  },
+  "util.assureStringSurroundsWith.nullEnd": {
+   "ok": "\"b\""
+  },
+  "util.assureStringSurroundsWith.pair": {
+   "ok": "[b]"
+  },
+  "util.assureStringSurroundsWith.same": {
+   "ok": "*b*"
+  },
+  "util.assureStringSurroundsWith.type": {
+   "th": {
+    "message": "Failed to call method \"util.assureStringSurroundsWith\": [ Argument \"end\" must be of type string, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.checkStringArgument.boolean": {
+   "ok": true
+  },
+  "util.checkStringArgument.exact": {
+   "ok": true
+  },
+  "util.checkStringArgument.object": {
+   "th": {
+    "message": "Failed to call method \"util.checkStringArgument\": [ Argument \"src\" must be of type string | number | boolean | bigint, got Object ]",
+    "name": "TypeError"
+   }
+  },
+  "util.checkStringArgument.undefined": {
+   "th": {
+    "message": "Failed to call method \"util.checkStringArgument\": [ Argument \"src\" cannot be undefined ]",
+    "name": "TypeError"
+   }
+  },
+  "util.checkStringParam.anchored": {
+   "ok": false
+  },
+  "util.checkStringParam.case": {
+   "ok": true
+  },
+  "util.checkStringParam.exact": {
+   "ok": true
+  },
+  "util.checkStringParam.null": {
+   "th": {
+    "message": "Failed to call method \"util.checkStringParam\": [ Argument \"src\" cannot be null ]",
+    "name": "TypeError"
+   }
+  },
+  "util.checkStringParam.number": {
+   "ok": true
+  },
+  "util.checkStringParam.object": {
+   "ok": true
+  },
+  "util.checkStringParam.pattern": {
+   "th": {
+    "message": "Failed to call method \"util.checkStringParam\": [ Argument \"pattern\" must be of type string | RegExp, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.checkStringParam.regex": {
+   "ok": true
+  },
+  "util.checkStringParam.regexSource": {
+   "ok": true
+  },
+  "util.checkStringParam.trim": {
+   "ok": true
+  },
+  "util.debuglog.returns": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.deprecate.returns": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.dpToPx.fraction": {
+   "ok": 2.5999999046325684
+  },
+  "util.dpToPx.string": {
+   "ok": 4
+  },
+  "util.dpToPx.ten": {
+   "ok": 20
+  },
+  "util.ensureArrayType.bad": {
+   "th": {
+    "message": "Failed to call method \"util.ensureArrayType\": [ Argument \"values[0]\" must be of type Array, got Object ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureArrayType.ok": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureBigIntType.bad": {
+   "th": {
+    "message": "Failed to call method \"util.ensureBigIntType\": [ Argument \"values[0]\" must be of type bigint, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureBigIntType.ok": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureBigintType.alias": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureBigintType.bad": {
+   "th": {
+    "message": "Failed to call method \"util.ensureBigIntType\": [ Argument \"values[0]\" must be of type bigint, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureBooleanType.bad": {
+   "th": {
+    "message": "Failed to call method \"util.ensureBooleanType\": [ Argument \"values[0]\" must be of type boolean, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureBooleanType.ok": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureFunctionType.bad": {
+   "th": {
+    "message": "Failed to call method \"util.ensureFunctionType\": [ Argument \"values[0]\" must be of type function, got Object ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureFunctionType.ok": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureNonNullObjectType.bad": {
+   "th": {
+    "message": "Failed to call method \"util.ensureNonNullObjectType\": [ Argument \"values[0]\" must be of type object, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureNonNullObjectType.null": {
+   "th": {
+    "message": "Failed to call method \"util.ensureNonNullObjectType\": [ Argument \"values[1]\" cannot be null ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureNonNullObjectType.ok": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureNumberType.bad": {
+   "th": {
+    "message": "Failed to call method \"util.ensureNumberType\": [ Argument \"values[0]\" must be of type number, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureNumberType.ok": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureObjectType.bad": {
+   "th": {
+    "message": "Failed to call method \"util.ensureObjectType\": [ Argument \"values[0]\" must be of type object, got function ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureObjectType.ok": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureStringType.bad": {
+   "th": {
+    "message": "Failed to call method \"util.ensureStringType\": [ Argument \"values[1]\" must be of type string, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureStringType.none": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureStringType.ok": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureSymbolType.bad": {
+   "th": {
+    "message": "Failed to call method \"util.ensureSymbolType\": [ Argument \"values[0]\" must be of type symbol, got string ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureSymbolType.ok": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureType.case": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureType.mismatch": {
+   "th": {
+    "message": "Failed to call method \"util.ensureType\": [ Argument \"o\" must be of type string, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureType.nullObject": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureType.ok": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.ensureType.typeType": {
+   "th": {
+    "message": "Failed to call method \"util.ensureType\": [ Argument \"type\" must be of type string, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureType.unknown": {
+   "th": {
+    "message": "Failed to call method \"util.ensureType\": [ Argument \"type\" must be of type 'object' | 'string' | 'undefined' | 'symbol' | 'bigint' | 'number' | 'function' | 'boolean', got \"integer\" ]",
+    "name": "RangeError"
+   }
+  },
+  "util.ensureUndefinedType.bad": {
+   "th": {
+    "message": "Failed to call method \"util.ensureUndefinedType\": [ Argument \"values[0]\" must be of type undefined, got null ]",
+    "name": "TypeError"
+   }
+  },
+  "util.ensureUndefinedType.ok": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.extend.chain": {
+   "ok": [
+    "hi",
+    1,
+    true,
+    true,
+    true,
+    0
+   ]
+  },
+  "util.extend.notFunction": {
+   "th": {
+    "message": "Failed to call method \"util.extend\": [ Argument \"d\" must be of type function, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.extend.null": {
+   "ok": [
+    false,
+    true
+   ]
+  },
+  "util.extend.object": {
+   "ok": [
+    1,
+    true
+   ]
+  },
+  "util.format.extra": {
+   "ok": "a 1 b null undefined"
+  },
+  "util.format.extraObject": {
+   "ok": "x { a: 1, b: [ 1, 2 ] }"
+  },
+  "util.format.json": {
+   "ok": "\"a\" undefined null"
+  },
+  "util.format.missing": {
+   "ok": "a %d %j"
+  },
+  "util.format.nested": {
+   "ok": "[object Object]"
+  },
+  "util.format.none": {
+   "ok": ""
+  },
+  "util.format.notString": {
+   "ok": "1 'a' true"
+  },
+  "util.format.numberForms": {
+   "ok": "16 1 0 1e+21"
+  },
+  "util.format.objectFirst": {
+   "ok": "{ a: 'b' } [ 1 ]"
+  },
+  "util.format.placeholders": {
+   "ok": "a|12.5|{\"a\":[1,\"b\"]}|%"
+  },
+  "util.format.trailing": {
+   "ok": "a% 1"
+  },
+  "util.format.unknown": {
+   "ok": "%x 1"
+  },
+  "util.inspect.colors": {
+   "ok": {
+    "o": {
+     "black": [
+      30,
+      39
+     ],
+     "blue": [
+      34,
+      39
+     ],
+     "bold": [
+      1,
+      22
+     ],
+     "cyan": [
+      36,
+      39
+     ],
+     "gray": [
+      90,
+      39
+     ],
+     "green": [
+      32,
+      39
+     ],
+     "grey": [
+      90,
+      39
+     ],
+     "inverse": [
+      7,
+      27
+     ],
+     "italic": [
+      3,
+      23
+     ],
+     "magenta": [
+      35,
+      39
+     ],
+     "red": [
+      31,
+      39
+     ],
+     "underline": [
+      4,
+      24
+     ],
+     "white": [
+      37,
+      39
+     ],
+     "yellow": [
+      33,
+      39
+     ]
+    }
+   }
+  },
+  "util.inspect.styles": {
+   "ok": {
+    "o": {
+     "boolean": "yellow",
+     "date": "magenta",
+     "null": "bold",
+     "number": "yellow",
+     "regexp": "red",
+     "special": "cyan",
+     "string": "green",
+     "undefined": "gray"
+    }
+   }
+  },
+  "util.isArray.array": {
+   "ok": true
+  },
+  "util.isArray.null": {
+   "ok": false
+  },
+  "util.isArray.object": {
+   "ok": false
+  },
+  "util.isArray.typed": {
+   "ok": false
+  },
+  "util.isBigInt.bigint": {
+   "ok": true
+  },
+  "util.isBigInt.number": {
+   "ok": false
+  },
+  "util.isBoolean.object": {
+   "ok": false
+  },
+  "util.isBoolean.true": {
+   "ok": true
+  },
+  "util.isBoolean.zero": {
+   "ok": false
+  },
+  "util.isDate.date": {
+   "ok": true
+  },
+  "util.isDate.number": {
+   "ok": false
+  },
+  "util.isDate.object": {
+   "ok": false
+  },
+  "util.isEmptyObject.array": {
+   "ok": false
+  },
+  "util.isEmptyObject.date": {
+   "ok": true
+  },
+  "util.isEmptyObject.empty": {
+   "ok": true
+  },
+  "util.isEmptyObject.emptyArray": {
+   "ok": true
+  },
+  "util.isEmptyObject.function": {
+   "ok": false
+  },
+  "util.isEmptyObject.hidden": {
+   "ok": false
+  },
+  "util.isEmptyObject.inherited": {
+   "ok": true
+  },
+  "util.isEmptyObject.nonEmpty": {
+   "ok": false
+  },
+  "util.isEmptyObject.null": {
+   "ok": false
+  },
+  "util.isEmptyObject.string": {
+   "ok": false
+  },
+  "util.isError.error": {
+   "ok": true
+  },
+  "util.isError.inherits": {
+   "ok": true
+  },
+  "util.isError.like": {
+   "ok": false
+  },
+  "util.isError.string": {
+   "ok": false
+  },
+  "util.isError.typeError": {
+   "ok": true
+  },
+  "util.isFunction.arrow": {
+   "ok": true
+  },
+  "util.isFunction.builtin": {
+   "ok": true
+  },
+  "util.isFunction.function": {
+   "ok": true
+  },
+  "util.isFunction.object": {
+   "ok": false
+  },
+  "util.isInteger.bigint": {
+   "ok": true
+  },
+  "util.isInteger.fraction": {
+   "ok": false
+  },
+  "util.isInteger.infinity": {
+   "ok": false
+  },
+  "util.isInteger.int": {
+   "ok": true
+  },
+  "util.isInteger.large": {
+   "ok": true
+  },
+  "util.isInteger.nan": {
+   "ok": false
+  },
+  "util.isInteger.negativeZero": {
+   "ok": true
+  },
+  "util.isInteger.numberObject": {
+   "ok": false
+  },
+  "util.isInteger.string": {
+   "ok": false
+  },
+  "util.isJavaArray.java": {
+   "ok": true
+  },
+  "util.isJavaArray.object": {
+   "ok": false
+  },
+  "util.isJavaArray.plain": {
+   "ok": false
+  },
+  "util.isJavaObject.class": {
+   "ok": false
+  },
+  "util.isJavaObject.java": {
+   "ok": true
+  },
+  "util.isJavaObject.null": {
+   "ok": false
+  },
+  "util.isJavaObject.plain": {
+   "ok": false
+  },
+  "util.isJavaObject.string": {
+   "ok": false
+  },
+  "util.isNull.null": {
+   "ok": true
+  },
+  "util.isNull.undefined": {
+   "ok": false
+  },
+  "util.isNull.zero": {
+   "ok": false
+  },
+  "util.isNullOrUndefined.empty": {
+   "ok": false
+  },
+  "util.isNullOrUndefined.null": {
+   "ok": true
+  },
+  "util.isNullOrUndefined.undefined": {
+   "ok": true
+  },
+  "util.isNumber.int": {
+   "ok": true
+  },
+  "util.isNumber.nan": {
+   "ok": true
+  },
+  "util.isNumber.object": {
+   "ok": false
+  },
+  "util.isNumber.string": {
+   "ok": false
+  },
+  "util.isObject.array": {
+   "ok": true
+  },
+  "util.isObject.date": {
+   "ok": true
+  },
+  "util.isObject.function": {
+   "ok": false
+  },
+  "util.isObject.null": {
+   "ok": false
+  },
+  "util.isObject.object": {
+   "ok": true
+  },
+  "util.isPrimitive.function": {
+   "ok": false
+  },
+  "util.isPrimitive.null": {
+   "ok": true
+  },
+  "util.isPrimitive.number": {
+   "ok": true
+  },
+  "util.isPrimitive.object": {
+   "ok": false
+  },
+  "util.isPrimitive.string": {
+   "ok": true
+  },
+  "util.isPrimitive.symbol": {
+   "ok": true
+  },
+  "util.isPrimitive.undefined": {
+   "ok": true
+  },
+  "util.isReference.array": {
+   "ok": true
+  },
+  "util.isReference.function": {
+   "ok": true
+  },
+  "util.isReference.null": {
+   "ok": false
+  },
+  "util.isReference.number": {
+   "ok": false
+  },
+  "util.isReference.object": {
+   "ok": true
+  },
+  "util.isRegExp.constructed": {
+   "ok": true
+  },
+  "util.isRegExp.literal": {
+   "ok": true
+  },
+  "util.isRegExp.string": {
+   "ok": false
+  },
+  "util.isString.concat": {
+   "ok": true
+  },
+  "util.isString.number": {
+   "ok": false
+  },
+  "util.isString.object": {
+   "ok": false
+  },
+  "util.isString.string": {
+   "ok": true
+  },
+  "util.isSymbol.string": {
+   "ok": false
+  },
+  "util.isSymbol.symbol": {
+   "ok": true
+  },
+  "util.isUndefined.none": {
+   "th": {
+    "message": "Failed to call method \"util.isUndefined\": [ Method only accepts 1 argument ]",
+    "name": "TypeError"
+   }
+  },
+  "util.isUndefined.null": {
+   "ok": false
+  },
+  "util.isUndefined.undefined": {
+   "ok": true
+  },
+  "util.java.array.class": {
+   "ok": {
+    "java": "[Ljava.lang.Object;"
+   }
+  },
+  "util.java.array.int": {
+   "ok": {
+    "java": "[I"
+   }
+  },
+  "util.java.array.length": {
+   "ok": 4
+  },
+  "util.java.array.nested": {
+   "ok": {
+    "java": "[[I"
+   }
+  },
+  "util.java.array.string": {
+   "ok": {
+    "java": "[Ljava.lang.String;"
+   }
+  },
+  "util.java.instanceOf.alias": {
+   "ok": true
+  },
+  "util.java.instanceof.class": {
+   "ok": true
+  },
+  "util.java.instanceof.false": {
+   "ok": false
+  },
+  "util.java.instanceof.nullClass": {
+   "ok": false
+  },
+  "util.java.instanceof.nullObject": {
+   "th": {
+    "message": "Failed to call method \"util.java.instanceof\": [ Argument \"obj\" cannot be null ]",
+    "name": "TypeError"
+   }
+  },
+  "util.java.instanceof.true": {
+   "ok": true
+  },
+  "util.java.mapToObject.map": {
+   "ok": {
+    "o": {
+     "a": "x"
+    }
+   }
+  },
+  "util.java.mapToObject.null": {
+   "ok": null
+  },
+  "util.java.mapToObject.type": {
+   "ok": {
+    "o": {}
+   }
+  },
+  "util.java.objectToMap.array": {
+   "th": {
+    "message": "Failed to call method \"util.java.objectToMap\": [ Argument \"o\" must be of type Object, got Array ]",
+    "name": "TypeError"
+   }
+  },
+  "util.java.objectToMap.null": {
+   "ok": null
+  },
+  "util.java.objectToMap.object": {
+   "ok": {
+    "java": "java.util.HashMap"
+   }
+  },
+  "util.java.objectToMap.size": {
+   "ok": 2
+  },
+  "util.java.toJsArray.list": {
+   "ok": [
+    "a",
+    "b"
+   ]
+  },
+  "util.java.toJsArray.null": {
+   "ok": null
+  },
+  "util.java.toJsArray.nullEmpty": {
+   "ok": []
+  },
+  "util.java.toJsArray.type": {
+   "th": {
+    "message": "Failed to call method \"util.java.toJsArray\": [ Argument \"list\" must be of type java.lang.Iterable, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.log.returns": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.morseCode.getCode.empty": {
+   "ok": ""
+  },
+  "util.morseCode.getCode.null": {
+   "ok": ""
+  },
+  "util.morseCode.getCode.number": {
+   "ok": "····-   ··---"
+  },
+  "util.morseCode.getCode.sos": {
+   "ok": "···   ---   ···"
+  },
+  "util.morseCode.getCode.unknown": {
+   "th": {
+    "message": "Failed to call method \"util.morseCode.getCode\": [ Argument \"source\" must be of type text of A-Z, 0-9 and . : , ; ? = ' / ! - _ \" ( ) $ & @ +, got \"#\" ]",
+    "name": "RangeError"
+   }
+  },
+  "util.morseCode.getCode.words": {
+   "ok": "·-       -···"
+  },
+  "util.morseCode.getPattern.minimum": {
+   "ok": [
+    100,
+    100,
+    300
+   ]
+  },
+  "util.morseCode.getPattern.nan": {
+   "th": {
+    "message": "Failed to call method \"util.morseCode.getPattern\": [ Argument \"timeSpan\" must be of type number, got NaN ]",
+    "name": "RangeError"
+   }
+  },
+  "util.morseCode.getPattern.round": {
+   "ok": [
+    151
+   ]
+  },
+  "util.morseCode.getPattern.sos": {
+   "ok": [
+    100,
+    100,
+    100,
+    100,
+    100,
+    300,
+    300,
+    100,
+    300,
+    100,
+    300,
+    300,
+    100,
+    100,
+    100,
+    100,
+    100
+   ]
+  },
+  "util.morseCode.getPattern.span": {
+   "ok": [
+    200,
+    200,
+    600
+   ]
+  },
+  "util.morseCode.getPattern.words": {
+   "ok": [
+    100,
+    700,
+    100
+   ]
+  },
+  "util.morseCode.invoke.code": {
+   "ok": "····   ··"
+  },
+  "util.morseCode.invoke.pattern": {
+   "ok": [
+    120,
+    120,
+    120,
+    120,
+    120,
+    120,
+    120,
+    360,
+    120,
+    120,
+    120
+   ]
+  },
+  "util.morseCode.invoke.toString": {
+   "ok": "MorseCode {\n  code: '·',\n  pattern: [100],\n}"
+  },
+  "util.morseCode.vibrate.empty": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "util.morseCode.vibrate.unknown": {
+   "th": {
+    "message": "Failed to call method \"util.morseCode.vibrate\": [ Argument \"source\" must be of type text of A-Z, 0-9 and . : , ; ? = ' / ! - _ \" ( ) $ & @ +, got \"#\" ]",
+    "name": "RangeError"
+   }
+  },
+  "util.pxToDp.fraction": {
+   "ok": 16.649999618530273
+  },
+  "util.pxToDp.hundred": {
+   "ok": 50
+  },
+  "util.pxToSp.hundred": {
+   "ok": 50
+  },
+  "util.spToPx.ten": {
+   "ok": 20
+  },
+  "util.toRegular.arrow": {
+   "ok": [
+    "function",
+    2,
+    "undefined"
+   ]
+  },
+  "util.toRegular.arrowThis": {
+   "ok": 3
+  },
+  "util.toRegular.construct": {
+   "ok": "object"
+  },
+  "util.toRegular.same": {
+   "ok": true
+  },
+  "util.toRegular.thisNull": {
+   "ok": true
+  },
+  "util.toRegular.toString": {
+   "ok": "() => 4"
+  },
+  "util.toRegular.type": {
+   "th": {
+    "message": "Failed to call method \"util.toRegular\": [ Argument \"f\" must be of type function, got number ]",
+    "name": "TypeError"
+   }
+  },
+  "util.toRegularAndApply.throws": {
+   "th": {
+    "message": "org.autojs.autojs.util.RhinoUtils$ObsoletedRhinoFunctionException: Function \"toRegularAndApply\" can no longer be used as it has been obsoleted",
+    "name": "JavaException ObsoletedRhinoFunctionException"
+   }
+  },
+  "util.toRegularAndCall.throws": {
+   "th": {
+    "message": "org.autojs.autojs.util.RhinoUtils$ObsoletedRhinoFunctionException: Function \"toRegularAndCall\" can no longer be used as it has been obsoleted",
+    "name": "JavaException ObsoletedRhinoFunctionException"
+   }
+  },
+  "util.version.sdkInt": {
+   "ok": 33
+  },
+  "util.versionCodes.constant": {
+   "ok": {
+    "o": {
+     "apiLevel": 33,
+     "internalCodename": "Tiramisu",
+     "platformVersion": "13",
+     "releaseDate": "August 15, 2022",
+     "releaseName": "Android 13",
+     "releaseTimestamp": 1660492800000,
+     "versionCode": "TIRAMISU"
+    }
+   }
+  },
+  "util.versionCodes.date": {
+   "ok": 33
+  },
+  "util.versionCodes.search.api": {
+   "ok": {
+    "o": {
+     "apiLevel": 33,
+     "internalCodename": "Tiramisu",
+     "platformVersion": "13",
+     "releaseDate": "August 15, 2022",
+     "releaseName": "Android 13",
+     "releaseTimestamp": 1660492800000,
+     "versionCode": "TIRAMISU"
+    }
+   }
+  },
+  "util.versionCodes.search.code": {
+   "ok": {
+    "o": {
+     "apiLevel": 33,
+     "internalCodename": "Tiramisu",
+     "platformVersion": "13",
+     "releaseDate": "August 15, 2022",
+     "releaseName": "Android 13",
+     "releaseTimestamp": 1660492800000,
+     "versionCode": "TIRAMISU"
+    }
+   }
+  },
+  "util.versionCodes.search.name": {
+   "ok": {
+    "o": {
+     "apiLevel": 33,
+     "internalCodename": "Tiramisu",
+     "platformVersion": "13",
+     "releaseDate": "August 15, 2022",
+     "releaseName": "Android 13",
+     "releaseTimestamp": 1660492800000,
+     "versionCode": "TIRAMISU"
+    }
+   }
+  },
+  "util.versionCodes.search.none": {
+   "ok": null
+  },
+  "util.versionCodes.search.null": {
+   "ok": null
+  },
+  "util.versionCodes.search.platform": {
+   "ok": {
+    "o": {
+     "apiLevel": 33,
+     "internalCodename": "Tiramisu",
+     "platformVersion": "13",
+     "releaseDate": "August 15, 2022",
+     "releaseName": "Android 13",
+     "releaseTimestamp": 1660492800000,
+     "versionCode": "TIRAMISU"
+    }
+   }
+  },
+  "util.versionCodes.search.type": {
+   "th": {
+    "message": "Failed to call method \"util.versionCodes.search\": [ Argument \"query\" must be of type string | number | Date, got Object ]",
+    "name": "TypeError"
+   }
+  },
+  "util.versionCodes.search.valueOf": {
+   "ok": 30
+  },
+  "util.versionCodes.searchAll.none": {
+   "ok": []
+  },
+  "util.versionCodes.searchAll.null": {
+   "ok": []
+  },
+  "util.versionCodes.searchAll.platform": {
+   "ok": [
+    "KITKAT_WATCH",
+    "KITKAT",
+    "JELLY_BEAN_MR2",
+    "JELLY_BEAN_MR1",
+    "JELLY_BEAN",
+    "ICE_CREAM_SANDWICH_MR1",
+    "ICE_CREAM_SANDWICH",
+    "DONUT"
+   ]
+  },
+  "util.versionCodes.searchAll.word": {
+   "ok": [
+    28,
+    22,
+    21,
+    20,
+    19
+   ]
+  },
+  "util.versionCodes.summary.brief": {
+   "ok": "CINNAMON_BUN: 37 / Android 17 / 17\nBAKLAVA: 36 / Android 16 / 16\nVANILLA_ICE_CREAM: 35 / Android 15 / 15\nUPSIDE_DOWN_CAKE: 34 / Android 14 / 14\nTIRAMISU: 33 / Android 13 / 13\nS_V2: 32 / Android 12L / 12.1\nS: 31 / Android 12 / 12\nR: 30 / Android 11 / 11\nQ: 29 / Android 10 / 10\nP: 28 / Android Pie / 9\nO_MR1: 27 / Android Oreo / 8.1\nO: 26 / Android Oreo / 8.0\nN_MR1: 25 / Android Nougat / 7.1-7.1.2\nN: 24 / Android Nougat / 7.0\nM: 23 / Android Marshmallow / 6.0-6.0.1\nLOLLIPOP_MR1: 22 / Android Lollipop / 5.1-5.1.1\nLOLLIPOP: 21 / Android Lollipop / 5.0-5.0.2\nKITKAT_WATCH: 20 / Android KitKat / 4.4W-4.4W.2\nKITKAT: 19 / Android KitKat / 4.4-4.4.4\nJELLY_BEAN_MR2: 18 / Android Jelly Bean / 4.3-4.3.1\nJELLY_BEAN_MR1: 17 / Android Jelly Bean / 4.2-4.2.2\nJELLY_BEAN: 16 / Android Jelly Bean / 4.1-4.1.2\nICE_CREAM_SANDWICH_MR1: 15 / Android Ice Cream Sandwich / 4.0.3-4.0.4\nICE_CREAM_SANDWICH: 14 / Android Ice Cream Sandwich / 4.0-4.0.2\nHONEYCOMB_MR2: 13 / Android Honeycomb / 3.2-3.2.6\nHONEYCOMB_MR1: 12 / Android Honeycomb / 3.1\nHONEYCOMB: 11 / Android Honeycomb / 3.0\nGINGERBREAD_MR1: 10 / Android Gingerbread / 2.3.3-2.3.7\nGINGERBREAD: 9 / Android Gingerbread / 2.3-2.3.2\nFROYO: 8 / Android Froyo / 2.2-2.2.3\nECLAIR_MR1: 7 / Android Eclair / 2.1\nECLAIR_0_1: 6 / Android Eclair / 2.0.1\nECLAIR: 5 / Android Eclair / 2.0\nDONUT: 4 / Android Donut / 1.6\nCUPCAKE: 3 / Android Cupcake / 1.5\nBASE_1_1: 2 / Android 1.1 / 1.1\nBASE: 1 / Android 1.0 / 1.0"
+  },
+  "util.versionCodes.summary.detail": {
+   "ok": "CINNAMON_BUN, 37, Android 17, 17, Cinnamon Bun, June 16, 2026, 1781539200000\nBAKLAVA, 36, Android 16, 16, Baklava, June 10, 2025, 1749484800000\nVANILLA_ICE_CREAM, 35, Android 15, 15, Vanilla Ice Cream, September 3, 2024, 1725292800000\nUPSIDE_DOWN_CAKE, 34, Android 14, 14, Upside Down Cake, October 4, 2023, 1696348800000\nTIRAMISU, 33, Android 13, 13, Tiramisu, August 15, 2022, 1660492800000\nS_V2, 32, Android 12L, 12.1, Snow Cone v2, March 7, 2022, 1646582400000\nS, 31, Android 12, 12, Snow Cone, October 4, 2021, 1633276800000\nR, 30, Android 11, 11, Red Velvet Cake, September 8, 2020, 1599494400000\nQ, 29, Android 10, 10, Quince Tart, September 3, 2019, 1567440000000\nP, 28, Android Pie, 9, Pistachio Ice Cream, August 6, 2018, 1533484800000\nO_MR1, 27, Android Oreo, 8.1, Oatmeal Cookie, December 5, 2017, 1512403200000\nO, 26, Android Oreo, 8.0, Oatmeal Cookie, August 21, 2017, 1503244800000\nN_MR1, 25, Android Nougat, 7.1-7.1.2, New York Cheesecake, October 4, 2016, 1475510400000\nN, 24, Android Nougat, 7.0, New York Cheesecake, August 22, 2016, 1471795200000\nM, 23, Android Marshmallow, 6.0-6.0.1, Macadamia Nut Cookie, September 29, 2015, 1443456000000\nLOLLIPOP_MR1, 22, Android Lollipop, 5.1-5.1.1, Lemon Meringue Pie, March 2, 2015, 1425225600000\nLOLLIPOP, 21, Android Lollipop, 5.0-5.0.2, Lemon Meringue Pie, November 4, 2014, 1415030400000\nKITKAT_WATCH, 20, Android KitKat, 4.4W-4.4W.2, Key Lime Pie, June 25, 2014, 1403625600000\nKITKAT, 19, Android KitKat, 4.4-4.4.4, Key Lime Pie, October 31, 2013, 1383148800000\nJELLY_BEAN_MR2, 18, Android Jelly Bean, 4.3-4.3.1, Jelly Bean, July 24, 2013, 1374595200000\nJELLY_BEAN_MR1, 17, Android Jelly Bean, 4.2-4.2.2, Jelly Bean, November 13, 2012, 1352736000000\nJELLY_BEAN, 16, Android Jelly Bean, 4.1-4.1.2, Jelly Bean, July 9, 2012, 1341763200000\nICE_CREAM_SANDWICH_MR1, 15, Android Ice Cream Sandwich, 4.0.3-4.0.4, Ice Cream Sandwich, December 16, 2011, 1323964800000\nICE_CREAM_SANDWICH, 14, Android Ice Cream Sandwich, 4.0-4.0.2, Ice Cream Sandwich, October 18, 2011, 1318867200000\nHONEYCOMB_MR2, 13, Android Honeycomb, 3.2-3.2.6, Honeycomb, July 15, 2011, 1310659200000\nHONEYCOMB_MR1, 12, Android Honeycomb, 3.1, Honeycomb, May 10, 2011, 1304956800000\nHONEYCOMB, 11, Android Honeycomb, 3.0, Honeycomb, February 22, 2011, 1298304000000\nGINGERBREAD_MR1, 10, Android Gingerbread, 2.3.3-2.3.7, Gingerbread, February 9, 2011, 1297180800000\nGINGERBREAD, 9, Android Gingerbread, 2.3-2.3.2, Gingerbread, December 6, 2010, 1291564800000\nFROYO, 8, Android Froyo, 2.2-2.2.3, Froyo, May 20, 2010, 1274284800000\nECLAIR_MR1, 7, Android Eclair, 2.1, Eclair, January 11, 2010, 1263139200000\nECLAIR_0_1, 6, Android Eclair, 2.0.1, Eclair, December 3, 2009, 1259769600000\nECLAIR, 5, Android Eclair, 2.0, Eclair, October 27, 2009, 1256572800000\nDONUT, 4, Android Donut, 1.6, Donut, September 15, 2009, 1252944000000\nCUPCAKE, 3, Android Cupcake, 1.5, Cupcake, April 27, 2009, 1240761600000\nBASE_1_1, 2, Android 1.1, 1.1, Petit Four, February 9, 2009, 1234108800000\nBASE, 1, Android 1.0, 1.0, , September 23, 2008, 1222099200000"
+  },
+  "util.versionCodes.toString": {
+   "ok": "CINNAMON_BUN: 37 / Android 17 / 17\nBAKLAVA: 36 / Android 16 / 16\nVANILLA_ICE_CREAM: 35 / Android 15 / 15\nUPSIDE_DOWN_CAKE: 34 / Android 14 / 14\nTIRAMISU: 33 / Android 13 / 13\nS_V2: 32 / Android 12L / 12.1\nS: 31 / Android 12 / 12\nR: 30 / Android 11 / 11\nQ: 29 / Android 10 / 10\nP: 28 / Android Pie / 9\nO_MR1: 27 / Android Oreo / 8.1\nO: 26 / Android Oreo / 8.0\nN_MR1: 25 / Android Nougat / 7.1-7.1.2\nN: 24 / Android Nougat / 7.0\nM: 23 / Android Marshmallow / 6.0-6.0.1\nLOLLIPOP_MR1: 22 / Android Lollipop / 5.1-5.1.1\nLOLLIPOP: 21 / Android Lollipop / 5.0-5.0.2\nKITKAT_WATCH: 20 / Android KitKat / 4.4W-4.4W.2\nKITKAT: 19 / Android KitKat / 4.4-4.4.4\nJELLY_BEAN_MR2: 18 / Android Jelly Bean / 4.3-4.3.1\nJELLY_BEAN_MR1: 17 / Android Jelly Bean / 4.2-4.2.2\nJELLY_BEAN: 16 / Android Jelly Bean / 4.1-4.1.2\nICE_CREAM_SANDWICH_MR1: 15 / Android Ice Cream Sandwich / 4.0.3-4.0.4\nICE_CREAM_SANDWICH: 14 / Android Ice Cream Sandwich / 4.0-4.0.2\nHONEYCOMB_MR2: 13 / Android Honeycomb / 3.2-3.2.6\nHONEYCOMB_MR1: 12 / Android Honeycomb / 3.1\nHONEYCOMB: 11 / Android Honeycomb / 3.0\nGINGERBREAD_MR1: 10 / Android Gingerbread / 2.3.3-2.3.7\nGINGERBREAD: 9 / Android Gingerbread / 2.3-2.3.2\nFROYO: 8 / Android Froyo / 2.2-2.2.3\nECLAIR_MR1: 7 / Android Eclair / 2.1\nECLAIR_0_1: 6 / Android Eclair / 2.0.1\nECLAIR: 5 / Android Eclair / 2.0\nDONUT: 4 / Android Donut / 1.6\nCUPCAKE: 3 / Android Cupcake / 1.5\nBASE_1_1: 2 / Android 1.1 / 1.1\nBASE: 1 / Android 1.0 / 1.0"
+  }
+ },
+ "device": {
+  "model": "22120RN86C",
+  "sdk": 33
+ },
+ "host": {
+  "versionCode": 5935,
+  "versionName": "6.8.0"
+ },
+ "schema": "autojs6-js-tools-rhino-expected-v1"
+}

@@ -25,7 +25,7 @@ const hostCall=async(module,method,args)=>{
 const extraApis=new Function('__autojs6_call_autojs','__autojs6_invalid_arg_type','process',`
   let __autojs6_limited_pinyin_cache,__autojs6_limited_pinyin4j_cache,__autojs6_limited_screen_metrics_cache,__autojs6_limited_console_cache;
   const __autojs6_has_own=(object,name)=>Object.prototype.hasOwnProperty.call(object,name);
-  ${section('  const __autojs6_pinyin_styles =','  function __autojs6_jsox_mathx_flatten(')}
+  ${section('  const __autojs6_pinyin_styles =','  // Shared JS tools core.')}
   ${section('  function __autojs6_limited_console()','  let __autojs6_main_module_ref =')}
   return {pinyin:__autojs6_limited_pinyin(),pinyin4j:__autojs6_limited_pinyin4j(),screen_metrics:__autojs6_limited_screen_metrics(),console:__autojs6_limited_console()};
 `)(hostCall,message=>new TypeError(message),process);

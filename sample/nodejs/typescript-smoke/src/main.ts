@@ -396,18 +396,18 @@ async function smoke(): Promise<void> {
   const mathxMean: number = jsox.mathx.mean([1, 2, 3, 4]);
   const mathxVariance: number = jsox.Mathx["var"]([1, 2, 3]);
   const mathxDistance: number = jsox.mathx.dist([0, 0], { x: 3, y: 4 });
-  const mathxTarget = jsox.extend({} as { sum(...values: readonly unknown[]): number }, "Mathx");
-  const mathxTargetSum: number = mathxTarget.sum(1, 2, 3);
+  jsox.extend("Mathx");
+  const mathxTargetSum: number = (Math as Math & { sum(...values: readonly unknown[]): number }).sum(1, 2, 3);
   const compatMathxMedian: number = rhinoCompat.jsox.mathx.median([1, 4, 2, 3]);
   const arrayxDistinct: number[] = arrayx.distinct([1, 2, 1, 3]);
   const arrayxSortedBy: string[] = jsox.arrayx.sortedBy(["aaa", "b", "cc"], (value) => value.length);
-  const arrayxTarget = jsox.extend({} as { union<T>(...arrays: readonly (readonly T[])[]): T[] }, "Arrayx");
-  const arrayxTargetUnion: number[] = arrayxTarget.union([1, 2], [2, 3]);
+  jsox.extend(["Arrayx"]);
+  const arrayxTargetUnion: number[] = arrayx.union([1, 2], [2, 3]);
   const compatArrayxIntersect: number[] = rhinoCompat.jsox.arrayx.intersect([1, 2, 3], [2, 3, 4]);
   const numberxClamp: number = numberx.clamp(20, [10, 30]);
   const numberxParsed: number = jsox.numberx.parseAny("18:9");
-  const numberxTarget = jsox.extend({} as { toFixedNum(num: unknown, fraction?: unknown): number }, "Numberx");
-  const numberxTargetFixed: number = numberxTarget.toFixedNum(123.456, 2);
+  jsox.extendAll();
+  const numberxTargetFixed: number = numberx.toFixedNum(123.456, 2);
   const compatNumberxPadded: string = rhinoCompat.jsox.numberx.padStart(5, 2, 0);
 
   const notificationId: notifications.NotificationId = await notifications.notify({

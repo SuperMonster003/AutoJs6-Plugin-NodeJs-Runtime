@@ -189,6 +189,7 @@ final class NodeRuntimeModuleInjector {
         }
     }
 
+    @SuppressWarnings("deprecation") // DisplayMetrics.scaledDensity
     private String deviceInfoRuntimeModuleSource() {
         DisplayMetrics metrics = context.getResources().getDisplayMetrics();
         double density = metrics == null || !Double.isFinite(metrics.density) || metrics.density <= 0.0f
@@ -201,6 +202,8 @@ final class NodeRuntimeModuleInjector {
                     .put("height", metrics == null ? 0 : Math.max(0, metrics.heightPixels))
                     .put("density", density)
                     .put("densityDpi", metrics == null ? 0 : metrics.densityDpi)
+                    // util.spToPx / pxToSp of the JS tools convert linearly with it.
+                    .put("scaledDensity", metrics == null || !Double.isFinite(metrics.scaledDensity) || metrics.scaledDensity <= 0.0f ? density : metrics.scaledDensity)
                     .put("release", Build.VERSION.RELEASE)
                     .put("model", Build.MODEL)
                     .put("brand", Build.BRAND)

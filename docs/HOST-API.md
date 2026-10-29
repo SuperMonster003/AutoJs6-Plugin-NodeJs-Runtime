@@ -158,9 +158,19 @@ Worker 中使用 `require("autojs6:bridge").callAutoJs("device", "info", [], {ti
 
 ## 四. 本地工具与宿主桥接模块
 
-`files` (Node fs 便捷封装), `base64`, `colors`, `formatter`/`fmt`, `converter`/`cvt`, `s13n`, `mime`, `nanoid`, `jsox` (+.mathx/.arrayx/.numberx), `plugins` (本地 ./plugins 目录扫描) 由插件本地实现. `autojs6:opencc` 通过真实宿主插件提供异步转换, 需要 `opencc` 能力; 裸名 `opencc` 仍可被已安装的同名 npm 包覆盖.
+`files` (Node fs 便捷封装), `base64`, `colors`, `formatter`/`fmt`, `converter`/`cvt`, `s13n`, `mime`, `nanoid`, `jsox` (+.mathx/.arrayx/.numberx), `autojs6:util`, `species`, `autojs6:global`, `plugins` (本地 ./plugins 目录扫描) 由插件本地实现. `autojs6:opencc` 通过真实宿主插件提供异步转换, 需要 `opencc` 能力; 裸名 `opencc` 仍可被已安装的同名 npm 包覆盖.
 
 宿主还提供显式桥调用 `files.list/stat/read/write/mkdir/rename/delete`, `console.tail`, 用于宿主工作区和日志读取. 它们分别使用 `files` (+ 写入时 `files.write`, 删除时 `files.delete`), `console` 声明. 原生 Node fs 仍使用插件 UID.
+
+### JS 工具族与 Rhino 对照 (2026-10-29)
+
+`autojs6:util` (Rhino 的 util, 不是 `node:util`; 裸名 `util` 仍是 Node 原生模块), `species` / `autojs6:species`, `autojs6:global` (Rhino 的全局数据函数 random / randomInt / randomFloat / isInteger / isPrimitive / isObject / isReference / isBigInt / isEmptyObject / isObjectSpecies, 主线程另有 axios), `s13n`, `formatter`/`fmt`, `converter`/`cvt`, `jsox` 与 `jsox.mathx` / `jsox.arrayx` / `jsox.numberx` 由同一份自包含实现 (`node_bridge_sources.cpp` 的 "Shared JS tools core" 段) 提供, 主线程与 Worker (CJS, ESM, 嵌套 Worker) 一致; 主线程还可经 `$autojs.util` / `species` / `global` / `jsox` / `s13n` / `fmt` / `cvt` 访问. 实现按宿主 `runtime/api/modules/**` 移植, 参数个数, 参数转换与错误类型 (TypeError / RangeError) 与 Rhino 相同; 每个函数在真机 Rhino 上的结果记录在 `tools/nodejs/api/js-tools/rhino-expected.json`, `node tools/nodejs/api/test-js-tools.js` 逐例对照, `tools/nodejs/api/js-tools/device_js_tools.py` 在真机上对照主线程, ESM 与嵌套 Worker. `util.inspect` / `util.format` 按宿主 Inspector 移植 (选项与默认值相同, 不是 `node:util.inspect`), Java 句柄按普通对象打印 (Rhino 打印 Java 对象的 toString). `util.toRegularAndCall` / `toRegularAndApply` 缺参数时抛出的错误 name 为 ObsoletedRhinoFunctionException (Rhino 为 JavaException).
+
+需要 Java 对象的成员经现有 Java 门面在宿主进程执行, 返回 Promise 并需要 `java_interop`: `util.java.*` (instanceof / instanceOf / array / toJsArray / objectToMap / mapToObject), `s13n.point` (android.graphics.Point 句柄), `s13n.throwable` (java.lang.Throwable 句柄), `util.morseCode.vibrate` (宿主 Device.doVibrate). `util.isJavaObject` / `isJavaArray` 与 `species.isJavaObject` / `isJavaClass` 同步判断 Java 句柄与 `java.type()` 类描述; Node 没有 Java 包对象, `species.isJavaPackage` 总为 false.
+
+`util.dpToPx` / `pxToDp` / `spToPx` / `pxToSp` 与 `util.version.sdkInt` 使用插件进程启动时的屏幕密度与 SDK 版本 (与宿主同一台设备), 按宿主 DisplayUtils 的 float 运算. sp 换算按 scaledDensity 线性计算: Android 14 起系统字体放大时宿主使用非线性曲线, 此时结果与 Rhino 有差异 (api-coverage Q60). `jsox.extend` / `extendAll` 与 Rhino 一样把成员装到当前线程的 Math / Array.prototype / Number.prototype / Number 上 (api-coverage Q59); 不再接受目标对象参数.
+
+Rhino 全局的 dayjs / pangu / cheerio / i18n 以及 Worker 中的 axios 尚无入口 (api-coverage Q61), 可用同名 npm 包代替.
 
 ### 拼音, 控制台与坐标 (2026-10-17)
 

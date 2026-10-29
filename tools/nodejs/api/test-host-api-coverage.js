@@ -22,7 +22,7 @@ const factory = new Function("__autojs6_call_autojs", "__autojs6_invalid_arg_typ
   let __autojs6_limited_pinyin_cache, __autojs6_limited_pinyin4j_cache;
   let __autojs6_limited_screen_metrics_cache, __autojs6_limited_console_cache;
   const __autojs6_has_own = (object, name) => Object.prototype.hasOwnProperty.call(object, name);
-  ${segment("  const __autojs6_pinyin_styles =", "  function __autojs6_jsox_mathx_flatten(")}
+  ${segment("  const __autojs6_pinyin_styles =", "  // Shared JS tools core.")}
   ${segment("  function __autojs6_limited_console()", "  let __autojs6_main_module_ref =")}
   return {
     pinyin: __autojs6_limited_pinyin(), pinyin4j: __autojs6_limited_pinyin4j(),

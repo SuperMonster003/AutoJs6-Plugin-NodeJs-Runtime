@@ -8,6 +8,11 @@ import { getAvailableSources } from "input_observer";
 import fetchModule = require("fetch");
 import axios = require("axios");
 import profile = require("autojs6:profile");
+import rhinoUtil = require("autojs6:util");
+import species = require("species");
+import rhinoGlobal = require("autojs6:global");
+import s13n = require("s13n");
+import jsox = require("jsox");
 
 async function verifyPublicEntry(): Promise<void> {
   const text: string = await pinyin.simple("\u5317\u4eac");
@@ -72,3 +77,19 @@ async function checkFlowScopesAndGestures() {
   await scopeFlow.all([first]);
   return {text, points, stillText, first, acted, kept, callback};
 }
+
+// The JS tools modules of AutoJs6 Rhino scripts (api-coverage P3.2a): synchronous values, Java-backed Promises.
+async function verifyJsTools(): Promise<void> {
+  const px: number = rhinoUtil.dpToPx(8);
+  const kind: string = species([]);
+  const empty: boolean = rhinoGlobal.isEmptyObject({}) && species.isObject({});
+  const color: number = s13n.color("#FF0000");
+  const point: unknown = await s13n.point([1, 2]);
+  const list: unknown[] | null = await rhinoUtil.java.toJsArray(null, true);
+  const pattern: number[] = rhinoUtil.morseCode("SOS").pattern;
+  const text: string = rhinoUtil.inspect({a: 1}, {maxArrayItems: 3});
+  const sdk: number = $autojs.util.version.sdkInt + $autojs.cvt.bytes("1 KB");
+  jsox.extend("Mathx", ["Arrayx"]);
+  void [px, kind, empty, color, point, list, pattern, text, sdk];
+}
+void verifyJsTools;

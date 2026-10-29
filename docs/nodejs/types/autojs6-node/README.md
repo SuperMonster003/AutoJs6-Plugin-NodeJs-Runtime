@@ -38,7 +38,9 @@ matching host/Builder template plus an installed Node runtime.
   modules retain their documented bridge/request options.
 - Utilities and migration: `base64`, `colors`, `formatter`/`fmt`,
   `converter`/`cvt`, `s13n`, `mime`, `nanoid`, `opencc`, `pinyin`, `pinyin4j`,
-  `jsox`, `rhino`, `java`, `autojs6:compat` and global `$autojs`.
+  `jsox`, `autojs6:util` (AutoJs6 util; bare `util` stays `node:util`),
+  `species`, `autojs6:global`, `rhino`, `java`, `autojs6:compat` and global
+  `$autojs`.
   Java calls use the host's published class/member policy. Rhino installation
   is explicit; no Rhino globals are installed merely by requiring a module.
 - Lifecycle and local plugins: `autojs6:lifecycle`, `plugins`,
