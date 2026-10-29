@@ -88,9 +88,9 @@ async function smoke(): Promise<void> {
   const launchAlias: boolean = await app.launch(app.packageName, { timeoutMs: 1000 });
   const parsedUri: app.UriDescriptor | null = app.parseUri("https://example.invalid/path?q=1#frag");
   const getUriForFile: () => Promise<import("autojs6:android").UriSnapshot> = () => app.getUriForFile("README.md");
-  const killDenied: Promise<never> = app.kill(app.packageName, { timeoutMs: 1000 });
-  const launchDualDenied: Promise<never> = app.launchDualPackage(app.packageName, { timeoutMs: 1000 });
-  const dualInstalledDenied: Promise<never> = app.isDualInstalled(app.packageName, { timeoutMs: 1000 });
+  const killPackage: () => Promise<boolean> = () => app.kill(app.packageName, { timeoutMs: 1000 });
+  const launchDualPackage: () => Promise<boolean> = () => app.launchDualPackage(app.packageName, { timeoutMs: 1000 });
+  const dualInstalled: () => Promise<boolean> = () => app.isDualInstalled(app.packageName, { timeoutMs: 1000 });
   await app.openAppSetting(app.packageName, { timeoutMs: 1000 });
   const viewIntent: app.IntentDescriptor = app.intent({
     action: "VIEW",
@@ -167,7 +167,7 @@ async function smoke(): Promise<void> {
   const compatShellIntent: string = rhinoCompat.app.intentToShell(compatIntent);
   const compatParsedUri: app.UriDescriptor | null = rhinoCompat.app.parseUri("content://org.autojs6.example/item/1");
   const compatGetUriForFile: () => Promise<import("autojs6:android").UriSnapshot> = () => rhinoCompat.app.getUriForFile("README.md");
-  const compatKillDenied: Promise<never> = rhinoCompat.app.kill(app.packageName, { timeoutMs: 1000 });
+  const compatKillPackage: () => Promise<boolean> = () => rhinoCompat.app.kill(app.packageName, { timeoutMs: 1000 });
   await rhinoCompat.app.openUrl("https://example.invalid", { timeoutMs: 1000 });
   const compatBroadcastSent: Promise<void> = rhinoCompat.app.sendBroadcast("inspect_layout_bounds", { timeoutMs: 1000 });
   const compatScreenOn: boolean = await rhinoCompat.device.isScreenOn({ timeoutMs: 1000 });

@@ -5308,6 +5308,8 @@ std::string buildEmbeddedScriptExecutionSource(
       if (["startActivity", "startService", "sendBroadcast"].includes(methodName)) return ["app.activity"];
       if (methodName === "viewFile" || methodName === "editFile") return ["app.activity"];
       if (["getPackageName", "getAppName", "isInstalled", "getInstalledApps", "getPackageInfo"].includes(methodName)) return ["app.query"];
+      if (["resolvePackage", "getUserProfiles", "getInstalledPackages", "getApkInfo", "getAppByAlias"].includes(methodName)) return ["app.query"];
+      if (methodName === "sendLocalBroadcastSync") return ["app.activity"];
       return ["app"];
     }
     if (moduleName === "dialogs") return ["dialogs"];
@@ -8639,7 +8641,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire, createApp) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8651,7 +8653,9 @@ std::string buildEmbeddedScriptExecutionSource(
     const uiCall = (module, method, args, options = {}) => bridgeCall(module, method, args, { ...options, permissions: ["ui"] });
     if (createUi && methods.ui) modules.set("ui", createUi(uiCall));
     if (createCompose && methods.compose) modules.set("compose", createCompose(uiCall));
-    if (createShell && methods.shell) for (const [name,value] of Object.entries(createShell(bridgeCall,SensorEmitter,shellStreams,shellBuffer,required=>required.filter(x=>(constants.shellMissing||[]).includes(x))))) modules.set(name,value);
+    if (createShell && methods.shell) for (const [name,value] of Object.entries(createShell(bridgeCall,SensorEmitter,shellStreams,shellBuffer,required=>required.filter(x=>(constants.shellMissing||[]).includes(x)),undefined,intent=>modules.get("app").intentToShell(intent),()=>constants.device||{}))) modules.set(name,value);
+    if (createApp && methods.app) modules.set("app",createApp(bridgeCall,()=>constants.appInfo||{},(message,code,module,method)=>Object.assign(new Error(message),{code,module,method}),
+      options=>options&&options.signal,()=>modules.get("android"),()=>modules.get("shell"),required=>required.filter(x=>(constants.appMissing||[]).includes(x))));
     if (createAndroid && methods.android) modules.set("android", createAndroid(bridgeCall, value => modules.get("colors").toInt(value)));
     if(createFlow && methods.flow) modules.set("flow",createFlow(bridgeCall,nativeConsole,JavaAsyncContext));
     if(createMail && methods.mail) modules.set("mail",createMail(bridgeCall));
@@ -8966,7 +8970,7 @@ std::string buildEmbeddedScriptExecutionSource(
       diagnostics: () => __autojs6_limited_axios().diagnostics()
     };
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, createApp) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -9058,7 +9062,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire, createApp);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -9186,7 +9190,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", undefined, " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ", " + __autojs6_create_flow.toString() + ", " + __autojs6_create_ai.toString() + ", " + __autojs6_create_js_tools.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", undefined, " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ", " + __autojs6_create_flow.toString() + ", " + __autojs6_create_ai.toString() + ", " + __autojs6_create_js_tools.toString() + ", " + __autojs6_create_app.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -9234,7 +9238,7 @@ std::string buildEmbeddedScriptExecutionSource(
             android:Object.keys(__autojs6_limited_android()), tasks:Object.keys(__autojs6_limited_tasks()), colors:Object.keys(__autojs6_limited_colors()),
             device:Object.keys(__autojs6_limited_device()), dialogs:Object.keys(__autojs6_limited_dialogs()),
             events:Object.keys(__autojs6_host_events()), notifications:Object.keys(__autojs6_limited_notifications()),
-            shell:Object.keys(__autojs6_limited_shell()), shizuku:Object.keys(__autojs6_limited_shizuku()),
+            app:Object.keys(__autojs6_limited_app()), shell:Object.keys(__autojs6_limited_shell()), shizuku:Object.keys(__autojs6_limited_shizuku()),
             storages: Object.keys(__autojs6_limited_storage("storages")), storage: Object.keys(__autojs6_limited_storage("storage")),
             database: ["open"], sqlite: ["open"], sensors: ["policy", "getAvailableSensors", "once", "subscribe"],
             ui: Object.keys(__autojs6_limited_ui()),
@@ -9253,6 +9257,7 @@ std::string buildEmbeddedScriptExecutionSource(
             console: Object.keys(__autojs6_limited_console())
           },
           hostModuleConstants: {
+            appInfo:__autojs6_host_app_info(), appMissing:__autojs6_bridge_missing_capabilities(["app.launch","app.settings","app.activity","app.query","shell","shell.root","shell.shizuku"]),
             librariesDir: __autojs6_internal_request_env_value("AUTOJS6_NODE_JS_LIBRARIES_DIR"),
             librariesError: __autojs6_internal_request_env_value("AUTOJS6_NODE_JS_LIBRARIES_ERROR"), axiosPolicy: __autojs6_fetch_policy_snapshot(),
             hostAppDirs: __autojs6_host_app_dirs(), sdcardPath: __autojs6_sdcard_path(),
@@ -10165,7 +10170,7 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_limited_device() {
     return __autojs6_limited_device_cache ||= __autojs6_create_device(__autojs6_call_autojs,__autojs6_host_device_info());
   }
-  function __autojs6_create_shell(call, EventEmitter, streams, BufferClass, missingCapabilities = () => [], createError) {
+  function __autojs6_create_shell(call, EventEmitter, streams, BufferClass, missingCapabilities = () => [], createError, intentToShell, screenSize = () => ({ width: 0, height: 0 })) {
     const fail=(message,code="ERR_AUTOJS6_BRIDGE_INVALID_REQUEST") => createError ? createError(message,code,"shell") : Object.assign(new Error(message),{code,module:"shell"});
     const abortError=signal => Object.assign(new Error("Shell operation was aborted",{cause:signal?.reason}),{name:"AbortError",code:"ABORT_ERR"});
     let defaultTimeout=30000;
@@ -10250,6 +10255,12 @@ std::string buildEmbeddedScriptExecutionSource(
         async kill(){await ready;if(closed)return false;killed=true;const alive=await invoke("kill",[id]);schedule();return alive;},
         close(){if(closePromise)return closePromise;closePromise=ready.catch(()=>{}).then(async()=>{if(closed)return false;killed=true;try{const status=await invoke("close",[id]);end(Number(status?.code??-1),aborted?abortError(signal):undefined);return status?.wasAlive===true;}catch(error){end(null,error);throw error;}});return closePromise;}
       });
+      // Rhino ShellProcess members (api-coverage P3.1a, Q31): the stream getters return the runtime streams.
+      Object.assign(emitter,{
+        isAlive:()=>!closed&&exitCode===null,
+        getInputStream:()=>claim("stdout","raw"),getErrorStream:()=>claim("stderr","raw"),getOutputStream:()=>stdin,
+        toString(){const text=String(emitter.command);return "ShellProcess { pid: "+pid+", mode: "+mode+", command: "+text.slice(0,80).replace(/\n/g,"; ")+(text.length>80?"...":"")+", alive: "+emitter.isAlive()+(exitCode===null?"":", exitCode: "+exitCode)+" }";}
+      });
       function onAbort(){aborted=true;emitter.close().catch(()=>{});}
       const ready=Promise.resolve().then(async()=>{
         if(signal?.aborted)throw abortError(signal);
@@ -10262,11 +10273,10 @@ std::string buildEmbeddedScriptExecutionSource(
       signal?.addEventListener("abort",onAbort,{once:true});
       return emitter;
     }
-    function spawn(command,opts){return start("spawn",command,opts);}
     function open(opts){return start("open",null,opts);}
     async function exec(command,input){
       const opts=options(input),limit=opts.maxOutputBytes??1048576;if(!Number.isInteger(limit)||limit<1)throw fail("maxOutputBytes must be a positive integer");
-      const child=spawn(command,{...opts,timeoutMs:duration(opts.timeoutMs,defaultTimeout)}),out=[],err=[];let bytes=0,truncated=false;
+      const child=start("spawn",command,{...opts,timeoutMs:duration(opts.timeoutMs,defaultTimeout)}),out=[],err=[];let bytes=0,truncated=false;
       const collect=target=>chunk=>{const keep=Math.min(chunk.length,Math.max(0,limit-bytes));if(keep)target.push(chunk.subarray(0,keep));bytes+=keep;if(keep<chunk.length)truncated=true;};
       child.stdout.on("data",collect(out));child.stderr.on("data",collect(err));
       try{await child.ready;await child.closeInput();const code=await child.waitFor();return Object.freeze({code,stdout:BufferClass.concat(out).toString("utf8"),stderr:BufferClass.concat(err).toString("utf8")+(child.timedOut?"\nAutoJs6 shell command timed out after "+duration(opts.timeoutMs,defaultTimeout)+"ms.":""),timedOut:child.timedOut,truncated});}
@@ -10278,9 +10288,189 @@ std::string buildEmbeddedScriptExecutionSource(
     function checkAccess(input){const opts=options(input),required=["shell",...(opts.root?["shell.root"]:[]),...(opts.shizuku||opts.adb?["shell.shizuku"]:[])],missing=missingCapabilities(required);return Object.freeze({shell:!missing.includes("shell"),root:opts.root===true&&!missing.includes("shell.root"),shizuku:(opts.shizuku===true||opts.adb===true)&&!missing.includes("shell.shizuku"),missingCapabilities:Object.freeze(missing.slice())});}
     async function getAccess(opts){return Object.freeze(await call("shell","getAccess",[],{timeoutMs:5000,...options(opts),permissions:["shell"]}));}
     function setDefaultTimeout(ms){if(!Number.isFinite(ms)||ms<=0)throw fail("Default timeout must be positive");return defaultTimeout=duration(ms,defaultTimeout);}
+    // Rhino shell / shizuku module parity (api-coverage P3.1a): Rhino command arguments, the per-execution defaults of
+    // setDefaultOptions, "am force-stop", the foreground activity and the global key / input functions, on the routes above.
+    const rhinoDefaults={root:null,adb:null},design={width:0,height:0};
+    const typeError=message=>Object.assign(new TypeError(message),{code:"ERR_INVALID_ARG_TYPE"});
+    const capabilityError=error=>error&&error.code==="ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED";
+    const operational=access=>access.shizukuOperational??(access.shizukuRunning===true&&access.shizukuGranted===true);
+    const kebab=key=>key.replace(/([a-z])([A-Z])/g,"$1-$2").replace(/([A-Z])([A-Z][a-z])/g,"$1-$2").replace(/([a-z])([0-9])/g,"$1-$2").toLowerCase();
+    function rhinoArguments(entries,withRoot=null){
+      let root=null,exit=false,adb=null,line="";
+      for(const [key,value] of entries){
+        if(key==="root"){root=String(value)!=="false";continue;}
+        if(key==="exit"){exit=String(value)!=="false";continue;}
+        if(key==="adb"){adb=String(value)!=="false";continue;}
+        const name=key.startsWith("--")?"--"+kebab(key.slice(2)):key.startsWith("-")?key:key.length>=1&&key.length<=2?"-"+key:"--"+kebab(key);
+        line+=value===true?name+" ":name+" "+(typeof value==="string"&&(value.includes(" ")||value.startsWith("-"))?"\""+value+"\"":value==null?"":String(value))+" ";
+      }
+      return {arguments:line.trim(),root:root===null&&withRoot===null?null:root===true||withRoot===true,exit,adb};
+    }
+    function rhinoArgumentEntries(value){
+      if(typeof value!=="string")return Object.entries(value);
+      return [...new Map(value.split(/\s*\|\s*/).map(part=>{if(!part.includes("="))return [part,true];const [key,item]=part.split(/\s*=\s*/);return [key,item];}))];
+    }
+    // Rhino Shell.getCommandData: (command, arguments?, withRoot?); omitted trailing arguments do not count.
+    function rhinoCommand(name,args,defaultRoot=null,defaultAdb=null){
+      let count=args.length;while(count>0&&args[count-1]===undefined)count--;
+      const [command,second,third]=args,plain=value=>value!==null&&typeof value==="object"&&!Array.isArray(value);
+      if(typeof command!=="string"&&!(Array.isArray(command)&&command.every(item=>typeof item==="string")))throw typeError(name+": command must be a string or an array of strings");
+      if(count>3)throw typeError(name+" accepts at most 3 arguments");
+      let data={arguments:"",root:null,exit:false,adb:null};
+      if(count===3){
+        if(typeof second!=="string"&&!plain(second))throw typeError(name+": arguments must be a string or an object");
+        data=rhinoArguments(rhinoArgumentEntries(second),third==null?null:Boolean(third));
+      }else if(count===2){
+        if(typeof second==="number"||typeof second==="boolean")data.root=Boolean(second);
+        else if(typeof second==="string"||plain(second))data=rhinoArguments(rhinoArgumentEntries(second));
+        else throw typeError(name+": withRoot / arguments must be a boolean, number, string or object");
+      }
+      let line=Array.isArray(command)?command.join("\n"):command;
+      if(data.arguments)line+=" "+data.arguments;
+      if(data.exit)line=[line,"exit","kill $$"].join("\n");
+      return {command:line,root:data.root??defaultRoot??false,adb:data.adb??defaultAdb??false};
+    }
+    const rhinoLines=text=>{if(!text)return "";const parts=String(text).split(/\r\n|\r|\n/);if(parts[parts.length-1]==="")parts.pop();return parts.map(line=>line+"\n").join("");};
+    // Rhino AbstractShell.Result: lines end with "\n"; any stderr output makes a zero code 1, "Error type N" makes it N.
+    function rhinoResult(value){
+      const result=rhinoLines(value.stdout),error=rhinoLines(value.stderr);let code=value.code;
+      if(error){const match=/^Error type (\d+)/.exec(error);if(match)code=Number(match[1]);if(code===0)code=1;}
+      return Object.freeze({code,result,error,timedOut:value.timedOut===true,truncated:value.truncated===true});
+    }
+    // A process that cannot start is a failed result as in Rhino; undeclared capabilities and aborts still reject.
+    async function rhinoExec(command,opts){
+      try{return rhinoResult(await exec(command,{...opts,maxOutputBytes:16777216}));}
+      catch(error){
+        if(capabilityError(error)||error&&error.name==="AbortError")throw error;
+        const message=String(error&&error.message||error),match=/error=(\d+)/.exec(message);
+        return Object.freeze({code:match?Number(match[1]):1,result:"",error:message,timedOut:false,truncated:false});
+      }
+    }
+    function execCommand(...args){
+      try{
+        const data=rhinoCommand("shell.execCommand",args,rhinoDefaults.root,rhinoDefaults.adb);
+        if(data.adb)return rhinoExec(data.root?"su -c "+quote(data.command):data.command,{shizuku:true});
+        return rhinoExec(data.command.replace(/^\s*adb\s+shell\s+/i,""),{root:data.root});
+      }catch(error){return Promise.reject(error);}
+    }
+    function getCommand(...args){const data=rhinoCommand("shell.getCommand",args);return data.root?"su\n"+data.command:data.command;}
+    function shizukuExecCommand(...args){
+      try{return rhinoExec(rhinoCommand("shizuku.execCommand",args).command,{shizuku:true});}catch(error){return Promise.reject(error);}
+    }
+    function fromIntent(intent){
+      if(intent===null||typeof intent!=="object"||Array.isArray(intent))throw typeError("shell.fromIntent: intent must be an intent object");
+      if(!intentToShell)throw fail("shell.fromIntent requires the app module","ERR_AUTOJS6_BRIDGE_PROVIDER_MISSING");
+      return intentToShell(intent);
+    }
+    function setDefaultOptions(value){
+      if(value===undefined||value===null){rhinoDefaults.root=rhinoDefaults.adb=null;return;}
+      if(typeof value!=="object"||Array.isArray(value))throw typeError("shell.setDefaultOptions: options must be an object or null");
+      for(const key of Object.keys(value))if(key!=="root"&&key!=="adb")throw fail("Unknown default shell option \""+key+"\", expected one of root, adb","ERR_INVALID_ARG_VALUE");
+      rhinoDefaults.root=value.root==null?null:Boolean(value.root);rhinoDefaults.adb=value.adb==null?null:Boolean(value.adb);
+    }
+    // app.getPackageName as Rhino resolves it: alias, installed package name, then application label.
+    async function rhinoPackage(target){
+      if(target===undefined||target===null)return null;
+      const text=String(target).trim();if(!text)return null;
+      const record=await call("app","resolvePackage",[text],{timeoutMs:10000,permissions:["app.query"]});
+      return record&&record.packageName||null;
+    }
+    async function kill(target){
+      if(!(await getAccess()).rootAvailable)return false;
+      const packageName=await rhinoPackage(target);
+      return packageName?(await execCommand("am force-stop "+packageName,true)).code===0:false;
+    }
+    async function shizukuKill(target){
+      if(!operational(await getAccess()))return false;
+      const packageName=await rhinoPackage(target);
+      return packageName?(await shizukuExecCommand("am force-stop "+packageName)).code===0:false;
+    }
+    // Rhino Shell.currentComponentRhino: the first token with "/" on the first "Resumed" line of the activity dump.
+    function resumedComponent(text){
+      const line=String(text).split(/\r\n|\r|\n/).find(item=>item.includes("Resumed:")||item.includes("ResumedActivity"));
+      const part=line&&line.split(/\s+/).find(item=>item.includes("/"));
+      return part?part.replace(/\W+$/,""):"";
+    }
+    async function rootComponent(){
+      if(!(await getAccess()).rootAvailable)return "";
+      const result=await rhinoExec("dumpsys activity activities",{root:true});
+      return result.code===0?resumedComponent(result.result):"";
+    }
+    // The Shizuku service reports the full class name (ComponentName.flattenToString).
+    async function shizukuComponent(){
+      if(!operational(await getAccess()))return {packageName:"",activity:"",component:""};
+      const result=await rhinoExec("dumpsys activity activities",{shizuku:true}),component=result.code===0?resumedComponent(result.result):"";
+      if(!component.includes("/"))return {packageName:"",activity:"",component:""};
+      const [packageName,name]=component.split("/"),activity=name.startsWith(".")?packageName+name:name;
+      return {packageName,activity,component:packageName+"/"+activity};
+    }
+    const keyNames="UNKNOWN SOFT_LEFT SOFT_RIGHT HOME BACK CALL ENDCALL 0 1 2 3 4 5 6 7 8 9 STAR POUND DPAD_UP DPAD_DOWN DPAD_LEFT DPAD_RIGHT DPAD_CENTER VOLUME_UP VOLUME_DOWN POWER CAMERA CLEAR A B C D E F G H I J K L M N O P Q R S T U V W X Y Z COMMA PERIOD ALT_LEFT ALT_RIGHT SHIFT_LEFT SHIFT_RIGHT TAB SPACE SYM EXPLORER ENVELOPE ENTER DEL GRAVE MINUS EQUALS LEFT_BRACKET RIGHT_BRACKET BACKSLASH SEMICOLON APOSTROPHE SLASH AT NUM HEADSETHOOK FOCUS PLUS MENU NOTIFICATION SEARCH MEDIA_PLAY_PAUSE MEDIA_STOP MEDIA_NEXT MEDIA_PREVIOUS MEDIA_REWIND MEDIA_FAST_FORWARD MUTE PAGE_UP PAGE_DOWN PICTSYMBOLS SWITCH_CHARSET BUTTON_A BUTTON_B BUTTON_C BUTTON_X BUTTON_Y BUTTON_Z BUTTON_L1 BUTTON_R1 BUTTON_L2 BUTTON_R2 BUTTON_THUMBL BUTTON_THUMBR BUTTON_START BUTTON_SELECT BUTTON_MODE ESCAPE FORWARD_DEL CTRL_LEFT CTRL_RIGHT CAPS_LOCK SCROLL_LOCK META_LEFT META_RIGHT FUNCTION SYSRQ BREAK MOVE_HOME MOVE_END INSERT FORWARD MEDIA_PLAY MEDIA_PAUSE MEDIA_CLOSE MEDIA_EJECT MEDIA_RECORD F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12 NUM_LOCK NUMPAD_0 NUMPAD_1 NUMPAD_2 NUMPAD_3 NUMPAD_4 NUMPAD_5 NUMPAD_6 NUMPAD_7 NUMPAD_8 NUMPAD_9 NUMPAD_DIVIDE NUMPAD_MULTIPLY NUMPAD_SUBTRACT NUMPAD_ADD NUMPAD_DOT NUMPAD_COMMA NUMPAD_ENTER NUMPAD_EQUALS NUMPAD_LEFT_PAREN NUMPAD_RIGHT_PAREN VOLUME_MUTE INFO CHANNEL_UP CHANNEL_DOWN ZOOM_IN ZOOM_OUT TV WINDOW GUIDE DVR BOOKMARK CAPTIONS SETTINGS TV_POWER TV_INPUT STB_POWER STB_INPUT AVR_POWER AVR_INPUT PROG_RED PROG_GREEN PROG_YELLOW PROG_BLUE APP_SWITCH BUTTON_1 BUTTON_2 BUTTON_3 BUTTON_4 BUTTON_5 BUTTON_6 BUTTON_7 BUTTON_8 BUTTON_9 BUTTON_10 BUTTON_11 BUTTON_12 BUTTON_13 BUTTON_14 BUTTON_15 BUTTON_16 LANGUAGE_SWITCH MANNER_MODE 3D_MODE CONTACTS CALENDAR MUSIC CALCULATOR ZENKAKU_HANKAKU EISU MUHENKAN HENKAN KATAKANA_HIRAGANA YEN RO KANA ASSIST BRIGHTNESS_DOWN BRIGHTNESS_UP MEDIA_AUDIO_TRACK SLEEP WAKEUP PAIRING MEDIA_TOP_MENU 11 12 LAST_CHANNEL TV_DATA_SERVICE VOICE_ASSIST TV_RADIO_SERVICE TV_TELETEXT TV_NUMBER_ENTRY TV_TERRESTRIAL_ANALOG TV_TERRESTRIAL_DIGITAL TV_SATELLITE TV_SATELLITE_BS TV_SATELLITE_CS TV_SATELLITE_SERVICE TV_NETWORK TV_ANTENNA_CABLE TV_INPUT_HDMI_1 TV_INPUT_HDMI_2 TV_INPUT_HDMI_3 TV_INPUT_HDMI_4 TV_INPUT_COMPOSITE_1 TV_INPUT_COMPOSITE_2 TV_INPUT_COMPONENT_1 TV_INPUT_COMPONENT_2 TV_INPUT_VGA_1 TV_AUDIO_DESCRIPTION TV_AUDIO_DESCRIPTION_MIX_UP TV_AUDIO_DESCRIPTION_MIX_DOWN TV_ZOOM_MODE TV_CONTENTS_MENU TV_MEDIA_CONTEXT_MENU TV_TIMER_PROGRAMMING HELP NAVIGATE_PREVIOUS NAVIGATE_NEXT NAVIGATE_IN NAVIGATE_OUT STEM_PRIMARY STEM_1 STEM_2 STEM_3 DPAD_UP_LEFT DPAD_DOWN_LEFT DPAD_UP_RIGHT DPAD_DOWN_RIGHT MEDIA_SKIP_FORWARD MEDIA_SKIP_BACKWARD MEDIA_STEP_FORWARD MEDIA_STEP_BACKWARD SOFT_SLEEP CUT COPY PASTE SYSTEM_NAVIGATION_UP SYSTEM_NAVIGATION_DOWN SYSTEM_NAVIGATION_LEFT SYSTEM_NAVIGATION_RIGHT ALL_APPS REFRESH THUMBS_UP THUMBS_DOWN PROFILE_SWITCH VIDEO_APP_1 VIDEO_APP_2 VIDEO_APP_3 VIDEO_APP_4 VIDEO_APP_5 VIDEO_APP_6 VIDEO_APP_7 VIDEO_APP_8 FEATURED_APP_1 FEATURED_APP_2 FEATURED_APP_3 FEATURED_APP_4 DEMO_APP_1 DEMO_APP_2 DEMO_APP_3 DEMO_APP_4 KEYBOARD_BACKLIGHT_DOWN KEYBOARD_BACKLIGHT_UP KEYBOARD_BACKLIGHT_TOGGLE STYLUS_BUTTON_PRIMARY STYLUS_BUTTON_SECONDARY STYLUS_BUTTON_TERTIARY STYLUS_BUTTON_TAIL RECENT_APPS MACRO_1 MACRO_2 MACRO_3 MACRO_4 EMOJI_PICKER SCREENSHOT DICTATE NEW CLOSE DO_NOT_DISTURB PRINT LOCK FULLSCREEN F13 F14 F15 F16 F17 F18 F19 F20 F21 F22 F23 F24".split(" ");
+    // android.view.KeyEvent.keyCodeFromString (API 29+), then ShellModule's KEYCODE_ / 0x / bare-name forms; 0 is unknown.
+    function keyCodeFromString(text){
+      if(/^[+-]?\d+$/.test(text)){const value=Number(text);if(value>=0&&value<keyNames.length)return value;}
+      const name=text.startsWith("KEYCODE_")?text.slice(8):text,index=keyNames.indexOf(name);
+      return index>0?index:0;
+    }
+    function keyCodeOf(value){
+      if(typeof value!=="number"&&typeof value!=="string")throw typeError("KeyCode: keyCode must be a number or a string");
+      const raw=String(value),upper=raw.toUpperCase();
+      const code=raw.startsWith("KEYCODE_")?keyCodeFromString(upper):/^0x/i.test(raw)?(/^[0-9A-F]+$/.test(upper.slice(2))?parseInt(upper.slice(2),16):0)
+        :keyCodeFromString(upper)||keyCodeFromString("KEYCODE_"+upper);
+      if(!code)throw Object.assign(new RangeError("KeyCode: keyCode must be an Android key code or key name"),{code:"ERR_OUT_OF_RANGE"});
+      return code;
+    }
+    // The compatibility shell: Shizuku after setDefaultOptions({adb: true}), otherwise root; key events also prefer a
+    // usable Shizuku as Rhino does. Command results are not reported, as in Rhino.
+    async function compat(command,keyEvent=false){
+      let adb=rhinoDefaults.adb===true;
+      if(!adb&&keyEvent&&!missingCapabilities(["shell.shizuku"]).length)adb=operational(await getAccess());
+      await rhinoExec(command,adb?{shizuku:true}:{root:true});
+    }
+    const integer=(name,value)=>{if(typeof value!=="number"||!Number.isFinite(value))throw typeError(name+" must be a finite number");return Math.trunc(value);};
+    const scale=(value,size,designSize)=>designSize&&size?Math.trunc(value*size/designSize):value;
+    const scaleX=x=>scale(x,screenSize().width,design.width),scaleY=y=>scale(y,screenSize().height,design.height);
+    const key=code=>()=>compat("input keyevent "+code,true);
+    const compatibility={
+      Menu:key(1),Home:key(3),Back:key(4),Up:key(19),Down:key(20),Left:key(21),Right:key(22),OK:key(23),VolumeUp:key(24),VolumeDown:key(25),Power:key(26),Camera:key(27),
+      KeyCode(value){try{return compat("input keyevent "+keyCodeOf(value),true);}catch(error){return Promise.reject(error);}},
+      Text(text){return typeof text==="string"?compat("input text "+text):Promise.reject(typeError("Text: text must be a string"));},
+      Input(text){return typeof text==="string"?compat("input text "+text):Promise.reject(typeError("Input: text must be a string"));},
+      Tap(x,y){try{return compat("input tap "+scaleX(integer("Tap: x",x))+" "+scaleY(integer("Tap: y",y)));}catch(error){return Promise.reject(error);}},
+      Swipe(x1,y1,x2,y2,time){
+        try{
+          const points=[scaleX(integer("Swipe: x1",x1)),scaleY(integer("Swipe: y1",y1)),scaleX(integer("Swipe: x2",x2)),scaleY(integer("Swipe: y2",y2))];
+          return compat(["input","swipe",...points,...(time==null?[]:[integer("Swipe: duration",time)])].join(" "));
+        }catch(error){return Promise.reject(error);}
+      },
+      Screencap(path){return typeof path==="string"?compat("screencap -p "+path):Promise.reject(typeError("Screencap: path must be a string"));},
+      SetScreenMetrics(width,height){design.width=integer("SetScreenMetrics: width",width);design.height=integer("SetScreenMetrics: height",height);}
+    };
+    // Rhino spawn options: a boolean (root) or an object whose absent root / adb follow setDefaultOptions.
+    function spawn(command,opts){
+      if(Array.isArray(command)&&command.every(item=>typeof item==="string"))command=command.join("\n");
+      const value=typeof opts==="boolean"?{root:opts}:{...options(opts)};
+      if(value.root===undefined&&rhinoDefaults.root!==null)value.root=rhinoDefaults.root;
+      if(value.shizuku===undefined&&value.adb===undefined&&rhinoDefaults.adb!==null)value.adb=rhinoDefaults.adb;
+      return start("spawn",command,value);
+    }
+    function shizukuSpawn(command,opts){
+      if(Array.isArray(command)&&command.every(item=>typeof item==="string"))command=command.join("\n");
+      return start("spawn",command,{...(typeof opts==="boolean"?{root:opts}:options(opts)),shizuku:true});
+    }
+    const shizukuState=async()=>{const access=await getAccess();return Object.freeze({isInstalled:access.shizukuInstalled===true,hasService:access.shizukuHasService===true,isRunning:access.shizukuRunning===true,hasPermission:access.shizukuGranted===true,isOperational:operational(access)===true});};
     const requestShizukuPermission=opts=>call("shell","requestShizukuPermission",[],{timeoutMs:60000,...options(opts),permissions:["shell","shell.shizuku"]});
-    const shell=Object.freeze({exec,execRoot,execShizuku,execFile,checkAccess,getAccess,setDefaultTimeout,spawn,open,requestShizukuPermission});
-    const shizuku=Object.assign((command,opts)=>execShizuku(command,opts),{exec:execShizuku,spawn:(command,opts)=>spawn(command,{...options(opts),shizuku:true}),open:opts=>open({...options(opts),shizuku:true}),checkAccess:opts=>checkAccess({...options(opts),shizuku:true}),getAccess,requestPermission:requestShizukuPermission});
+    const shell=Object.freeze({exec,execRoot,execShizuku,execFile,checkAccess,getAccess,setDefaultTimeout,spawn,open,requestShizukuPermission,
+      execCommand,getCommand,fromIntent,kill,setDefaultOptions,isRootAvailable:async()=>(await getAccess()).rootAvailable===true,
+      currentPackage:async()=>(await rootComponent()).split("/")[0],
+      currentActivity:async()=>{const component=await rootComponent(),name=component.slice(component.lastIndexOf("/")+1);return name.startsWith(".")?component:name;},
+      currentComponent:rootComponent,...compatibility});
+    const shizuku=Object.assign((command,opts)=>execShizuku(command,opts),{exec:execShizuku,spawn:shizukuSpawn,open:opts=>open({...options(opts),shizuku:true}),checkAccess:opts=>checkAccess({...options(opts),shizuku:true}),getAccess,requestPermission:requestShizukuPermission,
+      execCommand:shizukuExecCommand,getCommand:(...args)=>rhinoCommand("shizuku.getCommand",args).command,kill:shizukuKill,
+      currentPackage:async()=>(await shizukuComponent()).packageName,currentActivity:async()=>(await shizukuComponent()).activity,currentComponent:async()=>(await shizukuComponent()).component,
+      isInstalled:async()=>(await shizukuState()).isInstalled,hasService:async()=>(await shizukuState()).hasService,isRunning:async()=>(await shizukuState()).isRunning,
+      hasPermission:async()=>(await shizukuState()).hasPermission,isOperational:async()=>(await shizukuState()).isOperational});
+    // Rhino's state getter, read on every access.
+    Object.defineProperty(shizuku,"state",{enumerable:true,get:shizukuState});
     return Object.freeze({shell,shizuku:Object.freeze(shizuku)});
   }
 
@@ -10288,7 +10478,7 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_shell_bundle() {
     return __autojs6_limited_shell_cache ||= __autojs6_create_shell(__autojs6_call_autojs,
       __autojs6_events_module().EventEmitter,__autojs6_builtin_module("stream"),__autojs6_builtin_module("buffer").Buffer,
-      __autojs6_bridge_missing_capabilities,__autojs6_bridge_error);
+      __autojs6_bridge_missing_capabilities,__autojs6_bridge_error,intent=>__autojs6_limited_app().intentToShell(intent),()=>__autojs6_host_device_info());
   }
   function __autojs6_limited_shell() { return __autojs6_shell_bundle().shell; }
   function __autojs6_limited_shizuku() { return __autojs6_shell_bundle().shizuku; }
@@ -24342,759 +24532,1051 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return "";
   }
-  function __autojs6_app_timeout_from_options(options, fallbackMs) {
-    return options && typeof options === "object" && options.timeoutMs !== undefined
-      ? options.timeoutMs
-      : fallbackMs;
-  }
-  function __autojs6_app_bridge_options(options, fallbackMs) {
-    return {
-      timeoutMs: __autojs6_app_timeout_from_options(options, fallbackMs),
-      signal: __autojs6_bridge_signal_from_options(options)
-    };
-  }
-  function __autojs6_app_invalid_argument_error(methodName, message) {
-    return __autojs6_bridge_error(
-      message,
-      "ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED",
-      "app",
-      methodName
-    );
-  }
-  function __autojs6_app_non_empty_string(value) {
-    return value === undefined || value === null ? "" : String(value);
-  }
-  function __autojs6_app_intent_plain_object(value) {
-    return value && typeof value === "object" && !Array.isArray(value);
-  }
-  function __autojs6_app_intent_error(methodName, message) {
-    throw __autojs6_app_invalid_argument_error(methodName, message);
-  }
-  function __autojs6_app_optional_intent_string(value, methodName, fieldName) {
-    if (value === undefined || value === null) {
-      return undefined;
+  // Shared app facade (api-coverage P3.1a): the main thread and Workers build it from this factory and Bun copies it
+  // with tools/host-client/sync-automation.mjs; the parameters keep the names of the main-thread helpers they replace.
+  function __autojs6_create_app(__autojs6_call_autojs, __autojs6_host_app_info, __autojs6_bridge_error, __autojs6_bridge_signal_from_options, __autojs6_limited_android, __autojs6_app_shell, __autojs6_app_missing_capabilities) {
+    let __autojs6_limited_app_cache = null;
+    function __autojs6_app_timeout_from_options(options, fallbackMs) {
+      return options && typeof options === "object" && options.timeoutMs !== undefined
+        ? options.timeoutMs
+        : fallbackMs;
     }
-    const text = String(value);
-    return text.length > 0 ? text : undefined;
-  }
-  function __autojs6_app_expand_android_constant(kind, value) {
-    if (value === undefined || value === null) {
-      return undefined;
+    function __autojs6_app_bridge_options(options, fallbackMs) {
+      return {
+        timeoutMs: __autojs6_app_timeout_from_options(options, fallbackMs),
+        signal: __autojs6_bridge_signal_from_options(options)
+      };
     }
-    const text = String(value).trim();
-    if (!text) {
-      return undefined;
+    function __autojs6_app_invalid_argument_error(methodName, message) {
+      return __autojs6_bridge_error(
+        message,
+        "ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED",
+        "app",
+        methodName
+      );
     }
-    if (text.indexOf(".") >= 0) {
-      return text;
+    function __autojs6_app_non_empty_string(value) {
+      return value === undefined || value === null ? "" : String(value);
     }
-    return "android.intent." + kind + "." + text.toUpperCase();
-  }
-  function __autojs6_app_normalize_action(value) {
-    return __autojs6_app_expand_android_constant("action", value);
-  }
-  function __autojs6_app_normalize_category(value) {
-    return __autojs6_app_expand_android_constant("category", value);
-  }
-  function __autojs6_app_has_uri_scheme(value) {
-    return /^[a-z][a-z0-9+.-]*:/i.test(String(value || ""));
-  }
-  function __autojs6_app_parse_uri_descriptor(value, methodName) {
-    if (value === undefined || value === null) {
-      return null;
+    function __autojs6_app_intent_plain_object(value) {
+      return value && typeof value === "object" && !Array.isArray(value);
     }
-    const text = String(value);
-    const descriptor = {
-      schema: "autojs6-node-app-uri-descriptor-v1",
-      value: text
-    };
-    const schemeMatch = /^([a-z][a-z0-9+.-]*):(.*)$/i.exec(text);
-    if (!schemeMatch) {
-      if (text.length > 0) {
-        descriptor.path = text;
+    function __autojs6_app_intent_error(methodName, message) {
+      throw __autojs6_app_invalid_argument_error(methodName, message);
+    }
+    function __autojs6_app_optional_intent_string(value, methodName, fieldName) {
+      if (value === undefined || value === null) {
+        return undefined;
+      }
+      const text = String(value);
+      return text.length > 0 ? text : undefined;
+    }
+    function __autojs6_app_expand_android_constant(kind, value) {
+      if (value === undefined || value === null) {
+        return undefined;
+      }
+      const text = String(value).trim();
+      if (!text) {
+        return undefined;
+      }
+      if (text.indexOf(".") >= 0) {
+        return text;
+      }
+      return "android.intent." + kind + "." + text.toUpperCase();
+    }
+    function __autojs6_app_normalize_action(value) {
+      return __autojs6_app_expand_android_constant("action", value);
+    }
+    function __autojs6_app_normalize_category(value) {
+      return __autojs6_app_expand_android_constant("category", value);
+    }
+    function __autojs6_app_has_uri_scheme(value) {
+      return /^[a-z][a-z0-9+.-]*:/i.test(String(value || ""));
+    }
+    function __autojs6_app_parse_uri_descriptor(value, methodName) {
+      if (value === undefined || value === null) {
+        return null;
+      }
+      const text = String(value);
+      const descriptor = {
+        schema: "autojs6-node-app-uri-descriptor-v1",
+        value: text
+      };
+      const schemeMatch = /^([a-z][a-z0-9+.-]*):(.*)$/i.exec(text);
+      if (!schemeMatch) {
+        if (text.length > 0) {
+          descriptor.path = text;
+        }
+        return Object.freeze(descriptor);
+      }
+      descriptor.scheme = schemeMatch[1].toLowerCase();
+      try {
+        const parsed = new URL(text);
+        const userInfo = parsed.username || parsed.password
+          ? parsed.username + (parsed.password ? ":" + parsed.password : "")
+          : "";
+        const authority = (userInfo ? userInfo + "@" : "") + parsed.host;
+        if (authority) descriptor.authority = authority;
+        if (userInfo) descriptor.userInfo = userInfo;
+        if (parsed.hostname) descriptor.host = parsed.hostname;
+        if (parsed.port) descriptor.port = Number(parsed.port);
+        if (parsed.pathname) descriptor.path = parsed.pathname;
+        if (parsed.search) descriptor.query = parsed.search.slice(1);
+        if (parsed.hash) descriptor.fragment = parsed.hash.slice(1);
+      } catch (_) {
+        const rest = schemeMatch[2] || "";
+        if (rest) descriptor.path = rest;
       }
       return Object.freeze(descriptor);
     }
-    descriptor.scheme = schemeMatch[1].toLowerCase();
-    try {
-      const parsed = new URL(text);
-      const userInfo = parsed.username || parsed.password
-        ? parsed.username + (parsed.password ? ":" + parsed.password : "")
-        : "";
-      const authority = (userInfo ? userInfo + "@" : "") + parsed.host;
-      if (authority) descriptor.authority = authority;
-      if (userInfo) descriptor.userInfo = userInfo;
-      if (parsed.hostname) descriptor.host = parsed.hostname;
-      if (parsed.port) descriptor.port = Number(parsed.port);
-      if (parsed.pathname) descriptor.path = parsed.pathname;
-      if (parsed.search) descriptor.query = parsed.search.slice(1);
-      if (parsed.hash) descriptor.fragment = parsed.hash.slice(1);
-    } catch (_) {
-      const rest = schemeMatch[2] || "";
-      if (rest) descriptor.path = rest;
+    function __autojs6_app_looks_like_web_url(value) {
+      const text = String(value || "").trim();
+      return /^(www\.)?[-a-z0-9]+(\.[a-z0-9-]+)+(\/|$|\?|#)/i.test(text);
     }
-    return Object.freeze(descriptor);
-  }
-  function __autojs6_app_looks_like_web_url(value) {
-    const text = String(value || "").trim();
-    return /^(www\.)?[-a-z0-9]+(\.[a-z0-9-]+)+(\/|$|\?|#)/i.test(text);
-  }
-  function __autojs6_app_normalize_url(value, methodName, fieldName) {
-    const text = __autojs6_app_optional_intent_string(value, methodName, fieldName);
-    if (text === undefined) {
-      return undefined;
-    }
-    const trimmed = text.trim();
-    if (!trimmed) {
-      return undefined;
-    }
-    if (__autojs6_app_has_uri_scheme(trimmed)) {
-      return trimmed;
-    }
-    if (__autojs6_app_looks_like_web_url(trimmed)) {
-      return "http://" + trimmed;
-    }
-    __autojs6_app_intent_error(methodName, "app." + methodName + " " + fieldName + " must include a URI scheme or a web host.");
-  }
-  function __autojs6_app_intent_categories(value, methodName, fieldName) {
-    if (value === undefined || value === null) {
-      return [];
-    }
-    const values = Array.isArray(value) ? value : [value];
-    return values.map(function(entry) {
-      if (entry === undefined || entry === null) {
-        return "";
+    function __autojs6_app_normalize_url(value, methodName, fieldName) {
+      const text = __autojs6_app_optional_intent_string(value, methodName, fieldName);
+      if (text === undefined) {
+        return undefined;
       }
-      return __autojs6_app_normalize_category(entry) || "";
-    }).filter(function(entry) {
-      return entry.length > 0;
-    });
-  }
-  function __autojs6_app_intent_flag(value, methodName, fieldName) {
-    if (typeof value !== "number" || !Number.isFinite(value) || Math.floor(value) !== value) {
-      __autojs6_app_intent_error(methodName, "app." + methodName + " intent " + fieldName + " must be an integer flag value.");
-    }
-    return value | 0;
-  }
-  function __autojs6_app_intent_flags(value, methodName) {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
-    if (Array.isArray(value)) {
-      return value.reduce(function(flags, entry, index) {
-        return flags | __autojs6_app_intent_flag(entry, methodName, "flags[" + index + "]");
-      }, 0);
-    }
-    return __autojs6_app_intent_flag(value, methodName, "flags");
-  }
-  function __autojs6_app_intent_extra_value(value, methodName, key) {
-    if (value === undefined) {
-      return undefined;
-    }
-    if (value === null || typeof value === "string" || typeof value === "boolean") {
-      return value;
-    }
-    if (typeof value === "number") {
-      if (!Number.isFinite(value)) {
-        __autojs6_app_intent_error(methodName, "app." + methodName + " extras." + key + " must be a finite number.");
+      const trimmed = text.trim();
+      if (!trimmed) {
+        return undefined;
       }
-      return value;
+      if (__autojs6_app_has_uri_scheme(trimmed)) {
+        return trimmed;
+      }
+      if (__autojs6_app_looks_like_web_url(trimmed)) {
+        return "http://" + trimmed;
+      }
+      __autojs6_app_intent_error(methodName, "app." + methodName + " " + fieldName + " must include a URI scheme or a web host.");
     }
-    if (Array.isArray(value)) {
-      let elementType = "";
-      return Object.freeze(value.map(function(entry, index) {
-        const parsed = __autojs6_app_intent_extra_value(entry, methodName, key + "[" + index + "]");
-        const parsedType = parsed === null ? "null" : typeof parsed;
-        if (parsed === undefined || parsed === null || (parsed && typeof parsed === "object")) {
-          __autojs6_app_intent_error(methodName, "app." + methodName + " extras." + key + " arrays may only contain string, number, or boolean primitives.");
+    function __autojs6_app_intent_categories(value, methodName, fieldName) {
+      if (value === undefined || value === null) {
+        return [];
+      }
+      const values = Array.isArray(value) ? value : [value];
+      return values.map(function(entry) {
+        if (entry === undefined || entry === null) {
+          return "";
         }
-        if (!elementType) {
-          elementType = parsedType;
-        } else if (elementType !== parsedType) {
-          __autojs6_app_intent_error(methodName, "app." + methodName + " extras." + key + " arrays must not mix primitive types.");
+        return __autojs6_app_normalize_category(entry) || "";
+      }).filter(function(entry) {
+        return entry.length > 0;
+      });
+    }
+    function __autojs6_app_intent_flag(value, methodName, fieldName) {
+      if (typeof value !== "number" || !Number.isFinite(value) || Math.floor(value) !== value) {
+        __autojs6_app_intent_error(methodName, "app." + methodName + " intent " + fieldName + " must be an integer flag value.");
+      }
+      return value | 0;
+    }
+    function __autojs6_app_intent_flags(value, methodName) {
+      if (value === undefined || value === null) {
+        return undefined;
+      }
+      if (Array.isArray(value)) {
+        return value.reduce(function(flags, entry, index) {
+          return flags | __autojs6_app_intent_flag(entry, methodName, "flags[" + index + "]");
+        }, 0);
+      }
+      return __autojs6_app_intent_flag(value, methodName, "flags");
+    }
+    function __autojs6_app_intent_extra_value(value, methodName, key) {
+      if (value === undefined) {
+        return undefined;
+      }
+      if (value === null || typeof value === "string" || typeof value === "boolean") {
+        return value;
+      }
+      if (typeof value === "number") {
+        if (!Number.isFinite(value)) {
+          __autojs6_app_intent_error(methodName, "app." + methodName + " extras." + key + " must be a finite number.");
         }
-        return parsed;
-      }));
-    }
-    __autojs6_app_intent_error(methodName, "app." + methodName + " extras." + key + " must be a JSON primitive or primitive array.");
-  }
-  function __autojs6_app_intent_extras(value, methodName) {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
-    if (!__autojs6_app_intent_plain_object(value)) {
-      __autojs6_app_intent_error(methodName, "app." + methodName + " intent extras must be a JSON object.");
-    }
-    const extras = {};
-    Object.keys(value).forEach(function(key) {
-      const parsed = __autojs6_app_intent_extra_value(value[key], methodName, key);
-      if (parsed !== undefined) {
-        extras[key] = parsed;
+        return value;
       }
-    });
-    return Object.freeze(extras);
-  }
-  function __autojs6_app_reject_privileged_intent_options(options, methodName) {
-    ["root", "shizuku", "dual", "user", "userId"].forEach(function(key) {
-      if (Object.prototype.hasOwnProperty.call(options, key)) {
-        __autojs6_app_intent_error(
-          methodName,
-          "app." + methodName + " does not accept privileged Rhino intent option: " + key + ". Use a dedicated shell/root/Shizuku capability instead."
-        );
+      if (Array.isArray(value)) {
+        let elementType = "";
+        return Object.freeze(value.map(function(entry, index) {
+          const parsed = __autojs6_app_intent_extra_value(entry, methodName, key + "[" + index + "]");
+          const parsedType = parsed === null ? "null" : typeof parsed;
+          if (parsed === undefined || parsed === null || (parsed && typeof parsed === "object")) {
+            __autojs6_app_intent_error(methodName, "app." + methodName + " extras." + key + " arrays may only contain string, number, or boolean primitives.");
+          }
+          if (!elementType) {
+            elementType = parsedType;
+          } else if (elementType !== parsedType) {
+            __autojs6_app_intent_error(methodName, "app." + methodName + " extras." + key + " arrays must not mix primitive types.");
+          }
+          return parsed;
+        }));
       }
-    });
-  }
-  function __autojs6_app_normalize_intent_descriptor(options, methodName) {
-    if (!__autojs6_app_intent_plain_object(options)) {
-      __autojs6_app_intent_error(methodName, "app." + methodName + " requires a JSON intent descriptor object.");
+      __autojs6_app_intent_error(methodName, "app." + methodName + " extras." + key + " must be a JSON primitive or primitive array.");
     }
-    __autojs6_app_reject_privileged_intent_options(options, methodName);
-    const descriptor = {};
-    [
-      "action",
-      "data",
-      "url",
-      "type",
-      "packageName",
-      "package",
-      "className",
-      "component"
-    ].forEach(function(key) {
-      const value = key === "url"
-        ? __autojs6_app_normalize_url(options[key], methodName, key)
-        : __autojs6_app_optional_intent_string(options[key], methodName, key);
-      if (value !== undefined) {
-        if (key === "package") {
-          descriptor.packageName = value;
-        } else if (key === "url") {
-          descriptor.data = value;
-        } else if (key === "action") {
-          descriptor.action = __autojs6_app_normalize_action(value);
-        } else {
-          descriptor[key] = value;
+    function __autojs6_app_intent_extras(value, methodName) {
+      if (value === undefined || value === null) {
+        return undefined;
+      }
+      if (!__autojs6_app_intent_plain_object(value)) {
+        __autojs6_app_intent_error(methodName, "app." + methodName + " intent extras must be a JSON object.");
+      }
+      const extras = {};
+      Object.keys(value).forEach(function(key) {
+        const parsed = __autojs6_app_intent_extra_value(value[key], methodName, key);
+        if (parsed !== undefined) {
+          extras[key] = parsed;
         }
-      }
-    });
-    const categories = []
-      .concat(__autojs6_app_intent_categories(options.category, methodName, "category"))
-      .concat(__autojs6_app_intent_categories(options.categories, methodName, "categories"));
-    if (categories.length > 0) {
-      descriptor.categories = Object.freeze(Array.from(new Set(categories)));
+      });
+      return Object.freeze(extras);
     }
-    const flags = __autojs6_app_intent_flags(options.flags, methodName);
-    if (flags !== undefined) {
-      descriptor.flags = flags;
-    }
-    const extras = __autojs6_app_intent_extras(options.extras, methodName);
-    if (extras !== undefined) {
-      descriptor.extras = extras;
-    }
-    if (!__autojs6_app_has_start_activity_target(descriptor)) {
-      __autojs6_app_intent_error(
-        methodName,
-        "app." + methodName + " requires action, data, type, packageName, className, or component."
-      );
-    }
-    return Object.freeze(descriptor);
-  }
-  function __autojs6_app_has_start_activity_target(options) {
-    if (!options || typeof options !== "object" || Array.isArray(options)) {
-      return false;
-    }
-    return Boolean(
-      options.action ||
-      options.data ||
-      options.url ||
-      options.type ||
-      options.packageName ||
-      options.package ||
-      options.className ||
-      options.component
-    );
-  }
-  function __autojs6_app_open_url_descriptor(url, methodName) {
-    return __autojs6_app_normalize_intent_descriptor({
-      action: "VIEW",
-      url: url,
-      category: "BROWSABLE"
-    }, methodName);
-  }
-  function __autojs6_app_email_values(value, methodName, fieldName) {
-    if (value === undefined || value === null) {
-      return [];
-    }
-    const values = Array.isArray(value) ? value : [value];
-    return values.map(function(entry) {
-      return String(entry === undefined || entry === null ? "" : entry).trim();
-    }).filter(function(entry) {
-      return entry.length > 0;
-    }).map(function(entry) {
-      if (/[\r\n]/.test(entry)) {
-        __autojs6_app_intent_error(methodName, "app." + methodName + " " + fieldName + " must not contain line breaks.");
-      }
-      return entry;
-    });
-  }
-  function __autojs6_app_email_request(value, methodName) {
-    if (typeof value === "string" || Array.isArray(value)) {
-      return { to: value };
-    }
-    if (!__autojs6_app_intent_plain_object(value)) {
-      __autojs6_app_intent_error(methodName, "app." + methodName + " requires an email request object or recipient string.");
-    }
-    return value;
-  }
-  function __autojs6_app_email_descriptor(value, methodName) {
-    const request = __autojs6_app_email_request(value, methodName);
-    const to = __autojs6_app_email_values(request.to || request.email || request.address, methodName, "to");
-    const cc = __autojs6_app_email_values(request.cc, methodName, "cc");
-    const bcc = __autojs6_app_email_values(request.bcc, methodName, "bcc");
-    const subject = request.subject === undefined || request.subject === null ? "" : String(request.subject);
-    const body = request.text === undefined || request.text === null
-      ? request.body === undefined || request.body === null ? "" : String(request.body)
-      : String(request.text);
-    const query = [];
-    if (cc.length > 0) query.push("cc=" + encodeURIComponent(cc.join(",")));
-    if (bcc.length > 0) query.push("bcc=" + encodeURIComponent(bcc.join(",")));
-    if (subject) query.push("subject=" + encodeURIComponent(subject));
-    if (body) query.push("body=" + encodeURIComponent(body));
-    const data = "mailto:" + to.map(encodeURIComponent).join(",") + (query.length > 0 ? "?" + query.join("&") : "");
-    const extras = {};
-    if (to.length > 0) extras["android.intent.extra.EMAIL"] = Object.freeze(to.slice());
-    if (cc.length > 0) extras["android.intent.extra.CC"] = Object.freeze(cc.slice());
-    if (bcc.length > 0) extras["android.intent.extra.BCC"] = Object.freeze(bcc.slice());
-    if (subject) extras["android.intent.extra.SUBJECT"] = subject;
-    if (body) extras["android.intent.extra.TEXT"] = body;
-    return __autojs6_app_normalize_intent_descriptor({
-      action: "SENDTO",
-      data: data,
-      extras: extras
-    }, methodName);
-  }
-  function __autojs6_app_uninstall_descriptor(packageName, methodName) {
-    const target = __autojs6_app_non_empty_string(packageName).trim();
-    if (!target) {
-      __autojs6_app_intent_error(methodName, "app." + methodName + " requires a non-empty package name.");
-    }
-    return __autojs6_app_normalize_intent_descriptor({
-      action: "DELETE",
-      data: "package:" + target
-    }, methodName);
-  }
-  function __autojs6_app_shell_quote(value) {
-    return "'" + String(value).replace(/'/g, "'\\''") + "'";
-  }
-  function __autojs6_app_shell_array_value(value) {
-    return String(value).replace(/\\/g, "\\\\").replace(/,/g, "\\,");
-  }
-  function __autojs6_app_shell_join_array(values) {
-    return values.map(__autojs6_app_shell_array_value).join(",");
-  }
-  function __autojs6_app_shell_number_type(value) {
-    if (Number.isInteger(value)) {
-      return value >= -2147483648 && value <= 2147483647 ? "i" : "l";
-    }
-    return "f";
-  }
-  function __autojs6_app_shell_number_array_type(values) {
-    let allInt32 = true;
-    let allInteger = true;
-    values.forEach(function(value) {
-      if (!Number.isInteger(value)) {
-        allInt32 = false;
-        allInteger = false;
-      } else if (value < -2147483648 || value > 2147483647) {
-        allInt32 = false;
-      }
-    });
-    return allInt32 ? "ia" : allInteger ? "la" : "fa";
-  }
-  function __autojs6_app_shell_extra_option(value, methodName, key) {
-    if (value === null) {
-      return "esn";
-    }
-    if (typeof value === "string") {
-      return "es";
-    }
-    if (typeof value === "boolean") {
-      return "ez";
-    }
-    if (typeof value === "number") {
-      return "e" + __autojs6_app_shell_number_type(value);
-    }
-    if (Array.isArray(value)) {
-      if (value.length === 0 || typeof value[0] === "string") {
-        return "esa";
-      }
-      if (typeof value[0] === "boolean") {
-        return "eza";
-      }
-      if (typeof value[0] === "number") {
-        return "e" + __autojs6_app_shell_number_array_type(value);
-      }
-    }
-    __autojs6_app_intent_error(methodName, "app." + methodName + " extras." + key + " cannot be converted to shell intent arguments.");
-  }
-  function __autojs6_app_intent_to_shell(descriptor, methodName) {
-    const parts = [];
-    const component = descriptor.component ||
-      (descriptor.packageName && descriptor.className ? descriptor.packageName + "/" + descriptor.className : "") ||
-      (descriptor.className || "");
-    if (component) {
-      parts.push("-n", __autojs6_app_shell_quote(component));
-    } else if (descriptor.packageName) {
-      parts.push("-p", __autojs6_app_shell_quote(descriptor.packageName));
-    }
-    if (descriptor.extras) {
-      Object.keys(descriptor.extras).forEach(function(key) {
-        const value = descriptor.extras[key];
-        const option = __autojs6_app_shell_extra_option(value, methodName, key);
-        if (option === "esn") {
-          parts.push("--" + option, __autojs6_app_shell_quote(key));
-        } else if (Array.isArray(value)) {
-          parts.push("--" + option, __autojs6_app_shell_quote(key), __autojs6_app_shell_quote(__autojs6_app_shell_join_array(value)));
-        } else {
-          const shellValue = typeof value === "string" ? __autojs6_app_shell_quote(value) : String(value);
-          parts.push("--" + option, __autojs6_app_shell_quote(key), shellValue);
+    // Rhino's root / shizuku / dual intent options are read by app.startActivity / startService / sendBroadcast
+    // (api-coverage Q92); other users are chosen by the dual-user helpers only.
+    function __autojs6_app_reject_privileged_intent_options(options, methodName) {
+      ["user", "userId"].forEach(function(key) {
+        if (Object.prototype.hasOwnProperty.call(options, key)) {
+          __autojs6_app_intent_error(
+            methodName,
+            "app." + methodName + " does not accept the intent option " + key + ". Use the dual-user helpers (startDualActivity, launchDual, ...) instead."
+          );
         }
       });
     }
-    (descriptor.categories || []).forEach(function(category) {
-      parts.push("-c", __autojs6_app_shell_quote(category));
-    });
-    if (descriptor.action) {
-      parts.push("-a", __autojs6_app_shell_quote(descriptor.action));
+    function __autojs6_app_normalize_intent_descriptor(options, methodName) {
+      if (!__autojs6_app_intent_plain_object(options)) {
+        __autojs6_app_intent_error(methodName, "app." + methodName + " requires a JSON intent descriptor object.");
+      }
+      __autojs6_app_reject_privileged_intent_options(options, methodName);
+      const descriptor = {};
+      [
+        "action",
+        "data",
+        "url",
+        "type",
+        "packageName",
+        "package",
+        "className",
+        "component"
+      ].forEach(function(key) {
+        const value = key === "url"
+          ? __autojs6_app_normalize_url(options[key], methodName, key)
+          : __autojs6_app_optional_intent_string(options[key], methodName, key);
+        if (value !== undefined) {
+          if (key === "package") {
+            descriptor.packageName = value;
+          } else if (key === "url") {
+            descriptor.data = value;
+          } else if (key === "action") {
+            descriptor.action = __autojs6_app_normalize_action(value);
+          } else {
+            descriptor[key] = value;
+          }
+        }
+      });
+      const categories = []
+        .concat(__autojs6_app_intent_categories(options.category, methodName, "category"))
+        .concat(__autojs6_app_intent_categories(options.categories, methodName, "categories"));
+      if (categories.length > 0) {
+        descriptor.categories = Object.freeze(Array.from(new Set(categories)));
+      }
+      const flags = __autojs6_app_intent_flags(options.flags, methodName);
+      if (flags !== undefined) {
+        descriptor.flags = flags;
+      }
+      const extras = __autojs6_app_intent_extras(options.extras, methodName);
+      if (extras !== undefined) {
+        descriptor.extras = extras;
+      }
+      if (!__autojs6_app_has_start_activity_target(descriptor)) {
+        __autojs6_app_intent_error(
+          methodName,
+          "app." + methodName + " requires action, data, type, packageName, className, or component."
+        );
+      }
+      return Object.freeze(descriptor);
     }
-    if (descriptor.flags !== undefined) {
-      parts.push("-f", String(descriptor.flags));
+    function __autojs6_app_has_start_activity_target(options) {
+      if (!options || typeof options !== "object" || Array.isArray(options)) {
+        return false;
+      }
+      return Boolean(
+        options.action ||
+        options.data ||
+        options.url ||
+        options.type ||
+        options.packageName ||
+        options.package ||
+        options.className ||
+        options.component
+      );
     }
-    if (descriptor.type) {
-      parts.push("-t", __autojs6_app_shell_quote(descriptor.type));
+    function __autojs6_app_open_url_descriptor(url, methodName) {
+      return __autojs6_app_normalize_intent_descriptor({
+        action: "VIEW",
+        url: url,
+        category: "BROWSABLE"
+      }, methodName);
     }
-    if (descriptor.data) {
-      parts.push("-d", __autojs6_app_shell_quote(descriptor.data));
+    function __autojs6_app_email_values(value, methodName, fieldName) {
+      if (value === undefined || value === null) {
+        return [];
+      }
+      const values = Array.isArray(value) ? value : [value];
+      return values.map(function(entry) {
+        return String(entry === undefined || entry === null ? "" : entry).trim();
+      }).filter(function(entry) {
+        return entry.length > 0;
+      }).map(function(entry) {
+        if (/[\r\n]/.test(entry)) {
+          __autojs6_app_intent_error(methodName, "app." + methodName + " " + fieldName + " must not contain line breaks.");
+        }
+        return entry;
+      });
     }
-    return parts.join(" ");
-  }
-  function __autojs6_app_raw_uri_unavailable_error(methodName) {
-    return __autojs6_bridge_error(
-      "app." + methodName + " is not available in the Node.js engine yet; P13-23 keeps raw Android Uri and FileProvider handles out of Node. Use app.parseUri() for JSON-safe URI inspection or app.viewFile()/app.editFile() for scoped file activity routing.",
-      "ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED",
-      "app",
-      methodName
-    );
-  }
-  function __autojs6_app_privileged_unavailable_error(methodName) {
-    return __autojs6_bridge_error(
-      "app." + methodName + " is not available in the Node.js engine yet; P13-23 keeps root, Shizuku, and dual-user app helpers blocked until they are routed through explicit P13-24 shell/root/Shizuku capabilities.",
-      "ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED",
-      "app",
-      methodName
-    );
-  }
-  function __autojs6_limited_app() {
-    if (__autojs6_limited_app_cache) {
+    function __autojs6_app_email_request(value, methodName) {
+      if (typeof value === "string" || Array.isArray(value)) {
+        return { to: value };
+      }
+      if (!__autojs6_app_intent_plain_object(value)) {
+        __autojs6_app_intent_error(methodName, "app." + methodName + " requires an email request object or recipient string.");
+      }
+      return value;
+    }
+    function __autojs6_app_email_descriptor(value, methodName) {
+      const request = __autojs6_app_email_request(value, methodName);
+      const to = __autojs6_app_email_values(request.to || request.email || request.address, methodName, "to");
+      const cc = __autojs6_app_email_values(request.cc, methodName, "cc");
+      const bcc = __autojs6_app_email_values(request.bcc, methodName, "bcc");
+      const subject = request.subject === undefined || request.subject === null ? "" : String(request.subject);
+      const body = request.text === undefined || request.text === null
+        ? request.body === undefined || request.body === null ? "" : String(request.body)
+        : String(request.text);
+      const query = [];
+      if (cc.length > 0) query.push("cc=" + encodeURIComponent(cc.join(",")));
+      if (bcc.length > 0) query.push("bcc=" + encodeURIComponent(bcc.join(",")));
+      if (subject) query.push("subject=" + encodeURIComponent(subject));
+      if (body) query.push("body=" + encodeURIComponent(body));
+      const data = "mailto:" + to.map(encodeURIComponent).join(",") + (query.length > 0 ? "?" + query.join("&") : "");
+      const extras = {};
+      if (to.length > 0) extras["android.intent.extra.EMAIL"] = Object.freeze(to.slice());
+      if (cc.length > 0) extras["android.intent.extra.CC"] = Object.freeze(cc.slice());
+      if (bcc.length > 0) extras["android.intent.extra.BCC"] = Object.freeze(bcc.slice());
+      if (subject) extras["android.intent.extra.SUBJECT"] = subject;
+      if (body) extras["android.intent.extra.TEXT"] = body;
+      return __autojs6_app_normalize_intent_descriptor({
+        action: "SENDTO",
+        data: data,
+        extras: extras
+      }, methodName);
+    }
+    function __autojs6_app_uninstall_descriptor(packageName, methodName) {
+      const target = __autojs6_app_non_empty_string(packageName).trim();
+      if (!target) {
+        __autojs6_app_intent_error(methodName, "app." + methodName + " requires a non-empty package name.");
+      }
+      return __autojs6_app_normalize_intent_descriptor({
+        action: "DELETE",
+        data: "package:" + target
+      }, methodName);
+    }
+    function __autojs6_app_shell_quote(value) {
+      return "'" + String(value).replace(/'/g, "'\\''") + "'";
+    }
+    function __autojs6_app_shell_array_value(value) {
+      return String(value).replace(/\\/g, "\\\\").replace(/,/g, "\\,");
+    }
+    function __autojs6_app_shell_join_array(values) {
+      return values.map(__autojs6_app_shell_array_value).join(",");
+    }
+    function __autojs6_app_shell_number_type(value) {
+      if (Number.isInteger(value)) {
+        return value >= -2147483648 && value <= 2147483647 ? "i" : "l";
+      }
+      return "f";
+    }
+    function __autojs6_app_shell_number_array_type(values) {
+      let allInt32 = true;
+      let allInteger = true;
+      values.forEach(function(value) {
+        if (!Number.isInteger(value)) {
+          allInt32 = false;
+          allInteger = false;
+        } else if (value < -2147483648 || value > 2147483647) {
+          allInt32 = false;
+        }
+      });
+      return allInt32 ? "ia" : allInteger ? "la" : "fa";
+    }
+    function __autojs6_app_shell_extra_option(value, methodName, key) {
+      if (value === null) {
+        return "esn";
+      }
+      if (typeof value === "string") {
+        return "es";
+      }
+      if (typeof value === "boolean") {
+        return "ez";
+      }
+      if (typeof value === "number") {
+        return "e" + __autojs6_app_shell_number_type(value);
+      }
+      if (Array.isArray(value)) {
+        if (value.length === 0 || typeof value[0] === "string") {
+          return "esa";
+        }
+        if (typeof value[0] === "boolean") {
+          return "eza";
+        }
+        if (typeof value[0] === "number") {
+          return "e" + __autojs6_app_shell_number_array_type(value);
+        }
+      }
+      __autojs6_app_intent_error(methodName, "app." + methodName + " extras." + key + " cannot be converted to shell intent arguments.");
+    }
+    function __autojs6_app_intent_to_shell(descriptor, methodName) {
+      const parts = [];
+      const component = descriptor.component ||
+        (descriptor.packageName && descriptor.className ? descriptor.packageName + "/" + descriptor.className : "") ||
+        (descriptor.className || "");
+      if (component) {
+        parts.push("-n", __autojs6_app_shell_quote(component));
+      } else if (descriptor.packageName) {
+        parts.push("-p", __autojs6_app_shell_quote(descriptor.packageName));
+      }
+      if (descriptor.extras) {
+        Object.keys(descriptor.extras).forEach(function(key) {
+          const value = descriptor.extras[key];
+          const option = __autojs6_app_shell_extra_option(value, methodName, key);
+          if (option === "esn") {
+            parts.push("--" + option, __autojs6_app_shell_quote(key));
+          } else if (Array.isArray(value)) {
+            parts.push("--" + option, __autojs6_app_shell_quote(key), __autojs6_app_shell_quote(__autojs6_app_shell_join_array(value)));
+          } else {
+            const shellValue = typeof value === "string" ? __autojs6_app_shell_quote(value) : String(value);
+            parts.push("--" + option, __autojs6_app_shell_quote(key), shellValue);
+          }
+        });
+      }
+      (descriptor.categories || []).forEach(function(category) {
+        parts.push("-c", __autojs6_app_shell_quote(category));
+      });
+      if (descriptor.action) {
+        parts.push("-a", __autojs6_app_shell_quote(descriptor.action));
+      }
+      if (descriptor.flags !== undefined) {
+        parts.push("-f", String(descriptor.flags));
+      }
+      if (descriptor.type) {
+        parts.push("-t", __autojs6_app_shell_quote(descriptor.type));
+      }
+      if (descriptor.data) {
+        parts.push("-d", __autojs6_app_shell_quote(descriptor.data));
+      }
+      return parts.join(" ");
+    }
+    function __autojs6_app_raw_uri_unavailable_error(methodName) {
+      return __autojs6_bridge_error(
+        "app." + methodName + " is not available in the Node.js engine yet; P13-23 keeps raw Android Uri and FileProvider handles out of Node. Use app.parseUri() for JSON-safe URI inspection or app.viewFile()/app.editFile() for scoped file activity routing.",
+        "ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED",
+        "app",
+        methodName
+      );
+    }
+    function __autojs6_app_privileged_unavailable_error(methodName) {
+      return __autojs6_bridge_error(
+        "app." + methodName + " is not available in the Node.js engine yet; P13-23 keeps root, Shizuku, and dual-user app helpers blocked until they are routed through explicit P13-24 shell/root/Shizuku capabilities.",
+        "ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED",
+        "app",
+        methodName
+      );
+    }
+    // D-4 and the Rhino intent options (api-coverage P3.1a, Q89-Q92): the privileged and dual-user helpers run "am"
+    // commands through the shell module on the first route that the project declares and the device offers, in Rhino's
+    // order: Shizuku (shell.shizuku), root (shell.root), then the plain shell; root first when the intent options prefer
+    // it. Targets and other users are read with app.query. An undeclared capability rejects (Q90); without other users
+    // the helpers behave as in Rhino (Q91).
+    const __autojs6_app_new_task = 0x10000000;
+    function __autojs6_app_declared(capability) {
+      return __autojs6_app_missing_capabilities([capability]).length === 0;
+    }
+    function __autojs6_app_require_capabilities(methodName, capabilities) {
+      const missing = __autojs6_app_missing_capabilities(capabilities);
+      if (missing.length > 0) {
+        const error = __autojs6_bridge_error(
+          "app." + methodName + " requires undeclared capabilities: " + missing.join(", ") + ".",
+          "ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED",
+          "app",
+          methodName
+        );
+        Object.defineProperty(error, "missingCapabilities", { value: Object.freeze(missing.slice()), enumerable: true });
+        throw error;
+      }
+    }
+    function __autojs6_app_kept_error(error) {
+      return Boolean(error) && (error.code === "ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED" || error.name === "AbortError");
+    }
+    function __autojs6_app_privileged_preference(options) {
+      const read = key => options[key] === undefined || options[key] === null ? null : Boolean(options[key]);
+      return __autojs6_app_intent_plain_object(options)
+        ? { root: read("root"), shizuku: read("shizuku"), dual: read("dual") }
+        : { root: null, shizuku: null, dual: null };
+    }
+    function __autojs6_app_shizuku_operational(access) {
+      return (access.shizukuOperational ?? (access.shizukuRunning === true && access.shizukuGranted === true)) === true;
+    }
+    // Rhino App.execCommandForDualUser: shizuku unset puts root first only for root true; shizuku false puts root first
+    // unless root is false.
+    function __autojs6_app_root_first(preference) {
+      if (!preference || preference.shizuku === null) {
+        return Boolean(preference) && preference.root === true;
+      }
+      return preference.shizuku === false && preference.root !== false;
+    }
+    async function __autojs6_app_shell_route(preference, options) {
+      const access = await __autojs6_app_shell().getAccess(__autojs6_app_bridge_options(options, 10000));
+      const shizuku = __autojs6_app_declared("shell.shizuku") && __autojs6_app_shizuku_operational(access) ? { shizuku: true } : null;
+      const root = __autojs6_app_declared("shell.root") && access.rootAvailable === true ? { root: true } : null;
+      return (__autojs6_app_root_first(preference) ? [root, shizuku] : [shizuku, root]).find(Boolean) || {};
+    }
+    // A command that cannot run is a failed result, as Rhino's shells report it.
+    async function __autojs6_app_exec(command, route, options) {
+      try {
+        return await __autojs6_app_shell().exec(command, Object.assign({}, route, __autojs6_app_bridge_options(options, 30000)));
+      } catch (error) {
+        if (__autojs6_app_kept_error(error)) {
+          throw error;
+        }
+        return { code: 1, stdout: "", stderr: String(error && error.message || error) };
+      }
+    }
+    // Rhino AbstractShell.Result: output on stderr turns a zero exit code into 1 ("Error type N" into N).
+    function __autojs6_app_result_code(result) {
+      const error = String(result.stderr || "");
+      if (!error) {
+        return result.code;
+      }
+      const match = /^Error type (\d+)/.exec(error);
+      const code = match ? Number(match[1]) : result.code;
+      return code === 0 ? 1 : code;
+    }
+    function __autojs6_app_shell_failure(methodName, result) {
+      const error = __autojs6_bridge_error(
+        "app." + methodName + " shell command failed with exit code " + __autojs6_app_result_code(result) +
+          (String(result.stderr || "").trim() ? ": " + String(result.stderr).trim() : "."),
+        "ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED",
+        "app",
+        methodName
+      );
+      Object.defineProperty(error, "result", { value: Object.freeze(Object.assign({}, result)), enumerable: true });
+      return error;
+    }
+    async function __autojs6_app_exec_for_dual_user(methodName, command, preference, options) {
+      const users = await __autojs6_call_autojs("app", "getUserProfiles", [], __autojs6_app_bridge_options(options, 10000));
+      const route = await __autojs6_app_shell_route(preference, options);
+      let last = null;
+      for (const user of users && Array.isArray(users.others) ? users.others : []) {
+        const line = command.includes("%USER_ID%")
+          ? command.split("%USER_ID%").join("--user " + user)
+          : /\s--user\s+\d+/.test(command) ? command : command + " --user " + user;
+        last = await __autojs6_app_exec(line, route, options);
+        if (__autojs6_app_result_code(last) === 0) {
+          break;
+        }
+      }
+      if (last && __autojs6_app_result_code(last) !== 0) {
+        throw __autojs6_app_shell_failure(methodName, last);
+      }
+      return last;
+    }
+    function __autojs6_app_start_for_dual_user(methodName, descriptor, preference, options) {
+      const flags = (descriptor.flags || 0) | __autojs6_app_new_task;
+      const command = "am start " + __autojs6_app_intent_to_shell(Object.assign({}, descriptor, { flags }), methodName);
+      return __autojs6_app_exec_for_dual_user(methodName, command, preference, options);
+    }
+    function __autojs6_app_resolve_target(target, options) {
+      if (target === undefined || target === null) {
+        return Promise.resolve(null);
+      }
+      const text = String(target).trim();
+      return text
+        ? __autojs6_call_autojs("app", "resolvePackage", [text], __autojs6_app_bridge_options(options, 10000))
+        : Promise.resolve(null);
+    }
+    // Rhino's dual settings / uninstall helpers take a preset alias or the text itself as the package name.
+    async function __autojs6_app_alias_or_text(target, options) {
+      const text = String(target);
+      const resolved = await __autojs6_app_resolve_target(text, options);
+      return resolved && resolved.via === "alias" ? resolved.packageName : text;
+    }
+    // Rhino app.startActivity / startService / sendBroadcast: shizuku when requested and usable, else root when requested
+    // and usable, else the ordinary call; only startActivity checks the command result.
+    async function __autojs6_app_option_route(preference, callOptions) {
+      const shizuku = preference.shizuku === true && __autojs6_app_declared("shell") && __autojs6_app_declared("shell.shizuku");
+      const root = preference.root === true && __autojs6_app_declared("shell") && __autojs6_app_declared("shell.root");
+      if (!shizuku && !root) {
+        return null;
+      }
+      const access = await __autojs6_app_shell().getAccess(__autojs6_app_bridge_options(callOptions, 10000));
+      if (shizuku && __autojs6_app_shizuku_operational(access)) {
+        return { shizuku: true };
+      }
+      return root && access.rootAvailable === true ? { root: true } : null;
+    }
+    async function __autojs6_app_privileged_call(methodName, command, descriptor, preference, callOptions) {
+      const route = await __autojs6_app_option_route(preference, callOptions);
+      if (!route) {
+        return __autojs6_call_autojs("app", methodName, [descriptor], __autojs6_app_bridge_options(callOptions, 10000));
+      }
+      __autojs6_app_require_capabilities(methodName, ["app.activity"]);
+      const activity = methodName === "startActivity";
+      const flags = activity ? (descriptor.flags || 0) | __autojs6_app_new_task : descriptor.flags;
+      const result = await __autojs6_app_exec(
+        command + " " + __autojs6_app_intent_to_shell(Object.assign({}, descriptor, { flags }), methodName),
+        route,
+        callOptions
+      );
+      if (activity && __autojs6_app_result_code(result) !== 0) {
+        throw __autojs6_app_shell_failure(methodName, result);
+      }
+      return null;
+    }
+    function __autojs6_limited_app() {
+      if (__autojs6_limited_app_cache) {
+        return __autojs6_limited_app_cache;
+      }
+      const info = __autojs6_host_app_info();
+      function intent(options) {
+        return __autojs6_app_normalize_intent_descriptor(options, "intent");
+      }
+      function parseUri(uri) {
+        return __autojs6_app_parse_uri_descriptor(uri, "parseUri");
+      }
+      function getUriForFile(path, options) {
+        return __autojs6_limited_android().getUriForFile(path,options);
+      }
+      function intentToShell(options) {
+        return __autojs6_app_intent_to_shell(
+          __autojs6_app_normalize_intent_descriptor(options, "intentToShell"),
+          "intentToShell"
+        );
+      }
+      function openUrl(url, options) {
+        let descriptor;
+        try {
+          descriptor = __autojs6_app_open_url_descriptor(url, "openUrl");
+        } catch (error) {
+          return Promise.reject(__autojs6_app_invalid_argument_error(
+            "openUrl",
+            error && error.message ? error.message : "app.openUrl requires a URI string."
+          ));
+        }
+        return __autojs6_call_autojs(
+          "app",
+          "startActivity",
+          [descriptor],
+          __autojs6_app_bridge_options(options, 10000)
+        );
+      }
+      function sendEmail(request, options) {
+        let descriptor;
+        try {
+          const emailRequest = (typeof request === "string" || Array.isArray(request)) && options && typeof options === "object"
+            ? Object.assign({}, options, { to: request })
+            : request;
+          descriptor = __autojs6_app_email_descriptor(emailRequest, "sendEmail");
+        } catch (error) {
+          return Promise.reject(__autojs6_app_invalid_argument_error(
+            "sendEmail",
+            error && error.message ? error.message : "app.sendEmail requires a JSON-safe email request."
+          ));
+        }
+        return __autojs6_call_autojs(
+          "app",
+          "startActivity",
+          [descriptor],
+          __autojs6_app_bridge_options(options, 10000)
+        );
+      }
+      function uninstall(packageName, options) {
+        let descriptor;
+        try {
+          descriptor = __autojs6_app_uninstall_descriptor(packageName, "uninstall");
+        } catch (error) {
+          return Promise.reject(__autojs6_app_invalid_argument_error(
+            "uninstall",
+            error && error.message ? error.message : "app.uninstall requires a non-empty package name."
+          ));
+        }
+        return __autojs6_call_autojs(
+          "app",
+          "startActivity",
+          [descriptor],
+          __autojs6_app_bridge_options(options, 10000)
+        );
+      }
+      function getPackageName(appName, options) {
+        const target = __autojs6_app_non_empty_string(appName).trim();
+        if (!target) {
+          return Promise.reject(__autojs6_app_invalid_argument_error(
+            "getPackageName",
+            "app.getPackageName requires a non-empty app name."
+          ));
+        }
+        return __autojs6_call_autojs(
+          "app",
+          "getPackageName",
+          [target],
+          __autojs6_app_bridge_options(options, 10000)
+        );
+      }
+      function getAppName(packageName, options) {
+        const target = __autojs6_app_non_empty_string(packageName).trim();
+        if (!target) {
+          return Promise.reject(__autojs6_app_invalid_argument_error(
+            "getAppName",
+            "app.getAppName requires a non-empty package name."
+          ));
+        }
+        return __autojs6_call_autojs(
+          "app",
+          "getAppName",
+          [target],
+          __autojs6_app_bridge_options(options, 10000)
+        );
+      }
+      function isInstalled(packageName, options) {
+        const target = __autojs6_app_non_empty_string(packageName).trim();
+        if (!target) {
+          return Promise.reject(__autojs6_app_invalid_argument_error(
+            "isInstalled",
+            "app.isInstalled requires a non-empty package name."
+          ));
+        }
+        return __autojs6_call_autojs(
+          "app",
+          "isInstalled",
+          [target],
+          __autojs6_app_bridge_options(options, 10000)
+        );
+      }
+      function viewFile(path, options) {
+        const target = __autojs6_app_non_empty_string(path).trim();
+        if (!target) {
+          return Promise.reject(__autojs6_app_invalid_argument_error(
+            "viewFile",
+            "app.viewFile requires a non-empty scoped file path."
+          ));
+        }
+        return __autojs6_call_autojs(
+          "app",
+          "viewFile",
+          [target],
+          __autojs6_app_bridge_options(options, 10000)
+        );
+      }
+      function editFile(path, options) {
+        const target = __autojs6_app_non_empty_string(path).trim();
+        if (!target) {
+          return Promise.reject(__autojs6_app_invalid_argument_error(
+            "editFile",
+            "app.editFile requires a non-empty scoped file path."
+          ));
+        }
+        return __autojs6_call_autojs(
+          "app",
+          "editFile",
+          [target],
+          __autojs6_app_bridge_options(options, 10000)
+        );
+      }
+      function launchPackage(packageName, options) {
+        const target = __autojs6_app_non_empty_string(packageName);
+        if (!target) {
+          return Promise.reject(__autojs6_app_invalid_argument_error(
+            "launchPackage",
+            "app.launchPackage requires a non-empty package name."
+          ));
+        }
+        return __autojs6_call_autojs(
+          "app",
+          "launchPackage",
+          [target],
+          __autojs6_app_bridge_options(options, 10000)
+        );
+      }
+      function launchApp(name, options) {
+        const target = __autojs6_app_non_empty_string(name);
+        if (!target) {
+          return Promise.reject(__autojs6_app_invalid_argument_error(
+            "launchApp",
+            "app.launchApp requires a non-empty app name."
+          ));
+        }
+        return __autojs6_call_autojs(
+          "app",
+          "launchApp",
+          [target],
+          __autojs6_app_bridge_options(options, 10000)
+        );
+      }
+      function openAppSetting(packageName, options) {
+        let target = packageName;
+        let bridgeOptions = options;
+        if (target && typeof target === "object") {
+          bridgeOptions = target;
+          target = info.packageName;
+        }
+        target = __autojs6_app_non_empty_string(target || info.packageName);
+        if (!target) {
+          return Promise.reject(__autojs6_app_invalid_argument_error(
+            "openAppSetting",
+            "app.openAppSetting requires a non-empty package name."
+          ));
+        }
+        return __autojs6_call_autojs(
+          "app",
+          "openAppSetting",
+          [target],
+          __autojs6_app_bridge_options(bridgeOptions, 10000)
+        );
+      }
+      function startActivity(options, callOptions) {
+        let descriptor;
+        try {
+          descriptor = typeof options === "string"
+            ? __autojs6_app_open_url_descriptor(options, "startActivity")
+            : __autojs6_app_normalize_intent_descriptor(options, "startActivity");
+        } catch (error) {
+          return Promise.reject(__autojs6_app_invalid_argument_error(
+            "startActivity",
+            error && error.message ? error.message : "app.startActivity requires a JSON intent descriptor."
+          ));
+        }
+        const preference = typeof options === "string" ? null : __autojs6_app_privileged_preference(options);
+        if (preference && preference.dual === true) {
+          return startDualActivity(options, callOptions);
+        }
+        if (preference && (preference.shizuku === true || preference.root === true)) {
+          return __autojs6_app_privileged_call("startActivity", "am start", descriptor, preference, callOptions);
+        }
+        return __autojs6_call_autojs(
+          "app",
+          "startActivity",
+          [descriptor],
+          __autojs6_app_bridge_options(callOptions, 10000)
+        );
+      }
+      // Rhino openDualUrl starts a plain VIEW intent (no BROWSABLE category, unlike app.openUrl).
+      function __autojs6_app_dual_url_descriptor(url, methodName) {
+        return __autojs6_app_normalize_intent_descriptor({ action: "VIEW", url: url }, methodName);
+      }
+      function startDualActivity(options, callOptions) {
+        let descriptor;
+        try {
+          __autojs6_app_require_capabilities("startDualActivity", ["app.activity", "app.query", "shell"]);
+          descriptor = typeof options === "string"
+            ? __autojs6_app_dual_url_descriptor(options, "startDualActivity")
+            : __autojs6_app_normalize_intent_descriptor(options, "startDualActivity");
+        } catch (error) {
+          return Promise.reject(error);
+        }
+        const preference = typeof options === "string" ? null : __autojs6_app_privileged_preference(options);
+        return __autojs6_app_start_for_dual_user("startDualActivity", descriptor, preference, callOptions).then(() => undefined);
+      }
+      function dispatchIntent(method, options, callOptions) {
+        let descriptor;
+        try { descriptor = __autojs6_app_normalize_intent_descriptor(typeof options === "string" ? {action: options} : options, method); }
+        catch (error) { return Promise.reject(error); }
+        const preference = __autojs6_app_privileged_preference(options);
+        if (preference.root === true && method !== "sendLocalBroadcastSync") {
+          return __autojs6_app_privileged_call(method, method === "startService" ? "am startservice" : "am broadcast", descriptor, { root: true, shizuku: null }, callOptions);
+        }
+        return __autojs6_call_autojs("app", method, [descriptor], __autojs6_app_bridge_options(callOptions, 10000));
+      }
+      function sendBroadcast(options, callOptions) { return dispatchIntent("sendBroadcast", options, callOptions); }
+      function startService(options, callOptions) { return dispatchIntent("startService", options, callOptions); }
+      function sendLocalBroadcastSync(options, callOptions) {
+        return options === undefined || options === null
+          ? Promise.resolve()
+          : dispatchIntent("sendLocalBroadcastSync", options, callOptions).then(() => undefined);
+      }
+      function getInstalledApps(options, callOptions) {
+        return __autojs6_call_autojs("app", "getInstalledApps", [options || {}], __autojs6_app_bridge_options(callOptions, 10000));
+      }
+      function getPackageInfo(packageName, options) {
+        return __autojs6_call_autojs("app", "getPackageInfo", [String(packageName || "")], __autojs6_app_bridge_options(options, 10000));
+      }
+      function getInstalledPackages(options, callOptions) {
+        return __autojs6_call_autojs("app", "getInstalledPackages", [options || {}], __autojs6_app_bridge_options(callOptions, 30000));
+      }
+      function getApkInfo(path, options, callOptions) {
+        const target = __autojs6_app_non_empty_string(path).trim();
+        if (!target) {
+          return Promise.reject(__autojs6_app_invalid_argument_error("getApkInfo", "app.getApkInfo requires a non-empty file path."));
+        }
+        return __autojs6_call_autojs("app", "getApkInfo", [target, options || {}], __autojs6_app_bridge_options(callOptions, 30000));
+      }
+      function getAppByAlias(alias, options) {
+        return alias === undefined || alias === null
+          ? Promise.resolve(null)
+          : __autojs6_call_autojs("app", "getAppByAlias", [String(alias)], __autojs6_app_bridge_options(options, 10000));
+      }
+      async function openDualUrl(url, options) {
+        __autojs6_app_require_capabilities("openDualUrl", ["app.activity", "app.query", "shell"]);
+        const descriptor = __autojs6_app_dual_url_descriptor(url, "openDualUrl");
+        await __autojs6_app_start_for_dual_user("openDualUrl", descriptor, null, options);
+      }
+      // Rhino launchDualPackage takes an alias or a package name, launchDualApp also an application label.
+      async function __autojs6_app_launch_dual(methodName, target, labels, options) {
+        __autojs6_app_require_capabilities(methodName, ["app.launch", "app.query", "shell"]);
+        const resolved = await __autojs6_app_resolve_target(target, options);
+        if (!resolved || !resolved.launchIntent || resolved.via === "label" && !labels) {
+          return false;
+        }
+        try {
+          const descriptor = __autojs6_app_normalize_intent_descriptor(resolved.launchIntent, methodName);
+          await __autojs6_app_start_for_dual_user(methodName, descriptor, null, options);
+          return true;
+        } catch (error) {
+          if (__autojs6_app_kept_error(error)) {
+            throw error;
+          }
+          return false;
+        }
+      }
+      function launchDualPackage(packageName, options) {
+        return __autojs6_app_launch_dual("launchDualPackage", packageName, false, options);
+      }
+      function launchDualApp(appName, options) {
+        return __autojs6_app_launch_dual("launchDualApp", appName, true, options);
+      }
+      async function launchDualAppDetailsSettings(packageName, options) {
+        __autojs6_app_require_capabilities("launchDualAppDetailsSettings", ["app.settings", "app.query", "shell"]);
+        if (packageName === undefined || packageName === null || typeof packageName === "object") {
+          return false;
+        }
+        try {
+          const target = await __autojs6_app_alias_or_text(packageName, options);
+          const descriptor = __autojs6_app_normalize_intent_descriptor({
+            action: "android.settings.APPLICATION_DETAILS_SETTINGS",
+            data: "package:" + target
+          }, "launchDualAppDetailsSettings");
+          await __autojs6_app_start_for_dual_user("launchDualAppDetailsSettings", descriptor, null, options);
+          return true;
+        } catch (error) {
+          if (__autojs6_app_kept_error(error)) {
+            throw error;
+          }
+          return false;
+        }
+      }
+      async function isDualInstalled(packageName, options) {
+        __autojs6_app_require_capabilities("isDualInstalled", ["app.query", "shell"]);
+        const resolved = await __autojs6_app_resolve_target(packageName, options);
+        if (!resolved) {
+          return false;
+        }
+        try {
+          const result = await __autojs6_app_exec_for_dual_user(
+            "isDualInstalled",
+            "cmd package list packages %USER_ID% " + resolved.packageName,
+            null,
+            options
+          );
+          return Boolean(result) && String(result.stdout || "").includes("package:" + resolved.packageName);
+        } catch (error) {
+          if (__autojs6_app_kept_error(error)) {
+            throw error;
+          }
+          return false;
+        }
+      }
+      async function uninstallDual(packageName, options) {
+        __autojs6_app_require_capabilities("uninstallDual", ["app.activity", "app.query", "shell"]);
+        if (packageName === undefined || packageName === null) {
+          return;
+        }
+        const target = await __autojs6_app_alias_or_text(packageName, options);
+        const descriptor = __autojs6_app_normalize_intent_descriptor({ action: "DELETE", data: "package:" + target }, "uninstallDual");
+        await __autojs6_app_start_for_dual_user("uninstallDual", descriptor, null, options);
+      }
+      async function kill(packageName, options) {
+        __autojs6_app_require_capabilities("kill", ["app.query", "shell"]);
+        const resolved = await __autojs6_app_resolve_target(packageName, options);
+        if (!resolved) {
+          return false;
+        }
+        const route = await __autojs6_app_shell_route(null, options);
+        return __autojs6_app_result_code(await __autojs6_app_exec("am force-stop " + resolved.packageName, route, options)) === 0;
+      }
+      // Rhino: kill and killDual stop every instance with that package name.
+      async function killDual(packageName, options) {
+        __autojs6_app_require_capabilities("killDual", ["app.query", "shell"]);
+        const resolved = await __autojs6_app_resolve_target(packageName, options);
+        if (!resolved) {
+          return false;
+        }
+        try {
+          await __autojs6_app_exec_for_dual_user("killDual", "am force-stop " + resolved.packageName, null, options);
+          return true;
+        } catch (error) {
+          if (__autojs6_app_kept_error(error)) {
+            throw error;
+          }
+          return false;
+        }
+      }
+      __autojs6_limited_app_cache = Object.freeze({
+        packageName: info.packageName,
+        versionName: info.versionName,
+        versionCode: info.versionCode,
+        intent,
+        parseUri,
+        getUriForFile,
+        intentToShell,
+        openUrl,
+        openDualUrl,
+        sendEmail,
+        uninstall,
+        uninstallDual,
+        getPackageName,
+        getAppName,
+        isInstalled,
+        isDualInstalled,
+        viewFile,
+        editFile,
+        launch: launchPackage,
+        launchDual: launchDualPackage,
+        launchPackage,
+        launchDualPackage,
+        launchApp,
+        launchDualApp,
+        openAppSetting,
+        openAppSettings: openAppSetting,
+        launchSettings: openAppSetting,
+        launchAppDetailsSettings: openAppSetting,
+        openDualAppSetting: launchDualAppDetailsSettings,
+        openDualAppSettings: launchDualAppDetailsSettings,
+        launchDualSettings: launchDualAppDetailsSettings,
+        launchDualAppDetailsSettings,
+        startActivity,
+        startDualActivity,
+        sendBroadcast,
+        startService,
+        getInstalledApps,
+        getPackageInfo,
+        getInstalledPackages,
+        getApkInfo,
+        getAppByAlias,
+        sendLocalBroadcastSync,
+        kill,
+        killDual
+      });
       return __autojs6_limited_app_cache;
     }
-    const info = __autojs6_host_app_info();
-    function intent(options) {
-      return __autojs6_app_normalize_intent_descriptor(options, "intent");
-    }
-    function parseUri(uri) {
-      return __autojs6_app_parse_uri_descriptor(uri, "parseUri");
-    }
-    function getUriForFile(path, options) {
-      return __autojs6_limited_android().getUriForFile(path,options);
-    }
-    function intentToShell(options) {
-      return __autojs6_app_intent_to_shell(
-        __autojs6_app_normalize_intent_descriptor(options, "intentToShell"),
-        "intentToShell"
-      );
-    }
-    function openUrl(url, options) {
-      let descriptor;
-      try {
-        descriptor = __autojs6_app_open_url_descriptor(url, "openUrl");
-      } catch (error) {
-        return Promise.reject(__autojs6_app_invalid_argument_error(
-          "openUrl",
-          error && error.message ? error.message : "app.openUrl requires a URI string."
-        ));
-      }
-      return __autojs6_call_autojs(
-        "app",
-        "startActivity",
-        [descriptor],
-        __autojs6_app_bridge_options(options, 10000)
-      );
-    }
-    function sendEmail(request, options) {
-      let descriptor;
-      try {
-        const emailRequest = (typeof request === "string" || Array.isArray(request)) && options && typeof options === "object"
-          ? Object.assign({}, options, { to: request })
-          : request;
-        descriptor = __autojs6_app_email_descriptor(emailRequest, "sendEmail");
-      } catch (error) {
-        return Promise.reject(__autojs6_app_invalid_argument_error(
-          "sendEmail",
-          error && error.message ? error.message : "app.sendEmail requires a JSON-safe email request."
-        ));
-      }
-      return __autojs6_call_autojs(
-        "app",
-        "startActivity",
-        [descriptor],
-        __autojs6_app_bridge_options(options, 10000)
-      );
-    }
-    function uninstall(packageName, options) {
-      let descriptor;
-      try {
-        descriptor = __autojs6_app_uninstall_descriptor(packageName, "uninstall");
-      } catch (error) {
-        return Promise.reject(__autojs6_app_invalid_argument_error(
-          "uninstall",
-          error && error.message ? error.message : "app.uninstall requires a non-empty package name."
-        ));
-      }
-      return __autojs6_call_autojs(
-        "app",
-        "startActivity",
-        [descriptor],
-        __autojs6_app_bridge_options(options, 10000)
-      );
-    }
-    function getPackageName(appName, options) {
-      const target = __autojs6_app_non_empty_string(appName).trim();
-      if (!target) {
-        return Promise.reject(__autojs6_app_invalid_argument_error(
-          "getPackageName",
-          "app.getPackageName requires a non-empty app name."
-        ));
-      }
-      return __autojs6_call_autojs(
-        "app",
-        "getPackageName",
-        [target],
-        __autojs6_app_bridge_options(options, 10000)
-      );
-    }
-    function getAppName(packageName, options) {
-      const target = __autojs6_app_non_empty_string(packageName).trim();
-      if (!target) {
-        return Promise.reject(__autojs6_app_invalid_argument_error(
-          "getAppName",
-          "app.getAppName requires a non-empty package name."
-        ));
-      }
-      return __autojs6_call_autojs(
-        "app",
-        "getAppName",
-        [target],
-        __autojs6_app_bridge_options(options, 10000)
-      );
-    }
-    function isInstalled(packageName, options) {
-      const target = __autojs6_app_non_empty_string(packageName).trim();
-      if (!target) {
-        return Promise.reject(__autojs6_app_invalid_argument_error(
-          "isInstalled",
-          "app.isInstalled requires a non-empty package name."
-        ));
-      }
-      return __autojs6_call_autojs(
-        "app",
-        "isInstalled",
-        [target],
-        __autojs6_app_bridge_options(options, 10000)
-      );
-    }
-    function viewFile(path, options) {
-      const target = __autojs6_app_non_empty_string(path).trim();
-      if (!target) {
-        return Promise.reject(__autojs6_app_invalid_argument_error(
-          "viewFile",
-          "app.viewFile requires a non-empty scoped file path."
-        ));
-      }
-      return __autojs6_call_autojs(
-        "app",
-        "viewFile",
-        [target],
-        __autojs6_app_bridge_options(options, 10000)
-      );
-    }
-    function editFile(path, options) {
-      const target = __autojs6_app_non_empty_string(path).trim();
-      if (!target) {
-        return Promise.reject(__autojs6_app_invalid_argument_error(
-          "editFile",
-          "app.editFile requires a non-empty scoped file path."
-        ));
-      }
-      return __autojs6_call_autojs(
-        "app",
-        "editFile",
-        [target],
-        __autojs6_app_bridge_options(options, 10000)
-      );
-    }
-    function launchPackage(packageName, options) {
-      const target = __autojs6_app_non_empty_string(packageName);
-      if (!target) {
-        return Promise.reject(__autojs6_app_invalid_argument_error(
-          "launchPackage",
-          "app.launchPackage requires a non-empty package name."
-        ));
-      }
-      return __autojs6_call_autojs(
-        "app",
-        "launchPackage",
-        [target],
-        __autojs6_app_bridge_options(options, 10000)
-      );
-    }
-    function launchApp(name, options) {
-      const target = __autojs6_app_non_empty_string(name);
-      if (!target) {
-        return Promise.reject(__autojs6_app_invalid_argument_error(
-          "launchApp",
-          "app.launchApp requires a non-empty app name."
-        ));
-      }
-      return __autojs6_call_autojs(
-        "app",
-        "launchApp",
-        [target],
-        __autojs6_app_bridge_options(options, 10000)
-      );
-    }
-    function openAppSetting(packageName, options) {
-      let target = packageName;
-      let bridgeOptions = options;
-      if (target && typeof target === "object") {
-        bridgeOptions = target;
-        target = info.packageName;
-      }
-      target = __autojs6_app_non_empty_string(target || info.packageName);
-      if (!target) {
-        return Promise.reject(__autojs6_app_invalid_argument_error(
-          "openAppSetting",
-          "app.openAppSetting requires a non-empty package name."
-        ));
-      }
-      return __autojs6_call_autojs(
-        "app",
-        "openAppSetting",
-        [target],
-        __autojs6_app_bridge_options(bridgeOptions, 10000)
-      );
-    }
-    function startActivity(options, callOptions) {
-      let descriptor;
-      try {
-        descriptor = typeof options === "string"
-          ? __autojs6_app_open_url_descriptor(options, "startActivity")
-          : __autojs6_app_normalize_intent_descriptor(options, "startActivity");
-      } catch (error) {
-        return Promise.reject(__autojs6_app_invalid_argument_error(
-          "startActivity",
-          error && error.message ? error.message : "app.startActivity requires a JSON intent descriptor."
-        ));
-      }
-      return __autojs6_call_autojs(
-        "app",
-        "startActivity",
-        [descriptor],
-        __autojs6_app_bridge_options(callOptions, 10000)
-      );
-    }
-    function startDualActivity(options, callOptions) {
-      return Promise.reject(__autojs6_app_privileged_unavailable_error("startDualActivity"));
-    }
-    function dispatchIntent(method, options, callOptions) {
-      let descriptor;
-      try { descriptor = __autojs6_app_normalize_intent_descriptor(typeof options === "string" ? {action: options} : options, method); }
-      catch (error) { return Promise.reject(error); }
-      return __autojs6_call_autojs("app", method, [descriptor], __autojs6_app_bridge_options(callOptions, 10000));
-    }
-    function sendBroadcast(options, callOptions) { return dispatchIntent("sendBroadcast", options, callOptions); }
-    function startService(options, callOptions) { return dispatchIntent("startService", options, callOptions); }
-    function getInstalledApps(options, callOptions) {
-      return __autojs6_call_autojs("app", "getInstalledApps", [options || {}], __autojs6_app_bridge_options(callOptions, 10000));
-    }
-    function getPackageInfo(packageName, options) {
-      return __autojs6_call_autojs("app", "getPackageInfo", [String(packageName || "")], __autojs6_app_bridge_options(options, 10000));
-    }
-    function openDualUrl(url, options) {
-      return Promise.reject(__autojs6_app_privileged_unavailable_error("openDualUrl"));
-    }
-    function launchDualPackage(packageName, options) {
-      return Promise.reject(__autojs6_app_privileged_unavailable_error("launchDualPackage"));
-    }
-    function launchDualApp(appName, options) {
-      return Promise.reject(__autojs6_app_privileged_unavailable_error("launchDualApp"));
-    }
-    function launchDualAppDetailsSettings(packageName, options) {
-      return Promise.reject(__autojs6_app_privileged_unavailable_error("launchDualAppDetailsSettings"));
-    }
-    function isDualInstalled(packageName, options) {
-      return Promise.reject(__autojs6_app_privileged_unavailable_error("isDualInstalled"));
-    }
-    function uninstallDual(packageName, options) {
-      return Promise.reject(__autojs6_app_privileged_unavailable_error("uninstallDual"));
-    }
-    function kill(packageName, options) {
-      return Promise.reject(__autojs6_app_privileged_unavailable_error("kill"));
-    }
-    function killDual(packageName, options) {
-      return Promise.reject(__autojs6_app_privileged_unavailable_error("killDual"));
-    }
-    __autojs6_limited_app_cache = Object.freeze({
-      packageName: info.packageName,
-      versionName: info.versionName,
-      versionCode: info.versionCode,
-      intent,
-      parseUri,
-      getUriForFile,
-      intentToShell,
-      openUrl,
-      openDualUrl,
-      sendEmail,
-      uninstall,
-      uninstallDual,
-      getPackageName,
-      getAppName,
-      isInstalled,
-      isDualInstalled,
-      viewFile,
-      editFile,
-      launch: launchPackage,
-      launchDual: launchDualPackage,
-      launchPackage,
-      launchDualPackage,
-      launchApp,
-      launchDualApp,
-      openAppSetting,
-      openAppSettings: openAppSetting,
-      launchSettings: openAppSetting,
-      launchAppDetailsSettings: openAppSetting,
-      openDualAppSetting: launchDualAppDetailsSettings,
-      openDualAppSettings: launchDualAppDetailsSettings,
-      launchDualSettings: launchDualAppDetailsSettings,
-      launchDualAppDetailsSettings,
-      startActivity,
-      startDualActivity,
-      sendBroadcast,
-      startService,
-      getInstalledApps,
-      getPackageInfo,
-      kill,
-      killDual
-    });
-    return __autojs6_limited_app_cache;
+    return __autojs6_limited_app();
+  }
+  function __autojs6_limited_app() {
+    return __autojs6_limited_app_cache ||= __autojs6_create_app(__autojs6_call_autojs, __autojs6_host_app_info, __autojs6_bridge_error,
+      __autojs6_bridge_signal_from_options, __autojs6_limited_android, __autojs6_limited_shell, __autojs6_bridge_missing_capabilities);
   }
   function __autojs6_engine_timeout_from_options(options, fallbackMs) {
     return options && typeof options === "object" && options.timeoutMs !== undefined
