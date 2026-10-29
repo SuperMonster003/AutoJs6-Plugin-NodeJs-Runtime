@@ -21,6 +21,7 @@ function host({access={},respond=()=>({}),declared,users=[999],packages={}}={}){
   if(module==='app'){
    if(method==='resolvePackage')return packages[args[0]]??null;
    if(method==='getUserProfiles')return {current:0,others:users};
+   if(method==='getInstalledPackages')return args[1]===0?{items:[{packageName:'a'}],next:1}:{items:[{packageName:'b'}],next:null};
    return null;
   }
   if(method==='getAccess')return access0;
@@ -74,7 +75,7 @@ test('execCommand returns Rhino results and honours setDefaultOptions',async()=>
   {command:'id',root:false,shizuku:false,permissions:['shell']}]);
  assert.throws(()=>f.shell.setDefaultOptions({pty:true}),/Unknown default shell option/);assert.throws(()=>f.shell.setDefaultOptions(1),TypeError);
  const broken=host({respond:()=>({fail:'Cannot run program "su": error=2, No such file'})});
- assert.deepEqual({...await broken.shell.execCommand('id',true)},{code:2,result:'',error:'Cannot run program "su": error=2, No such file',timedOut:false,truncated:false});
+ assert.deepEqual({...await broken.shell.execCommand('id',true)},{code:1,result:'',error:'Cannot run program "su": error=2, No such file',timedOut:false,truncated:false});
  await assert.rejects(host({declared:['shell']}).shell.execCommand('id',true),NOT_DECLARED);
 });
 
@@ -174,9 +175,9 @@ test('Rhino intent options route startActivity, startService and sendBroadcast',
 
 test('package queries and the local broadcast reach the host with app capabilities',async()=>{
  const f=host();
- await f.app.getInstalledPackages({get:['activities']});await f.app.getApkInfo('a.apk',{get:['permissions']});await f.app.getAppByAlias('QQ');await f.app.sendLocalBroadcastSync('my.ACTION');
+ assert.deepEqual((await f.app.getInstalledPackages({get:['activities']})).map(p=>p.packageName),['a','b']);await f.app.getApkInfo('a.apk',{get:['permissions']});await f.app.getAppByAlias('QQ');await f.app.sendLocalBroadcastSync('my.ACTION');
  assert.equal(await f.app.getAppByAlias(null),null);
- assert.deepEqual(f.calls.map(c=>[c.method,c.args]),[['getInstalledPackages',[{get:['activities']}]],['getApkInfo',['a.apk',{get:['permissions']}]],['getAppByAlias',['QQ']],['sendLocalBroadcastSync',[{action:'my.ACTION'}]]]);
+ assert.deepEqual(f.calls.map(c=>[c.method,c.args]),[['getInstalledPackages',[{get:['activities']},0]],['getInstalledPackages',[{get:['activities']},1]],['getApkInfo',['a.apk',{get:['permissions']}]],['getAppByAlias',['QQ']],['sendLocalBroadcastSync',[{action:'my.ACTION'}]]]);
  assert.equal(f.shell.fromIntent({action:'VIEW',data:'https://a.b'}),"-a 'android.intent.action.VIEW' -d 'https://a.b'");
  assert.throws(()=>f.shell.fromIntent('x'),TypeError);
 });
@@ -204,4 +205,12 @@ test('CJS, ESM and nested Workers get the same app, shell and shizuku members',a
  for(const [code,opts] of [[cjs,{eval:true}],[new URL('data:text/javascript,'+encodeURIComponent(esm)),{}],[`const {Worker,parentPort}=require('node:worker_threads');const w=new Worker(${JSON.stringify(cjs)},{eval:true});w.on('message',x=>parentPort.postMessage(x));w.on('error',e=>{throw e});`,{eval:true}]])
   assert.deepEqual(await run(code,opts),expected);
  assert(calls.some(c=>c[1]==='resolvePackage'));
+});
+
+test('an unusable Shizuku rejects as in Rhino, the global functions still report nothing',async()=>{
+ const f=host({respond:(command,opts)=>opts.shizuku?{fail:'Shizuku service is not running'}:{}});
+ await assert.rejects(f.shizuku.execCommand('id'),{code:'ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED'});
+ await assert.rejects(f.shell.execCommand('id',{adb:true}),{code:'ERR_AUTOJS6_BRIDGE_PROVIDER_FAILED'});
+ assert.equal(await f.shell.Home(),undefined);
+ assert.equal((await f.shell.execCommand('id',true)).code,0);
 });

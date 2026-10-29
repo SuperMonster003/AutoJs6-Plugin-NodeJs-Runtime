@@ -28,7 +28,8 @@ import device_js_tools as base  # noqa: E402
 CASES = HERE / "cases.js"
 base.DEVICE_DIR = "/sdcard/Download/aj6-p31a"
 base.MARK = "P31A"
-APK = base.DEVICE_DIR + "/sample.apk"
+# A copy of an installed APK next to each script (Node reads files inside the project directory).
+APK = "sample.apk"
 APK_PACKAGE = "com.android.settings"
 EMIT_JS = base.EMIT_JS.replace("P32A", "P31A").replace("p32aEmit", "p31aEmit")
 # The encoder of the JS tools cases (Rhino and Node).
@@ -54,6 +55,7 @@ p31aEmit(P31A_RUN, -1, {done: APP_SHELL_CASES.length, sdk: android.os.Build.VERS
 """
 NODE_RUNNER_JS = """
 async function p31aRun(env, emit) {
+    env = Object.assign({appShellResult, appShellState}, env);
     const names = Object.keys(env), values = names.map(name => env[name]);
     for (let i = 0; i < APP_SHELL_CASES.length; i++) {
         let result;
@@ -101,7 +103,8 @@ UNDECLARED_EXPECTED = {
 
 
 def project(capabilities):
-    return {"name": "p31a-app-shell", "type": "node", "main": "main.js", "node": {"permissions": capabilities}}
+    # Projects get a 5 s budget by default; the cases wait for shell processes.
+    return {"name": "p31a-app-shell", "type": "node", "main": "main.js", "node": {"permissions": capabilities, "timeoutMs": 300000}}
 
 
 def cases():
@@ -135,13 +138,15 @@ def node_script(form, run):
 
 
 def compare(expected, actual):
-    """'pass' or the reason of a failure; thrown errors match by name (a Rhino JavaException by its simple name)."""
+    """'pass' or the reason of a failure; thrown errors match by name, a Rhino Java exception any Node rejection."""
     if "th" in expected or "th" in actual:
         if "th" not in expected:
             return f"expected {json.dumps(expected.get('ok'))[:100]}, threw {actual['th']['name']}: {actual['th']['message'][:100]}"
         name = base.error_name(expected["th"]["name"])
         if "th" not in actual:
             return f"expected {name}, got {json.dumps(actual.get('ok'))[:100]}"
+        if expected["th"]["name"].startswith("JavaException "):
+            return "pass"
         return "pass" if name == actual["th"]["name"] else f"expected {name}, got {actual['th']['name']}: {actual['th']['message'][:100]}"
     return "pass" if base.same(expected["ok"], actual["ok"]) else \
         f"expected {json.dumps(expected['ok'])[:120]}, got {json.dumps(actual['ok'])[:120]}"
@@ -151,7 +156,7 @@ def phase_compare(args):
     serial, table = args.serial, cases()
     source = base.adb(serial, "shell", "pm", "path", APK_PACKAGE).stdout.split("package:")[-1].split()[0]
     base.adb(serial, "shell", "mkdir", "-p", base.DEVICE_DIR, check=True)
-    base.adb(serial, "shell", "cp", source, APK, check=True)
+    base.adb(serial, "shell", "cp", source, f"{base.DEVICE_DIR}/{APK}", check=True)
     report, failed = {"device": {}, "forms": {}}, 0
     try:
         run = uuid.uuid4().hex[:8]
@@ -168,6 +173,8 @@ def phase_compare(args):
             report["device"][case_id] = rhino.get(index)
         for form in args.forms.split(","):
             run = uuid.uuid4().hex[:8]
+            base.adb(serial, "shell", "mkdir", "-p", f"{base.DEVICE_DIR}/{run}", check=True)
+            base.adb(serial, "shell", "cp", source, f"{base.DEVICE_DIR}/{run}/{APK}", check=True)
             if form == "undeclared":
                 text = f'"nodejs";\nconst P31A_RUN = \'{run}\';\n' + EMIT_JS + UNDECLARED_JS
                 results = base.run_script(serial, f"p31a_node_{form}_{run}.js", text, run, args.wait, project(["app.query"]))

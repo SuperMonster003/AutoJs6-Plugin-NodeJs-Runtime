@@ -29,8 +29,9 @@ var APP_SHELL_CASES = [
     ["shell.kill", "shell.kill('com.android.settings')", "shell.kill('com.android.settings')"],
     ["shell.currentPackage", "String(shell.currentPackage())", "shell.currentPackage()"],
     ["shell.currentComponent", "String(shell.currentComponent())", "shell.currentComponent()"],
-    ["shell.fromIntent", "String(shell.fromIntent(app.intent({action: 'VIEW', data: 'https://example.com'})))",
-        "shell.fromIntent({action: 'VIEW', data: 'https://example.com'})"],
+    // Node quotes the data and omits a zero -f (app.intentToShell); the action and the data are compared.
+    ["shell.fromIntent", "(function (s) { return [s.indexOf(\"-a 'android.intent.action.VIEW'\") >= 0, s.indexOf('https://example.com') >= 0]; })(String(shell.fromIntent(app.intent({action: 'VIEW', data: 'https://example.com'}))))",
+        "(s => [s.includes(\"-a 'android.intent.action.VIEW'\"), s.includes('https://example.com')])(shell.fromIntent({action: 'VIEW', data: 'https://example.com'}))"],
     ["shell.setDefaultOptions", "(function () { shell.setDefaultOptions({root: false}); var r = shell('echo p31a').code; shell.setDefaultOptions(null); return r; })()",
         "(async () => { shell.setDefaultOptions({root: false}); const r = (await shell.execCommand('echo p31a')).code; shell.setDefaultOptions(null); return r; })()"],
 

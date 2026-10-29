@@ -10337,13 +10337,13 @@ std::string buildEmbeddedScriptExecutionSource(
       if(error){const match=/^Error type (\d+)/.exec(error);if(match)code=Number(match[1]);if(code===0)code=1;}
       return Object.freeze({code,result,error,timedOut:value.timedOut===true,truncated:value.truncated===true});
     }
-    // A process that cannot start is a failed result as in Rhino; undeclared capabilities and aborts still reject.
+    // A process that cannot start is a failed result with code 1, as Rhino's ProcessShell reports it; undeclared
+    // capabilities, aborts and a Shizuku that cannot be used (Rhino's Shizuku shell throws IllegalStateException) still reject.
     async function rhinoExec(command,opts){
       try{return rhinoResult(await exec(command,{...opts,maxOutputBytes:16777216}));}
       catch(error){
-        if(capabilityError(error)||error&&error.name==="AbortError")throw error;
-        const message=String(error&&error.message||error),match=/error=(\d+)/.exec(message);
-        return Object.freeze({code:match?Number(match[1]):1,result:"",error:message,timedOut:false,truncated:false});
+        if(capabilityError(error)||error&&error.name==="AbortError"||opts.shizuku)throw error;
+        return Object.freeze({code:1,result:"",error:String(error&&error.message||error),timedOut:false,truncated:false});
       }
     }
     function execCommand(...args){
@@ -10424,7 +10424,8 @@ std::string buildEmbeddedScriptExecutionSource(
     async function compat(command,keyEvent=false){
       let adb=rhinoDefaults.adb===true;
       if(!adb&&keyEvent&&!missingCapabilities(["shell.shizuku"]).length)adb=operational(await getAccess());
-      await rhinoExec(command,adb?{shizuku:true}:{root:true});
+      try{await rhinoExec(command,adb?{shizuku:true}:{root:true});}
+      catch(error){if(capabilityError(error)||error&&error.name==="AbortError")throw error;}
     }
     const integer=(name,value)=>{if(typeof value!=="number"||!Number.isFinite(value))throw typeError(name+" must be a finite number");return Math.trunc(value);};
     const scale=(value,size,designSize)=>designSize&&size?Math.trunc(value*size/designSize):value;
@@ -25404,8 +25405,15 @@ std::string buildEmbeddedScriptExecutionSource(
       function getPackageInfo(packageName, options) {
         return __autojs6_call_autojs("app", "getPackageInfo", [String(packageName || "")], __autojs6_app_bridge_options(options, 10000));
       }
-      function getInstalledPackages(options, callOptions) {
-        return __autojs6_call_autojs("app", "getInstalledPackages", [options || {}], __autojs6_app_bridge_options(callOptions, 30000));
+      // The host answers in pages that stay under the Binder transaction size (component lists of every package).
+      async function getInstalledPackages(options, callOptions) {
+        const packages = [];
+        for (let offset = 0; offset !== null && offset !== undefined;) {
+          const page = await __autojs6_call_autojs("app", "getInstalledPackages", [options || {}, offset], __autojs6_app_bridge_options(callOptions, 30000));
+          packages.push(...page.items);
+          offset = page.next;
+        }
+        return packages;
       }
       function getApkInfo(path, options, callOptions) {
         const target = __autojs6_app_non_empty_string(path).trim();
