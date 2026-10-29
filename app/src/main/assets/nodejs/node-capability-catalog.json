@@ -852,6 +852,36 @@
         "id": "compose",
         "aliases": [],
         "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "autojs",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "installer",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "memory",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "settings",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "sysprops",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "power_manager",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
       }
     ],
     "operations": [
@@ -3644,6 +3674,410 @@
         "requiredCapabilities": [
           "ui"
         ]
+      },
+      {
+        "module": "autojs",
+        "method": "isRootAvailable",
+        "requiredCapabilities": [
+          "autojs"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "getRootMode",
+        "requiredCapabilities": [
+          "autojs"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "canModifySystemSettings",
+        "requiredCapabilities": [
+          "autojs"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "canWriteSecureSettings",
+        "requiredCapabilities": [
+          "autojs"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "canDisplayOverOtherApps",
+        "requiredCapabilities": [
+          "autojs"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "getLanguage",
+        "requiredCapabilities": [
+          "autojs"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "getLanguageTag",
+        "requiredCapabilities": [
+          "autojs"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "isScreenPortrait",
+        "requiredCapabilities": [
+          "autojs"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "isScreenLandscape",
+        "requiredCapabilities": [
+          "autojs"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "rotation",
+        "requiredCapabilities": [
+          "autojs"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "orientation",
+        "requiredCapabilities": [
+          "autojs"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "themeColor",
+        "requiredCapabilities": [
+          "autojs"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "R",
+        "requiredCapabilities": [
+          "autojs"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "setRootMode",
+        "requiredCapabilities": [
+          "autojs",
+          "autojs.control"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "restart",
+        "requiredCapabilities": [
+          "autojs",
+          "autojs.control"
+        ]
+      },
+      {
+        "module": "autojs",
+        "method": "exit",
+        "requiredCapabilities": [
+          "autojs",
+          "autojs.control"
+        ]
+      },
+      {
+        "module": "settings",
+        "method": "isEnabled",
+        "requiredCapabilities": [
+          "settings"
+        ]
+      },
+      {
+        "module": "settings",
+        "method": "categories",
+        "requiredCapabilities": [
+          "settings"
+        ]
+      },
+      {
+        "module": "settings",
+        "method": "setEnabled",
+        "requiredCapabilities": [
+          "settings",
+          "settings.write"
+        ]
+      },
+      {
+        "module": "settings",
+        "method": "export",
+        "requiredCapabilities": [
+          "settings",
+          "files.write"
+        ]
+      },
+      {
+        "module": "sysprops",
+        "method": "get",
+        "requiredCapabilities": [
+          "sysprops"
+        ]
+      },
+      {
+        "module": "sysprops",
+        "method": "getInt",
+        "requiredCapabilities": [
+          "sysprops"
+        ]
+      },
+      {
+        "module": "sysprops",
+        "method": "getBoolean",
+        "requiredCapabilities": [
+          "sysprops"
+        ]
+      },
+      {
+        "module": "sysprops",
+        "method": "getAll",
+        "requiredCapabilities": [
+          "sysprops"
+        ]
+      },
+      {
+        "module": "memory",
+        "method": "snapshot",
+        "requiredCapabilities": [
+          "memory"
+        ]
+      },
+      {
+        "module": "memory",
+        "method": "collect",
+        "requiredCapabilities": [
+          "memory"
+        ]
+      },
+      {
+        "module": "memory",
+        "method": "retained",
+        "requiredCapabilities": [
+          "memory"
+        ]
+      },
+      {
+        "module": "memory",
+        "method": "dumpHeap",
+        "requiredCapabilities": [
+          "memory",
+          "memory.dump"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "isAvailable",
+        "requiredCapabilities": [
+          "installer"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "status",
+        "requiredCapabilities": [
+          "installer"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "isDefault",
+        "requiredCapabilities": [
+          "installer"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "users",
+        "requiredCapabilities": [
+          "installer"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "usersAsync",
+        "requiredCapabilities": [
+          "installer"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "inspect",
+        "requiredCapabilities": [
+          "installer"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "inspectAsync",
+        "requiredCapabilities": [
+          "installer"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "authorizer",
+        "requiredCapabilities": [
+          "installer"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "install",
+        "requiredCapabilities": [
+          "installer",
+          "installer.mutate"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "installAsync",
+        "requiredCapabilities": [
+          "installer",
+          "installer.mutate"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "uninstall",
+        "requiredCapabilities": [
+          "installer",
+          "installer.mutate"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "uninstallAsync",
+        "requiredCapabilities": [
+          "installer",
+          "installer.mutate"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "setDefault",
+        "requiredCapabilities": [
+          "installer",
+          "installer.mutate"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "setDefaultAsync",
+        "requiredCapabilities": [
+          "installer",
+          "installer.mutate"
+        ]
+      },
+      {
+        "module": "installer",
+        "method": "session",
+        "requiredCapabilities": [
+          "installer",
+          "installer.mutate"
+        ]
+      },
+      {
+        "module": "power_manager",
+        "method": "isIgnoringBatteryOptimizations",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "power_manager",
+        "method": "requestIgnoreBatteryOptimizations",
+        "requiredCapabilities": [
+          "device",
+          "device.power"
+        ]
+      },
+      {
+        "module": "notifications",
+        "method": "isEnabled",
+        "requiredCapabilities": [
+          "notifications"
+        ]
+      },
+      {
+        "module": "notifications",
+        "method": "config",
+        "requiredCapabilities": [
+          "notifications"
+        ]
+      },
+      {
+        "module": "notifications",
+        "method": "channel",
+        "requiredCapabilities": [
+          "notifications"
+        ]
+      },
+      {
+        "module": "notifications",
+        "method": "ensureEnabled",
+        "requiredCapabilities": [
+          "notifications",
+          "notifications.settings"
+        ]
+      },
+      {
+        "module": "notifications",
+        "method": "launchSettings",
+        "requiredCapabilities": [
+          "notifications",
+          "notifications.settings"
+        ]
+      },
+      {
+        "module": "notifications",
+        "method": "getBuilder",
+        "requiredCapabilities": [
+          "notifications",
+          "java_interop"
+        ]
+      },
+      {
+        "module": "notifications",
+        "method": "builder",
+        "requiredCapabilities": [
+          "notifications",
+          "java_interop"
+        ]
+      },
+      {
+        "module": "engines",
+        "method": "getEngines",
+        "requiredCapabilities": [
+          "engines"
+        ]
+      },
+      {
+        "module": "engines",
+        "method": "stopAllAndToast",
+        "requiredCapabilities": [
+          "engines"
+        ]
+      },
+      {
+        "module": "engines",
+        "method": "execAutoFile",
+        "requiredCapabilities": [
+          "engines",
+          "engines.exec"
+        ]
       }
     ],
     "permissionCapabilities": [
@@ -4119,6 +4553,51 @@
       },
       {
         "id": "work_manager",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "autojs",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "autojs.control",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "settings",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "settings.write",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "sysprops",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "memory",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "memory.dump",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "installer",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "installer.mutate",
         "aliases": [],
         "androidPermissions": []
       }

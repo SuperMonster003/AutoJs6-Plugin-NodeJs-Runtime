@@ -85,6 +85,16 @@ public final class NodeBridgePermissionManifest {
     private static final String EVENTS_TOAST = "events.toast";
     private static final String EVENTS_KEY = "events.key";
     private static final String KEYS = "keys";
+    // api-coverage P3.1b (Q133 (b)): the system information family, one capability per module.
+    private static final String AUTOJS = "autojs";
+    private static final String AUTOJS_CONTROL = "autojs.control";
+    private static final String SETTINGS = "settings";
+    private static final String SETTINGS_WRITE = "settings.write";
+    private static final String SYSPROPS = "sysprops";
+    private static final String MEMORY = "memory";
+    private static final String MEMORY_DUMP = "memory.dump";
+    private static final String INSTALLER = "installer";
+    private static final String INSTALLER_MUTATE = "installer.mutate";
 
     private static final String ANDROID_PERMISSION_INTERNET = "android.permission.INTERNET";
     private static final String ANDROID_PERMISSION_FOREGROUND_SERVICE = "android.permission.FOREGROUND_SERVICE";
@@ -173,7 +183,16 @@ public final class NodeBridgePermissionManifest {
             EVENTS_NOTIFICATION,
             EVENTS_TOAST,
             EVENTS_KEY,
-            KEYS
+            KEYS,
+            AUTOJS,
+            AUTOJS_CONTROL,
+            SETTINGS,
+            SETTINGS_WRITE,
+            SYSPROPS,
+            MEMORY,
+            MEMORY_DUMP,
+            INSTALLER,
+            INSTALLER_MUTATE
     );
     private static final Set<String> DEFINED_CAPABILITY_SET =
             Collections.unmodifiableSet(new HashSet<>(DEFINED_CAPABILITIES));

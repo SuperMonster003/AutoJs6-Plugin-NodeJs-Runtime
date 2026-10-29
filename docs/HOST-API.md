@@ -75,12 +75,13 @@ M23.4 起, 主线程和 Worker 的 `process.dlopen` / `Module._extensions[".node
 | `clipboard` | getText, setText, hasText | 真剪贴板 |
 | `device` | info, getWidth/Height/Density/DensityDpi, getBrightness/Mode, getBattery/isCharging, getSdkInt/Release/Model/Brand/Product/Board/Bootloader/Hardware/Fingerprint/BuildId, getTotalMem/AvailMem, isScreenOn, wakeUp, vibrate, setBrightness/Mode, keepScreenOn, cancelKeepingAwake, isIgnoringBatteryOptimizations, openBatteryOptimizationSettings | 控制需 device.power; 亮度写入另需 Android 修改系统设置权限; 硬件标识符 (imei/androidId/serial/mac) 仍 blocked |
 | `shell` / `shizuku` | exec, spawn, open, streams, access/permission, Rhino 的 execCommand / getCommand / fromIntent / kill / setDefaultOptions / current* / 状态查询, 全局按键与输入函数 | 宿主进程与 Shizuku 用户服务; Root/Shizuku 独立授权, Node/Worker/Bun 共用封装 |
-| `dialogs` | alert, confirm, input/prompt, rawInput, select, singleChoice, multiChoice, progress.show/update/dismiss | Activity 持有真实对话框; 请求超时/关闭/脚本结束释放 |
+| `dialogs` | alert, confirm, input/prompt, rawInput, select, singleChoice, multiChoice, progress.show/update/dismiss, build | Activity 持有真实对话框; 请求超时/关闭/脚本结束释放 |
 | `keys` | notifications, quickSettings, lockScreen, takeScreenshot, splitScreen, powerDialog | 声明 keys 且开启无障碍; 返回 Android 是否接受该全局动作 |
-| `engines` | myEngine, all, stopAll, stopSelf, execScript, execScriptFile | 宿主脚本引擎 |
+| `engines` | myEngine, all / getEngines, stopAll, stopAllAndToast, stopSelf, execScript, execScriptFile, execAutoFile | 宿主脚本引擎; all 与 stopAll 为宿主视角 (见 "系统信息与引擎族的 Rhino 对照") |
 | `storage` / `storages` | get, put, remove, clear, keys, contains | |
 | `database` / `sqlite` | open, exec, run, get, all, transaction, close | 单线程 executor |
-| `notifications` | notify, cancel, cancelAll, getPermissionStatus, openSettings | 受 POST_NOTIFICATIONS 权限门禁 |
+| `notifications` | notify, cancel, cancelAll, getPermissionStatus, openSettings, Rhino notice 的 isEnabled / ensureEnabled / launchSettings / config / builder / getBuilder / channel.* | 受 POST_NOTIFICATIONS 权限门禁 |
+| `autojs6:autojs` / `autojs6:installer` / `autojs6:memory` / `autojs6:settings` / `autojs6:sysprops` / `autojs6:power_manager` / `autojs6:system` | Rhino 的 autojs (含 version, R), installer, memory, settings, sysprops, powerManager 与全局系统函数 | 宿主 RuntimeSystemBridge; 能力见 "系统信息与引擎族的 Rhino 对照" |
 | `sensors` | getAvailableSensors, once, subscribe, unsubscribe, drainEvents | 真 SensorManager |
 | `ui` | showLayout, update, batchUpdate, close, drainEvents | Activity-owned 声明式 UI |
 | `work_manager` | scheduleOnce, schedulePeriodic, cancel, list | WorkManager 真调度 |
@@ -874,6 +875,21 @@ Host 5583, Node Runtime 1.18.0 and Bun Runtime 0.7.0 share shell/shizuku facades
 - shizuku: execCommand / getCommand (总是经 Shizuku, 忽略 root), kill, currentPackage / currentActivity / currentComponent, isInstalled / hasService / isRunning / hasPermission / isOperational 与 state (属性, 每次读取返回新的 Promise). `getAccess()` 新增 shizukuInstalled / shizukuHasService / shizukuOperational.
 - ShellProcess: isAlive, getInputStream / getErrorStream (即 stdout / stderr 流; 直接读流后不能再 readLine / readErrorLine), getOutputStream (stdin), toString, 以及 EventEmitter 别名 addListener / removeListener / listenerCount / prependListener / prependOnceListener (Q31).
 - 与 Rhino 的差异: 上述 Promise 返回值; fromIntent 与 app.intentToShell 相同, 给 data 加引号且省略为 0 的 -f (Rhino 为 `-f 0 -d https://...`); shizuku 的 current* 经 Shizuku 运行 dumpsys (Rhino 用 Shizuku 用户服务的 getRunningTasks), activity 总是完整类名; KeyCode 的键名表取自 Android 16 (API 36) 的 KeyEvent, Rhino 用设备自身的 KeyEvent.keyCodeFromString (Android 10 以下只认数字与 KEYCODE_ 形式); 键名无效时 reject RangeError (ERR_OUT_OF_RANGE). 真机结果见宿主 `docs/dev/runtime-app-shell-2026-10-29.md`.
+
+## 系统信息与引擎族的 Rhino 对照 (2026-10-30, api-coverage P3.1b)
+
+共享工厂 `__autojs6_create_system` 提供 `autojs6:autojs` (Rhino 的 autojs, 含 autojs.version 与 R; `app.autojs` 是同一对象), `autojs6:installer`, `autojs6:memory`, `autojs6:settings`, `autojs6:sysprops`, `autojs6:power_manager` (Rhino 的 powerManager) 与 `autojs6:system` (Rhino 的全局系统函数), 主线程与 Worker (CJS, ESM, 嵌套 Worker) 成员相同; 这些模块只认 `autojs6:` 名, 不遮蔽同名 npm 包. 宿主路由在 RuntimeSystemBridge (宿主 ea2e5bad4 起), 阻塞调用 (installer, memory.collect, settings.export) 在宿主自己的线程池里执行. 新能力 (Q133 (b)): `autojs`, `autojs.control`, `settings`, `settings.write`, `sysprops`, `memory`, `memory.dump`, `installer`, `installer.mutate`; 带点的四个不被父能力隐含. powerManager 用 `device` (请求另需 `device.power`), notice 的开关与渠道用 `notifications` (ensureEnabled / launchSettings 另需 `notifications.settings`), plugins.tools 用 `plugin_tools`.
+
+- autojs: versionCode / versionName / versionDate / name / packageName 与 version.code / name / date 是同步常量; version.isHigherThan / isLowerThan / isEqual / isAtLeast 同步比较, 照宿主的 io.github.g00fy2.versioncompare 1.5.0 移植 (`tools/nodejs/api/system/version-compare-expected.json` 为该库的 112 组结果). 其余成员返回 Promise: getRootMode 返回枚举名 ("AUTO_DETECT" / "FORCE_ROOT" / "FORCE_NON_ROOT"), setRootMode 接受 Rhino 的 1 / 0 / -1 / 布尔 / "root" / "non-root" / "auto" 与枚举名, getLanguage 返回 Intl.Locale, getter rotation / orientation / themeColor 每次读取返回新的 Promise, `R.<type>.<name>` 解析为资源 id. restart / exit 的脚本名照 Rhino 补 ".js", "@" 为当前脚本.
+- installer: 参数, 选项与结果同 Rhino, 均返回 Promise (*Async 为同一函数), 失败以 installer.InstallerError reject (code, retryable, status, systemMessage, packageName, authorizer). session() 打开并启动会话后 resolve 一个 EventEmitter (stage / progress / complete / error, wait / cancel), 事件由宿主排队, 门面每 200 ms 取一次; 宿主单次调用上限 15 分钟.
+- memory: snapshot / collect / retained / dumpHeap (dumpHeap 仅调试构建或开启开发者选项); memory.watch 记 not-portable (runtime-native, Q134), 等价写法为 FinalizationRegistry 与 node:v8 writeHeapSnapshot.
+- settings / sysprops / power_manager: 参数同 Rhino, 返回 Promise. requestIgnoreBatteryOptimizations 打开系统对话框, 由用户确认.
+- notifications (Rhino notice 的别名): isEnabled, ensureEnabled (未开启时打开设置页并 reject), launchSettings, config (本线程的默认值, defaultTitle / defaultContent / defaultChannelId / defaultChannelName 用于 notify), getBuilder / builder (经 Java 门面取 NotificationCompat.Builder 句柄, 需 `java_interop`), notify(builder 句柄) 经 Java 门面发出, channel.create / createIfNeeded / contains / get / getAll / remove (Android 8 起; 省略 id 时为 "script_channel", Rhino 默认为脚本名).
+- dialogs.build (Q132 (a)): 本地句柄, show() 按属性选路线 (items 按 itemsSelectMode 走 select / singleChoice / multiChoice, inputHint / inputPrefill 走 input, 有 negative 走 confirm, 否则 alert), 发出 Rhino 的事件 (show, positive / negative, input, item_select / single_choice / multi_choice, cancel, dismiss) 并 resolve 路线结果.
+- engines (Q131 (a), 宿主视角同 Rhino): all / getEngines 列出宿主全部执行; stopAll 默认停止宿主全部执行 (含本执行, `{scope: "plugin"}` 保留插件进程视角); stopAllAndToast 与 execAutoFile 为新宿主方法; execScript* 的 timeoutMs 可省略, 默认为宿主上限 60000. Worker 中 engines 经主线程转发, myEngine 为主执行的快照.
+- plugins: extend / extendAll / extendAllBut 作用于共享 jsox (Mathx / Arrayx / Numberx); plugins.tools.list / providers / call / callAsync / cancel 经宿主 plugin_tools.
+- autojs6:system: currentPackage / currentActivity / currentComponent 按 mode (auto 依次 Shizuku, Root, 无障碍), waitForActivity / waitForPackage 照 Rhino 的 limit (小于 100 为次数, 否则为毫秒) / interval / callback 规则, isStopped / isShuttingDown / notStopped / isRunning (主线程在宿主请求停止时也变为已停止, Worker 只反映自身的 exit), exit / stop (经 process.exit 结束执行, Worker 中结束主执行), requiresApi / requiresAutojsVersion, WIDTH / HEIGHT (启动时的设备屏幕尺寸), setScreenMetrics (缩放本线程 accessibility.click / swipe / gesture 的坐标, 同 Rhino ScreenMetrics.scaleX / scaleY), isAutoJs6, getClip / setClip (系统剪贴板, 需 `clipboard`).
+- 与 Rhino 的差异: 上述 Promise 返回值; current* 无障碍模式经宿主 flowForeground; 全局函数在 `autojs6:system` 中, 不安装到 globalThis; getClip 不读 Rhino 的脚本内剪贴板变量 (runtime.clip), 只读系统剪贴板. 对照用例: `tools/nodejs/api/test-system-rhino.js` (桌面), `tools/nodejs/api/system/` (真机).
 
 ## Host events and notifications (2026-10-19)
 

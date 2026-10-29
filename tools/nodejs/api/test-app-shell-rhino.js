@@ -189,8 +189,8 @@ test('CJS, ESM and nested Workers get the same app, shell and shizuku members',a
  const createWorker=new Function('return ('+constructor+')')();
  const directory=path.resolve(__dirname,'../../../build/worker-app-shell-tests');fs.mkdirSync(directory,{recursive:true});
  const preloadPath=path.join(directory,'preload.cjs');
- const count=preload.slice(preload.indexOf('(')+1,preload.indexOf(')')).split(',').length;
- const args=Array(count).fill('undefined');args[0]='require';args[1]=constructor;args[2]='()=>{}';args[3]=modules;args[9]=shellSource;args[count-1]=appSource;
+ const names=preload.slice(preload.indexOf('(')+1,preload.indexOf(')')).split(',').map(name=>name.trim()),count=names.length;
+ const args=Array(count).fill('undefined');args[0]='require';args[1]=constructor;args[2]='()=>{}';args[3]=modules;args[9]=shellSource;args[names.indexOf('createApp')]=appSource;
  fs.writeFileSync(preloadPath,`(${preload})(${args.join(',')});`);
  const shellNames=Object.keys(host().shell),appNames=Object.keys(host().app),shizukuNames=Object.keys(host().shizuku);
  const config={preloadPath,entryUrl:pathToFileURL(path.join(directory,'entry.cjs')).href,gatedBuiltins:[],moduleSources:{},typeScriptSources:{},resourceLimits:{},
