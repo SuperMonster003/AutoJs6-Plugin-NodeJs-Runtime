@@ -250,6 +250,8 @@ await console.hide();
 - 超时结果固定为 `timedOut=true`、`errorCode=ERR_AUTOJS6_SCRIPT_TIMEOUT`, 并回显 `timeoutMs`。诊断 payload 记录超时发生在 `queue_wait`、`pre_*` 或 `execution` 阶段。
 - 执行阶段超时复用协作取消链: watchdog 先请求 `node::Stop`; 若 3 秒内仍未释放目标工作槽, 则只重启该工作进程。另一个工作槽及全局等待队列保持可用; 能协作停止时下一脚本可复用同一 PID。
 - 请求缺少 `timeoutMs` 或传 `<=0` 时, **脚本执行本身不设时限**, 保持长驻服务语义; 无显式预算的队列等待仍有插件内部 10 分钟安全上限。宿主或项目配置若主动填入正数, 该值就是总预算; 有意长驻的调用应传 `0`。
+- AutoJs6 宿主 (api-coverage Q126 起) 只在项目配置 `node.timeoutMs` 为正数或启动参数显式覆盖时填入正数预算; 未设置 (或设为 `0`) 的项目、单文件脚本、npm script 与 bin 都传 `0`, 与 Rhino 脚本一样不限时 (此前项目默认 5000 ms, 扣除排队与工作区准备后脚本约 4.8 s 即超时; 单文件默认 300 s)。TypeScript 项目的正数预算至少 30 秒。
+- 执行期间 stdout/stderr (含 console.log) 经执行回调逐段推送到宿主控制台, 不等脚本结束; 结束结果中的整段输出只在未推送过任何片段时由宿主补打印 (api-coverage Q119 在 x86_64 模拟器上核实: 定时器与同步忙循环每 500 ms 一行的输出均按时到达)。
 - AutoJs6 宿主另保留 `timeoutMs + 5s` 的 Binder 响应兜底; 插件异常未返回时, 宿主会先发 `cancelScript` 再向调用方返回同一规范化超时码。
 
 M8.1 设备证据覆盖 API 28/36/37 模拟器与 3 台真机: `while(true)` 在 3 秒预算后均得到规范化超时, 且后继脚本 6/6 复用同一 PID; 队列预算、无 timeout 长驻与人工取消也均通过。
@@ -303,7 +305,7 @@ cancelScript 和 postMessage 按 executionId 路由, 取消排队脚本不会执
 
 每种来源每个脚本保留一个订阅, 重复 observe 返回相同订阅; close 后可重新订阅。返回对象和模块支持 on/once/off, 返回对象可 close/drainEvents。JNI 使用 M12 的现有推送通道, file 兼容模式以 drainEvents 工作。脚本结束释放监听器和广播接收器, 通知/无障碍服务断开会关闭对应订阅。`await events.close()` 关闭全部来源并清除模块监听器。真机物理按键仍按 Roadmap 的人工验收要求记录。
 
-`host-events` 人工样例等待 45 秒, 项目配置 `node.timeoutMs: 65000`。宿主提交 `36d1e8c52` 修正项目启动忽略该字段的问题, 超时优先级为启动参数显式覆盖值、项目的正数配置、既有 5000 ms 默认值; 原有 Node 1.3.0 可使用此修复。测试音量加键前须暂时关闭宿主 "使用音量加键控制脚本运行", 否则全局停止快捷键会取消脚本。测试后恢复设置; 通知读取授权与 Toast 无障碍权限分别检查。完整步骤见 [人工验收指南](nodejs/MANUAL-ACCEPTANCE.md)。
+`host-events` 人工样例等待 45 秒, 项目配置 `node.timeoutMs: 65000`。宿主提交 `36d1e8c52` 修正项目启动忽略该字段的问题, 超时优先级为启动参数显式覆盖值、项目的正数配置, 两者都没有时不限时 (宿主 api-coverage Q126 起, 此前为 5000 ms 默认值); 原有 Node 1.3.0 可使用此修复。测试音量加键前须暂时关闭宿主 "使用音量加键控制脚本运行", 否则全局停止快捷键会取消脚本。测试后恢复设置; 通知读取授权与 Toast 无障碍权限分别检查。完整步骤见 [人工验收指南](nodejs/MANUAL-ACCEPTANCE.md)。
 
 ```javascript
 const events = require("autojs6:events");
@@ -718,8 +720,9 @@ its result does not hold a Bun RPC open while a person answers a dialog. timeout
 defaults to 30000 and accepts 100..120000. Callback handlers can read the View or
 open chooseFiles without blocking behind the pending evaluation. Android's JSON
 result semantics remain unchanged; webpage Promises are not automatically awaited.
-The Node project execution budget is independent: interactive project.json files
-should explicitly set node.timeoutMs, e.g. 120000, alongside node.permissions:["ui"].
+The Node project execution budget is independent: since host api-coverage Q126 a
+project without node.timeoutMs has no budget, and an interactive project.json that
+sets one (alongside node.permissions:["ui"]) should leave room for these waits.
 A WebView evaluation/callback timeout does not extend that project-wide budget.
 
 Window/session closure cancels pending native UI requests. View disposal additionally
