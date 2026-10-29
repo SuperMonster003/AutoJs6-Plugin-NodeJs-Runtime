@@ -43,6 +43,8 @@ jobs:
         run: node --test tools/nodejs/api/test-ai-agent.js tools/nodejs/api/test-worker-ai-agent.js
       - name: JS tools core against Rhino values
         run: node --test tools/nodejs/api/test-js-tools.js
+      - name: Files and data family against Rhino values
+        run: node --test tools/nodejs/api/test-files-data.js tools/nodejs/api/files-data/test-colors.js tools/nodejs/api/files-data/test-files.js tools/nodejs/api/files-data/test-mime-recorder.js tools/nodejs/api/files-data/test-zip.js
       - uses: actions/upload-artifact@v7
         if: always()
         with:

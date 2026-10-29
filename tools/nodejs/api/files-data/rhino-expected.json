@@ -1,0 +1,6945 @@
+{
+ "cases": {
+  "colors/Color.alpha": {
+   "ok": 128
+  },
+  "colors/Color.alpha.err.max": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.alpha.max1": {
+   "ok": 0.5019607843137255
+  },
+  "colors/Color.alpha.oneQuirk": {
+   "ok": 1
+  },
+  "colors/Color.alphaDouble": {
+   "ok": 0.5019607843137255
+  },
+  "colors/Color.alphaDouble.oneQuirk": {
+   "ok": 1
+  },
+  "colors/Color.argb": {
+   "ok": [
+    128,
+    255,
+    0,
+    0
+   ]
+  },
+  "colors/Color.blend": {
+   "ok": -8454017
+  },
+  "colors/Color.blend.err.ratio": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.blend.ratio": {
+   "ok": -4259777
+  },
+  "colors/Color.blue": {
+   "ok": 86
+  },
+  "colors/Color.blueDouble": {
+   "ok": 0.33725490196078434
+  },
+  "colors/Color.build": {
+   "ok": -65536
+  },
+  "colors/Color.build.err.negative": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.build.rgb": {
+   "ok": -16449536
+  },
+  "colors/Color.chain": {
+   "ok": "#80FF00FF"
+  },
+  "colors/Color.contrast": {
+   "ok": 3.998476771
+  },
+  "colors/Color.contrast.err.background": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.ctor.color": {
+   "ok": -65536
+  },
+  "colors/Color.ctor.distinct": {
+   "ok": false
+  },
+  "colors/Color.ctor.err.array": {
+   "th": {
+    "message": "方法 \"Color\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 Array ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/Color.ctor.err.five": {
+   "th": {
+    "message": "方法 \"Color\" 调用失败: [ 没有可接受参数 (number, number, number, number, number) 的重载. 候选: (), (color), (red, green, blue), (red, green, blue, alpha) ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/Color.ctor.err.name": {
+   "th": {
+    "message": "方法 \"Color\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 \"nope\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/Color.ctor.err.newTwo": {
+   "th": {
+    "message": "方法 \"new Color\" 调用失败: [ 没有可接受参数 (number, number) 的重载. 候选: (), (color), (red, green, blue), (red, green, blue, alpha) ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/Color.ctor.err.two": {
+   "th": {
+    "message": "方法 \"Color\" 调用失败: [ 没有可接受参数 (number, number) 的重载. 候选: (), (color), (red, green, blue), (red, green, blue, alpha) ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/Color.ctor.err.undefined": {
+   "th": {
+    "message": "方法 \"Color\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 undefined ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/Color.ctor.fromColor": {
+   "ok": -16776961
+  },
+  "colors/Color.ctor.new": {
+   "ok": -65536
+  },
+  "colors/Color.ctor.none": {
+   "ok": -16777216
+  },
+  "colors/Color.ctor.number": {
+   "ok": "#80FF0000"
+  },
+  "colors/Color.ctor.rgb": {
+   "ok": -65536
+  },
+  "colors/Color.ctor.rgba": {
+   "ok": -2130771968
+  },
+  "colors/Color.derive": {
+   "ok": {
+    "o": {
+     "accent": -14589211,
+     "dark": -14922319,
+     "primary": -13408564
+    }
+   }
+  },
+  "colors/Color.distance": {
+   "ok": 5
+  },
+  "colors/Color.ensureContrast": {
+   "ok": -8948105
+  },
+  "colors/Color.equals.alpha": {
+   "ok": true
+  },
+  "colors/Color.equals.color": {
+   "ok": true
+  },
+  "colors/Color.equals.err.none": {
+   "th": {
+    "message": "参数列表不可为空.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:30)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:25)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject.get$lambda$0(ColorNativeObject.kt:65)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.util.RhinoUtils.callable$lambda$0(RhinoUtils.kt:490)\n    org.autojs.autojs.util.RhinoUtils$$ExternalSyntheticLambda33.call(D8$$SyntheticClass:0)\n    org.mozilla.javascript.LambdaFunction.call(LambdaFunction.java:103)\n    org.mozilla.javascript.BaseFunction.call(BaseFunction.java:548)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.equals.err.two": {
+   "th": {
+    "message": "方法仅可接受 1 个参数.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:31)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:25)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject.get$lambda$0(ColorNativeObject.kt:65)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.util.RhinoUtils.callable$lambda$0(RhinoUtils.kt:490)\n    org.autojs.autojs.util.RhinoUtils$$ExternalSyntheticLambda33.call(D8$$SyntheticClass:0)\n    org.mozilla.javascript.LambdaFunction.call(LambdaFunction.java:103)\n    org.mozilla.javascript.BaseFunction.call(BaseFunction.java:548)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.equals.invalid": {
+   "ok": false
+  },
+  "colors/Color.equals.same": {
+   "ok": true
+  },
+  "colors/Color.extract.err": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.getAlpha": {
+   "ok": 64
+  },
+  "colors/Color.getAlphaDouble": {
+   "ok": 1
+  },
+  "colors/Color.getBlue": {
+   "ok": 86
+  },
+  "colors/Color.getBlueDouble": {
+   "ok": 0.33725490196078434
+  },
+  "colors/Color.getGreen": {
+   "ok": 52
+  },
+  "colors/Color.getGreenDouble": {
+   "ok": 0.20392156862745098
+  },
+  "colors/Color.getRed": {
+   "ok": 0.07058823529411765
+  },
+  "colors/Color.getRedDouble": {
+   "ok": 1
+  },
+  "colors/Color.green": {
+   "ok": 52
+  },
+  "colors/Color.greenDouble": {
+   "ok": 0.20392156862745098
+  },
+  "colors/Color.harmony": {
+   "ok": [
+    -13408564,
+    -4573635,
+    -14974186
+   ]
+  },
+  "colors/Color.hsl": {
+   "ok": [
+    210,
+    0.5000000596046448,
+    0.4000000059604645
+   ]
+  },
+  "colors/Color.hsla": {
+   "ok": [
+    0,
+    1,
+    0.5,
+    0.5019607843137255
+   ]
+  },
+  "colors/Color.hsv": {
+   "ok": [
+    0,
+    1,
+    1
+   ]
+  },
+  "colors/Color.hsva": {
+   "ok": [
+    0,
+    1,
+    1,
+    0.501960813999176
+   ]
+  },
+  "colors/Color.invert": {
+   "ok": -2131899479
+  },
+  "colors/Color.isEqual": {
+   "ok": true
+  },
+  "colors/Color.isEqual.alpha": {
+   "ok": false
+  },
+  "colors/Color.isEqual.err.color": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.isSimilar": {
+   "ok": true
+  },
+  "colors/Color.isSimilar.algorithm": {
+   "ok": true
+  },
+  "colors/Color.isSimilar.err.none": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.isSimilar.options": {
+   "ok": true
+  },
+  "colors/Color.isSimilar.threshold": {
+   "ok": false
+  },
+  "colors/Color.luminance": {
+   "ok": 0.125064574329
+  },
+  "colors/Color.nightVariant": {
+   "ok": -16303974
+  },
+  "colors/Color.oklab.err.receiver": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.oklab.zeroLightness": {
+   "ok": -16777216
+  },
+  "colors/Color.oklch.err.receiver": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.red": {
+   "ok": 18
+  },
+  "colors/Color.redDouble": {
+   "ok": 0.07058823529411765
+  },
+  "colors/Color.removeAlpha": {
+   "ok": 16711680
+  },
+  "colors/Color.removeAlpha.err.extra": {
+   "th": {
+    "message": "参数列表需为空.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsIsEmpty(ArgumentGuards.kt:21)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.removeAlpha(ColorNativeObject.kt:172)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.removeBlue": {
+   "ok": -15584256
+  },
+  "colors/Color.removeGreen": {
+   "ok": -15597482
+  },
+  "colors/Color.removeRed": {
+   "ok": -16763818
+  },
+  "colors/Color.rgb": {
+   "ok": [
+    255,
+    0,
+    0
+   ]
+  },
+  "colors/Color.rgba": {
+   "ok": [
+    255,
+    0,
+    0,
+    128
+   ]
+  },
+  "colors/Color.rgba.maxAlpha": {
+   "ok": [
+    255,
+    0,
+    0,
+    0.5019607843137255
+   ]
+  },
+  "colors/Color.setAlpha": {
+   "ok": -2130771968
+  },
+  "colors/Color.setAlpha.err.nan": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Cannot round NaN value.",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "colors/Color.setAlpha.err.none": {
+   "th": {
+    "message": "参数列表不可为空.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:30)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:25)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setAlpha(ColorNativeObject.kt:108)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.setAlpha.err.text": {
+   "th": {
+    "message": "Component is not a number.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.modules.colors.Colors.parseDoubleComponent(Colors.kt:1753)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.argbRhino(Colors.kt:609)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.setAlphaRhino(Colors.kt:249)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setAlpha$lambda$0(ColorNativeObject.kt:110)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter$$ExternalSyntheticLambda6.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeFirst(ArgumentGuards.kt:69)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:33)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:25)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setAlpha(ColorNativeObject.kt:108)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.setAlpha.err.two": {
+   "th": {
+    "message": "方法仅可接受 1 个参数.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:31)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:25)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setAlpha(ColorNativeObject.kt:108)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.setAlpha.mutates": {
+   "ok": -2130771968
+  },
+  "colors/Color.setAlpha.one": {
+   "ok": -65536
+  },
+  "colors/Color.setAlpha.self": {
+   "ok": true
+  },
+  "colors/Color.setAlphaRelative": {
+   "ok": 1090453504
+  },
+  "colors/Color.setAlphaRelative.err.negative": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Relative percentage must be in range 0..255, instead of -1.0",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "colors/Color.setAlphaRelative.err.text": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Relative percentage must be in range 0..255, instead of x",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "colors/Color.setAlphaRelative.oneQuirk": {
+   "ok": -65536
+  },
+  "colors/Color.setArgb": {
+   "ok": -2147418368
+  },
+  "colors/Color.setArgb.array": {
+   "ok": -2147483393
+  },
+  "colors/Color.setArgb.hex": {
+   "ok": -2147483393
+  },
+  "colors/Color.setBlue": {
+   "ok": -65408
+  },
+  "colors/Color.setBlueRelative": {
+   "ok": -14663425
+  },
+  "colors/Color.setGreen": {
+   "ok": -256
+  },
+  "colors/Color.setGreenRelative": {
+   "ok": -14663616
+  },
+  "colors/Color.setHsl": {
+   "ok": -2130771968
+  },
+  "colors/Color.setHsl.array": {
+   "ok": -16711936
+  },
+  "colors/Color.setHsla": {
+   "ok": -2147483393
+  },
+  "colors/Color.setHsla.err.count": {
+   "th": {
+    "message": "方法仅可接受 4 个参数.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLength(ArgumentGuards.kt:49)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setHsla(ColorNativeObject.kt:275)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.setHsv": {
+   "ok": -2147418368
+  },
+  "colors/Color.setHsv.array": {
+   "ok": -16776961
+  },
+  "colors/Color.setHsv.err.array": {
+   "th": {
+    "message": "Components argument \"hsv\" must be a JavaScript Array for colors.hsv(hsv).\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.modules.colors.Colors.hsvRhino(Colors.kt:715)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setHsv$lambda$0(ColorNativeObject.kt:244)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter$$ExternalSyntheticLambda11.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeAll(ArgumentGuards.kt:73)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLengthInRange(ArgumentGuards.kt:53)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setHsv(ColorNativeObject.kt:241)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.setHsv.err.saturation": {
+   "th": {
+    "message": "Number to be converted into a percentage must be less than 100.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toPercentage(Colors.kt:1745)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.hsvRhino(Colors.kt:704)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setHsv$lambda$0(ColorNativeObject.kt:245)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter$$ExternalSyntheticLambda11.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeAll(ArgumentGuards.kt:73)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLengthInRange(ArgumentGuards.kt:53)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setHsv(ColorNativeObject.kt:241)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.setHsva": {
+   "ok": -2147483393
+  },
+  "colors/Color.setHsva.err.count": {
+   "th": {
+    "message": "方法仅可接受 4 个参数.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLength(ArgumentGuards.kt:49)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setHsva(ColorNativeObject.kt:254)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.setPaintColor": {
+   "ok": -2130771968
+  },
+  "colors/Color.setPaintColor.err.paint": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Argument \"paint\" x (String) for colors.setPaintColor must be a Paint",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "colors/Color.setPaintColor.self": {
+   "ok": true
+  },
+  "colors/Color.setRed": {
+   "ok": -8388353
+  },
+  "colors/Color.setRed.err.negative": {
+   "th": {
+    "message": "Number should not be negative.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toUnit8(Colors.kt:1719)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toUnit8RgbList$app(Colors.kt:1707)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.argbRhino(Colors.kt:608)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.setRedRhino(Colors.kt:340)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setRed$lambda$0(ColorNativeObject.kt:118)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter$$ExternalSyntheticLambda5.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeFirst(ArgumentGuards.kt:69)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:33)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:25)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setRed(ColorNativeObject.kt:116)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.setRed.err.text": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Cannot convert x into a color component",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "colors/Color.setRed.percent": {
+   "ok": -8388353
+  },
+  "colors/Color.setRed.quirk": {
+   "ok": -16711936
+  },
+  "colors/Color.setRedRelative": {
+   "ok": -12566496
+  },
+  "colors/Color.setRgb": {
+   "ok": -2147483393
+  },
+  "colors/Color.setRgb.array": {
+   "ok": -2147418368
+  },
+  "colors/Color.setRgb.color": {
+   "ok": -2147483393
+  },
+  "colors/Color.setRgb.err.arrayLength": {
+   "th": {
+    "message": "java.lang.RuntimeException: Array argument for colors.rgb must be length of 3",
+    "name": "JavaException RuntimeException"
+   }
+  },
+  "colors/Color.setRgb.err.name": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Invalid color string format: nope",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "colors/Color.setRgb.err.two": {
+   "th": {
+    "message": "Invalid arguments length 2 for Color#setRgb.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setRgb$lambda$0(ColorNativeObject.kt:209)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter$$ExternalSyntheticLambda18.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeAll(ArgumentGuards.kt:73)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLengthInRange(ArgumentGuards.kt:53)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setRgb(ColorNativeObject.kt:204)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.setRgba": {
+   "ok": -2130771968
+  },
+  "colors/Color.setRgba.array": {
+   "ok": -2147483393
+  },
+  "colors/Color.setRgba.err.two": {
+   "th": {
+    "message": "Invalid arguments length 2 for Color#setRgba.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setRgba$lambda$0(ColorNativeObject.kt:222)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter$$ExternalSyntheticLambda16.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeAll(ArgumentGuards.kt:73)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLengthInRange(ArgumentGuards.kt:53)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$Setter.setRgba(ColorNativeObject.kt:217)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.setRgba.hex6Quirk": {
+   "ok": 16776960
+  },
+  "colors/Color.setRgba.hex8": {
+   "ok": -2130771968
+  },
+  "colors/Color.simulate": {
+   "ok": -9609472
+  },
+  "colors/Color.summary": {
+   "ok": "Color { #FF0000 | rgb(255, 0, 0) | hsl(0, 100%, 50%) | hsv(0, 100%, 100%) | int(-65536) }"
+  },
+  "colors/Color.summary.half": {
+   "ok": "Color { #80FF0000 | rgba(255, 0, 0, 0.5) | hsla(0, 100%, 50%, 0.5) | hsva(0, 100%, 100%, 0.5) | int(-2130771968) }"
+  },
+  "colors/Color.toArgb": {
+   "ok": [
+    0.5019607843137255,
+    18,
+    52,
+    86
+   ]
+  },
+  "colors/Color.toArgbString": {
+   "ok": "argb(0.5, 18, 52, 86)"
+  },
+  "colors/Color.toColorStateList": {
+   "ok": -65536
+  },
+  "colors/Color.toFullHex": {
+   "ok": "#FFFF0000"
+  },
+  "colors/Color.toHex": {
+   "ok": "#FF0000"
+  },
+  "colors/Color.toHex.alpha": {
+   "ok": "#80FF0000"
+  },
+  "colors/Color.toHex.err.keep": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.toHex.err.len3": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.toHex.err.undefined": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.toHex.false": {
+   "ok": "#FF0000"
+  },
+  "colors/Color.toHex.len3": {
+   "ok": "#ABC"
+  },
+  "colors/Color.toHex.len8": {
+   "ok": "#FFFF0000"
+  },
+  "colors/Color.toHex.null": {
+   "ok": "#FF0000"
+  },
+  "colors/Color.toHex.true": {
+   "ok": "#80FF0000"
+  },
+  "colors/Color.toHsl": {
+   "ok": [
+    210,
+    0.5000000596046448,
+    0.4000000059604645
+   ]
+  },
+  "colors/Color.toHslString": {
+   "ok": "hsl(210, 50%, 40%)"
+  },
+  "colors/Color.toHslString.quirk": {
+   "ok": "hsl(120, 100%, 50%)"
+  },
+  "colors/Color.toHsla": {
+   "ok": [
+    210,
+    0.5000000596046448,
+    0.4000000059604645,
+    0.5019607843137255
+   ]
+  },
+  "colors/Color.toHsla.quirk": {
+   "ok": [
+    0,
+    1,
+    0.5,
+    1
+   ]
+  },
+  "colors/Color.toHslaString": {
+   "ok": "hsla(210, 50%, 40%, 0.5)"
+  },
+  "colors/Color.toHsv": {
+   "ok": [
+    210,
+    0.6666666865348816,
+    0.6000000238418579
+   ]
+  },
+  "colors/Color.toHsv.err.result": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.toHsv.result": {
+   "ok": [
+    210,
+    0.6666666865348816,
+    0.6000000238418579,
+    0
+   ]
+  },
+  "colors/Color.toHsvString": {
+   "ok": "hsv(210, 66.7%, 60%)"
+  },
+  "colors/Color.toHsvString.quirk": {
+   "ok": "hsv(120, 100%, 100%)"
+  },
+  "colors/Color.toHsva": {
+   "ok": [
+    210,
+    0.6666666865348816,
+    0.6000000238418579,
+    0.501960813999176
+   ]
+  },
+  "colors/Color.toHsva.err.count": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.toHsva.oneQuirk": {
+   "ok": [
+    0,
+    1,
+    1,
+    1
+   ]
+  },
+  "colors/Color.toHsva.result": {
+   "ok": [
+    210,
+    0.6666666865348816,
+    0.6000000238418579,
+    0.501960813999176
+   ]
+  },
+  "colors/Color.toHsvaString": {
+   "ok": "hsva(210, 66.7%, 60%, 0.5)"
+  },
+  "colors/Color.toInt": {
+   "ok": -2146290602
+  },
+  "colors/Color.toInt.err.extra": {
+   "rhinoCrash": "java.lang.ClassCastException"
+  },
+  "colors/Color.toOklab": {
+   "ok": [
+    0.627955361,
+    0.224863061,
+    0.125846299
+   ]
+  },
+  "colors/Color.toOklch": {
+   "ok": [
+    0.499314453,
+    0.09866436,
+    250.433053709
+   ]
+  },
+  "colors/Color.toRgb": {
+   "ok": [
+    18,
+    52,
+    86
+   ]
+  },
+  "colors/Color.toRgbString": {
+   "ok": "rgb(18, 52, 86)"
+  },
+  "colors/Color.toRgba": {
+   "ok": [
+    18,
+    52,
+    86,
+    128
+   ]
+  },
+  "colors/Color.toRgbaString": {
+   "ok": "rgba(18, 52, 86, 0.5)"
+  },
+  "colors/Color.toRgbaString.false": {
+   "ok": "rgba(255, 0, 0, 1)"
+  },
+  "colors/Color.toString": {
+   "ok": "#FF0000"
+  },
+  "colors/Color.toString.concat": {
+   "ok": "#008080"
+  },
+  "colors/Color.toString.conversion": {
+   "ok": "#80FF0000"
+  },
+  "colors/Color.toStringReadable": {
+   "ok": "Color { #FF0000 | rgb(255, 0, 0) | hsl(0, 100%, 50%) | hsv(0, 100%, 100%) | int(-65536) }"
+  },
+  "colors/Color.toStringReadable.err.extra": {
+   "th": {
+    "message": "参数列表需为空.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsIsEmpty(ArgumentGuards.kt:21)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject.get$lambda$1(ColorNativeObject.kt:68)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject$$ExternalSyntheticLambda3.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.util.RhinoUtils.callable$lambda$0(RhinoUtils.kt:490)\n    org.autojs.autojs.util.RhinoUtils$$ExternalSyntheticLambda33.call(D8$$SyntheticClass:0)\n    org.mozilla.javascript.LambdaFunction.call(LambdaFunction.java:103)\n    org.mozilla.javascript.BaseFunction.call(BaseFunction.java:548)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_b5100106.js#800(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "colors/Color.toStringReadable.half": {
+   "ok": "Color { #80336699 | rgba(51, 102, 153, 0.5) | hsla(210, 50%, 40%, 0.5) | hsva(210, 66.7%, 60%, 0.5) | int(-2144115047) }"
+  },
+  "colors/Color.tones": {
+   "ok": [
+    -985601,
+    -10515487,
+    -16701316
+   ]
+  },
+  "colors/all.copy": {
+   "ok": false
+  },
+  "colors/all.count": {
+   "ok": 543
+  },
+  "colors/all.first": {
+   "ok": "AQUA"
+  },
+  "colors/all.greenAndroid": {
+   "ok": -16711936
+  },
+  "colors/all.red": {
+   "ok": -65536
+  },
+  "colors/alpha.default": {
+   "ok": 128
+  },
+  "colors/alpha.err.extra": {
+   "th": {
+    "message": "方法 \"colors.alpha\" 调用失败: [ 方法仅可接受参数数量位于 [1..2] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/alpha.err.max": {
+   "th": {
+    "message": "方法 \"colors.alpha\" 调用失败: [ 参数 \"options.max\" 需要是 1 | 255 类型, 实际为 2 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/alpha.err.maxNaN": {
+   "th": {
+    "message": "方法 \"colors.alpha\" 调用失败: [ 参数 \"options.max\" 需要是 1 | 255 类型, 实际为 \"x\" ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/alpha.max1": {
+   "ok": 0.5019607843137255
+  },
+  "colors/alpha.max255": {
+   "ok": 128
+  },
+  "colors/alpha.maxNull": {
+   "ok": 128
+  },
+  "colors/alpha.maxText": {
+   "ok": 0.5019607843137255
+  },
+  "colors/alpha.notObject": {
+   "ok": 255
+  },
+  "colors/alphaDouble.default": {
+   "ok": 0.5019607843137255
+  },
+  "colors/alphaDouble.err.max": {
+   "th": {
+    "message": "方法 \"colors.alphaDouble\" 调用失败: [ 参数 \"options.max\" 需要是 1 | 255 类型, 实际为 3 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/alphaDouble.max255": {
+   "ok": 0.5019607843137255
+  },
+  "colors/alphaDouble.one": {
+   "ok": 0.00392156862745098
+  },
+  "colors/argb.alphaOne": {
+   "ok": -65536
+  },
+  "colors/argb.array": {
+   "ok": -2130771968
+  },
+  "colors/argb.channels": {
+   "ok": -2130771968
+  },
+  "colors/argb.color": {
+   "ok": -2146360781
+  },
+  "colors/argb.err.arrayLength": {
+   "th": {
+    "message": "方法 \"colors.argb\" 调用失败: [ 参数 \"components\" 的长度需要为 4, 实际为 3 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/argb.err.count": {
+   "th": {
+    "message": "方法 \"colors.argb\" 调用失败: [ 方法仅可接受参数数量位于 [1..4] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/blend.alpha": {
+   "ok": 2147418112
+  },
+  "colors/blend.ends": {
+   "ok": [
+    -65536,
+    -16776961
+   ]
+  },
+  "colors/blend.err.ratio": {
+   "th": {
+    "message": "方法 \"colors.blend\" 调用失败: [ 参数 \"ratio\" 需要是 number in [0, 1] 类型, 实际为 2 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/blend.err.text": {
+   "th": {
+    "message": "方法 \"colors.blend\" 调用失败: [ 参数 \"ratio\" 需要是 ColorComponent 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/blend.half": {
+   "ok": -8454017
+  },
+  "colors/blend.percent": {
+   "ok": -4259777
+  },
+  "colors/blend.quarter": {
+   "ok": -4259777
+  },
+  "colors/blue.default": {
+   "ok": 86
+  },
+  "colors/blue.max1": {
+   "ok": 0.33725490196078434
+  },
+  "colors/blueDouble.default": {
+   "ok": 0.33725490196078434
+  },
+  "colors/build.color": {
+   "ok": -65536
+  },
+  "colors/build.err.trailingUndefined": {
+   "th": {
+    "message": "方法 \"colors.build\" 调用失败: [ 没有可接受参数 (string, undefined) 的重载. 候选: (), (color), (red, green, blue), (red, green, blue, alpha) ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/build.err.two": {
+   "th": {
+    "message": "方法 \"colors.build\" 调用失败: [ 没有可接受参数 (number, number) 的重载. 候选: (), (color), (red, green, blue), (red, green, blue, alpha) ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/build.err.undefined": {
+   "th": {
+    "message": "方法 \"colors.build\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 undefined ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/build.none": {
+   "ok": -16777216
+  },
+  "colors/build.rgb": {
+   "ok": -65536
+  },
+  "colors/build.rgba": {
+   "ok": -2130771968
+  },
+  "colors/contrast.blackWhite": {
+   "ok": 21
+  },
+  "colors/contrast.err.background": {
+   "th": {
+    "message": "方法 \"colors.contrast\" 调用失败: [ 参数 \"background\" 需要是 opaque color 类型, 实际为 #80FFFFFF ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/contrast.err.count": {
+   "th": {
+    "message": "方法 \"colors.contrast\" 调用失败: [ 方法仅可接受 2 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/contrast.red": {
+   "ok": 3.998476771
+  },
+  "colors/contrast.same": {
+   "ok": 1
+  },
+  "colors/contrast.translucent": {
+   "ok": 4.004106957
+  },
+  "colors/core.HSVToColor": {
+   "ok": -65536
+  },
+  "colors/core.HSVToColor.alpha": {
+   "ok": -2147418368
+  },
+  "colors/core.equals": {
+   "ok": false
+  },
+  "colors/core.parseColor.err.digits": {
+   "th": {
+    "message": "java.lang.NumberFormatException: For input string: \"gg0000\" under radix 16",
+    "name": "JavaException NumberFormatException"
+   }
+  },
+  "colors/core.parseColor.err.empty": {
+   "th": {
+    "message": "java.lang.StringIndexOutOfBoundsException: length=0; index=0",
+    "name": "JavaException StringIndexOutOfBoundsException"
+   }
+  },
+  "colors/core.parseColor.err.name": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Unknown color",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "colors/core.parseColor.err.short": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Unknown color",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "colors/core.parseColor.hex": {
+   "ok": -65536
+  },
+  "colors/core.parseColor.hex8": {
+   "ok": -2130771968
+  },
+  "colors/core.parseColor.name": {
+   "ok": -16777088
+  },
+  "colors/derive.blue": {
+   "ok": {
+    "o": {
+     "accent": -14589211,
+     "dark": -14922319,
+     "primary": -13408564
+    }
+   }
+  },
+  "colors/derive.gray": {
+   "ok": {
+    "o": {
+     "accent": -8355712,
+     "dark": -9868951,
+     "primary": -8355712
+    }
+   }
+  },
+  "colors/derive.translucent": {
+   "ok": {
+    "o": {
+     "accent": -14589211,
+     "dark": -14922319,
+     "primary": -13408564
+    }
+   }
+  },
+  "colors/distance.diff": {
+   "ok": 5
+  },
+  "colors/distance.equal": {
+   "ok": 254
+  },
+  "colors/distance.err.algorithm": {
+   "th": {
+    "message": "方法 \"colors.distance\" 调用失败: [ 参数 \"algorithm\" 需要是 'diff' | 'rgb' | 'rgb+' | 'hs' | 'h' | 'equal' | 'oklab' 类型, 实际为 \"nope\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/distance.err.colorB": {
+   "th": {
+    "message": "方法 \"colors.distance\" 调用失败: [ 参数 \"colorB\" 需要是 OmniColor 类型, 实际为 \"nope\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/distance.hs": {
+   "ok": 161.8351785
+  },
+  "colors/distance.oklab": {
+   "ok": 136.957903767
+  },
+  "colors/distance.options": {
+   "ok": 170
+  },
+  "colors/distance.rgb": {
+   "ok": 5
+  },
+  "colors/ensureContrast.dark": {
+   "ok": -12289568
+  },
+  "colors/ensureContrast.err.background": {
+   "th": {
+    "message": "方法 \"colors.ensureContrast\" 调用失败: [ 参数 \"background\" 需要是 opaque color 类型, 实际为 #80FFFFFF ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/ensureContrast.err.ratio": {
+   "th": {
+    "message": "方法 \"colors.ensureContrast\" 调用失败: [ 参数 \"ratio\" 需要是 number in [1, 21] 类型, 实际为 22 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/ensureContrast.err.text": {
+   "th": {
+    "message": "方法 \"colors.ensureContrast\" 调用失败: [ 参数 \"ratio\" 需要是 ColorComponent 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/ensureContrast.gray": {
+   "ok": -8948105
+  },
+  "colors/ensureContrast.keepsAlpha": {
+   "ok": -2139654537
+  },
+  "colors/ensureContrast.max": {
+   "ok": -16777216
+  },
+  "colors/ensureContrast.passes": {
+   "ok": -16777216
+  },
+  "colors/ensureContrast.ratio7": {
+   "ok": -10921639
+  },
+  "colors/extract.default": {
+   "ok": [
+    -16776961,
+    -65536
+   ]
+  },
+  "colors/extract.err.count": {
+   "th": {
+    "message": "方法 \"colors.extract\" 调用失败: [ 参数 \"options.count\" 需要是 integer in [1, 16] 类型, 实际为 0 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/extract.err.image": {
+   "th": {
+    "message": "方法 \"colors.extract\" 调用失败: [ 参数 \"image\" 需要是 ImageWrapper 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/extract.err.options": {
+   "th": {
+    "message": "方法 \"colors.extract\" 调用失败: [ 参数 \"options\" 需要是 Object 类型, 实际为 number ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/extract.err.region": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Excessive width: region [0 + 9] > image [4]",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "colors/extract.err.step": {
+   "th": {
+    "message": "方法 \"colors.extract\" 调用失败: [ 参数 \"options.step\" 需要是 integer >= 1 类型, 实际为 0.5 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/extract.pixels": {
+   "ok": [
+    -16776961,
+    -65536
+   ]
+  },
+  "colors/extract.pixelsRegion": {
+   "ok": [
+    -65536
+   ]
+  },
+  "colors/extract.region": {
+   "ok": [
+    -65536
+   ]
+  },
+  "colors/extract.step": {
+   "ok": [
+    -16776961,
+    -65536
+   ]
+  },
+  "colors/extract.two": {
+   "ok": [
+    -16776961,
+    -65536
+   ]
+  },
+  "colors/getAlpha.alias": {
+   "ok": 128
+  },
+  "colors/getAlpha.max1": {
+   "ok": 0.5019607843137255
+  },
+  "colors/getAlphaDouble.alias": {
+   "ok": 0.25098039215686274
+  },
+  "colors/getBlue.alias": {
+   "ok": 86
+  },
+  "colors/getBlueDouble.alias": {
+   "ok": 1
+  },
+  "colors/getGreen.alias": {
+   "ok": 52
+  },
+  "colors/getGreenDouble.alias": {
+   "ok": 1
+  },
+  "colors/getRed.alias": {
+   "ok": 18
+  },
+  "colors/getRedDouble.alias": {
+   "ok": 1
+  },
+  "colors/green.default": {
+   "ok": 52
+  },
+  "colors/green.max1": {
+   "ok": 0.20392156862745098
+  },
+  "colors/greenDouble.default": {
+   "ok": 0.20392156862745098
+  },
+  "colors/harmony.analogous": {
+   "ok": [
+    -13408564,
+    -16746847,
+    -9284669
+   ]
+  },
+  "colors/harmony.complementary": {
+   "ok": [
+    -65536,
+    -16737620
+   ]
+  },
+  "colors/harmony.err.count": {
+   "th": {
+    "message": "方法 \"colors.harmony\" 调用失败: [ 方法仅可接受 2 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/harmony.err.null": {
+   "th": {
+    "message": "方法 \"colors.harmony\" 调用失败: [ 参数 \"type\" 需要是 'complementary' | 'analogous' | 'triadic' | 'splitComplementary' | 'tetradic' 类型, 实际为 null ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/harmony.err.type": {
+   "th": {
+    "message": "方法 \"colors.harmony\" 调用失败: [ 参数 \"type\" 需要是 'complementary' | 'analogous' | 'triadic' | 'splitComplementary' | 'tetradic' 类型, 实际为 \"bad\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/harmony.gray": {
+   "ok": [
+    -7829368,
+    -7829368,
+    -7829368
+   ]
+  },
+  "colors/harmony.splitComplementary": {
+   "ok": [
+    -13408564,
+    -5746432,
+    -9538816
+   ]
+  },
+  "colors/harmony.tetradic": {
+   "ok": [
+    -13408564,
+    -5228682,
+    -7576320,
+    -16744602
+   ]
+  },
+  "colors/harmony.translucent": {
+   "ok": [
+    -65536,
+    -16737620
+   ]
+  },
+  "colors/harmony.triadic": {
+   "ok": [
+    -13408564,
+    -4573635,
+    -14974186
+   ]
+  },
+  "colors/hsl.array": {
+   "ok": -16711936
+  },
+  "colors/hsl.err.lightness": {
+   "th": {
+    "message": "方法 \"colors.hsl\" 调用失败: [ 参数 \"lightness\" 需要是 number in [0, 100] 类型, 实际为 200 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/hsl.mixed": {
+   "ok": -13408615
+  },
+  "colors/hsl.percent": {
+   "ok": -1337017
+  },
+  "colors/hsl.red": {
+   "ok": -65536
+  },
+  "colors/hsl.white": {
+   "ok": -1
+  },
+  "colors/hsla.array": {
+   "ok": -2130771968
+  },
+  "colors/hsla.err.count": {
+   "th": {
+    "message": "方法 \"colors.hsla\" 调用失败: [ 参数 \"hsl\" 需要是 Array 类型, 实际为 number ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/hsla.hslAndAlpha": {
+   "ok": -2130771968
+  },
+  "colors/hsla.values": {
+   "ok": -2130771968
+  },
+  "colors/hsv.array": {
+   "ok": -16776961
+  },
+  "colors/hsv.bigHue": {
+   "ok": -60160
+  },
+  "colors/hsv.err.arrayType": {
+   "th": {
+    "message": "方法 \"colors.hsv\" 调用失败: [ 参数 \"components\" 需要是 Array 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/hsv.err.count": {
+   "th": {
+    "message": "方法 \"colors.hsv\" 调用失败: [ 方法仅可接受参数数量位于 [1..3] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/hsv.err.saturation": {
+   "th": {
+    "message": "方法 \"colors.hsv\" 调用失败: [ 参数 \"saturation\" 需要是 number in [0, 100] 类型, 实际为 101 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/hsv.err.text": {
+   "th": {
+    "message": "方法 \"colors.hsv\" 调用失败: [ 参数 \"saturation\" 需要是 ColorComponent 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/hsv.fractionHue": {
+   "ok": -12550016
+  },
+  "colors/hsv.full": {
+   "ok": -65536
+  },
+  "colors/hsv.gray": {
+   "ok": -8355712
+  },
+  "colors/hsv.mixed": {
+   "ok": -11366452
+  },
+  "colors/hsv.negativeHue": {
+   "ok": -16776961
+  },
+  "colors/hsv.percentHue": {
+   "ok": -16711681
+  },
+  "colors/hsv.percentInts": {
+   "ok": -16711936
+  },
+  "colors/hsv.red": {
+   "ok": -65536
+  },
+  "colors/hsva.array": {
+   "ok": -2130771968
+  },
+  "colors/hsva.err.alpha": {
+   "th": {
+    "message": "方法 \"colors.hsva\" 调用失败: [ 参数 \"alpha\" 需要是 ColorComponent >= 0 类型, 实际为 -1 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/hsva.err.count": {
+   "th": {
+    "message": "方法 \"colors.hsva\" 调用失败: [ 方法仅可接受参数数量位于 [1..4] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/hsva.hsvAndAlpha": {
+   "ok": -2130771968
+  },
+  "colors/hsva.values": {
+   "ok": -2130771968
+  },
+  "colors/invert.alpha": {
+   "ok": -2131899479
+  },
+  "colors/invert.err.extra": {
+   "th": {
+    "message": "方法 \"colors.invert\" 调用失败: [ 方法仅可接受 1 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/invert.red": {
+   "ok": -16711681
+  },
+  "colors/isEqual.alphaFalse": {
+   "ok": true
+  },
+  "colors/isEqual.alphaIgnored": {
+   "ok": true
+  },
+  "colors/isEqual.alphaMatters": {
+   "ok": false
+  },
+  "colors/isEqual.array": {
+   "ok": true
+  },
+  "colors/isEqual.err.alphaMatters": {
+   "th": {
+    "message": "方法 \"colors.isEqual\" 调用失败: [ 参数 \"alphaMatters\" 需要是 boolean 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/isEqual.err.count": {
+   "th": {
+    "message": "方法 \"colors.isEqual\" 调用失败: [ 方法仅可接受参数数量位于 [2..3] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/isEqual.null": {
+   "ok": true
+  },
+  "colors/isEqual.same": {
+   "ok": true
+  },
+  "colors/isSimilar.algorithmEqual": {
+   "ok": false
+  },
+  "colors/isSimilar.algorithmH": {
+   "ok": true
+  },
+  "colors/isSimilar.algorithmHs": {
+   "ok": false
+  },
+  "colors/isSimilar.algorithmOklab": {
+   "ok": true
+  },
+  "colors/isSimilar.algorithmRgb": {
+   "ok": true
+  },
+  "colors/isSimilar.algorithmRgbPlus": {
+   "ok": true
+  },
+  "colors/isSimilar.algorithmTrim": {
+   "ok": true
+  },
+  "colors/isSimilar.alphaIgnored": {
+   "ok": true
+  },
+  "colors/isSimilar.err.algorithm": {
+   "th": {
+    "message": "方法 \"colors.isSimilar\" 调用失败: [ 参数 \"algorithm\" 需要是 'diff' | 'rgb' | 'rgb+' | 'hs' | 'h' | 'equal' | 'oklab' 类型, 实际为 \"bogus\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/isSimilar.err.both": {
+   "th": {
+    "message": "方法 \"colors.isSimilar\" 调用失败: [ 参数 \"options\" 不能为 { threshold, similarity } ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/isSimilar.err.colorB": {
+   "th": {
+    "message": "方法 \"colors.isSimilar\" 调用失败: [ 参数 \"colorB\" 需要是 OmniColor 类型, 实际为 \"nope\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/isSimilar.err.count": {
+   "th": {
+    "message": "方法 \"colors.isSimilar\" 调用失败: [ 方法仅可接受参数数量位于 [2..4] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/isSimilar.far": {
+   "ok": false
+  },
+  "colors/isSimilar.near": {
+   "ok": true
+  },
+  "colors/isSimilar.optionsAlgorithm": {
+   "ok": true
+  },
+  "colors/isSimilar.optionsSimilarity": {
+   "ok": true
+  },
+  "colors/isSimilar.optionsThreshold": {
+   "ok": true
+  },
+  "colors/isSimilar.threshold4": {
+   "ok": false
+  },
+  "colors/isSimilar.threshold5": {
+   "ok": true
+  },
+  "colors/isSimilar.thresholdNaN": {
+   "ok": true
+  },
+  "colors/isSimilar.thresholdText": {
+   "ok": true
+  },
+  "colors/luminance.black": {
+   "ok": 0
+  },
+  "colors/luminance.gray": {
+   "ok": 0.215860500114
+  },
+  "colors/luminance.red": {
+   "ok": 0.2126
+  },
+  "colors/luminance.white": {
+   "ok": 1
+  },
+  "colors/nightVariant.blue": {
+   "ok": -16303974
+  },
+  "colors/nightVariant.translucent": {
+   "ok": -10263709
+  },
+  "colors/nightVariant.white": {
+   "ok": -10263709
+  },
+  "colors/oklab.alpha": {
+   "ok": -2140970141
+  },
+  "colors/oklab.alphaArg": {
+   "ok": -2140970141
+  },
+  "colors/oklab.err.arrayLength": {
+   "th": {
+    "message": "方法 \"colors.oklab\" 调用失败: [ 参数 \"components\" 的长度需要为 3, 实际为 2 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/oklab.err.count": {
+   "th": {
+    "message": "方法 \"colors.oklab\" 调用失败: [ 方法仅可接受参数数量位于 [1..4] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/oklab.err.infinite": {
+   "th": {
+    "message": "方法 \"colors.oklab\" 调用失败: [ 参数 \"a\" 需要是 finite number 类型, 实际为 Infinity ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/oklab.err.lightness": {
+   "th": {
+    "message": "方法 \"colors.oklab\" 调用失败: [ 参数 \"L\" 需要是 number in [0, 1] 类型, 实际为 2 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/oklab.err.text": {
+   "th": {
+    "message": "方法 \"colors.oklab\" 调用失败: [ 参数 \"a\" 需要是 ColorComponent 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/oklab.err.type": {
+   "th": {
+    "message": "方法 \"colors.oklab\" 调用失败: [ 参数 \"components\" 需要是 Array 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/oklab.gray": {
+   "ok": -10263709
+  },
+  "colors/oklab.outOfGamut": {
+   "ok": -103936
+  },
+  "colors/oklab.percent": {
+   "ok": -10263709
+  },
+  "colors/oklab.red": {
+   "ok": -65536
+  },
+  "colors/oklch.array": {
+   "ok": -2133490055
+  },
+  "colors/oklch.err.chroma": {
+   "th": {
+    "message": "方法 \"colors.oklch\" 调用失败: [ 参数 \"C\" 需要是 number >= 0 类型, 实际为 -0.1 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/oklch.err.chromaFirst": {
+   "th": {
+    "message": "方法 \"colors.oklch\" 调用失败: [ 参数 \"C\" 需要是 number >= 0 类型, 实际为 -1 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/oklch.err.hole": {
+   "th": {
+    "message": "方法 \"colors.oklch\" 调用失败: [ 参数 \"C\" 需要是 ColorComponent 类型, 实际为 org.mozilla.javascript.UniqueTag ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/oklch.err.hue": {
+   "th": {
+    "message": "方法 \"colors.oklch\" 调用失败: [ 参数 \"h\" 需要是 ColorComponent 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/oklch.highChroma": {
+   "ok": -13723136
+  },
+  "colors/oklch.hueWrap": {
+   "ok": -2848402
+  },
+  "colors/oklch.negativeHue": {
+   "ok": -2848402
+  },
+  "colors/oklch.values": {
+   "ok": -2783623
+  },
+  "colors/red.default": {
+   "ok": 18
+  },
+  "colors/red.max1": {
+   "ok": 0.07058823529411765
+  },
+  "colors/redDouble.default": {
+   "ok": 0.07058823529411765
+  },
+  "colors/removeAlpha.err.extra": {
+   "th": {
+    "message": "方法 \"colors.removeAlpha\" 调用失败: [ 方法仅可接受 1 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/removeAlpha.red": {
+   "ok": 16711680
+  },
+  "colors/removeBlue.default": {
+   "ok": -15584256
+  },
+  "colors/removeBlue.err.none": {
+   "th": {
+    "message": "方法 \"colors.removeBlue\" 调用失败: [ 方法仅可接受 1 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/removeGreen.default": {
+   "ok": -15597482
+  },
+  "colors/removeRed.default": {
+   "ok": -16763818
+  },
+  "colors/rgb.above": {
+   "ok": -65536
+  },
+  "colors/rgb.allOne": {
+   "ok": -16711423
+  },
+  "colors/rgb.array": {
+   "ok": -16116706
+  },
+  "colors/rgb.channels": {
+   "ok": -65536
+  },
+  "colors/rgb.color": {
+   "ok": -15654349
+  },
+  "colors/rgb.err.arrayLength": {
+   "th": {
+    "message": "方法 \"colors.rgb\" 调用失败: [ 参数 \"color\" 的长度需要为 3, 实际为 2 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/rgb.err.count": {
+   "th": {
+    "message": "方法 \"colors.rgb\" 调用失败: [ 方法仅可接受参数数量位于 [1..3] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/rgb.err.hole": {
+   "th": {
+    "message": "方法 \"colors.rgb\" 调用失败: [ 参数 \"green\" 需要是 ColorComponent 类型, 实际为 undefined ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/rgb.err.negative": {
+   "th": {
+    "message": "方法 \"colors.rgb\" 调用失败: [ 参数 \"red\" 需要是 ColorComponent >= 0 类型, 实际为 -1 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/rgb.err.text": {
+   "th": {
+    "message": "方法 \"colors.rgb\" 调用失败: [ 参数 \"red\" 需要是 ColorComponent 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/rgb.fractions": {
+   "ok": -32768
+  },
+  "colors/rgb.percent": {
+   "ok": -8388608
+  },
+  "colors/rgb.trailingUndefined": {
+   "ok": -65536
+  },
+  "colors/rgba.array": {
+   "ok": -2130771968
+  },
+  "colors/rgba.channels": {
+   "ok": -2130771968
+  },
+  "colors/rgba.err.badHex": {
+   "th": {
+    "message": "方法 \"colors.rgba\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 \"#zz\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/rgba.err.count": {
+   "th": {
+    "message": "方法 \"colors.rgba\" 调用失败: [ 方法仅可接受参数数量位于 [1..4] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/rgba.err.rgbLength": {
+   "th": {
+    "message": "方法 \"colors.rgba\" 调用失败: [ 参数 \"rgb\" 的长度需要为 3, 实际为 2 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/rgba.err.rgbType": {
+   "th": {
+    "message": "方法 \"colors.rgba\" 调用失败: [ 参数 \"rgb\" 需要是 Array 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/rgba.hex3": {
+   "ok": -65536
+  },
+  "colors/rgba.hex6": {
+   "ok": -65536
+  },
+  "colors/rgba.hex8": {
+   "ok": -2130771968
+  },
+  "colors/rgba.name": {
+   "ok": -65536
+  },
+  "colors/rgba.number": {
+   "ok": -2130771968
+  },
+  "colors/rgba.rgbAndAlpha": {
+   "ok": -2130771968
+  },
+  "colors/setAlpha.above": {
+   "ok": -65536
+  },
+  "colors/setAlpha.channel": {
+   "ok": -2130771968
+  },
+  "colors/setAlpha.err.missing": {
+   "th": {
+    "message": "方法 \"colors.setAlpha\" 调用失败: [ 方法仅可接受 2 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/setAlpha.err.negative": {
+   "th": {
+    "message": "方法 \"colors.setAlpha\" 调用失败: [ 参数 \"alpha\" 需要是 ColorComponent >= 0 类型, 实际为 -1 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/setAlpha.err.text": {
+   "th": {
+    "message": "方法 \"colors.setAlpha\" 调用失败: [ 参数 \"alpha\" 需要是 ColorComponent 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/setAlpha.fraction": {
+   "ok": -2130771968
+  },
+  "colors/setAlpha.one": {
+   "ok": -65536
+  },
+  "colors/setAlpha.percent": {
+   "ok": -2130771968
+  },
+  "colors/setAlpha.ratio": {
+   "ok": 1090453504
+  },
+  "colors/setAlpha.zero": {
+   "ok": 16711680
+  },
+  "colors/setAlphaRelative.double": {
+   "ok": -65536
+  },
+  "colors/setAlphaRelative.err.negative": {
+   "th": {
+    "message": "方法 \"colors.setAlphaRelative\" 调用失败: [ 参数 \"percentage\" 需要是 number >= 0 类型, 实际为 -1 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/setAlphaRelative.err.text": {
+   "th": {
+    "message": "方法 \"colors.setAlphaRelative\" 调用失败: [ 参数 \"percentage\" 需要是 ColorComponent 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/setAlphaRelative.half": {
+   "ok": 1090453504
+  },
+  "colors/setAlphaRelative.percent": {
+   "ok": -2130771968
+  },
+  "colors/setBlue.channel": {
+   "ok": -15584256
+  },
+  "colors/setBlue.fraction": {
+   "ok": -15584192
+  },
+  "colors/setBlueRelative.half": {
+   "ok": -15584192
+  },
+  "colors/setGreen.channel": {
+   "ok": -15546282
+  },
+  "colors/setGreen.percent": {
+   "ok": -15597226
+  },
+  "colors/setGreenRelative.half": {
+   "ok": -15581098
+  },
+  "colors/setPaintColor.err.color": {
+   "th": {
+    "message": "方法 \"colors.setPaintColor\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 \"nope\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/setPaintColor.err.count": {
+   "th": {
+    "message": "方法 \"colors.setPaintColor\" 调用失败: [ 方法仅可接受 2 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/setPaintColor.err.paint": {
+   "th": {
+    "message": "方法 \"colors.setPaintColor\" 调用失败: [ 参数 \"paint\" 需要是 android.graphics.Paint 类型, 实际为 Object ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/setPaintColor.result": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "colors/setPaintColor.translucent": {
+   "ok": -2130771968
+  },
+  "colors/setRed.channel": {
+   "ok": -52138
+  },
+  "colors/setRed.err.negative": {
+   "th": {
+    "message": "方法 \"colors.setRed\" 调用失败: [ 参数 \"red\" 需要是 ColorComponent >= 0 类型, 实际为 -5 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/setRed.fraction": {
+   "ok": -8375210
+  },
+  "colors/setRed.keepsAlpha": {
+   "ok": -2147470250
+  },
+  "colors/setRed.one": {
+   "ok": -16698282
+  },
+  "colors/setRedRelative.half": {
+   "ok": -12569514
+  },
+  "colors/setRedRelative.over": {
+   "ok": -52138
+  },
+  "colors/shape.Color.instance.type": {
+   "ok": "object"
+  },
+  "colors/shape.Color.length": {
+   "ok": 0
+  },
+  "colors/shape.Color.type": {
+   "ok": "function"
+  },
+  "colors/shape.all.hidden": {
+   "ok": -1
+  },
+  "colors/shape.android.enumerable": {
+   "ok": true
+  },
+  "colors/shape.build.length": {
+   "ok": 0
+  },
+  "colors/shape.isSimilar.length": {
+   "ok": 2
+  },
+  "colors/shape.setAlpha.length": {
+   "ok": 2
+  },
+  "colors/shape.toColorStateList.length": {
+   "ok": 1
+  },
+  "colors/shape.toInt.enumerable": {
+   "ok": true
+  },
+  "colors/shape.toInt.length": {
+   "ok": 1
+  },
+  "colors/shape.toInt.type": {
+   "ok": "function"
+  },
+  "colors/shape.toString.length": {
+   "ok": 0
+  },
+  "colors/simulate.deuteranopia": {
+   "ok": -16751414
+  },
+  "colors/simulate.err.count": {
+   "th": {
+    "message": "方法 \"colors.simulate\" 调用失败: [ 方法仅可接受 2 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/simulate.err.type": {
+   "th": {
+    "message": "方法 \"colors.simulate\" 调用失败: [ 参数 \"deficiency\" 需要是 'protanopia' | 'deuteranopia' | 'tritanopia' 类型, 实际为 \"x\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/simulate.keepsAlpha": {
+   "ok": -2140315904
+  },
+  "colors/simulate.protanopia": {
+   "ok": -9609472
+  },
+  "colors/simulate.tritanopia": {
+   "ok": -16744817
+  },
+  "colors/summary.err.none": {
+   "th": {
+    "message": "方法 \"colors.summary\" 调用失败: [ 方法仅可接受 1 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/summary.half": {
+   "ok": "hex(#80123456), rgba(18,52,86/0.5), int(-2146290602)"
+  },
+  "colors/summary.opaque": {
+   "ok": "hex(#FF0000), rgba(255,0,0/1.0), int(-65536)"
+  },
+  "colors/summary.transparent": {
+   "ok": "hex(#00000000), rgba(0,0,0/0.0), int(0)"
+  },
+  "colors/tables.Color": {
+   "ok": -16744320
+  },
+  "colors/tables.android": {
+   "ok": -16777216
+  },
+  "colors/tables.chainAndroidFirst": {
+   "ok": -16711936
+  },
+  "colors/tables.chainCss": {
+   "ok": -984833
+  },
+  "colors/tables.chainMaterial": {
+   "ok": -14273992
+  },
+  "colors/tables.cssGreen": {
+   "ok": -16744448
+  },
+  "colors/tables.material": {
+   "ok": -769226
+  },
+  "colors/tables.same": {
+   "ok": true
+  },
+  "colors/tables.webAmber": {
+   "ok": -16640
+  },
+  "colors/toArgb.color": {
+   "ok": [
+    128,
+    18,
+    52,
+    86
+   ]
+  },
+  "colors/toArgb.maxAlpha": {
+   "ok": [
+    0.5019607843137255,
+    18,
+    52,
+    86
+   ]
+  },
+  "colors/toArgbString.false": {
+   "ok": "argb(1, 255, 0, 0)"
+  },
+  "colors/toArgbString.half": {
+   "ok": "argb(0.5, 18, 52, 86)"
+  },
+  "colors/toColorStateList.err.color": {
+   "th": {
+    "message": "方法 \"colors.toColorStateList\" 调用失败: [ 参数 \"colors[0]\" 需要是 OmniColor 类型, 实际为 \"nope\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toColorStateList.err.none": {
+   "th": {
+    "message": "方法 \"colors.toColorStateList\" 调用失败: [ 方法仅可接受不少于 1 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toColorStateList.one": {
+   "ok": -65536
+  },
+  "colors/toColorStateList.two": {
+   "ok": -65536
+  },
+  "colors/toFullHex.err.extra": {
+   "th": {
+    "message": "方法 \"colors.toFullHex\" 调用失败: [ 方法仅可接受 1 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toFullHex.name": {
+   "ok": "#FFFF0000"
+  },
+  "colors/toFullHex.short": {
+   "ok": "#FF112233"
+  },
+  "colors/toFullHex.transparent": {
+   "ok": "#00000000"
+  },
+  "colors/toHex.alpha": {
+   "ok": "#80FF0000"
+  },
+  "colors/toHex.auto": {
+   "ok": "#AABBCC"
+  },
+  "colors/toHex.err.badLength": {
+   "th": {
+    "message": "方法 \"colors.toHex\" 调用失败: [ 参数 \"alphaOrLength\" 需要是 'auto' | 'keep' | 'none' | boolean | 8 | 6 | 3 类型, 实际为 7 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toHex.err.badMode": {
+   "th": {
+    "message": "方法 \"colors.toHex\" 调用失败: [ 参数 \"alphaOrLength\" 需要是 'auto' | 'keep' | 'none' | boolean | 8 | 6 | 3 类型, 实际为 \"x\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toHex.err.color": {
+   "th": {
+    "message": "方法 \"colors.toHex\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 \"nope\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toHex.err.extra": {
+   "th": {
+    "message": "方法 \"colors.toHex\" 调用失败: [ 方法仅可接受参数数量位于 [1..2] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toHex.err.len3": {
+   "th": {
+    "message": "方法 \"colors.toHex\" 调用失败: [ 参数 \"color\" 需要是 color of #RGB 类型, 实际为 #AABBCD ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toHex.err.none": {
+   "th": {
+    "message": "方法 \"colors.toHex\" 调用失败: [ 方法仅可接受参数数量位于 [1..2] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toHex.err.objectMode": {
+   "th": {
+    "message": "方法 \"colors.toHex\" 调用失败: [ 参数 \"alphaOrLength\" 需要是 'auto' | 'keep' | 'none' | boolean | 8 | 6 | 3 类型, 实际为 Object ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toHex.false": {
+   "ok": "#FF0000"
+  },
+  "colors/toHex.int": {
+   "ok": "#FF0000"
+  },
+  "colors/toHex.keep": {
+   "ok": "#FFFF0000"
+  },
+  "colors/toHex.len3": {
+   "ok": "#ABC"
+  },
+  "colors/toHex.len3.alpha": {
+   "ok": "#ABC"
+  },
+  "colors/toHex.len6": {
+   "ok": "#FF0000"
+  },
+  "colors/toHex.len8": {
+   "ok": "#FFFF0000"
+  },
+  "colors/toHex.len8.float": {
+   "ok": "#FFFF0000"
+  },
+  "colors/toHex.name": {
+   "ok": "#008080"
+  },
+  "colors/toHex.none": {
+   "ok": "#345678"
+  },
+  "colors/toHex.null": {
+   "ok": "#FF0000"
+  },
+  "colors/toHex.short": {
+   "ok": "#AABBCC"
+  },
+  "colors/toHex.transparent": {
+   "ok": "#00000000"
+  },
+  "colors/toHex.true": {
+   "ok": "#FFFF0000"
+  },
+  "colors/toHex.undefined": {
+   "ok": "#FF0000"
+  },
+  "colors/toHsl.blue": {
+   "ok": [
+    240,
+    1,
+    0.5
+   ]
+  },
+  "colors/toHsl.dark": {
+   "ok": [
+    0,
+    1,
+    0.0019607844296842813
+   ]
+  },
+  "colors/toHsl.gray": {
+   "ok": [
+    0,
+    0,
+    0.501960813999176
+   ]
+  },
+  "colors/toHsl.mixed": {
+   "ok": [
+    210,
+    0.5000000596046448,
+    0.4000000059604645
+   ]
+  },
+  "colors/toHsl.red": {
+   "ok": [
+    0,
+    1,
+    0.5
+   ]
+  },
+  "colors/toHsl.result": {
+   "ok": [
+    210,
+    0.5000000596046448,
+    0.4000000059604645
+   ]
+  },
+  "colors/toHslString.components": {
+   "ok": "hsl(210, 50%, 7.8%)"
+  },
+  "colors/toHslString.mixed": {
+   "ok": "hsl(210, 50%, 40%)"
+  },
+  "colors/toHslString.red": {
+   "ok": "hsl(0, 100%, 50%)"
+  },
+  "colors/toHsla.channel": {
+   "ok": [
+    0,
+    1,
+    0.5,
+    0.5019607843137255
+   ]
+  },
+  "colors/toHsla.color": {
+   "ok": [
+    0,
+    1,
+    0.5,
+    0.5019607843137255
+   ]
+  },
+  "colors/toHsla.dark": {
+   "ok": [
+    0,
+    1,
+    0.0019607844296842813,
+    1
+   ]
+  },
+  "colors/toHsla.err.array": {
+   "th": {
+    "message": "方法 \"colors.toHsla\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 Array ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toHsla.err.count": {
+   "th": {
+    "message": "方法 \"colors.toHsla\" 调用失败: [ 方法仅可接受参数数量位于 [1..4] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toHsla.err.range": {
+   "th": {
+    "message": "方法 \"colors.toHsla\" 调用失败: [ 参数 \"alpha\" 需要是 number in [0, 255] 类型, 实际为 300 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toHsla.err.text": {
+   "th": {
+    "message": "方法 \"colors.toHsla\" 调用失败: [ 参数 \"alpha\" 需要是 number 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toHsla.fraction": {
+   "ok": [
+    0,
+    1,
+    0.5,
+    0.5
+   ]
+  },
+  "colors/toHslaString.half": {
+   "ok": "hsla(0, 100%, 50%, 0.5)"
+  },
+  "colors/toHslaString.option": {
+   "ok": "hsla(120, 100%, 50%, 1)"
+  },
+  "colors/toHsv.array": {
+   "ok": [
+    120,
+    1,
+    1
+   ]
+  },
+  "colors/toHsv.components": {
+   "ok": [
+    300,
+    1,
+    1
+   ]
+  },
+  "colors/toHsv.err.resultShort": {
+   "th": {
+    "message": "方法 \"colors.toHsv\" 调用失败: [ 参数 \"result\" 的长度需要为 3, 实际为 2 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toHsv.err.resultType": {
+   "th": {
+    "message": "方法 \"colors.toHsv\" 调用失败: [ 参数 \"result\" 需要是 float[] 类型, 实际为 Array ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toHsv.gray": {
+   "ok": [
+    0,
+    0,
+    0.501960813999176
+   ]
+  },
+  "colors/toHsv.mixed": {
+   "ok": [
+    210,
+    0.6666666865348816,
+    0.6000000238418579
+   ]
+  },
+  "colors/toHsv.red": {
+   "ok": [
+    0,
+    1,
+    1
+   ]
+  },
+  "colors/toHsv.result": {
+   "ok": [
+    [
+     210,
+     0.6666666865348816,
+     0.6000000238418579
+    ],
+    210,
+    0.6666666865348816,
+    0.6000000238418579
+   ]
+  },
+  "colors/toHsv.resultComponents": {
+   "ok": [
+    240,
+    1,
+    1
+   ]
+  },
+  "colors/toHsv.resultLonger": {
+   "ok": [
+    0,
+    1,
+    1,
+    0,
+    0
+   ]
+  },
+  "colors/toHsvString.black": {
+   "ok": "hsv(0, 0%, 0%)"
+  },
+  "colors/toHsvString.components": {
+   "ok": "hsv(210, 100%, 100%)"
+  },
+  "colors/toHsvString.mixed": {
+   "ok": "hsv(210, 66.7%, 60%)"
+  },
+  "colors/toHsvString.red": {
+   "ok": "hsv(0, 100%, 100%)"
+  },
+  "colors/toHsva.color": {
+   "ok": [
+    0,
+    1,
+    1,
+    0.5019607843137255
+   ]
+  },
+  "colors/toHsva.components": {
+   "ok": [
+    0,
+    1,
+    1,
+    0.5019607843137255
+   ]
+  },
+  "colors/toHsva.err.count": {
+   "th": {
+    "message": "方法 \"colors.toHsva\" 调用失败: [ 方法仅可接受参数数量位于 [1..5] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toHsva.err.resultShort": {
+   "th": {
+    "message": "方法 \"colors.toHsva\" 调用失败: [ 参数 \"result\" 的长度需要为 4, 实际为 3 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toHsva.result": {
+   "ok": [
+    210,
+    0.6666666865348816,
+    0.6000000238418579,
+    0.5019607843137255
+   ]
+  },
+  "colors/toHsvaString.false": {
+   "ok": "hsva(240, 100%, 100%, 1)"
+  },
+  "colors/toHsvaString.half": {
+   "ok": "hsva(0, 100%, 100%, 0.5)"
+  },
+  "colors/toInt.color": {
+   "ok": -16776961
+  },
+  "colors/toInt.digits": {
+   "ok": 255
+  },
+  "colors/toInt.digitsOverflow": {
+   "ok": 0
+  },
+  "colors/toInt.err.array": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 Array ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toInt.err.badHex": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 \"#12345\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toInt.err.boolean": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 boolean ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toInt.err.digitsLongOverflow": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 \"99999999999999999999\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toInt.err.empty": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 \"\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toInt.err.extra": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 方法仅可接受 1 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toInt.err.hexChars": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 \"#ggg\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toInt.err.instance": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 \"instance\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toInt.err.leadingSpace": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 \" red\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toInt.err.none": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 方法仅可接受 1 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toInt.err.null": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 null ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toInt.err.object": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 Object ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toInt.err.undefined": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 undefined ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toInt.err.unknownName": {
+   "th": {
+    "message": "方法 \"colors.toInt\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 \"nope\" ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toInt.fraction": {
+   "ok": 1
+  },
+  "colors/toInt.hex3": {
+   "ok": -65536
+  },
+  "colors/toInt.hex6": {
+   "ok": -65536
+  },
+  "colors/toInt.hex8": {
+   "ok": -2130771968
+  },
+  "colors/toInt.hexLower": {
+   "ok": -5517841
+  },
+  "colors/toInt.huge": {
+   "ok": -1
+  },
+  "colors/toInt.hugeNegative": {
+   "ok": 0
+  },
+  "colors/toInt.name": {
+   "ok": -65536
+  },
+  "colors/toInt.nameAndroidFirst": {
+   "ok": -16711936
+  },
+  "colors/toInt.nameHyphen": {
+   "ok": -12303292
+  },
+  "colors/toInt.nameMaterial": {
+   "ok": -769226
+  },
+  "colors/toInt.nameNoSeparator": {
+   "ok": -984833
+  },
+  "colors/toInt.nameUnderscore": {
+   "ok": -3355444
+  },
+  "colors/toInt.nameWeb": {
+   "ok": -16640
+  },
+  "colors/toInt.nan": {
+   "ok": 0
+  },
+  "colors/toInt.negative": {
+   "ok": -1
+  },
+  "colors/toInt.negativeFraction": {
+   "ok": -1
+  },
+  "colors/toInt.number": {
+   "ok": -15584170
+  },
+  "colors/toInt.overflow": {
+   "ok": 5
+  },
+  "colors/toInt.plusDigits": {
+   "ok": 16
+  },
+  "colors/toInt.signedDigits": {
+   "ok": -16777216
+  },
+  "colors/toInt.themeColor": {
+   "ok": -8531
+  },
+  "colors/toInt.trailingUndefined": {
+   "ok": -65536
+  },
+  "colors/toInt.unicodeHex": {
+   "ok": -15654349
+  },
+  "colors/toOklab.black": {
+   "ok": [
+    0,
+    0,
+    0
+   ]
+  },
+  "colors/toOklab.red": {
+   "ok": [
+    0.627955361,
+    0.224863061,
+    0.125846299
+   ]
+  },
+  "colors/toOklab.white": {
+   "ok": [
+    0.999999993,
+    0,
+    3.7e-08
+   ]
+  },
+  "colors/toOklch.blue": {
+   "ok": [
+    0.452013718,
+    0.313214372,
+    264.052020638
+   ]
+  },
+  "colors/toOklch.gray": {
+   "ok": [
+    0.626753537,
+    2.3e-08,
+    0
+   ]
+  },
+  "colors/toOklch.red": {
+   "ok": [
+    0.627955361,
+    0.257683308,
+    29.233885192
+   ]
+  },
+  "colors/toRgb.color": {
+   "ok": [
+    18,
+    52,
+    86
+   ]
+  },
+  "colors/toRgb.components": {
+   "ok": [
+    255,
+    128,
+    0
+   ]
+  },
+  "colors/toRgb.err.array": {
+   "th": {
+    "message": "方法 \"colors.toRgb\" 调用失败: [ 参数 \"color\" 需要是 OmniColor 类型, 实际为 Array ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toRgb.err.count": {
+   "th": {
+    "message": "方法 \"colors.toRgb\" 调用失败: [ 方法仅可接受参数数量位于 [1..3] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toRgbString.color": {
+   "ok": "rgb(18, 52, 86)"
+  },
+  "colors/toRgbString.components": {
+   "ok": "rgb(255, 128, 0)"
+  },
+  "colors/toRgbString.err.count": {
+   "th": {
+    "message": "方法 \"colors.toRgbString\" 调用失败: [ 方法仅可接受参数数量位于 [1..3] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toRgba.color": {
+   "ok": [
+    18,
+    52,
+    86,
+    128
+   ]
+  },
+  "colors/toRgba.err.maxAlpha": {
+   "th": {
+    "message": "方法 \"colors.toRgba\" 调用失败: [ 参数 \"options.maxAlpha\" 需要是 1 | 255 类型, 实际为 7 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/toRgba.maxAlpha": {
+   "ok": [
+    18,
+    52,
+    86,
+    0.5019607843137255
+   ]
+  },
+  "colors/toRgba.maxIgnored": {
+   "ok": [
+    255,
+    0,
+    0,
+    255
+   ]
+  },
+  "colors/toRgbaString.false": {
+   "ok": "rgba(255, 0, 0, 1)"
+  },
+  "colors/toRgbaString.half": {
+   "ok": "rgba(18, 52, 86, 0.5)"
+  },
+  "colors/toRgbaString.opaque": {
+   "ok": "rgba(255, 0, 0, 1.0)"
+  },
+  "colors/toRgbaString.option": {
+   "ok": "rgba(255, 0, 0, 1)"
+  },
+  "colors/toRgbaString.optionNull": {
+   "ok": "rgba(255, 0, 0, 1.0)"
+  },
+  "colors/toRgbaString.optionZero": {
+   "ok": "rgba(255, 0, 0, 1)"
+  },
+  "colors/toRgbaString.rounding": {
+   "ok": "rgba(0, 0, 0, 0.9)"
+  },
+  "colors/toRgbaString.transparent": {
+   "ok": "rgba(0, 0, 0, 0)"
+  },
+  "colors/toString.color": {
+   "ok": "#FF0000"
+  },
+  "colors/toString.conversion": {
+   "ok": "[object Object]"
+  },
+  "colors/toString.err.extra": {
+   "th": {
+    "message": "方法 \"colors.toString\" 调用失败: [ 方法仅可接受参数数量位于 [0..2] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/toString.mode": {
+   "ok": "#FFFF0000"
+  },
+  "colors/toString.none": {
+   "ok": "[object Object]"
+  },
+  "colors/toString.undefinedColor": {
+   "ok": "[object Object]"
+  },
+  "colors/tones.default": {
+   "ok": [
+    -3345,
+    -9259,
+    -17745,
+    -28287,
+    -41652,
+    -327680,
+    -2752512,
+    -5111808,
+    -7667712,
+    -10092544
+   ]
+  },
+  "colors/tones.err.fraction": {
+   "th": {
+    "message": "方法 \"colors.tones\" 调用失败: [ 参数 \"count\" 需要是 integer in [2, 20] 类型, 实际为 2.5 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/tones.err.one": {
+   "th": {
+    "message": "方法 \"colors.tones\" 调用失败: [ 参数 \"count\" 需要是 integer in [2, 20] 类型, 实际为 1 ]",
+    "name": "RangeError"
+   }
+  },
+  "colors/tones.err.text": {
+   "th": {
+    "message": "方法 \"colors.tones\" 调用失败: [ 参数 \"count\" 需要是 ColorComponent 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "colors/tones.five": {
+   "ok": [
+    -985601,
+    -6307331,
+    -10515487,
+    -14198855,
+    -16701316
+   ]
+  },
+  "colors/tones.gray": {
+   "ok": [
+    -657931,
+    -7500403,
+    -13421773
+   ]
+  },
+  "colors/tones.twenty": {
+   "ok": 20
+  },
+  "colors/tones.two": {
+   "ok": [
+    -985601,
+    -16701316
+   ]
+  },
+  "data/Storage.size": {
+   "ok": 2
+  },
+  "data/global.Color.type": {
+   "ok": "function"
+  },
+  "data/global.Color.value": {
+   "ok": "#FF8000"
+  },
+  "data/global.open.type": {
+   "ok": "function"
+  },
+  "data/mediainfo.SNAPSHOT_SCHEMA_V1": {
+   "ok": "autojs6-plugin-mediainfo-snapshot-v1"
+  },
+  "data/mediainfo.SNAPSHOT_SCHEMA_V2": {
+   "ok": "autojs6-plugin-mediainfo-snapshot-v2"
+  },
+  "data/mediainfo.snapshot.type": {
+   "ok": "function"
+  },
+  "data/storages.all.count": {
+   "ok": true
+  },
+  "data/storages.names.cleared": {
+   "ok": false
+  },
+  "data/storages.names.includes": {
+   "ok": true
+  },
+  "data/storages.names.strings": {
+   "ok": true
+  },
+  "data/storages.put": {
+   "ok": [
+    1,
+    "x"
+   ]
+  },
+  "data/storages.remove": {
+   "ok": false
+  },
+  "files/files.append.badEncoding": {
+   "th": {
+    "message": "java.nio.charset.UnsupportedCharsetException: no-such-charset",
+    "name": "JavaException UnsupportedCharsetException"
+   }
+  },
+  "files/files.append.badEncodingUnchanged": {
+   "ok": "xy1z"
+  },
+  "files/files.append.dirPath": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files/ad: open failed: EISDIR (Is a directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.append.dirPathMadeDir": {
+   "ok": true
+  },
+  "files/files.append.encoding": {
+   "ok": "ab"
+  },
+  "files/files.append.more": {
+   "ok": "xy1"
+  },
+  "files/files.append.new": {
+   "ok": "x"
+  },
+  "files/files.append.noParent": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files/no-parent/a.txt: open failed: ENOENT (No such file or directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.append.null": {
+   "th": {
+    "message": "参数 path 对于 Files#append 不可为 nullish.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull(Files.kt:220)\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull$default(Files.kt:218)\n    org.autojs.autojs.runtime.api.Files.append(Files.kt:117)\n    org.autojs.autojs.runtime.api.Files.append$default(Files.kt:116)\n    org.autojs.autojs.runtime.api.Files.append(Unknown Source:11)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.append.nullEncoding": {
+   "ok": "xy1z"
+  },
+  "files/files.append.nullText": {
+   "th": {
+    "message": "java.lang.NullPointerException: Parameter specified as non-null is null: method org.autojs.autojs.runtime.api.Files.append, parameter text",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "files/files.append.one": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.append(org.mozilla.javascript.ConsString). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.append.utf16Boms": {
+   "ok": [
+    3,
+    65279
+   ]
+  },
+  "files/files.appendBytes.noParent": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files/no-parent/x.bin: open failed: ENOENT (No such file or directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.appendBytes.null": {
+   "th": {
+    "message": "java.lang.NullPointerException: Attempt to get length of null array",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "files/files.appendBytes.nullCreated": {
+   "ok": true
+  },
+  "files/files.appendBytes.nullPath": {
+   "th": {
+    "message": "参数 path 对于 Files#appendBytes 不可为 nullish.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull(Files.kt:220)\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull$default(Files.kt:218)\n    org.autojs.autojs.runtime.api.Files.appendBytes(Files.kt:121)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.appendBytes.one": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.appendBytes(org.mozilla.javascript.ConsString). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.appendBytes.outOfRange": {
+   "th": {
+    "message": "无法将 org.mozilla.javascript.NativeArray@1529716 转换为 byte[]. (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.appendBytes.readBack": {
+   "ok": "hi"
+  },
+  "files/files.appendBytes.twice": {
+   "ok": [
+    1,
+    2,
+    3
+   ]
+  },
+  "files/files.copy.basic": {
+   "ok": true
+  },
+  "files/files.copy.binary": {
+   "ok": [
+    true,
+    [
+     1,
+     255,
+     127,
+     128,
+     5,
+     2,
+     254
+    ]
+   ]
+  },
+  "files/files.copy.content": {
+   "ok": "copy me"
+  },
+  "files/files.copy.dirSource": {
+   "ok": false
+  },
+  "files/files.copy.dirTarget": {
+   "ok": false
+  },
+  "files/files.copy.empty": {
+   "ok": [
+    true,
+    0
+   ]
+  },
+  "files/files.copy.missing": {
+   "ok": false
+  },
+  "files/files.copy.missingNothing": {
+   "ok": false
+  },
+  "files/files.copy.null": {
+   "th": {
+    "message": "参数 pathFrom 对于 Files#copy 不可为 nullish.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull(Files.kt:220)\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull$default(Files.kt:218)\n    org.autojs.autojs.runtime.api.Files.copy(Files.kt:129)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.copy.nullTarget": {
+   "th": {
+    "message": "参数 pathTo 对于 Files#copy 不可为 nullish.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull(Files.kt:220)\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull$default(Files.kt:218)\n    org.autojs.autojs.runtime.api.Files.copy(Files.kt:130)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.copy.one": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.copy(org.mozilla.javascript.ConsString). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.copy.overwrite": {
+   "ok": [
+    true,
+    "copy me"
+   ]
+  },
+  "files/files.copy.self": {
+   "ok": [
+    true,
+    ""
+   ]
+  },
+  "files/files.copy.setup": {
+   "ok": "copy me"
+  },
+  "files/files.copy.trailingSlashTarget": {
+   "ok": [
+    false,
+    true
+   ]
+  },
+  "files/files.copy.underFile": {
+   "ok": false
+  },
+  "files/files.copy.unicodeTarget": {
+   "ok": [
+    true,
+    "copy me"
+   ]
+  },
+  "files/files.create.dir": {
+   "ok": true
+  },
+  "files/files.create.dirExisting": {
+   "ok": false
+  },
+  "files/files.create.dirIsDir": {
+   "ok": true
+  },
+  "files/files.create.empty": {
+   "ok": ""
+  },
+  "files/files.create.existing": {
+   "ok": true
+  },
+  "files/files.create.existingDirAsFile": {
+   "ok": true
+  },
+  "files/files.create.extra": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.create(org.mozilla.javascript.ConsString,boolean). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.create.extraNothing": {
+   "ok": false
+  },
+  "files/files.create.file": {
+   "ok": true
+  },
+  "files/files.create.isFile": {
+   "ok": true
+  },
+  "files/files.create.noParent": {
+   "ok": false
+  },
+  "files/files.create.noParentDir": {
+   "ok": false
+  },
+  "files/files.create.noParentNothing": {
+   "ok": false
+  },
+  "files/files.create.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.create(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.create.null": {
+   "ok": false
+  },
+  "files/files.create.unicode": {
+   "ok": true
+  },
+  "files/files.create.unicodeExists": {
+   "ok": true
+  },
+  "files/files.createIfNotExists.dirPath": {
+   "ok": false
+  },
+  "files/files.createIfNotExists.dirPathCreated": {
+   "ok": true
+  },
+  "files/files.createIfNotExists.existing": {
+   "ok": false
+  },
+  "files/files.createIfNotExists.isFile": {
+   "ok": true
+  },
+  "files/files.createIfNotExists.new": {
+   "ok": true
+  },
+  "files/files.createIfNotExists.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.createIfNotExists(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.createIfNotExists.null": {
+   "ok": false
+  },
+  "files/files.createIfNotExists.underFile": {
+   "ok": false
+  },
+  "files/files.createWithDirs.existing": {
+   "ok": false
+  },
+  "files/files.createWithDirs.extra": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.createWithDirs(org.mozilla.javascript.ConsString,string). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.createWithDirs.listed": {
+   "ok": [
+    "y.txt"
+   ]
+  },
+  "files/files.createWithDirs.new": {
+   "ok": true
+  },
+  "files/files.createWithDirs.null": {
+   "ok": false
+  },
+  "files/files.cwd.absolute": {
+   "ok": "/"
+  },
+  "files/files.cwd.extra": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.cwd(null). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.cwd.pathDot": {
+   "ok": true
+  },
+  "files/files.cwd.type": {
+   "ok": "string"
+  },
+  "files/files.ensureDir.created": {
+   "ok": true
+  },
+  "files/files.ensureDir.existing": {
+   "ok": true
+  },
+  "files/files.ensureDir.file": {
+   "ok": true
+  },
+  "files/files.ensureDir.fileNotCreated": {
+   "ok": false
+  },
+  "files/files.ensureDir.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.ensureDir(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.ensureDir.null": {
+   "ok": false
+  },
+  "files/files.ensureDir.overFile": {
+   "ok": true
+  },
+  "files/files.ensureDir.trailingSlash": {
+   "ok": true
+  },
+  "files/files.ensureDir.trailingSlashCreated": {
+   "ok": true
+  },
+  "files/files.ensureDir.underFile": {
+   "ok": false
+  },
+  "files/files.exists.cwd": {
+   "ok": true
+  },
+  "files/files.exists.dir": {
+   "ok": true
+  },
+  "files/files.exists.doubleSlash": {
+   "ok": true
+  },
+  "files/files.exists.emptyString": {
+   "ok": true
+  },
+  "files/files.exists.file": {
+   "ok": true
+  },
+  "files/files.exists.fileTrailingSlash": {
+   "ok": true
+  },
+  "files/files.exists.missing": {
+   "ok": false
+  },
+  "files/files.exists.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.exists(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.exists.null": {
+   "ok": false
+  },
+  "files/files.exists.parentSegment": {
+   "ok": true
+  },
+  "files/files.exists.symbol": {
+   "ok": false
+  },
+  "files/files.exists.two": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.exists(string,string). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.exists.undefined": {
+   "ok": false
+  },
+  "files/files.formatSizeWithUnit.1.5MiB": {
+   "ok": "1.50 MiB"
+  },
+  "files/files.formatSizeWithUnit.1000": {
+   "ok": "1.0 KiB"
+  },
+  "files/files.formatSizeWithUnit.1023": {
+   "ok": "1.0 KiB"
+  },
+  "files/files.formatSizeWithUnit.1024": {
+   "ok": "1.0 KiB"
+  },
+  "files/files.formatSizeWithUnit.1280": {
+   "ok": "1.3 KiB"
+  },
+  "files/files.formatSizeWithUnit.1536": {
+   "ok": "1.5 KiB"
+  },
+  "files/files.formatSizeWithUnit.999": {
+   "ok": "999 B"
+  },
+  "files/files.formatSizeWithUnit.GiB": {
+   "ok": "1.00 GiB"
+  },
+  "files/files.formatSizeWithUnit.MiB": {
+   "ok": "0.98 MiB"
+  },
+  "files/files.formatSizeWithUnit.TiB": {
+   "ok": "1.00 TiB"
+  },
+  "files/files.formatSizeWithUnit.almostMiB": {
+   "ok": "1000.0 KiB"
+  },
+  "files/files.formatSizeWithUnit.fraction": {
+   "ok": "1 B"
+  },
+  "files/files.formatSizeWithUnit.manyTiB": {
+   "ok": "4.55 TiB"
+  },
+  "files/files.formatSizeWithUnit.nan": {
+   "th": {
+    "message": "无法将 NaN 转换为 java.lang.Long. (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.formatSizeWithUnit.negative": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Argument \"bytes\" for \"formatSizeWithUnit\" must be non-negative instead of -1.",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "files/files.formatSizeWithUnit.negativeFraction": {
+   "ok": "0 B"
+  },
+  "files/files.formatSizeWithUnit.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.formatSizeWithUnit(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.formatSizeWithUnit.null": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.formatSizeWithUnit(null). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.formatSizeWithUnit.string": {
+   "ok": "1.0 KiB"
+  },
+  "files/files.formatSizeWithUnit.two": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.formatSizeWithUnit(number,number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.formatSizeWithUnit.zero": {
+   "ok": "0 B"
+  },
+  "files/files.getExtension.dots": {
+   "ok": ""
+  },
+  "files/files.getExtension.double": {
+   "ok": "gz"
+  },
+  "files/files.getExtension.empty": {
+   "ok": ""
+  },
+  "files/files.getExtension.hidden": {
+   "ok": ""
+  },
+  "files/files.getExtension.inDirectory": {
+   "ok": "d/file"
+  },
+  "files/files.getExtension.noArgument": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getExtension(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getExtension.none": {
+   "ok": ""
+  },
+  "files/files.getExtension.null": {
+   "th": {
+    "message": "参数 fileName 对于 Files#getExtension 不可为 nullish.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.Files.ensureFileNameNotNull(Files.kt:209)\n    org.autojs.autojs.runtime.api.Files.ensureFileNameNotNull$default(Files.kt:208)\n    org.autojs.autojs.runtime.api.Files.getExtension(Files.kt:146)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getExtension.number": {
+   "ok": "5"
+  },
+  "files/files.getExtension.path": {
+   "ok": "JPG"
+  },
+  "files/files.getExtension.simple": {
+   "ok": "txt"
+  },
+  "files/files.getExtension.trailingDot": {
+   "ok": ""
+  },
+  "files/files.getExtension.two": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getExtension(string,string). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getExtension.undefined": {
+   "ok": ""
+  },
+  "files/files.getHumanReadableSize.1.5MB": {
+   "ok": "1.5 MB"
+  },
+  "files/files.getHumanReadableSize.1.5MBiec": {
+   "ok": "1.5 MiB"
+  },
+  "files/files.getHumanReadableSize.1023": {
+   "ok": "1023.0 B"
+  },
+  "files/files.getHumanReadableSize.1024": {
+   "ok": "1.0 KB"
+  },
+  "files/files.getHumanReadableSize.1280": {
+   "ok": "1.3 KB"
+  },
+  "files/files.getHumanReadableSize.1536": {
+   "ok": "1.5 KB"
+  },
+  "files/files.getHumanReadableSize.1536iec": {
+   "ok": "1.5 KiB"
+  },
+  "files/files.getHumanReadableSize.1536noIec": {
+   "ok": "1.5 KB"
+  },
+  "files/files.getHumanReadableSize.EiB": {
+   "ok": "6.0 EB"
+  },
+  "files/files.getHumanReadableSize.GiB": {
+   "ok": "1.0 GB"
+  },
+  "files/files.getHumanReadableSize.PiB": {
+   "ok": "1.0 PB"
+  },
+  "files/files.getHumanReadableSize.TiB": {
+   "ok": "1.0 TB"
+  },
+  "files/files.getHumanReadableSize.almostMiB": {
+   "ok": "1024.0 KB"
+  },
+  "files/files.getHumanReadableSize.array": {
+   "ok": "3.0 KB"
+  },
+  "files/files.getHumanReadableSize.badString": {
+   "th": {
+    "message": "无法将 1 KB 转换为 java.lang.Long. (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getHumanReadableSize.bigint": {
+   "ok": "4.0 KB"
+  },
+  "files/files.getHumanReadableSize.boolean": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getHumanReadableSize(boolean). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getHumanReadableSize.carryToTiB": {
+   "ok": "1.0 TB"
+  },
+  "files/files.getHumanReadableSize.fraction": {
+   "ok": "1.0 B"
+  },
+  "files/files.getHumanReadableSize.iecNumber": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getHumanReadableSize(number,number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getHumanReadableSize.iecString": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getHumanReadableSize(number,string). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getHumanReadableSize.iecUndefined": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getHumanReadableSize(number,org.mozilla.javascript.Undefined). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getHumanReadableSize.infinity": {
+   "th": {
+    "message": "无法将 Infinity 转换为 java.lang.Long. (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getHumanReadableSize.maxSafe": {
+   "ok": "8.0 PB"
+  },
+  "files/files.getHumanReadableSize.nan": {
+   "th": {
+    "message": "无法将 NaN 转换为 java.lang.Long. (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getHumanReadableSize.negative": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Argument \"source\" -1 (Number) must be non-negative number for PFiles.getHumanReadableSize",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "files/files.getHumanReadableSize.negativeFraction": {
+   "ok": "0.0 B"
+  },
+  "files/files.getHumanReadableSize.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getHumanReadableSize(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getHumanReadableSize.null": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getHumanReadableSize(null). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getHumanReadableSize.one": {
+   "ok": "1.0 B"
+  },
+  "files/files.getHumanReadableSize.roundsDown": {
+   "ok": "1023.9 KB"
+  },
+  "files/files.getHumanReadableSize.string": {
+   "ok": "2.0 KB"
+  },
+  "files/files.getHumanReadableSize.three": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getHumanReadableSize(number,boolean,number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getHumanReadableSize.tooLarge": {
+   "th": {
+    "message": "无法将 9223372036854776000 转换为 java.lang.Long. (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getHumanReadableSize.undefined": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getHumanReadableSize(org.mozilla.javascript.Undefined). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getHumanReadableSize.zero": {
+   "ok": "0.0 B"
+  },
+  "files/files.getName.backslashes": {
+   "ok": "y.txt"
+  },
+  "files/files.getName.duplicateSlashes": {
+   "ok": "a"
+  },
+  "files/files.getName.empty": {
+   "ok": ""
+  },
+  "files/files.getName.name": {
+   "ok": "c.txt"
+  },
+  "files/files.getName.noArgument": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getName(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getName.null": {
+   "th": {
+    "message": "参数 filePath 对于 Files#getName 不可为 nullish.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull(Files.kt:220)\n    org.autojs.autojs.runtime.api.Files.getName(Files.kt:150)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getName.path": {
+   "ok": "c.txt"
+  },
+  "files/files.getName.root": {
+   "ok": ""
+  },
+  "files/files.getName.trailingSlash": {
+   "ok": "b"
+  },
+  "files/files.getName.undefined": {
+   "ok": "undefined"
+  },
+  "files/files.getName.unicode": {
+   "ok": true
+  },
+  "files/files.getNameWithoutExtension.backslashes": {
+   "ok": "y"
+  },
+  "files/files.getNameWithoutExtension.declaration": {
+   "ok": "types"
+  },
+  "files/files.getNameWithoutExtension.declarationCts": {
+   "ok": "a"
+  },
+  "files/files.getNameWithoutExtension.declarationOnly": {
+   "ok": ""
+  },
+  "files/files.getNameWithoutExtension.declarationUpper": {
+   "ok": "Types"
+  },
+  "files/files.getNameWithoutExtension.double": {
+   "ok": "x.tar"
+  },
+  "files/files.getNameWithoutExtension.hidden": {
+   "ok": ""
+  },
+  "files/files.getNameWithoutExtension.noArgument": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getNameWithoutExtension(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getNameWithoutExtension.none": {
+   "ok": "noext"
+  },
+  "files/files.getNameWithoutExtension.null": {
+   "th": {
+    "message": "参数 filePath 对于 Files#getNameWithoutExtension 不可为 nullish.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull(Files.kt:220)\n    org.autojs.autojs.runtime.api.Files.getNameWithoutExtension(Files.kt:159)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getNameWithoutExtension.path": {
+   "ok": "c"
+  },
+  "files/files.getNameWithoutExtension.trailingDot": {
+   "ok": "a"
+  },
+  "files/files.getNameWithoutExtension.trailingSlash": {
+   "ok": "b"
+  },
+  "files/files.getSdcardPath.extra": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getSdcardPath(number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getSdcardPath.same": {
+   "ok": true
+  },
+  "files/files.getSimplifiedPath.appFiles": {
+   "ok": "/x.js"
+  },
+  "files/files.getSimplifiedPath.appSample": {
+   "ok": "/y.js"
+  },
+  "files/files.getSimplifiedPath.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.getSimplifiedPath(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getSimplifiedPath.null": {
+   "th": {
+    "message": "参数 path 对于 Files#getSimplifiedPath 不可为 nullish.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull(Files.kt:220)\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull$default(Files.kt:218)\n    org.autojs.autojs.runtime.api.Files.getSimplifiedPath(Files.kt:205)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.getSimplifiedPath.other": {
+   "ok": "/x/y"
+  },
+  "files/files.getSimplifiedPath.relative": {
+   "ok": "a/b"
+  },
+  "files/files.getSimplifiedPath.sdcard": {
+   "ok": ""
+  },
+  "files/files.getSimplifiedPath.sdcardChild": {
+   "ok": "/a/b"
+  },
+  "files/files.getSimplifiedPath.sdcardDoubleSlash": {
+   "ok": "//a"
+  },
+  "files/files.getSimplifiedPath.sdcardPrefixOnly": {
+   "ok": true
+  },
+  "files/files.getSimplifiedPath.sdcardSlash": {
+   "ok": "/"
+  },
+  "files/files.getSimplifiedPath.undefined": {
+   "ok": "undefined"
+  },
+  "files/files.isDir.cwd": {
+   "ok": true
+  },
+  "files/files.isDir.dir": {
+   "ok": true
+  },
+  "files/files.isDir.file": {
+   "ok": false
+  },
+  "files/files.isDir.missing": {
+   "ok": false
+  },
+  "files/files.isDir.null": {
+   "ok": false
+  },
+  "files/files.isDir.trailingSlash": {
+   "ok": true
+  },
+  "files/files.isDir.two": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.isDir(string,number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.isEmptyDir.empty": {
+   "ok": true
+  },
+  "files/files.isEmptyDir.file": {
+   "ok": false
+  },
+  "files/files.isEmptyDir.missing": {
+   "ok": false
+  },
+  "files/files.isEmptyDir.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.isEmptyDir(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.isEmptyDir.notEmpty": {
+   "ok": false
+  },
+  "files/files.isEmptyDir.null": {
+   "ok": false
+  },
+  "files/files.isFile.dir": {
+   "ok": false
+  },
+  "files/files.isFile.file": {
+   "ok": true
+  },
+  "files/files.isFile.missing": {
+   "ok": false
+  },
+  "files/files.isFile.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.isFile(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.isFile.null": {
+   "ok": false
+  },
+  "files/files.isFile.trailingSlash": {
+   "ok": true
+  },
+  "files/files.join.absolute": {
+   "ok": "/a/b"
+  },
+  "files/files.join.childAbsolute": {
+   "ok": "a/b"
+  },
+  "files/files.join.dots": {
+   "ok": "/a/./b/../."
+  },
+  "files/files.join.duplicateSlashes": {
+   "ok": "a/b/c"
+  },
+  "files/files.join.emptyBase": {
+   "ok": "/a"
+  },
+  "files/files.join.emptyChild": {
+   "ok": "a"
+  },
+  "files/files.join.length": {
+   "ok": 1
+  },
+  "files/files.join.many": {
+   "ok": "a/b/c/d.txt"
+  },
+  "files/files.join.none": {
+   "th": {
+    "message": "方法 \"files.join\" 调用失败: [ 方法仅可接受不少于 1 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.join.nullBase": {
+   "th": {
+    "message": "方法 \"files.join\" 调用失败: [ 参数 \"base\" 需要是 string 类型, 实际为 null ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.join.nullChild": {
+   "th": {
+    "message": "方法 \"files.join\" 调用失败: [ 参数 \"paths\" 需要是 string 类型, 实际为 null ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.join.number": {
+   "ok": "1/2"
+  },
+  "files/files.join.one": {
+   "ok": "a"
+  },
+  "files/files.join.root": {
+   "ok": "/b"
+  },
+  "files/files.join.slashChild": {
+   "ok": "a"
+  },
+  "files/files.join.symbol": {
+   "th": {
+    "message": "方法 \"files.join\" 调用失败: [ 参数 \"paths\" 需要是 string 类型, 实际为 symbol ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.join.trailingUndefined": {
+   "th": {
+    "message": "方法 \"files.join\" 调用失败: [ 参数 \"paths\" 需要是 string 类型, 实际为 undefined ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.join.two": {
+   "ok": "a/b"
+  },
+  "files/files.join.undefinedBase": {
+   "th": {
+    "message": "方法 \"files.join\" 调用失败: [ 参数 \"base\" 需要是 string 类型, 实际为 undefined ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.join.unicode": {
+   "ok": true
+  },
+  "files/files.listDir.count": {
+   "ok": 4
+  },
+  "files/files.listDir.cwd": {
+   "ok": true
+  },
+  "files/files.listDir.emptyDir": {
+   "ok": 0
+  },
+  "files/files.listDir.file": {
+   "ok": 0
+  },
+  "files/files.listDir.filter": {
+   "ok": 2
+  },
+  "files/files.listDir.filterArray": {
+   "th": {
+    "message": "无法将 org.mozilla.javascript.NativeArray@8f2d62 转换为 org.autojs.autojs.tool.Func1<java.lang.String, java.lang.Boolean>. (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.listDir.filterArrow": {
+   "ok": [
+    "c"
+   ]
+  },
+  "files/files.listDir.filterBooleanObject": {
+   "th": {
+    "message": "java.lang.ClassCastException: org.mozilla.javascript.NativeBoolean cannot be cast to java.lang.Boolean",
+    "name": "JavaException ClassCastException"
+   }
+  },
+  "files/files.listDir.filterCallNotFunction": {
+   "th": {
+    "message": "属性 \"call\" 在接口适配器中非 function 类型. (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.listDir.filterNoCall": {
+   "th": {
+    "message": "java.lang.NullPointerException: null",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "files/files.listDir.filterNone": {
+   "ok": 0
+  },
+  "files/files.listDir.filterNull": {
+   "th": {
+    "message": "java.lang.NullPointerException: Parameter specified as non-null is null: method org.autojs.autojs.runtime.api.Files.listDir, parameter filter",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "files/files.listDir.filterNullResult": {
+   "th": {
+    "message": "java.lang.NullPointerException: null",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "files/files.listDir.filterNumber": {
+   "th": {
+    "message": "java.lang.ClassCastException: java.lang.Double cannot be cast to java.lang.Boolean",
+    "name": "JavaException ClassCastException"
+   }
+  },
+  "files/files.listDir.filterObject": {
+   "ok": [
+    "b.js"
+   ]
+  },
+  "files/files.listDir.filterOnMissing": {
+   "ok": 0
+  },
+  "files/files.listDir.filterString": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.listDir(org.mozilla.javascript.ConsString,string). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.listDir.filterThrows": {
+   "th": {
+    "message": "stop",
+    "name": "RangeError"
+   }
+  },
+  "files/files.listDir.filterUndefined": {
+   "th": {
+    "message": "java.lang.ClassCastException: java.lang.String cannot be cast to java.lang.Boolean",
+    "name": "JavaException ClassCastException"
+   }
+  },
+  "files/files.listDir.filterUndefinedArgument": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.listDir(org.mozilla.javascript.ConsString,org.mozilla.javascript.Undefined). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.listDir.missing": {
+   "ok": 0
+  },
+  "files/files.listDir.names": {
+   "ok": true
+  },
+  "files/files.listDir.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.listDir(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.listDir.null": {
+   "ok": 0
+  },
+  "files/files.listDir.nullWithFilter": {
+   "ok": 0
+  },
+  "files/files.listDir.setup": {
+   "ok": true
+  },
+  "files/files.listDir.three": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.listDir(string,null,null). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.listDir.trailingSlash": {
+   "ok": 4
+  },
+  "files/files.move.basic": {
+   "ok": true
+  },
+  "files/files.move.dir": {
+   "ok": [
+    true,
+    [
+     "q.",
+     "y.gz"
+    ]
+   ]
+  },
+  "files/files.move.missing": {
+   "ok": false
+  },
+  "files/files.move.missingParent": {
+   "ok": false
+  },
+  "files/files.move.null": {
+   "th": {
+    "message": "参数 path 对于 Files#move 不可为 nullish.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull(Files.kt:220)\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull$default(Files.kt:218)\n    org.autojs.autojs.runtime.api.Files.move(Files.kt:142)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.move.nullTarget": {
+   "th": {
+    "message": "java.lang.NullPointerException: Parameter specified as non-null is null: method org.autojs.autojs.runtime.api.Files.move, parameter newPath",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "files/files.move.one": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.move(org.mozilla.javascript.ConsString). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.move.overExisting": {
+   "ok": [
+    true,
+    false
+   ]
+  },
+  "files/files.move.relativeTarget": {
+   "ok": false
+  },
+  "files/files.move.relativeTargetKept": {
+   "ok": true
+  },
+  "files/files.move.result": {
+   "ok": [
+    false,
+    true
+   ]
+  },
+  "files/files.move.trailingSlashes": {
+   "ok": true
+  },
+  "files/files.nonNullPath.aboveRoot": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: 解析后的路径 \"%1$s\" 不可为 null",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "files/files.nonNullPath.absolute": {
+   "ok": "/x//y"
+  },
+  "files/files.nonNullPath.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.nonNullPath(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.nonNullPath.null": {
+   "th": {
+    "message": "java.lang.NullPointerException: Parameter specified as non-null is null: method org.autojs.autojs.runtime.api.Files.nonNullPath, parameter relativePath",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "files/files.nonNullPath.relative": {
+   "ok": true
+  },
+  "files/files.nonNullPath.undefined": {
+   "ok": true
+  },
+  "files/files.open.aboveRoot": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: 不合法的参数 path: null",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "files/files.open.append": {
+   "ok": true
+  },
+  "files/files.open.bufferSize": {
+   "ok": "line1"
+  },
+  "files/files.open.bufferSizeHuge": {
+   "th": {
+    "message": "方法 \"files.open\" 调用失败: [ 参数 \"bufferSize\" 需要是 32 位整数, 实际为 10000000000 ]",
+    "name": "RangeError"
+   }
+  },
+  "files/files.open.bufferSizeInfinity": {
+   "th": {
+    "message": "方法 \"files.open\" 调用失败: [ 参数 \"bufferSize\" 需要是 finite number 类型, 实际为 Infinity ]",
+    "name": "RangeError"
+   }
+  },
+  "files/files.open.bufferSizeNaN": {
+   "th": {
+    "message": "方法 \"files.open\" 调用失败: [ 参数 \"bufferSize\" 需要是 number 类型, 实际为 NaN ]",
+    "name": "RangeError"
+   }
+  },
+  "files/files.open.bufferSizeString": {
+   "ok": "line1"
+  },
+  "files/files.open.bufferSizeText": {
+   "th": {
+    "message": "方法 \"files.open\" 调用失败: [ 参数 \"bufferSize\" 需要是 number 类型, 实际为 string ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.open.class": {
+   "ok": {
+    "java": "org.autojs.autojs.pio.PReadableTextFile"
+   }
+  },
+  "files/files.open.dir": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files: open failed: EISDIR (Is a directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.open.encoding": {
+   "ok": "line1\nline2"
+  },
+  "files/files.open.extra": {
+   "th": {
+    "message": "方法 \"files.open\" 调用失败: [ 方法仅可接受参数数量位于 [1..4] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.open.length": {
+   "ok": 1
+  },
+  "files/files.open.middleUndefined": {
+   "ok": "line1\nline2"
+  },
+  "files/files.open.missing": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files/missing.txt: open failed: ENOENT (No such file or directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.open.modeBad": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: 不合法的参数 mode: x",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "files/files.open.modeEmpty": {
+   "th": {
+    "message": "java.lang.StringIndexOutOfBoundsException: begin 0, end 1, length 0",
+    "name": "JavaException StringIndexOutOfBoundsException"
+   }
+  },
+  "files/files.open.modeNumber": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: 不合法的参数 mode: 1",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "files/files.open.modeUpperCase": {
+   "ok": "line1"
+  },
+  "files/files.open.modeWord": {
+   "ok": "line1"
+  },
+  "files/files.open.none": {
+   "th": {
+    "message": "方法 \"files.open\" 调用失败: [ 方法仅可接受参数数量位于 [1..4] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.open.null": {
+   "th": {
+    "message": "方法 \"files.open\" 调用失败: [ 参数 \"path\" 需要是 string 类型, 实际为 null ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.open.path": {
+   "ok": true
+  },
+  "files/files.open.read": {
+   "ok": "line1\nline2"
+  },
+  "files/files.open.readline": {
+   "ok": "line1"
+  },
+  "files/files.open.setup": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "files/files.open.write": {
+   "ok": "abc"
+  },
+  "files/files.open.writeBadEncoding": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.UnsupportedEncodingException: no-such-charset",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.open.writeClass": {
+   "ok": "org.autojs.autojs.pio.PWritableTextFile"
+  },
+  "files/files.open.writeNoParent": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files/no-parent/w.txt: open failed: ENOENT (No such file or directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.path.aboveRoot": {
+   "ok": null
+  },
+  "files/files.path.absoluteD": {
+   "ok": true
+  },
+  "files/files.path.absoluteKept": {
+   "ok": "/x/../y//z/"
+  },
+  "files/files.path.arity": {
+   "th": {
+    "message": "方法 \"files.path\" 调用失败: [ 方法仅可接受参数数量位于 [0..1] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.path.blankSegment": {
+   "ok": true
+  },
+  "files/files.path.dotSegments": {
+   "ok": true
+  },
+  "files/files.path.doubleSlash": {
+   "ok": true
+  },
+  "files/files.path.emptyString": {
+   "ok": true
+  },
+  "files/files.path.length": {
+   "ok": 0
+  },
+  "files/files.path.nbspSegment": {
+   "ok": true
+  },
+  "files/files.path.nested": {
+   "ok": true
+  },
+  "files/files.path.none": {
+   "ok": null
+  },
+  "files/files.path.null": {
+   "ok": null
+  },
+  "files/files.path.number": {
+   "ok": true
+  },
+  "files/files.path.object": {
+   "ok": true
+  },
+  "files/files.path.parentOfCwd": {
+   "ok": true
+  },
+  "files/files.path.parentSegment": {
+   "ok": true
+  },
+  "files/files.path.relative": {
+   "ok": true
+  },
+  "files/files.path.root": {
+   "ok": "/"
+  },
+  "files/files.path.spacedName": {
+   "ok": true
+  },
+  "files/files.path.symbol": {
+   "th": {
+    "message": "对象非字符串类型.",
+    "name": "TypeError"
+   }
+  },
+  "files/files.path.tabSegment": {
+   "ok": true
+  },
+  "files/files.path.threeDots": {
+   "ok": true
+  },
+  "files/files.path.trailingSlash": {
+   "ok": true
+  },
+  "files/files.path.trailingUndefined": {
+   "ok": true
+  },
+  "files/files.path.undefined": {
+   "ok": null
+  },
+  "files/files.read.ascii": {
+   "ok": true
+  },
+  "files/files.read.basic": {
+   "ok": "hello"
+  },
+  "files/files.read.bomKept": {
+   "ok": [
+    2,
+    65279
+   ]
+  },
+  "files/files.read.cwdDir": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b: open failed: EISDIR (Is a directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.read.dir": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files: open failed: EISDIR (Is a directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.read.emptyEncoding": {
+   "th": {
+    "message": "java.nio.charset.IllegalCharsetNameException: ",
+    "name": "JavaException IllegalCharsetNameException"
+   }
+  },
+  "files/files.read.gbk": {
+   "ok": [
+    2,
+    20013,
+    "a"
+   ]
+  },
+  "files/files.read.illegalEncoding": {
+   "ok": "hi"
+  },
+  "files/files.read.latin1": {
+   "ok": true
+  },
+  "files/files.read.lowerCaseEncoding": {
+   "ok": "hi"
+  },
+  "files/files.read.missing": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files/missing.txt: open failed: ENOENT (No such file or directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.read.missingBeforeEncoding": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files/missing.txt: open failed: ENOENT (No such file or directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.read.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.read(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.read.null": {
+   "ok": ""
+  },
+  "files/files.read.nullEncoding": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Null charset name",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "files/files.read.nullIgnoresEncoding": {
+   "ok": ""
+  },
+  "files/files.read.three": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.read(org.mozilla.javascript.ConsString,string,number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.read.undefinedEncoding": {
+   "th": {
+    "message": "java.nio.charset.UnsupportedCharsetException: undefined",
+    "name": "JavaException UnsupportedCharsetException"
+   }
+  },
+  "files/files.read.utf16": {
+   "ok": "ab"
+  },
+  "files/files.read.utf16NoBom": {
+   "ok": 24832
+  },
+  "files/files.read.utf16beKeepsBom": {
+   "ok": [
+    3,
+    65279
+   ]
+  },
+  "files/files.read.utf16le": {
+   "ok": "ab"
+  },
+  "files/files.read.utf8Alias": {
+   "ok": "hi"
+  },
+  "files/files.read.utf8Malformed": {
+   "ok": true
+  },
+  "files/files.readAssets.badEncoding": {
+   "th": {
+    "message": "java.nio.charset.UnsupportedCharsetException: no-such-charset",
+    "name": "JavaException UnsupportedCharsetException"
+   }
+  },
+  "files/files.readAssets.directory": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: modules",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.readAssets.encoding": {
+   "ok": true
+  },
+  "files/files.readAssets.extra": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.readAssets(string,string,number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.readAssets.hex": {
+   "ok": true
+  },
+  "files/files.readAssets.latin1": {
+   "ok": 66
+  },
+  "files/files.readAssets.length": {
+   "ok": 66
+  },
+  "files/files.readAssets.missing": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: no-such-asset.txt",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.readAssets.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.readAssets(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.readAssets.null": {
+   "th": {
+    "message": "参数 fileName 对于 Files#readAssets 不可为 nullish.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.Files.ensureFileNameNotNull(Files.kt:209)\n    org.autojs.autojs.runtime.api.Files.ensureFileNameNotNull$default(Files.kt:208)\n    org.autojs.autojs.runtime.api.Files.readAssets(Files.kt:98)\n    org.autojs.autojs.runtime.api.Files.readAssets$default(Files.kt:97)\n    org.autojs.autojs.runtime.api.Files.readAssets(Unknown Source:2)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.readAssets.nullEncoding": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Null charset name",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "files/files.readAssets.undefinedEncoding": {
+   "th": {
+    "message": "java.nio.charset.UnsupportedCharsetException: undefined",
+    "name": "JavaException UnsupportedCharsetException"
+   }
+  },
+  "files/files.readBytes.dir": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files: open failed: EISDIR (Is a directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.readBytes.empty": {
+   "ok": 0
+  },
+  "files/files.readBytes.missing": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files/missing.txt: open failed: ENOENT (No such file or directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.readBytes.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.readBytes(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.readBytes.null": {
+   "th": {
+    "message": "java.lang.NullPointerException: null",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "files/files.readBytes.signed": {
+   "ok": -23
+  },
+  "files/files.readBytes.values": {
+   "ok": [
+    104,
+    105
+   ]
+  },
+  "files/files.remove.emptyDir": {
+   "ok": [
+    true,
+    false
+   ]
+  },
+  "files/files.remove.file": {
+   "ok": [
+    true,
+    false
+   ]
+  },
+  "files/files.remove.fileTrailingSlash": {
+   "ok": true
+  },
+  "files/files.remove.fullDir": {
+   "ok": [
+    false,
+    true
+   ]
+  },
+  "files/files.remove.missing": {
+   "ok": false
+  },
+  "files/files.remove.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.remove(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.remove.null": {
+   "ok": false
+  },
+  "files/files.remove.setup": {
+   "ok": [
+    "d",
+    "f.txt",
+    "full",
+    "g.txt"
+   ]
+  },
+  "files/files.removeDir.emptyDir": {
+   "ok": [
+    true,
+    false
+   ]
+  },
+  "files/files.removeDir.file": {
+   "ok": [
+    true,
+    false
+   ]
+  },
+  "files/files.removeDir.missing": {
+   "ok": false
+  },
+  "files/files.removeDir.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.removeDir(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.removeDir.null": {
+   "ok": false
+  },
+  "files/files.removeDir.rm": {
+   "ok": [
+    true,
+    false
+   ]
+  },
+  "files/files.removeDir.tree": {
+   "ok": [
+    true,
+    false
+   ]
+  },
+  "files/files.rename.absoluteName": {
+   "ok": [
+    true,
+    true
+   ]
+  },
+  "files/files.rename.basic": {
+   "ok": true
+  },
+  "files/files.rename.dir": {
+   "ok": [
+    true,
+    true,
+    false
+   ]
+  },
+  "files/files.rename.emptyName": {
+   "ok": false
+  },
+  "files/files.rename.intoMissingDir": {
+   "ok": false
+  },
+  "files/files.rename.missing": {
+   "ok": false
+  },
+  "files/files.rename.null": {
+   "th": {
+    "message": "参数 path 对于 Files#rename 不可为 nullish.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull(Files.kt:220)\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull$default(Files.kt:218)\n    org.autojs.autojs.runtime.api.Files.rename(Files.kt:138)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.rename.nullName": {
+   "th": {
+    "message": "java.lang.NullPointerException: Parameter specified as non-null is null: method org.autojs.autojs.runtime.api.Files.rename, parameter newName",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "files/files.rename.one": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.rename(org.mozilla.javascript.ConsString). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.rename.result": {
+   "ok": [
+    false,
+    "rn"
+   ]
+  },
+  "files/files.rename.setup": {
+   "ok": [
+    "a.txt"
+   ]
+  },
+  "files/files.rename.undefinedName": {
+   "ok": [
+    true,
+    true
+   ]
+  },
+  "files/files.rename.unicode": {
+   "ok": [
+    true,
+    "rn"
+   ]
+  },
+  "files/files.renameWithoutExtension.basic": {
+   "ok": true
+  },
+  "files/files.renameWithoutExtension.missing": {
+   "ok": false
+  },
+  "files/files.renameWithoutExtension.multiDot": {
+   "ok": true
+  },
+  "files/files.renameWithoutExtension.noExtension": {
+   "ok": true
+  },
+  "files/files.renameWithoutExtension.none": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.renameWithoutExtension(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.renameWithoutExtension.null": {
+   "th": {
+    "message": "参数 path 对于 Files#renameWithoutExtension 不可为 nullish.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull(Files.kt:220)\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull$default(Files.kt:218)\n    org.autojs.autojs.runtime.api.Files.renameWithoutExtension(Files.kt:134)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.renameWithoutExtension.nullName": {
+   "th": {
+    "message": "java.lang.NullPointerException: Parameter specified as non-null is null: method org.autojs.autojs.runtime.api.Files.renameWithoutExtension, parameter newName",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "files/files.renameWithoutExtension.result": {
+   "ok": [
+    "b.txt",
+    "q.",
+    "y.gz"
+   ]
+  },
+  "files/files.renameWithoutExtension.setup": {
+   "ok": [
+    "a.txt",
+    "plain",
+    "x.tar.gz"
+   ]
+  },
+  "files/files.sdcardPath.type": {
+   "ok": "string"
+  },
+  "files/files.sdcardPath.value": {
+   "ok": "/storage/emulated/0"
+  },
+  "files/files.toFile.aboveRoot": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: 解析后的路径 \"%1$s\" 不可为 null",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "files/files.toFile.class": {
+   "ok": {
+    "java": "java.io.File"
+   }
+  },
+  "files/files.toFile.exists": {
+   "ok": true
+  },
+  "files/files.toFile.extra": {
+   "th": {
+    "message": "方法 \"files.toFile\" 调用失败: [ 方法仅可接受 1 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.toFile.length": {
+   "ok": 1
+  },
+  "files/files.toFile.name": {
+   "ok": "t.txt"
+  },
+  "files/files.toFile.none": {
+   "th": {
+    "message": "方法 \"files.toFile\" 调用失败: [ 方法仅可接受 1 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.toFile.normalized": {
+   "ok": true
+  },
+  "files/files.toFile.null": {
+   "th": {
+    "message": "方法 \"files.toFile\" 调用失败: [ 参数 \"path\" 需要是 string 类型, 实际为 null ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.toFile.number": {
+   "ok": "1"
+  },
+  "files/files.toFile.relative": {
+   "ok": true
+  },
+  "files/files.toFile.undefined": {
+   "th": {
+    "message": "方法 \"files.toFile\" 调用失败: [ 参数 \"path\" 需要是 string 类型, 实际为 undefined ]",
+    "name": "TypeError"
+   }
+  },
+  "files/files.unicode.listed": {
+   "ok": 1
+  },
+  "files/files.unicode.roundTrip": {
+   "ok": [
+    true,
+    "u",
+    true,
+    5
+   ]
+  },
+  "files/files.unicode.size": {
+   "ok": 1
+  },
+  "files/files.write.array": {
+   "ok": "1,2"
+  },
+  "files/files.write.ascii": {
+   "ok": "a?b"
+  },
+  "files/files.write.badEncoding": {
+   "th": {
+    "message": "java.nio.charset.UnsupportedCharsetException: no-such-charset",
+    "name": "JavaException UnsupportedCharsetException"
+   }
+  },
+  "files/files.write.badEncodingCreated": {
+   "ok": [
+    true,
+    ""
+   ]
+  },
+  "files/files.write.basic": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "files/files.write.boolean": {
+   "ok": "false"
+  },
+  "files/files.write.dir": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files: open failed: EISDIR (Is a directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.write.empty": {
+   "ok": [
+    true,
+    ""
+   ]
+  },
+  "files/files.write.four": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.write(org.mozilla.javascript.ConsString,string,string,number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.write.illegalEncoding": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "files/files.write.latin1": {
+   "ok": [
+    99,
+    97,
+    102,
+    233,
+    63
+   ]
+  },
+  "files/files.write.loneSurrogate": {
+   "ok": "a?b"
+  },
+  "files/files.write.newlines": {
+   "ok": true
+  },
+  "files/files.write.noParent": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files/no-parent/w.txt: open failed: ENOENT (No such file or directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.write.null": {
+   "th": {
+    "message": "java.lang.NullPointerException: null",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "files/files.write.nullEncoding": {
+   "ok": "x"
+  },
+  "files/files.write.nullText": {
+   "th": {
+    "message": "java.lang.NullPointerException: Parameter specified as non-null is null: method org.autojs.autojs.runtime.api.Files.write, parameter text",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "files/files.write.nullTextNothing": {
+   "ok": false
+  },
+  "files/files.write.number": {
+   "ok": "12.5"
+  },
+  "files/files.write.one": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.write(org.mozilla.javascript.ConsString). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.write.overwrite": {
+   "ok": "hi"
+  },
+  "files/files.write.trailingSlash": {
+   "ok": "x"
+  },
+  "files/files.write.undefinedText": {
+   "ok": "undefined"
+  },
+  "files/files.write.unicode": {
+   "ok": true
+  },
+  "files/files.write.unicodeSize": {
+   "ok": 10
+  },
+  "files/files.write.utf16": {
+   "ok": [
+    254,
+    255,
+    0,
+    97,
+    0,
+    98
+   ]
+  },
+  "files/files.write.utf16le": {
+   "ok": [
+    97,
+    0,
+    98,
+    0
+   ]
+  },
+  "files/files.writeBytes.array": {
+   "ok": [
+    1,
+    255,
+    127,
+    128,
+    5,
+    2,
+    254
+   ]
+  },
+  "files/files.writeBytes.bigint": {
+   "ok": 3
+  },
+  "files/files.writeBytes.booleanElement": {
+   "th": {
+    "message": "无法将 org.mozilla.javascript.NativeArray@8f4158e 转换为 byte[]. (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.writeBytes.dir": {
+   "th": {
+    "message": "org.autojs.autojs.pio.UncheckedIOException: java.io.FileNotFoundException: /sdcard/Download/aj6-p32b/592ae3d0/rhino/files: open failed: EISDIR (Is a directory)",
+    "name": "JavaException UncheckedIOException"
+   }
+  },
+  "files/files.writeBytes.emptyArray": {
+   "ok": [
+    true,
+    0
+   ]
+  },
+  "files/files.writeBytes.hole": {
+   "th": {
+    "message": "无法将 org.mozilla.javascript.NativeArray@38b8490 转换为 byte[]. (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.writeBytes.nanElement": {
+   "th": {
+    "message": "无法将 org.mozilla.javascript.NativeArray@a9ffc9a 转换为 byte[]. (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.writeBytes.null": {
+   "th": {
+    "message": "java.lang.NullPointerException: Attempt to get length of null array",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "files/files.writeBytes.nullCreated": {
+   "ok": true
+  },
+  "files/files.writeBytes.nullElement": {
+   "th": {
+    "message": "无法将 org.mozilla.javascript.NativeArray@4cc59bc 转换为 byte[]. (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.writeBytes.nullPath": {
+   "th": {
+    "message": "参数 path 对于 Files#writeBytes 不可为 nullish.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull(Files.kt:220)\n    org.autojs.autojs.runtime.api.Files.ensurePathNotNull$default(Files.kt:218)\n    org.autojs.autojs.runtime.api.Files.writeBytes(Files.kt:125)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.writeBytes.object": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.writeBytes(org.mozilla.javascript.ConsString,object). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.writeBytes.one": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.writeBytes(org.mozilla.javascript.ConsString). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.writeBytes.outOfRange": {
+   "th": {
+    "message": "无法将 org.mozilla.javascript.NativeArray@e5cc742 转换为 byte[]. (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.writeBytes.outOfRangeNothing": {
+   "ok": false
+  },
+  "files/files.writeBytes.roundTrip": {
+   "ok": [
+    1,
+    255,
+    127,
+    128,
+    5,
+    2,
+    254
+   ]
+  },
+  "files/files.writeBytes.string": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.writeBytes(org.mozilla.javascript.ConsString,string). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "files/files.writeBytes.undefined": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Files.writeBytes(org.mozilla.javascript.ConsString,org.mozilla.javascript.Undefined). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/mime.arg.array": {
+   "th": {
+    "message": "方法 \"mime\" 调用失败: [ 参数 \"mimeString\" 需要是 string 类型, 实际为 Array ]",
+    "name": "TypeError"
+   }
+  },
+  "mime/mime.arg.blank": {
+   "th": {
+    "message": "eu.medsea.mimeutil.MimeException: Invalid MimeType [   ]",
+    "name": "JavaException MimeException"
+   }
+  },
+  "mime/mime.arg.empty": {
+   "th": {
+    "message": "eu.medsea.mimeutil.MimeException: Invalid MimeType []",
+    "name": "JavaException MimeException"
+   }
+  },
+  "mime/mime.arg.none": {
+   "th": {
+    "message": "方法 \"mime\" 调用失败: [ 方法仅可接受 1 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "mime/mime.arg.null": {
+   "th": {
+    "message": "方法 \"mime\" 调用失败: [ 参数 \"mimeString\" 需要是 string 类型, 实际为 null ]",
+    "name": "TypeError"
+   }
+  },
+  "mime/mime.arg.number": {
+   "th": {
+    "message": "方法 \"mime\" 调用失败: [ 参数 \"mimeString\" 需要是 string 类型, 实际为 number ]",
+    "name": "TypeError"
+   }
+  },
+  "mime/mime.arg.stringObject": {
+   "th": {
+    "message": "方法 \"mime\" 调用失败: [ 参数 \"mimeString\" 需要是 string 类型, 实际为 String ]",
+    "name": "TypeError"
+   }
+  },
+  "mime/mime.arg.surplus": {
+   "th": {
+    "message": "方法 \"mime\" 调用失败: [ 方法仅可接受 1 个参数 ]",
+    "name": "TypeError"
+   }
+  },
+  "mime/mime.arg.tab": {
+   "th": {
+    "message": "eu.medsea.mimeutil.MimeException: Invalid MimeType [\t]",
+    "name": "JavaException MimeException"
+   }
+  },
+  "mime/mime.arg.undefined": {
+   "th": {
+    "message": "方法 \"mime\" 调用失败: [ 参数 \"mimeString\" 需要是 string 类型, 实际为 undefined ]",
+    "name": "TypeError"
+   }
+  },
+  "mime/mime.constants.absent": {
+   "ok": [
+    "undefined",
+    "undefined"
+   ]
+  },
+  "mime/mime.constants.aliases": {
+   "ok": [
+    "application/x-www-form-urlencoded",
+    "text/event-stream",
+    "text/event-stream",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+   ]
+  },
+  "mime/mime.constants.derived": {
+   "ok": [
+    "text/directory;profile=vCard",
+    "application/3gppHalForms+json",
+    "application/A2L",
+    "x-world/x-vrml",
+    "inode/directory",
+    "vnd.android.document/directory",
+    "font/woff2",
+    "chemical/x-pdb",
+    "message/rfc822"
+   ]
+  },
+  "mime/mime.constants.documented": {
+   "ok": [
+    "*/*",
+    "*",
+    "application/json",
+    "application/octet-stream",
+    "multipart/form-data",
+    "text/plain",
+    "text/html",
+    "image/png",
+    "image/jpeg",
+    "audio/mpeg",
+    "video/mp4"
+   ]
+  },
+  "mime/mime.constants.irregular": {
+   "ok": [
+    "audio/amr-wb+",
+    "image/emf",
+    "text/x-c++hdr",
+    "application/vnd.wap.multipart.*",
+    "text/*"
+   ]
+  },
+  "mime/mime.constructor.call": {
+   "ok": "x"
+  },
+  "mime/mime.constructor.instanceof": {
+   "ok": true
+  },
+  "mime/mime.constructor.name": {
+   "ok": [
+    "JsMime",
+    1
+   ]
+  },
+  "mime/mime.constructor.new": {
+   "ok": "html"
+  },
+  "mime/mime.constructor.none": {
+   "th": {
+    "message": "方法 \"mime\" 调用失败: [ 参数 \"mimeString\" 需要是 string 类型, 实际为 undefined ]",
+    "name": "TypeError"
+   }
+  },
+  "mime/mime.constructor.prototype": {
+   "ok": true
+  },
+  "mime/mime.constructor.same": {
+   "ok": true
+  },
+  "mime/mime.fromFile.android": {
+   "ok": [
+    "image/x-ms-bmp",
+    "audio/mpeg",
+    "text/comma-separated-values",
+    "text/xml",
+    "video/3gpp",
+    "image/heic"
+   ]
+  },
+  "mime/mime.fromFile.common": {
+   "ok": [
+    "text/plain",
+    "application/json",
+    "application/pdf",
+    "text/html",
+    "audio/mpeg",
+    "video/mp4",
+    "application/zip",
+    "application/vnd.android.package-archive",
+    "image/webp",
+    "image/svg+xml"
+   ]
+  },
+  "mime/mime.fromFile.dir": {
+   "ok": "image/png"
+  },
+  "mime/mime.fromFile.dotInDir": {
+   "ok": null
+  },
+  "mime/mime.fromFile.empty": {
+   "ok": "*/*"
+  },
+  "mime/mime.fromFile.hidden": {
+   "ok": "*/*"
+  },
+  "mime/mime.fromFile.hiddenInDir": {
+   "ok": null
+  },
+  "mime/mime.fromFile.kotlin": {
+   "ok": null
+  },
+  "mime/mime.fromFile.lastDot": {
+   "ok": "application/gzip"
+  },
+  "mime/mime.fromFile.noArgs": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Mime.fromFile(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/mime.fromFile.noExtension": {
+   "ok": "*/*"
+  },
+  "mime/mime.fromFile.null": {
+   "th": {
+    "message": "java.lang.NullPointerException: Parameter specified as non-null is null: method org.autojs.autojs.runtime.api.Mime.fromFile, parameter path",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "mime/mime.fromFile.number": {
+   "ok": [
+    "*/*",
+    null
+   ]
+  },
+  "mime/mime.fromFile.office": {
+   "ok": [
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/epub+zip"
+   ]
+  },
+  "mime/mime.fromFile.path": {
+   "ok": "application/pdf"
+  },
+  "mime/mime.fromFile.png": {
+   "ok": "image/png"
+  },
+  "mime/mime.fromFile.symbol": {
+   "ok": "application/x-trash"
+  },
+  "mime/mime.fromFile.trailingDot": {
+   "ok": "*/*"
+  },
+  "mime/mime.fromFile.twoArgs": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Mime.fromFile(string,string). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/mime.fromFile.undefined": {
+   "ok": "*/*"
+  },
+  "mime/mime.fromFile.unknown": {
+   "ok": null
+  },
+  "mime/mime.fromFile.upper": {
+   "ok": "image/jpeg"
+  },
+  "mime/mime.fromFileOr.default": {
+   "ok": "x/y"
+  },
+  "mime/mime.fromFileOr.known": {
+   "ok": "image/png"
+  },
+  "mime/mime.fromFileOr.noExtension": {
+   "ok": "*/*"
+  },
+  "mime/mime.fromFileOr.nullDefault": {
+   "ok": "*/*"
+  },
+  "mime/mime.fromFileOr.nullPath": {
+   "th": {
+    "message": "java.lang.NullPointerException: Parameter specified as non-null is null: method org.autojs.autojs.runtime.api.Mime.fromFileOr, parameter path",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "mime/mime.fromFileOr.numberDefault": {
+   "ok": "1"
+  },
+  "mime/mime.fromFileOr.oneArg": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Mime.fromFileOr(string). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/mime.fromFileOr.threeArgs": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Mime.fromFileOr(string,string,number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/mime.fromFileOr.undefinedDefault": {
+   "ok": "undefined"
+  },
+  "mime/mime.fromFileOrWildcard.known": {
+   "ok": "application/json"
+  },
+  "mime/mime.fromFileOrWildcard.noArgs": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Mime.fromFileOrWildcard(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/mime.fromFileOrWildcard.null": {
+   "th": {
+    "message": "java.lang.NullPointerException: Parameter specified as non-null is null: method org.autojs.autojs.runtime.api.Mime.fromFileOrWildcard, parameter path",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "mime/mime.fromFileOrWildcard.unknown": {
+   "ok": "*/*"
+  },
+  "mime/mime.getMediaType.bareParameter": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Parameter is not formatted correctly: \"charset\" for: \"text/plain; charset\"",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/mime.getMediaType.charset": {
+   "ok": [
+    "UTF-8",
+    "ISO-8859-1",
+    null
+   ]
+  },
+  "mime/mime.getMediaType.equals": {
+   "ok": [
+    true,
+    false,
+    false,
+    false
+   ]
+  },
+  "mime/mime.getMediaType.hashCode": {
+   "ok": [
+    94772,
+    817335912
+   ]
+  },
+  "mime/mime.getMediaType.leadingSpace": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: No subtype found for: \" text/plain\"",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/mime.getMediaType.noArgs": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Mime.getMediaType(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/mime.getMediaType.noSubtype": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: No subtype found for: \"bad\"",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/mime.getMediaType.null": {
+   "th": {
+    "message": "java.lang.NullPointerException: Parameter specified as non-null is null: method org.autojs.autojs.runtime.api.Mime.getMediaType, parameter mediaType",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "mime/mime.getMediaType.number": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: No subtype found for: \"1\"",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/mime.getMediaType.parameter": {
+   "ok": [
+    "UTF-8",
+    "UTF-8",
+    null
+   ]
+  },
+  "mime/mime.getMediaType.parameterNull": {
+   "th": {
+    "message": "java.lang.NullPointerException: Parameter specified as non-null is null: method okhttp3.MediaType.parameter, parameter name",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "mime/mime.getMediaType.parts": {
+   "ok": [
+    "text",
+    "plain",
+    "TEXT/Plain; Charset=UTF-8",
+    "TEXT/Plain; Charset=UTF-8"
+   ]
+  },
+  "mime/mime.getMediaType.quoted": {
+   "ok": [
+    "x y",
+    "1"
+   ]
+  },
+  "mime/mime.getMediaType.singleQuoted": {
+   "ok": [
+    "utf-8",
+    "''"
+   ]
+  },
+  "mime/mime.getMediaType.string": {
+   "ok": "text/plain"
+  },
+  "mime/mime.getMediaType.tab": {
+   "ok": "1"
+  },
+  "mime/mime.getMediaType.tokenChars": {
+   "ok": "a!#$%&*+.^_`|~-"
+  },
+  "mime/mime.getMediaType.trailing": {
+   "ok": [
+    "text/plain;",
+    "text/plain;  ",
+    "d"
+   ]
+  },
+  "mime/mime.getMediaType.trailingSpace": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Parameter is not formatted correctly: \" \" for: \"text/plain \"",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/mime.getMediaType.typeArgs": {
+   "th": {
+    "message": "找不到方法 okhttp3.MediaType.type(number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/mime.getMediaType.typeof": {
+   "ok": [
+    "object",
+    "function"
+   ]
+  },
+  "mime/mime.getMediaType.unterminated": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Parameter is not formatted correctly: \"q=\"x\" for: \"text/plain; q=\"x\"",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/mime.getSubtype.none": {
+   "ok": "*"
+  },
+  "mime/mime.getSubtype.plain": {
+   "ok": "html"
+  },
+  "mime/mime.getSubtype.twoArgs": {
+   "th": {
+    "message": "找不到方法 eu.medsea.mimeutil.MimeUtil2.getSubtype(string,string). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/mime.getSubtype.wildcardType": {
+   "ok": "*"
+  },
+  "mime/mime.getType.empty": {
+   "th": {
+    "message": "eu.medsea.mimeutil.MimeException: Invalid MimeType []",
+    "name": "JavaException MimeException"
+   }
+  },
+  "mime/mime.getType.noArgs": {
+   "th": {
+    "message": "找不到方法 eu.medsea.mimeutil.MimeUtil2.getType(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/mime.getType.null": {
+   "th": {
+    "message": "eu.medsea.mimeutil.MimeException: Invalid MimeType [null]",
+    "name": "JavaException MimeException"
+   }
+  },
+  "mime/mime.getType.number": {
+   "ok": "1"
+  },
+  "mime/mime.getType.plain": {
+   "ok": "text"
+  },
+  "mime/mime.getType.spaced": {
+   "ok": "a "
+  },
+  "mime/mime.getType.undefined": {
+   "ok": "undefined"
+  },
+  "mime/mime.length": {
+   "ok": 1
+  },
+  "mime/mime.memberLength": {
+   "ok": [
+    0,
+    0,
+    0
+   ]
+  },
+  "mime/mime.members": {
+   "ok": [
+    "function",
+    "function",
+    "function",
+    "function",
+    "function",
+    "function",
+    "function"
+   ]
+  },
+  "mime/mime.name": {
+   "ok": "mime"
+  },
+  "mime/mime.parse.charset": {
+   "ok": [
+    "text/html; charset=UTF-8",
+    "text",
+    "html",
+    "text/html; charset=UTF-8",
+    "text/html",
+    "{\"charset\":\"UTF-8\"}"
+   ]
+  },
+  "mime/mime.parse.compact": {
+   "ok": [
+    "text/html;charset=UTF-8;q=0.5",
+    "text",
+    "html",
+    "text/html; charset=UTF-8; q=0.5",
+    "text/html",
+    "{\"charset\":\"UTF-8\",\"q\":\"0.5\"}"
+   ]
+  },
+  "mime/mime.parse.concat": {
+   "ok": "text"
+  },
+  "mime/mime.parse.doubleSlash": {
+   "ok": [
+    "text//plain",
+    "text",
+    "plain",
+    "text/plain",
+    "text/plain",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.duplicateKey": {
+   "ok": "{\"a\":\"3\",\"b\":\"2\"}"
+  },
+  "mime/mime.parse.emptyEntries": {
+   "ok": "text/plain; a=1"
+  },
+  "mime/mime.parse.emptyKey": {
+   "ok": "{\"\":\"x\"}"
+  },
+  "mime/mime.parse.emptyValue": {
+   "ok": "{\"a\":\"\"}"
+  },
+  "mime/mime.parse.extraUndefined": {
+   "ok": "a"
+  },
+  "mime/mime.parse.flag": {
+   "ok": [
+    "multipart/form-data; boundary=----x; flag",
+    "multipart",
+    "form-data",
+    "multipart/form-data; boundary=----x; flag",
+    "multipart/form-data",
+    "{\"boundary\":\"----x\"}"
+   ]
+  },
+  "mime/mime.parse.indexKeys": {
+   "ok": [
+    "text/plain; 2=b; 1=a",
+    "text",
+    "plain",
+    "text/plain; 2=b; 1=a",
+    "text/plain",
+    "{\"1\":\"a\",\"2\":\"b\"}"
+   ]
+  },
+  "mime/mime.parse.keyCase": {
+   "ok": [
+    "A",
+    "a"
+   ]
+  },
+  "mime/mime.parse.leadingSpace": {
+   "ok": [
+    " text/plain",
+    "text",
+    "plain",
+    "text/plain",
+    "text/plain",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.nbsp": {
+   "ok": [
+    true,
+    "*"
+   ]
+  },
+  "mime/mime.parse.nbspKey": {
+   "ok": false
+  },
+  "mime/mime.parse.noType": {
+   "ok": [
+    "/plain",
+    "*",
+    "*",
+    "*/*",
+    "*/*",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.plain": {
+   "ok": [
+    "text/plain",
+    "text",
+    "plain",
+    "text/plain",
+    "text/plain",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.protoKey": {
+   "ok": "{\"__proto__\":\"x\"}"
+  },
+  "mime/mime.parse.quotedValue": {
+   "ok": "\"utf-8\""
+  },
+  "mime/mime.parse.semicolonType": {
+   "ok": [
+    "text;charset=utf-8",
+    "text",
+    "charset=utf-8",
+    "text/charset=utf-8; charset=utf-8",
+    "text/charset=utf-8",
+    "{\"charset\":\"utf-8\"}"
+   ]
+  },
+  "mime/mime.parse.separatorsOnly": {
+   "ok": [
+    ";",
+    "*",
+    "*",
+    "*/*",
+    "*/*",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.slashOnly": {
+   "ok": [
+    "text/",
+    "text",
+    "*",
+    "text/*",
+    "text/*",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.spacedSubtype": {
+   "ok": [
+    "x/ * ",
+    "x",
+    " *",
+    "x/ *",
+    "x/ *",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.spacedType": {
+   "ok": [
+    "text /plain",
+    "text ",
+    "plain",
+    "text /plain",
+    "text /plain",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.spaces": {
+   "ok": [
+    "application/json ; charset = utf-8 ",
+    "application",
+    "json ",
+    "application/json ; charset = utf-8 ",
+    "application/json ",
+    "{\"charset\":\"utf-8 \"}"
+   ]
+  },
+  "mime/mime.parse.subtypeWildcard": {
+   "ok": [
+    "image/*",
+    "image",
+    "*",
+    "image/*",
+    "image/*",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.suffix": {
+   "ok": [
+    "application/vnd.api+json",
+    "application",
+    "vnd.api+json",
+    "application/vnd.api+json",
+    "application/vnd.api+json",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.tabKey": {
+   "ok": [
+    "a"
+   ]
+  },
+  "mime/mime.parse.threeParts": {
+   "ok": [
+    "a/b/c",
+    "a",
+    "b",
+    "a/b",
+    "a/b",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.trailingSemicolon": {
+   "ok": [
+    "text/plain;",
+    "text",
+    "plain",
+    "text/plain",
+    "text/plain",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.twoEquals": {
+   "ok": [
+    "text/plain; a=1=2",
+    "text",
+    "plain",
+    "text/plain; a=1=2",
+    "text/plain",
+    "{\"a\":\"1\"}"
+   ]
+  },
+  "mime/mime.parse.typeOnly": {
+   "ok": [
+    "text",
+    "text",
+    "*",
+    "text/*",
+    "text/*",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.upper": {
+   "ok": [
+    "TEXT/PLAIN",
+    "TEXT",
+    "PLAIN",
+    "TEXT/PLAIN",
+    "TEXT/PLAIN",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.wildcard": {
+   "ok": [
+    "*/*",
+    "*",
+    "*",
+    "*/*",
+    "*/*",
+    "{}"
+   ]
+  },
+  "mime/mime.parse.wildcardType": {
+   "ok": [
+    "*/plain",
+    "*",
+    "*",
+    "*/*",
+    "*/*",
+    "{}"
+   ]
+  },
+  "mime/mime.parseMediaType.invalid": {
+   "ok": [
+    null,
+    null,
+    null
+   ]
+  },
+  "mime/mime.parseMediaType.noArgs": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Mime.parseMediaType(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/mime.parseMediaType.null": {
+   "th": {
+    "message": "java.lang.NullPointerException: Parameter specified as non-null is null: method org.autojs.autojs.runtime.api.Mime.parseMediaType, parameter mediaType",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "mime/mime.parseMediaType.valid": {
+   "ok": "text/plain; charset=utf-8"
+  },
+  "mime/mime.result.assign": {
+   "ok": "a"
+  },
+  "mime/mime.result.descriptor": {
+   "ok": [
+    false,
+    true,
+    true
+   ]
+  },
+  "mime/mime.result.extensible": {
+   "ok": true
+  },
+  "mime/mime.result.forIn": {
+   "ok": [
+    "raw",
+    "type",
+    "subtype",
+    "mimeType",
+    "mimeTypeRefined",
+    "parameters",
+    "constructor",
+    "toString"
+   ]
+  },
+  "mime/mime.result.json": {
+   "ok": "{\"raw\":\"text/plain; a=1\",\"type\":\"text\",\"subtype\":\"plain\",\"mimeType\":\"text/plain; a=1\",\"mimeTypeRefined\":\"text/plain\",\"parameters\":{\"a\":\"1\"}}"
+  },
+  "mime/mime.result.keys": {
+   "ok": [
+    "raw",
+    "type",
+    "subtype",
+    "mimeType",
+    "mimeTypeRefined",
+    "parameters"
+   ]
+  },
+  "mime/mime.result.parameterKeys": {
+   "ok": [
+    "b",
+    "a"
+   ]
+  },
+  "mime/mime.result.protoDescriptors": {
+   "ok": [
+    true,
+    true,
+    false
+   ]
+  },
+  "mime/mime.result.protoOfProto": {
+   "ok": true
+  },
+  "mime/mime.toString.charset": {
+   "ok": "JsMime {\n  type: 'text',\n  subtype: 'html',\n  mimeType: 'text/html; charset=UTF-8',\n  mimeTypeRefined: 'text/html',\n  parameters: { charset: 'UTF-8' },\n  raw: 'text/html; charset=UTF-8',\n}"
+  },
+  "mime/mime.toString.distinct": {
+   "ok": false
+  },
+  "mime/mime.toString.emptyKey": {
+   "ok": "JsMime {\n  type: 'text',\n  subtype: 'plain',\n  mimeType: 'text/plain; =x',\n  mimeTypeRefined: 'text/plain',\n  parameters: { '': 'x' },\n  raw: 'text/plain; =x',\n}"
+  },
+  "mime/mime.toString.escapes": {
+   "ok": "JsMime {\n  type: 'text',\n  subtype: 'plain',\n  mimeType: 'text/plain; a=\\x\ty',\n  mimeTypeRefined: 'text/plain',\n  parameters: { a: '\\\\x\\ty' },\n  raw: 'text/plain; a=\\x\ty',\n}"
+  },
+  "mime/mime.toString.foreign": {
+   "ok": "JsMime {\n  type: 't',\n  subtype: 's',\n  mimeType: 'undefined',\n  mimeTypeRefined: 'undefined',\n  parameters: undefined,\n  raw: 'undefined',\n}"
+  },
+  "mime/mime.toString.foreignArray": {
+   "ok": "JsMime {\n  type: 'a',\n  subtype: 'undefined',\n  mimeType: 'undefined',\n  mimeTypeRefined: 'undefined',\n  parameters: { '0': 1, '1': 'x' },\n  raw: 'undefined',\n}"
+  },
+  "mime/mime.toString.foreignNull": {
+   "ok": "JsMime {\n  type: 'undefined',\n  subtype: 'undefined',\n  mimeType: 'undefined',\n  mimeTypeRefined: 'undefined',\n  parameters: undefined,\n  raw: 'undefined',\n}"
+  },
+  "mime/mime.toString.long": {
+   "ok": "JsMime {\n  type: 'multipart',\n  subtype: 'form-data',\n  mimeType: 'multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW; charset=utf-8',\n  mimeTypeRefined: 'multipart/form-data',\n  parameters: { boundary: '----WebKitFormBoundary7MA4YWxkTrZu0gW',\n  charset: 'utf-8' },\n  raw: 'multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW; charset=utf-8',\n}"
+  },
+  "mime/mime.toString.mutated": {
+   "ok": "JsMime {\n  type: 'text',\n  subtype: 'plain',\n  mimeType: 'text/plain',\n  mimeTypeRefined: 'text/plain',\n  parameters: { extra: 'x' },\n  raw: 'text/plain',\n}"
+  },
+  "mime/mime.toString.plain": {
+   "ok": "JsMime {\n  type: 'text',\n  subtype: 'plain',\n  mimeType: 'text/plain',\n  mimeTypeRefined: 'text/plain',\n  parameters: {},\n  raw: 'text/plain',\n}"
+  },
+  "mime/mime.toString.quotedKey": {
+   "ok": "JsMime {\n  type: 'text',\n  subtype: 'plain',\n  mimeType: 'text/plain; my-key=1; q=0.5',\n  mimeTypeRefined: 'text/plain',\n  parameters: { 'my-key': '1', q: '0.5' },\n  raw: 'text/plain; my-key=1; q=0.5',\n}"
+  },
+  "mime/mime.toString.quotes": {
+   "ok": "JsMime {\n  type: 'text',\n  subtype: 'plain',\n  mimeType: 'text/plain; a=it's; b=\"x\"',\n  mimeTypeRefined: 'text/plain',\n  parameters: { a: 'it\\'s', b: '\"x\"' },\n  raw: 'text/plain; a=it's; b=\"x\"',\n}"
+  },
+  "mime/mime.toString.readable": {
+   "ok": true
+  },
+  "mime/mime.toString.same": {
+   "ok": true
+  },
+  "mime/mime.toString.threeLong": {
+   "ok": "JsMime {\n  type: 'text',\n  subtype: 'plain',\n  mimeType: 'text/plain; aaaaaaaaaa=bbbbbbbbbb; cccccccccc=dddddddddd; eeee=ffff',\n  mimeTypeRefined: 'text/plain',\n  parameters: { aaaaaaaaaa: 'bbbbbbbbbb',\n  cccccccccc: 'dddddddddd',\n  eeee: 'ffff' },\n  raw: 'text/plain; aaaaaaaaaa=bbbbbbbbbb; cccccccccc=dddddddddd; eeee=ffff',\n}"
+  },
+  "mime/mime.typeof": {
+   "ok": "function"
+  },
+  "mime/recorder.call.anonymous": {
+   "ok": [
+    true,
+    true,
+    true
+   ]
+  },
+  "mime/recorder.call.anonymousNull": {
+   "ok": [
+    true,
+    true
+   ]
+  },
+  "mime/recorder.call.anonymousTakesSaved": {
+   "ok": [
+    true,
+    {
+     "n": "NaN"
+    }
+   ]
+  },
+  "mime/recorder.call.function": {
+   "ok": [
+    1,
+    true,
+    true
+   ]
+  },
+  "mime/recorder.call.functionClears": {
+   "th": {
+    "message": "java.util.NoSuchElementException: Recorder key \"(anonymous)@1793267617758\" does not exist",
+    "name": "JavaException NoSuchElementException"
+   }
+  },
+  "mime/recorder.call.functionNoRecord": {
+   "ok": [
+    false,
+    {
+     "n": "NaN"
+    }
+   ]
+  },
+  "mime/recorder.call.functionThis": {
+   "ok": 7
+  },
+  "mime/recorder.call.functionThisArray": {
+   "ok": 2
+  },
+  "mime/recorder.call.functionThisGlobal": {
+   "ok": [
+    true,
+    true
+   ]
+  },
+  "mime/recorder.call.functionThrows": {
+   "ok": "threw"
+  },
+  "mime/recorder.call.keyTypes": {
+   "ok": [
+    true,
+    true,
+    true
+   ]
+  },
+  "mime/recorder.call.named": {
+   "ok": [
+    "number",
+    true
+   ]
+  },
+  "mime/recorder.call.namedFirst": {
+   "ok": true
+  },
+  "mime/recorder.call.namedSaved": {
+   "ok": true
+  },
+  "mime/recorder.call.namedSecond": {
+   "ok": true
+  },
+  "mime/recorder.call.surplus": {
+   "th": {
+    "message": "方法 \"recorder\" 调用失败: [ 方法仅可接受参数数量位于 [0..2] 区间内 ]",
+    "name": "TypeError"
+   }
+  },
+  "mime/recorder.call.timestampIgnored": {
+   "ok": [
+    true,
+    true
+   ]
+  },
+  "mime/recorder.call.trailingUndefined": {
+   "ok": "number"
+  },
+  "mime/recorder.clear.all": {
+   "ok": [
+    false,
+    {
+     "n": "NaN"
+    }
+   ]
+  },
+  "mime/recorder.clear.args": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Recorder.clear(number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/recorder.clear.result": {
+   "ok": {
+    "u": 1
+   }
+  },
+  "mime/recorder.compare.anonymousEmpty": {
+   "ok": [
+    false,
+    false
+   ]
+  },
+  "mime/recorder.compare.basic": {
+   "ok": [
+    true,
+    true,
+    false
+   ]
+  },
+  "mime/recorder.compare.future": {
+   "ok": [
+    true,
+    true,
+    true
+   ]
+  },
+  "mime/recorder.compare.missing": {
+   "th": {
+    "message": "java.util.NoSuchElementException: Recorder key \"missing\" does not exist",
+    "name": "JavaException NoSuchElementException"
+   }
+  },
+  "mime/recorder.compare.null": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Failed to coerce nullish (Null) into a valid number",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/recorder.compare.oneArg": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Recorder.isLessThan(string). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/recorder.compare.overflow": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Failed to coerce 10000000000000000000 (Number) into a Long number without overflow",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/recorder.compare.string": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Failed to coerce x (String) into a valid number",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/recorder.compare.takesAnonymous": {
+   "ok": [
+    true,
+    {
+     "n": "NaN"
+    }
+   ]
+  },
+  "mime/recorder.compare.takesBeforeError": {
+   "ok": {
+    "n": "NaN"
+   }
+  },
+  "mime/recorder.compare.undefined": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Failed to coerce undefined (String) into a valid number",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/recorder.has.anonymous": {
+   "ok": false
+  },
+  "mime/recorder.has.basic": {
+   "ok": [
+    true,
+    false,
+    false
+   ]
+  },
+  "mime/recorder.has.noArgs": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Recorder.has(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/recorder.has.twoArgs": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Recorder.has(string,number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/recorder.length": {
+   "ok": 0
+  },
+  "mime/recorder.load.anonymousStack": {
+   "ok": [
+    800,
+    900,
+    {
+     "n": "NaN"
+    }
+   ]
+  },
+  "mime/recorder.load.emptyAnonymous": {
+   "ok": [
+    {
+     "n": "NaN"
+    },
+    {
+     "n": "NaN"
+    }
+   ]
+  },
+  "mime/recorder.load.keepsAnonymousOnError": {
+   "ok": 50
+  },
+  "mime/recorder.load.missing": {
+   "th": {
+    "message": "java.util.NoSuchElementException: Recorder key \"missing\" does not exist",
+    "name": "JavaException NoSuchElementException"
+   }
+  },
+  "mime/recorder.load.missingBadTimestamp": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Failed to coerce x (String) into a valid number",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/recorder.load.named": {
+   "ok": [
+    500,
+    1500,
+    true
+   ]
+  },
+  "mime/recorder.load.now": {
+   "ok": true
+  },
+  "mime/recorder.load.recent": {
+   "ok": true
+  },
+  "mime/recorder.load.threeArgs": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Recorder.load(string,number,number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/recorder.load.undefinedTimestamp": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Failed to coerce undefined (String) into a valid number",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/recorder.memberLength": {
+   "ok": [
+    0,
+    0,
+    0
+   ]
+  },
+  "mime/recorder.members": {
+   "ok": [
+    "function",
+    "function",
+    "function",
+    "function",
+    "function",
+    "function",
+    "function"
+   ]
+  },
+  "mime/recorder.name": {
+   "ok": "recorder"
+  },
+  "mime/recorder.remove.absent": {
+   "ok": false
+  },
+  "mime/recorder.remove.basic": {
+   "ok": [
+    true,
+    false,
+    false
+   ]
+  },
+  "mime/recorder.remove.noArgs": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Recorder.remove(). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/recorder.remove.null": {
+   "ok": [
+    false,
+    1
+   ]
+  },
+  "mime/recorder.remove.undefined": {
+   "ok": [
+    true,
+    false
+   ]
+  },
+  "mime/recorder.save.coerced": {
+   "ok": [
+    1500,
+    15,
+    16,
+    0,
+    1,
+    7
+   ]
+  },
+  "mime/recorder.save.infinity": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Failed to coerce Infinity (Number) into a finite Long number",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/recorder.save.keyTypes": {
+   "ok": [
+    true,
+    true,
+    true,
+    true
+   ]
+  },
+  "mime/recorder.save.load": {
+   "ok": 500
+  },
+  "mime/recorder.save.longMin": {
+   "ok": true
+  },
+  "mime/recorder.save.nan": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Failed to coerce NaN (Number) into a valid number",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/recorder.save.now": {
+   "ok": [
+    "number",
+    true,
+    true
+   ]
+  },
+  "mime/recorder.save.nullKey": {
+   "ok": 60
+  },
+  "mime/recorder.save.nullTimestamp": {
+   "ok": true
+  },
+  "mime/recorder.save.object": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Failed to coerce [object Object] (Object) into a valid number",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/recorder.save.overflow": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Failed to coerce 10000000000000000000 (Number) into a Long number without overflow",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/recorder.save.string": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Failed to coerce x (String) into a valid number",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/recorder.save.threeArgs": {
+   "th": {
+    "message": "找不到方法 org.autojs.autojs.runtime.api.Recorder.save(string,number,number). (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_592ae3d0.js#2061(eval)#1)",
+    "name": "InternalError"
+   }
+  },
+  "mime/recorder.save.timestamp": {
+   "ok": 1000
+  },
+  "mime/recorder.save.truncated": {
+   "ok": [
+    1000,
+    -1000,
+    0
+   ]
+  },
+  "mime/recorder.save.undefinedKey": {
+   "ok": [
+    true,
+    50,
+    {
+     "n": "NaN"
+    }
+   ]
+  },
+  "mime/recorder.save.undefinedTimestamp": {
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Failed to coerce undefined (String) into a valid number",
+    "name": "JavaException IllegalArgumentException"
+   }
+  },
+  "mime/recorder.typeof": {
+   "ok": "function"
+  },
+  "zip/zip.addFile.badOption": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: No enum constant net.lingala.zip4j.model.enums.CompressionMethod.ZIP"
+  },
+  "zip/zip.addFile.existing": {
+   "ok": [
+    {
+     "u": 1
+    },
+    [
+     "a.txt",
+     "b.txt"
+    ]
+   ]
+  },
+  "zip/zip.addFile.missing": {
+   "ok": "ZipException: net.lingala.zip4j.exception.ZipException: File does not exist: <D>/missing.txt"
+  },
+  "zip/zip.addFile.none": {
+   "ok": "InternalError"
+  },
+  "zip/zip.addFile.null": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: Failed to coerce nullish (Null) into a string"
+  },
+  "zip/zip.addFile.options": {
+   "ok": [
+    "a.txt",
+    "b.txt",
+    "logs/c.txt"
+   ]
+  },
+  "zip/zip.addFile.optionsString": {
+   "ok": "IllegalArgumentException"
+  },
+  "zip/zip.addFile.password": {
+   "ok": [
+    true,
+    "alpha"
+   ]
+  },
+  "zip/zip.addFile.three": {
+   "ok": "InternalError"
+  },
+  "zip/zip.addFiles.basic": {
+   "ok": [
+    "a.txt",
+    "b.txt"
+   ]
+  },
+  "zip/zip.addFiles.element": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: Failed to coerce nullish (Null) into a string"
+  },
+  "zip/zip.addFiles.null": {
+   "ok": "IllegalArgumentException"
+  },
+  "zip/zip.addFiles.string": {
+   "ok": "IllegalArgumentException"
+  },
+  "zip/zip.addFolder.basic": {
+   "ok": [
+    "docs/",
+    "docs/b2.txt"
+   ]
+  },
+  "zip/zip.addFolder.file": {
+   "ok": "ZipException: net.lingala.zip4j.exception.ZipException: input folder is not a directory"
+  },
+  "zip/zip.addFolder.none": {
+   "ok": "InternalError"
+  },
+  "zip/zip.addFolder.rootName": {
+   "ok": [
+    "r/docs/",
+    "r/docs/b2.txt"
+   ]
+  },
+  "zip/zip.aes.create": {
+   "ok": [
+    true,
+    true,
+    "AES",
+    "KEY_STRENGTH_256"
+   ]
+  },
+  "zip/zip.aes.isEncrypted": {
+   "ok": true
+  },
+  "zip/zip.aes.noPassword": {
+   "ok": "ZipException: net.lingala.zip4j.exception.ZipException: empty or null password provided for AES decryption"
+  },
+  "zip/zip.aes.openPassword": {
+   "ok": "alpha"
+  },
+  "zip/zip.aes.options": {
+   "ok": "alpha"
+  },
+  "zip/zip.aes.setPassword": {
+   "ok": [
+    {
+     "u": 1
+    },
+    "alpha"
+   ]
+  },
+  "zip/zip.aes.unzip": {
+   "ok": [
+    "unzip",
+    "alpha"
+   ]
+  },
+  "zip/zip.aes.unzipNoPassword": {
+   "ok": "ZipException: net.lingala.zip4j.exception.ZipException: empty or null password provided for AES decryption"
+  },
+  "zip/zip.aes.wrongPassword": {
+   "ok": "ZipException: net.lingala.zip4j.exception.ZipException: Wrong Password"
+  },
+  "zip/zip.aes128": {
+   "ok": [
+    "KEY_STRENGTH_128",
+    "TWO"
+   ]
+  },
+  "zip/zip.bad.getFileHeaders": {
+   "ok": "ZipException: net.lingala.zip4j.exception.ZipException: Zip file size less than minimum expected zip file size. Probably not a zip file or a corrupted zip file"
+  },
+  "zip/zip.bad.isEncrypted": {
+   "ok": "ZipException: net.lingala.zip4j.exception.ZipException: Zip file size less than minimum expected zip file size. Probably not a zip file or a corrupted zip file"
+  },
+  "zip/zip.bad.isValidZipFile": {
+   "ok": false
+  },
+  "zip/zip.done": {
+   "ok": [
+    "aes128.zip",
+    "bad.zip",
+    "enc.zip",
+    "folder.zip",
+    "folder2.zip",
+    "many.zip",
+    "mix.zip",
+    "one.zip",
+    "q2.zip",
+    "std.zip",
+    "store.zip",
+    "three.zip",
+    "tree-all.zip",
+    "tree-filter.zip",
+    "tree-flat.zip",
+    "tree-this.zip",
+    "tree-visible.zip",
+    "tree.zip",
+    "two.zip"
+   ]
+  },
+  "zip/zip.encryptFiles.noPassword": {
+   "ok": [
+    "ZipException: net.lingala.zip4j.exception.ZipException: input password is empty or null",
+    false
+   ]
+  },
+  "zip/zip.extractAll.basic": {
+   "ok": [
+    [
+     "a.txt",
+     "c.log"
+    ],
+    "alpha"
+   ]
+  },
+  "zip/zip.extractAll.ignoreDateKeepsPassword": {
+   "ok": [
+    "InternalError",
+    "alpha"
+   ]
+  },
+  "zip/zip.extractAll.none": {
+   "ok": "InternalError"
+  },
+  "zip/zip.extractAll.null": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: Failed to coerce nullish (Null) into a string"
+  },
+  "zip/zip.extractAll.optionsString": {
+   "ok": "IllegalArgumentException"
+  },
+  "zip/zip.extractFile.absolute": {
+   "ok": "ZipException: net.lingala.zip4j.exception.ZipException: No file found with name /a.txt in zip file"
+  },
+  "zip/zip.extractFile.five": {
+   "ok": "InternalError"
+  },
+  "zip/zip.extractFile.nullDest": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: Failed to coerce nullish (Null) into a string"
+  },
+  "zip/zip.extractFile.one": {
+   "ok": "InternalError"
+  },
+  "zip/zip.extractFile.relative": {
+   "ok": "ZipException"
+  },
+  "zip/zip.getFileHeader.empty": {
+   "ok": "ZipException: net.lingala.zip4j.exception.ZipException: input file name is emtpy or null, cannot get FileHeader"
+  },
+  "zip/zip.getFileHeader.found": {
+   "ok": [
+    "a.txt",
+    5,
+    false
+   ]
+  },
+  "zip/zip.getFileHeader.missing": {
+   "th": {
+    "message": "java.lang.NullPointerException: ensureArgumentsOnlyOne(...) must not be null",
+    "name": "JavaException NullPointerException"
+   }
+  },
+  "zip/zip.getFileHeader.none": {
+   "ok": "InternalError"
+  },
+  "zip/zip.getFileHeader.null": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: Failed to coerce nullish (Null) into a string"
+  },
+  "zip/zip.getFileHeader.two": {
+   "ok": "InternalError"
+  },
+  "zip/zip.getFileHeaders.args": {
+   "ok": "InternalError"
+  },
+  "zip/zip.getFileHeaders.classes": {
+   "ok": [
+    "net.lingala.zip4j.model.FileHeader"
+   ]
+  },
+  "zip/zip.getPath.args": {
+   "ok": "InternalError"
+  },
+  "zip/zip.getZipFile.args": {
+   "ok": "InternalError"
+  },
+  "zip/zip.getZipFile.file": {
+   "ok": "one.zip"
+  },
+  "zip/zip.handles.classes": {
+   "ok": [
+    "net.lingala.zip4j.ZipFile",
+    "net.lingala.zip4j.ZipFile",
+    "net.lingala.zip4j.model.ZipParameters",
+    "net.lingala.zip4j.model.UnzipParameters"
+   ]
+  },
+  "zip/zip.invoke.blank": {
+   "ok": "RangeError"
+  },
+  "zip/zip.invoke.name": {
+   "ok": "open"
+  },
+  "zip/zip.invoke.none": {
+   "ok": "TypeError"
+  },
+  "zip/zip.invoke.null": {
+   "ok": "TypeError"
+  },
+  "zip/zip.invoke.two": {
+   "ok": "TypeError"
+  },
+  "zip/zip.isEncrypted.args": {
+   "ok": "InternalError"
+  },
+  "zip/zip.isEncrypted.plain": {
+   "ok": false
+  },
+  "zip/zip.isValidZipFile": {
+   "ok": [
+    true,
+    false,
+    false
+   ]
+  },
+  "zip/zip.isValidZipFile.args": {
+   "ok": "InternalError"
+  },
+  "zip/zip.keys": {
+   "ok": [
+    "toString",
+    "addFile",
+    "addFiles",
+    "addFolder",
+    "extractAll",
+    "extractFile",
+    "setPassword",
+    "getFileHeader",
+    "getFileHeaders",
+    "isEncrypted",
+    "removeFile",
+    "isValidZipFile",
+    "getPath",
+    "getZipFile",
+    "name",
+    "path",
+    "zipFile",
+    "options",
+    "zipParameters",
+    "unzipParameters"
+   ]
+  },
+  "zip/zip.open.blankBeforeOptions": {
+   "ok": "RangeError"
+  },
+  "zip/zip.open.empty": {
+   "ok": "RangeError"
+  },
+  "zip/zip.open.none": {
+   "ok": "TypeError"
+  },
+  "zip/zip.open.nullOptions": {
+   "ok": []
+  },
+  "zip/zip.open.optionsArray": {
+   "ok": "TypeError"
+  },
+  "zip/zip.open.optionsFunction": {
+   "ok": "TypeError"
+  },
+  "zip/zip.open.optionsIdentity": {
+   "ok": true
+  },
+  "zip/zip.open.optionsString": {
+   "ok": "TypeError"
+  },
+  "zip/zip.open.props": {
+   "ok": [
+    "open",
+    true,
+    true,
+    0
+   ]
+  },
+  "zip/zip.open.three": {
+   "ok": "TypeError"
+  },
+  "zip/zip.open.undefined": {
+   "ok": "TypeError"
+  },
+  "zip/zip.options.aesKeyStrength.code": {
+   "ok": "InternalError"
+  },
+  "zip/zip.options.aesKeyStrength.name": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: No enum constant net.lingala.zip4j.model.enums.AesKeyStrength.BAD"
+  },
+  "zip/zip.options.aesKeyStrength.nan": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: Failed to coerce NaN (Number) into a valid number"
+  },
+  "zip/zip.options.aesVersion": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: No enum constant net.lingala.zip4j.model.enums.AesVersion.THREE"
+  },
+  "zip/zip.options.compressionLevel": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: No enum constant net.lingala.zip4j.model.enums.CompressionLevel.SUPER"
+  },
+  "zip/zip.options.compressionLevel.infinity": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: Failed to coerce Infinity (Number) into a finite Int number"
+  },
+  "zip/zip.options.compressionMethod": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: No enum constant net.lingala.zip4j.model.enums.CompressionMethod.ZIP"
+  },
+  "zip/zip.options.encryptionMethod.code": {
+   "ok": "InternalError"
+  },
+  "zip/zip.options.encryptionMethod.name": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: No enum constant net.lingala.zip4j.model.enums.EncryptionMethod.ROT13"
+  },
+  "zip/zip.options.entryCRC": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: Failed to coerce abc (String) into a valid number"
+  },
+  "zip/zip.options.entrySize": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: Failed to coerce -Infinity (Number) into a finite Long number"
+  },
+  "zip/zip.options.excludeFileFilter": {
+   "ok": "InternalError"
+  },
+  "zip/zip.options.ignoreDateTimeAttributes": {
+   "ok": "InternalError"
+  },
+  "zip/zip.options.isIgnoreDateTimeAttributes": {
+   "ok": "InternalError"
+  },
+  "zip/zip.options.lastModifiedFileTime": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: Failed to coerce 1e+30 (Number) into a Long number without overflow"
+  },
+  "zip/zip.options.symbolicLinkAction": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: No enum constant net.lingala.zip4j.model.ZipParameters.SymbolicLinkAction.1"
+  },
+  "zip/zip.options.zipFileDestination": {
+   "ok": "InternalError"
+  },
+  "zip/zip.params.aliases": {
+   "ok": [
+    false,
+    true,
+    "a"
+   ]
+  },
+  "zip/zip.params.bits": {
+   "ok": [
+    "KEY_STRENGTH_192",
+    "TWO",
+    "NORMAL",
+    "DEFLATE",
+    "AES",
+    "INCLUDE_LINKED_FILE_ONLY",
+    false
+   ]
+  },
+  "zip/zip.params.comment": {
+   "ok": "cc"
+  },
+  "zip/zip.params.defaults": {
+   "ok": [
+    "KEY_STRENGTH_256",
+    "TWO",
+    "NORMAL",
+    "DEFLATE",
+    "AES",
+    "INCLUDE_LINKED_FILE_ONLY",
+    false
+   ]
+  },
+  "zip/zip.params.encrypt": {
+   "ok": [
+    true,
+    true,
+    true,
+    false
+   ]
+  },
+  "zip/zip.params.encryptionNames": {
+   "ok": [
+    "NONE",
+    "ZIP_STANDARD",
+    "ZIP_STANDARD",
+    "ZIP_STANDARD_VARIANT_STRONG",
+    "NONE",
+    "ZIP_STANDARD"
+   ]
+  },
+  "zip/zip.params.flags": {
+   "ok": [
+    false,
+    false,
+    false,
+    true,
+    true,
+    true
+   ]
+  },
+  "zip/zip.params.javaEnum": {
+   "ok": "ULTRA"
+  },
+  "zip/zip.params.names": {
+   "ok": [
+    "KEY_STRENGTH_128",
+    "ONE",
+    "FASTEST",
+    "AES_INTERNAL_ONLY",
+    "ZIP_STANDARD_VARIANT_STRONG",
+    "INCLUDE_LINK_ONLY",
+    false
+   ]
+  },
+  "zip/zip.params.names2": {
+   "ok": [
+    "KEY_STRENGTH_192",
+    "TWO",
+    "MAXIMUM",
+    "STORE",
+    "NONE",
+    "INCLUDE_LINK_AND_LINKED_FILE",
+    false
+   ]
+  },
+  "zip/zip.params.numbers": {
+   "ok": [
+    "KEY_STRENGTH_128",
+    "ONE",
+    "ULTRA",
+    "STORE",
+    "ZIP_STANDARD",
+    "INCLUDE_LINKED_FILE_ONLY",
+    false
+   ]
+  },
+  "zip/zip.params.unzip": {
+   "ok": true
+  },
+  "zip/zip.params.values": {
+   "ok": [
+    "n.txt",
+    "/x",
+    "root",
+    42,
+    7,
+    1000
+   ]
+  },
+  "zip/zip.path.absolute": {
+   "ok": true
+  },
+  "zip/zip.path.dots": {
+   "ok": true
+  },
+  "zip/zip.path.parent": {
+   "ok": true
+  },
+  "zip/zip.path.relative": {
+   "ok": [
+    "/",
+    "/rel/x.zip"
+   ]
+  },
+  "zip/zip.path.trailing": {
+   "ok": "/t/"
+  },
+  "zip/zip.queue": {
+   "ok": [
+    true,
+    [
+     "a.txt",
+     "b.txt"
+    ]
+   ]
+  },
+  "zip/zip.removeFile": {
+   "ok": [
+    {
+     "u": 1
+    },
+    [
+     "a.txt",
+     "c.log"
+    ]
+   ]
+  },
+  "zip/zip.removeFile.missing": {
+   "ok": [
+    "no error",
+    [
+     "a.txt",
+     "c.log"
+    ]
+   ]
+  },
+  "zip/zip.removeFile.none": {
+   "ok": "InternalError"
+  },
+  "zip/zip.setPassword.none": {
+   "ok": "InternalError"
+  },
+  "zip/zip.setPassword.null": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: Failed to coerce nullish (Null) into a string"
+  },
+  "zip/zip.setPassword.two": {
+   "ok": "InternalError"
+  },
+  "zip/zip.setup": {
+   "ok": [
+    "alpha",
+    true,
+    true
+   ]
+  },
+  "zip/zip.setup.tree": {
+   "ok": [
+    ".hid",
+    "docs",
+    "top.txt"
+   ]
+  },
+  "zip/zip.shape.lengths": {
+   "ok": [
+    1,
+    2,
+    2,
+    2,
+    2
+   ]
+  },
+  "zip/zip.shape.members": {
+   "ok": [
+    "function",
+    "function",
+    "function",
+    "function",
+    "function"
+   ]
+  },
+  "zip/zip.standard": {
+   "ok": [
+    "ZIP_STANDARD",
+    "bravo"
+   ]
+  },
+  "zip/zip.toString.args": {
+   "ok": "InternalError"
+  },
+  "zip/zip.toString.empty": {
+   "ok": "Zip {\n  operation: open,\n  path: <D>/o.zip,\n  options: {},\n}"
+  },
+  "zip/zip.toString.options": {
+   "ok": "Zip {\n  operation: open,\n  path: <D>/o.zip,\n  options: {\n    compressionLevel: fast [ FAST ],\n    comment: hi [ hi ],\n    other: 1,\n    password: pw [ pw ],\n    entrySize: 12 [ 12 ],\n  },\n}"
+  },
+  "zip/zip.toString.passwordZip": {
+   "ok": "Zip {\n  operation: open,\n  path: <D>/enc.zip,\n  options: {\n    password: secret [ secret ],\n    aesVersion: 1 [ ONE ],\n  },\n}"
+  },
+  "zip/zip.toStringReadable": {
+   "ok": true
+  },
+  "zip/zip.unzip.badZip": {
+   "ok": "ZipException: net.lingala.zip4j.exception.ZipException: Zip file size less than minimum expected zip file size. Probably not a zip file or a corrupted zip file"
+  },
+  "zip/zip.unzip.blank": {
+   "ok": "RangeError"
+  },
+  "zip/zip.unzip.destType": {
+   "ok": "TypeError"
+  },
+  "zip/zip.unzip.missing": {
+   "ok": [
+    "ZipException: net.lingala.zip4j.exception.ZipException: java.io.FileNotFoundException: <D>/none.zip: open failed: ENOENT (No such file or directory)",
+    true
+   ]
+  },
+  "zip/zip.unzip.one": {
+   "ok": "TypeError"
+  },
+  "zip/zip.unzip.optionsDestination": {
+   "ok": "ZipException"
+  },
+  "zip/zip.unzip.optionsDestinationIgnoreDate": {
+   "ok": "InternalError"
+  },
+  "zip/zip.unzip.tree": {
+   "ok": [
+    "unzip",
+    [
+     "docs"
+    ],
+    [
+     "b2.txt"
+    ],
+    "bravo"
+   ]
+  },
+  "zip/zip.zipDir.basic": {
+   "ok": [
+    "zipDir",
+    [
+     "tree/",
+     "tree/.hid",
+     "tree/docs/",
+     "tree/docs/b2.txt",
+     "tree/top.txt"
+    ]
+   ]
+  },
+  "zip/zip.zipDir.blank": {
+   "ok": "RangeError"
+  },
+  "zip/zip.zipDir.exists": {
+   "ok": "ZipException: net.lingala.zip4j.exception.ZipException: zip file: <D>/tree.zip already exists. To add files to existing zip file use addFolder method"
+  },
+  "zip/zip.zipDir.filter": {
+   "ok": [
+    "tree/",
+    "tree/.hid",
+    "tree/docs/",
+    "tree/docs/b2.txt"
+   ]
+  },
+  "zip/zip.zipDir.filterThis": {
+   "ok": [
+    "tree/",
+    "tree/.hid",
+    "tree/docs/",
+    "tree/top.txt"
+   ]
+  },
+  "zip/zip.zipDir.filterThrows": {
+   "ok": [
+    "ZipException",
+    false
+   ]
+  },
+  "zip/zip.zipDir.filterUndefined": {
+   "ok": [
+    "tree/",
+    "tree/.hid",
+    "tree/docs/",
+    "tree/docs/b2.txt",
+    "tree/top.txt"
+   ]
+  },
+  "zip/zip.zipDir.hidden": {
+   "ok": [
+    "tree/",
+    "tree/docs/",
+    "tree/docs/b2.txt",
+    "tree/top.txt"
+   ]
+  },
+  "zip/zip.zipDir.noRoot": {
+   "ok": [
+    ".hid",
+    "docs/",
+    "docs/b2.txt",
+    "top.txt"
+   ]
+  },
+  "zip/zip.zipDir.one": {
+   "ok": "TypeError"
+  },
+  "zip/zip.zipDir.optionsDestination": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: No enum constant net.lingala.zip4j.model.enums.CompressionLevel.X"
+  },
+  "zip/zip.zipFile.basic": {
+   "ok": [
+    "zipFile",
+    true,
+    true,
+    [
+     "a.txt"
+    ]
+   ]
+  },
+  "zip/zip.zipFile.blankDest": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: Argument \"path\"   (String) for zip.zipFile cannot be empty"
+  },
+  "zip/zip.zipFile.blankSource": {
+   "ok": "RangeError"
+  },
+  "zip/zip.zipFile.destArray": {
+   "ok": "TypeError"
+  },
+  "zip/zip.zipFile.destBeforeBlank": {
+   "ok": "TypeError"
+  },
+  "zip/zip.zipFile.emptyDest": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: Argument \"path\"  (String) for zip.zipFile cannot be empty"
+  },
+  "zip/zip.zipFile.fileNameInZip": {
+   "ok": [
+    "docs/b2.txt"
+   ]
+  },
+  "zip/zip.zipFile.member": {
+   "ok": true
+  },
+  "zip/zip.zipFile.missing": {
+   "ok": "ZipException: net.lingala.zip4j.exception.ZipException: File does not exist: <D>/missing.txt"
+  },
+  "zip/zip.zipFile.missingDefault": {
+   "ok": "ZipException: net.lingala.zip4j.exception.ZipException: File does not exist: <D>/missing.txt"
+  },
+  "zip/zip.zipFile.nullSource": {
+   "ok": "TypeError"
+  },
+  "zip/zip.zipFile.one": {
+   "ok": "TypeError"
+  },
+  "zip/zip.zipFile.optionsType": {
+   "ok": "TypeError"
+  },
+  "zip/zip.zipFiles.basic": {
+   "ok": [
+    "zipFiles",
+    [
+     "a.txt",
+     "b.txt",
+     "c.log"
+    ]
+   ]
+  },
+  "zip/zip.zipFiles.elementBlank": {
+   "ok": "RangeError"
+  },
+  "zip/zip.zipFiles.elementNull": {
+   "ok": "TypeError"
+  },
+  "zip/zip.zipFiles.empty": {
+   "ok": [
+    "ZipException: net.lingala.zip4j.exception.ZipException: input file List is null or empty",
+    false
+   ]
+  },
+  "zip/zip.zipFiles.missing": {
+   "ok": "IllegalArgumentException: java.lang.IllegalArgumentException: File <D>/missing.txt does not exist"
+  },
+  "zip/zip.zipFiles.missingBeforeType": {
+   "ok": "IllegalArgumentException"
+  },
+  "zip/zip.zipFiles.null": {
+   "ok": "TypeError"
+  },
+  "zip/zip.zipFiles.object": {
+   "ok": "TypeError"
+  },
+  "zip/zip.zipFiles.optionsDestination": {
+   "ok": "InternalError"
+  },
+  "zip/zip.zipFiles.store": {
+   "ok": "STORE"
+  },
+  "zip/zip.zipFiles.string": {
+   "ok": "TypeError"
+  },
+  "zip/zip.zipFiles.typeAfterExisting": {
+   "ok": "TypeError"
+  }
+ },
+ "device": {
+  "model": "23046RP50C",
+  "sdk": 35
+ },
+ "host": {
+  "versionCode": 5935,
+  "versionName": "6.8.0"
+ },
+ "schema": "autojs6-files-data-rhino-expected-v1"
+}

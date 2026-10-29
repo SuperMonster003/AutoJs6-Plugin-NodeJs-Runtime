@@ -2,7 +2,7 @@
 // Rhino comparison of the shared JS tools core (AutoJs6 api-coverage P3.2a): the cases of js-tools/cases.js against the
 // values Rhino gave on a device (js-tools/rhino-expected.json), on the main thread and in a nested Worker started with
 // the real Worker preload. Cases that need the host (Java handles, the axios facade) run on a device only
-// (js-tools/device_js_tools.py); dayjs / pangu / cheerio / i18n have no Node entry yet (api-coverage Q61).
+// (js-tools/device_js_tools.py), as do dayjs / pangu / cheerio / i18n, which load the library files of the APK (Q61).
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");

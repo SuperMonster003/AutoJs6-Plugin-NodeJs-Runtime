@@ -1,7 +1,9 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../../../app/src/main/cpp/node_bridge_sources.cpp'),'utf8');
 const chunk=source.slice(source.indexOf('  // Shared native Android helpers, colors and calendar task facades.'),source.indexOf('  // Main-thread native Android and calendar modules.'));
-const factory=new Function(chunk+';return {android:__autojs6_create_android,colors:__autojs6_create_colors,tasks:__autojs6_create_tasks};')();
+const factory=new Function(chunk+';return {android:__autojs6_create_android,tasks:__autojs6_create_tasks};')();
+// colors is the shared JS tools core's (api-coverage P3.2b); its earlier Node members use these Android objects.
+const createJsTools=new Function(source.slice(source.indexOf('  // Shared JS tools core.'),source.indexOf('  // End shared JS tools core.'))+';return __autojs6_create_js_tools;')();
 test('native Paint/color-state helpers send typed colors, expose cloneable snapshots and close',async()=>{
   const calls=[];let state;
   const call=async(module,method,args,opts)=>{
@@ -13,11 +15,11 @@ test('native Paint/color-state helpers send typed colors, expose cloneable snaps
     if(method==='getThemeColor')return {colorPrimary:-65536,colorPrimaryDark:-16777216,colorAccent:-1};
     if(method==='close')return true;
   };
-  let colors;const android=factory.android(call,value=>colors.toInt(value));colors=factory.colors(android);
+  let colors;const android=factory.android(call,value=>colors.toInt(value));colors=createJsTools({device:{sdkInt:35},java(){throw new Error('no Java facade');},android:()=>android}).colors;
   const paint=await colors.createPaint({color:'#f00'});assert.equal(paint.color,-65536);await colors.setPaintColor(paint,'#00ff00');assert.equal((await paint.getInfo()).color,-16711936);
   assert.equal(structuredClone(paint).color,-16711936);assert.equal(structuredClone(paint).close,undefined);
   const list=await colors.createColorStateList({states:[['pressed'],[]],colors:['red','blue']});assert.equal(list.defaultColor,-16776961);
-  assert.equal((await colors.themeColor).colorPrimary,-65536);assert.equal(colors.toInt(await colors.themeColor),-65536);assert.equal(await paint.close(),true);assert.equal(await paint.close(),false);await list.close();
+  assert.equal((await colors.getThemeColor()).colorPrimary,-65536);assert.equal(await paint.close(),true);assert.equal(await paint.close(),false);await list.close();
   assert(calls.every(c=>c.module==='android'&&c.opts.permissions[0]==='android.objects'));
 });
 test('tasks preserve Date instants, freeze snapshots, update options and use numeric identities',async()=>{

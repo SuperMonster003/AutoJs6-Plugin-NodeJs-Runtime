@@ -2600,7 +2600,7 @@ std::string buildEmbeddedScriptExecutionSource(
       if (!key || key.indexOf("\u0000") >= 0) {
         continue;
       }
-      if (__autojs6_internal_compile_cache_env_key(key)) {
+      if (__autojs6_internal_compile_cache_env_key(key) || key.indexOf("AUTOJS6_NODE_JS_LIBRARIES_") === 0) {
         continue;
       }
       if (__autojs6_node_startup_env_key(key)) {
@@ -3102,11 +3102,8 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_limited_rhino_cache = null;
   let __autojs6_rhino_install_state = null;
   let __autojs6_limited_rhino_compat_cache = null;
-  let __autojs6_limited_files_cache = null;
   let __autojs6_limited_base64_cache = null;
-  let __autojs6_limited_colors_cache = null;
   let __autojs6_js_tools_cache = null;
-  let __autojs6_limited_mime_cache = null;
   let __autojs6_limited_nanoid_cache = null;
   let __autojs6_limited_opencc_cache = null;
   let __autojs6_limited_pinyin_cache = null;
@@ -8642,7 +8639,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8655,10 +8652,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (createUi && methods.ui) modules.set("ui", createUi(uiCall));
     if (createCompose && methods.compose) modules.set("compose", createCompose(uiCall));
     if (createShell && methods.shell) for (const [name,value] of Object.entries(createShell(bridgeCall,SensorEmitter,shellStreams,shellBuffer,required=>required.filter(x=>(constants.shellMissing||[]).includes(x))))) modules.set(name,value);
-    if(createAndroid && createColors && methods.android) {
-      let colors;const android=createAndroid(bridgeCall,value=>colors.toInt(value));colors=createColors(android);
-      modules.set("android",android);modules.set("colors",colors);
-    }
+    if (createAndroid && methods.android) modules.set("android", createAndroid(bridgeCall, value => modules.get("colors").toInt(value)));
     if(createFlow && methods.flow) modules.set("flow",createFlow(bridgeCall,nativeConsole,JavaAsyncContext));
     if(createMail && methods.mail) modules.set("mail",createMail(bridgeCall));
     if(createAi && methods.ai) modules.set("ai",createAi(bridgeCall));
@@ -8666,14 +8660,153 @@ std::string buildEmbeddedScriptExecutionSource(
     if(createSpeech && methods.speech) modules.set("speech",createSpeech(bridgeCall));
     if(createTts && methods.tts) modules.set("tts",createTts(bridgeCall));
     if(createJava && methods.java) modules.set("java",createJava(bridgeCall,constants.javaPolicy||{},constants.javaEnabled!==false,JavaAsyncContext));
+    // Rhino's global axios in Workers (api-coverage Q61): the request runs through the main thread's axios facade; the
+    // response status is checked here, where config.validateStatus (a function) lives.
+    function createWorkerAxios(defaults) {
+      function error(message, code, config, request, response) {
+        const value = Object.assign(new Error(message), { name: "AxiosError", code, config });
+        if (request !== undefined) value.request = request;
+        if (response !== undefined) Object.assign(value, { response, status: response && response.status });
+        Object.defineProperty(value, "isAxiosError", { value: true });
+        value.toJSON = function() { return { message: this.message, name: this.name, code: this.code, autojs6Code: this.autojs6Code, status: this.status }; };
+        return value;
+      }
+      function merge(configOrUrl, maybeConfig) {
+        const config = { ...defaults };
+        let headers;
+        if (typeof configOrUrl === "string" || configOrUrl instanceof URL) {
+          Object.assign(config, maybeConfig && typeof maybeConfig === "object" ? maybeConfig : {}, { url: String(configOrUrl) });
+          headers = maybeConfig && typeof maybeConfig === "object" ? maybeConfig.headers : undefined;
+        } else if (configOrUrl && typeof configOrUrl === "object") {
+          Object.assign(config, configOrUrl);
+          headers = configOrUrl.headers;
+        }
+        if (defaults.headers !== undefined || headers !== undefined) {
+          const merged = new Headers(defaults.headers || undefined);
+          if (headers !== undefined && headers !== null) new Headers(headers).forEach((value, name) => merged.set(name, value));
+          config.headers = merged;
+        }
+        return config;
+      }
+      async function dispatch(configOrUrl, maybeConfig) {
+        const config = merge(configOrUrl, maybeConfig);
+        const { validateStatus, signal, ...rest } = config;
+        if (rest.headers) rest.headers = Object.fromEntries(rest.headers);
+        const result = await bridgeCall("autojs6:worker-module:axios", "request", [{ ...rest, validateStatus: null }], { signal, signalArgumentIndex: 0 });
+        const response = result.response && Object.freeze({ ...result.response, config, request: result.request });
+        if (result.error) {
+          const failure = error(result.error.message, result.error.code, config, result.request, response);
+          if (result.error.autojs6Code) Object.defineProperty(failure, "autojs6Code", { value: result.error.autojs6Code, enumerable: true });
+          throw failure;
+        }
+        const ok = validateStatus === null ? true : typeof validateStatus === "function" ? !!validateStatus(response.status)
+          : response.status >= 200 && response.status < 300;
+        if (!ok) {
+          throw error("Request failed with status code " + response.status, response.status >= 500 ? "ERR_BAD_RESPONSE" : "ERR_BAD_REQUEST",
+            config, result.request, response);
+        }
+        return response;
+      }
+      const values = Object.freeze({ ...defaults });
+      function axios(configOrUrl, maybeConfig) { return dispatch(configOrUrl, maybeConfig); }
+      Object.defineProperties(axios, {
+        request: { value: config => axios(config), enumerable: true },
+        get: { value: (url, config) => axios({ ...config, method: "GET", url: String(url) }), enumerable: true },
+        post: { value: (url, data, config) => axios({ ...config, method: "POST", url: String(url), data }), enumerable: true },
+        create: { value: config => createWorkerAxios({ ...values, ...config }), enumerable: true },
+        isAxiosError: { value: value => !!(value && value.isAxiosError === true), enumerable: true },
+        AxiosError: { value: (message, code, config, request, response) => error(message, code, config, request, response), enumerable: true },
+        defaults: { value: values, enumerable: true },
+        adapterName: { value: "autojs6-controlled-fetch", enumerable: true },
+        VERSION: { value: "autojs6-v1.1-fetch-adapter", enumerable: true },
+        policy: { value: constants.axiosPolicy || {}, enumerable: true },
+        // The main thread's diagnostics snapshot through the parent port (a Promise in Workers).
+        diagnostics: { value: () => bridgeCall("autojs6:worker-module:axios", "diagnostics", []), enumerable: true },
+        default: { value: axios, enumerable: true }
+      });
+      return Object.freeze(axios);
+    }
     if (createJsTools && methods.util) {
+      const fs = nativeRequire && nativeRequire("fs"), path = nativeRequire && nativeRequire("path");
+      let axios;
       const tools = createJsTools({ device: constants.device || {}, log: text => nativeConsole.log(text), warn: text => nativeConsole.warn(text), java: () => {
         if (!modules.has("java")) throw Object.assign(new Error("Java interop is unavailable in this Worker."), { code: "ERR_AUTOJS6_JAVA_INTEROP_DISABLED" });
         return modules.get("java");
+      }, fs, path, cwd: () => process.cwd(), sdcardPath: constants.sdcardPath,
+      ...constants.hostAppDirs, android: () => modules.get("android"), require: nativeRequire, axios: () => axios || (axios = createWorkerAxios({})),
+      librarySource: file => {
+        if (!constants.librariesDir) throw new Error("The bundled JS libraries are unavailable: " + (constants.librariesError || "the runtime service did not prepare them") + ".");
+        return fs.readFileSync(path.join(constants.librariesDir, file), "utf8");
       } });
       for (const name of ["util", "species", "global", "s13n", "formatter", "converter", "jsox", "jsox.mathx", "jsox.arrayx", "jsox.numberx"]) modules.set(name, tools[name]);
       modules.set("fmt", tools.formatter);
       modules.set("cvt", tools.converter);
+      // colors, files, zip, mime and recorder (api-coverage P3.2b) are created when the Worker first asks for them.
+      const lazyModules = new Map();
+      const mapGet = modules.get;
+      modules.get = function(name) {
+        const create = lazyModules.get(name);
+        if (create) {
+          lazyModules.delete(name);
+          modules.set(name, create());
+        }
+        return mapGet.call(modules, name);
+      };
+      const lazy = (name, create) => {
+        if (!methods[name]) return;
+        modules.set(name, undefined);
+        lazyModules.set(name, create);
+      };
+      for (const name of ["colors", "files", "zip", "mime"]) lazy(name, () => tools[name]);
+      // The timing recorder runs here; the audio recorder's members run in the main thread.
+      lazy("recorder", () => {
+        const recorder = tools.recorder;
+        for (const method of ["getStatus", "start", "stop"]) {
+          Object.defineProperty(recorder, method, { value: (...args) => {
+            let signal, signalArgumentIndex;
+            args = args.map((arg, index) => {
+              if (!arg || typeof arg !== "object" || arg.signal === undefined) return arg;
+              signal = arg.signal; signalArgumentIndex = index;
+              const copy = { ...arg }; delete copy.signal; return copy;
+            });
+            return bridgeCall("autojs6:worker-module:recorder", method, args, { signal, signalArgumentIndex });
+          }, writable: true, enumerable: true });
+        }
+        return Object.freeze(recorder);
+      });
+    }
+    // storages / storage in Workers (api-coverage P3.2b, R8): each call runs in the main thread's facade, which checks
+    // the arguments; the store name is checked here too, so create / open throw synchronously as there.
+    for (const name of ["storages", "storage"].filter(name => methods[name])) {
+      const forward = (method, args) => {
+        let signal, signalArgumentIndex;
+        args = args.map((arg, index) => {
+          if (!arg || typeof arg !== "object" || arg.signal === undefined) return arg;
+          signal = arg.signal; signalArgumentIndex = index;
+          const copy = { ...arg }; delete copy.signal; return copy;
+        });
+        return bridgeCall("autojs6:worker-module:" + name, method, args, { signal, signalArgumentIndex });
+      };
+      const storeName = (method, value) => {
+        const text = value === undefined || value === null ? "" : String(value).trim();
+        if (text && text.length <= 128 && text.indexOf(String.fromCharCode(0)) < 0) return text;
+        throw Object.assign(new Error(name + "." + method + " requires a non-empty storage name."), { code: "ERR_AUTOJS6_BRIDGE_PERMISSION_DENIED" });
+      };
+      const store = storeNameValue => {
+        const value = { name: storeNameValue };
+        for (const method of ["size", "get", "put", "putSync", "remove", "removeSync", "clear", "clearSync", "keys", "contains", "selfRemove", "selfRemoveSync"]) {
+          value[method] = (...args) => forward("store", [storeNameValue, method, ...args]);
+        }
+        return Object.freeze(value);
+      };
+      modules.set(name, Object.freeze({
+        create: storeNameValue => store(storeName("create", storeNameValue)),
+        open: storeNameValue => store(storeName("create", storeNameValue)),
+        remove: (...args) => forward("remove", args),
+        removeSync: (...args) => forward("remove", args),
+        names: (...args) => forward("names", args),
+        all: async (...args) => Object.freeze((await forward("names", args)).map(store)),
+      }));
     }
     if(createTasks && methods.tasks)modules.set("tasks",createTasks(bridgeCall));
     if (createDevice && methods.device) modules.set("device",createDevice(bridgeCall,constants.device));
@@ -8771,8 +8904,11 @@ std::string buildEmbeddedScriptExecutionSource(
       : name === "media_projection" ? __autojs6_limited_media_projection()
       : name === "screen_recorder" ? __autojs6_limited_screen_recorder()
       : name === "recorder" ? __autojs6_limited_recorder()
+      : name === "mediainfo" ? __autojs6_limited_mediainfo()
       : name === "screen_metrics" ? __autojs6_limited_screen_metrics()
-      : name === "console" ? __autojs6_limited_console() : null;
+      : name === "console" ? __autojs6_limited_console()
+      : name === "axios" ? __autojs6_worker_axios_target()
+      : name === "storages" || name === "storage" ? __autojs6_worker_storage_target(name) : null;
     if (!target || !Object.prototype.hasOwnProperty.call(target, method) || typeof target[method] !== "function") {
       throw __autojs6_invalid_arg_type("Unknown worker host module operation.");
     }
@@ -8799,6 +8935,36 @@ std::string buildEmbeddedScriptExecutionSource(
       return { id: result.id, __autojs6ScreenCapturerHandle: result.id, width: result.width, height: result.height };
     }
     return result;
+  }
+  // The Worker storages / storage modules' parent side: store members run on a store of the main thread's facade.
+  function __autojs6_worker_storage_target(moduleName) {
+    const facade = __autojs6_limited_storage(moduleName);
+    const members = ["size", "get", "put", "putSync", "remove", "removeSync", "clear", "clearSync", "keys", "contains", "selfRemove", "selfRemoveSync"];
+    return {
+      store: (name, method, ...args) => {
+        if (!members.includes(method)) throw __autojs6_invalid_arg_type("Unknown worker storage operation.");
+        return facade.create(name)[method](...args);
+      },
+      remove: (...args) => facade.remove(...args),
+      names: (...args) => facade.names(...args)
+    };
+  }
+  // The Worker axios facade's parent side (api-coverage Q61): plain response fields only (config may hold functions or
+  // Headers, which do not cross the port); the Worker checks the status.
+  function __autojs6_worker_axios_target() {
+    const plain = response => response && { data: response.data, status: response.status, statusText: response.statusText, headers: response.headers };
+    return {
+      request: async config => {
+        try {
+          const response = await __autojs6_limited_axios().request(config);
+          return { response: plain(response), request: response.request };
+        } catch (error) {
+          if (!error || !error.isAxiosError) throw error;
+          return { error: { message: error.message, code: error.code, autojs6Code: error.autojs6Code }, response: plain(error.response), request: error.request };
+        }
+      },
+      diagnostics: () => __autojs6_limited_axios().diagnostics()
+    };
   }
   function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools) {
     const threads = nativeRequire("worker_threads");
@@ -8892,7 +9058,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -8929,8 +9095,8 @@ std::string buildEmbeddedScriptExecutionSource(
       resolve(specifier, context, nextResolve) {
         if (specifier === "autojs6:bridge") return { url: specifier, shortCircuit: true };
         const hostName = specifier === "node:console" ? "console" : specifier.startsWith("autojs6:") ? specifier.slice(8) : specifier;
-        // events, util and global answer only to their autojs6: names (bare util is node:util).
-        if (hostModules.has(hostName) && (!["events", "util", "global"].includes(hostName) || specifier === "autojs6:" + hostName)) {
+        // events, util, global and zip answer only to their autojs6: names (bare util is node:util).
+        if (hostModules.has(hostName) && (!["events", "util", "global", "zip"].includes(hostName) || specifier === "autojs6:" + hostName)) {
           // Match the main thread: an installed npm opencc package shadows only the bare name.
           if (specifier === "opencc") {
             try { return nextResolve(specifier, context); } catch (error) {
@@ -8962,7 +9128,8 @@ std::string buildEmbeddedScriptExecutionSource(
       load(url, context, nextLoad) {
         if (url.startsWith("autojs6:") && hostModules.has(url.slice(8))) {
           const name = url.slice(8);
-          const exports = config.hostModuleMethods[name].filter(method=>method!=="default"&&/^[A-Za-z_$][0-9A-Za-z_$]*$/.test(method)).map((method,index) =>
+          const lazy = method => Object.getOwnPropertyDescriptor(hostModules.get(name), method)?.get?.__autojs6LazyExport;
+          const exports = config.hostModuleMethods[name].filter(method=>method!=="default"&&/^[A-Za-z_$][0-9A-Za-z_$]*$/.test(method)&&!lazy(method)).map((method,index) =>
             "const binding"+index+" = value["+JSON.stringify(method)+"]; export { binding"+index+" as "+method+" };").join("\n");
           return { format: "module", shortCircuit: true, source:
             "const value = globalThis.__autojs6_worker_host_modules.get(" + JSON.stringify(name) + ");\n" +
@@ -9019,7 +9186,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", " + __autojs6_create_colors.toString() + ", " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ", " + __autojs6_create_flow.toString() + ", " + __autojs6_create_ai.toString() + ", " + __autojs6_create_js_tools.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", undefined, " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ", " + __autojs6_create_flow.toString() + ", " + __autojs6_create_ai.toString() + ", " + __autojs6_create_js_tools.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -9057,8 +9224,8 @@ std::string buildEmbeddedScriptExecutionSource(
             tts:Object.keys(__autojs6_create_tts(()=>{})),
             java:Object.keys(__autojs6_create_java(()=>{})),
             util: Object.keys(__autojs6_js_tools().util), species: Object.keys(__autojs6_js_tools().species),
-            // No axios getter: the Worker has no axios facade (api-coverage Q61).
-            global: ["random", "randomInt", "randomFloat", "isInteger", "isPrimitive", "isObject", "isReference", "isBigInt", "isEmptyObject", "isObjectSpecies"],
+            global: ["random", "randomInt", "randomFloat", "isInteger", "isPrimitive", "isObject", "isReference", "isBigInt", "isEmptyObject", "isObjectSpecies",
+              "axios", "cheerio", "dayjs", "i18n", "pangu", "open", "Color"],
             s13n: Object.keys(__autojs6_js_tools().s13n),
             formatter: Object.keys(__autojs6_js_tools().formatter), fmt: Object.keys(__autojs6_js_tools().formatter),
             converter: Object.keys(__autojs6_js_tools().converter), cvt: Object.keys(__autojs6_js_tools().converter),
@@ -9068,6 +9235,7 @@ std::string buildEmbeddedScriptExecutionSource(
             device:Object.keys(__autojs6_limited_device()), dialogs:Object.keys(__autojs6_limited_dialogs()),
             events:Object.keys(__autojs6_host_events()), notifications:Object.keys(__autojs6_limited_notifications()),
             shell:Object.keys(__autojs6_limited_shell()), shizuku:Object.keys(__autojs6_limited_shizuku()),
+            storages: Object.keys(__autojs6_limited_storage("storages")), storage: Object.keys(__autojs6_limited_storage("storage")),
             database: ["open"], sqlite: ["open"], sensors: ["policy", "getAvailableSensors", "once", "subscribe"],
             ui: Object.keys(__autojs6_limited_ui()),
             compose: Object.keys(__autojs6_limited_compose()),
@@ -9079,10 +9247,16 @@ std::string buildEmbeddedScriptExecutionSource(
             media_projection: Object.keys(__autojs6_limited_media_projection()),
             screen_recorder: Object.keys(__autojs6_limited_screen_recorder()),
             recorder: Object.keys(__autojs6_limited_recorder()),
+            files: Object.keys(__autojs6_js_tools().files), zip: Object.keys(__autojs6_js_tools().zip), mime: Object.keys(__autojs6_js_tools().mime),
+            mediainfo: Object.keys(__autojs6_limited_mediainfo()),
             screen_metrics: Object.keys(__autojs6_limited_screen_metrics()),
             console: Object.keys(__autojs6_limited_console())
           },
           hostModuleConstants: {
+            librariesDir: __autojs6_internal_request_env_value("AUTOJS6_NODE_JS_LIBRARIES_DIR"),
+            librariesError: __autojs6_internal_request_env_value("AUTOJS6_NODE_JS_LIBRARIES_ERROR"), axiosPolicy: __autojs6_fetch_policy_snapshot(),
+            hostAppDirs: __autojs6_host_app_dirs(), sdcardPath: __autojs6_sdcard_path(),
+            mediainfo: { SNAPSHOT_SCHEMA_V1: __autojs6_limited_mediainfo().SNAPSHOT_SCHEMA_V1, SNAPSHOT_SCHEMA_V2: __autojs6_limited_mediainfo().SNAPSHOT_SCHEMA_V2 },
             javaPolicy:__autojs6_java_policy_snapshot(),javaEnabled:__autojs6_java_interop_enabled, device:__autojs6_host_device_info(), shellMissing:__autojs6_bridge_missing_capabilities(["shell","shell.root","shell.shizuku"]), pinyin: Object.fromEntries(Object.entries(__autojs6_limited_pinyin()).filter(([, value]) => typeof value !== "function")) },
           consoleControls: Object.keys(__autojs6_limited_console()).filter(name => __autojs6_limited_console()[name].__autojs6ConsoleControl),
           typeScriptSources: { ...__autojs6_typescript_precompiled_source_names },
@@ -10728,312 +10902,7 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return __autojs6_limited_lifecycle_cache;
   }
-  function __autojs6_files_is_nullish(value) {
-    return value === undefined || value === null;
-  }
-  function __autojs6_files_text(value) {
-    return __autojs6_files_is_nullish(value) ? "" : String(value);
-  }
-  function __autojs6_files_encoding(value) {
-    if (value === undefined || value === null || value === "") {
-      return "utf8";
-    }
-    return String(value);
-  }
-  function __autojs6_files_migration_hint(error, apiName) {
-    if (!error || typeof error !== "object") {
-      return error;
-    }
-    const hint = " Migration: AutoJs6 Node files compatibility is scoped to the script workingDirectory; use relative paths under that directory or switch to require('fs')/require('path') for explicit Node code.";
-    try {
-      const message = error && error.message ? String(error.message) : String(error);
-      if (message.indexOf("Migration: AutoJs6 Node files compatibility") < 0) {
-        error.message = message + hint;
-      }
-    } catch (_) {}
-    __autojs6_define_error_property(error, "module", "files");
-    __autojs6_define_error_property(error, "api", "files." + apiName);
-    return error;
-  }
-  function __autojs6_files_call(apiName, action) {
-    try {
-      return action();
-    } catch (error) {
-      throw __autojs6_files_migration_hint(error, apiName);
-    }
-  }
-  function __autojs6_files_required_path(pathValue, apiName, argumentName) {
-    if (__autojs6_files_is_nullish(pathValue)) {
-      throw __autojs6_invalid_arg_type(
-        "files." + apiName + " " + (argumentName || "path") + " must not be nullish."
-      );
-    }
-    return String(pathValue);
-  }
-  function __autojs6_files_resolve(pathValue, apiName, options) {
-    const path = __autojs6_path_module();
-    const nodeUrl = __autojs6_url_module();
-    let text = pathValue;
-    if (pathValue && typeof pathValue === "object" && typeof pathValue.href === "string") {
-      text = nodeUrl.fileURLToPath(pathValue);
-    } else if (typeof pathValue === "string" && /^file:/i.test(pathValue)) {
-      text = nodeUrl.fileURLToPath(pathValue);
-    } else if (__autojs6_is_buffer_path_value(pathValue)) {
-      text = __autojs6_buffer_path_to_string(pathValue, "files." + apiName);
-    }
-    return path.resolve(String(text));
-  }
-  function __autojs6_files_resolve_required(pathValue, apiName, argumentName, options) {
-    return __autojs6_files_resolve(
-      __autojs6_files_required_path(pathValue, apiName, argumentName),
-      apiName,
-      options
-    );
-  }
-  function __autojs6_files_parent_directory(resolvedPath, apiName) {
-    const path = __autojs6_path_module();
-    if (!path || typeof path.dirname !== "function") {
-      throw new Error("files." + apiName + " needs allowlisted path.dirname.");
-    }
-    return path.dirname(resolvedPath);
-  }
-  function __autojs6_files_ensure_parent_directory(resolvedPath, apiName) {
-    const nodeFs = __autojs6_fs_module();
-    if (!nodeFs || typeof nodeFs.mkdirSync !== "function") {
-      throw new Error("files." + apiName + " needs allowlisted fs.mkdirSync.");
-    }
-    const parent = __autojs6_files_parent_directory(resolvedPath, apiName);
-    __autojs6_files_resolve(parent, apiName + " parent", {
-      allowAbsolute: true,
-      checkParent: true
-    });
-    if (!nodeFs.existsSync(parent)) {
-      nodeFs.mkdirSync(parent, { recursive: true });
-    }
-  }
-  function __autojs6_files_path(pathValue) {
-    if (__autojs6_files_is_nullish(pathValue)) {
-      return null;
-    }
-    return __autojs6_files_call("path", function() {
-      return __autojs6_files_resolve(String(pathValue), "path", {});
-    });
-  }
-  function __autojs6_files_join() {
-    const path = __autojs6_path_module();
-    if (!path || typeof path.join !== "function") {
-      throw new Error("files.join needs allowlisted path.join.");
-    }
-    const args = Array.prototype.slice.call(arguments).map(function(value) {
-      return __autojs6_files_is_nullish(value) ? "" : String(value);
-    });
-    return path.join.apply(path, args);
-  }
-  function __autojs6_files_read(pathValue, encoding) {
-    if (__autojs6_files_is_nullish(pathValue)) {
-      return "";
-    }
-    return __autojs6_files_call("read", function() {
-      const nodeFs = __autojs6_fs_module();
-      const resolved = __autojs6_files_resolve(String(pathValue), "read", { mustExist: true });
-      return String(nodeFs.readFileSync(resolved, __autojs6_files_encoding(encoding)));
-    });
-  }
-  function __autojs6_files_write(pathValue, text, encoding) {
-    return __autojs6_files_call("write", function() {
-      const nodeFs = __autojs6_fs_module();
-      const resolved = __autojs6_files_resolve_required(pathValue, "write", "path", {
-        checkParent: true
-
-      });
-      nodeFs.writeFileSync(resolved, __autojs6_files_text(text), __autojs6_files_encoding(encoding));
-    });
-  }
-  function __autojs6_files_append(pathValue, text, encoding) {
-    return __autojs6_files_call("append", function() {
-      const nodeFs = __autojs6_fs_module();
-      const resolved = __autojs6_files_resolve_required(pathValue, "append", "path", {
-        checkParent: true
-
-      });
-      nodeFs.appendFileSync(resolved, __autojs6_files_text(text), __autojs6_files_encoding(encoding));
-    });
-  }
-  function __autojs6_files_exists(pathValue) {
-    if (__autojs6_files_is_nullish(pathValue)) {
-      return false;
-    }
-    return __autojs6_files_call("exists", function() {
-      const nodeFs = __autojs6_fs_module();
-      const resolved = __autojs6_files_resolve(String(pathValue), "exists", {});
-      return nodeFs.existsSync(resolved);
-    });
-  }
-  function __autojs6_files_list_dir(pathValue, filter) {
-    if (__autojs6_files_is_nullish(pathValue)) {
-      return [];
-    }
-    return __autojs6_files_call("listDir", function() {
-      if (filter !== undefined && filter !== null && typeof filter !== "function") {
-        throw __autojs6_invalid_arg_type("files.listDir filter must be a function when provided.");
-      }
-      const nodeFs = __autojs6_fs_module();
-      const resolved = __autojs6_files_resolve(String(pathValue), "listDir", {});
-      if (!nodeFs.existsSync(resolved)) {
-        return [];
-      }
-      const entries = nodeFs.readdirSync(resolved).map(String);
-      return typeof filter === "function"
-        ? entries.filter(function(name) { return filter(name) === true; })
-        : entries;
-    });
-  }
-  function __autojs6_files_remove(pathValue) {
-    if (__autojs6_files_is_nullish(pathValue)) {
-      return false;
-    }
-    return __autojs6_files_call("remove", function() {
-      const nodeFs = __autojs6_fs_module();
-      const resolved = __autojs6_files_resolve(String(pathValue), "remove");
-      if (!nodeFs.existsSync(resolved)) {
-        return false;
-      }
-      const lstat = nodeFs.lstatSync(resolved);
-      if (lstat && typeof lstat.isDirectory === "function" && lstat.isDirectory()) {
-        nodeFs.rmdirSync(resolved);
-      } else {
-        nodeFs.unlinkSync(resolved);
-      }
-      return !nodeFs.existsSync(resolved);
-    });
-  }
-  function __autojs6_files_copy(sourcePath, destinationPath) {
-    return __autojs6_files_call("copy", function() {
-      const nodeFs = __autojs6_fs_module();
-      const source = __autojs6_files_resolve_required(sourcePath, "copy source", "pathFrom", {});
-      const destination = __autojs6_files_resolve_required(destinationPath, "copy destination", "pathTo", {
-        checkParent: true
-
-      });
-      if (!nodeFs.existsSync(source)) {
-        return false;
-      }
-      const sourceStat = nodeFs.statSync(source);
-      if (!sourceStat || typeof sourceStat.isFile !== "function" || !sourceStat.isFile()) {
-        return false;
-      }
-      __autojs6_files_ensure_parent_directory(destination, "copy");
-      nodeFs.copyFileSync(source, destination);
-      return true;
-    });
-  }
-  function __autojs6_files_move(sourcePath, destinationPath) {
-    return __autojs6_files_call("move", function() {
-      const nodeFs = __autojs6_fs_module();
-      const source = __autojs6_files_resolve_required(sourcePath, "move source", "path", {});
-      const destination = __autojs6_files_resolve_required(destinationPath, "move destination", "newPath", {
-        checkParent: true
-
-      });
-      if (!nodeFs.existsSync(source)) {
-        return false;
-      }
-      try {
-        nodeFs.renameSync(source, destination);
-        return true;
-      } catch (error) {
-        if (error && error.code === "ENOENT") {
-          return false;
-        }
-        throw error;
-      }
-    });
-  }
-  function __autojs6_files_ensure_dir(pathValue) {
-    return __autojs6_files_call("ensureDir", function() {
-      const nodeFs = __autojs6_fs_module();
-      const resolved = __autojs6_files_resolve_required(pathValue, "ensureDir", "path", {
-        checkParent: true
-
-      });
-      const text = String(pathValue);
-      const target = /[\\\/]$/.test(text)
-        ? resolved
-        : __autojs6_files_parent_directory(resolved, "ensureDir");
-      __autojs6_files_resolve(target, "ensureDir target", {
-        allowAbsolute: true,
-        checkParent: true
-
-      });
-      if (!nodeFs.existsSync(target)) {
-        nodeFs.mkdirSync(target, { recursive: true });
-      }
-      return nodeFs.existsSync(target);
-    });
-  }
-  function __autojs6_files_stat_boolean(pathValue, apiName, predicateName) {
-    if (__autojs6_files_is_nullish(pathValue)) {
-      return false;
-    }
-    return __autojs6_files_call(apiName, function() {
-      const nodeFs = __autojs6_fs_module();
-      const resolved = __autojs6_files_resolve(String(pathValue), apiName, {});
-      if (!nodeFs.existsSync(resolved)) {
-        return false;
-      }
-      const stat = nodeFs.statSync(resolved);
-      return !!(stat && typeof stat[predicateName] === "function" && stat[predicateName]());
-    });
-  }
-  function __autojs6_limited_files() {
-    if (__autojs6_limited_files_cache) {
-      return __autojs6_limited_files_cache;
-    }
-    const path = __autojs6_path_module();
-    if (!path || typeof path.basename !== "function" || typeof path.extname !== "function") {
-      throw new Error("require('files') needs the allowlisted path module.");
-    }
-    const filesModule = Object.freeze({
-      path: __autojs6_files_path,
-      join: __autojs6_files_join,
-      read: __autojs6_files_read,
-      write: __autojs6_files_write,
-      append: __autojs6_files_append,
-      exists: __autojs6_files_exists,
-      listDir: __autojs6_files_list_dir,
-      remove: __autojs6_files_remove,
-      copy: __autojs6_files_copy,
-      move: __autojs6_files_move,
-      ensureDir: __autojs6_files_ensure_dir,
-      isFile: function(pathValue) {
-        return __autojs6_files_stat_boolean(pathValue, "isFile", "isFile");
-      },
-      isDir: function(pathValue) {
-        return __autojs6_files_stat_boolean(pathValue, "isDir", "isDirectory");
-      },
-      getName: function(pathValue) {
-        return path.basename(__autojs6_files_required_path(pathValue, "getName", "filePath"));
-      },
-      getExtension: function(fileName) {
-        const ext = path.extname(__autojs6_files_required_path(fileName, "getExtension", "fileName"));
-        return ext.charAt(0) === "." ? ext.slice(1) : ext;
-      },
-      open: function() {
-        throw __autojs6_rhino_compat_unsupported(
-          "files.open",
-          "The Rhino PFileInterface is not exposed in Node; use require('fs') scoped file handles instead."
-        );
-      },
-      toFile: function() {
-        throw __autojs6_rhino_compat_blocked_by_design(
-          "files.toFile",
-          "Returning a raw java.io.File object would cross the Safe Node Profile boundary."
-        );
-      }
-    });
-    __autojs6_limited_files_cache = filesModule;
-    return __autojs6_limited_files_cache;
-  }
+  function __autojs6_limited_files() { return __autojs6_js_tools().files; }
   function __autojs6_buffer_constructor_required(apiName) {
     const BufferCtor = __autojs6_buffer_constructor();
     if (!BufferCtor || typeof BufferCtor.from !== "function") {
@@ -11176,443 +11045,19 @@ std::string buildEmbeddedScriptExecutionSource(
     for(const mode of ['Daily','Weekly','Monthly','Yearly','Disposable','Countdown'])api['add'+mode+'Task']=input=>add('addTimedTask',{...options(input),repeatMode:mode.toLowerCase()});
     return Object.freeze(api);
   }
-  function __autojs6_create_colors(android) {
-    let __autojs6_limited_colors_cache;
-    const __autojs6_invalid_arg_type=message=>new TypeError(message);
-  const __autojs6_color_names = Object.freeze({
-    black: 0xff000000,
-    white: 0xffffffff,
-    red: 0xffff0000,
-    green: 0xff00ff00,
-    blue: 0xff0000ff,
-    yellow: 0xffffff00,
-    cyan: 0xff00ffff,
-    magenta: 0xffff00ff,
-    transparent: 0x00000000,
-    gray: 0xff808080,
-    grey: 0xff808080
-  });
-  function __autojs6_color_byte(value, name) {
-    const number = Number(value);
-    if (!Number.isFinite(number)) {
-      throw __autojs6_invalid_arg_type("colors." + name + " component must be a finite number.");
-    }
-    const scaled = number >= 0 && number <= 1 && !Number.isInteger(number)
-      ? number * 255
-      : number;
-    return Math.max(0, Math.min(255, Math.round(scaled)));
-  }
-  function __autojs6_color_component(value, shift) {
-    return (__autojs6_color_uint(value) >>> shift) & 0xff;
-  }
-  function __autojs6_color_int(value) {
-    return (__autojs6_color_uint(value) | 0);
-  }
-  function __autojs6_color_uint(value) {
-    if (typeof value === "number") {
-      return value >>> 0;
-    }
-    if (typeof value === "bigint") {
-      return Number(value & 0xffffffffn) >>> 0;
-    }
-    if (typeof value === "string") {
-      const text = value.trim();
-      const named = __autojs6_color_names[text.toLowerCase()];
-      if (named !== undefined) {
-        return named >>> 0;
-      }
-      const hex = text.charAt(0) === "#" ? text.slice(1) : text;
-      if (/^[0-9a-f]{3}$/i.test(hex)) {
-        const r = parseInt(hex.charAt(0) + hex.charAt(0), 16);
-        const g = parseInt(hex.charAt(1) + hex.charAt(1), 16);
-        const b = parseInt(hex.charAt(2) + hex.charAt(2), 16);
-        return __autojs6_color_argb_uint(255, r, g, b);
-      }
-      if (/^[0-9a-f]{4}$/i.test(hex)) {
-        const a = parseInt(hex.charAt(0) + hex.charAt(0), 16);
-        const r = parseInt(hex.charAt(1) + hex.charAt(1), 16);
-        const g = parseInt(hex.charAt(2) + hex.charAt(2), 16);
-        const b = parseInt(hex.charAt(3) + hex.charAt(3), 16);
-        return __autojs6_color_argb_uint(a, r, g, b);
-      }
-      if (/^[0-9a-f]{6}$/i.test(hex)) {
-        return (0xff000000 | parseInt(hex, 16)) >>> 0;
-      }
-      if (/^[0-9a-f]{8}$/i.test(hex)) {
-        return parseInt(hex, 16) >>> 0;
-      }
-    }
-    if (value && typeof value === "object") {
-      if (typeof value.color === "number") {
-        return value.color >>> 0;
-      }
-      if (typeof value.colorPrimary === "number") {
-        return value.colorPrimary >>> 0;
-      }
-      if ("a" in value || "r" in value || "g" in value || "b" in value) {
-        return __autojs6_color_argb_uint(
-          value.a === undefined ? 255 : value.a,
-          value.r === undefined ? 0 : value.r,
-          value.g === undefined ? 0 : value.g,
-          value.b === undefined ? 0 : value.b
-        );
-      }
-    }
-    throw __autojs6_invalid_arg_type("colors value cannot be converted to an ARGB integer.");
-  }
-  function __autojs6_color_argb_uint(a, r, g, b) {
-    return (
-      (__autojs6_color_byte(a, "argb") << 24) |
-      (__autojs6_color_byte(r, "argb") << 16) |
-      (__autojs6_color_byte(g, "argb") << 8) |
-      __autojs6_color_byte(b, "argb")
-    ) >>> 0;
-  }
-  function __autojs6_color_hex_pair(value) {
-    return value.toString(16).padStart(2, "0");
-  }
-  function __autojs6_color_to_full_hex(value) {
-    const color = __autojs6_color_uint(value);
-    return "#" +
-      __autojs6_color_hex_pair((color >>> 24) & 0xff) +
-      __autojs6_color_hex_pair((color >>> 16) & 0xff) +
-      __autojs6_color_hex_pair((color >>> 8) & 0xff) +
-      __autojs6_color_hex_pair(color & 0xff);
-  }
-  function __autojs6_color_to_hex(value, alphaOrLength) {
-    const color = __autojs6_color_uint(value);
-    const includeAlpha = alphaOrLength === true || Number(alphaOrLength) === 8;
-    const body = __autojs6_color_hex_pair((color >>> 16) & 0xff) +
-      __autojs6_color_hex_pair((color >>> 8) & 0xff) +
-      __autojs6_color_hex_pair(color & 0xff);
-    return includeAlpha ? "#" + __autojs6_color_hex_pair((color >>> 24) & 0xff) + body : "#" + body;
-  }
-  function __autojs6_color_set_component(value, shift, component) {
-    const color = __autojs6_color_uint(value);
-    const mask = ~(0xff << shift);
-    return (((color & mask) | (__autojs6_color_byte(component, "setComponent") << shift)) >>> 0) | 0;
-  }
-  function __autojs6_color_remove_component(value, shift) {
-    return __autojs6_color_set_component(value, shift, 0);
-  }
-  function __autojs6_color_round_alpha(value, keepTrailingZero) {
-    const rounded = Math.round(value * 1000) / 1000;
-    if (rounded === 1 && keepTrailingZero !== false) {
-      return "1.0";
-    }
-    return String(rounded).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
-  }
-  function __autojs6_color_rgb_array(value) {
-    return [
-      __autojs6_color_component(value, 16),
-      __autojs6_color_component(value, 8),
-      __autojs6_color_component(value, 0)
-    ];
-  }
-  function __autojs6_color_argb_array(value) {
-    return [
-      __autojs6_color_component(value, 24),
-      __autojs6_color_component(value, 16),
-      __autojs6_color_component(value, 8),
-      __autojs6_color_component(value, 0)
-    ];
-  }
-  function __autojs6_color_rgb_to_hsv(r, g, b) {
-    const rn = __autojs6_color_byte(r, "hsv") / 255;
-    const gn = __autojs6_color_byte(g, "hsv") / 255;
-    const bn = __autojs6_color_byte(b, "hsv") / 255;
-    const max = Math.max(rn, gn, bn);
-    const min = Math.min(rn, gn, bn);
-    const delta = max - min;
-    let hue = 0;
-    if (delta !== 0) {
-      if (max === rn) {
-        hue = 60 * (((gn - bn) / delta) % 6);
-      } else if (max === gn) {
-        hue = 60 * (((bn - rn) / delta) + 2);
-      } else {
-        hue = 60 * (((rn - gn) / delta) + 4);
-      }
-    }
-    if (hue < 0) hue += 360;
-    const saturation = max === 0 ? 0 : delta / max;
-    return [hue, saturation, max];
-  }
-  function __autojs6_color_hsv_to_rgb(h, s, v) {
-    const hue = ((((Number(h) || 0) % 360) + 360) % 360) / 60;
-    const saturation = Math.max(0, Math.min(1, Number(s) > 1 ? Number(s) / 100 : Number(s) || 0));
-    const value = Math.max(0, Math.min(1, Number(v) > 1 ? Number(v) / 100 : Number(v) || 0));
-    const c = value * saturation;
-    const x = c * (1 - Math.abs((hue % 2) - 1));
-    const m = value - c;
-    let rgb;
-    if (hue < 1) rgb = [c, x, 0];
-    else if (hue < 2) rgb = [x, c, 0];
-    else if (hue < 3) rgb = [0, c, x];
-    else if (hue < 4) rgb = [0, x, c];
-    else if (hue < 5) rgb = [x, 0, c];
-    else rgb = [c, 0, x];
-    return rgb.map(function(part) { return Math.round((part + m) * 255); });
-  }
-  function __autojs6_color_rgb_to_hsl(r, g, b) {
-    const rn = __autojs6_color_byte(r, "hsl") / 255;
-    const gn = __autojs6_color_byte(g, "hsl") / 255;
-    const bn = __autojs6_color_byte(b, "hsl") / 255;
-    const max = Math.max(rn, gn, bn);
-    const min = Math.min(rn, gn, bn);
-    const delta = max - min;
-    const lightness = (max + min) / 2;
-    let hue = 0;
-    let saturation = 0;
-    if (delta !== 0) {
-      saturation = delta / (1 - Math.abs(2 * lightness - 1));
-      if (max === rn) {
-        hue = 60 * (((gn - bn) / delta) % 6);
-      } else if (max === gn) {
-        hue = 60 * (((bn - rn) / delta) + 2);
-      } else {
-        hue = 60 * (((rn - gn) / delta) + 4);
-      }
-    }
-    if (hue < 0) hue += 360;
-    return [hue, saturation, lightness];
-  }
-  function __autojs6_color_hsl_to_rgb(h, s, l) {
-    const hue = ((((Number(h) || 0) % 360) + 360) % 360);
-    const saturation = Math.max(0, Math.min(1, Number(s) > 1 ? Number(s) / 100 : Number(s) || 0));
-    const lightness = Math.max(0, Math.min(1, Number(l) > 1 ? Number(l) / 100 : Number(l) || 0));
-    const c = (1 - Math.abs(2 * lightness - 1)) * saturation;
-    const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
-    const m = lightness - c / 2;
-    let rgb;
-    if (hue < 60) rgb = [c, x, 0];
-    else if (hue < 120) rgb = [x, c, 0];
-    else if (hue < 180) rgb = [0, c, x];
-    else if (hue < 240) rgb = [0, x, c];
-    else if (hue < 300) rgb = [x, 0, c];
-    else rgb = [c, 0, x];
-    return rgb.map(function(part) { return Math.round((part + m) * 255); });
-  }
-  function __autojs6_limited_colors() {
-    if (__autojs6_limited_colors_cache) {
-      return __autojs6_limited_colors_cache;
-    }
-    const colorsModule = {
-      toInt: __autojs6_color_int,
-      toHex: __autojs6_color_to_hex,
-      toFullHex: __autojs6_color_to_full_hex,
-      toString: __autojs6_color_to_hex,
-      alpha: function(value, options) {
-        const alpha = __autojs6_color_component(value, 24);
-        return options && Number(options.max) === 1 ? alpha / 255 : alpha;
-      },
-      getAlpha: function(value, options) { return colorsModule.alpha(value, options); },
-      alphaDouble: function(value) { return __autojs6_color_component(value, 24) / 255; },
-      getAlphaDouble: function(value) { return colorsModule.alphaDouble(value); },
-      setAlpha: function(value, alpha) { return __autojs6_color_set_component(value, 24, alpha); },
-      setAlphaRelative: function(value, percentage) { return colorsModule.setAlpha(value, colorsModule.alpha(value) * Number(percentage)); },
-      removeAlpha: function(value) { return __autojs6_color_remove_component(value, 24); },
-      red: function(value, options) {
-        const red = __autojs6_color_component(value, 16);
-        return options && Number(options.max) === 1 ? red / 255 : red;
-      },
-      getRed: function(value, options) { return colorsModule.red(value, options); },
-      redDouble: function(value) { return __autojs6_color_component(value, 16) / 255; },
-      getRedDouble: function(value) { return colorsModule.redDouble(value); },
-      setRed: function(value, red) { return __autojs6_color_set_component(value, 16, red); },
-      setRedRelative: function(value, percentage) { return colorsModule.setRed(value, colorsModule.red(value) * Number(percentage)); },
-      removeRed: function(value) { return __autojs6_color_remove_component(value, 16); },
-      green: function(value, options) {
-        const green = __autojs6_color_component(value, 8);
-        return options && Number(options.max) === 1 ? green / 255 : green;
-      },
-      getGreen: function(value, options) { return colorsModule.green(value, options); },
-      greenDouble: function(value) { return __autojs6_color_component(value, 8) / 255; },
-      getGreenDouble: function(value) { return colorsModule.greenDouble(value); },
-      setGreen: function(value, green) { return __autojs6_color_set_component(value, 8, green); },
-      setGreenRelative: function(value, percentage) { return colorsModule.setGreen(value, colorsModule.green(value) * Number(percentage)); },
-      removeGreen: function(value) { return __autojs6_color_remove_component(value, 8); },
-      blue: function(value, options) {
-        const blue = __autojs6_color_component(value, 0);
-        return options && Number(options.max) === 1 ? blue / 255 : blue;
-      },
-      getBlue: function(value, options) { return colorsModule.blue(value, options); },
-      blueDouble: function(value) { return __autojs6_color_component(value, 0) / 255; },
-      getBlueDouble: function(value) { return colorsModule.blueDouble(value); },
-      setBlue: function(value, blue) { return __autojs6_color_set_component(value, 0, blue); },
-      setBlueRelative: function(value, percentage) { return colorsModule.setBlue(value, colorsModule.blue(value) * Number(percentage)); },
-      removeBlue: function(value) { return __autojs6_color_remove_component(value, 0); },
-      argb: function(a, r, g, b) { return __autojs6_color_argb_uint(a, r, g, b) | 0; },
-      rgb: function(r, g, b) { return __autojs6_color_argb_uint(255, r, g, b) | 0; },
-      rgba: function(r, g, b, a) { return __autojs6_color_argb_uint(a === undefined ? 255 : a, r, g, b) | 0; },
-      hsv: function(h, s, v) {
-        const rgb = __autojs6_color_hsv_to_rgb(h, s, v);
-        return __autojs6_color_argb_uint(255, rgb[0], rgb[1], rgb[2]) | 0;
-      },
-      hsva: function(h, s, v, a) {
-        const rgb = __autojs6_color_hsv_to_rgb(h, s, v);
-        return __autojs6_color_argb_uint(a === undefined ? 255 : a, rgb[0], rgb[1], rgb[2]) | 0;
-      },
-      hsl: function(h, s, l) {
-        const rgb = __autojs6_color_hsl_to_rgb(h, s, l);
-        return __autojs6_color_argb_uint(255, rgb[0], rgb[1], rgb[2]) | 0;
-      },
-      hsla: function(h, s, l, a) {
-        const rgb = __autojs6_color_hsl_to_rgb(h, s, l);
-        return __autojs6_color_argb_uint(a === undefined ? 255 : a, rgb[0], rgb[1], rgb[2]) | 0;
-      },
-      toRgb: function(value) { return Object.freeze(__autojs6_color_rgb_array(value)); },
-      toRgba: function(value) { return Object.freeze(__autojs6_color_rgb_array(value).concat([colorsModule.alphaDouble(value)])); },
-      toArgb: function(value) { return Object.freeze(__autojs6_color_argb_array(value)); },
-      toHsv: function(value) {
-        const rgb = __autojs6_color_rgb_array(value);
-        return Object.freeze(__autojs6_color_rgb_to_hsv(rgb[0], rgb[1], rgb[2]));
-      },
-      toHsva: function(value) { return Object.freeze(colorsModule.toHsv(value).concat([colorsModule.alphaDouble(value)])); },
-      toHsl: function(value) {
-        const rgb = __autojs6_color_rgb_array(value);
-        return Object.freeze(__autojs6_color_rgb_to_hsl(rgb[0], rgb[1], rgb[2]));
-      },
-      toHsla: function(value) { return Object.freeze(colorsModule.toHsl(value).concat([colorsModule.alphaDouble(value)])); },
-      toRgbString: function(value) { return "rgb(" + __autojs6_color_rgb_array(value).join(", ") + ")"; },
-      toRgbaString: function(value, options) {
-        return "rgba(" + __autojs6_color_rgb_array(value).join(", ") + ", " + __autojs6_color_round_alpha(colorsModule.alphaDouble(value), options && options.keepTrailingZeroForFullAlpha) + ")";
-      },
-      toArgbString: function(value, options) {
-        const argb = __autojs6_color_argb_array(value);
-        return "argb(" + __autojs6_color_round_alpha(argb[0] / 255, options && options.keepTrailingZeroForFullAlpha) + ", " + argb.slice(1).join(", ") + ")";
-      },
-      toHsvString: function(value) {
-        const hsv = colorsModule.toHsv(value);
-        return "hsv(" + Math.round(hsv[0] * 1000) / 1000 + ", " + Math.round(hsv[1] * 1000) / 1000 + ", " + Math.round(hsv[2] * 1000) / 1000 + ")";
-      },
-      toHsvaString: function(value) {
-        const hsva = colorsModule.toHsva(value);
-        return "hsva(" + Math.round(hsva[0] * 1000) / 1000 + ", " + Math.round(hsva[1] * 1000) / 1000 + ", " + Math.round(hsva[2] * 1000) / 1000 + ", " + __autojs6_color_round_alpha(hsva[3], true) + ")";
-      },
-      toHslString: function(value) {
-        const hsl = colorsModule.toHsl(value);
-        return "hsl(" + Math.round(hsl[0] * 1000) / 1000 + ", " + Math.round(hsl[1] * 1000) / 1000 + ", " + Math.round(hsl[2] * 1000) / 1000 + ")";
-      },
-      toHslaString: function(value) {
-        const hsla = colorsModule.toHsla(value);
-        return "hsla(" + Math.round(hsla[0] * 1000) / 1000 + ", " + Math.round(hsla[1] * 1000) / 1000 + ", " + Math.round(hsla[2] * 1000) / 1000 + ", " + __autojs6_color_round_alpha(hsla[3], true) + ")";
-      },
-      isEqual: function(left, right) { return __autojs6_color_uint(left) === __autojs6_color_uint(right); },
-      isSimilar: function(left, right, threshold) {
-        const max = threshold === undefined || threshold === null ? 4 : Number(threshold);
-        return Math.abs(colorsModule.red(left) - colorsModule.red(right)) <= max &&
-          Math.abs(colorsModule.green(left) - colorsModule.green(right)) <= max &&
-          Math.abs(colorsModule.blue(left) - colorsModule.blue(right)) <= max &&
-          Math.abs(colorsModule.alpha(left) - colorsModule.alpha(right)) <= max;
-      },
-      luminance: function(value) {
-        const rgb = __autojs6_color_rgb_array(value).map(function(part) {
-          const normalized = part / 255;
-          return normalized <= 0.03928 ? normalized / 12.92 : Math.pow((normalized + 0.055) / 1.055, 2.4);
-        });
-        return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
-      },
-      build: function() { return colorsModule.argb.apply(colorsModule, arguments); },
-      summary: function(value) {
-        const color = __autojs6_color_int(value);
-        return "Color { " + colorsModule.toHex(color) + " | " + colorsModule.toRgbaString(color) + " | int(" + color + ") }";
-      },
-      toColorStateList: function(...colors) {
-        if(!colors.length)throw new TypeError("At least one color is required.");
-        return android.createColorStateList({states:[[]],colors:[colorsModule.toInt(colors[0])]});
-      },
-      createColorStateList: (descriptor,options)=>android.createColorStateList(descriptor,options),
-      createPaint: (options,control)=>android.createPaint(options,control),
-      setPaintColor: (paint,color,options)=>android.setPaintColor(paint,color,options),
-      getThemeColor: options=>android.getThemeColor(options)
-    };
-    Object.defineProperty(colorsModule, "all", { value: __autojs6_color_names, enumerable: true });
-    Object.defineProperty(colorsModule, "themeColor", {
-      enumerable: true,
-      get: function() {
-        const result=android.getThemeColor();result.catch(()=>{});return result;
-      }
-    });
-    __autojs6_limited_colors_cache = Object.freeze(colorsModule);
-    return __autojs6_limited_colors_cache;
-  }
-    return __autojs6_limited_colors();
-  }
   // Main-thread native Android and calendar modules.
   let __autojs6_android_cache, __autojs6_tasks_cache;
   function __autojs6_limited_android() {
     return __autojs6_android_cache ||= __autojs6_create_android(__autojs6_call_autojs,value=>__autojs6_limited_colors().toInt(value));
   }
-  function __autojs6_limited_colors() {
-    return __autojs6_limited_colors_cache ||= __autojs6_create_colors(__autojs6_limited_android());
-  }
+  function __autojs6_limited_colors() { return __autojs6_js_tools().colors; }
   function __autojs6_limited_tasks() {
     return __autojs6_tasks_cache ||= __autojs6_create_tasks(__autojs6_call_autojs);
   }
   function __autojs6_limited_formatter() { return __autojs6_js_tools().formatter; }
   function __autojs6_limited_converter() { return __autojs6_js_tools().converter; }
   function __autojs6_limited_s13n() { return __autojs6_js_tools().s13n; }
-  function __autojs6_mime_parse(value) {
-    const raw = value === undefined || value === null ? "" : String(value);
-    const parts = raw.split(/\s*;\s*/).filter(function(part) { return part.length > 0; });
-    const typePart = parts.shift() || "application/octet-stream";
-    const typeMatch = /^([^\/\s]+)\/([^;\s]+)$/.exec(typePart);
-    const type = typeMatch ? typeMatch[1].toLowerCase() : "application";
-    const subtype = typeMatch ? typeMatch[2].toLowerCase() : "octet-stream";
-    const parameters = {};
-    parts.forEach(function(part) {
-      const index = part.indexOf("=");
-      if (index > 0) {
-        parameters[part.slice(0, index).trim()] = part.slice(index + 1).trim().replace(/^"|"$/g, "");
-      }
-    });
-    const mimeTypeRefined = type + "/" + subtype;
-    const parameterText = Object.keys(parameters).map(function(key) {
-      return key + "=" + parameters[key];
-    }).join("; ");
-    const mimeType = parameterText ? mimeTypeRefined + "; " + parameterText : mimeTypeRefined;
-    const result = {
-      raw: raw,
-      type: type,
-      subtype: subtype,
-      mimeType: mimeType,
-      mimeTypeRefined: mimeTypeRefined,
-      parameters: Object.freeze(parameters),
-      toStringReadable: function() { return this.toString(); },
-      toString: function() {
-        return [
-          "JsMime {",
-          "  type: '" + type + "',",
-          "  subtype: '" + subtype + "',",
-          "  mimeType: '" + mimeType + "',",
-          "  mimeTypeRefined: '" + mimeTypeRefined + "',",
-          "  parameters: '" + __autojs6_builtin_module("util").format(parameters) + "',",
-          "  raw: '" + raw + "',",
-          "}"
-        ].join("\n");
-      }
-    };
-    return Object.freeze(result);
-  }
-  function __autojs6_limited_mime() {
-    if (__autojs6_limited_mime_cache) {
-      return __autojs6_limited_mime_cache;
-    }
-    const mime = function(value) {
-      return __autojs6_mime_parse(value);
-    };
-    Object.defineProperties(mime, {
-      WILDCARD: { value: "*/*", enumerable: true },
-      TEXT_PLAIN: { value: "text/plain", enumerable: true },
-      APPLICATION_JSON: { value: "application/json", enumerable: true },
-      APPLICATION_OCTET_STREAM: { value: "application/octet-stream", enumerable: true },
-      IMAGE_PNG: { value: "image/png", enumerable: true },
-      parse: { value: __autojs6_mime_parse, enumerable: true }
-    });
-    __autojs6_limited_mime_cache = Object.freeze(mime);
-    return __autojs6_limited_mime_cache;
-  }
+  function __autojs6_limited_mime() { return __autojs6_js_tools().mime; }
   const __autojs6_nanoid_alphabet = "useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_GQZbfghjklqvwyzrict";
   function __autojs6_nanoid_random_bytes(size) {
     const count = Math.max(0, Math.min(1024, Math.floor(Number(size) || 0)));
@@ -11834,9 +11279,12 @@ std::string buildEmbeddedScriptExecutionSource(
   // Shared JS tools core.
   // util, species, the global data functions, s13n, cvt / fmt bytes and jsox of AutoJs6 Rhino scripts for the Node main
   // thread, Node Workers and the Bun runtime (which syncs this section), ported from the host modules of the same names
-  // and compared with Rhino on a device (AutoJs6 api-coverage P3.2a, tools/nodejs/api/js-tools). Self-contained: Workers
-  // and Bun receive its source. host: { device: { sdkInt, density, densityDpi, scaledDensity }, java() (the Java facade,
-  // asked for on first use), log(text), warn(text), axios() (optional, main thread) }.
+  // and compared with Rhino on a device (AutoJs6 api-coverage P3.2a, tools/nodejs/api/js-tools). colors / Color, files,
+  // zip, mime, the timing recorder and the global open (P3.2b, tools/nodejs/api/files-data) are created on first use, as
+  // are the Rhino global libraries dayjs / pangu / cheerio / i18n (Q61). Self-contained: Workers and Bun receive its
+  // source. host: { device: { sdkInt, density, densityDpi, scaledDensity }, java() (the Java facade, asked for on first
+  // use), log(text), warn(text), axios() (optional), fs, path, cwd(), sdcardPath, filesDir / cacheDir / dataDir (the host
+  // app's), android() (colors' Paint / theme helpers), require, librarySource(name) (the library texts) }.
   function __autojs6_create_js_tools(host) {
     function __autojs6_js_tools_jsox() {
       const BUILT_IN_EXTENSIONS = ["Mathx", "Numberx", "Arrayx"];
@@ -14154,6 +13602,5835 @@ std::string buildEmbeddedScriptExecutionSource(
 
       return {util, species, global};
     }
+    // Rhino's global libraries dayjs, pangu, cheerio and i18n (api-coverage Q61): the host's bundled builds, shipped with
+    // the runtime (host.librarySource(file)) and compiled on first use, once per thread. i18n is the host's i18n.js with
+    // the script files module replaced by host.fs / host.path against host.cwd().
+    function __autojs6_js_tools_libraries(host) {
+      const loaded = new Map();
+      function load(file) {
+        if (loaded.has(file)) return loaded.get(file);
+        if (typeof host.librarySource !== "function") throw new Error(`The bundled library ${file} is unavailable in this runtime.`);
+        const module = { exports: {} };
+        const require = host.require || (id => { throw new Error(`Cannot find module '${id}'`); });
+        new Function("module", "exports", "require", host.librarySource(file))(module, module.exports, require);
+        loaded.set(file, module.exports);
+        return module.exports;
+      }
+      function createI18n() {
+        const fs = host.fs, path = host.path;
+        const resolve = file => path.resolve(host.cwd(), String(file));
+        const stat = file => { try { return fs.statSync(resolve(file)); } catch (_) { return null; } };
+        const isDir = file => !!stat(file)?.isDirectory();
+        const isFile = file => !!stat(file)?.isFile();
+        const Banana = load("banana-i18n.js");
+        const banana = new Banana(void 0, { finalFallback: "default" });
+        const config = { path: "i18n" };
+        const I18n = function() {
+          return Object.assign(banana.i18n.bind(banana), I18n.prototype);
+        };
+        I18n.prototype = {
+          constructor: I18n,
+          banana,
+          setPath(relativePath) {
+            if (!isDir(relativePath)) throw Error(`Invalid path: ${relativePath}`);
+            config.path = relativePath;
+          },
+          setLocale(locale) {
+            banana.setLocale(locale);
+          },
+          getFallbackLocales() {
+            return banana.getFallbackLocales();
+          },
+          getParser() {
+            return banana.parser;
+          },
+          getPath() {
+            if (!isDir(config.path)) {
+              const fallback = path.join("assets", config.path);
+              if (isDir(fallback)) this.setPath(fallback);
+            }
+            return config.path;
+          },
+          getLocale() {
+            return banana.locale;
+          },
+          getFinalFallback() {
+            return banana.finalFallback;
+          },
+          load(messageSource, locale) {
+            if (typeof messageSource === "object") return banana.load(messageSource, locale);
+            if (typeof messageSource === "string") {
+              if (arguments.length === 1) return this.load(messageSource, messageSource);
+              if (!messageSource.includes("/")) messageSource = path.join(this.getPath(), `${messageSource}.json`);
+              const file = resolve(messageSource);
+              if (!isFile(file)) throw Error(`Invalid path: ${file}`);
+              try {
+                return this.load(JSON.parse(fs.readFileSync(file, "utf8")), locale);
+              } catch (e) {
+                host.warn(`${e.message}\n${e.stack}`);
+                throw Error(`Failed to parse JSON file: ${file}`);
+              }
+            }
+            throw TypeError(`Unknown message source: ${messageSource}`);
+          },
+          loadAll() {
+            // files.listDir: an absent directory lists nothing; the extension test is the host's (after the last dot).
+            let names = [];
+            try { names = fs.readdirSync(resolve(this.getPath())); } catch (_) {}
+            names.filter(name => name.lastIndexOf(".") >= 0 && name.slice(name.lastIndexOf(".") + 1).toLowerCase() === "json")
+              .forEach(name => this.load(name.slice(0, name.lastIndexOf("."))));
+          },
+        };
+        const i18n = new I18n();
+        i18n.loadAll();
+        i18n.setLocale("default");
+        return i18n;
+      }
+      let i18n;
+      return {
+        cheerio: () => load("cheerio.js"),
+        dayjs: () => load("dayjs.min.js"),
+        i18n: () => i18n || (i18n = createI18n()),
+        pangu: () => load("pangu.min.js"),
+      };
+    }
+    function __autojs6_js_tools_files(host) {
+      // The files module of AutoJs6 Rhino scripts (FilesModule: open, path, join and toFile; its prototype, the host's
+      // Files object: the other members as Java methods), synchronous on host.fs like the host; open, toFile and
+      // readAssets go through the Java facade and return Promises. files.batchRename is bridged separately.
+      // host: { fs (node:fs), cwd() (the script working directory), sdcardPath, java() (the Java facade, asked for on
+      // first use), TextDecoder (optional, other charsets), filesDir / cacheDir / dataDir (optional, getSimplifiedPath) }.
+      const fs = host.fs;
+      const FILES = "org.autojs.autojs.runtime.api.Files";
+      const PFILES = "org.autojs.autojs.pio.PFiles";
+      const STRING = "java.lang.String";
+      const INPUT_STREAM = "java.io.InputStream";
+      const DEFAULT_ENCODING = "UTF-8";
+      const UNITS = "KMGTPEZYRQ";
+      const DECLARATION_EXTENSIONS = [".d.ts", ".d.mts", ".d.cts"];
+      const NUL = String.fromCharCode(0);
+      const REPLACEMENT = 0xfffd;
+      const LONG_MIN = -(2 ** 63);
+      // Double.longBitsToDouble(0x43dfffffffffffffL), the largest double LiveConnect converts to a long.
+      const LONG_MAX = 9223372036854774784;
+
+      const isNullish = v => v === undefined || v === null;
+      const objectTag = v => Object.prototype.toString.call(v).slice(8, -1);
+      const named = (name, length, f) => Object.defineProperties(f, { name: { value: name }, length: { value: length } });
+
+      // Errors of the module functions (ScriptArgs).
+
+      function describe(v) {
+        if (v === null) return "null";
+        if (Array.isArray(v)) return "Array";
+        if (typeof v === "bigint") return "number";
+        return typeof v === "object" ? objectTag(v) : typeof v;
+      }
+      const failure = (fn, cause) => `Failed to call method "${fn}": [ ${cause} ]`;
+      const mustBe = (param, expected, actual) => `Argument "${param}" must be of type ${expected}, got ${actual}`;
+      const plural = n => `${n} argument${n === 1 ? "" : "s"}`;
+      // UtilValues.quote
+      const quote = v => typeof v === "string" ? `"${v}"` : typeof v === "number" ? `${v}` : describe(v);
+
+      // ScriptArgs.count: trailing undefined arguments beyond the required ones count as omitted.
+      function count(fn, args, min, max) {
+        let n = args.length;
+        while (n > min && args[n - 1] === undefined) n--;
+        if (n >= min && n <= max) return n;
+        const accepted = max === Infinity ? `no less than ${plural(min)}` : min === max ? plural(min) : null;
+        throw new TypeError(failure(fn, accepted ? `Method only accepts ${accepted}`
+          : `Method only accepts a number of arguments in the range [${min}..${max}]`));
+      }
+
+      // ScriptArgs.string
+      function string(fn, param, v) {
+        if (typeof v === "string") return v;
+        if (isNullish(v) || typeof v === "symbol") throw new TypeError(failure(fn, mustBe(param, "string", describe(v))));
+        return `${v}`;
+      }
+
+      // GlobalValues.int: ToNumber truncated; NaN of a number and infinities are RangeErrors, other NaN a TypeError.
+      function int(fn, param, v) {
+        const d = +v;
+        if (Number.isNaN(d)) {
+          throw typeof v === "number" ? new RangeError(failure(fn, mustBe(param, "number", quote(v))))
+            : new TypeError(failure(fn, mustBe(param, "number", describe(v))));
+        }
+        if (!Number.isFinite(d)) throw new RangeError(failure(fn, mustBe(param, "finite number", quote(v))));
+        const t = Math.trunc(d);
+        if (t < -2147483648 || t > 2147483647) throw new RangeError(failure(fn, `Argument "${param}" must be a 32-bit integer, got ${quote(v)}`));
+        return t + 0;
+      }
+
+      // Errors of the Java code, named as Rhino reports them: a Java exception is a JavaException of its class (an Error
+      // named after the simple class name here), an EvaluatorException an InternalError.
+
+      function javaError(className, message) {
+        const error = new Error(`${className}: ${message}`);
+        error.name = className.slice(className.lastIndexOf(".") + 1);
+        return error;
+      }
+      function internalError(message) {
+        const error = new Error(message);
+        error.name = "InternalError";
+        return error;
+      }
+      const npe = message => javaError("java.lang.NullPointerException", message);
+      // Files.ensurePathNotNull / ensureFileNameNotNull (WrappedIllegalArgumentException, an EvaluatorException).
+      const nullish = (method, param) => internalError(`Argument ${param} for Files#${method} cannot be nullish`);
+
+      // A java.io.IOException inside the Java code; scripts only see it wrapped (UncheckedIOException) or as false.
+      class IOFailure {
+        constructor(text) {
+          this.text = text;
+        }
+      }
+      const ERRNO = { EACCES: "Permission denied", EBUSY: "Device or resource busy", EEXIST: "File exists", EINVAL: "Invalid argument",
+        EISDIR: "Is a directory", ELOOP: "Too many symbolic links encountered", ENAMETOOLONG: "File name too long",
+        ENOENT: "No such file or directory", ENOSPC: "No space left on device", ENOTDIR: "Not a directory",
+        EPERM: "Operation not permitted", EROFS: "Read-only file system" };
+      // libcore's ErrnoException text: "open failed: ENOENT (No such file or directory)".
+      function errno(call, e) {
+        const code = e && typeof e.code === "string" ? e.code : "EIO";
+        return `${call} failed: ${code} (${ERRNO[code] || code})`;
+      }
+      const fileNotFound = (p, e) => new IOFailure(`java.io.FileNotFoundException: ${p}: ${errno("open", e)}`);
+      const ioException = (call, e) => new IOFailure(`java.io.IOException: ${errno(call, e)}`);
+      function io(f) {
+        try {
+          return f();
+        } catch (e) {
+          throw e instanceof IOFailure ? javaError("org.autojs.autojs.pio.UncheckedIOException", e.text) : e;
+        }
+      }
+
+      // A failed Java facade call (ERR_AUTOJS6_JAVA_CALL_FAILED, "<label>: <exception class>: <message>") is renamed
+      // after the exception's simple class name, as Rhino names a JavaException.
+      function javaFailure(e, rename) {
+        if (!e || e.code !== "ERR_AUTOJS6_JAVA_CALL_FAILED") return e;
+        const match = /((?:[A-Za-z_$][\w$]*\.)+([A-Z][\w$]*(?:Exception|Error)))(?::|$)/.exec(String(e.message));
+        if (!match) return e;
+        const text = String(e.message).slice(match.index);
+        const error = rename ? javaError(rename, text) : new Error(text, { cause: e });
+        if (!rename) error.name = match[2];
+        error.code = e.code;
+        return error;
+      }
+      async function javaCall(promise, rename) {
+        try {
+          return await promise;
+        } catch (e) {
+          throw javaFailure(e, rename);
+        }
+      }
+
+      // java.io.File on Android (UnixFileSystem): normalized pathnames, children, parents and names.
+
+      function normalize(pathname) {
+        const collapsed = pathname.replace(/\/{2,}/g, "/");
+        return pathname.length > 1 && collapsed.endsWith("/") ? collapsed.slice(0, -1) : collapsed;
+      }
+      function resolve(parent, child) {
+        if (child === "" || child === "/") return parent;
+        if (child[0] === "/") return parent === "/" ? child : parent + child;
+        return parent === "/" ? parent + child : `${parent}/${child}`;
+      }
+      // new File(File parent, String child)
+      const childOf = (parent, child) => resolve(parent === "" ? "/" : parent, normalize(child));
+      // new File(String parent, String child)
+      const childOfPath = (parent, child) => isNullish(parent) || parent === "" ? normalize(child) : resolve(normalize(parent), normalize(child));
+      const prefixLength = p => p[0] === "/" ? 1 : 0;
+      function parentOf(p) {
+        const index = p.lastIndexOf("/");
+        const prefix = prefixLength(p);
+        if (index >= prefix) return p.slice(0, index);
+        return prefix > 0 && p.length > prefix ? p.slice(0, prefix) : null;
+      }
+      function nameOf(p) {
+        const index = p.lastIndexOf("/");
+        return index < prefixLength(p) ? p.slice(prefixLength(p)) : p.slice(index + 1);
+      }
+
+      // Kotlin Char.isWhitespace (String.isBlank)
+      function isBlank(text) {
+        for (let i = 0; i < text.length; i++) {
+          const c = text.charCodeAt(i);
+          const space = (c >= 0x09 && c <= 0x0d) || (c >= 0x1c && c <= 0x20) || c === 0xa0 || c === 0x1680 || (c >= 0x2000 && c <= 0x200a) ||
+            c === 0x2028 || c === 0x2029 || c === 0x202f || c === 0x205f || c === 0x3000;
+          if (!space) return false;
+        }
+        return true;
+      }
+
+      // Files.path: an absolute path stays as it is, a relative one is resolved against the working directory by its
+      // segments ("." and blank ones skipped, ".." above the root gives null), keeping a trailing separator.
+      function resolvePath(relativePath) {
+        if (relativePath === null) return null;
+        const cwd = host.cwd();
+        if (isNullish(cwd)) return null;
+        if (relativePath.startsWith("/")) return relativePath;
+        let file = normalize(`${cwd}`);
+        for (const part of relativePath.split("/")) {
+          if (part === "..") {
+            file = parentOf(file);
+            if (file === null) return null;
+          } else if (part !== "." && !isBlank(part)) {
+            file = childOf(file, part);
+          }
+        }
+        return relativePath.endsWith("/") ? `${file}/` : file;
+      }
+
+      // File operations. A relative pathname reaches the system as it is, against the working directory of the app
+      // process ("/"); a pathname with a NUL character is invalid.
+
+      const sys = p => p === "" || p[0] === "/" ? p : `/${p}`;
+      const invalid = p => p.includes(NUL);
+      function stat(p) {
+        if (invalid(p)) return null;
+        try {
+          return fs.statSync(sys(p));
+        } catch {
+          return null;
+        }
+      }
+      const exists = p => !invalid(p) && fs.existsSync(sys(p));
+      const isFile = p => stat(p)?.isFile() === true;
+      const isDirectory = p => stat(p)?.isDirectory() === true;
+      function list(p) {
+        if (invalid(p)) return null;
+        try {
+          return fs.readdirSync(sys(p)).map(String);
+        } catch {
+          return null;
+        }
+      }
+      function attempt(f) {
+        try {
+          f();
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      const mkdir = p => !invalid(p) && attempt(() => fs.mkdirSync(sys(p)));
+      function mkdirs(p) {
+        if (exists(p)) return false;
+        if (mkdir(p)) return true;
+        return p !== "" && !invalid(p) && attempt(() => fs.mkdirSync(sys(p), { recursive: true }));
+      }
+      // File.delete: remove(3), unlink and rmdir for a directory.
+      function remove(p) {
+        if (invalid(p)) return false;
+        try {
+          fs.unlinkSync(sys(p));
+          return true;
+        } catch (e) {
+          if (!e || (e.code !== "EISDIR" && e.code !== "EPERM")) return false;
+        }
+        return attempt(() => fs.rmdirSync(sys(p)));
+      }
+      const renameTo = (from, to) => !invalid(from) && !invalid(to) && attempt(() => fs.renameSync(sys(from), sys(to)));
+      // File.createNewFile: false when the file exists.
+      function createNewFile(p) {
+        if (invalid(p)) throw new IOFailure("java.io.IOException: Invalid file path");
+        let fd;
+        try {
+          fd = fs.openSync(sys(p), "wx");
+        } catch (e) {
+          if (e && e.code === "EEXIST") return false;
+          throw ioException("open", e);
+        }
+        closeQuietly(fd);
+        return true;
+      }
+      function closeQuietly(fd) {
+        try {
+          fs.closeSync(fd);
+        } catch {}
+      }
+      // FileInputStream(String): a null name is an NPE, a missing file or a directory a FileNotFoundException.
+      function openInput(path) {
+        if (path === null) throw npe("null");
+        const p = normalize(path);
+        if (invalid(p)) throw new IOFailure("java.io.FileNotFoundException: Invalid file path");
+        let fd;
+        try {
+          fd = fs.openSync(sys(p), "r");
+        } catch (e) {
+          throw fileNotFound(p, e);
+        }
+        let directory = false;
+        try {
+          directory = fs.fstatSync(fd).isDirectory();
+        } catch {}
+        if (directory) {
+          closeQuietly(fd);
+          throw fileNotFound(p, { code: "EISDIR" });
+        }
+        return fd;
+      }
+      // FileOutputStream(String, boolean)
+      function openOutput(path, append) {
+        if (path === null) throw npe("null");
+        const p = normalize(path);
+        if (invalid(p)) throw new IOFailure("java.io.FileNotFoundException: Invalid file path");
+        let fd;
+        try {
+          fd = fs.openSync(sys(p), append ? "a" : "w");
+        } catch (e) {
+          throw fileNotFound(p, e);
+        }
+        // open(2) refuses a directory for writing; some file systems only fail the first write.
+        let directory = false;
+        try {
+          directory = fs.fstatSync(fd).isDirectory();
+        } catch {}
+        if (directory) {
+          closeQuietly(fd);
+          throw fileNotFound(p, { code: "EISDIR" });
+        }
+        return fd;
+      }
+      // InputStream.available() of a file: FIONREAD, the rest of a regular file, 0 for other files.
+      function available(fd, position) {
+        try {
+          const s = fs.fstatSync(fd);
+          return s.isFile() ? Math.max(0, s.size - position) : 0;
+        } catch (e) {
+          throw ioException("ioctl", e);
+        }
+      }
+      // ByteArray(stream.available()).also { stream.read(it) }
+      function readAvailable(fd) {
+        const size = available(fd, 0);
+        const bytes = new Uint8Array(size);
+        let n = 0;
+        try {
+          while (n < size) {
+            const r = fs.readSync(fd, bytes, n, size - n, null);
+            if (r <= 0) break;
+            n += r;
+          }
+        } catch (e) {
+          throw ioException("read", e);
+        }
+        return n < size ? bytes.slice(0, n) : bytes;
+      }
+      function writeAll(fd, bytes) {
+        try {
+          for (let n = 0; n < bytes.length;) n += fs.writeSync(fd, bytes, n, bytes.length - n);
+        } catch (e) {
+          throw ioException("write", e);
+        }
+      }
+
+      // Charsets: those Android's String fast paths and the UTF-16 coders handle are coded here; other names that
+      // Charset.forName accepts are decoded by host.TextDecoder when it knows the label, and cannot be encoded.
+
+      const CHARSET_NAMES = [
+        ["UTF-8", "UTF8", "unicode-1-1-utf-8"],
+        ["UTF-16", "UTF_16", "UTF16", "unicode", "UnicodeBig"],
+        ["UTF-16BE", "UTF_16BE", "X-UTF-16BE", "ISO-10646-UCS-2", "UnicodeBigUnmarked"],
+        ["UTF-16LE", "UTF_16LE", "X-UTF-16LE", "UnicodeLittleUnmarked"],
+        ["ISO-8859-1", "ISO8859-1", "ISO8859_1", "ISO_8859-1", "ISO_8859_1", "ISO_8859-1:1987", "8859_1", "iso-ir-100", "latin1", "l1",
+          "IBM819", "IBM-819", "cp819", "819", "csISOLatin1"],
+        ["US-ASCII", "ASCII", "ascii7", "us", "646", "iso-ir-6", "ISO646-US", "iso_646.irv:1983", "ISO_646.irv:1991", "ANSI_X3.4-1968",
+          "ANSI_X3.4-1986", "IBM367", "cp367", "csASCII", "default"],
+      ];
+      // Android's Charset.forName looks the name up first (ICU compares alias names ignoring case and everything but
+      // letters and digits, so "utf 8" is UTF-8) and checks the name (Charset.checkName) only when nothing is found.
+      const fuzzyCharsetName = name => name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const charsets = new Map(CHARSET_NAMES.flatMap(names => names.map(name => [fuzzyCharsetName(name), names[0]])));
+      const CHARSET_NAME = /^[A-Za-z0-9][A-Za-z0-9+\-:_.]*$/;
+      function charsetOf(name) {
+        if (name === null) throw javaError("java.lang.IllegalArgumentException", "Null charset name");
+        const canonical = charsets.get(fuzzyCharsetName(name));
+        if (canonical && name !== "") return { name: canonical };
+        if (typeof host.TextDecoder === "function" && CHARSET_NAME.test(name)) {
+          try {
+            return { name, decoder: new host.TextDecoder(name, { ignoreBOM: true }) };
+          } catch {}
+        }
+        if (!CHARSET_NAME.test(name)) throw javaError("java.nio.charset.IllegalCharsetNameException", name);
+        throw javaError("java.nio.charset.UnsupportedCharsetException", name);
+      }
+      const isHigh = u => u >= 0xd800 && u <= 0xdbff;
+      const isLow = u => u >= 0xdc00 && u <= 0xdfff;
+      function textOf(units, length) {
+        let text = "";
+        for (let i = 0; i < length; i += 8192) text += String.fromCharCode.apply(null, units.subarray(i, Math.min(length, i + 8192)));
+        return text;
+      }
+      // Ill-formed sequences become one U+FFFD per maximal subpart (WHATWG, as Android's decoder); a BOM is kept.
+      function decodeUtf8(bytes) {
+        const units = new Uint16Array(bytes.length);
+        let n = 0;
+        for (let i = 0; i < bytes.length;) {
+          const b = bytes[i];
+          if (b < 0x80) {
+            units[n++] = b;
+            i++;
+            continue;
+          }
+          let need = 0;
+          let cp = 0;
+          let lower = 0x80;
+          let upper = 0xbf;
+          if (b >= 0xc2 && b <= 0xdf) {
+            need = 1;
+            cp = b & 0x1f;
+          } else if (b >= 0xe0 && b <= 0xef) {
+            need = 2;
+            cp = b & 0x0f;
+            if (b === 0xe0) lower = 0xa0;
+            if (b === 0xed) upper = 0x9f;
+          } else if (b >= 0xf0 && b <= 0xf4) {
+            need = 3;
+            cp = b & 0x07;
+            if (b === 0xf0) lower = 0x90;
+            if (b === 0xf4) upper = 0x8f;
+          } else {
+            units[n++] = REPLACEMENT;
+            i++;
+            continue;
+          }
+          let j = i + 1;
+          for (; need > 0; need--, j++) {
+            if (j >= bytes.length || bytes[j] < lower || bytes[j] > upper) break;
+            cp = (cp << 6) | (bytes[j] & 0x3f);
+            lower = 0x80;
+            upper = 0xbf;
+          }
+          if (need > 0) {
+            units[n++] = REPLACEMENT;
+          } else if (cp >= 0x10000) {
+            units[n++] = 0xd800 + ((cp - 0x10000) >> 10);
+            units[n++] = 0xdc00 + ((cp - 0x10000) & 0x3ff);
+          } else {
+            units[n++] = cp;
+          }
+          i = j;
+        }
+        return textOf(units, n);
+      }
+      // UTF-16 reads a BOM (big endian without one), UTF-16BE / UTF-16LE keep it; unpaired surrogates and an odd last
+      // byte are malformed.
+      function decodeUtf16(bytes, little, bom) {
+        let i = 0;
+        if (bom && bytes.length >= 2 && bytes[0] + bytes[1] === 0x1fd && (bytes[0] === 0xfe || bytes[0] === 0xff)) {
+          little = bytes[0] === 0xff;
+          i = 2;
+        }
+        const units = new Uint16Array((bytes.length >> 1) + 1);
+        let n = 0;
+        for (; i + 1 < bytes.length; i += 2) units[n++] = little ? bytes[i] | (bytes[i + 1] << 8) : (bytes[i] << 8) | bytes[i + 1];
+        if (i < bytes.length) units[n++] = REPLACEMENT;
+        for (let k = 0; k < n; k++) {
+          if (isHigh(units[k]) && k + 1 < n && isLow(units[k + 1])) k++;
+          else if (isHigh(units[k]) || isLow(units[k])) units[k] = REPLACEMENT;
+        }
+        return textOf(units, n);
+      }
+      function decode(bytes, charset) {
+        switch (charset.name) {
+          case "UTF-8":
+            return decodeUtf8(bytes);
+          case "UTF-16":
+            return decodeUtf16(bytes, false, true);
+          case "UTF-16BE":
+            return decodeUtf16(bytes, false, false);
+          case "UTF-16LE":
+            return decodeUtf16(bytes, true, false);
+          case "ISO-8859-1":
+            return textOf(Uint16Array.from(bytes), bytes.length);
+          case "US-ASCII":
+            return textOf(Uint16Array.from(bytes, b => b < 0x80 ? b : REPLACEMENT), bytes.length);
+          default:
+            return charset.decoder.decode(bytes);
+        }
+      }
+      // Unpaired surrogates are "?" in UTF-8, U+FFFD in UTF-16; ISO-8859-1 and US-ASCII write "?" for every code unit
+      // out of range (Android's String.getBytes).
+      function encodeUtf8(text) {
+        let size = 0;
+        for (let i = 0; i < text.length; i++) {
+          const c = text.charCodeAt(i);
+          if (c < 0x80) size += 1;
+          else if (c < 0x800) size += 2;
+          else if (isHigh(c) && isLow(text.charCodeAt(i + 1))) size += 4, i++;
+          else size += isHigh(c) || isLow(c) ? 1 : 3;
+        }
+        const out = new Uint8Array(size);
+        let n = 0;
+        for (let i = 0; i < text.length; i++) {
+          let c = text.charCodeAt(i);
+          if (c < 0x80) {
+            out[n++] = c;
+          } else if (c < 0x800) {
+            out[n++] = 0xc0 | (c >> 6);
+            out[n++] = 0x80 | (c & 0x3f);
+          } else if (isHigh(c) && isLow(text.charCodeAt(i + 1))) {
+            c = 0x10000 + ((c - 0xd800) << 10) + (text.charCodeAt(++i) - 0xdc00);
+            out[n++] = 0xf0 | (c >> 18);
+            out[n++] = 0x80 | ((c >> 12) & 0x3f);
+            out[n++] = 0x80 | ((c >> 6) & 0x3f);
+            out[n++] = 0x80 | (c & 0x3f);
+          } else if (isHigh(c) || isLow(c)) {
+            out[n++] = 0x3f;
+          } else {
+            out[n++] = 0xe0 | (c >> 12);
+            out[n++] = 0x80 | ((c >> 6) & 0x3f);
+            out[n++] = 0x80 | (c & 0x3f);
+          }
+        }
+        return out;
+      }
+      function encodeUtf16(text, little, bom) {
+        const out = new Uint8Array(text.length * 2 + (bom && text.length > 0 ? 2 : 0));
+        let n = 0;
+        const put = u => {
+          out[n++] = little ? u & 0xff : u >> 8;
+          out[n++] = little ? u >> 8 : u & 0xff;
+        };
+        if (bom && text.length > 0) put(0xfeff);
+        for (let i = 0; i < text.length; i++) {
+          const c = text.charCodeAt(i);
+          if (isHigh(c) && isLow(text.charCodeAt(i + 1))) {
+            put(c);
+            put(text.charCodeAt(++i));
+          } else {
+            put(isHigh(c) || isLow(c) ? REPLACEMENT : c);
+          }
+        }
+        return out;
+      }
+      const encodeSingleByte = (text, max) => Uint8Array.from({ length: text.length }, (_, i) => text.charCodeAt(i) <= max ? text.charCodeAt(i) : 0x3f);
+      function encode(text, charset) {
+        switch (charset.name) {
+          case "UTF-8":
+            return encodeUtf8(text);
+          case "UTF-16":
+            return encodeUtf16(text, false, true);
+          case "UTF-16BE":
+            return encodeUtf16(text, false, false);
+          case "UTF-16LE":
+            return encodeUtf16(text, true, false);
+          case "ISO-8859-1":
+            return encodeSingleByte(text, 0xff);
+          case "US-ASCII":
+            return encodeSingleByte(text, 0x7f);
+          default:
+            throw javaError("java.nio.charset.UnsupportedCharsetException", `${charset.name} (no encoder in this runtime)`);
+        }
+      }
+
+      // PFiles
+
+      // PFiles.read(String?, String?): "" for a null path.
+      function readText(path, encoding) {
+        if (path === null) return "";
+        const fd = io(() => openInput(path));
+        let bytes;
+        try {
+          bytes = io(() => readAvailable(fd));
+        } finally {
+          closeQuietly(fd);
+        }
+        return decode(bytes, charsetOf(encoding));
+      }
+      function readBytes(path) {
+        const fd = io(() => openInput(path));
+        try {
+          return io(() => readAvailable(fd));
+        } finally {
+          closeQuietly(fd);
+        }
+      }
+      // PFiles.write / append: the stream is opened first, a null encoding is the default charset.
+      function writeText(path, text, encoding, append) {
+        const fd = io(() => openOutput(path, append));
+        try {
+          const bytes = encode(text, encoding === null ? { name: DEFAULT_ENCODING } : charsetOf(encoding));
+          io(() => writeAll(fd, bytes));
+        } finally {
+          closeQuietly(fd);
+        }
+      }
+      function writeBytes(path, bytes, append) {
+        const fd = io(() => openOutput(path, append));
+        try {
+          if (bytes === null) throw npe("Attempt to get length of null array");
+          io(() => writeAll(fd, bytes));
+        } finally {
+          closeQuietly(fd);
+        }
+      }
+      // PFiles.create: mkdir for a path ending with the separator, else createNewFile (an existing file is a success).
+      function create(p) {
+        if (p.endsWith("/")) return mkdir(normalize(p));
+        return attempt(() => createNewFile(normalize(p)));
+      }
+      // PFiles.ensureDir: the directory part exists or is created.
+      function ensureDir(p) {
+        const i = p.lastIndexOf("/");
+        if (i < 0) return false;
+        const folder = normalize(p.slice(0, i));
+        return exists(folder) || mkdirs(folder);
+      }
+      // PFiles.createIfNotExists: true only when the file was created.
+      function createIfNotExists(p) {
+        ensureDir(p);
+        const file = normalize(p);
+        if (exists(file)) return false;
+        try {
+          return createNewFile(file);
+        } catch (e) {
+          if (e instanceof IOFailure) return false;
+          throw e;
+        }
+      }
+      // PFiles.copy / copyStream: false for a missing or unreadable source and for any IOException.
+      function copy(from, to) {
+        let input;
+        try {
+          input = openInput(from);
+        } catch (e) {
+          if (e instanceof IOFailure) return false;
+          throw e;
+        }
+        try {
+          if (!ensureDir(to)) return false;
+          const file = normalize(to);
+          if (!exists(file) && !createNewFile(file)) return false;
+          const output = openOutput(file, false);
+          try {
+            const buffer = new Uint8Array(8192);
+            for (let position = 0; available(input, position) > 0;) {
+              let r;
+              try {
+                r = fs.readSync(input, buffer, 0, buffer.length, null);
+              } catch (e) {
+                throw ioException("read", e);
+              }
+              if (r <= 0) break;
+              position += r;
+              writeAll(output, buffer.subarray(0, r));
+            }
+          } finally {
+            closeQuietly(output);
+          }
+          return true;
+        } catch (e) {
+          if (e instanceof IOFailure) return false;
+          throw e;
+        } finally {
+          closeQuietly(input);
+        }
+      }
+      // PFiles.deleteRecursively: a directory (symbolic links followed) loses its children first, stopping at a failure.
+      function deleteRecursively(p) {
+        if (isDirectory(p)) {
+          for (const child of list(p) || []) if (!deleteRecursively(resolve(p, child))) return false;
+        }
+        return remove(p);
+      }
+      // FileUtils.getExtension: the text after the last dot, none for a leading or trailing dot.
+      function extensionOf(fileName) {
+        const i = fileName.lastIndexOf(".");
+        return i <= 0 || i + 1 >= fileName.length ? "" : fileName.slice(i + 1);
+      }
+      const nameOfPath = filePath => nameOf(normalize(filePath.replace(/\\/g, "/")));
+      function nameWithoutExtension(filePath) {
+        const name = nameOfPath(filePath);
+        const lower = name.toLowerCase();
+        const declaration = DECLARATION_EXTENSIONS.find(extension => lower.endsWith(extension));
+        if (declaration) return name.slice(0, name.length - declaration.length);
+        const i = name.lastIndexOf(".");
+        return i < 0 ? name : name.slice(0, i);
+      }
+      // The FilenameFilter of PFiles.listDir: the script filter through Rhino's interface adapter, its result cast to
+      // Boolean (null is an NPE, anything else but a boolean a ClassCastException).
+      function accept(filter, name) {
+        let result;
+        if (typeof filter === "function") {
+          result = filter(name);
+        } else if (!("call" in filter)) {
+          result = null;
+        } else if (typeof filter.call !== "function") {
+          throw internalError(`Property "call" is not a function in interface adapter`);
+        } else {
+          result = Reflect.apply(filter.call, undefined, [name]);
+        }
+        if (result === null) throw npe("Attempt to invoke virtual method 'boolean java.lang.Boolean.booleanValue()' on a null object reference");
+        if (typeof result !== "boolean") throw javaError("java.lang.ClassCastException", `${describe(result)} cannot be cast to java.lang.Boolean`);
+        return result;
+      }
+      // PFiles.relativePathWithin
+      function within(path, directory) {
+        if (isNullish(directory) || directory === "") return null;
+        const root = `${directory}`.replace(/\/+$/, "") || "/";
+        if (path === root) return "";
+        if (root === "/" && path[0] === "/") return path;
+        return path.startsWith(`${root}/`) ? path.slice(root.length) : null;
+      }
+      // PFiles.getElegantPath without a prefix: external storage, then the app's sample, files, cache and data
+      // directories when the host names them.
+      function elegantPath(path) {
+        const filesDir = host.filesDir;
+        for (const directory of [host.sdcardPath, isNullish(filesDir) ? null : `${filesDir}/sample`, filesDir, host.cacheDir, host.dataDir]) {
+          const relative = within(path, directory);
+          if (relative !== null) return relative;
+        }
+        return path;
+      }
+
+      // Sizes
+
+      const halfUp = (a, b) => a / b + ((a % b) * 2n >= b ? 1n : 0n);
+      // BigDecimal.valueOf(bytes.toDouble()) of a long: Double.toString drops the lowest digit from 2^58 on and two
+      // from 2^61 on, rounding half up (FloatingDecimal's insignificant digits).
+      function longDecimal(d) {
+        const n = BigInt(d);
+        if (d < 2 ** 58) return n;
+        const unit = d >= 2 ** 61 ? 100n : 10n;
+        return halfUp(n, unit) * unit;
+      }
+      // Bytes.string(bytes, "B", "AUTO", useIecIdentifier, useSpace = true, fractionDigits = 1, trimTrailingZero = false)
+      function humanReadableSize(bytes, useIecIdentifier) {
+        if (bytes < 0) {
+          throw javaError("java.lang.IllegalArgumentException", `Argument "source" ${bytes} must be non-negative number for PFiles.getHumanReadableSize`);
+        }
+        const n = longDecimal(bytes);
+        const power = exp => 1024n ** BigInt(exp);
+        let exp = 0;
+        while (exp < UNITS.length && n >= power(exp + 1)) exp++;
+        // autoPickBig carries when the quotient with 6 fraction digits reaches 1024.
+        if (exp > 0 && exp < UNITS.length && halfUp(n * 1000000n, power(exp)) >= 1024000000n) exp++;
+        const tenths = exp === 0 ? n * 10n : halfUp(n * 10n, power(exp));
+        const unit = exp === 0 ? "B" : `${UNITS[exp - 1]}${useIecIdentifier ? "iB" : "B"}`;
+        return `${tenths / 10n}.${tenths % 10n} ${unit}`;
+      }
+      // String.format("%.Nf"): Java rounds the decimal digits of the double half up; the shortest digits of
+      // Number#toString stand for those of Double.toString.
+      function fixed(v, digits) {
+        const [mantissa, exponent = "0"] = `${v}`.split("e");
+        const [integer, fraction = ""] = mantissa.split(".");
+        let all = integer + fraction;
+        let point = integer.length + Number(exponent);
+        if (point < 0) {
+          all = "0".repeat(-point) + all;
+          point = 0;
+        }
+        all = all.padEnd(point + digits, "0");
+        const kept = BigInt(all.slice(0, point + digits) || "0") + (all.length > point + digits && all[point + digits] >= "5" ? 1n : 0n);
+        const text = `${kept}`.padStart(digits + 1, "0");
+        return digits === 0 ? text : `${text.slice(0, -digits)}.${text.slice(-digits)}`;
+      }
+      // PFiles.formatSizeWithUnit (the decimal separator is always ".")
+      function formatSize(bytes) {
+        if (bytes < 0) throw javaError("java.lang.IllegalArgumentException", `Argument "bytes" for "formatSizeWithUnit" must be non-negative instead of ${bytes}.`);
+        if (bytes < 1000) return `${fixed(bytes, 0)} B`;
+        if (bytes < 1000 * 1024) return `${fixed(bytes / 1024, 1)} KiB`;
+        if (bytes < 1000 * 1024 ** 2) return `${fixed(bytes / 1024 ** 2, 2)} MiB`;
+        if (bytes < 1000 * 1024 ** 3) return `${fixed(bytes / 1024 ** 3, 2)} GiB`;
+        return `${fixed(bytes / 1024 ** 4, 2)} TiB`;
+      }
+
+      // Methods of the host's Files object, as Rhino calls them through the module's prototype (NativeJavaMethod): the
+      // overload with exactly as many parameters as arguments (a trailing undefined included), each argument converted
+      // by LiveConnect; no overload, or an argument LiveConnect refuses, is an InternalError. A parameter is
+      // "name:Type", "!" marks Kotlin's non-null parameters (null is an NPE); omitted parameters reach the body as
+      // undefined, so its defaults apply.
+
+      const isByteView = v => v instanceof Uint8Array || v instanceof Int8Array || v instanceof Uint8ClampedArray;
+      const isPlainObject = v => v !== null && typeof v === "object" && !Array.isArray(v) && objectTag(v) === "Object";
+      const conversion = (v, type) => internalError(`Cannot convert ${typeof v === "symbol" ? String(v) : `${v}`} to ${type}`);
+      // NativeJavaObject.toInteger: ToNumber truncated, NaN, infinities and values out of the range refused.
+      function integral(v, min, max, refuse) {
+        const d = typeof v === "symbol" ? NaN : typeof v === "bigint" ? Number(v) : +v;
+        const t = Math.trunc(d);
+        if (!Number.isFinite(d) || t < min || t > max) throw refuse();
+        return t + 0;
+      }
+      // A JS array to byte[]: every element a number in [-128, 127] after truncation (holes, null, undefined and
+      // booleans refused); Node's byte arrays pass as they are.
+      function toBytes(v) {
+        if (v === null) return null;
+        if (isByteView(v)) return new Uint8Array(v.buffer, v.byteOffset, v.byteLength);
+        const out = new Uint8Array(v.length);
+        for (let i = 0; i < v.length; i++) {
+          const refuse = () => conversion(v[i], "byte");
+          if (!Object.hasOwn(v, i) || isNullish(v[i]) || typeof v[i] === "boolean") throw refuse();
+          out[i] = integral(v[i], -128, 127, refuse) & 0xff;
+        }
+        return out;
+      }
+      function accepts(type, v) {
+        switch (type) {
+          case "long":
+            return !isNullish(v) && typeof v !== "boolean";
+          case "boolean":
+            return typeof v === "boolean";
+          case "byte[]":
+            return v === null || Array.isArray(v) || isByteView(v);
+          case "Func1":
+            return v === null || typeof v === "function" || typeof v === "object";
+          default:
+            return true;
+        }
+      }
+      function convert(type, v) {
+        switch (type) {
+          case "long":
+            return integral(v, LONG_MIN, LONG_MAX, () => conversion(v, "java.lang.Long"));
+          case "boolean":
+            return v;
+          case "byte[]":
+            return toBytes(v);
+          case "Func1":
+            if (v === null || typeof v === "function" || isPlainObject(v)) return v;
+            throw conversion(v, "org.autojs.autojs.tool.Func1");
+          default:
+            return v === undefined ? "undefined" : v === null ? null : typeof v === "symbol" ? String(v) : `${v}`;
+        }
+      }
+      // NativeJavaMethod.scriptSignature
+      function signature(v) {
+        if (v === null) return "null";
+        if (v === undefined) return "org.mozilla.javascript.Undefined";
+        switch (typeof v) {
+          case "number":
+          case "bigint":
+            return "number";
+          case "boolean":
+          case "string":
+          case "function":
+            return typeof v;
+          case "symbol":
+            return "org.mozilla.javascript.SymbolKey";
+          default:
+            return typeof v.__autojs6JavaHandle === "string" ? String(v.className) : "object";
+        }
+      }
+      function method(name, overloads, body) {
+        const specs = new Map(Object.entries(overloads).map(([n, params]) => [Number(n), params.map(param => {
+          const [paramName, type] = param.split(":");
+          return { name: paramName, type: type.replace("!", ""), nonNull: type.endsWith("!") };
+        })]));
+        return named(name, Math.min(...specs.keys()), (...args) => {
+          const params = specs.get(args.length);
+          if (!params || !params.every((param, i) => accepts(param.type, args[i]))) {
+            throw internalError(`Can't find method ${FILES}.${name}(${args.map(signature).join(",")}).`);
+          }
+          const values = params.map((param, i) => convert(param.type, args[i]));
+          const missing = params.find((param, i) => param.nonNull && values[i] === null);
+          if (missing) throw npe(`Parameter specified as non-null is null: method ${FILES}.${name}, parameter ${missing.name}`);
+          return body(...values);
+        });
+      }
+      // Files.ensurePathNotNull with the path resolved
+      function required(value, name, param = "path") {
+        const p = resolvePath(value);
+        if (p === null) throw nullish(name, param);
+        return p;
+      }
+      function notNull(value, name, param) {
+        if (value === null) throw nullish(name, param);
+        return value;
+      }
+      const resolved = (path, f) => {
+        const p = resolvePath(path);
+        return p === null ? false : f(p);
+      };
+      const PATH = ["path:String"];
+
+      // FilesModule
+
+      async function open(args) {
+        const fn = "files.open";
+        const n = count(fn, args, 1, 4);
+        const path = string(fn, "path", args[0]);
+        const mode = n > 1 && !isNullish(args[1]) ? string(fn, "mode", args[1]) : null;
+        const encoding = n > 2 && !isNullish(args[2]) ? string(fn, "encoding", args[2]) : null;
+        const bufferSize = n > 3 && !isNullish(args[3]) ? int(fn, "bufferSize", args[3]) : null;
+        // Files.open: PFiles.open with the resolved path (null above the root, an IllegalArgumentException there).
+        return javaCall(host.java().callStatic(PFILES, "open", [resolvePath(path), mode, encoding, bufferSize],
+          { parameterTypes: [STRING, STRING, STRING, "java.lang.Integer"] }));
+      }
+      function path(...args) {
+        const n = count("files.path", args, 0, 1);
+        return n === 0 || isNullish(args[0]) ? null : resolvePath(`${args[0]}`);
+      }
+      // PFiles.join; every argument after the base is a path (ScriptArgs.strings reads them all, a trailing undefined too).
+      function join(...args) {
+        const fn = "files.join";
+        count(fn, args, 1, Infinity);
+        const base = string(fn, "base", args[0]);
+        const paths = args.slice(1).map(v => string(fn, "paths", v));
+        return paths.reduce(childOf, normalize(base));
+      }
+      async function toFile(args) {
+        const fn = "files.toFile";
+        count(fn, args, 1, 1);
+        const p = resolvePath(string(fn, "path", args[0]));
+        if (p === null) throw javaError("java.lang.IllegalArgumentException", `Resolved path for "%1$s" cannot be null`);
+        return javaCall(host.java().create("java.io.File", [p], { parameterTypes: [STRING] }));
+      }
+      // Files.readAssets: PFiles.read of context.assets.open(fileName); an IOException of the asset is unchecked.
+      async function readAssets(fileName, encoding) {
+        notNull(fileName, "readAssets", "fileName");
+        const java = host.java();
+        const handles = [];
+        const kept = handle => {
+          handles.push(handle);
+          return handle;
+        };
+        try {
+          const context = kept(await java.getContext());
+          const assets = kept(await javaCall(context.call("getAssets")));
+          const stream = kept(await javaCall(assets.call("open", [fileName], { parameterTypes: [STRING] }), "org.autojs.autojs.pio.UncheckedIOException"));
+          const values = encoding === undefined ? [stream] : [stream, encoding];
+          return await javaCall(java.callStatic(PFILES, "read", values, { parameterTypes: values.length === 1 ? [INPUT_STREAM] : [INPUT_STREAM, STRING] }));
+        } finally {
+          for (const handle of handles.reverse()) {
+            try {
+              await java.release(handle);
+            } catch {}
+          }
+        }
+      }
+      const readAssetsMethod = method("readAssets", { 1: ["fileName:String"], 2: ["fileName:String", "encoding:String"] }, readAssets);
+
+      const files = {
+        open: named("open", 1, async (...args) => open(args)),
+        path: named("path", 0, path),
+        join: named("join", 1, join),
+        toFile: named("toFile", 1, async (...args) => toFile(args)),
+        getSdcardPath: method("getSdcardPath", { 0: [] }, () => host.sdcardPath),
+        nonNullPath: method("nonNullPath", { 1: ["relativePath:String!"] }, relativePath => {
+          const p = resolvePath(relativePath);
+          if (p === null) throw javaError("java.lang.IllegalArgumentException", `Resolved path for "%1$s" cannot be null`);
+          return p;
+        }),
+        cwd: method("cwd", { 0: [] }, () => host.cwd()),
+        create: method("create", { 1: PATH }, p => resolved(p, create)),
+        createIfNotExists: method("createIfNotExists", { 1: PATH }, p => resolved(p, createIfNotExists)),
+        createWithDirs: method("createWithDirs", { 1: PATH }, p => resolved(p, createIfNotExists)),
+        exists: method("exists", { 1: PATH }, p => resolved(p, file => exists(normalize(file)))),
+        ensureDir: method("ensureDir", { 1: PATH }, p => resolved(p, ensureDir)),
+        read: method("read", { 1: PATH, 2: ["path:String", "encoding:String"] }, (p, encoding = DEFAULT_ENCODING) => readText(resolvePath(p), encoding)),
+        readAssets: named("readAssets", 1, async (...args) => readAssetsMethod(...args)),
+        readBytes: method("readBytes", { 1: PATH }, p => readBytes(resolvePath(p))),
+        write: method("write", { 2: ["path:String", "text:String!"], 3: ["path:String", "text:String!", "encoding:String"] },
+          (p, text, encoding = DEFAULT_ENCODING) => writeText(resolvePath(p), text, encoding, false)),
+        append: method("append", { 2: ["path:String", "text:String!"], 3: ["path:String", "text:String!", "encoding:String"] },
+          (p, text, encoding = DEFAULT_ENCODING) => {
+            const file = required(p, "append");
+            create(file);
+            writeText(file, text, encoding, true);
+          }),
+        appendBytes: method("appendBytes", { 2: ["path:String", "bytes:byte[]"] }, (p, bytes) => {
+          const file = required(p, "appendBytes");
+          create(file);
+          writeBytes(file, bytes, true);
+        }),
+        writeBytes: method("writeBytes", { 2: ["path:String", "bytes:byte[]"] }, (p, bytes) => writeBytes(required(p, "writeBytes"), bytes, false)),
+        copy: method("copy", { 2: ["pathFrom:String", "pathTo:String"] },
+          (pathFrom, pathTo) => copy(required(pathFrom, "copy", "pathFrom"), required(pathTo, "copy", "pathTo"))),
+        renameWithoutExtension: method("renameWithoutExtension", { 2: ["path:String", "newName:String!"] }, (p, newName) => {
+          const file = normalize(required(p, "renameWithoutExtension"));
+          return renameTo(file, childOfPath(parentOf(file), `${newName}.${extensionOf(nameOf(file))}`));
+        }),
+        rename: method("rename", { 2: ["path:String", "newName:String!"] }, (p, newName) => {
+          const file = normalize(required(p, "rename"));
+          return renameTo(file, childOfPath(parentOf(file), newName));
+        }),
+        move: method("move", { 2: ["path:String", "newPath:String!"] }, (p, newPath) => renameTo(normalize(required(p, "move")), normalize(newPath))),
+        getExtension: method("getExtension", { 1: ["fileName:String"] }, fileName => extensionOf(notNull(fileName, "getExtension", "fileName"))),
+        getName: method("getName", { 1: ["filePath:String"] }, filePath => nameOfPath(notNull(filePath, "getName", "filePath"))),
+        getNameWithoutExtension: method("getNameWithoutExtension", { 1: ["filePath:String"] },
+          filePath => nameWithoutExtension(notNull(filePath, "getNameWithoutExtension", "filePath"))),
+        remove: method("remove", { 1: PATH }, p => resolved(p, file => remove(normalize(file)))),
+        removeDir: method("removeDir", { 1: PATH }, p => resolved(p, file => deleteRecursively(normalize(file)))),
+        listDir: method("listDir", { 1: PATH, 2: ["path:String", "filter:Func1!"] }, (p, filter) => {
+          const file = resolvePath(p);
+          const names = file === null ? null : list(normalize(file));
+          if (names === null) return [];
+          return filter === undefined ? names : names.filter(name => accept(filter, name));
+        }),
+        isFile: method("isFile", { 1: PATH }, p => resolved(p, file => isFile(normalize(file)))),
+        isDir: method("isDir", { 1: PATH }, p => resolved(p, file => isDirectory(normalize(file)))),
+        isEmptyDir: method("isEmptyDir", { 1: PATH }, p => resolved(p, file => {
+          const dir = normalize(file);
+          if (!isDirectory(dir)) return false;
+          const names = list(dir);
+          if (names === null) throw npe("null");
+          return names.length === 0;
+        })),
+        getHumanReadableSize: method("getHumanReadableSize", { 1: ["bytes:long"], 2: ["bytes:long", "useIecIdentifier:boolean"] },
+          (bytes, useIecIdentifier = false) => humanReadableSize(bytes, useIecIdentifier)),
+        formatSizeWithUnit: method("formatSizeWithUnit", { 1: ["bytes:long"] }, formatSize),
+        getSimplifiedPath: method("getSimplifiedPath", { 1: PATH }, p => elegantPath(notNull(p, "getSimplifiedPath", "path"))),
+      };
+      // Files.sdcardPath, the bean property of getSdcardPath.
+      Object.defineProperty(files, "sdcardPath", { get: () => host.sdcardPath, enumerable: true });
+      return files;
+    }
+    function __autojs6_js_tools_zip(host) {
+      // zip of AutoJs6 Rhino scripts (the host's ZipModule, ZipNativeObject and Zip, zip4j 2.11.5) on the Java facade.
+      // Arguments are checked synchronously where Rhino checks them before any work; zip(), open, zipFile, zipDir,
+      // zipFiles and unzip then resolve with a Zip. Zip members that need zip4j are async and run one at a time per Zip;
+      // Java objects come back as handles the caller owns (D-12), the Zip's own handles are released once it is
+      // collected. host: { java() (the Java facade), cwd() (the script working directory) }.
+      const ZIP_FILE = "net.lingala.zip4j.ZipFile";
+      const ZIP_PARAMETERS = "net.lingala.zip4j.model.ZipParameters";
+      const UNZIP_PARAMETERS = "net.lingala.zip4j.model.UnzipParameters";
+      const EXCLUDE_FILE_FILTER = "net.lingala.zip4j.model.ExcludeFileFilter";
+      const FILE = "java.io.File";
+      const STRING = "java.lang.String";
+      const IAE = "java.lang.IllegalArgumentException";
+      const CALL_FAILED = "ERR_AUTOJS6_JAVA_CALL_FAILED";
+      // Rhino runs zip4j work without a time limit; the facade waits 5 s per call by default.
+      const WORK = 2147483647;
+      const ABSENT = Symbol("absent");
+      const JAVA_NAME = /^[A-Za-z_$][A-Za-z0-9_$]*([.][A-Za-z_$][A-Za-z0-9_$]*)+$/;
+      const objectToString = Object.prototype.toString;
+
+      const isNullish = v => v === null || v === undefined;
+      const tagOf = v => objectToString.call(v).slice(8, -1);
+      const isHandle = v => v !== null && typeof v === "object" && typeof v.__autojs6JavaHandle === "string";
+      const isClass = v => v !== null && typeof v === "object" && !isHandle(v) && typeof v.className === "string" &&
+        typeof v.callStatic === "function";
+      // A Rhino ScriptableObject: script objects and functions, no Java values.
+      const isScriptObject = v => typeof v === "function" || (v !== null && typeof v === "object" && !isHandle(v) && !isClass(v));
+      const isNativeObject = v => isScriptObject(v) && typeof v === "object" && tagOf(v) === "Object";
+      // Kotlin Char.isWhitespace (String.isBlank): Java whitespace plus every space separator.
+      const isSpace = c => (c >= 9 && c <= 13) || (c >= 28 && c <= 32) || c === 160 || c === 5760 || (c >= 8192 && c <= 8202) ||
+        c === 8232 || c === 8233 || c === 8239 || c === 8287 || c === 12288;
+      function isBlank(s) {
+        for (let i = 0; i < s.length; i++) if (!isSpace(s.charCodeAt(i))) return false;
+        return true;
+      }
+      // Context.toString of a Java value: an enum by its name, other objects by the handle snapshot.
+      const javaString = h => String(h.value && h.value.string !== undefined ? h.value.string : h.className);
+      const toStr = v => isHandle(v) ? javaString(v) : isClass(v) ? `class ${v.className}` : typeof v === "symbol" ? String(v) : `${v}`;
+
+      // ScriptArgs.describe, for the errors of the module functions.
+      function describe(v) {
+        if (v === null) return "null";
+        if (v === undefined) return "undefined";
+        switch (typeof v) {
+          case "string":
+          case "boolean":
+          case "symbol":
+          case "function":
+            return typeof v;
+          case "number":
+          case "bigint":
+            return "number";
+        }
+        if (isHandle(v)) return v.className;
+        if (isClass(v)) return "java.lang.Class";
+        return Array.isArray(v) ? "Array" : tagOf(v);
+      }
+      // species and jsBrief of the host, for the errors of ZipNativeObject.
+      function species(v) {
+        if (v === null) return "Null";
+        if (v === undefined) return "Undefined";
+        switch (typeof v) {
+          case "boolean": return "Boolean";
+          case "string": return "String";
+          case "bigint": return "BigInt";
+          case "number": return "Number";
+          case "symbol": return "Symbol";
+          case "function": return "Function";
+        }
+        if (isHandle(v)) return "JavaObject";
+        if (isClass(v)) return "JavaClass";
+        return Array.isArray(v) ? "Array" : tagOf(v);
+      }
+      const brief = v => `${toStr(v)} (${species(v)})`;
+
+      const failure = (fn, cause) => `Failed to call method "${fn}": [ ${cause} ]`;
+      const typeError = (fn, cause) => new TypeError(failure(fn, cause));
+      const argumentType = (fn, param, expected, value) =>
+        typeError(fn, `Argument "${param}" must be of type ${expected}, got ${describe(value)}`);
+      const arityError = (fn, min, max) => typeError(fn, min === max
+        ? `Method only accepts ${min} argument${min === 1 ? "" : "s"}`
+        : `Method only accepts a number of arguments in the range [${min}..${max}]`);
+      function named(error, name) {
+        Object.defineProperty(error, "name", { value: name, writable: true, configurable: true });
+        return error;
+      }
+      // A Java exception as Rhino scripts catch it (a JavaException): named by the simple class name, with the message
+      // "<class>: <message>".
+      const javaError = (className, message, cause) => named(new Error(`${className}: ${message}`, cause ? { cause } : undefined),
+        className.slice(Math.max(className.lastIndexOf("."), className.lastIndexOf("$")) + 1));
+      // WrappedIllegalArgumentException is an EvaluatorException, which Rhino scripts catch as an InternalError; Kotlin's
+      // require throws a plain IllegalArgumentException (javaError(IAE, ...)).
+      const internalError = message => named(new Error(message), "InternalError");
+      // A failed facade call ("<label>: <class>: <message>") as the Java exception it reports.
+      function javaFailure(e) {
+        if (!(e instanceof Error) || e.code !== CALL_FAILED) return e;
+        const text = String(e.message);
+        const start = text.indexOf(": ") + 2;
+        const end = start > 1 ? text.indexOf(": ", start) : -1;
+        const className = end > start ? text.slice(start, end) : "";
+        return JAVA_NAME.test(className) ? javaError(className, text.slice(end + 2), e) : e;
+      }
+
+      // Argument checks of the module layer (ScriptArgs): trailing undefined beyond the required arguments is omitted.
+      function count(args, min) {
+        let n = args.length;
+        while (n > min && args[n - 1] === undefined) n--;
+        return n;
+      }
+      function string(value, fn, param) {
+        if (typeof value === "string") return value;
+        if (isNullish(value) || typeof value === "symbol") throw argumentType(fn, param, "string", value);
+        return toStr(value);
+      }
+      function nonBlank(fn, param, value) {
+        if (isBlank(value)) throw new RangeError(failure(fn, `Argument "${param}" cannot be "${value}"`));
+        return value;
+      }
+      function moduleOptions(fn, value) {
+        if (isNullish(value)) return null;
+        if (isScriptObject(value) && typeof value === "object" && !Array.isArray(value)) return value;
+        throw argumentType(fn, "options", "Object", value);
+      }
+      // ZipModule.destinationAndOptions: a plain object in place of an omitted destination is the options.
+      function destinationAndOptions(fn, param, destination, options) {
+        if (options === ABSENT && isNativeObject(destination)) return [null, destination];
+        let path = null;
+        if (!isNullish(destination)) {
+          if (!["string", "number", "boolean", "bigint"].includes(typeof destination)) {
+            throw argumentType(fn, param, "string | null | undefined", destination);
+          }
+          path = `${destination}`;
+        }
+        return [path, moduleOptions(fn, options === ABSENT ? null : options)];
+      }
+
+      // ArgumentGuards of ZipNativeObject: exact argument counts, a WrappedIllegalArgumentException.
+      function argumentsInRange(args, min, max) {
+        if (args.length < min || args.length > max) {
+          throw internalError(`Method only accepts a number of arguments in the range [${min}..${max}]`);
+        }
+      }
+      function noArguments(args) {
+        if (args.length) throw internalError("Arguments must be empty");
+      }
+      function oneArgument(args) {
+        if (!args.length) throw internalError("Arguments cannot be empty");
+        if (args.length > 1) throw internalError("Method only accepts 1 argument");
+        return args[0];
+      }
+      // RhinoUtils.coerceString / coerceLongNumber / coerceIntNumber.
+      function coerceString(v) {
+        if (isNullish(v)) throw javaError(IAE, `Failed to coerce nullish (${species(v)}) into a string`);
+        return toStr(v);
+      }
+      function integral(v, min, max, target) {
+        const n = typeof v === "bigint" ? Number(v) : +v;
+        if (Number.isNaN(n)) throw javaError(IAE, `Failed to coerce ${brief(v)} into a valid number`);
+        if (!Number.isFinite(n)) throw javaError(IAE, `Failed to coerce ${brief(v)} into a finite ${target} number`);
+        const t = Math.trunc(n);
+        if (t < min || t > max) throw javaError(IAE, `Failed to coerce ${brief(v)} into a ${target} number without overflow`);
+        return t;
+      }
+      const coerceInt = v => integral(v, -2147483648, 2147483647, "Int");
+      // The largest double below 2^63 is the upper bound, as in the host.
+      const coerceLong = v => BigInt(integral(v, -9223372036854775808, 9223372036854774784, "Long"));
+
+      // Files.path / nonNullPath: relative paths are resolved against the working directory segment by segment, an
+      // absolute path is kept as it is. java.io.File drops duplicate and trailing separators.
+      function normalize(path) {
+        let out = String(path);
+        while (out.includes("//")) out = out.split("//").join("/");
+        return out.length > 1 && out.endsWith("/") ? out.slice(0, -1) : out;
+      }
+      function parentOf(path) {
+        const index = path.lastIndexOf("/");
+        const prefix = path.startsWith("/") ? 1 : 0;
+        if (index < prefix) return prefix > 0 && path.length > prefix ? path.slice(0, prefix) : null;
+        return path.slice(0, index);
+      }
+      const childOf = (parent, name) => parent === "" || parent === "/" ? `/${name}` : `${parent}/${name}`;
+      function resolve(relative) {
+        if (relative.startsWith("/")) return relative;
+        const cwd = host.cwd();
+        if (isNullish(cwd)) return null;
+        let file = normalize(cwd);
+        for (const segment of relative.split("/")) {
+          if (segment === "..") {
+            file = parentOf(file);
+            if (file === null) return null;
+          } else if (segment !== "." && !isBlank(segment)) {
+            file = childOf(file, segment);
+          }
+        }
+        return relative.endsWith("/") ? `${file}/` : file;
+      }
+      function nonNullPath(relative) {
+        const path = resolve(relative);
+        // The host formats no argument into this resource.
+        if (path === null) throw javaError(IAE, "Resolved path for \"%1$s\" cannot be null");
+        return path;
+      }
+      const absolutePath = path => {
+        const file = normalize(path);
+        return file.startsWith("/") ? file : childOf("/", file);
+      };
+      const nameWithoutExtension = path => {
+        const file = normalize(path);
+        const name = file.slice(file.lastIndexOf("/") + 1);
+        const dot = name.lastIndexOf(".");
+        return dot < 0 ? name : name.slice(0, dot);
+      };
+      // yyyyMMdd-HHmmss-XXXX.zip, local time and four random upper-case hexadecimal digits.
+      function randomZipName() {
+        const d = new Date();
+        const pad = (n, w) => String(n).padStart(w, "0");
+        const time = pad(d.getFullYear(), 4) + pad(d.getMonth() + 1, 2) + pad(d.getDate(), 2) + "-" +
+          pad(d.getHours(), 2) + pad(d.getMinutes(), 2) + pad(d.getSeconds(), 2);
+        return `${time}-${pad(Math.floor(Math.random() * 65536).toString(16).toUpperCase(), 4)}.zip`;
+      }
+
+      // The zip4j enums the options name; a constant is { type, name } until its handle is looked up.
+      const enumType = (className, names, canonical = className) => ({ className, names, canonical });
+      const AES_KEY_STRENGTH = enumType("net.lingala.zip4j.model.enums.AesKeyStrength", ["KEY_STRENGTH_128", "KEY_STRENGTH_192", "KEY_STRENGTH_256"]);
+      const AES_VERSION = enumType("net.lingala.zip4j.model.enums.AesVersion", ["ONE", "TWO"]);
+      const COMPRESSION_LEVEL = enumType("net.lingala.zip4j.model.enums.CompressionLevel", ["NO_COMPRESSION", "FASTEST", "FASTER",
+        "FAST", "MEDIUM_FAST", "NORMAL", "HIGHER", "MAXIMUM", "PRE_ULTRA", "ULTRA"]);
+      const COMPRESSION_METHOD = enumType("net.lingala.zip4j.model.enums.CompressionMethod", ["STORE", "DEFLATE", "AES_INTERNAL_ONLY"]);
+      const ENCRYPTION_METHOD = enumType("net.lingala.zip4j.model.enums.EncryptionMethod", ["NONE", "ZIP_STANDARD",
+        "ZIP_STANDARD_VARIANT_STRONG", "AES"]);
+      const SYMBOLIC_LINK_ACTION = enumType("net.lingala.zip4j.model.ZipParameters$SymbolicLinkAction", ["INCLUDE_LINK_ONLY",
+        "INCLUDE_LINKED_FILE_ONLY", "INCLUDE_LINK_AND_LINKED_FILE"], "net.lingala.zip4j.model.ZipParameters.SymbolicLinkAction");
+      const constant = (type, name) => ({ type, name });
+      const isConstant = (o, type) => isHandle(o) && o.className === type.className;
+      const lookup = (table, key) => Object.hasOwn(table, key) ? table[key] : undefined;
+      function valueOf(type, name) {
+        if (!type.names.includes(name)) throw javaError(IAE, `No enum constant ${type.canonical}.${name}`);
+        return constant(type, name);
+      }
+      const upper = o => toStr(o).toUpperCase();
+      const KEY_STRENGTH_BITS = { 128: "KEY_STRENGTH_128", 192: "KEY_STRENGTH_192", 256: "KEY_STRENGTH_256" };
+      const COMPRESSION_CODES = { 0: "STORE", 8: "DEFLATE", 99: "AES_INTERNAL_ONLY" };
+      const ENCRYPTION_CODES = { "-1": "NONE", 0: "ZIP_STANDARD", 1: "ZIP_STANDARD_VARIANT_STRONG", 99: "AES" };
+      const ENCRYPTION_NAMES = { NO_ENCRYPTION: "NONE", NO: "NONE", STANDARD: "ZIP_STANDARD", STRONG: "ZIP_STANDARD_VARIANT_STRONG" };
+      // ZipNativeObject.toAesKeyStrength and its siblings: the enum itself, a number by its code (null for the default)
+      // or a name.
+      const converters = {
+        aesKeyStrength(o, op) {
+          if (isConstant(o, AES_KEY_STRENGTH)) return o;
+          if (typeof o === "number") {
+            const n = coerceInt(o);
+            const name = AES_KEY_STRENGTH.names[n - 1] || lookup(KEY_STRENGTH_BITS, n);
+            if (name === undefined) throw internalError(`Options property aesKeyStrength ${brief(o)} is invalid for zip.${op}`);
+            return constant(AES_KEY_STRENGTH, name);
+          }
+          const s = upper(o).replace(/^AES_STRENGTH_/, "");
+          const name = lookup(KEY_STRENGTH_BITS, s);
+          return name === undefined ? valueOf(AES_KEY_STRENGTH, s) : constant(AES_KEY_STRENGTH, name);
+        },
+        aesVersion(o) {
+          if (isConstant(o, AES_VERSION)) return o;
+          if (typeof o === "number") {
+            const n = coerceInt(o);
+            return n === 1 || n === 2 ? constant(AES_VERSION, AES_VERSION.names[n - 1]) : null;
+          }
+          const s = upper(o);
+          return s === "1" || s === "2" ? constant(AES_VERSION, AES_VERSION.names[Number(s) - 1]) : valueOf(AES_VERSION, s);
+        },
+        compressionLevel(o) {
+          if (isConstant(o, COMPRESSION_LEVEL)) return o;
+          if (typeof o === "number") {
+            const n = coerceInt(o);
+            return n >= 0 && n <= 9 ? constant(COMPRESSION_LEVEL, COMPRESSION_LEVEL.names[n]) : null;
+          }
+          return valueOf(COMPRESSION_LEVEL, upper(o).replace(/^DEFLATE_LEVEL_/, ""));
+        },
+        compressionMethod(o) {
+          if (isConstant(o, COMPRESSION_METHOD)) return o;
+          if (typeof o === "number") {
+            const name = lookup(COMPRESSION_CODES, coerceInt(o));
+            return name === undefined ? null : constant(COMPRESSION_METHOD, name);
+          }
+          const s = upper(o).replace(/^COMP_/, "");
+          return s === "AES_ENC" ? constant(COMPRESSION_METHOD, "AES_INTERNAL_ONLY") : valueOf(COMPRESSION_METHOD, s);
+        },
+        encryptionMethod(o, op) {
+          if (isConstant(o, ENCRYPTION_METHOD)) return o;
+          if (typeof o === "number") {
+            const name = lookup(ENCRYPTION_CODES, coerceInt(o));
+            if (name === undefined) throw internalError(`Options property encryptionMethod ${brief(o)} is invalid for zip.${op}`);
+            return constant(ENCRYPTION_METHOD, name);
+          }
+          const s = upper(o).replace(/^ENC_METHOD_/, "").replace(/^ENC_/, "");
+          const name = lookup(ENCRYPTION_NAMES, s);
+          return name === undefined ? valueOf(ENCRYPTION_METHOD, s) : constant(ENCRYPTION_METHOD, name);
+        },
+        symbolicLinkAction(o) {
+          return isConstant(o, SYMBOLIC_LINK_ACTION) ? o : valueOf(SYMBOLIC_LINK_ACTION, upper(o));
+        },
+      };
+
+      // ZipNativeObject.buildZipParameters without Java: the calls in Rhino's order, each [method, parameter type or kind,
+      // value], or null for nullish options (a plain ZipParameters). fn names the caller in messages, op the operation
+      // of the Zip; javaMap receives the converted values toString shows.
+      function zipPlan(fn, op, opts, javaMap) {
+        if (isNullish(opts)) return null;
+        if (!isScriptObject(opts)) throw javaError(IAE, `Argument "options" ${brief(opts)} for zip.${fn} must be a JavaScript Object`);
+        const steps = [];
+        const add = (keys, value, step) => {
+          for (const key of keys) javaMap.set(key, value);
+          steps.push(step);
+        };
+        const first = keys => {
+          for (const key of keys) {
+            const value = opts[key];
+            if (!isNullish(value)) return value;
+          }
+          return undefined;
+        };
+        const enumOption = (key, method, type, fallback) => {
+          const raw = opts[key];
+          const value = (isNullish(raw) ? null : converters[key](raw, op)) || constant(type, fallback);
+          add([key], value, [method, "enum", value]);
+        };
+        const option = (keys, method, type, coerce) => {
+          const raw = first(keys);
+          if (isNullish(raw)) return;
+          const value = coerce(raw);
+          add(keys, value, [method, type, value]);
+        };
+        enumOption("aesKeyStrength", "setAesKeyStrength", AES_KEY_STRENGTH, "KEY_STRENGTH_256");
+        enumOption("aesVersion", "setAesVersion", AES_VERSION, "TWO");
+        enumOption("compressionLevel", "setCompressionLevel", COMPRESSION_LEVEL, "NORMAL");
+        enumOption("compressionMethod", "setCompressionMethod", COMPRESSION_METHOD, "DEFLATE");
+        enumOption("encryptionMethod", "setEncryptionMethod", ENCRYPTION_METHOD, "AES");
+        option(["defaultFolderPath"], "setDefaultFolderPath", STRING, coerceString);
+        option(["entryCRC"], "setEntryCRC", "long", coerceLong);
+        option(["entrySize"], "setEntrySize", "long", coerceLong);
+        const filter = opts.excludeFileFilter;
+        if (!isNullish(filter)) {
+          const invalid = () => internalError(`Options property excludeFileFilter ${brief(filter)} for zip.${fn} must be a ` +
+            "ExcludeFileFilter or a JavaScript Function that can be used as an ExcludeFileFilter");
+          if (typeof filter !== "function" && !isHandle(filter)) throw invalid();
+          // A Java value is checked when the call runs; text is what toString shows for the filter.
+          const value = { filter, owner: opts, invalid, text: isHandle(filter) ? javaString(filter) : null };
+          add(["excludeFileFilter"], value, ["setExcludeFileFilter", "filter", value]);
+        }
+        option(["fileComment", "comment"], "setFileComment", STRING, coerceString);
+        option(["fileNameInZip"], "setFileNameInZip", STRING, coerceString);
+        option(["isIncludeRootFolder", "includeRootFolder"], "setIncludeRootFolder", "boolean", Boolean);
+        option(["isOverrideExistingFilesInZip", "overrideExistingFilesInZip"], "setOverrideExistingFilesInZip", "boolean", Boolean);
+        option(["isReadHiddenFiles", "readHiddenFiles"], "setReadHiddenFiles", "boolean", Boolean);
+        option(["isReadHiddenFolders", "readHiddenFolders"], "setReadHiddenFolders", "boolean", Boolean);
+        option(["isUnixMode", "unixMode"], "setUnixMode", "boolean", Boolean);
+        option(["isWriteExtendedLocalFileHeader", "writeExtendedLocalFileHeader"], "setWriteExtendedLocalFileHeader", "boolean", Boolean);
+        option(["lastModifiedFileTime"], "setLastModifiedFileTime", "long", coerceLong);
+        option(["rootFolderNameInZip"], "setRootFolderNameInZip", STRING, coerceString);
+        enumOption("symbolicLinkAction", "setSymbolicLinkAction", SYMBOLIC_LINK_ACTION, "INCLUDE_LINKED_FILE_ONLY");
+        option(["isEncryptFiles", "encryptFiles"], "setEncryptFiles", "boolean", Boolean);
+        const password = opts.password;
+        if (!isNullish(password)) {
+          const value = coerceString(password);
+          javaMap.set("password", value);
+          steps.push(["setPassword", "password", value], ["setEncryptFiles", "boolean", true]);
+        }
+        return steps;
+      }
+      // ZipNativeObject.buildUnzipParameters without Java: the password and the error to throw after setting it.
+      function unzipPlan(fn, opts) {
+        if (isNullish(opts)) return { password: undefined, error: null };
+        if (!isScriptObject(opts)) throw javaError(IAE, `Argument "options" ${brief(opts)} for zip.${fn} must be a JavaScript Object`);
+        // Read and ignored, as in Rhino.
+        void opts.isExtractSymbolicLinks;
+        const raw = opts.password;
+        const password = isNullish(raw) ? undefined : coerceString(raw);
+        const ignored = ["isIgnoreDateTimeAttributes", "ignoreDateTimeAttributes"].some(key => !isNullish(opts[key]));
+        return { password, error: ignored
+          ? internalError(`Options property ignoreDateTimeAttributes for zip.${fn} is no longer supported since Zip4j library version 2.x`)
+          : null };
+      }
+      const display = v => isHandle(v) ? javaString(v)
+        : v !== null && typeof v === "object" ? (v.type ? v.name : v.text || "ExcludeFileFilter") : String(v);
+
+      // Java helpers. Enum constants are looked up once per js tools instance (one execution).
+      const constants = new Map();
+      function constantHandle(java, value) {
+        if (isHandle(value)) return value;
+        const key = `${value.type.className}.${value.name}`;
+        let handle = constants.get(key);
+        if (!handle) {
+          handle = java.getStatic(value.type.className, value.name);
+          constants.set(key, handle);
+          handle.catch(() => constants.delete(key));
+        }
+        return handle;
+      }
+      const releaseAll = (java, handles) => Promise.all(handles.splice(0).map(h => java.release(h).catch(() => {})));
+      // Runs work with temporary handles (temp(handle) registers one), released afterwards.
+      async function scoped(java, work) {
+        const temps = [];
+        try {
+          return await work(handle => (temps.push(handle), handle));
+        } catch (e) {
+          throw javaFailure(e);
+        } finally {
+          await releaseAll(java, temps);
+        }
+      }
+      const types = (...parameterTypes) => ({ parameterTypes });
+      const work = (...parameterTypes) => ({ parameterTypes, timeoutMs: WORK });
+      const chars = s => Array.from({ length: s.length }, (_, i) => s[i]);
+      const setPassword = (state, password) => state.zipFile.call("setPassword", [chars(password)], types("char[]"));
+      // ZipNativeObject.toExcludeFileFilter: the function is called with the options as this. zip4j wraps an error it
+      // throws in a ZipException, in Rhino as here, so the callback error is not reported again.
+      async function excludeFileFilter(java, value, own) {
+        const { filter, owner } = value;
+        if (isHandle(filter)) {
+          if (!await java.instanceOf(filter, EXCLUDE_FILE_FILTER)) throw value.invalid();
+          return filter;
+        }
+        const proxy = own(await java.proxy(EXCLUDE_FILE_FILTER, {
+          async isExcluded(file) {
+            return Boolean(await filter.call(owner, file));
+          },
+        }, { callbackTimeoutMs: 120000, onError() {} }));
+        value.text = javaString(proxy);
+        return proxy;
+      }
+      async function newZipParameters(java, state, steps, own) {
+        const params = own(await java.new(ZIP_PARAMETERS, [], types()));
+        for (const [method, kind, value] of steps || []) {
+          if (kind === "password") {
+            await setPassword(state, value);
+          } else if (kind === "enum") {
+            await params.call(method, [await constantHandle(java, value)], types(isHandle(value) ? value.className : value.type.className));
+          } else if (kind === "filter") {
+            await params.call(method, [await excludeFileFilter(java, value, own)], types(EXCLUDE_FILE_FILTER));
+          } else {
+            await params.call(method, [value], types(kind));
+          }
+        }
+        return params;
+      }
+      // Lists the elements of a Java Iterable as script values (Strings by value, other objects by toString).
+      async function javaElements(java, handle, notIterable) {
+        if (!await java.instanceOf(handle, "java.lang.Iterable")) throw notIterable();
+        return scoped(java, async temp => {
+          const values = [];
+          const iterator = temp(await handle.call("iterator", [], types()));
+          while (await iterator.call("hasNext", [], types())) {
+            const value = await iterator.call("next", [], types());
+            values.push(isHandle(value) ? String(await temp(value).call("toString", [], types())) : value);
+          }
+          return values;
+        });
+      }
+
+      // The ZipNativeObject constructor without Java: path, options, converted options and the Rhino errors.
+      function prepare(op, rawPath, options) {
+        if (isBlank(rawPath)) throw javaError(IAE, `Argument "path" ${brief(rawPath)} for zip.${op} cannot be empty`);
+        const state = { op, path: nonNullPath(rawPath), options: isNullish(options) ? {} : options, javaMap: new Map() };
+        state.zipPlan = zipPlan(op, op, state.options, state.javaMap);
+        state.unzipPlan = unzipPlan(op, state.options);
+        if (state.unzipPlan.error) throw state.unzipPlan.error;
+        return state;
+      }
+      // Creates the ZipFile and both parameters, then runs the operation; a failed operation closes the ZipFile (Rhino's
+      // tryWithSelf) and releases the handles.
+      async function create(state, operation) {
+        const java = host.java();
+        Object.assign(state, { java, owned: [], tail: Promise.resolve() });
+        const own = handle => (state.owned.push(handle), handle);
+        try {
+          state.zipFile = own(await java.new(ZIP_FILE, [state.path], types(STRING)));
+          state.zipParameters = await newZipParameters(java, state, state.zipPlan, own);
+          state.unzipParameters = own(await java.new(UNZIP_PARAMETERS, [], types()));
+          // Rhino sets the same password twice.
+          const password = state.unzipPlan.password;
+          const set = (state.zipPlan || []).find(step => step[1] === "password");
+          if (password !== undefined && (!set || set[2] !== password)) await setPassword(state, password);
+        } catch (e) {
+          await releaseAll(java, state.owned);
+          throw javaFailure(e);
+        }
+        if (operation) {
+          try {
+            await operation(java, state);
+          } catch (e) {
+            await state.zipFile.call("close", [], types()).catch(() => {});
+            await releaseAll(java, state.owned);
+            throw javaFailure(e);
+          }
+        }
+        return newZip(state);
+      }
+
+      function describeZip(state) {
+        const opts = state.options;
+        let text = objectToString.call(opts);
+        if (isNativeObject(opts)) {
+          const lines = Object.keys(opts).map(key => {
+            const value = opts[key];
+            const java = state.javaMap.has(key) ? ` [ ${display(state.javaMap.get(key))} ]` : "";
+            return `    ${key}: ${toStr(value === undefined ? null : value)}${java},`;
+          });
+          text = lines.length ? `{\n${lines.join("\n")}\n  }` : "{}";
+        }
+        return ["Zip {", `  operation: ${state.op},`, `  path: ${state.path},`, `  options: ${text},`, "}"].join("\n");
+      }
+      // The own handles of a collected Zip are released after its pending calls.
+      const finalizer = typeof FinalizationRegistry === "function"
+        ? new FinalizationRegistry(state => state.tail.then(() => releaseAll(state.java, state.owned)).catch(() => {}))
+        : null;
+
+      function newZip(state) {
+        const java = state.java;
+        const enqueue = task => {
+          const run = state.tail.then(task);
+          state.tail = run.then(() => {}, () => {});
+          return run;
+        };
+        const call = (method, args, options) => state.zipFile.call(method, args, options);
+        const done = () => undefined;
+        const withZipParameters = (plan, operation) => scoped(java, async temp =>
+          operation(await newZipParameters(java, state, plan, temp), temp));
+        const withUnzipParameters = (plan, operation) => scoped(java, async temp => {
+          const params = temp(await java.new(UNZIP_PARAMETERS, [], types()));
+          if (plan.password !== undefined) await setPassword(state, plan.password);
+          return operation(params);
+        });
+        // buildUnzipParameters has set the password on the ZipFile when it throws, and the ZipFile keeps it.
+        const unzipOptions = (fn, opts) => {
+          const plan = unzipPlan(fn, opts);
+          if (plan.error) {
+            if (plan.password !== undefined) enqueue(() => setPassword(state, plan.password)).catch(() => {});
+            throw plan.error;
+          }
+          return plan;
+        };
+        const fileOperation = (fn, method, args) => {
+          argumentsInRange(args, 1, 2);
+          const path = nonNullPath(coerceString(args[0]));
+          const plan = zipPlan(fn, state.op, args[1], state.javaMap);
+          return enqueue(() => withZipParameters(plan, async (params, temp) => {
+            const file = temp(await java.new(FILE, [path], types(STRING)));
+            await call(method, [file, params], work(FILE, ZIP_PARAMETERS));
+          })).then(done);
+        };
+        const retained = handle => enqueue(() => java.retain(handle));
+        const methods = {
+          toString(...args) {
+            noArguments(args);
+            return describeZip(state);
+          },
+          addFile(...args) {
+            return fileOperation("addFile", "addFile", args);
+          },
+          addFiles(...args) {
+            argumentsInRange(args, 1, 2);
+            const list = args[0];
+            const isList = Array.isArray(list) || (ArrayBuffer.isView(list) && !(list instanceof DataView));
+            const notIterable = () => javaError(IAE, `Argument "filePathList" ${brief(list)} for ZipNativeObject#addFiles must be an Iterable`);
+            if (!isList && !isHandle(list)) throw notIterable();
+            const paths = isList ? Array.from(list, value => nonNullPath(coerceString(value))) : null;
+            const plan = zipPlan("addFiles", state.op, args[1], state.javaMap);
+            return enqueue(async () => {
+              const values = paths || (await javaElements(java, list, notIterable)).map(value => nonNullPath(coerceString(value)));
+              await withZipParameters(plan, async (params, temp) => {
+                const files = [];
+                for (const path of values) files.push(temp(await java.new(FILE, [path], types(STRING))));
+                const fileList = temp(await java.callStatic("java.util.Arrays", "asList", [files], types("java.lang.Object[]")));
+                await call("addFiles", [fileList, params], work("java.util.List", ZIP_PARAMETERS));
+              });
+            }).then(done);
+          },
+          addFolder(...args) {
+            return fileOperation("addFolder", "addFolder", args);
+          },
+          extractAll(...args) {
+            argumentsInRange(args, 1, 2);
+            const destPath = nonNullPath(coerceString(args[0]));
+            const plan = unzipOptions("extractAll", args[1]);
+            return enqueue(() => withUnzipParameters(plan, params =>
+              call("extractAll", [destPath, params], work(STRING, UNZIP_PARAMETERS)))).then(done);
+          },
+          extractFile(...args) {
+            argumentsInRange(args, 2, 4);
+            const [rawZipFilePath, rawDestPath, options, rawNewFileName] = args;
+            // As in Rhino, the entry name is resolved like a file path.
+            const zipFilePath = nonNullPath(coerceString(rawZipFilePath));
+            const destPath = nonNullPath(coerceString(rawDestPath));
+            const newFileName = isNullish(rawNewFileName) ? null : coerceString(rawNewFileName);
+            const plan = unzipOptions("extractFile", options);
+            return enqueue(() => withUnzipParameters(plan, params => call("extractFile", [zipFilePath, destPath, newFileName, params],
+              work(STRING, STRING, STRING, UNZIP_PARAMETERS)))).then(done);
+          },
+          setPassword(...args) {
+            const password = coerceString(oneArgument(args));
+            return enqueue(() => scoped(java, () => setPassword(state, password))).then(done);
+          },
+          getFileHeader(...args) {
+            const fileName = coerceString(oneArgument(args));
+            // The host declares a non-null FileHeader, so a missing entry is a NullPointerException.
+            return enqueue(() => scoped(java, () => call("getFileHeader", [fileName], work(STRING)))).then(header => {
+              if (header === null || header === undefined) throw javaError("java.lang.NullPointerException", "ensureArgumentsOnlyOne(...) must not be null");
+              return header;
+            });
+          },
+          getFileHeaders(...args) {
+            noArguments(args);
+            return enqueue(() => scoped(java, async temp => {
+              const list = temp(await call("getFileHeaders", [], work()));
+              return Array.from(await list.call("toArray", [], types()));
+            }));
+          },
+          isEncrypted(...args) {
+            noArguments(args);
+            return enqueue(() => scoped(java, () => call("isEncrypted", [], work())));
+          },
+          removeFile(...args) {
+            const fileName = coerceString(oneArgument(args));
+            return enqueue(() => scoped(java, () => call("removeFile", [fileName], work(STRING)))).then(done);
+          },
+          isValidZipFile(...args) {
+            noArguments(args);
+            return enqueue(() => scoped(java, () => call("isValidZipFile", [], work())));
+          },
+          getPath(...args) {
+            noArguments(args);
+            return state.path;
+          },
+          getZipFile(...args) {
+            noArguments(args);
+            return retained(state.zipFile);
+          },
+        };
+        // Rhino's attributes: functions PERMANENT, toStringReadable READONLY | DONTENUM | PERMANENT, the values READONLY |
+        // PERMANENT. zipFile, zipParameters and unzipParameters are async methods here.
+        const zipObject = {};
+        const define = (key, value, writable, enumerable) =>
+          Object.defineProperty(zipObject, key, { value, writable, enumerable, configurable: false });
+        for (const key of Object.keys(methods)) define(key, methods[key], true, true);
+        define("toStringReadable", function toStringReadable() { return describeZip(state); }, false, false);
+        define("name", state.op, false, true);
+        define("path", state.path, false, true);
+        define("zipFile", function zipFile() { return retained(state.zipFile); }, false, true);
+        define("options", state.options, false, true);
+        define("zipParameters", function zipParameters() { return retained(state.zipParameters); }, false, true);
+        define("unzipParameters", function unzipParameters() { return retained(state.unzipParameters); }, false, true);
+        if (finalizer) finalizer.register(zipObject, state);
+        return zipObject;
+      }
+
+      // The module functions (ZipModule and its generated binding).
+      const withFile = (java, path, operation) => scoped(java, async temp =>
+        operation(temp(await java.new(FILE, [path], types(STRING)))));
+      function zip(...args) {
+        if (count(args, 1) !== 1) throw arityError("zip", 1, 1);
+        return create(prepare("open", nonBlank("zip", "zipPath", string(args[0], "zip", "zipPath")), null));
+      }
+      function open(...args) {
+        const fn = "zip.open";
+        const n = count(args, 1);
+        if (n < 1 || n > 2) throw arityError(fn, 1, 2);
+        const zipPath = nonBlank(fn, "zipPath", string(args[0], fn, "zipPath"));
+        return create(prepare("open", zipPath, moduleOptions(fn, n === 2 ? args[1] : null)));
+      }
+      // zipFile and zipDir: the default destination is "<name without extension>.zip" in the working directory.
+      function sourceOperation(fn, op, param, args, operation) {
+        const n = count(args, 2);
+        if (n < 2 || n > 3) throw arityError(fn, 2, 3);
+        const sourcePath = string(args[0], fn, param);
+        const [destination, options] = destinationAndOptions(fn, "destZipPath", args[1], n === 3 ? args[2] : ABSENT);
+        const source = nonNullPath(nonBlank(fn, param, sourcePath));
+        const state = prepare(op, destination === null ? `${nameWithoutExtension(source)}.zip` : destination, options);
+        return create(state, (java, state) => withFile(java, source, file => operation(state, file)));
+      }
+      function zipFile(...args) {
+        return sourceOperation("zip.zipFile", "zipFile", "filePath", args, (state, file) =>
+          state.zipFile.call("addFile", [file, state.zipParameters], work(FILE, ZIP_PARAMETERS)));
+      }
+      function zipDir(...args) {
+        return sourceOperation("zip.zipDir", "zipDir", "dirPath", args, (state, dir) =>
+          state.zipFile.call("createSplitZipFileFromFolder", [dir, state.zipParameters, false, -1], work(FILE, ZIP_PARAMETERS, "boolean", "long")));
+      }
+      function zipFiles(...args) {
+        const fn = "zip.zipFiles";
+        const n = count(args, 2);
+        if (n < 2 || n > 3) throw arityError(fn, 2, 3);
+        const list = args[0];
+        if (isNullish(list)) throw typeError(fn, `Argument "filePathList" cannot be ${describe(list)}`);
+        const notIterable = () => argumentType(fn, "filePathList", "Array | java.lang.Iterable", list);
+        if (!Array.isArray(list) && !isHandle(list)) throw notIterable();
+        const [destination, options] = destinationAndOptions(fn, "destZipPath", args[1], n === 3 ? args[2] : ABSENT);
+        const toPath = (value, i) => nonNullPath(nonBlank(fn, `filePathList[${i}]`, string(value, fn, `filePathList[${i}]`)));
+        const values = Array.isArray(list) ? Array.from({ length: list.length }, (_, i) => Object.hasOwn(list, i) ? list[i] : undefined) : null;
+        // Rhino checks each element and then that its file exists: only the first element is checked before any work.
+        const firstPath = values && values.length ? toPath(values[0], 0) : undefined;
+        return (async () => {
+          const java = host.java();
+          const elements = values || await javaElements(java, list, notIterable);
+          return scoped(java, async temp => {
+            const files = [];
+            for (let i = 0; i < elements.length; i++) {
+              const path = i === 0 && values ? firstPath : toPath(elements[i], i);
+              const file = temp(await java.new(FILE, [path], types(STRING)));
+              if (!await file.call("exists", [], types())) throw javaError(IAE, `File ${absolutePath(path)} does not exist`);
+              files.push({ path: absolutePath(path), file });
+            }
+            let target = destination;
+            if (target === null && files.length === 1) {
+              target = `${nameWithoutExtension(files[0].path)}.zip`;
+            } else if (target === null) {
+              const parents = new Set();
+              for (const { path, file } of files) parents.add(await file.call("isFile", [], types()) ? parentOf(path) : path);
+              const [only] = parents;
+              target = parents.size === 1 && only !== null ? `${nameWithoutExtension(only)}.zip` : randomZipName();
+            }
+            return create(prepare("zipFiles", target, options), async (java, state) => {
+              const fileList = temp(await java.callStatic("java.util.Arrays", "asList", [files.map(f => f.file)], types("java.lang.Object[]")));
+              await state.zipFile.call("addFiles", [fileList, state.zipParameters], work("java.util.List", ZIP_PARAMETERS));
+            });
+          });
+        })();
+      }
+      function unzip(...args) {
+        const fn = "zip.unzip";
+        const n = count(args, 2);
+        if (n < 2 || n > 3) throw arityError(fn, 2, 3);
+        const zipPath = string(args[0], fn, "zipPath");
+        const [destination, options] = destinationAndOptions(fn, "destPath", args[1], n === 3 ? args[2] : ABSENT);
+        const state = prepare("unzip", nonBlank(fn, "zipPath", zipPath), options);
+        const destPath = nonNullPath(destination === null ? "" : destination);
+        return create(state, (java, state) =>
+          state.zipFile.call("extractAll", [destPath, state.unzipParameters], work(STRING, UNZIP_PARAMETERS)));
+      }
+
+      const members = [["open", 1, open], ["zipFile", 2, zipFile], ["zipDir", 2, zipDir], ["zipFiles", 2, zipFiles], ["unzip", 2, unzip]];
+      for (const [, length, fn] of [["zip", 1, zip], ...members]) Object.defineProperty(fn, "length", { value: length });
+      for (const [name, , fn] of members) {
+        Object.defineProperty(zip, name, { value: fn, writable: true, enumerable: true, configurable: false });
+      }
+      return zip;
+    }
+    function __autojs6_js_tools_mime_recorder(host) {
+      // mime and the timing recorder of AutoJs6 Rhino scripts (api-coverage P3.2b), ported from MimeModule / Mime and
+      // RecorderModule / Recorder. In Rhino both module objects are functions whose prototype is a Java object (Mime,
+      // runtime.recorder); here its members are own properties, called the way Rhino calls a Java method: the overload
+      // with as many parameters as arguments, undefined passed as the string "undefined", a Java exception thrown as an
+      // error named after its class. host: { device: { sdkInt } } (optional; selects the MimeTypeMap table).
+      const failure = (fn, cause) => `Failed to call method "${fn}": [ ${cause} ]`;
+      const plural = n => `${n} argument${n === 1 ? "" : "s"}`;
+      const arityText = (min, max) => min === max ? `Method only accepts ${plural(min)}`
+        : `Method only accepts a number of arguments in the range [${min}..${max}]`;
+      const tagOf = v => Object.prototype.toString.call(v).slice(8, -1);
+      const named = (name, length, f) => Object.defineProperties(f, {name: {value: name}, length: {value: length}});
+      // ScriptAttributes.PERMANENT: writable and enumerable, not configurable.
+      const define = (target, name, value) => Object.defineProperty(target, name, {value, writable: true, enumerable: true, configurable: false});
+
+      // ScriptArgs.count: trailing undefined arguments beyond the required ones count as omitted.
+      function count(args, min) {
+        let n = args.length;
+        while (n > min && args[n - 1] === undefined) n--;
+        return n;
+      }
+
+      // ScriptArgs.describe: a bigint is a Java Number there.
+      function describe(v) {
+        if (v === null) return "null";
+        switch (typeof v) {
+          case "number":
+          case "bigint":
+            return "number";
+          case "object":
+            return tagOf(v);
+          default:
+            return typeof v;
+        }
+      }
+
+      // Java interop of Rhino (NativeJavaMethod, NativeJavaObject.coerceTypeImpl).
+
+      // A Java exception reaches scripts as "JavaException <class>"; here an error named after the class.
+      function javaError(name, message) {
+        const e = new Error(message);
+        e.name = name;
+        return e;
+      }
+
+      function internalError(message) {
+        const e = new Error(message);
+        e.name = "InternalError";
+        return e;
+      }
+
+      // A String parameter: undefined is "undefined", null stays null, anything else its string.
+      const javaString = v => v === undefined ? "undefined" : v === null ? null : `${v}`;
+      // An Object parameter: undefined is "undefined", anything else as it is.
+      const javaObject = v => v === undefined ? "undefined" : v;
+
+      function signature(args) {
+        return args.map(v => {
+          if (v === null) return "null";
+          if (v === undefined) return "org.mozilla.javascript.Undefined";
+          switch (typeof v) {
+            case "boolean":
+            case "string":
+            case "function":
+              return typeof v;
+            case "number":
+            case "bigint":
+              return "number";
+            default:
+              return "object";
+          }
+        }).join(",");
+      }
+
+      // A method of a Java object: overloads by parameter count, Rhino calls the one with as many parameters as arguments.
+      function javaMethod(className, name, overloads) {
+        return named(name, 0, {
+          [name](...args) {
+            const overload = overloads[args.length];
+            if (!overload) throw internalError(`Can't find method ${className}.${name}(${signature(args)}).`);
+            return overload.apply(this, args);
+          },
+        }[name]);
+      }
+
+      // Kotlin's check of a non-null parameter.
+      function nonNull(value, method, param) {
+        if (value === null) throw javaError("NullPointerException", `Parameter specified as non-null is null: method ${method}, parameter ${param}`);
+        return value;
+      }
+
+      // mime
+
+      const MIME = "org.autojs.autojs.runtime.api.Mime";
+      const MIME_UTIL = "eu.medsea.mimeutil.MimeUtil2";
+      const MEDIA_TYPE = "okhttp3.MediaType";
+      const WILDCARD = "*/*";
+      // Java String.trim (code units up to U+0020), and the \s and \w of the MimeModule regexes as Android's ICU regex
+      // engine reads them (the Unicode White_Space property, word characters of all scripts; checked on a device).
+      const javaTrim = s => s.replace(/^[\x00-\x20]+|[\x00-\x20]+$/g, "");
+      const ICU_SPACE = "[\\t\\n\\x0B\\f\\r \\x85\\xA0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]";
+      const PARAMETER_SEPARATOR = new RegExp(`${ICU_SPACE}*;${ICU_SPACE}*`);
+      const KEY_VALUE_SEPARATOR = new RegExp(`${ICU_SPACE}*=${ICU_SPACE}*`);
+      const IDENTIFIER_KEY = /^"([a-zA-Z_][\p{Alphabetic}\p{M}\p{Nd}\p{Pc}\p{Join_Control}]*)"$/u;
+      const QUOTE_AT_ENDS = /^"|"$/g;
+
+      // eu.medsea.mimeutil.MimeType(String): the trimmed text split on [/;]++ (Java drops the trailing empty parts); a
+      // blank part is "*", and so is every subtype of the type "*". A blank text is a MimeException.
+      function mimeTypeOf(text) {
+        if (text === null || javaTrim(text) === "") throw javaError("MimeException", `Invalid MimeType [${text}]`);
+        const parts = javaTrim(text).split(/[\/;]+/);
+        while (parts.length > 0 && parts[parts.length - 1] === "") parts.pop();
+        const type = parts.length > 0 && javaTrim(parts[0]) !== "" ? parts[0] : "*";
+        const subtype = parts.length > 1 && javaTrim(parts[1]) !== "" && type !== "*" ? parts[1] : "*";
+        return {type, subtype};
+      }
+
+      const readonly = value => ({value, writable: false, enumerable: true, configurable: true});
+
+      // MimeModule.parse: the JsMime result, its fields READONLY; parameters is a plain object of the "key=value" entries.
+      function parse(mimeString) {
+        if (typeof mimeString !== "string") {
+          throw new TypeError(failure("mime", `Argument "mimeString" must be of type string, got ${describe(mimeString)}`));
+        }
+        const {type, subtype} = mimeTypeOf(mimeString);
+        const refined = `${type}/${subtype}`;
+        const parameters = {};
+        const entries = mimeString.split(PARAMETER_SEPARATOR).slice(1).filter(entry => entry.length > 0);
+        for (const entry of entries) {
+          if (!entry.includes("=")) continue;
+          const [key, value] = entry.split(KEY_VALUE_SEPARATOR);
+          // A key such as "__proto__" is an own property as in Rhino.
+          Object.defineProperty(parameters, key, {value, writable: true, enumerable: true, configurable: true});
+        }
+        const full = entries.length === 0 ? refined : `${refined}; ${entries.join("; ")}`;
+        return Object.create(jsMimePrototype, {
+          raw: readonly(mimeString),
+          type: readonly(type),
+          subtype: readonly(subtype),
+          mimeType: readonly(full),
+          mimeTypeRefined: readonly(refined),
+          parameters: readonly(parameters),
+        });
+      }
+
+      // The obsolete util.format of a flat object: one entry per line when the entries are longer than 60 characters.
+      function primitive(value) {
+        if (typeof value === "string") return `'${JSON.stringify(value).slice(1, -1).replaceAll("'", "\\'").replaceAll('\\"', '"')}'`;
+        return value === null ? "null" : `${value}`;
+      }
+
+      function inspect(value) {
+        if (value === null || (typeof value !== "object" && typeof value !== "function")) return primitive(value);
+        const entries = Object.keys(value).map(key => {
+          const quoted = JSON.stringify(key);
+          const name = IDENTIFIER_KEY.test(quoted) ? quoted.slice(1, -1)
+            : quoted.replaceAll("'", "\\'").replaceAll('\\"', '"').replace(QUOTE_AT_ENDS, "'");
+          return `${name}: ${primitive(value[key])}`;
+        });
+        if (entries.length === 0) return "{}";
+        const length = entries.reduce((sum, entry) => sum + entry.length + 1, 0);
+        return length > 60 ? `{ ${entries.join(",\n  ")} }` : `{ ${entries.join(", ")} }`;
+      }
+
+      // The multi-line text of the obsolete JsMime#toString, from the fields of the receiver as they are now.
+      function describeMime(self) {
+        // A null field reads as undefined, as the host's ScriptableObject.getProperty null check makes it.
+        const field = name => self === null || self === undefined || self[name] === null ? undefined : self[name];
+        const text = name => `${field(name)}`;
+        return `JsMime {\n  type: '${text("type")}',\n  subtype: '${text("subtype")}',\n  mimeType: '${text("mimeType")}',\n` +
+          `  mimeTypeRefined: '${text("mimeTypeRefined")}',\n  parameters: ${inspect(field("parameters"))},\n  raw: '${text("raw")}',\n}`;
+      }
+
+      // The JsMime prototype: constructor and toString as the obsolete module had them, toStringReadable not enumerable.
+      const jsMimePrototype = {};
+      const JsMime = function JsMime(mimeString) {
+        return parse(mimeString);
+      };
+      JsMime.prototype = jsMimePrototype;
+      const methods = {
+        toString() {
+          return describeMime(this);
+        },
+        toStringReadable() {
+          return describeMime(this);
+        },
+      };
+      Object.defineProperties(jsMimePrototype, {
+        constructor: {value: JsMime, writable: true, enumerable: true, configurable: true},
+        toString: {value: methods.toString, writable: true, enumerable: true, configurable: true},
+        toStringReadable: {value: methods.toStringReadable, writable: true, enumerable: false, configurable: true},
+      });
+
+      // Mime.kt constants by type: the name of each is its value in upper case with every other character as "_".
+      const CONSTANT_TYPES = [
+        ["application",
+          "atom+xml x-www-form-urlencoded json-patch+json svg+xml xhtml+xml bz2 gzip java-archive json msword octet-stream " +
+          "oda pdf postscript rtf vnd.ms-excel vnd.ms-powerpoint vnd.oasis.opendocument.presentation " +
+          "vnd.oasis.opendocument.spreadsheet vnd.oasis.opendocument.text " +
+          "vnd.openxmlformats-officedocument.presentationml.presentation " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.sheet " +
+          "vnd.openxmlformats-officedocument.wordprocessingml.document vnd.rar x-7z-compressed x-bcpio x-cpio x-dvi x-gtar " +
+          "x-hdf x-latex x-netcdf x-shar x-sv4cpio x-sv4crc x-tar x-tex x-texinfo x-troff x-troff-man x-troff-me " +
+          "x-troff-ms x-troff-msvideo x-ustar x-wais-source xml zip 1d-interleaved-parityfec 3gpdash-qoe-report+xml " +
+          "3gppHalForms+json 3gppHal+json 3gpp-ims+xml A2L ace+cbor ace+json activemessage activity+json aif+cbor aif+json " +
+          "alto-cdnifilter+json alto-cdni+json alto-costmapfilter+json alto-costmap+json alto-directory+json " +
+          "alto-endpointcostparams+json alto-endpointcost+json alto-endpointpropparams+json alto-endpointprop+json " +
+          "alto-error+json alto-networkmapfilter+json alto-networkmap+json alto-propmapparams+json alto-propmap+json " +
+          "alto-tipsparams+json alto-tips+json alto-updatestreamcontrol+json alto-updatestreamparams+json AML andrew-inset " +
+          "applefile ATF ATFX atomcat+xml atomdeleted+xml atomicmail atomsvc+xml atsc-dwd+xml atsc-dynamic-event-message " +
+          "atsc-held+xml atsc-rdt+json atsc-rsat+xml ATXML at+jwt auth-policy+xml automationml-amlx+zip " +
+          "automationml-aml+xml bacnet-xdd+zip batch-SMTP beep+xml c2pa calendar+json calendar+xml call-completion " +
+          "CALS-1840 captive+json cbor cbor-seq cccex ccmp+xml ccxml+xml cda+xml CDFX+XML cdmi-capability cdmi-container " +
+          "cdmi-domain cdmi-object cdmi-queue cdni CEA cea-2018+xml cellml+xml cfw cid-edhoc+cbor-seq city+json clr " +
+          "clue_info+xml clue+xml cms cnrp+xml coap-group+json coap-payload commonground concise-problem-details+cbor " +
+          "conference-info+xml cose cose-key cose-key-set cose-x509 cpl+xml csrattrs CSTAdata+xml csta+xml csvm+json cwl " +
+          "cwl+json cwt cybercash dashdelta dash-patch+xml dash+xml davmount+xml dca-rft DCD dec-dx dialog-info+xml dicom " +
+          "dicom+json dicom+xml DII DIT dns dns+json dns-message dots+cbor dpop+jwt dskpp+xml dssc+der dssc+xml dvcs " +
+          "ecmascript edhoc+cbor-seq EDIFACT EDI-consent EDI-X12 efi elm+json elm+xml EmergencyCallData.cap+xml " +
+          "EmergencyCallData.Comment+xml EmergencyCallData.Control+xml EmergencyCallData.DeviceInfo+xml " +
+          "EmergencyCallData.eCall.MSD EmergencyCallData.LegacyESN+json EmergencyCallData.ProviderInfo+xml " +
+          "EmergencyCallData.ServiceInfo+xml EmergencyCallData.SubscriberInfo+xml EmergencyCallData.VEDS+xml emma+xml " +
+          "emotionml+xml encaprtp epp+xml epub+zip eshop example exi expect-ct-report+json express fastinfoset fastsoap " +
+          "fdf fdt+xml fhir+json fhir+xml fits flexfec font-sfnt font-tdpfr font-woff framework-attributes+xml " +
+          "geopackage+sqlite3 geoxacml+json geoxacml+xml geo+json geo+json-seq gltf-buffer gml+xml gnap-binding-jws " +
+          "gnap-binding-jwsd gnap-binding-rotation-jws gnap-binding-rotation-jwsd H224 held+xml hl7v2+xml http hyperstudio " +
+          "ibe-key-request+xml ibe-pkg-reply+xml ibe-pp-data iges im-iscomposing+xml index index.cmd index.obj " +
+          "index.response index.vnd inkml+xml IOTP ipfix ipp ISUP its+xml javascript jf2feed+json jose jose+json jrd+json " +
+          "jscalendar+json jscontact+json jsonpath json-seq jwk+json jwk-set+json jwt kpml-request+xml kpml-response+xml " +
+          "ld+json lgr+xml linkset linkset+json link-format load-control+xml logout+jwt lostsync+xml lost+xml lpf+zip LXF " +
+          "macwriteii mac-binhex40 mads+xml manifest+json marc marcxml+xml mathematica mathml-content+xml " +
+          "mathml-presentation+xml mathml+xml mbms-associated-procedure-description+xml mbms-deregister+xml " +
+          "mbms-envelope+xml mbms-msk-response+xml mbms-msk+xml mbms-protection-description+xml mbms-reception-report+xml " +
+          "mbms-register-response+xml mbms-register+xml mbms-schedule+xml mbms-user-service-description+xml mbox " +
+          "mediaservercontrol+xml media_control+xml media-policy-dataset+xml merge-patch+json metalink4+xml mets+xml MF4 " +
+          "mikey mipc missing-blocks+cbor-seq mmt-aei+xml mmt-usd+xml mods+xml mosskey-data mosskey-request moss-keys " +
+          "moss-signature mp21 mp4 mpeg4-generic mpeg4-iod mpeg4-iod-xmt mrb-consumer+xml mrb-publish+xml msc-ivr+xml " +
+          "msc-mixer+xml mud+json multipart-core mxf nasdata news-checkgroups news-groupinfo news-transmission nlsml+xml " +
+          "node nss n-quads n-triples oauth-authz-req+jwt oblivious-dns-message ocsp-request ocsp-response odm+xml ODX " +
+          "oebps-package+xml ogg ohttp-keys opc-nodeset+xml oscore oxps p21 p21+zip p2p-overlay+xml parityfec passport " +
+          "patch-ops-error+xml PDX pem-certificate-chain pgp-encrypted pgp-keys pgp-signature pidf-diff+xml pidf+xml " +
+          "pkcs10 pkcs12 pkcs7-mime pkcs7-signature pkcs8 pkcs8-encrypted pkixcmp pkix-attr-cert pkix-cert pkix-crl " +
+          "pkix-pkipath pls+xml poc-settings+xml ppsp-tracker+json private-token-issuer-directory private-token-request " +
+          "private-token-response problem+json problem+xml provenance+xml prs.alvestrand.titrax-sheet prs.cww prs.cyn " +
+          "prs.hpub+zip prs.implied-document+xml prs.implied-executable prs.implied-object+json " +
+          "prs.implied-object+json-seq prs.implied-object+yaml prs.implied-structure prs.nprend prs.plucker " +
+          "prs.rdf-xml-crypt prs.vcfbzip2 prs.xsf+xml pskc+xml pvd+json QSIG raptorfec rdap+json rdf+xml reginfo+xml " +
+          "relax-ng-compact-syntax remote-printing reputon+json resource-lists-diff+xml resource-lists+xml rfc+xml riscos " +
+          "rlmi+xml rls-services+xml route-apd+xml route-s-tsid+xml route-usd+xml rpki-checklist rpki-ghostbusters " +
+          "rpki-manifest rpki-publication rpki-roa rpki-updown rtploopback rtx samlassertion+xml samlmetadata+xml " +
+          "sarif-external-properties+json sarif+json sbe sbml+xml scaip+xml scim+json scvp-cv-request scvp-cv-response " +
+          "scvp-vp-request scvp-vp-response sdp secevent+jwt senml+cbor senml-etch+cbor senml-etch+json senml-exi " +
+          "senml+json senml+xml sensml+cbor sensml-exi sensml+json sensml+xml sep-exi sep+xml session-info set-payment " +
+          "set-payment-initiation set-registration set-registration-initiation SGML sgml-open-catalog shf+xml sieve " +
+          "simpleSymbolContainer simple-filter+xml simple-message-summary sipc slate smil smil+xml smpte336m " +
+          "soap+fastinfoset soap+xml sparql-query sparql-results+xml spdx+json spirits-event+xml sql srgs srgs+xml sru+xml " +
+          "ssml+xml stix+json swid+cbor swid+xml tamp-apex-update tamp-apex-update-confirm tamp-community-update " +
+          "tamp-community-update-confirm tamp-error tamp-sequence-adjust tamp-sequence-adjust-confirm tamp-status-query " +
+          "tamp-status-response tamp-update tamp-update-confirm taxii+json td+json tei+xml TETRA_ISI thraud+xml " +
+          "timestamped-data timestamp-query timestamp-reply tlsrpt+gzip tlsrpt+json tm+json tnauthlist " +
+          "token-introspection+jwt trickle-ice-sdpfrag trig ttml+xml tve-trigger tzif tzif-leap ulpfec urc-grpsheet+xml " +
+          "urc-ressheet+xml urc-targetdesc+xml urc-uisocketdesc+xml vcard+json vcard+xml vemmi vnd.arastra.swi " +
+          "vnd.cncf.helm.chart.content.v1.tar+gzip vnd.cncf.helm.chart.provenance.v1.prov vnd.cncf.helm.config.v1+json " +
+          "vnd.geo+json vnd.gov.sk.e-form+xml vnd.ibm.afplinedata vnd.ibm.modcap vnd.ims.lis.v2.result+json " +
+          "vnd.ims.lti.v2.toolconsumerprofile+json vnd.ims.lti.v2.toolproxy+json vnd.ims.lti.v2.toolproxy.id+json " +
+          "vnd.ims.lti.v2.toolsettings+json vnd.ims.lti.v2.toolsettings.simple+json vnd.informix-visionary " +
+          "vnd.1000minds.decision-model+xml vnd.1ob vnd.3gpp2.bcmcsinfo+xml vnd.3gpp2.sms vnd.3gpp2.tcap vnd.3gpp.5gnas " +
+          "vnd.3gpp.5gsa2x vnd.3gpp.5gsa2x-local-service-information vnd.3gpp.access-transfer-events+xml vnd.3gpp.bsf+xml " +
+          "vnd.3gpp.crs+xml vnd.3gpp.current-location-discovery+xml vnd.3gpp.GMOP+xml vnd.3gpp.gtpc " +
+          "vnd.3gpp.interworking-data vnd.3gpp.lpp vnd.3gpp.mcdata-affiliation-command+xml vnd.3gpp.mcdata-info+xml " +
+          "vnd.3gpp.mcdata-msgstore-ctrl-request+xml vnd.3gpp.mcdata-payload vnd.3gpp.mcdata-regroup+xml " +
+          "vnd.3gpp.mcdata-service-config+xml vnd.3gpp.mcdata-signalling vnd.3gpp.mcdata-ue-config+xml " +
+          "vnd.3gpp.mcdata-user-profile+xml vnd.3gpp.mcptt-affiliation-command+xml vnd.3gpp.mcptt-floor-request+xml " +
+          "vnd.3gpp.mcptt-info+xml vnd.3gpp.mcptt-location-info+xml vnd.3gpp.mcptt-mbms-usage-info+xml " +
+          "vnd.3gpp.mcptt-regroup+xml vnd.3gpp.mcptt-service-config+xml vnd.3gpp.mcptt-signed+xml " +
+          "vnd.3gpp.mcptt-ue-config+xml vnd.3gpp.mcptt-ue-init-config+xml vnd.3gpp.mcptt-user-profile+xml " +
+          "vnd.3gpp.mcvideo-affiliation-command+xml vnd.3gpp.mcvideo-affiliation-info+xml vnd.3gpp.mcvideo-info+xml " +
+          "vnd.3gpp.mcvideo-location-info+xml vnd.3gpp.mcvideo-mbms-usage-info+xml vnd.3gpp.mcvideo-regroup+xml " +
+          "vnd.3gpp.mcvideo-service-config+xml vnd.3gpp.mcvideo-transmission-request+xml vnd.3gpp.mcvideo-ue-config+xml " +
+          "vnd.3gpp.mcvideo-user-profile+xml vnd.3gpp.mc-signalling-ear vnd.3gpp.mid-call+xml vnd.3gpp.ngap vnd.3gpp.pfcp " +
+          "vnd.3gpp.pic-bw-large vnd.3gpp.pic-bw-small vnd.3gpp.pic-bw-var vnd.3gpp-prose-pc3ach+xml " +
+          "vnd.3gpp-prose-pc3a+xml vnd.3gpp-prose-pc3ch+xml vnd.3gpp-prose-pc8+xml vnd.3gpp-prose+xml vnd.3gpp.s1ap " +
+          "vnd.3gpp.seal-group-doc+xml vnd.3gpp.seal-info+xml vnd.3gpp.seal-location-info+xml " +
+          "vnd.3gpp.seal-mbms-usage-info+xml vnd.3gpp.seal-network-QoS-management-info+xml " +
+          "vnd.3gpp.seal-ue-config-info+xml vnd.3gpp.seal-unicast-info+xml vnd.3gpp.seal-user-profile-info+xml " +
+          "vnd.3gpp.sms vnd.3gpp.sms+xml vnd.3gpp.srvcc-ext+xml vnd.3gpp.SRVCC-info+xml vnd.3gpp.state-and-event-info+xml " +
+          "vnd.3gpp.ussd+xml vnd.3gpp.v2x vnd.3gpp-v2x-local-service-information vnd.3gpp.vae-info+xml " +
+          "vnd.3lightssoftware.imagescal vnd.3M.Post-it-Notes vnd.accpac.simply.aso vnd.accpac.simply.imp " +
+          "vnd.acm.addressxfer+json vnd.acm.chatbot+json vnd.acucobol vnd.acucorp vnd.adobe.flash.movie " +
+          "vnd.adobe.formscentral.fcdt vnd.adobe.fxp vnd.adobe.partial-upload vnd.adobe.xdp+xml vnd.aether.imp " +
+          "vnd.afpc.afplinedata vnd.afpc.afplinedata-pagedef vnd.afpc.cmoca-cmresource vnd.afpc.foca-charset " +
+          "vnd.afpc.foca-codedfont vnd.afpc.foca-codepage vnd.afpc.modca vnd.afpc.modca-cmtable vnd.afpc.modca-formdef " +
+          "vnd.afpc.modca-mediummap vnd.afpc.modca-objectcontainer vnd.afpc.modca-overlay vnd.afpc.modca-pagesegment " +
+          "vnd.age vnd.ahead.space vnd.ah-barcode vnd.airzip.filesecure.azf vnd.airzip.filesecure.azs vnd.amadeus+json " +
+          "vnd.amazon.mobi8-ebook vnd.americandynamics.acc vnd.amiga.ami vnd.amundsen.maze+xml vnd.android.ota vnd.anki " +
+          "vnd.anser-web-certificate-issue-initiation vnd.antix.game-component vnd.apache.arrow.file " +
+          "vnd.apache.arrow.stream vnd.apache.parquet vnd.apache.thrift.binary vnd.apache.thrift.compact " +
+          "vnd.apache.thrift.json vnd.apexlang vnd.api+json vnd.aplextor.warrp+json vnd.apothekende.reservation+json " +
+          "vnd.apple.installer+xml vnd.apple.keynote vnd.apple.mpegurl vnd.apple.numbers vnd.apple.pages " +
+          "vnd.aristanetworks.swi vnd.artisan+json vnd.artsquare vnd.astraea-software.iota vnd.audiograph vnd.autopackage " +
+          "vnd.avalon+json vnd.avistar+xml vnd.balsamiq.bmml+xml vnd.balsamiq.bmpr vnd.banana-accounting vnd.bbf.usp.error " +
+          "vnd.bbf.usp.msg vnd.bbf.usp.msg+json vnd.bekitzur-stech+json vnd.belightsoft.lhzd+zip vnd.belightsoft.lhzl+zip " +
+          "vnd.bint.med-content vnd.biopax.rdf+xml vnd.blink-idb-value-wrapper vnd.blueice.multipass vnd.bluetooth.ep.oob " +
+          "vnd.bluetooth.le.oob vnd.bmi vnd.bpf vnd.bpf3 vnd.businessobjects vnd.byu.uapi+json vnd.bzip3 " +
+          "vnd.c3voc.schedule+xml vnd.cab-jscript vnd.canon-cpdl vnd.canon-lips vnd.capasystems-pg+json " +
+          "vnd.cendio.thinlinc.clientconf vnd.century-systems.tcp_stream vnd.chemdraw+xml vnd.chess-pgn " +
+          "vnd.chipnuts.karaoke-mmd vnd.ciedi vnd.cinderella vnd.cirpack.isdn-ext vnd.citationstyles.style+xml " +
+          "vnd.claymore vnd.cloanto.rp9 vnd.clonk.c4group vnd.cluetrust.cartomobile-config " +
+          "vnd.cluetrust.cartomobile-config-pkg vnd.coffeescript vnd.collabio.xodocuments.document " +
+          "vnd.collabio.xodocuments.document-template vnd.collabio.xodocuments.presentation " +
+          "vnd.collabio.xodocuments.presentation-template vnd.collabio.xodocuments.spreadsheet " +
+          "vnd.collabio.xodocuments.spreadsheet-template vnd.collection.doc+json vnd.collection+json " +
+          "vnd.collection.next+json vnd.comicbook-rar vnd.comicbook+zip vnd.commerce-battelle vnd.commonspace " +
+          "vnd.contact.cmsg vnd.coreos.ignition+json vnd.cosmocaller vnd.crick.clicker vnd.crick.clicker.keyboard " +
+          "vnd.crick.clicker.palette vnd.crick.clicker.template vnd.crick.clicker.wordbank vnd.criticaltools.wbs+xml " +
+          "vnd.cryptii.pipe+json vnd.cryptomator.encrypted vnd.cryptomator.vault vnd.crypto-shade-file vnd.ctct.ws+xml " +
+          "vnd.ctc-posml vnd.cups-pdf vnd.cups-postscript vnd.cups-ppd vnd.cups-raster vnd.cups-raw vnd.curl " +
+          "vnd.cyan.dean.root+xml vnd.cybank vnd.cyclonedx+json vnd.cyclonedx+xml vnd.d2l.coursepackage1p0+zip " +
+          "vnd.d3m-dataset vnd.d3m-problem vnd.dart vnd.datalog vnd.datapackage+json vnd.dataresource+json " +
+          "vnd.data-vision.rdz vnd.dbf vnd.debian.binary-package vnd.dece.data vnd.dece.ttml+xml vnd.dece.unspecified " +
+          "vnd.dece.zip vnd.denovo.fcselayout-link vnd.desmume.movie vnd.dir-bi.plate-dl-nosuffix vnd.dm.delegation+xml " +
+          "vnd.dna vnd.document+json vnd.dolby.mobile.1 vnd.dolby.mobile.2 vnd.doremir.scorecloud-binary-document " +
+          "vnd.dpgraph vnd.dreamfactory vnd.drive+json vnd.dtg.local vnd.dtg.local.flash vnd.dtg.local.html vnd.dvb.ait " +
+          "vnd.dvb.dvbisl+xml vnd.dvb.dvbj vnd.dvb.esgcontainer vnd.dvb.ipdcdftnotifaccess vnd.dvb.ipdcesgaccess " +
+          "vnd.dvb.ipdcesgaccess2 vnd.dvb.ipdcesgpdd vnd.dvb.ipdcroaming vnd.dvb.iptv.alfec-base " +
+          "vnd.dvb.iptv.alfec-enhancement vnd.dvb.notif-aggregate-root+xml vnd.dvb.notif-container+xml " +
+          "vnd.dvb.notif-generic+xml vnd.dvb.notif-ia-msglist+xml vnd.dvb.notif-ia-registration-request+xml " +
+          "vnd.dvb.notif-ia-registration-response+xml vnd.dvb.notif-init+xml vnd.dvb.pfr vnd.dvb.service vnd.dxr " +
+          "vnd.dynageo vnd.dzr vnd.easykaraoke.cdgdownload vnd.ecdis-update vnd.ecip.rlp vnd.eclipse.ditto+json " +
+          "vnd.ecowin.chart vnd.ecowin.filerequest vnd.ecowin.fileupdate vnd.ecowin.series vnd.ecowin.seriesrequest " +
+          "vnd.ecowin.seriesupdate vnd.efi.img vnd.efi.iso vnd.eln+zip vnd.emclient.accessrequest+xml vnd.enliven " +
+          "vnd.enphase.envoy vnd.eprints.data+xml vnd.epson.esf vnd.epson.msf vnd.epson.quickanime vnd.epson.salt " +
+          "vnd.epson.ssf vnd.ericsson.quickcall vnd.erofs vnd.espass-espass+zip vnd.eszigno3+xml vnd.etsi.aoc+xml " +
+          "vnd.etsi.asic-e+zip vnd.etsi.asic-s+zip vnd.etsi.cug+xml vnd.etsi.iptvcommand+xml vnd.etsi.iptvdiscovery+xml " +
+          "vnd.etsi.iptvprofile+xml vnd.etsi.iptvsad-bc+xml vnd.etsi.iptvsad-cod+xml vnd.etsi.iptvsad-npvr+xml " +
+          "vnd.etsi.iptvservice+xml vnd.etsi.iptvsync+xml vnd.etsi.iptvueprofile+xml vnd.etsi.mcid+xml vnd.etsi.mheg5 " +
+          "vnd.etsi.overload-control-policy-dataset+xml vnd.etsi.pstn+xml vnd.etsi.sci+xml vnd.etsi.simservs+xml " +
+          "vnd.etsi.timestamp-token vnd.etsi.tsl.der vnd.etsi.tsl+xml vnd.eudora.data vnd.eu.kasparian.car+json " +
+          "vnd.evolv.ecig.profile vnd.evolv.ecig.settings vnd.evolv.ecig.theme vnd.exstream-empower+zip " +
+          "vnd.exstream-package vnd.ezpix-album vnd.ezpix-package vnd.familysearch.gedcom+zip vnd.fastcopy-disk-image " +
+          "vnd.fdsn.mseed vnd.fdsn.seed vnd.ffsns vnd.ficlab.flb+zip vnd.filmit.zfc vnd.fints vnd.firemonkeys.cloudcell " +
+          "vnd.FloGraphIt vnd.fluxtime.clip vnd.font-fontforge-sfd vnd.framemaker vnd.freelog.comic vnd.frogans.fnc " +
+          "vnd.frogans.ltf vnd.fsc.weblaunch vnd.fujifilm.fb.docuworks vnd.fujifilm.fb.docuworks.binder " +
+          "vnd.fujifilm.fb.docuworks.container vnd.fujifilm.fb.jfi+xml vnd.fujitsu.oasys vnd.fujitsu.oasys2 " +
+          "vnd.fujitsu.oasys3 vnd.fujitsu.oasysgp vnd.fujitsu.oasysprs vnd.fujixerox.ART4 vnd.fujixerox.ART-EX " +
+          "vnd.fujixerox.ddd vnd.fujixerox.docuworks vnd.fujixerox.docuworks.binder vnd.fujixerox.docuworks.container " +
+          "vnd.fujixerox.HBPL vnd.futoin+cbor vnd.futoin+json vnd.fut-misnet vnd.fuzzysheet vnd.f-secure.mobile " +
+          "vnd.genomatix.tuxedo vnd.genozip vnd.gentics.grd+json vnd.gentoo.catmetadata+xml vnd.gentoo.ebuild " +
+          "vnd.gentoo.eclass vnd.gentoo.gpkg vnd.gentoo.manifest vnd.gentoo.pkgmetadata+xml vnd.gentoo.xpak " +
+          "vnd.geocube+xml vnd.geogebra.file vnd.geogebra.slides vnd.geogebra.tool vnd.geometry-explorer vnd.geonext " +
+          "vnd.geoplan vnd.geospace vnd.gerber vnd.globalplatform.card-content-mgt " +
+          "vnd.globalplatform.card-content-mgt-response vnd.gmx vnd.gnu.taler.exchange+json vnd.gnu.taler.merchant+json " +
+          "vnd.google-earth.kml+xml vnd.google-earth.kmz vnd.gov.sk.e-form+zip vnd.gov.sk.xmldatacontainer+xml " +
+          "vnd.gpxsee.map+xml vnd.grafeq vnd.gridmp vnd.groove-account vnd.groove-help vnd.groove-identity-message " +
+          "vnd.groove-injector vnd.groove-tool-message vnd.groove-tool-template vnd.groove-vcard vnd.hal+json vnd.hal+xml " +
+          "vnd.HandHeld-Entertainment+xml vnd.hbci vnd.hcl-bireports vnd.hc+json vnd.hdt vnd.heroku+json " +
+          "vnd.hhe.lesson-player vnd.hp-HPGL vnd.hp-hpid vnd.hp-hps vnd.hp-jlyt vnd.hp-PCL vnd.hp-PCLXL vnd.hsl " +
+          "vnd.httphone vnd.hydrostatix.sof-data vnd.hyperdrive+json vnd.hyper-item+json vnd.hyper+json " +
+          "vnd.hzn-3d-crossword vnd.ibm.electronic-media vnd.ibm.MiniPay vnd.ibm.rights-management " +
+          "vnd.ibm.secure-container vnd.iccprofile vnd.ieee.1905 vnd.igloader vnd.imagemeter.folder+zip " +
+          "vnd.imagemeter.image+zip vnd.immervision-ivp vnd.immervision-ivu vnd.ims.imsccv1p1 vnd.ims.imsccv1p2 " +
+          "vnd.ims.imsccv1p3 vnd.informedcontrol.rms+xml vnd.infotech.project vnd.infotech.project+xml " +
+          "vnd.innopath.wamp.notification vnd.insors.igm vnd.intercon.formnet vnd.intergeo vnd.intertrust.digibox " +
+          "vnd.intertrust.nncp vnd.intu.qbo vnd.intu.qfx vnd.ipfs.ipns-record vnd.ipld.car vnd.ipld.dag-cbor " +
+          "vnd.ipld.dag-json vnd.ipld.raw vnd.iptc.g2.catalogitem+xml vnd.iptc.g2.conceptitem+xml " +
+          "vnd.iptc.g2.knowledgeitem+xml vnd.iptc.g2.newsitem+xml vnd.iptc.g2.newsmessage+xml vnd.iptc.g2.packageitem+xml " +
+          "vnd.iptc.g2.planningitem+xml vnd.ipunplugged.rcprofile vnd.irepository.package+xml vnd.isac.fcs " +
+          "vnd.iso11783-10+zip vnd.is-xpr vnd.jam vnd.japannet-directory-service vnd.japannet-jpnstore-wakeup " +
+          "vnd.japannet-payment-wakeup vnd.japannet-registration vnd.japannet-registration-wakeup " +
+          "vnd.japannet-setstore-wakeup vnd.japannet-verification vnd.japannet-verification-wakeup " +
+          "vnd.jcp.javame.midlet-rms vnd.jisp vnd.joost.joda-archive vnd.jsk.isdn-ngn vnd.kahootz vnd.kde.karbon " +
+          "vnd.kde.kchart vnd.kde.kformula vnd.kde.kivio vnd.kde.kontour vnd.kde.kpresenter vnd.kde.kspread vnd.kde.kword " +
+          "vnd.kenameaapp vnd.kidspiration vnd.Kinar vnd.koan vnd.kodak-descriptor vnd.las vnd.laszip vnd.las.las+json " +
+          "vnd.las.las+xml vnd.ldev.productlicensing vnd.leap+json vnd.liberty-request+xml " +
+          "vnd.llamagraphics.life-balance.desktop vnd.llamagraphics.life-balance.exchange+xml vnd.logipipe.circuit+zip " +
+          "vnd.loom vnd.lotus-1-2-3 vnd.lotus-approach vnd.lotus-freelance vnd.lotus-notes vnd.lotus-organizer " +
+          "vnd.lotus-screencam vnd.lotus-wordpro vnd.macports.portpkg vnd.mapbox-vector-tile " +
+          "vnd.marlin.drm.actiontoken+xml vnd.marlin.drm.conftoken+xml vnd.marlin.drm.license+xml vnd.marlin.drm.mdcf " +
+          "vnd.mason+json vnd.maxar.archive.3tz+zip vnd.maxmind.maxmind-db vnd.mcd vnd.mdl vnd.mdl-mbsdf vnd.medcalcdata " +
+          "vnd.mediastation.cdkey vnd.medicalholodeck.recordxr vnd.meridian-slingshot vnd.mermaid vnd.MFER vnd.mfmp " +
+          "vnd.micrografx.flo vnd.micrografx.igx vnd.microsoft.portable-executable vnd.microsoft.windows.thumbnail-cache " +
+          "vnd.micro+json vnd.miele+json vnd.mif vnd.minisoft-hp3000-save vnd.mitsubishi.misty-guard.trustweb " +
+          "vnd.Mobius.DAF vnd.Mobius.DIS vnd.Mobius.MBK vnd.Mobius.MQY vnd.Mobius.MSL vnd.Mobius.PLC vnd.Mobius.TXF " +
+          "vnd.modl vnd.mophun.application vnd.mophun.certificate vnd.motorola.flexsuite vnd.motorola.flexsuite.adsi " +
+          "vnd.motorola.flexsuite.fis vnd.motorola.flexsuite.gotap vnd.motorola.flexsuite.kmr vnd.motorola.flexsuite.ttc " +
+          "vnd.motorola.flexsuite.wem vnd.motorola.iprm vnd.mozilla.xul+xml vnd.msa-disk-image vnd.mseq vnd.msign " +
+          "vnd.ms-3mfdocument vnd.ms-artgalry vnd.ms-asf vnd.ms-cab-compressed vnd.ms-excel.addin.macroEnabled.12 " +
+          "vnd.ms-excel.sheet.binary.macroEnabled.12 vnd.ms-excel.sheet.macroEnabled.12 " +
+          "vnd.ms-excel.template.macroEnabled.12 vnd.ms-fontobject vnd.ms-htmlhelp vnd.ms-ims vnd.ms-lrm " +
+          "vnd.ms-officetheme vnd.ms-office.activeX+xml vnd.ms-playready.initiator+xml " +
+          "vnd.ms-powerpoint.addin.macroEnabled.12 vnd.ms-powerpoint.presentation.macroEnabled.12 " +
+          "vnd.ms-powerpoint.slideshow.macroEnabled.12 vnd.ms-powerpoint.slide.macroEnabled.12 " +
+          "vnd.ms-powerpoint.template.macroEnabled.12 vnd.ms-PrintDeviceCapabilities+xml vnd.ms-PrintSchemaTicket+xml " +
+          "vnd.ms-project vnd.ms-tnef vnd.ms-windows.devicepairing vnd.ms-windows.nwprinting.oob " +
+          "vnd.ms-windows.printerpairing vnd.ms-windows.wsd.oob vnd.ms-wmdrm.lic-chlg-req vnd.ms-wmdrm.lic-resp " +
+          "vnd.ms-wmdrm.meter-chlg-req vnd.ms-wmdrm.meter-resp vnd.ms-word.document.macroEnabled.12 " +
+          "vnd.ms-word.template.macroEnabled.12 vnd.ms-works vnd.ms-wpl vnd.ms-xpsdocument vnd.multiad.creator " +
+          "vnd.multiad.creator.cif vnd.musician vnd.music-niff vnd.muvee.style vnd.mynfc vnd.nacamar.ybrid+json " +
+          "vnd.nato.bindingdataobject+cbor vnd.nato.bindingdataobject+json vnd.nato.bindingdataobject+xml " +
+          "vnd.nato.openxmlformats-package.iepd+zip vnd.ncd.control vnd.ncd.reference vnd.nearst.inv+json " +
+          "vnd.nebumind.line vnd.nervana vnd.netfpx vnd.neurolanguage.nlu vnd.nimn vnd.nintendo.nitro.rom " +
+          "vnd.nintendo.snes.rom vnd.nitf vnd.noblenet-directory vnd.noblenet-sealer vnd.noblenet-web vnd.nokia.catalogs " +
+          "vnd.nokia.conml+wbxml vnd.nokia.conml+xml vnd.nokia.iptv.config+xml vnd.nokia.iSDS-radio-presets " +
+          "vnd.nokia.landmarkcollection+xml vnd.nokia.landmark+wbxml vnd.nokia.landmark+xml vnd.nokia.ncd " +
+          "vnd.nokia.n-gage.ac+xml vnd.nokia.n-gage.data vnd.nokia.n-gage.symbian.install vnd.nokia.pcd+wbxml " +
+          "vnd.nokia.pcd+xml vnd.nokia.radio-preset vnd.nokia.radio-presets vnd.novadigm.EDM vnd.novadigm.EDX " +
+          "vnd.novadigm.EXT vnd.ntt-local.content-share vnd.ntt-local.file-transfer vnd.ntt-local.ogw_remote-access " +
+          "vnd.ntt-local.sip-ta_remote vnd.ntt-local.sip-ta_tcp_stream vnd.oai.workflows vnd.oai.workflows+json " +
+          "vnd.oai.workflows+yaml vnd.oasis.opendocument.base vnd.oasis.opendocument.chart " +
+          "vnd.oasis.opendocument.chart-template vnd.oasis.opendocument.database vnd.oasis.opendocument.formula " +
+          "vnd.oasis.opendocument.formula-template vnd.oasis.opendocument.graphics " +
+          "vnd.oasis.opendocument.graphics-template vnd.oasis.opendocument.image vnd.oasis.opendocument.image-template " +
+          "vnd.oasis.opendocument.presentation-template vnd.oasis.opendocument.spreadsheet-template " +
+          "vnd.oasis.opendocument.text-master vnd.oasis.opendocument.text-master-template " +
+          "vnd.oasis.opendocument.text-template vnd.oasis.opendocument.text-web vnd.obn vnd.ocf+cbor " +
+          "vnd.oci.image.manifest.v1+json vnd.oftn.l10n+json vnd.oipf.contentaccessdownload+xml " +
+          "vnd.oipf.contentaccessstreaming+xml vnd.oipf.cspg-hexbinary vnd.oipf.dae.svg+xml vnd.oipf.dae.xhtml+xml " +
+          "vnd.oipf.mippvcontrolmessage+xml vnd.oipf.pae.gem vnd.oipf.spdiscovery+xml vnd.oipf.spdlist+xml " +
+          "vnd.oipf.ueprofile+xml vnd.oipf.userprofile+xml vnd.olpc-sugar vnd.omads-email+xml vnd.omads-file+xml " +
+          "vnd.omads-folder+xml vnd.omaloc-supl-init vnd.oma.bcast.associated-procedure-parameter+xml " +
+          "vnd.oma.bcast.drm-trigger+xml vnd.oma.bcast.imd+xml vnd.oma.bcast.ltkm vnd.oma.bcast.notification+xml " +
+          "vnd.oma.bcast.provisioningtrigger vnd.oma.bcast.sgboot vnd.oma.bcast.sgdd+xml vnd.oma.bcast.sgdu " +
+          "vnd.oma.bcast.simple-symbol-container vnd.oma.bcast.smartcard-trigger+xml vnd.oma.bcast.sprov+xml " +
+          "vnd.oma.bcast.stkm vnd.oma.cab-address-book+xml vnd.oma.cab-feature-handler+xml vnd.oma.cab-pcc+xml " +
+          "vnd.oma.cab-subs-invite+xml vnd.oma.cab-user-prefs+xml vnd.oma.dcd vnd.oma.dcdc vnd.oma.dd2+xml " +
+          "vnd.oma.drm.risd+xml vnd.oma.group-usage-list+xml vnd.oma.lwm2m+cbor vnd.oma.lwm2m+json vnd.oma.lwm2m+tlv " +
+          "vnd.oma.pal+xml vnd.oma.poc.detailed-progress-report+xml vnd.oma.poc.final-report+xml vnd.oma.poc.groups+xml " +
+          "vnd.oma.poc.invocation-descriptor+xml vnd.oma.poc.optimized-progress-report+xml vnd.oma.push " +
+          "vnd.oma.scidm.messages+xml vnd.oma-scws-config vnd.oma-scws-http-request vnd.oma-scws-http-response " +
+          "vnd.oma.xcap-directory+xml vnd.onepager vnd.onepagertamp vnd.onepagertamx vnd.onepagertat vnd.onepagertatp " +
+          "vnd.onepagertatx vnd.onvif.metadata vnd.openblox.game-binary vnd.openblox.game+xml vnd.openeye.oeb " +
+          "vnd.openstreetmap.data+xml vnd.opentimestamps.ots vnd.openxmlformats-officedocument.customXmlProperties+xml " +
+          "vnd.openxmlformats-officedocument.custom-properties+xml " +
+          "vnd.openxmlformats-officedocument.drawingml.chartshapes+xml " +
+          "vnd.openxmlformats-officedocument.drawingml.chart+xml " +
+          "vnd.openxmlformats-officedocument.drawingml.diagramColors+xml " +
+          "vnd.openxmlformats-officedocument.drawingml.diagramData+xml " +
+          "vnd.openxmlformats-officedocument.drawingml.diagramLayout+xml " +
+          "vnd.openxmlformats-officedocument.drawingml.diagramStyle+xml vnd.openxmlformats-officedocument.drawing+xml " +
+          "vnd.openxmlformats-officedocument.extended-properties+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.commentAuthors+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.comments+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.handoutMaster+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.notesMaster+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.notesSlide+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.presentation.main+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.presProps+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.slide " +
+          "vnd.openxmlformats-officedocument.presentationml.slideLayout+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.slideMaster+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.slideshow " +
+          "vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.slideUpdateInfo+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.slide+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.tableStyles+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.tags+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.template " +
+          "vnd.openxmlformats-officedocument.presentationml.template.main+xml " +
+          "vnd.openxmlformats-officedocument.presentationml.viewProps+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.calcChain+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.chartsheet+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.comments+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.connections+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.dialogsheet+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.externalLink+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.pivotCacheDefinition+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.pivotCacheRecords+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.pivotTable+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.queryTable+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.revisionHeaders+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.revisionLog+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.sheetMetadata+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.styles+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.tableSingleCells+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.table+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.template " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.userNames+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.volatileDependencies+xml " +
+          "vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml " +
+          "vnd.openxmlformats-officedocument.themeOverride+xml vnd.openxmlformats-officedocument.theme+xml " +
+          "vnd.openxmlformats-officedocument.vmlDrawing vnd.openxmlformats-officedocument.wordprocessingml.comments+xml " +
+          "vnd.openxmlformats-officedocument.wordprocessingml.document.glossary+xml " +
+          "vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml " +
+          "vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml " +
+          "vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml " +
+          "vnd.openxmlformats-officedocument.wordprocessingml.footer+xml " +
+          "vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml " +
+          "vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml " +
+          "vnd.openxmlformats-officedocument.wordprocessingml.settings+xml " +
+          "vnd.openxmlformats-officedocument.wordprocessingml.styles+xml " +
+          "vnd.openxmlformats-officedocument.wordprocessingml.template " +
+          "vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml " +
+          "vnd.openxmlformats-officedocument.wordprocessingml.webSettings+xml " +
+          "vnd.openxmlformats-package.core-properties+xml vnd.openxmlformats-package.digital-signature-xmlsignature+xml " +
+          "vnd.openxmlformats-package.relationships+xml vnd.oracle.resource+json vnd.orange.indata vnd.osa.netdeploy " +
+          "vnd.osgeo.mapguide.package vnd.osgi.bundle vnd.osgi.dp vnd.osgi.subsystem vnd.otps.ct-kip+xml " +
+          "vnd.oxli.countgraph vnd.pagerduty+json vnd.palm vnd.panoply vnd.paos.xml vnd.patentdive vnd.patientecommsdoc " +
+          "vnd.pawaafile vnd.pcos vnd.pg.format vnd.pg.osasli vnd.piaccess.application-licence vnd.picsel vnd.pmi.widget " +
+          "vnd.pocketlearn vnd.poc.group-advertisement+xml vnd.powerbuilder6 vnd.powerbuilder6-s vnd.powerbuilder7 " +
+          "vnd.powerbuilder75 vnd.powerbuilder75-s vnd.powerbuilder7-s vnd.preminet vnd.previewsystems.box " +
+          "vnd.proteus.magazine vnd.psfs vnd.pt.mundusmundi vnd.publishare-delta-tree vnd.pvi.ptid1 vnd.pwg-multiplexed " +
+          "vnd.pwg-xhtml-print+xml vnd.qualcomm.brew-app-res vnd.quarantainenet vnd.Quark.QuarkXPress " +
+          "vnd.quobject-quoxdocument vnd.radisys.moml+xml vnd.radisys.msml-audit-conf+xml vnd.radisys.msml-audit-conn+xml " +
+          "vnd.radisys.msml-audit-dialog+xml vnd.radisys.msml-audit-stream+xml vnd.radisys.msml-audit+xml " +
+          "vnd.radisys.msml-conf+xml vnd.radisys.msml-dialog-base+xml vnd.radisys.msml-dialog-fax-detect+xml " +
+          "vnd.radisys.msml-dialog-fax-sendrecv+xml vnd.radisys.msml-dialog-group+xml vnd.radisys.msml-dialog-speech+xml " +
+          "vnd.radisys.msml-dialog-transform+xml vnd.radisys.msml-dialog+xml vnd.radisys.msml+xml vnd.rainstor.data " +
+          "vnd.rapid vnd.realvnc.bed vnd.recordare.musicxml vnd.recordare.musicxml+xml vnd.relpipe vnd.RenLearn.rlprint " +
+          "vnd.resilient.logic vnd.restful+json vnd.rig.cryptonote vnd.route66.link66+xml vnd.rs-274x vnd.ruckus.download " +
+          "vnd.s3sms vnd.sailingtracker.track vnd.sar vnd.sbm.cid vnd.sbm.mid2 vnd.scribus vnd.sealedmedia.softseal.html " +
+          "vnd.sealedmedia.softseal.pdf vnd.sealed.3df vnd.sealed.csf vnd.sealed.doc vnd.sealed.eml vnd.sealed.mht " +
+          "vnd.sealed.net vnd.sealed.ppt vnd.sealed.tiff vnd.sealed.xls vnd.seemail vnd.seis+json vnd.sema vnd.semd " +
+          "vnd.semf vnd.shade-save-file vnd.shana.informed.formdata vnd.shana.informed.formtemplate " +
+          "vnd.shana.informed.interchange vnd.shana.informed.package vnd.shootproof+json vnd.shopkick+json vnd.shp vnd.shx " +
+          "vnd.sigrok.session vnd.SimTech-MindMapper vnd.siren+json vnd.smaf vnd.smart.notebook vnd.smart.teacher " +
+          "vnd.smintio.portals.archive vnd.snesdev-page-table vnd.software602.filler.form+xml " +
+          "vnd.software602.filler.form-xml-zip vnd.solent.sdkm+xml vnd.spotfire.dxp vnd.spotfire.sfs vnd.sqlite3 " +
+          "vnd.sss-cod vnd.sss-dtf vnd.sss-ntf vnd.stepmania.package vnd.stepmania.stepchart vnd.street-stream " +
+          "vnd.sun.wadl+xml vnd.sus-calendar vnd.svd vnd.swiftview-ics vnd.sybyl.mol2 vnd.sycle+xml vnd.syft+json " +
+          "vnd.syncml.dmddf+wbxml vnd.syncml.dmddf+xml vnd.syncml.dmtnds+wbxml vnd.syncml.dmtnds+xml " +
+          "vnd.syncml.dm.notification vnd.syncml.dm+wbxml vnd.syncml.dm+xml vnd.syncml.ds.notification vnd.syncml+xml " +
+          "vnd.tableschema+json vnd.tao.intent-module-archive vnd.tcpdump.pcap vnd.think-cell.ppttc+json " +
+          "vnd.tmd.mediaflex.api+xml vnd.tml vnd.tmobile-livetv vnd.trid.tpt vnd.triscape.mxs vnd.tri.onesource " +
+          "vnd.trueapp vnd.truedoc vnd.ubisoft.webplayer vnd.ufdl vnd.uiq.theme vnd.umajin vnd.unity vnd.uoml+xml " +
+          "vnd.uplanet.alert vnd.uplanet.alert-wbxml vnd.uplanet.bearer-choice vnd.uplanet.bearer-choice-wbxml " +
+          "vnd.uplanet.cacheop vnd.uplanet.cacheop-wbxml vnd.uplanet.channel vnd.uplanet.channel-wbxml vnd.uplanet.list " +
+          "vnd.uplanet.listcmd vnd.uplanet.listcmd-wbxml vnd.uplanet.list-wbxml vnd.uplanet.signal vnd.uri-map " +
+          "vnd.valve.source.material vnd.vcx vnd.vd-study vnd.vectorworks vnd.vel+json vnd.verimatrix.vcas " +
+          "vnd.veritone.aion+json vnd.veryant.thin vnd.ves.encrypted vnd.vidsoft.vidconference vnd.visio vnd.visionary " +
+          "vnd.vividence.scriptfile vnd.vsf vnd.wap.sic vnd.wap.slc vnd.wap.wbxml vnd.wap.wmlc vnd.wap.wmlscriptc " +
+          "vnd.wasmflow.wafl vnd.webturbo vnd.wfa.dpp vnd.wfa.p2p vnd.wfa.wsc vnd.windows.devicepairing vnd.wmc " +
+          "vnd.wmf.bootstrap vnd.wolfram.mathematica vnd.wolfram.mathematica.package vnd.wolfram.player vnd.wordlift " +
+          "vnd.wordperfect vnd.wqd vnd.wrq-hp3000-labelled vnd.wt.stf vnd.wv.csp+wbxml vnd.wv.csp+xml vnd.wv.ssp+xml " +
+          "vnd.xacml+json vnd.xara vnd.xecrets-encrypted vnd.xfdl vnd.xfdl.webform vnd.xmi+xml vnd.xmpie.cpkg " +
+          "vnd.xmpie.dpkg vnd.xmpie.plan vnd.xmpie.ppkg vnd.xmpie.xlim vnd.yamaha.hv-dic vnd.yamaha.hv-script " +
+          "vnd.yamaha.hv-voice vnd.yamaha.openscoreformat vnd.yamaha.openscoreformat.osfpvg+xml vnd.yamaha.remote-setup " +
+          "vnd.yamaha.smaf-audio vnd.yamaha.smaf-phrase vnd.yamaha.through-ngn vnd.yamaha.tunnel-udpencap vnd.yaoweme " +
+          "vnd.yellowriver-custom-menu vnd.youtube.yt vnd.zul vnd.zzazz.deck+xml voicexml+xml voucher-cms+json vq-rtcpxr " +
+          "wasm watcherinfo+xml webpush-options+json whoispp-query whoispp-response widget wita wordperfect5.1 wsdl+xml " +
+          "wspolicy+xml x400-bp xacml+xml xcap-att+xml xcap-caps+xml xcap-diff+xml xcap-el+xml xcap-error+xml xcap-ns+xml " +
+          "xcon-conference-info-diff+xml xcon-conference-info+xml xenc+xml xfdf xliff+xml xml-dtd " +
+          "xml-external-parsed-entity xml-patch+xml xmpp+xml xop+xml xslt+xml xv+xml x-pki-message x-x509-ca-cert " +
+          "x-x509-ca-ra-cert x-x509-next-ca-cert yaml yang yang-data+cbor yang-data+json yang-data+xml yang-patch+json " +
+          "yang-patch+xml yang-sid+json yin+xml zlib zstd iota.mmc-wbxml iota.mmc-xml java-vm oma-directory+xml rss+xml " +
+          "vnc.cmcc.dcd+xml vnd.android.package-archive vnd.cmcc.bombing+wbxml vnd.cmcc.setting+wbxml vnd.docomo.pf " +
+          "vnd.docomo.pf2 vnd.docomo.ub vnd.google-apps.document vnd.google-apps.drawing vnd.google-apps.presentation " +
+          "vnd.google-apps.spreadsheet vnd.motorola.screen3+gzip vnd.motorola.screen3+xml vnd.nokia.ipdc-purchase-response " +
+          "vnd.nokia.syncset+wbxml vnd.oma.dd+xml vnd.oma.drm.content vnd.oma.drm.message vnd.oma.drm.rights+wbxml " +
+          "vnd.oma.drm.rights+xml vnd.oma.drm.roap-trigger+wbxml vnd.phonecom.mmc-wbxml vnd.stardivision.calc " +
+          "vnd.stardivision.draw vnd.stardivision.impress vnd.stardivision.writer vnd.stardivision.writer-global " +
+          "vnd.sun.xml.calc vnd.sun.xml.calc.template vnd.sun.xml.draw vnd.sun.xml.draw.template vnd.sun.xml.impress " +
+          "vnd.sun.xml.impress.template vnd.sun.xml.writer vnd.sun.xml.writer.global vnd.sun.xml.writer.template " +
+          "vnd.syncml+wbxml vnd.syncml.notification vnd.uplanet.provisioning-status-uri vnd.wap.cert-response vnd.wap.coc " +
+          "vnd.wap.connectivity-wbxml vnd.wap.emn+wbxml vnd.wap.hashed-certificate vnd.wap.loc+xml vnd.wap.locc+wbxml " +
+          "vnd.wap.mms-message vnd.wap.multipart.alternative vnd.wap.multipart.byteranges vnd.wap.multipart.form-data " +
+          "vnd.wap.multipart.mixed vnd.wap.multipart.related vnd.wap.rollover-certificate vnd.wap.sia " +
+          "vnd.wap.signed-certificate vnd.wap.uaprof vnd.wap.wta-eventc vnd.wap.wtls-ca-certificate " +
+          "vnd.wap.wtls-user-certificate vnd.wap.xhtml+xml vnd.wv.csp.cir wml+xml x-abiword x-apple-diskimage x-deb " +
+          "x-debian-package x-font x-font-ttf x-font-woff x-hdmlc x-iso9660-image x-javascript x-kpresenter x-kspread " +
+          "x-kword x-lha x-lzh x-lzx x-object x-pkcs12 x-pkcs7-certificates x-pkcs7-certreqresp x-pkcs7-crl x-pkcs7-mime " +
+          "x-pkcs7-signature x-quicktimeplayer x-rar-compressed x-shockwave-flash x-stuffit x-webarchive x-webarchive-xml " +
+          "x-x509-user-cert x-x968-ca-cert x-x968-cross-cert x-x968-user-cert annodex atomserv+xml bbolin cu-seeme " +
+          "docbook+xml dsptype futuresplash ghostview hta java-serialized-object m3g mac-compactpro ms-tnef msaccess " +
+          "news-message-id onenote pics-rules sla vnd.anser-web-funds-transfer-initiation vnd.comsocaller vnd.fdf " +
+          "vnd.ms-pki.seccat vnd.rim.cod vnd.stardivision.chart vnd.stardivision.math vnd.symbian.install vnd.tve-trigger " +
+          "vnd.wordperfect5.1 x-123 x-bittorrent x-cab x-cbr x-cbz x-cdf x-cdlink x-chess-pgn x-comsol x-core x-csh " +
+          "x-director x-dms x-doom x-executable x-font-pcf x-freemind x-futuresplash x-ganttproject x-gnumeric x-go-sgf " +
+          "x-graphing-calculator x-gtar-compressed x-hwp x-ica x-info x-internet-signup x-iphone x-jam x-java-applet " +
+          "x-java-bean x-java-jnlp-file x-jmol x-kchart x-kdelnk x-killustrator x-koan x-lyx x-maker x-mif x-mpegURL " +
+          "x-ms-application x-ms-manifest x-ms-wmd x-ms-wmz x-msdos-program x-msi x-ns-proxy-autoconfig x-nwc " +
+          "x-oz-application x-python-code x-qgis x-rdp x-redhat-package-manager x-rss+xml x-ruby x-rx x-scilab " +
+          "x-scilab-xcos x-sh x-shellscript x-silverlight x-sql x-tcl x-tex-gf x-tex-pk x-trash x-videolan x-wingz x-xcf " +
+          "x-xfig x-xpinstall x-xz xspf+xml"],
+        ["multipart",
+          "form-data appledouble byteranges encrypted example header-set multilingual related report signed " +
+          "vnd.bint.med-plus voice-message x-mixed-replace alternative byterantes mixed digest parallel"],
+        ["text",
+          "event-stream xml css csv html javascript markdown plain tab-separated-values x-setext 1d-interleaved-parityfec " +
+          "cache-manifest calendar cql cql-expression cql-identifier csv-schema directory dns ecmascript encaprtp example " +
+          "fhirpath flexfec fwdred gff3 grammar-ref-list hl7v2 jcr-cnd mizar n3 parameters parityfec provenance-notation " +
+          "prs.fallenstein.rst prs.lines.tag prs.prop.logic prs.texi raptorfec RED rfc822-headers rtf rtploopback " +
+          "rtp-enc-aescm128 rtx SGML shaclc shex spdx strings t140 troff turtle ulpfec uri-list vcard vnd.a vnd.abc " +
+          "vnd.ascii-art vnd.curl vnd.debian.copyright vnd.DMClientScript vnd.dvb.subtitle vnd.esmertec.theme-descriptor " +
+          "vnd.exchangeable vnd.familysearch.gedcom vnd.ficlab.flt vnd.fly vnd.fmi.flexstor vnd.gml vnd.graphviz vnd.hans " +
+          "vnd.hgl vnd.in3d.3dml vnd.in3d.spot vnd.IPTC.NewsML vnd.IPTC.NITF vnd.latex-z vnd.motorola.reflex " +
+          "vnd.ms-mediapackage vnd.net2phone.commcenter.command vnd.radisys.msml-basic-layout vnd.senx.warpscript " +
+          "vnd.si.uricatalogue vnd.sosi vnd.sun.j2me.app-descriptor vnd.trolltech.linguist vnd.wap.si vnd.wap.sl " +
+          "vnd.wap.wml vnd.wap.wmlscript vtt wgsl xml-external-parsed-entity directory;profile=vCard vnd.wap.co " +
+          "vnd.wap.connectivity-xml vnd.wap.emn+xml vnd.wap.wta-event x-chdr x-csh x-csrc x-dsrc x-haskell x-hdml x-java " +
+          "x-literate-haskell x-pascal x-tcl x-tex x-ttml english enriched h323 iuls mathml richtext scriptlet texmacs " +
+          "vnd.flatland.3dml x-bibtex x-boo x-component x-crontab x-diff x-lilypond x-makefile x-moc x-pcs-gcd x-perl " +
+          "x-python x-scala x-server-parsed-html x-sfv x-sh x-vcalendar"],
+        ["audio",
+          "aac basic flac mp4 mpeg ogg x-aiff aiff x-wav wav 1d-interleaved-parityfec 32kadpcm 3gpp 3gpp2 ac3 AMR-WB aptx " +
+          "asc ATRAC3 ATRAC-ADVANCED-LOSSLESS ATRAC-X BV16 BV32 clearmode CN DAT12 dls dsr-es201108 dsr-es202050 " +
+          "dsr-es202211 dsr-es202212 DV DVI4 eac3 encaprtp EVRC EVRC0 EVRC1 EVRCB EVRCB0 EVRCB1 EVRCNW EVRCNW0 EVRCNW1 " +
+          "EVRCWB EVRCWB0 EVRCWB1 EVRC-QCP EVS example flexfec fwdred G711-0 G719 G722 G7221 G723 G726-16 G726-24 G726-32 " +
+          "G726-40 G728 G729 G7291 G729D G729E GSM GSM-EFR GSM-HR-08 iLBC ip-mr_v2.5 L16 L20 L24 L8 LPC matroska MELP " +
+          "MELP1200 MELP2400 MELP600 mhas midi-clip mobile-xmf MP4A-LATM MPA mpa-robust mpeg4-generic opus parityfec PCMA " +
+          "PCMA-WB PCMU PCMU-WB prs.sid QCELP raptorfec RED rtploopback rtp-enc-aescm128 rtp-midi rtx scip SMV SMV0 " +
+          "SMV-QCP sofa speex sp-midi t140c t38 telephone-event TETRA_ACELP TETRA_ACELP_BB tone TSVCIS UEMCLIP ulpfec usac " +
+          "VDVI VMR-WB vnd.3gpp.iufp vnd.4SB vnd.audiokoz vnd.CELP vnd.cisco.nse vnd.cmles.radio-events vnd.cns.anp1 " +
+          "vnd.cns.inf1 vnd.dece.audio vnd.digital-winds vnd.dlna.adts vnd.dolby.heaac.1 vnd.dolby.heaac.2 vnd.dolby.mlp " +
+          "vnd.dolby.mps vnd.dolby.pl2 vnd.dolby.pl2x vnd.dolby.pl2z vnd.dolby.pulse.1 vnd.dra vnd.dts vnd.dts.hd " +
+          "vnd.dts.uhd vnd.dvb.file vnd.everad.plj vnd.hns.audio vnd.lucent.voice vnd.ms-playready.media.pya " +
+          "vnd.nokia.mobile-xmf vnd.nortel.vbk vnd.nuera.ecelp4800 vnd.nuera.ecelp7470 vnd.nuera.ecelp9600 vnd.octel.sbc " +
+          "vnd.presonus.multitrack vnd.qcelp vnd.rhetorex.32kadpcm vnd.rip vnd.sealedmedia.softseal.mpeg vnd.vmx.cvsd " +
+          "vorbis vorbis-config amr annodex csound g.722.1 midi mpegurl x-gsm x-mpegurl x-ms-wax x-ms-wma x-pn-realaudio " +
+          "x-pn-realaudio-plugin x-realaudio x-scpls x-sd2"],
+        ["image",
+          "bmp gif ief jpeg png svg+xml tiff vnd.fpx webp x-cmu-rast x-portable-anymap x-portable-bitmap " +
+          "x-portable-graymap x-portable-pixmap x-rgb x-xbitmap x-xwindowdump aces apng avci avcs avif cgm dicom-rle dpx " +
+          "emf example fits g3fax heic heic-sequence heif heif-sequence hej2k hsj2 j2c jls jp2 jph jphc jpm jpx jxl jxr " +
+          "jxrA jxrS jxs jxsc jxsi jxss ktx ktx2 naplps prs.btif prs.pti pwg-raster t38 tiff-fx vnd.adobe.photoshop " +
+          "vnd.airzip.accelerator.azv vnd.cns.inf2 vnd.dece.graphic vnd.djvu vnd.dvb.subtitle vnd.dwg vnd.dxf " +
+          "vnd.fastbidsheet vnd.fst vnd.fujixerox.edmics-mmr vnd.fujixerox.edmics-rlc vnd.globalgraphics.pgb " +
+          "vnd.microsoft.icon vnd.mix vnd.mozilla.apng vnd.ms-modi vnd.net-fpx vnd.pco.b16 vnd.radiance " +
+          "vnd.sealedmedia.softseal.gif vnd.sealedmedia.softseal.jpg vnd.sealed.png vnd.svf vnd.tencent.tap " +
+          "vnd.valve.source.texture vnd.wap.wbmp vnd.xiff vnd.zbrush.pcx wmf x-up-wpng pcx x-canon-cr2 x-canon-crw " +
+          "x-cmu-raster x-coreldraw x-coreldrawpattern x-coreldrawtemplate x-corelphotopaint x-epson-erf x-icon x-jg x-jng " +
+          "x-ms-bmp x-nikon-nef x-olympus-orf x-photoshop x-xpixmap"],
+        ["message",
+          "rfc822 bhttp CPIM delivery-status disposition-notification example feedback-report global " +
+          "global-delivery-status global-disposition-notification global-headers http imdn+xml mls news ohttp-req " +
+          "ohttp-res sip sipfrag s-http tracking-status vnd.si.simp vnd.wfa.wsc external-body"],
+        ["video",
+          "mp4 mpeg ogg quicktime webm sgi-movie x-sgi-movie 1d-interleaved-parityfec 3gpp 3gpp2 3gpp-tt AV1 BMPEG BT656 " +
+          "CelB DV encaprtp evc example FFV1 flexfec H261 H263 H263-1998 H263-2000 H264 H264-RCDO H264-SVC H265 H266 " +
+          "iso.segment JPEG jpeg2000 jxsv matroska matroska-3d mj2 MP1S MP2P MP2T MP4V-ES mpeg4-generic MPV nv parityfec " +
+          "pointer raptorfec raw rtploopback rtp-enc-aescm128 rtx scip smpte291 SMPTE292M ulpfec vc1 vc2 vnd.CCTV " +
+          "vnd.dece.hd vnd.dece.mobile vnd.dece.mp4 vnd.dece.pd vnd.dece.sd vnd.dece.video vnd.directv.mpeg " +
+          "vnd.directv.mpeg-tts vnd.dlna.mpeg-tts vnd.dvb.file vnd.fvt vnd.hns.video vnd.iptvforum.1dparityfec-1010 " +
+          "vnd.iptvforum.1dparityfec-2005 vnd.iptvforum.2dparityfec-1010 vnd.iptvforum.2dparityfec-2005 " +
+          "vnd.iptvforum.ttsavc vnd.iptvforum.ttsmpeg2 vnd.motorola.video vnd.motorola.videop vnd.mpegurl " +
+          "vnd.ms-playready.media.pyv vnd.nokia.interleaved-multimedia vnd.nokia.mp4vr vnd.nokia.videovoip vnd.objectvideo " +
+          "vnd.radgamettools.bink vnd.radgamettools.smacker vnd.sealedmedia.softseal.mov vnd.sealed.mpeg1 vnd.sealed.mpeg4 " +
+          "vnd.sealed.swf vnd.uvvu.mp4 vnd.vivo vnd.youtube.yt VP8 VP9 annodex dl fli gl vnd.mts x-flv x-la-asf x-matroska " +
+          "x-mng x-ms-asf x-ms-wm x-ms-wmv x-ms-wmx x-ms-wvx x-msvideo"],
+        ["font",
+          "collection otf sfnt ttf woff woff2"],
+        ["model",
+          "3mf e57 example gltf-binary gltf+json iges JT mtl obj prc step step+xml step-xml+zip step+zip stl u3d vnd.bary " +
+          "vnd.cld vnd.collada+xml vnd.dwf vnd.flatland.3dml vnd.gdl vnd.gs-gdl vnd.gtw vnd.moml+xml vnd.mts vnd.opengex " +
+          "vnd.parasolid.transmit.binary vnd.parasolid.transmit.text vnd.pytha.pyox vnd.rosette.annotated-data-model " +
+          "vnd.sap.vds vnd.usda vnd.usdz+zip vnd.valve.source.compiled-map vnd.vtu x3d+fastinfoset x3d-vrml x3d+xml mesh " +
+          "vrml x3d+binary"],
+        ["inode",
+          "directory blockdevice chardevice directory-locked fifo socket"],
+        ["vnd.android.document",
+          "directory"],
+        ["x-wap.multipart",
+          "vnd.uplanet.header-set"],
+        ["chemical",
+          "x-alchemy x-cache x-cache-csf x-cactvs-binary x-cdx x-cerius x-chem3d x-chemdraw x-cif x-cmdf x-cml x-compass " +
+          "x-crossfire x-csml x-ctx x-cxf x-embl-dl-nucleotide x-galactic-spc x-gamess-input x-gaussian-checkpoint " +
+          "x-gaussian-cube x-gaussian-input x-gaussian-log x-gcg8-sequence x-genbank x-hin x-isostar x-jcamp-dx x-kinemage " +
+          "x-macmolecule x-macromodel-input x-mdl-molfile x-mdl-rdfile x-mdl-rxnfile x-mdl-sdfile x-mdl-tgf x-mmcif x-mol2 " +
+          "x-molconn-Z x-mopac-graph x-mopac-input x-mopac-out x-mopac-vib x-ncbi-asn1 x-ncbi-asn1-ascii " +
+          "x-ncbi-asn1-binary x-ncbi-asn1-spec x-pdb x-rosdal x-swissprot x-vamas-iso14976 x-vmd x-xtel x-xyz"],
+        ["x-conference",
+          "x-cooltalk"],
+        ["x-epoc",
+          "x-sisx-app"],
+        ["x-world",
+          "x-vrml"],
+      ];
+      // The other names (aliases and values that do not map to their name).
+      const CONSTANT_NAMES = [
+        ["APPLICATION_FORM_URLENCODED", "application/x-www-form-urlencoded"],
+        ["MEDIA_TYPE_WILDCARD", "*"],
+        ["SERVER_SENT_EVENTS", "text/event-stream"],
+        ["WILDCARD", "*/*"],
+        ["APPLICATION_MS_WORD", "application/msword"],
+        ["APPLICATION_MS_EXCEL", "application/vnd.ms-excel"],
+        ["APPLICATION_MSEXCEL", "application/vnd.ms-excel"],
+        ["APPLICATION_MS_POWERPOINT", "application/vnd.ms-powerpoint"],
+        ["APPLICATION_MSPOWERPOINT", "application/vnd.ms-powerpoint"],
+        ["APPLICATION_OASIS_OPENDOCUMENT_PRESENTATION", "application/vnd.oasis.opendocument.presentation"],
+        ["APPLICATION_VND_OASIS_PRESENTATION", "application/vnd.oasis.opendocument.presentation"],
+        ["APPLICATION_OASIS_PRESENTATION", "application/vnd.oasis.opendocument.presentation"],
+        ["APPLICATION_OASIS_OPENDOCUMENT_SPREADSHEET", "application/vnd.oasis.opendocument.spreadsheet"],
+        ["APPLICATION_VND_OASIS_SPREADSHEET", "application/vnd.oasis.opendocument.spreadsheet"],
+        ["APPLICATION_OASIS_SPREADSHEET", "application/vnd.oasis.opendocument.spreadsheet"],
+        ["APPLICATION_OASIS_OPENDOCUMENT_TEXT", "application/vnd.oasis.opendocument.text"],
+        ["APPLICATION_VND_OASIS_TEXT", "application/vnd.oasis.opendocument.text"],
+        ["APPLICATION_OASIS_TEXT", "application/vnd.oasis.opendocument.text"],
+        ["APPLICATION_OPENXMLFORMATS_OFFICEDOCUMENT_PRESENTATIONML_PRESENTATION", "application/vnd.openxmlformats-officedocument.presentationml.presentation"],
+        ["APPLICATION_VND_OPENXML_PRESENTATION", "application/vnd.openxmlformats-officedocument.presentationml.presentation"],
+        ["APPLICATION_OPENXML_PRESENTATION", "application/vnd.openxmlformats-officedocument.presentationml.presentation"],
+        ["APPLICATION_OPENXMLFORMATS_OFFICEDOCUMENT_SPREADSHEETML_SHEET", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+        ["APPLICATION_VND_OPENXML_SHEET", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+        ["APPLICATION_OPENXML_SHEET", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+        ["APPLICATION_OPENXMLFORMATS_OFFICEDOCUMENT_WORDPROCESSINGML_DOCUMENT", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+        ["APPLICATION_VND_OPENXML_DOCUMENT", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+        ["APPLICATION_OPENXML_DOCUMENT", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+        ["AUDIO_AMR_WB_PLUS", "audio/amr-wb+"],
+        ["IMAGE_X_EMF", "image/emf"],
+        ["IMAGE_X_WMF", "image/wmf"],
+        ["APPLICATION_WILDCARD", "application/*"],
+        ["APPLICATION_VND_WAP_MULTIPART_WILDCARD", "application/vnd.wap.multipart.*"],
+        ["AUDIO_WILDCARD", "audio/*"],
+        ["IMAGE_WILDCARD", "image/*"],
+        ["MULTIPART_WILDCARD", "multipart/*"],
+        ["TEXT_WILDCARD", "text/*"],
+        ["TEXT_X_C_HDR", "text/x-c++hdr"],
+        ["TEXT_X_C_SRC", "text/x-c++src"],
+        ["VIDEO_WILDCARD", "video/*"],
+      ];
+      // MimeTypeMap (libcore MimeMap) of Android 10 - 14: "mime ext ext,...", extensions in lower case.
+      const EXTENSIONS_Q =
+        "application/andrew-inset ez,application/annodex anx,application/atom+xml atom,application/atomcat+xml atomcat," +
+        "application/atomserv+xml atomsrv,application/bbolin lin,application/cu-seeme cu," +
+        "application/davmount+xml davmount,application/dicom dcm,application/dsptype tsp,application/ecmascript es," +
+        "application/epub+zip epub,application/font-tdpfr pfr,application/gzip gz,application/hta hta," +
+        "application/java-archive jar,application/java-serialized-object ser,application/java-vm class," +
+        "application/javascript js mjs,application/json json,application/ld+json jsonld,application/lrc lrc," +
+        "application/m3g m3g,application/mac-binhex40 hqx,application/mathematica nb nbp,application/mbox mbox," +
+        "application/msaccess mdb,application/msword doc dot,application/mxf mxf," +
+        "application/octet-stream bin deploy msp msu,application/oda oda,application/oebps-package+xml opf," +
+        "application/ogg ogx,application/onenote one onepkg onetmp onetoc2,application/pdf pdf,application/pgp-keys key," +
+        "application/pgp-signature pgp sig,application/pics-rules prf,application/pkix-cert cer," +
+        "application/postscript ai eps eps2 eps3 epsf epsi ps,application/rar rar,application/rdf+xml rdf," +
+        "application/rss+xml rss,application/smil+xml smi smil,application/ttml+xml dfxp ttml," +
+        "application/vnd.android.ota ota,application/vnd.android.package-archive apk,application/vnd.cinderella cdy," +
+        "application/vnd.debian.binary-package ddeb,application/vnd.font-fontforge-sfd sfd," +
+        "application/vnd.google-earth.kml+xml kml,application/vnd.google-earth.kmz kmz," +
+        "application/vnd.mozilla.xul+xml xul,application/vnd.ms-excel xlb xls xlt," +
+        "application/vnd.ms-excel.addin.macroenabled.12 xlam,application/vnd.ms-excel.sheet.binary.macroenabled.12 xlsb," +
+        "application/vnd.ms-excel.sheet.macroenabled.12 xlsm,application/vnd.ms-excel.template.macroenabled.12 xltm," +
+        "application/vnd.ms-fontobject eot,application/vnd.ms-officetheme thmx,application/vnd.ms-pki.seccat cat," +
+        "application/vnd.ms-pki.stl stl,application/vnd.ms-powerpoint pot pps ppt," +
+        "application/vnd.ms-powerpoint.addin.macroenabled.12 ppam," +
+        "application/vnd.ms-powerpoint.presentation.macroenabled.12 pptm," +
+        "application/vnd.ms-powerpoint.slide.macroenabled.12 sldm," +
+        "application/vnd.ms-powerpoint.slideshow.macroenabled.12 ppsm," +
+        "application/vnd.ms-powerpoint.template.macroenabled.12 potm," +
+        "application/vnd.ms-word.document.macroenabled.12 docm,application/vnd.ms-word.template.macroenabled.12 dotm," +
+        "application/vnd.ms-wpl wpl,application/vnd.oasis.opendocument.chart odc," +
+        "application/vnd.oasis.opendocument.database odb,application/vnd.oasis.opendocument.formula odf," +
+        "application/vnd.oasis.opendocument.graphics odg,application/vnd.oasis.opendocument.graphics-template otg," +
+        "application/vnd.oasis.opendocument.image odi,application/vnd.oasis.opendocument.presentation odp," +
+        "application/vnd.oasis.opendocument.presentation-template otp,application/vnd.oasis.opendocument.spreadsheet ods," +
+        "application/vnd.oasis.opendocument.spreadsheet-template ots,application/vnd.oasis.opendocument.text odt," +
+        "application/vnd.oasis.opendocument.text-master odm,application/vnd.oasis.opendocument.text-template ott," +
+        "application/vnd.oasis.opendocument.text-web oth," +
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation pptx," +
+        "application/vnd.openxmlformats-officedocument.presentationml.slide sldx," +
+        "application/vnd.openxmlformats-officedocument.presentationml.slideshow ppsx," +
+        "application/vnd.openxmlformats-officedocument.presentationml.template potx," +
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet xlsx," +
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.template xltx," +
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document docx," +
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.template dotx,application/vnd.rim.cod cod," +
+        "application/vnd.smaf mmf,application/vnd.stardivision.calc sdc,application/vnd.stardivision.chart sds," +
+        "application/vnd.stardivision.draw sda,application/vnd.stardivision.impress sdd sdp," +
+        "application/vnd.stardivision.writer sdw vor,application/vnd.stardivision.writer-global sgl," +
+        "application/vnd.sun.xml.calc sxc,application/vnd.sun.xml.calc.template stc,application/vnd.sun.xml.draw sxd," +
+        "application/vnd.sun.xml.draw.template std,application/vnd.sun.xml.impress sxi," +
+        "application/vnd.sun.xml.impress.template sti,application/vnd.sun.xml.math sxm," +
+        "application/vnd.sun.xml.writer sxw,application/vnd.sun.xml.writer.global sxg," +
+        "application/vnd.sun.xml.writer.template stw,application/vnd.symbian.install sis," +
+        "application/vnd.tcpdump.pcap cap pcap,application/vnd.visio vsd vss vst vsw,application/vnd.wap.wbxml wbxml," +
+        "application/vnd.wap.wmlc wmlc,application/vnd.wap.wmlscriptc wmlsc,application/vnd.wordperfect wpd," +
+        "application/vnd.wordperfect5.1 wp5,application/wasm wasm,application/x-123 wk,application/x-7z-compressed 7z," +
+        "application/x-abiword abw,application/x-android-drm-fl fl,application/x-apple-diskimage dmg," +
+        "application/x-bcpio bcpio,application/x-bittorrent torrent,application/x-cab cab,application/x-cbr cbr," +
+        "application/x-cbz cbz,application/x-cdf cda cdf,application/x-cdlink vcd,application/x-chess-pgn pgn," +
+        "application/x-comsol mph,application/x-cpio cpio,application/x-debian-package deb udeb," +
+        "application/x-director dcr dir dxr,application/x-dms dms,application/x-doom wad,application/x-dvi dvi," +
+        "application/x-font gsf pcf pfa pfb,application/x-font-pcf pcf.z,application/x-freemind mm," +
+        "application/x-futuresplash spl,application/x-ganttproject gan,application/x-gnumeric gnumeric," +
+        "application/x-go-sgf sgf,application/x-graphing-calculator gcf,application/x-gtar gtar," +
+        "application/x-gtar-compressed taz tgz,application/x-hdf hdf,application/x-hwp hwp,application/x-ica ica," +
+        "application/x-info info,application/x-internet-signup ins isp,application/x-iphone iii," +
+        "application/x-iso9660-image iso,application/x-jam jam,application/x-java-jnlp-file jnlp,application/x-jmol jmz," +
+        "application/x-kchart chrt,application/x-killustrator kil,application/x-koan skd skm skp skt," +
+        "application/x-kpresenter kpr kpt,application/x-kspread ksp,application/x-kword kwd kwt," +
+        "application/x-latex latex,application/x-lha lha,application/x-lyx lyx,application/x-lzh lzh," +
+        "application/x-lzx lzx,application/x-maker book fb fbdoc fm frame frm maker,application/x-mif mif," +
+        "application/x-mobipocket-ebook mobi prc,application/x-ms-application application," +
+        "application/x-ms-manifest manifest,application/x-ms-wmd wmd,application/x-ms-wmz wmz," +
+        "application/x-msdos-program bat com dll exe,application/x-msi msi,application/x-netcdf nc," +
+        "application/x-ns-proxy-autoconfig pac,application/x-nwc nwc,application/x-object o," +
+        "application/x-oz-application oza,application/x-pem-file pem,application/x-pkcs12 p12 pfx," +
+        "application/x-pkcs7-certreqresp p7r,application/x-pkcs7-crl crl,application/x-python-code pyc pyo," +
+        "application/x-qgis qgs shp shx,application/x-quicktimeplayer qtl,application/x-rdp rdp," +
+        "application/x-redhat-package-manager rpm,application/x-ruby rb,application/x-scilab sce sci," +
+        "application/x-scilab-xcos xcos,application/x-shar shar,application/x-shockwave-flash swf swfl," +
+        "application/x-silverlight scr,application/x-sql sql,application/x-stuffit sit sitx,application/x-subrip srt," +
+        "application/x-sv4cpio sv4cpio,application/x-sv4crc sv4crc,application/x-tar tar,application/x-tex-gf gf," +
+        "application/x-tex-pk pk,application/x-texinfo texi texinfo,application/x-trash % bak old sik ~," +
+        "application/x-troff roff t tr,application/x-troff-man man,application/x-troff-me me,application/x-troff-ms ms," +
+        "application/x-ustar ustar,application/x-wais-source src,application/x-webarchive webarchive," +
+        "application/x-webarchive-xml webarchivexml,application/x-wingz wz,application/x-x509-ca-cert crt der," +
+        "application/x-xcf xcf,application/x-xfig fig,application/x-xpinstall xpi,application/x-xz xz," +
+        "application/xhtml+xml xht xhtml,application/xml xsd,application/xslt+xml xsl xslt,application/xspf+xml xspf," +
+        "application/zip zip,audio/3gpp 3ga,audio/aac aac adt adts,audio/ac3 a52 ac3,audio/amr amr,audio/amr-wb awb," +
+        "audio/annodex axa,audio/basic au snd,audio/csound csd orc sco,audio/flac flac,audio/imelody imy," +
+        "audio/midi kar mid midi rtttl rtx xmf,audio/mobile-xmf mxmf,audio/mp4 f4a f4b f4p m4b m4p," +
+        "audio/mpeg m4a m4r mp1 mp2 mp3 mpa mpega mpga,audio/ogg oga ogg opus spx,audio/prs.sid sid,audio/sp-midi smf," +
+        "audio/x-aiff aif aifc aiff,audio/x-gsm gsm,audio/x-matroska mka,audio/x-mpegurl m3u m3u8,audio/x-ms-wax wax," +
+        "audio/x-ms-wma wma,audio/x-pn-realaudio ra ram rm,audio/x-scpls pls,audio/x-sd2 sd2,audio/x-wav wav," +
+        "chemical/x-alchemy alc,chemical/x-cache cac cache,chemical/x-cache-csf csf," +
+        "chemical/x-cactvs-binary cascii cbin ctab,chemical/x-cdx cdx,chemical/x-chem3d c3d,chemical/x-chemdraw chm," +
+        "chemical/x-cif cif,chemical/x-cmdf cmdf,chemical/x-cml cml,chemical/x-compass cpa,chemical/x-crossfire bsd," +
+        "chemical/x-csml csm csml,chemical/x-ctx ctx,chemical/x-cxf cef cxf,chemical/x-embl-dl-nucleotide emb embl," +
+        "chemical/x-galactic-spc spc,chemical/x-gamess-input gam gamin inp,chemical/x-gaussian-checkpoint fch fchk," +
+        "chemical/x-gaussian-cube cub,chemical/x-gaussian-input gau gjc gjf,chemical/x-gaussian-log gal," +
+        "chemical/x-gcg8-sequence gcg,chemical/x-genbank gen,chemical/x-hin hin,chemical/x-isostar ist istr," +
+        "chemical/x-jcamp-dx dx jdx,chemical/x-kinemage kin,chemical/x-macmolecule mcm," +
+        "chemical/x-macromodel-input mmd mmod,chemical/x-mdl-molfile mol,chemical/x-mdl-rdfile rd," +
+        "chemical/x-mdl-rxnfile rxn,chemical/x-mdl-sdfile sd sdf,chemical/x-mdl-tgf tgf,chemical/x-mmcif mcif," +
+        "chemical/x-mol2 mol2,chemical/x-molconn-z b,chemical/x-mopac-graph gpt," +
+        "chemical/x-mopac-input mop mopcrt mpc zmt,chemical/x-mopac-out moo,chemical/x-mopac-vib mvb," +
+        "chemical/x-ncbi-asn1-ascii prt,chemical/x-ncbi-asn1-binary aso val,chemical/x-ncbi-asn1-spec asn," +
+        "chemical/x-pdb ent pdb,chemical/x-rosdal ros,chemical/x-swissprot sw,chemical/x-vamas-iso14976 vms," +
+        "chemical/x-vmd vmd,chemical/x-xtel xtel,chemical/x-xyz xyz,font/collection ttc,font/ttf otf ttf,font/woff woff," +
+        "font/woff2 woff2,image/avif avif,image/gif gif,image/heic heic,image/heic-sequence heics,image/heif heif hif," +
+        "image/heif-sequence heifs,image/ico cur,image/ief ief,image/jp2 jp2 jpg2,image/jpeg jpe jpeg jpg,image/jpm jpm," +
+        "image/jpx jpf jpx,image/pcx pcx,image/png png,image/svg+xml svg svgz,image/tiff tif tiff," +
+        "image/vnd.djvu djv djvu,image/vnd.wap.wbmp wbmp,image/webp webp,image/x-adobe-dng dng,image/x-canon-cr2 cr2," +
+        "image/x-canon-crw crw,image/x-cmu-raster ras,image/x-coreldraw cdr,image/x-coreldrawpattern pat," +
+        "image/x-coreldrawtemplate cdt,image/x-corelphotopaint cpt,image/x-epson-erf erf,image/x-fuji-raf raf," +
+        "image/x-icon ico,image/x-jg art,image/x-jng jng,image/x-ms-bmp bmp,image/x-nikon-nef nef,image/x-nikon-nrw nrw," +
+        "image/x-olympus-orf orf,image/x-panasonic-rw2 rw2,image/x-pentax-pef pef,image/x-photoshop psd," +
+        "image/x-portable-anymap pnm,image/x-portable-bitmap pbm,image/x-portable-graymap pgm," +
+        "image/x-portable-pixmap ppm,image/x-rgb rgb,image/x-samsung-srw srw,image/x-sony-arw arw,image/x-xbitmap xbm," +
+        "image/x-xpixmap xpm,image/x-xwindowdump xwd,message/rfc822 eml,model/iges iges igs,model/mesh mesh msh silo," +
+        "model/x3d+binary x3db,model/x3d+vrml x3dv,model/x3d+xml x3d,text/cache-manifest appcache,text/calendar ics icz," +
+        "text/comma-separated-values csv,text/css css,text/h323 323,text/html htm html shtml,text/iuls uls," +
+        "text/markdown markdown md,text/mathml mml,text/plain asc brf diff po text txt,text/rtf rtf," +
+        "text/scriptlet sct wsc,text/tab-separated-values tsv,text/texmacs tm,text/text phps,text/turtle ttl," +
+        "text/vcard vcard,text/vnd.sun.j2me.app-descriptor jad,text/vnd.wap.wml wml,text/vnd.wap.wmlscript wmls," +
+        "text/x-bibtex bib,text/x-boo boo,text/x-c++hdr h++ hh hpp hxx,text/x-c++src c++ cc cpp cxx,text/x-chdr h," +
+        "text/x-component htc,text/x-csh csh,text/x-csrc c,text/x-diff patch,text/x-dsrc d,text/x-haskell hs," +
+        "text/x-java java,text/x-lilypond ly,text/x-literate-haskell lhs,text/x-moc moc,text/x-pascal p pas," +
+        "text/x-pcs-gcd gcd,text/x-perl pl pm,text/x-python py,text/x-scala scala,text/x-setext etx,text/x-sfv sfv," +
+        "text/x-sh sh,text/x-tcl tcl tk,text/x-tex cls ltx sty tex,text/x-vcalendar vcs,text/x-vcard vcf,text/xml xml," +
+        "video/3gpp 3gp 3gpp,video/3gpp2 3g2 3gp2 3gpp2,video/annodex axv,video/avi avi,video/dl dl,video/dv dif dv," +
+        "video/fli fli,video/gl gl,video/mp2t m2ts mts,video/mp2ts ts,video/mp4 f4v m4v mp4 mp4v mpeg4," +
+        "video/mpeg m1v m2t m2v mp1v mp2v mpe mpeg mpeg1 mpeg2 mpg mpv1 mpv2,video/ogg ogv,video/quicktime mov qt," +
+        "video/vnd.mpegurl mxu,video/vnd.youtube.yt yt,video/webm webm,video/x-flv flv,video/x-la-asf lsf lsx," +
+        "video/x-matroska mkv mpv,video/x-mng mng,video/x-ms-asf asf asx,video/x-ms-wm wm,video/x-ms-wmv wmv," +
+        "video/x-ms-wmx wmx,video/x-ms-wvx wvx,video/x-sgi-movie movie,video/x-webex wrf,x-conference/x-cooltalk ice," +
+        "x-epoc/x-sisx-app sisx,x-world/x-vrml vrm vrml wrl";
+      // Android 15: extensions added or mapped differently, and those it no longer maps.
+      const EXTENSIONS_V =
+        "application/a2l a2l,application/aml aml,application/atf atf,application/atfx atfx," +
+        "application/atomdeleted+xml atomdeleted,application/atomsvc+xml atomsvc,application/atsc-dwd+xml dwd," +
+        "application/atsc-held+xml held,application/atsc-rsat+xml rsat,application/atxml atxml," +
+        "application/auth-policy+xml apxml,application/automationml-amlx+zip amlx,application/bacnet-xdd+zip xdd," +
+        "application/calendar+xml xcs,application/cbor cbor,application/cccex c3ex,application/ccmp+xml ccmp," +
+        "application/ccxml+xml ccxml,application/cdfx+xml cdfx,application/cdmi-capability cdmia," +
+        "application/cdmi-container cdmic,application/cdmi-domain cdmid,application/cdmi-object cdmio," +
+        "application/cdmi-queue cdmiq,application/cea cea,application/cellml+xml cellml,application/clr 1clr," +
+        "application/clue_info+xml clue,application/cms cmsc,application/cpl+xml cpl,application/csrattrs csrattrs," +
+        "application/cwl cwl,application/cwl+json cwl.json,application/dash+xml mpd,application/dashdelta mpdd," +
+        "application/dcd dcd,application/dii dii,application/dit dit,application/dskpp+xml xmls," +
+        "application/dssc+der dssc,application/dssc+xml xdssc,application/dvcs dvc,application/efi efi," +
+        "application/emma+xml emma,application/emotionml+xml emotionml,application/exi exi,application/express exp," +
+        "application/fastinfoset finf,application/fdf fdf,application/fdt+xml fdt,application/futuresplash spl," +
+        "application/geo+json geojson,application/geopackage+sqlite3 gpkg,application/gltf-buffer glbin glbuf," +
+        "application/gml+xml gml,application/hyperstudio stk,application/inkml+xml ink inkml,application/ipfix ipfix," +
+        "application/its+xml its,application/jrd+json jrd,application/json-patch+json json-patch,application/lgr+xml lgr," +
+        "application/link-format wlnk,application/lost+xml lostxml,application/lostsync+xml lostsyncxml," +
+        "application/lpf+zip lpf,application/lxf lxf,application/mads+xml mads,application/manifest+json webmanifest," +
+        "application/marc mrc,application/marcxml+xml mrcx,application/mathematica ma mb,application/mathml+xml mml," +
+        "application/metalink4+xml meta4,application/mets+xml mets,application/mf4 mf4,application/mmt-aei+xml maei," +
+        "application/mmt-usd+xml musd,application/mods+xml mods,application/mp21 m21 mp21,application/n-quads nq," +
+        "application/n-triples nt,application/ocsp-request orq,application/ocsp-response ors,application/odx odx," +
+        "application/oxps oxps,application/p21 210 ifc p21 stpnc,application/p2p-overlay+xml relo,application/pdx pdx," +
+        "application/pgp-keys asc,application/pkcs10 p10,application/pkcs7-mime p7c p7m p7z," +
+        "application/pkcs7-signature p7s,application/pkcs8 p8,application/pkcs8-encrypted p8e," +
+        "application/pkix-attr-cert ac,application/pkix-crl crl,application/pkix-pkipath pkipath,application/pkixcmp pki," +
+        "application/provenance+xml provx,application/prs.cww cw cww,application/prs.hpub+zip hpub," +
+        "application/prs.nprend rct rnd,application/prs.rdf-xml-crypt rdf-crypt,application/prs.xsf+xml xsf," +
+        "application/pskc+xml pskcxml,application/reginfo+xml rif,application/relax-ng-compact-syntax rnc," +
+        "application/resource-lists+xml rl,application/resource-lists-diff+xml rld,application/rfc+xml rfcxml," +
+        "application/rls-services+xml rs,application/route-apd+xml rapd,application/route-s-tsid+xml sls," +
+        "application/route-usd+xml rusd,application/rpki-ghostbusters gbr,application/rpki-manifest mft," +
+        "application/rpki-roa roa,application/sarif+json sarif sarif.json," +
+        "application/sarif-external-properties+json sarif-external-properties sarif-external-properties.json," +
+        "application/scim+json scim,application/scvp-cv-request scq,application/scvp-cv-response scs," +
+        "application/scvp-vp-request spq,application/scvp-vp-response spp,application/senml+cbor senmlc," +
+        "application/senml+json senml,application/senml+xml senmlx,application/senml-etch+cbor senml-etchc," +
+        "application/senml-etch+json senml-etchj,application/senml-exi senmle,application/sensml+cbor sensmlc," +
+        "application/sensml+json sensml,application/sensml+xml sensmlx,application/sensml-exi sensmle," +
+        "application/sgml-open-catalog soc,application/shf+xml shf,application/sieve sieve siv," +
+        "application/simple-filter+xml cl,application/smil+xml sml,application/sparql-query rq," +
+        "application/sparql-results+xml srx,application/spdx+json spdx.json,application/sql sql,application/srgs gram," +
+        "application/srgs+xml grxml,application/sru+xml sru,application/ssml+xml ssml,application/stix+json stix," +
+        "application/swid+cbor coswid,application/swid+xml swidtag,application/tamp-apex-update tau," +
+        "application/tamp-apex-update-confirm auc,application/tamp-community-update tcu," +
+        "application/tamp-community-update-confirm cuc,application/tamp-error ter,application/tamp-sequence-adjust tsa," +
+        "application/tamp-sequence-adjust-confirm sac,application/tamp-update tur,application/tamp-update-confirm tuc," +
+        "application/td+json jsontd,application/tei+xml odd tei teicorpus,application/thraud+xml tfi," +
+        "application/timestamp-query tsq,application/timestamp-reply tsr,application/timestamped-data tsd," +
+        "application/tm+json jsontm tm.json tm.jsonld,application/trig trig,application/urc-grpsheet+xml gsheet," +
+        "application/urc-ressheet+xml rsheet,application/urc-targetdesc+xml td,application/urc-uisocketdesc+xml uis," +
+        "application/vnd.1000minds.decision-model+xml 1km,application/vnd.1ob ob,application/vnd.3gpp.pic-bw-large plb," +
+        "application/vnd.3gpp.pic-bw-small psb,application/vnd.3gpp.pic-bw-var pvb,application/vnd.3gpp2.sms sms," +
+        "application/vnd.3gpp2.tcap tcap,application/vnd.3lightssoftware.imagescal imgcal," +
+        "application/vnd.3m.post-it-notes pwn,application/vnd.accpac.simply.imp imp,application/vnd.acucobol acu," +
+        "application/vnd.acucorp acutc atc,application/vnd.adobe.flash.movie swf," +
+        "application/vnd.adobe.formscentral.fcdt fcdt,application/vnd.adobe.fxp fxp fxpl," +
+        "application/vnd.adobe.xdp+xml xdp,application/vnd.afpc.modca afp list3820 listafp pseg3820," +
+        "application/vnd.afpc.modca-overlay ovl,application/vnd.afpc.modca-pagesegment psg,application/vnd.age age," +
+        "application/vnd.ahead.space ahead,application/vnd.airzip.filesecure.azf azf," +
+        "application/vnd.airzip.filesecure.azs azs,application/vnd.amazon.mobi8-ebook azw3," +
+        "application/vnd.americandynamics.acc acc,application/vnd.amiga.ami ami," +
+        "application/vnd.android.haptics.vibration+xml ahv,application/vnd.anki apkg," +
+        "application/vnd.anser-web-certificate-issue-initiation cii," +
+        "application/vnd.anser-web-funds-transfer-initiation fti,application/vnd.apache.arrow.file arrow," +
+        "application/vnd.apache.arrow.stream arrows,application/vnd.apexlang apex apexlang," +
+        "application/vnd.apple.installer+xml dist distz mpkg pkg,application/vnd.apple.keynote keynote," +
+        "application/vnd.apple.numbers numbers,application/vnd.apple.pages pages,application/vnd.apple.pkpass pkpass," +
+        "application/vnd.apple.pkpasses pkpasses,application/vnd.aristanetworks.swi swi," +
+        "application/vnd.artisan+json artisan,application/vnd.astraea-software.iota iota,application/vnd.audiograph aep," +
+        "application/vnd.autopackage package,application/vnd.balsamiq.bmml+xml bmml,application/vnd.balsamiq.bmpr bmpr," +
+        "application/vnd.banana-accounting ac2,application/vnd.belightsoft.lhzd+zip lhzd," +
+        "application/vnd.belightsoft.lhzl+zip lhzl,application/vnd.blueice.multipass mpm," +
+        "application/vnd.bluetooth.ep.oob ep,application/vnd.bluetooth.le.oob le,application/vnd.bmi bmi," +
+        "application/vnd.businessobjects rep,application/vnd.cendio.thinlinc.clientconf tlclient," +
+        "application/vnd.chemdraw+xml cdxml,application/vnd.chess-pgn pgn,application/vnd.chipnuts.karaoke-mmd mmd," +
+        "application/vnd.citationstyles.style+xml csl,application/vnd.claymore cla,application/vnd.cloanto.rp9 rp9," +
+        "application/vnd.clonk.c4group c4d c4f c4g c4p c4u,application/vnd.cluetrust.cartomobile-config c11amc," +
+        "application/vnd.cluetrust.cartomobile-config-pkg c11amz,application/vnd.coffeescript coffee," +
+        "application/vnd.collabio.xodocuments.document xodt,application/vnd.collabio.xodocuments.document-template xott," +
+        "application/vnd.collabio.xodocuments.presentation xodp," +
+        "application/vnd.collabio.xodocuments.presentation-template xotp," +
+        "application/vnd.collabio.xodocuments.spreadsheet xods," +
+        "application/vnd.collabio.xodocuments.spreadsheet-template xots,application/vnd.comicbook+zip cbz," +
+        "application/vnd.comicbook-rar cbr,application/vnd.commerce-battelle ic0 ic1 ic2 ic3 ic4 ic5 ic6 ic7 ic8 icd icf," +
+        "application/vnd.commonspace csp cst,application/vnd.contact.cmsg cdbcmsg," +
+        "application/vnd.coreos.ignition+json ign ignition,application/vnd.cosmocaller cmc," +
+        "application/vnd.crick.clicker clkx,application/vnd.crick.clicker.keyboard clkk," +
+        "application/vnd.crick.clicker.palette clkp,application/vnd.crick.clicker.template clkt," +
+        "application/vnd.crick.clicker.wordbank clkw,application/vnd.criticaltools.wbs+xml wbs," +
+        "application/vnd.crypto-shade-file ssvc,application/vnd.cryptomator.encrypted c9r c9s," +
+        "application/vnd.cryptomator.vault cryptomator,application/vnd.ctc-posml pml,application/vnd.cups-ppd ppd," +
+        "application/vnd.dart dart,application/vnd.data-vision.rdz rdz,application/vnd.datalog dl," +
+        "application/vnd.dbf dbf,application/vnd.debian.binary-package deb udeb," +
+        "application/vnd.dece.data uvd uvf uvvd uvvf,application/vnd.dece.ttml+xml uvt uvvt," +
+        "application/vnd.dece.unspecified uvvx uvx,application/vnd.dece.zip uvvz uvz," +
+        "application/vnd.denovo.fcselayout-link fe_launch,application/vnd.desmume.movie dsm,application/vnd.dna dna," +
+        "application/vnd.document+json docjson,application/vnd.doremir.scorecloud-binary-document scld," +
+        "application/vnd.dpgraph dpg dpgraph mwc,application/vnd.dreamfactory dfac,application/vnd.dtg.local.flash fla," +
+        "application/vnd.dvb.ait ait,application/vnd.dvb.service svc,application/vnd.dynageo geo,application/vnd.dzr dzr," +
+        "application/vnd.ecowin.chart mag,application/vnd.eln+zip eln,application/vnd.enliven nml," +
+        "application/vnd.epson.esf esf,application/vnd.epson.msf msf,application/vnd.epson.quickanime qam," +
+        "application/vnd.epson.salt slt,application/vnd.epson.ssf ssf,application/vnd.ericsson.quickcall qca qcall," +
+        "application/vnd.espass-espass+zip espass,application/vnd.eszigno3+xml es3 et3," +
+        "application/vnd.etsi.asic-e+zip asice,application/vnd.etsi.asic-s+zip asics," +
+        "application/vnd.etsi.timestamp-token tst,application/vnd.eu.kasparian.car+json carjson," +
+        "application/vnd.evolv.ecig.profile ecigprofile,application/vnd.evolv.ecig.settings ecig," +
+        "application/vnd.evolv.ecig.theme ecigtheme,application/vnd.exstream-empower+zip mpw," +
+        "application/vnd.exstream-package pub,application/vnd.ezpix-album ez2,application/vnd.ezpix-package ez3," +
+        "application/vnd.familysearch.gedcom+zip gdz,application/vnd.fastcopy-disk-image dim," +
+        "application/vnd.fdsn.mseed msd mseed,application/vnd.fdsn.seed dataless seed,application/vnd.ficlab.flb+zip flb," +
+        "application/vnd.filmit.zfc zfc,application/vnd.flographit gph,application/vnd.fluxtime.clip ftc," +
+        "application/vnd.fsc.weblaunch fsc,application/vnd.fujitsu.oasys oas,application/vnd.fujitsu.oasys2 oa2," +
+        "application/vnd.fujitsu.oasys3 oa3,application/vnd.fujitsu.oasysgp fg5,application/vnd.fujitsu.oasysprs bh2," +
+        "application/vnd.fujixerox.ddd ddd,application/vnd.fujixerox.docuworks xdw," +
+        "application/vnd.fujixerox.docuworks.binder xbd,application/vnd.fujixerox.docuworks.container xct," +
+        "application/vnd.fuzzysheet fzs,application/vnd.genomatix.tuxedo txd,application/vnd.genozip genozip," +
+        "application/vnd.gentics.grd+json grd,application/vnd.gentoo.ebuild ebuild,application/vnd.gentoo.eclass eclass," +
+        "application/vnd.gentoo.gpkg gpkg.tar,application/vnd.gentoo.xpak xpak,application/vnd.geogebra.file ggb," +
+        "application/vnd.geogebra.slides ggs,application/vnd.geogebra.tool ggt,application/vnd.geometry-explorer gex gre," +
+        "application/vnd.geonext gxt,application/vnd.geoplan g2w,application/vnd.geospace g3w," +
+        "application/vnd.grafeq gqf gqs,application/vnd.groove-account gac,application/vnd.groove-help ghf," +
+        "application/vnd.groove-identity-message gim,application/vnd.groove-injector grv," +
+        "application/vnd.groove-tool-message gtm,application/vnd.groove-tool-template tpl," +
+        "application/vnd.groove-vcard vcg,application/vnd.hal+xml hal,application/vnd.handheld-entertainment+xml zmm," +
+        "application/vnd.hbci bpd hbc hbci kom pkd upa,application/vnd.hdt hdt,application/vnd.hhe.lesson-player les," +
+        "application/vnd.hp-hpgl hpgl,application/vnd.hp-hpid hpi hpid,application/vnd.hp-hps hps," +
+        "application/vnd.hp-jlyt jlt,application/vnd.hp-pcl pcl,application/vnd.hsl hsl," +
+        "application/vnd.hydrostatix.sof-data sfd-hdstx,application/vnd.ibm.electronic-media emm," +
+        "application/vnd.ibm.minipay mpy,application/vnd.ibm.rights-management irm," +
+        "application/vnd.ibm.secure-container sc,application/vnd.iccprofile icc icm,application/vnd.ieee.1905 1905.1," +
+        "application/vnd.igloader igl,application/vnd.imagemeter.folder+zip imf,application/vnd.imagemeter.image+zip imi," +
+        "application/vnd.immervision-ivp ivp,application/vnd.immervision-ivu ivu,application/vnd.ims.imsccv1p1 imscc," +
+        "application/vnd.insors.igm igm,application/vnd.intercon.formnet xpw xpx,application/vnd.intergeo i2g," +
+        "application/vnd.intu.qbo qbo,application/vnd.intu.qfx qfx,application/vnd.ipfs.ipns-record ipns-record," +
+        "application/vnd.ipld.car car,application/vnd.ipunplugged.rcprofile rcprofile," +
+        "application/vnd.irepository.package+xml irp,application/vnd.is-xpr xpr,application/vnd.isac.fcs fcs," +
+        "application/vnd.jam jam,application/vnd.jcp.javame.midlet-rms rms,application/vnd.jisp jisp," +
+        "application/vnd.joost.joda-archive joda,application/vnd.kahootz ktr ktz,application/vnd.kde.karbon karbon," +
+        "application/vnd.kde.kchart chrt,application/vnd.kde.kformula kfo,application/vnd.kde.kivio flw," +
+        "application/vnd.kde.kontour kon,application/vnd.kde.kpresenter kpr kpt,application/vnd.kde.kspread ksp," +
+        "application/vnd.kde.kword kwd kwt,application/vnd.kenameaapp htke,application/vnd.kidspiration kia," +
+        "application/vnd.kinar kne knp,application/vnd.koan skd skm skp skt,application/vnd.kodak-descriptor sse," +
+        "application/vnd.las las,application/vnd.las.las+json lasjson,application/vnd.las.las+xml lasxml," +
+        "application/vnd.llamagraphics.life-balance.desktop lbd," +
+        "application/vnd.llamagraphics.life-balance.exchange+xml lbe,application/vnd.logipipe.circuit+zip lca lcs," +
+        "application/vnd.loom loom,application/vnd.lotus-1-2-3 123 wk1 wk3 wk4,application/vnd.lotus-approach apr vew," +
+        "application/vnd.lotus-freelance pre prz,application/vnd.lotus-notes ndl ns2 ns3 ns4 nsf nsg nsh ntf," +
+        "application/vnd.lotus-organizer or2 or3 org,application/vnd.lotus-screencam scm," +
+        "application/vnd.lotus-wordpro lwp sam,application/vnd.macports.portpkg portpkg," +
+        "application/vnd.mapbox-vector-tile mvt,application/vnd.marlin.drm.mdcf mdc," +
+        "application/vnd.maxar.archive.3tz+zip 3tz,application/vnd.maxmind.maxmind-db mmdb,application/vnd.mcd mcd," +
+        "application/vnd.mdl mdl,application/vnd.mdl-mbsdf mbsdf,application/vnd.medcalcdata mc1," +
+        "application/vnd.mediastation.cdkey cdkey,application/vnd.medicalholodeck.recordxr rxt,application/vnd.mfer mwf," +
+        "application/vnd.mfmp mfm,application/vnd.micrografx.flo flo,application/vnd.micrografx.igx igx," +
+        "application/vnd.mif mif,application/vnd.mobius.daf daf,application/vnd.mobius.dis dis," +
+        "application/vnd.mobius.mbk mbk,application/vnd.mobius.mqy mqy,application/vnd.mobius.msl msl," +
+        "application/vnd.mobius.plc plc,application/vnd.mobius.txf txf,application/vnd.modl modl," +
+        "application/vnd.mophun.application mpn,application/vnd.ms-3mfdocument 3mf,application/vnd.ms-artgalry cil," +
+        "application/vnd.ms-asf asf,application/vnd.ms-cab-compressed cab,application/vnd.ms-excel xla xlc xlm xlw," +
+        "application/vnd.ms-ims ims,application/vnd.ms-lrm lrm,application/vnd.ms-project mpp mpt," +
+        "application/vnd.ms-tnef tnef tnf,application/vnd.ms-works wcm wdb wks wps,application/vnd.ms-xpsdocument xps," +
+        "application/vnd.msa-disk-image msa,application/vnd.mseq mseq,application/vnd.multiad.creator crtr," +
+        "application/vnd.musician mus,application/vnd.muvee.style msty,application/vnd.mynfc taglet," +
+        "application/vnd.nebumind.line line nebul,application/vnd.nervana bkm entity kcm request," +
+        "application/vnd.neurolanguage.nlu nlu,application/vnd.nimn nimn,application/vnd.nintendo.nitro.rom nds," +
+        "application/vnd.nintendo.snes.rom sfc smc,application/vnd.nitf nitf,application/vnd.noblenet-directory nnd," +
+        "application/vnd.noblenet-sealer nns,application/vnd.noblenet-web nnw,application/vnd.nokia.n-gage.data ngdat," +
+        "application/vnd.nokia.radio-preset rpst,application/vnd.nokia.radio-presets rpss," +
+        "application/vnd.novadigm.edm edm,application/vnd.novadigm.edx edx,application/vnd.novadigm.ext ext," +
+        "application/vnd.oasis.opendocument.base odb,application/vnd.oasis.opendocument.chart-template otc," +
+        "application/vnd.oasis.opendocument.image-template oti," +
+        "application/vnd.oasis.opendocument.text-master-template otm,application/vnd.olpc-sugar xo," +
+        "application/vnd.oma.dd2+xml dd2,application/vnd.onepager tam,application/vnd.onepagertamp tamp," +
+        "application/vnd.onepagertamx tamx,application/vnd.onepagertat tat,application/vnd.onepagertatp tatp," +
+        "application/vnd.onepagertatx tatx,application/vnd.openblox.game+xml obgx," +
+        "application/vnd.openblox.game-binary obg,application/vnd.openeye.oeb oeb," +
+        "application/vnd.openofficeorg.extension oxt,application/vnd.openstreetmap.data+xml osm," +
+        "application/vnd.osa.netdeploy ndc,application/vnd.osgeo.mapguide.package mgp,application/vnd.osgi.dp dp," +
+        "application/vnd.osgi.subsystem esa,application/vnd.oxli.countgraph oxlicg,application/vnd.palm oprc pqa," +
+        "application/vnd.panoply plp,application/vnd.patentdive dive,application/vnd.pawaafile paw," +
+        "application/vnd.pg.format str,application/vnd.pg.osasli ei6,application/vnd.piaccess.application-licence pil," +
+        "application/vnd.picsel efif,application/vnd.pmi.widget wg,application/vnd.pocketlearn plf," +
+        "application/vnd.powerbuilder6 pbd,application/vnd.preminet preminet,application/vnd.previewsystems.box box vbox," +
+        "application/vnd.proteus.magazine mgz,application/vnd.psfs psfs,application/vnd.publishare-delta-tree qps," +
+        "application/vnd.pvi.ptid1 ptid,application/vnd.qualcomm.brew-app-res bar," +
+        "application/vnd.quark.quarkxpress qwd qwt qxb qxd qxl qxt,application/vnd.quobject-quoxdocument quiz quox," +
+        "application/vnd.rainstor.data tree,application/vnd.rar rar,application/vnd.realvnc.bed bed," +
+        "application/vnd.recordare.musicxml mxl,application/vnd.resilient.logic reload rlm," +
+        "application/vnd.rig.cryptonote cryptonote,application/vnd.route66.link66+xml link66," +
+        "application/vnd.sailingtracker.track st,application/vnd.sar sar,application/vnd.scribus scd sla slaz," +
+        "application/vnd.sealed.3df s3df,application/vnd.sealed.csf scsf,application/vnd.sealed.doc s1w sdo sdoc," +
+        "application/vnd.sealed.eml sem seml,application/vnd.sealed.mht smh smht,application/vnd.sealed.ppt s1p sppt," +
+        "application/vnd.sealed.tiff stif,application/vnd.sealed.xls s1e sxl sxls," +
+        "application/vnd.sealedmedia.softseal.html s1h stml,application/vnd.sealedmedia.softseal.pdf s1a spd spdf," +
+        "application/vnd.seemail see,application/vnd.sema sema,application/vnd.semd semd,application/vnd.semf semf," +
+        "application/vnd.shade-save-file ssv,application/vnd.shana.informed.formdata ifm," +
+        "application/vnd.shana.informed.formtemplate itp,application/vnd.shana.informed.interchange iif," +
+        "application/vnd.shana.informed.package ipk,application/vnd.sigrok.session sr," +
+        "application/vnd.simtech-mindmapper twd twds,application/vnd.smart.notebook notebook," +
+        "application/vnd.smart.teacher teacher,application/vnd.smintio.portals.archive sipa," +
+        "application/vnd.snesdev-page-table pt ptrom,application/vnd.software602.filler.form+xml fo," +
+        "application/vnd.software602.filler.form-xml-zip zfo,application/vnd.solent.sdkm+xml sdkd sdkm," +
+        "application/vnd.spotfire.dxp dxp,application/vnd.spotfire.sfs sfs,application/vnd.sqlite3 sqlite sqlite3," +
+        "application/vnd.stepmania.package smzip,application/vnd.stepmania.stepchart sm," +
+        "application/vnd.sun.wadl+xml wadl,application/vnd.sus-calendar sus susp,application/vnd.sybyl.mol2 ml2 mol2 sy2," +
+        "application/vnd.sycle+xml scl,application/vnd.syft+json syft.json,application/vnd.syncml+xml xsm," +
+        "application/vnd.syncml.dm+wbxml bdm,application/vnd.syncml.dm+xml xdm,application/vnd.syncml.dmddf+xml ddf," +
+        "application/vnd.tao.intent-module-archive tao,application/vnd.tcpdump.pcap dmp,application/vnd.theqvd qvd," +
+        "application/vnd.think-cell.ppttc+json ppttc,application/vnd.tml vfr viaframe,application/vnd.tmobile-livetv tmo," +
+        "application/vnd.trid.tpt tpt,application/vnd.triscape.mxs mxs,application/vnd.trueapp tra," +
+        "application/vnd.ufdl ufd ufdl,application/vnd.uiq.theme utz,application/vnd.umajin umj," +
+        "application/vnd.unity unityweb,application/vnd.uoml+xml uo uoml,application/vnd.uri-map urim urimap," +
+        "application/vnd.valve.source.material vmt,application/vnd.vcx vcx," +
+        "application/vnd.vd-study model-inter mxi study-inter,application/vnd.vectorworks vwx," +
+        "application/vnd.veritone.aion+json aion vtnstd,application/vnd.veryant.thin istc isws," +
+        "application/vnd.ves.encrypted ves,application/vnd.vidsoft.vidconference vsc,application/vnd.visionary vis," +
+        "application/vnd.vsf vsf,application/vnd.wap.sic sic,application/vnd.wap.slc slc," +
+        "application/vnd.wasmflow.wafl wafl,application/vnd.webturbo wtb,application/vnd.wfa.p2p p2p," +
+        "application/vnd.wfa.wsc wsc,application/vnd.wmc wmc,application/vnd.wolfram.mathematica nb," +
+        "application/vnd.wolfram.mathematica.package m,application/vnd.wolfram.player nbp,application/vnd.wqd wqd," +
+        "application/vnd.wt.stf stf,application/vnd.wv.csp+wbxml wv,application/vnd.xara xar," +
+        "application/vnd.xfdl xfd xfdl,application/vnd.xmpie.cpkg cpkg,application/vnd.xmpie.dpkg dpkg," +
+        "application/vnd.xmpie.ppkg ppkg,application/vnd.xmpie.xlim xlim,application/vnd.yamaha.hv-dic hvd," +
+        "application/vnd.yamaha.hv-script hvs,application/vnd.yamaha.hv-voice hvp," +
+        "application/vnd.yamaha.openscoreformat osf,application/vnd.yamaha.smaf-audio saf," +
+        "application/vnd.yamaha.smaf-phrase spf,application/vnd.yaoweme yme,application/vnd.yellowriver-custom-menu cmp," +
+        "application/vnd.zul zir zirz,application/vnd.zzazz.deck+xml zaz,application/voicexml+xml vxml," +
+        "application/voucher-cms+json vcj,application/watcherinfo+xml wif,application/widget wgt," +
+        "application/wsdl+xml wsdl,application/wspolicy+xml wspolicy,application/xcap-att+xml xav," +
+        "application/xcap-caps+xml xca,application/xcap-diff+xml xdf,application/xcap-el+xml xel," +
+        "application/xcap-error+xml xer,application/xcap-ns+xml xns,application/xfdf xfdf,application/xhtml+xml xhtm," +
+        "application/xliff+xml xlf,application/xml-dtd dtd mod,application/xml-external-parsed-entity ent," +
+        "application/xop+xml xop,application/xv+xml mxml xhvml xvm xvml,application/yaml yaml yml,application/yang yang," +
+        "application/yin+xml yin,application/zstd zst,audio/32kadpcm 726,audio/aac ass,audio/asc acn," +
+        "audio/atrac-advanced-lossless aal,audio/atrac-x atx,audio/atrac3 aa3 at3 omg,audio/dls dls,audio/evrc evc," +
+        "audio/evrc-qcp qcp,audio/evrcb evb,audio/evrcnw enw,audio/evrcwb evw,audio/ilbc lbc,audio/l16 l16," +
+        "audio/mhas mhas,audio/prs.sid psid,audio/smv smv,audio/sofa sofa,audio/sp-midi mid,audio/usac loas xhe," +
+        "audio/vnd.audiokoz koz,audio/vnd.dece.audio uva uvva,audio/vnd.digital-winds eol,audio/vnd.dolby.mlp mlp," +
+        "audio/vnd.dts dts,audio/vnd.dts.hd dtshd,audio/vnd.everad.plj plj,audio/vnd.lucent.voice lvp," +
+        "audio/vnd.ms-playready.media.pya pya,audio/vnd.nortel.vbk vbk,audio/vnd.nuera.ecelp4800 ecelp4800," +
+        "audio/vnd.nuera.ecelp7470 ecelp7470,audio/vnd.nuera.ecelp9600 ecelp9600," +
+        "audio/vnd.presonus.multitrack multitrack,audio/vnd.rip rip,audio/vnd.sealedmedia.softseal.mpeg s1m smp smp3," +
+        "font/otf otf,image/aces exr,image/apng apng,image/avci avci,image/avcs avcs,image/cgm cgm,image/dicom-rle drle," +
+        "image/dpx dpx,image/emf emf,image/fits fit fits fts,image/hej2k hej2,image/hsj2 hsj2,image/j2c j2c j2k," +
+        "image/jls jls,image/jpeg jfif,image/jph jph,image/jphc jhc jphc,image/jpm jpgm,image/jxl jxl,image/jxr jxr," +
+        "image/jxra jxra,image/jxrs jxrs,image/jxs jxs,image/jxsc jxsc,image/jxsi jxsi,image/jxss jxss,image/ktx ktx," +
+        "image/ktx2 ktx2,image/prs.btif btf btif,image/prs.pti pti,image/tiff-fx tfx," +
+        "image/vnd.airzip.accelerator.azv azv,image/vnd.dece.graphic uvg uvi uvvg uvvi,image/vnd.dwg dwg," +
+        "image/vnd.dxf dxf,image/vnd.fastbidsheet fbs,image/vnd.fpx fpx,image/vnd.fst fst," +
+        "image/vnd.fujixerox.edmics-mmr mmr,image/vnd.fujixerox.edmics-rlc rlc,image/vnd.globalgraphics.pgb pgb," +
+        "image/vnd.ms-modi mdi,image/vnd.pco.b16 b16,image/vnd.radiance hdr rgbe xyze,image/vnd.sealed.png s1n spn spng," +
+        "image/vnd.sealedmedia.softseal.gif s1g sgi sgif,image/vnd.sealedmedia.softseal.jpg s1j sjp sjpg," +
+        "image/vnd.tencent.tap tap,image/vnd.valve.source.texture vtf,image/vnd.xiff xif,image/vnd.zbrush.pcx pcx," +
+        "image/wmf wmf,image/x-xcf xcf,message/global u8msg,message/global-delivery-status u8dsn," +
+        "message/global-disposition-notification u8mdn,message/global-headers u8hdr,message/rfc822 mail," +
+        "model/gltf+json gltf,model/gltf-binary glb,model/jt jt,model/mtl mtl,model/obj obj,model/step step stp," +
+        "model/step+xml stpx,model/step+zip stpz,model/step-xml+zip stpxz,model/u3d u3d,model/vnd.bary bary," +
+        "model/vnd.cld cld,model/vnd.collada+xml dae,model/vnd.dwf dwf,model/vnd.gdl dor gdl ism lmp msm rsm win," +
+        "model/vnd.gtw gtw,model/vnd.moml+xml moml,model/vnd.opengex ogex," +
+        "model/vnd.parasolid.transmit.binary x_b xmt_bin,model/vnd.parasolid.transmit.text x_t xmt_txt," +
+        "model/vnd.pytha.pyox pyox,model/vnd.sap.vds vds,model/vnd.usda usda,model/vnd.usdz+zip usdz," +
+        "model/vnd.valve.source.compiled-map bsp,model/vnd.vtu vtu,model/vrml vrm vrml wrl,model/x3d+fastinfoset x3db," +
+        "model/x3d+xml x3dz,model/x3d-vrml x3dv x3dvz,multipart/vnd.bint.med-plus bmed,multipart/voice-message vpm," +
+        "text/cache-manifest manifest,text/calendar ifb,text/cql cql,text/csv-schema csvs,text/dns soa zone," +
+        "text/gff3 gff3,text/javascript es js mjs,text/jcr-cnd cnd,text/mizar miz,text/n3 n3," +
+        "text/provenance-notation provn,text/prs.fallenstein.rst rst,text/prs.lines.tag dsc tag,text/sgml sgm sgml," +
+        "text/shaclc shaclc shc,text/shex shex,text/spdx spdx,text/troff roff t tr,text/uri-list uri uris,text/vnd.a a," +
+        "text/vnd.abc abc,text/vnd.ascii-art ascii,text/vnd.curl curl,text/vnd.debian.copyright copyright," +
+        "text/vnd.dmclientscript dms,text/vnd.esmertec.theme-descriptor jtd,text/vnd.exchangeable vfk," +
+        "text/vnd.familysearch.gedcom ged,text/vnd.ficlab.flt flt,text/vnd.fly fly,text/vnd.fmi.flexstor flx," +
+        "text/vnd.graphviz dot gv,text/vnd.hans hans,text/vnd.hgl hgl,text/vnd.in3d.3dml 3dm 3dml," +
+        "text/vnd.in3d.spot spo spot,text/vnd.ms-mediapackage mpf,text/vnd.net2phone.commcenter.command ccc," +
+        "text/vnd.senx.warpscript mc2,text/vnd.sosi sos,text/vnd.wap.si si,text/vnd.wap.sl sl,text/vtt vtt," +
+        "text/wgsl wgsl,video/iso.segment m4s,video/mj2 mj2 mjp2,video/mp4 mpg4,video/vnd.dece.hd uvh uvvh," +
+        "video/vnd.dece.mobile uvm uvvm,video/vnd.dece.mp4 uvu uvvu,video/vnd.dece.pd uvp uvvp," +
+        "video/vnd.dece.sd uvs uvvs,video/vnd.dece.video uvv uvvv,video/vnd.dvb.file dvb,video/vnd.fvt fvt," +
+        "video/vnd.mpegurl m4u,video/vnd.ms-playready.media.pyv pyv,video/vnd.nokia.interleaved-multimedia nim," +
+        "video/vnd.radgamettools.bink bik bk2,video/vnd.radgamettools.smacker smk,video/vnd.sealed.mpeg1 s11 smpg," +
+        "video/vnd.sealed.mpeg4 s14,video/vnd.sealed.swf ssw sswf,video/vnd.sealedmedia.softseal.mov s1q smo smov," +
+        "video/vnd.vivo viv";
+      const REMOVED_V =
+        "323 application asx ice icz kar midi sct sisx swfl uls wp5 xlb xsd";
+
+      // MimeTypeMap.getMimeTypeFromExtension: the table of the device's Android version (that of Android 15 when unknown),
+      // looked up in lower case; Android 9 and earlier used another table (libcore.net.MimeUtils), not ported.
+      let extensions = null;
+      function mimeTypeMap() {
+        if (extensions) return extensions;
+        const map = new Map();
+        const load = table => {
+          for (const line of table.split(",")) {
+            const [type, ...names] = line.split(" ");
+            for (const name of names) map.set(name, type);
+          }
+        };
+        load(EXTENSIONS_Q);
+        const sdkInt = host && host.device ? host.device.sdkInt : undefined;
+        if (!(sdkInt < 35)) {
+          for (const name of REMOVED_V.split(" ")) map.delete(name);
+          load(EXTENSIONS_V);
+        }
+        return extensions = map;
+      }
+
+      // FileUtils.getExtension of the whole path: after its last ".", none when that is the first or the last character.
+      function extensionOf(path) {
+        const i = path.lastIndexOf(".");
+        return i <= 0 || i + 1 >= path.length ? "" : path.slice(i + 1);
+      }
+
+      function fromFile(path) {
+        const extension = extensionOf(path);
+        return extension === "" ? WILDCARD : mimeTypeMap().get(extension.toLowerCase()) ?? null;
+      }
+
+      const fromFileOr = (path, defaultType) => fromFile(path) ?? defaultType ?? WILDCARD;
+
+      // okhttp3.MediaType (OkHttp 4.12): lookingAt of TYPE_SUBTYPE, then PARAMETER from each end until the text ends (its \s
+      // as ICU reads it, see ICU_SPACE).
+      const TYPE_SUBTYPE = /([a-zA-Z0-9\-!#$%&'*+.^_`{|}~]+)\/([a-zA-Z0-9\-!#$%&'*+.^_`{|}~]+)/y;
+      const PARAMETER = /;[\t\n\x0B\f\r \x85\xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]*(?:([a-zA-Z0-9\-!#$%&'*+.^_`{|}~]+)=(?:([a-zA-Z0-9\-!#$%&'*+.^_`{|}~]+)|"([^"]*)"))?/y;
+      const mediaTypes = new WeakMap();
+
+      // A MediaType, or the message of the IllegalArgumentException of toMediaType.
+      function mediaTypeOf(text) {
+        TYPE_SUBTYPE.lastIndex = 0;
+        const head = TYPE_SUBTYPE.exec(text);
+        if (!head) return `No subtype found for: "${text}"`;
+        const parameters = [];
+        let s = TYPE_SUBTYPE.lastIndex;
+        while (s < text.length) {
+          PARAMETER.lastIndex = s;
+          const match = PARAMETER.exec(text);
+          if (!match) return `Parameter is not formatted correctly: "${text.slice(s)}" for: "${text}"`;
+          s = PARAMETER.lastIndex;
+          if (match[1] === undefined) continue;
+          const token = match[2];
+          // A 'single-quoted' token is invalid, OkHttp strips the quotes.
+          const quoted = token !== undefined && token.length > 2 && token.startsWith("'") && token.endsWith("'");
+          const value = token === undefined ? match[3] : quoted ? token.slice(1, -1) : token;
+          parameters.push(match[1], value);
+        }
+        const mediaType = Object.create(mediaTypePrototype);
+        mediaTypes.set(mediaType, {text, type: head[1].toLowerCase(), subtype: head[2].toLowerCase(), parameters});
+        return mediaType;
+      }
+
+      function slotOf(self, name) {
+        const slot = mediaTypes.get(self);
+        if (slot) return slot;
+        throw internalError(`Java method "${name}" was invoked with ${describe(self)} as "this" value that can not be converted to Java type ` +
+          `${MEDIA_TYPE}.`);
+      }
+
+      function parameterOf(slot, name) {
+        const lower = name.toLowerCase();
+        for (let i = 0; i < slot.parameters.length; i += 2) {
+          const key = slot.parameters[i];
+          if (key.length === name.length && key.toLowerCase() === lower) return slot.parameters[i + 1];
+        }
+        return null;
+      }
+
+      // charset() is a java.nio.charset.Charset in Rhino; here its name: the canonical one of the standard charsets, any
+      // other legal charset name as given (whether Android supports it is not checked).
+      const CHARSETS = new Map([
+        ["utf-8", "UTF-8"], ["utf8", "UTF-8"], ["us-ascii", "US-ASCII"], ["ascii", "US-ASCII"], ["iso-8859-1", "ISO-8859-1"],
+        ["iso8859-1", "ISO-8859-1"], ["iso8859_1", "ISO-8859-1"], ["iso_8859_1", "ISO-8859-1"], ["latin1", "ISO-8859-1"],
+        ["utf-16", "UTF-16"], ["utf-16be", "UTF-16BE"], ["utf-16le", "UTF-16LE"],
+      ]);
+
+      function charsetOf(slot, defaultValue) {
+        const name = parameterOf(slot, "charset");
+        if (name === null) return defaultValue;
+        const canonical = CHARSETS.get(name.toLowerCase());
+        if (canonical) return canonical;
+        return /^[A-Za-z0-9][A-Za-z0-9+\-.:_]*$/.test(name) ? name : defaultValue;
+      }
+
+      // java.lang.String#hashCode
+      function hashCode(text) {
+        let h = 0;
+        for (let i = 0; i < text.length; i++) h = (Math.imul(h, 31) + text.charCodeAt(i)) | 0;
+        return h;
+      }
+
+      const mediaTypePrototype = {};
+      for (const [name, overloads] of Object.entries({
+        type: {0() { return slotOf(this, "type").type; }},
+        subtype: {0() { return slotOf(this, "subtype").subtype; }},
+        charset: {
+          0() { return charsetOf(slotOf(this, "charset"), null); },
+          1(defaultValue) { return charsetOf(slotOf(this, "charset"), defaultValue); },
+        },
+        parameter: {1(name) { return parameterOf(slotOf(this, "parameter"), nonNull(javaString(name), `${MEDIA_TYPE}.parameter`, "name")); }},
+        equals: {
+          1(other) {
+            const slot = slotOf(this, "equals");
+            return mediaTypes.has(other) && mediaTypes.get(other).text === slot.text;
+          },
+        },
+        hashCode: {0() { return hashCode(slotOf(this, "hashCode").text); }},
+        toString: {0() { return slotOf(this, "toString").text; }},
+      })) {
+        Object.defineProperty(mediaTypePrototype, name, {value: javaMethod(MEDIA_TYPE, name, overloads), writable: true, configurable: true});
+      }
+
+      function getMediaType(text) {
+        const result = mediaTypeOf(text);
+        if (typeof result === "string") throw javaError("IllegalArgumentException", result);
+        return result;
+      }
+
+      // mime(mimeString), one argument; the prototype members of Rhino as own properties.
+      const mime = named("mime", 1, (...args) => {
+        if (count(args, 1) !== 1) throw new TypeError(failure("mime", arityText(1, 1)));
+        return parse(args[0]);
+      });
+      // A String parameter of a Mime method, not null (Kotlin).
+      const stringArgument = (value, method, param) => nonNull(javaString(value), `${MIME}.${method}`, param);
+      for (const [className, name, overloads] of [
+        [MIME, "getMediaType", {1: text => getMediaType(stringArgument(text, "getMediaType", "mediaType"))}],
+        [MIME, "parseMediaType", {
+          1: text => {
+            const result = mediaTypeOf(stringArgument(text, "parseMediaType", "mediaType"));
+            return typeof result === "string" ? null : result;
+          },
+        }],
+        [MIME, "fromFile", {1: path => fromFile(stringArgument(path, "fromFile", "path"))}],
+        [MIME, "fromFileOr", {2: (path, defaultType) => fromFileOr(stringArgument(path, "fromFileOr", "path"), javaString(defaultType))}],
+        [MIME, "fromFileOrWildcard", {1: path => fromFileOr(stringArgument(path, "fromFileOrWildcard", "path"), WILDCARD)}],
+        // MimeUtil2 statics on the type and subtype of a MimeType.
+        [MIME_UTIL, "getType", {1: text => mimeTypeOf(javaString(text)).type}],
+        [MIME_UTIL, "getSubtype", {1: text => mimeTypeOf(javaString(text)).subtype}],
+      ]) {
+        define(mime, name, javaMethod(className, name, overloads));
+      }
+      // Java fields in Rhino, which Object.keys does not list; not enumerable here (the ESM wrappers export the methods).
+      const constant = (target, name, value) => Object.defineProperty(target, name, {value, writable: true, enumerable: false, configurable: false});
+      for (const [type, subtypes] of CONSTANT_TYPES) {
+        for (const subtype of subtypes.split(" ")) {
+          const value = `${type}/${subtype}`;
+          constant(mime, value.toUpperCase().replace(/[^A-Z0-9]/g, "_"), value);
+        }
+      }
+      for (const [name, value] of CONSTANT_NAMES) constant(mime, name, value);
+      // The earlier Node mime had parse; kept and not enumerable, so its exports stay the host's.
+      Object.defineProperty(mime, "parse", {value: named("parse", 1, (...args) => mime(...args))});
+      Object.freeze(mime);
+
+      // recorder (timing)
+
+      const RECORDER = "org.autojs.autojs.runtime.api.Recorder";
+      // System.currentTimeMillis as Date.now: wall clock milliseconds.
+      const now = () => Date.now();
+      const records = new Map();
+      const anonymous = [];
+      // The Long range as doubles (RhinoUtils.coerceLongNumber): -2^63 and the largest double below 2^63.
+      const MIN_LONG = -9223372036854775808;
+      const MAX_LONG = 9223372036854774784;
+
+      const speciesOf = v => v === null ? "Null" : v === undefined ? "Undefined" : typeof v === "function" ? "Function" : tagOf(v);
+      const coerceError = (value, what) => javaError("IllegalArgumentException", `Failed to coerce ${value} (${speciesOf(value)}) into ${what}`);
+
+      // RhinoUtils.coerceLongNumber: ToNumber (a symbol is a TypeError), then finite, truncated and within the Long range.
+      function coerceLong(o) {
+        if (o === null || o === undefined) {
+          throw javaError("IllegalArgumentException", `Failed to coerce nullish (${speciesOf(o)}) into a valid number`);
+        }
+        const n = typeof o === "bigint" ? Number(o) : +o;
+        if (n !== n) throw coerceError(o, "a valid number");
+        if (n === Infinity || n === -Infinity) throw coerceError(o, "a finite Long number");
+        const truncated = Math.trunc(n) + 0;
+        if (truncated < MIN_LONG || truncated > MAX_LONG) throw coerceError(o, "a Long number without overflow");
+        return truncated;
+      }
+
+      // Recorder.toTimestamp: null is now.
+      const toTimestamp = ts => ts === null ? now() : coerceLong(ts);
+
+      function save(key, ts) {
+        const timestamp = toTimestamp(ts);
+        if (key === null) anonymous.push(timestamp);
+        else records.set(key, timestamp);
+        return timestamp;
+      }
+
+      // The anonymous record is the last one saved and is taken; a named one stays.
+      function valueOf(key) {
+        if (key === null) return anonymous.length > 0 ? anonymous.pop() : NaN;
+        const value = records.get(key);
+        if (value === undefined) throw javaError("NoSuchElementException", `Recorder key "${key}" does not exist`);
+        return value;
+      }
+
+      function load(key, ts) {
+        const timestamp = toTimestamp(ts);
+        return timestamp - valueOf(key);
+      }
+
+      // Recorder.shortcut: anonymous records without a key; a function is called (this: the second argument when it is a
+      // non-function object) and timed; any other key, as a string, is saved the first time and loaded afterwards. The
+      // second argument of a named record is not used.
+      function shortcut(key, ts) {
+        if (key === null || key === undefined) return anonymous.length > 0 ? load(null, null) : save(null, null);
+        if (typeof key === "function") {
+          const prefix = typeof key.name === "string" && key.name !== "" ? key.name : "(anonymous)";
+          const tmpKey = `${prefix}@${now()}`;
+          save(tmpKey, null);
+          Reflect.apply(key, ts !== null && typeof ts === "object" ? ts : undefined, []);
+          const elapsed = load(tmpKey, null);
+          records.delete(tmpKey);
+          return elapsed;
+        }
+        const name = `${key}`;
+        return records.has(name) ? load(name, null) : save(name, null);
+      }
+
+      // recorder(key?, timestamp?), at most two arguments; the methods of the Java object as own properties.
+      const recorder = named("recorder", 0, (...args) => {
+        const n = count(args, 0);
+        if (n > 2) throw new TypeError(failure("recorder", arityText(0, 2)));
+        return shortcut(n > 0 ? args[0] : null, n > 1 ? args[1] : null);
+      });
+      for (const [name, overloads] of [
+        ["save", {0: () => save(null, null), 1: key => save(javaString(key), null), 2: (key, ts) => save(javaString(key), javaObject(ts))}],
+        ["load", {0: () => load(null, null), 1: key => load(javaString(key), null), 2: (key, ts) => load(javaString(key), javaObject(ts))}],
+        ["isLessThan", {2: (key, compare) => load(javaString(key), null) < coerceLong(javaObject(compare))}],
+        ["isGreaterThan", {2: (key, compare) => load(javaString(key), null) > coerceLong(javaObject(compare))}],
+        ["has", {
+          1: key => {
+            const name = javaString(key);
+            return name !== null && records.has(name);
+          },
+        }],
+        ["remove", {
+          1: key => {
+            const name = javaString(key);
+            return name !== null && records.delete(name);
+          },
+        }],
+        ["clear", {0: () => {
+          records.clear();
+          anonymous.length = 0;
+        }}],
+      ]) {
+        define(recorder, name, javaMethod(RECORDER, name, overloads));
+      }
+
+      return {mime, recorder};
+    }
+    function __autojs6_js_tools_colors(host) {
+      // The colors module and Color of AutoJs6 Rhino scripts (ColorsModule, ColorValues, ColorModule), and the Color
+      // objects, whose members still run the older Colors functions (ColorNativeObject: the setters change the color,
+      // every other name calls the Colors function of that name with the color first). Float arithmetic of Skia and
+      // androidx goes through Math.fround. Members that build Java objects (toColorStateList, setPaintColor, extract,
+      // themeColor and the float[] result forms) use host.java() and return Promises. host: { java(), device: { sdkInt },
+      // android (optional, the earlier Node Android objects: createPaint, createColorStateList, getThemeColor) }.
+      const OPAQUE = -16777216;
+      const OMNI_COLOR = "OmniColor";
+      const DEFAULT_THRESHOLD = 4;
+      const DEFAULT_ALGORITHM = "diff";
+      const ALGORITHMS = ["diff", "rgb", "rgb+", "hs", "h", "equal", "oklab"];
+      const HEX_MODES = "'auto' | 'keep' | 'none' | boolean | 8 | 6 | 3";
+      const RGB = ["red", "green", "blue"];
+      const SIGNATURES = "(), (color), (red, green, blue), (red, green, blue, alpha)";
+      const AUTO = 0;
+      const KEEP = 1;
+      const NONE = 2;
+      const NEARLY_ZERO = 1 / 4096;
+      const LONG_BOUND = 2 ** 63;
+      const f32 = Math.fround;
+      const objectToString = Object.prototype.toString;
+
+      // Values and messages (ScriptArgs, ScriptMessages, ColorValues).
+
+      const isNullish = v => v === null || v === undefined;
+      // A Rhino BigInt is a java.lang.Number.
+      const isNumber = v => typeof v === "number" || typeof v === "bigint";
+      const tagOf = v => objectToString.call(v).slice(8, -1);
+      const isHandle = v => v !== null && typeof v === "object" && typeof v.__autojs6JavaHandle === "string";
+      const isJavaClass = v => v !== null && typeof v === "object" && typeof v.className === "string" && typeof v.callStatic === "function";
+      // A Rhino NativeObject: plain objects, class instances and Color objects, no arrays, functions or Java objects.
+      const isNativeObject = v => v !== null && typeof v === "object" && !Array.isArray(v) && !isHandle(v) && !isJavaClass(v) &&
+        tagOf(v) === "Object";
+      const str = v => `${v}`;
+      const own = (arr, i) => Object.hasOwn(arr, i) ? arr[i] : undefined;
+      // Kotlin String.trim (Char.isWhitespace).
+      const KOTLIN_TRIM = /^[\t-\r\x1c-\x1f\p{Z}]+|[\t-\r\x1c-\x1f\p{Z}]+$/gu;
+      const kotlinTrim = s => s.replace(KOTLIN_TRIM, "");
+
+      function describe(v) {
+        if (v === null) return "null";
+        switch (typeof v) {
+          case "number":
+          case "bigint":
+            return "number";
+          case "object":
+            if (Array.isArray(v)) return "Array";
+            if (isHandle(v) || isJavaClass(v)) return v.className;
+            return tagOf(v);
+          default:
+            return typeof v;
+        }
+      }
+
+      const numberText = x => String(x);
+      const quote = v => typeof v === "string" ? `"${v}"` : isNumber(v) ? numberText(Number(v)) : isNullish(v) ? String(v) : describe(v);
+      const failure = (fn, cause) => `Failed to call method "${fn}": [ ${cause} ]`;
+      const typeError = (fn, cause) => new TypeError(failure(fn, cause));
+      const rangeError = (fn, cause) => new RangeError(failure(fn, cause));
+      const argumentType = (param, expected, actual) => `Argument "${param}" must be of type ${expected}, got ${actual}`;
+      const argumentLength = (param, expected, actual) => `Argument "${param}" must have a length of ${expected}, got ${actual}`;
+      const typeErrorOf = (fn, param, expected, value) => typeError(fn, argumentType(param, expected, describe(value)));
+
+      function arityError(fn, min, max) {
+        const args = n => n === 1 ? "argument" : "arguments";
+        if (max < 0) return typeError(fn, `Method only accepts no less than ${min} ${args(min)}`);
+        if (min === max) return typeError(fn, `Method only accepts ${min} ${args(min)}`);
+        return typeError(fn, `Method only accepts a number of arguments in the range [${min}..${max}]`);
+      }
+
+      // A Java exception as Rhino reports it to scripts ("JavaException <name>"; an EvaluatorException is an InternalError).
+      function javaError(name, message, cause) {
+        const e = new Error(message, cause === undefined ? undefined : {cause});
+        e.name = name;
+        return e;
+      }
+      const internalError = message => javaError("InternalError", message);
+      const illegalArgument = message => javaError("IllegalArgumentException", `java.lang.IllegalArgumentException: ${message}`);
+      const safeText = v => typeof v === "symbol" ? v.toString() : String(v);
+
+      // Kotlin and Java numbers.
+
+      // Double.toLong() then Long.toInt(): saturated to 64 bits, then the low 32 bits.
+      function longToInt(v) {
+        if (typeof v === "bigint") return Number(BigInt.asIntN(32, v));
+        if (v !== v) return 0;
+        if (v >= LONG_BOUND) return -1;
+        if (v <= -LONG_BOUND) return 0;
+        return Number(BigInt.asIntN(32, BigInt(Math.trunc(v))));
+      }
+
+      // Number.toInt(): Double.toInt saturates to 32 bits (NaN is 0), BigInteger.toInt keeps the low 32 bits.
+      function numberToInt(v) {
+        if (typeof v === "bigint") return Number(BigInt.asIntN(32, v));
+        if (v !== v) return 0;
+        return Math.max(-2147483648, Math.min(2147483647, Math.trunc(v))) + 0;
+      }
+
+      // Kotlin Double.roundToInt (Math.round, ties up); NaN is an IllegalArgumentException.
+      function roundToInt(x) {
+        if (x !== x) throw illegalArgument("Cannot round NaN value.");
+        if (x > 2147483647) return 2147483647;
+        if (x < -2147483648) return -2147483648;
+        return Math.round(x) + 0;
+      }
+
+      const floatToInt = x => x !== x ? 0 : Math.max(-2147483648, Math.min(2147483647, Math.trunc(x))) + 0;
+      const coerce = (x, low, high) => x < low ? low : x > high ? high : x;
+
+      // The decimal value of Java's Double.toString(d) (FloatingDecimal of OpenJDK 8 - 18 in Android's libcore), which
+      // Double.toBigDecimal reads: [digits, exponent] for digits * 10^exponent, d > 0 (as in the shared core).
+      function javaDecimal(d) {
+        const view = new DataView(new ArrayBuffer(8));
+        view.setFloat64(0, d);
+        const raw = view.getBigUint64(0);
+        let fract = raw & 0xfffffffffffffn;
+        let binExp = Number((raw >> 52n) & 0x7ffn);
+        let nSignificantBits = 53;
+        if (binExp === 0) {
+          const leadingZeros = 64 - fract.toString(2).length;
+          fract <<= BigInt(leadingZeros - 11);
+          binExp = 12 - leadingZeros;
+          nSignificantBits = 64 - leadingZeros;
+        } else {
+          fract |= 1n << 52n;
+        }
+        binExp -= 1023;
+        const binary = fract.toString(2);
+        const tailZeros = binary.length - 1 - binary.lastIndexOf("1");
+        const nFractBits = 53 - tailZeros;
+        const nTinyBits = Math.max(0, nFractBits - binExp - 1);
+        if (nTinyBits === 0 && binExp <= 62) {
+          const insignificant = binExp > nSignificantBits ? [0, 0, 0, 0, 1, 1, 1, 2, 2][binExp - nSignificantBits - 1] : 0;
+          let value = binExp >= 52 ? fract << BigInt(binExp - 52) : fract >> BigInt(52 - binExp);
+          if (insignificant > 0) {
+            const unit = 10n ** BigInt(insignificant);
+            value = value / unit + (value % unit >= unit / 2n ? 1n : 0n);
+          }
+          return [value, insignificant];
+        }
+        const d2 = 1 + Number(fract & 0xfffffffffffffn) / 2 ** 52;
+        let decExp = Math.floor((d2 - 1.5) * 0.289529654 + 0.176091259 + binExp * 0.301029995663981) | 0;
+        const B5 = Math.max(0, -decExp);
+        const S5 = Math.max(0, decExp);
+        let B2 = B5 + nTinyBits + binExp - (nFractBits - 1);
+        let S2 = S5 + nTinyBits;
+        let M2 = B5 + nTinyBits + binExp - nSignificantBits;
+        const common = Math.min(B2, S2);
+        B2 -= common;
+        S2 -= common;
+        M2 -= common;
+        if (nFractBits === 1) M2 -= 1;
+        if (M2 < 0) {
+          B2 -= M2;
+          S2 -= M2;
+          M2 = 0;
+        }
+        const bits5 = i => i === 0 ? 0 : i < 27 ? (5n ** BigInt(i)).toString(2).length : i * 3;
+        const Bbits = nFractBits + B2 + bits5(B5);
+        const tenSbits = S2 + 1 + bits5(S5 + 1);
+        const width = Bbits < 32 && tenSbits < 32 ? 32 : Bbits < 64 && tenSbits < 64 ? 64 : 0;
+        const w = width ? x => BigInt.asIntN(width, x) : x => x;
+        const isHigh = (b, m, tens) => width ? w(b + m) > tens : b + m >= tens;
+        let b = w(w((fract >> BigInt(tailZeros)) * 5n ** BigInt(B5)) << BigInt(B2));
+        const s = w(5n ** BigInt(S5) << BigInt(S2));
+        let m = w(5n ** BigInt(B5) << BigInt(M2));
+        const tens = w(s * 10n);
+        let q = b / s;
+        b = w(10n * (b % s));
+        m = w(m * 10n);
+        let low = b < m;
+        let high = isHigh(b, m, tens);
+        let digits = "";
+        if (q === 0n && !high) decExp--;
+        else digits += q;
+        if (decExp < -3 || decExp >= 8) low = high = false;
+        while (!low && !high) {
+          q = b / s;
+          b = w(10n * (b % s));
+          m = w(m * 10n);
+          if (m > 0n) {
+            low = b < m;
+            high = isHigh(b, m, tens);
+          } else {
+            low = high = true;
+          }
+          digits += q;
+        }
+        let value = BigInt(digits);
+        const tie = w(w(b << 1n) - tens);
+        if (high && (!low || tie > 0n || (tie === 0n && value % 2n === 1n))) value += 1n;
+        return [value, decExp + 1 - digits.length];
+      }
+
+      // x.toBigDecimal().setScale(scale, HALF_UP).stripTrailingZeros().toPlainString(); a zero becomes "0" (Android 13 and
+      // 15 devices, as Java 8+).
+      function decimal(x, scale) {
+        const a = Math.abs(x);
+        let unscaled = 0n;
+        let s = 1;
+        if (a !== 0) {
+          const [digits, exponent] = javaDecimal(a);
+          unscaled = exponent >= 0 ? digits * 10n ** BigInt(exponent) : digits;
+          s = exponent >= 0 ? 0 : -exponent;
+        }
+        let q;
+        if (s <= scale) {
+          q = unscaled * 10n ** BigInt(scale - s);
+        } else {
+          const unit = 10n ** BigInt(s - scale);
+          q = unscaled / unit + ((unscaled % unit) * 2n >= unit ? 1n : 0n);
+        }
+        if (q === 0n) return "0";
+        let text = q.toString();
+        let sc = scale;
+        while (sc > 0 && text.endsWith("0")) {
+          text = text.slice(0, -1);
+          sc--;
+        }
+        if (sc > 0) {
+          text = text.padStart(sc + 1, "0");
+          text = `${text.slice(0, -sc)}.${text.slice(-sc)}`;
+        }
+        return x < 0 ? `-${text}` : text;
+      }
+
+      // Numberx.parseAny of the script module layer (NumberxModule).
+      const DECIMAL = /^\s*([+-]?(?:Infinity|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?))/;
+      const PERCENT = /^([+-]?\d+(?:\.\d+)?)(%*)$/;
+      const parseDecimal = s => {
+        const match = DECIMAL.exec(s);
+        return match ? +match[1] : NaN;
+      };
+
+      function parsePercent(v) {
+        if (isNullish(v)) return NaN;
+        if (isNumber(v)) return Number(v);
+        const match = PERCENT.exec(str(v).replace(/\s/g, ""));
+        return match ? +match[1] / 100 ** match[2].length : NaN;
+      }
+
+      function parseRatio(v) {
+        if (isNullish(v)) return NaN;
+        const parts = kotlinTrim(str(v)).split(":").map(kotlinTrim);
+        return parts.length < 2 ? NaN : parseDecimal(parts[0]) / parseDecimal(parts[1]);
+      }
+
+      function parseAny(v) {
+        if (isNullish(v)) return NaN;
+        if (isNumber(v)) return Number(v);
+        const text = kotlinTrim(str(v));
+        if (text.includes(":")) return parseRatio(text);
+        if (text.includes("%")) return parsePercent(text);
+        return +text;
+      }
+
+      // Unicode decimal digits run in blocks of ten from zero (Character.digit).
+      const ND = /\p{Nd}/u;
+      function digitOf(cp) {
+        if (cp >= 48 && cp <= 57) return cp - 48;
+        if (cp >= 65 && cp <= 90) return cp - 55;
+        if (cp >= 97 && cp <= 122) return cp - 87;
+        if (cp >= 0xff21 && cp <= 0xff3a) return cp - 0xff21 + 10;
+        if (cp >= 0xff41 && cp <= 0xff5a) return cp - 0xff41 + 10;
+        if (!ND.test(String.fromCodePoint(cp))) return -1;
+        let start = cp;
+        while (ND.test(String.fromCodePoint(start - 1))) start--;
+        return (cp - start) % 10;
+      }
+
+      // Long.parseLong(text, radix) as a bigint; a NumberFormatException otherwise.
+      function parseLong(text, radix) {
+        const fail = () => javaError("NumberFormatException", `java.lang.NumberFormatException: For input string: "${text}"`);
+        let i = 0;
+        let negative = false;
+        if (text[0] === "-" || text[0] === "+") {
+          negative = text[0] === "-";
+          i = 1;
+        }
+        if (i >= text.length) throw fail();
+        let value = 0n;
+        for (const ch of text.slice(i)) {
+          const digit = digitOf(ch.codePointAt(0));
+          if (digit < 0 || digit >= radix) throw fail();
+          value = value * BigInt(radix) + BigInt(digit);
+        }
+        if (negative) value = -value;
+        if (value > 9223372036854775807n || value < -9223372036854775808n) throw fail();
+        return value;
+      }
+
+      // Color tables (ColorTable.Android, Css, Web, Material): names and colors in declaration order.
+      const TABLE_SOURCES = [
+        ["Android",
+          "TRANSPARENT 00000000 BLACK FF000000 BLUE FF0000FF CYAN FF00FFFF AQUA FF00FFFF DARK_GRAY FF444444 " +
+          "DARK_GREY FF444444 DKGRAY FF444444 GRAY FF888888 GREY FF888888 GREEN FF00FF00 LIME FF00FF00 " +
+          "LIGHT_GRAY FFCCCCCC LIGHT_GREY FFCCCCCC LTGRAY FFCCCCCC MAGENTA FFFF00FF FUCHSIA FFFF00FF " +
+          "MAROON FF800000 NAVY FF000080 OLIVE FF808000 PURPLE FF800080 RED FFFF0000 SILVER FFC0C0C0 TEAL FF008080 " +
+          "WHITE FFFFFFFF YELLOW FFFFFF00"],
+        ["Css",
+          "ALICE_BLUE FFF0F8FF ANTIQUE_WHITE FFFAEBD7 AQUAMARINE FF7FFFD4 AZURE FFF0FFFF BEIGE FFF5F5DC " +
+          "BISQUE FFFFE4C4 BLACK FF000000 BLANCHED_ALMOND FFFFEBCD BLUE FF0000FF BLUE_VIOLET FF8A2BE2 " +
+          "BROWN FFA52A2A BURLY_WOOD FFDEB887 CADET_BLUE FF5F9EA0 CHARTREUSE FF7FFF00 CHOCOLATE FFD2691E " +
+          "CORAL FFFF7F50 CORNFLOWER_BLUE FF6495ED CORN_SILK FFFFF8DC CRIMSON FFDC143C CYAN FF00FFFF AQUA FF00FFFF " +
+          "DARK_BLUE FF00008B DARK_CYAN FF008B8B DARK_GOLDENROD FFB8860B DARK_GRAY FFA9A9A9 DARK_GREY FFA9A9A9 " +
+          "DARK_GREEN FF006400 DARK_KHAKI FFBDB76B DARK_MAGENTA FF8B008B DARK_OLIVE_GREEN FF556B2F " +
+          "DARK_ORANGE FFFF8C00 DARK_ORCHID FF9932CC DARK_RED FF8B0000 DARK_SALMON FFE9967A DARK_SEA_GREEN FF8FBC8F " +
+          "DARK_SLATE_BLUE FF483D8B DARK_SLATE_GRAY FF2F4F4F DARK_SLATE_GREY FF2F4F4F DARK_TURQUOISE FF00CED1 " +
+          "DARK_VIOLET FF9400D3 DEEP_PINK FFFF1493 DEEP_SKY_BLUE FF00BFFF DIM_GRAY FF696969 DIM_GREY FF696969 " +
+          "DODGER_BLUE FF1E90FF FIRE_BRICK FFB22222 FLORAL_WHITE FFFFFAF0 FOREST_GREEN FF228B22 GAINSBORO FFDCDCDC " +
+          "GHOST_WHITE FFF8F8FF GOLD FFFFD700 GOLDENROD FFDAA520 GRAY FF808080 GREY FF808080 GREEN FF008000 " +
+          "GREEN_YELLOW FFADFF2F HONEYDEW FFF0FFF0 HOT_PINK FFFF69B4 INDIAN_RED FFCD5C5C INDIGO FF4B0082 " +
+          "IVORY FFFFFFF0 KHAKI FFF0E68C LAVENDER FFE6E6FA LAVENDER_BLUSH FFFFF0F5 LAWN_GREEN FF7CFC00 " +
+          "LEMON_CHIFFON FFFFFACD LIGHT_BLUE FFADD8E6 LIGHT_CORAL FFF08080 LIGHT_CYAN FFE0FFFF " +
+          "LIGHT_GOLDENROD_YELLOW FFFAFAD2 LIGHT_GRAY FFD3D3D3 LIGHT_GREY FFD3D3D3 LIGHT_GREEN FF90EE90 " +
+          "LIGHT_PINK FFFFB6C1 LIGHT_SALMON FFFFA07A LIGHT_SEA_GREEN FF20B2AA LIGHT_SKY_BLUE FF87CEFA " +
+          "LIGHT_SLATE_GRAY FF778899 LIGHT_SLATE_GREY FF778899 LIGHT_STEEL_BLUE FFB0C4DE LIGHT_YELLOW FFFFFFE0 " +
+          "LIME FF00FF00 LIME_GREEN FF32CD32 LINEN FFFAF0E6 MAGENTA FFFF00FF FUCHSIA FFFF00FF MAROON FF800000 " +
+          "MEDIUM_AQUAMARINE FF66CDAA MEDIUM_BLUE FF0000CD MEDIUM_LAVENDER_MAGENTA FFDDA0DD MEDIUM_ORCHID FFBA55D3 " +
+          "MEDIUM_PURPLE FF9370DB MEDIUM_SEA_GREEN FF3CB371 MEDIUM_SLATE_BLUE FF7B68EE MEDIUM_SPRING_GREEN FF00FA9A " +
+          "MEDIUM_TURQUOISE FF48D1CC MEDIUM_VIOLET_RED FFC71585 MIDNIGHT_BLUE FF191970 MINT_CREAM FFF5FFFA " +
+          "MISTY_ROSE FFFFE4E1 MOCCASIN FFFFE4B5 NAVAJO_WHITE FFFFDEAD NAVY FF000080 OLD_LACE FFFDF5E6 " +
+          "OLIVE FF808000 OLIVE_DRAB FF6B8E23 ORANGE FFFFA500 ORANGE_RED FFFF4500 ORCHID FFDA70D6 " +
+          "PALE_GOLDENROD FFEEE8AA PALE_GREEN FF98FB98 PALE_TURQUOISE FFAFEEEE PALE_VIOLET_RED FFDB7093 " +
+          "PAPAYA_WHIP FFFFEFD5 PATRIARCH FF800080 PEACH_PUFF FFFFDAB9 PERU FFCD853F PINK FFFFC0CB " +
+          "POWDER_BLUE FFB0E0E6 REBECCA_PURPLE FF663399 RED FFFF0000 ROSY_BROWN FFBC8F8F ROYAL_BLUE FF4169E1 " +
+          "SADDLE_BROWN FF8B4513 SALMON FFFA8072 SAND_BROWN FFF4A460 SEASHELL FFFFF5EE SEA_GREEN FF2E8B57 " +
+          "SIENNA FFA0522D SILVER FFC0C0C0 SKY_BLUE FF87CEEB SLATE_BLUE FF6A5ACD SLATE_GRAY FF708090 " +
+          "SLATE_GREY FF708090 SNOW FFFFFAFA SPRING_GREEN FF00FF7F STEEL_BLUE FF4682B4 TAN FFD2B48C TEAL FF008080 " +
+          "THISTLE FFD8BFD8 TOMATO FFFF6347 TURQUOISE FF40E0D0 VIOLET FFEE82EE WHEAT FFF5DEB3 WHITE FFFFFFFF " +
+          "WHITE_SMOKE FFF5F5F5 YELLOW FFFFFF00 YELLOW_GREEN FF9ACD32"],
+        ["Web",
+          "ALICE_BLUE FFF0F8FF ALIZARIN_CRIMSON FFE32636 AMBER FFFFBF00 AMETHYST FF9966CC ANTIQUE_WHITE FFFAEBD7 " +
+          "APPLE_GREEN FF8CE600 APRICOT FFE69966 AQUA FFAFDFE4 AQUAMARINE FF7FFFD4 AQUA_BLUE FF66FFE6 " +
+          "AZURE FF007FFF BABY_BLUE FF89CFF0 BABY_PINK FFFFD9E6 BEIGE FFF5F5DC BISQUE FFFFE4C4 BLACK FF000000 " +
+          "BLANCHED_ALMOND FFFFEBCD BLUE FF0000FF BLUE_VIOLET FF8A2BE2 BRIGHT_GREEN FF66FF00 BRONZE FFCD7F32 " +
+          "BROWN FFA52A2A BURGUNDY FF800020 BURLY_WOOD FFDEB887 BURNT_ORANGE FFCC5500 CADET_BLUE FF5F9EA0 " +
+          "CAMEL FFA16B47 CAMELLIA FFE63995 CANARY_YELLOW FFFFEF00 CARDINAL_RED FF990036 CARMINE FFE6005C " +
+          "CELADON FFACE1AF CERISE FFDE3163 CERULEAN_BLUE FF2A52BE CHAMPAGNE_YELLOW FFFFFF99 CHARTREUSE FF7FFF00 " +
+          "CHOCOLATE FFD2691E CHROME_YELLOW FFE6B800 CLEMATIS FFCCA3CC COBALT_BLUE FF0047AB COBALT_GREEN FF66FF59 " +
+          "COCONUT_BROWN FF4D1F00 COFFEE FF4D3900 CORAL FFFF7F50 CORAL_PINK FFFF80BF CORNFLOWER_BLUE FF6495ED " +
+          "CORN_SILK FFFFF8DC CREAM FFFFFDD0 CRIMSON FFDC143C CYAN FF00FFFF CYAN_BLUE FF0DBF8C DARK_BLUE FF00008B " +
+          "DARK_CYAN FF008B8B DARK_GOLDENROD FFB8860B DARK_GRAY FFA9A9A9 DARK_GREEN FF006400 DARK_KHAKI FFBDB76B " +
+          "DARK_MAGENTA FF8B008B DARK_MINERAL_BLUE FF24367D DARK_OLIVE_GREEN FF556B2F DARK_ORANGE FFFF8C00 " +
+          "DARK_ORCHID FF9932CC DARK_POWDER_BLUE FF003399 DARK_RED FF8B0000 DARK_SALMON FFE9967A " +
+          "DARK_SEA_GREEN FF8FBC8F DARK_SLATE_BLUE FF483D8B DARK_SLATE_GRAY FF2F4F4F DARK_TURQUOISE FF00CED1 " +
+          "DARK_VIOLET FF9400D3 DEEP_PINK FFFF1493 DEEP_SKY_BLUE FF00BFFF DIM_GRAY FF696969 DODGER_BLUE FF1E90FF " +
+          "EMERALD FF50C878 FIRE_BRICK FFB22222 FLAMINGO FFE68AB8 FLORAL_WHITE FFFFFAF0 FOLIAGE_GREEN FF73B839 " +
+          "FOREST_GREEN FF228B22 FRESH_LEAVES FF99FF4D FUCHSIA FFF400A1 GAINSBORO FFDCDCDC GHOST_WHITE FFF8F8FF " +
+          "GOLDEN FFFFD700 GOLD FFFFD700 GOLDENROD FFDAA520 GRASS_GREEN FF99E64D GRAY FF808080 " +
+          "GRAYISH_PURPLE FF8674A1 GREEN FF008000 GREEN_YELLOW FFADFF2F HELIOTROPE FFDF73FF HONEYDEW FFF0FFF0 " +
+          "HONEY_ORANGE FFFFB366 HORIZON_BLUE FFB8DDC8 HOT_PINK FFFF69B4 INDIAN_RED FFCD5C5C INDIGO FF4B0080 " +
+          "INTERNATIONAL_KLEIN_BLUE FF002FA7 IRON_GRAY FF625B57 IVORY FFFFFFF0 IVY_GREEN FF36BF36 JASMINE FFE6C35C " +
+          "KHAKI FF996B1F LAPIS_LAZULI FF26619C LAVENDER FFB57EDC LAVENDER_BLUE FFCCCCFF PERIWINKLE FFCCCCFF " +
+          "LAVENDER_BLUSH FFFFF0F5 LAVENDER_MAGENTA FFEE82EE LAVENDER_MIST FFE6E6FA LAWN_GREEN FF7CFC00 " +
+          "LEMON_CHIFFON FFFFFACD LIGHT_BLUE FFADD8E6 LIGHT_CORAL FFF08080 LIGHT_CYAN FFE0FFFF " +
+          "LIGHT_GOLDENROD_YELLOW FFFAFAD2 LIGHT_GRAY FFD3D3D3 LIGHT_GREEN FF90EE90 LIGHT_KHAKI FFF0E68C " +
+          "LIGHT_PINK FFFFB6C1 LIGHT_SALMON FFFFA07A LIGHT_SEA_GREEN FF20B2AA LIGHT_SKY_BLUE FF87CEFA " +
+          "LIGHT_SLATE_GRAY FF778899 LIGHT_STEEL_BLUE FFB0C4DE LIGHT_VIOLET FFB09DB9 LIGHT_YELLOW FFFFFFE0 " +
+          "LILAC FFC8A2C8 LIME FFCCFF00 LIGHT_LIME FFCCFF00 LIME_GREEN FF32CD32 LINEN FFFAF0E6 MAGENTA FFFF00FF " +
+          "MAGENTA_ROSE FFFF0DA6 MALACHITE FF22C32E MALLOW FFD94DFF MARIGOLD FFFF9900 MARINE_BLUE FF00477D " +
+          "MAROON FF800000 MAUVE FFE0B0FF MEDIUM_AQUAMARINE FF66CDAA MEDIUM_BLUE FF0000CD " +
+          "MEDIUM_LAVENDER_MAGENTA FFDDA0DD MEDIUM_ORCHID FFBA55D3 MEDIUM_PURPLE FF9370DB MEDIUM_SEA_GREEN FF3CB371 " +
+          "MEDIUM_SLATE_BLUE FF7B68EE MEDIUM_SPRING_GREEN FF00FA9A MEDIUM_TURQUOISE FF48D1CC " +
+          "MEDIUM_VIOLET_RED FFC71585 MIDNIGHT_BLUE FF191970 MIMOSA FFE6D933 MINERAL_BLUE FF004D99 " +
+          "MINERAL_VIOLET FFA39DAE MINT FF16982B MINT_CREAM FFF5FFFA MISTY_ROSE FFFFE4E1 MOCCASIN FFFFE4B5 " +
+          "MOON_YELLOW FFFFFF4D MOSS_GREEN FF697723 MUSTARD FFCCCC4D NAVAJO_WHITE FFFFDEAD NAVY FF000080 " +
+          "NAVY_BLUE FF000080 OCHER FFCC7722 OLD_LACE FFFDF5E6 OLD_ROSE FFC08081 OLIVE FF808000 OLIVE_DRAB FF6B8E23 " +
+          "OPERA_MAUVE FFB784A7 ORANGE FFFFA500 ORANGE_RED FFFF4500 ORCHID FFDA70D6 PAIL_LILAC FFE6CFE6 " +
+          "PALE_BLUE FFD1EDF2 PALE_DENIM FF5E86C1 PALE_GOLDENROD FFEEE8AA PALE_GREEN FF98FB98 PALE_OCHRE FFCCB38C " +
+          "PALE_TURQUOISE FFAFEEEE PALE_VIOLET_RED FFDB7093 PANSY FF7400A1 PAPAYA_WHIP FFFFEFD5 PATRIARCH FF800080 " +
+          "PEACH FFFFE5B4 PEACH_PEARL FFFBBEA1 PEACH_PUFF FFFFDAB9 PEACOCK_BLUE FF00808C PEACOCK_GREEN FF00A15C " +
+          "PEARL_PINK FFFFB3E6 PERSIMMON FFFF4D40 PERU FFCD853F PINK FFFFC0CB PLUM FF8E4585 POWDER_BLUE FFB0E0E6 " +
+          "PRUSSIAN_BLUE FF003153 PURPLE FF6A0DAD RED FFFF0000 ROSE FFFF007F ROSE_PINK FFFF66CC ROSY_BROWN FFBC8F8F " +
+          "ROYAL_BLUE FF4169E1 RUBY FFCC0080 SADDLE_BROWN FF8B4513 SALMON FFFA8072 SALMON_PINK FFFF8099 " +
+          "SALVIA_BLUE FF4D80E6 SAND_BEIGE FFE6C3C3 SAND_BROWN FFF4A460 SAPPHIRE FF082567 SAXE_BLUE FF4798B3 " +
+          "SCARLET FFFF2400 SEASHELL FFFFF5EE SEA_GREEN FF2E8B57 SEPIA FF704214 SHELL_PINK FFFFB3BF SIENNA FFA0522D " +
+          "SILVER FFC0C0C0 SKY_BLUE FF87CEEB SLATE_BLUE FF6A5ACD SLATE_GRAY FF708090 SNOW FFFFFAFA " +
+          "SPINEL_RED FFFF73B3 SPRING_GREEN FF00FF80 STEEL_BLUE FF4682B4 STRONG_BLUE FF006374 STRONG_RED FFE60000 " +
+          "SUN_ORANGE FFFF7300 TAN FFD2B48C TANGERINE FFF28500 TANGERINE_YELLOW FFFFCC00 TEAL FF008080 " +
+          "THISTLE FFD8BFD8 TOMATO FFFF6347 TROPICAL_ORANGE FFFF8033 TURQUOISE FF30D5C8 TURQUOISE_BLUE FF00FFEF " +
+          "TURQUOISE_GREEN FF4DE680 ULTRAMARINE FF0033FF VERMILION FFE34234 VERY_LIGHT_MALACHITE_GREEN FF73E68C " +
+          "VIOLET FF8000FF VIRIDIAN FF127436 WEDGWOOD_BLUE FF5686BF WHEAT FFF5DEB3 WHITE FFFFFFFF " +
+          "WHITE_SMOKE FFF5F5F5 WISTERIA FFC9A0DC YELLOW FFFFFF00 YELLOW_GREEN FF9ACD32"],
+        ["Material",
+          "RED_50 FFFFEBEE RED_100 FFFFCDD2 RED_200 FFEF9A9A RED_300 FFE57373 RED_400 FFEF5350 RED_500 FFF44336 " +
+          "RED_600 FFE53935 RED_700 FFD32F2F RED_800 FFC62828 RED_900 FFB71C1C RED_A100 FFFF8A80 RED_A200 FFFF5252 " +
+          "RED_A400 FFFF1744 RED_A700 FFD50000 PINK_50 FFFCE4EC PINK_100 FFF8BBD0 PINK_200 FFF48FB1 " +
+          "PINK_300 FFF06292 PINK_400 FFEC407A PINK_500 FFE91E63 PINK_600 FFD81B60 PINK_700 FFC2185B " +
+          "PINK_800 FFAD1457 PINK_900 FF880E4F PINK_A100 FFFF80AB PINK_A200 FFFF4081 PINK_A400 FFF50057 " +
+          "PINK_A700 FFC51162 PURPLE_50 FFF3E5F5 PURPLE_100 FFE1BEE7 PURPLE_200 FFCE93D8 PURPLE_300 FFBA68C8 " +
+          "PURPLE_400 FFAB47BC PURPLE_500 FF9C27B0 PURPLE_600 FF8E24AA PURPLE_700 FF7B1FA2 PURPLE_800 FF6A1B9A " +
+          "PURPLE_900 FF4A148C PURPLE_A100 FFEA80FC PURPLE_A200 FFE040FB PURPLE_A400 FFD500F9 PURPLE_A700 FFAA00FF " +
+          "DEEP_PURPLE_50 FFEDE7F6 DEEP_PURPLE_100 FFD1C4E9 DEEP_PURPLE_200 FFB39DDB DEEP_PURPLE_300 FF9575CD " +
+          "DEEP_PURPLE_400 FF7E57C2 DEEP_PURPLE_500 FF673AB7 DEEP_PURPLE_600 FF5E35B1 DEEP_PURPLE_700 FF512DA8 " +
+          "DEEP_PURPLE_800 FF4527A0 DEEP_PURPLE_900 FF311B92 DEEP_PURPLE_A100 FFB388FF DEEP_PURPLE_A200 FF7C4DFF " +
+          "DEEP_PURPLE_A400 FF651FFF DEEP_PURPLE_A700 FF6200EA INDIGO_50 FFE8EAF6 INDIGO_100 FFC5CAE9 " +
+          "INDIGO_200 FF9FA8DA INDIGO_300 FF7986CB INDIGO_400 FF5C6BC0 INDIGO_500 FF3F51B5 INDIGO_600 FF3949AB " +
+          "INDIGO_700 FF303F9F INDIGO_800 FF283593 INDIGO_900 FF1A237E INDIGO_A100 FF8C9EFF INDIGO_A200 FF536DFE " +
+          "INDIGO_A400 FF3D5AFE INDIGO_A700 FF304FFE BLUE_50 FFE3F2FD BLUE_100 FFBBDEFB BLUE_200 FF90CAF9 " +
+          "BLUE_300 FF64B5F6 BLUE_400 FF42A5F5 BLUE_500 FF2196F3 BLUE_600 FF1E88E5 BLUE_700 FF1976D2 " +
+          "BLUE_800 FF1565C0 BLUE_900 FF0D47A1 BLUE_A100 FF82B1FF BLUE_A200 FF448AFF BLUE_A400 FF2979FF " +
+          "BLUE_A700 FF2962FF LIGHT_BLUE_50 FFE1F5FE LIGHT_BLUE_100 FFB3E5FC LIGHT_BLUE_200 FF81D4FA " +
+          "LIGHT_BLUE_300 FF4FC3F7 LIGHT_BLUE_400 FF29B6FC LIGHT_BLUE_500 FF03A9F4 LIGHT_BLUE_600 FF039BE5 " +
+          "LIGHT_BLUE_700 FF0288D1 LIGHT_BLUE_800 FF0277BD LIGHT_BLUE_900 FF01579B LIGHT_BLUE_A100 FF80D8FF " +
+          "LIGHT_BLUE_A200 FF40C4FF LIGHT_BLUE_A400 FF00B0FF LIGHT_BLUE_A700 FF0091EA CYAN_50 FFE0F7FA " +
+          "CYAN_100 FFB2EBF2 CYAN_200 FF80DEEA CYAN_300 FF4DD0E1 CYAN_400 FF26C6DA CYAN_500 FF00BCD4 " +
+          "CYAN_600 FF00ACC1 CYAN_700 FF0097A7 CYAN_800 FF00838F CYAN_900 FF006064 CYAN_A100 FF84FFFF " +
+          "CYAN_A200 FF18FFFF CYAN_A400 FF00E5FF CYAN_A700 FF00B8D4 TEAL_50 FFE0F2F1 TEAL_100 FFB2DFDB " +
+          "TEAL_200 FF80CBC4 TEAL_300 FF4DB6AC TEAL_400 FF26A69A TEAL_500 FF009688 TEAL_600 FF00897B " +
+          "TEAL_700 FF00796B TEAL_800 FF00695C TEAL_900 FF004D40 TEAL_A100 FFA7FFEB TEAL_A200 FF64FFDA " +
+          "TEAL_A400 FF1DE9B6 TEAL_A700 FF00BFA5 GREEN_50 FFE8F5E9 GREEN_100 FFC8E6C9 GREEN_200 FFA5D6A7 " +
+          "GREEN_300 FF81C784 GREEN_400 FF66BB6A GREEN_500 FF4CAF50 GREEN_600 FF43A047 GREEN_700 FF388E3C " +
+          "GREEN_800 FF2E7D32 GREEN_900 FF1B5E20 GREEN_A100 FFB9F6CA GREEN_A200 FF69F0AE GREEN_A400 FF00E676 " +
+          "GREEN_A700 FF00C853 LIGHT_GREEN_50 FFF1F8E9 LIGHT_GREEN_100 FFDCEDC8 LIGHT_GREEN_200 FFC5E1A5 " +
+          "LIGHT_GREEN_300 FFAED581 LIGHT_GREEN_400 FF9CCC65 LIGHT_GREEN_500 FF8BC34A LIGHT_GREEN_600 FF7CB342 " +
+          "LIGHT_GREEN_700 FF689F38 LIGHT_GREEN_800 FF558B2F LIGHT_GREEN_900 FF33691E LIGHT_GREEN_A100 FFCCFF90 " +
+          "LIGHT_GREEN_A200 FFB2FF59 LIGHT_GREEN_A400 FF76FF03 LIGHT_GREEN_A700 FF64DD17 LIME_50 FFF9FBE7 " +
+          "LIME_100 FFF0F4C3 LIME_200 FFE6EE9C LIME_300 FFDCE775 LIME_400 FFD4E157 LIME_500 FFCDDC39 " +
+          "LIME_600 FFC0CA33 LIME_700 FFA4B42B LIME_800 FF9E9D24 LIME_900 FF827717 LIME_A100 FFF4FF81 " +
+          "LIME_A200 FFEEFF41 LIME_A400 FFC6FF00 LIME_A700 FFAEEA00 YELLOW_50 FFFFFDE7 YELLOW_100 FFFFF9C4 " +
+          "YELLOW_200 FFFFF590 YELLOW_300 FFFFF176 YELLOW_400 FFFFEE58 YELLOW_500 FFFFEB3B YELLOW_600 FFFDD835 " +
+          "YELLOW_700 FFFBC02D YELLOW_800 FFF9A825 YELLOW_900 FFF57F17 YELLOW_A100 FFFFFF82 YELLOW_A200 FFFFFF00 " +
+          "YELLOW_A400 FFFFEA00 YELLOW_A700 FFFFD600 AMBER_50 FFFFF8E1 AMBER_100 FFFFECB3 AMBER_200 FFFFE082 " +
+          "AMBER_300 FFFFD54F AMBER_400 FFFFCA28 AMBER_500 FFFFC107 AMBER_600 FFFFB300 AMBER_700 FFFFA000 " +
+          "AMBER_800 FFFF8F00 AMBER_900 FFFF6F00 AMBER_A100 FFFFE57F AMBER_A200 FFFFD740 AMBER_A400 FFFFC400 " +
+          "AMBER_A700 FFFFAB00 ORANGE_50 FFFFF3E0 ORANGE_100 FFFFE0B2 ORANGE_200 FFFFCC80 ORANGE_300 FFFFB74D " +
+          "ORANGE_400 FFFFA726 ORANGE_500 FFFF9800 ORANGE_600 FFFB8C00 ORANGE_700 FFF57C00 ORANGE_800 FFEF6C00 " +
+          "ORANGE_900 FFE65100 ORANGE_A100 FFFFD180 ORANGE_A200 FFFFAB40 ORANGE_A400 FFFF9100 ORANGE_A700 FFFF6D00 " +
+          "DEEP_ORANGE_50 FFFBE9A7 DEEP_ORANGE_100 FFFFCCBC DEEP_ORANGE_200 FFFFAB91 DEEP_ORANGE_300 FFFF8A65 " +
+          "DEEP_ORANGE_400 FFFF7043 DEEP_ORANGE_500 FFFF5722 DEEP_ORANGE_600 FFF4511E DEEP_ORANGE_700 FFE64A19 " +
+          "DEEP_ORANGE_800 FFD84315 DEEP_ORANGE_900 FFBF360C DEEP_ORANGE_A100 FFFF9E80 DEEP_ORANGE_A200 FFFF6E40 " +
+          "DEEP_ORANGE_A400 FFFF3D00 DEEP_ORANGE_A700 FFDD2600 BROWN_50 FFEFEBE9 BROWN_100 FFD7CCC8 " +
+          "BROWN_200 FFBCAAA4 BROWN_300 FFA1887F BROWN_400 FF8D6E63 BROWN_500 FF795548 BROWN_600 FF6D4C41 " +
+          "BROWN_700 FF5D4037 BROWN_800 FF4E342E BROWN_900 FF3E2723 GREY_50 FFFAFAFA GREY_100 FFF5F5F5 " +
+          "GREY_200 FFEEEEEE GREY_300 FFE0E0E0 GREY_400 FFBDBDBD GREY_500 FF9E9E9E GREY_600 FF757575 " +
+          "GREY_700 FF616161 GREY_800 FF424242 GREY_900 FF212121 GRAY_50 FFFAFAFA GRAY_100 FFF5F5F5 " +
+          "GRAY_200 FFEEEEEE GRAY_300 FFE0E0E0 GRAY_400 FFBDBDBD GRAY_500 FF9E9E9E GRAY_600 FF757575 " +
+          "GRAY_700 FF616161 GRAY_800 FF424242 GRAY_900 FF212121 BLACK_1000 FF000000 WHITE_1000 FFFFFFFF " +
+          "BLUE_GREY_50 FFECEFF1 BLUE_GREY_100 FFCFD8DC BLUE_GREY_200 FFB0BBC5 BLUE_GREY_300 FF90A4AE " +
+          "BLUE_GREY_400 FF78909C BLUE_GREY_500 FF607D8B BLUE_GREY_600 FF546E7A BLUE_GREY_700 FF455A64 " +
+          "BLUE_GREY_800 FF37474F BLUE_GREY_900 FF263238 BLUE_GRAY_50 FFECEFF1 BLUE_GRAY_100 FFCFD8DC " +
+          "BLUE_GRAY_200 FFB0BBC5 BLUE_GRAY_300 FF90A4AE BLUE_GRAY_400 FF78909C BLUE_GRAY_500 FF607D8B " +
+          "BLUE_GRAY_600 FF546E7A BLUE_GRAY_700 FF455A64 BLUE_GRAY_800 FF37474F BLUE_GRAY_900 FF263238 RED FFF44336 " +
+          "PINK FFE91E63 PURPLE FF9C27B0 DEEP_PURPLE FF673AB7 INDIGO FF3F51B5 BLUE FF2196F3 LIGHT_BLUE FF03A9F4 " +
+          "CYAN FF00BCD4 TEAL FF009688 GREEN FF4CAF50 LIGHT_GREEN FF8BC34A LIME FFCDDC39 YELLOW FFFFEB3B " +
+          "AMBER FFFFC107 ORANGE FFFF9800 DEEP_ORANGE FFFF5722 BROWN FF795548 GREY FF9E9E9E GRAY FF9E9E9E " +
+          "BLUE_GREY FF607D8B BLUE_GRAY FF607D8B BLACK FF000000 WHITE FFFFFFFF"],
+      ];
+      const TABLES = TABLE_SOURCES.map(([name, text]) => {
+        const words = text.trim().split(/\s+/);
+        const entries = [];
+        for (let i = 0; i < words.length; i += 2) entries.push([words[i], Number.parseInt(words[i + 1], 16) | 0]);
+        // Class.getDeclaredFields on ART lists the fields of a dex class by name.
+        const sorted = entries.slice().sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+        return {name, entries, sorted};
+      });
+      let colorNames = null;
+
+      // A name without hyphens and underscores, any case, the first table and field winning.
+      function colorOfName(name) {
+        if (colorNames === null) {
+          colorNames = new Map();
+          for (const table of TABLES) {
+            for (const [field, color] of table.sorted) {
+              const key = field.replace(/_/g, "");
+              if (!colorNames.has(key)) colorNames.set(key, color);
+            }
+          }
+        }
+        const color = colorNames.get(name.replace(/[-_]/g, "").toUpperCase());
+        return color === undefined ? null : color;
+      }
+
+      function allColors() {
+        const all = {};
+        for (const table of TABLES) for (const [field, color] of table.sorted) if (!Object.hasOwn(all, field)) all[field] = color;
+        return all;
+      }
+
+      // Color ints and hex codes (ColorValues).
+
+      const alphaOf = c => c >>> 24;
+      const redOf = c => (c >> 16) & 0xff;
+      const greenOf = c => (c >> 8) & 0xff;
+      const blueOf = c => c & 0xff;
+      const argb = (a, r, g, b) => (a << 24) | (r << 16) | (g << 8) | b;
+      const rgb = (r, g, b) => OPAQUE | (r << 16) | (g << 8) | b;
+      const withChannel = (color, shift, channel) => (color & ~(0xff << shift)) | (channel << shift);
+
+      // On Android \w and \d of a Kotlin Regex are Unicode classes (ICU).
+      const WORD = "[\\p{Alphabetic}\\p{M}\\p{Nd}\\p{Pc}\\p{Join_Control}]";
+      const HEX_DIGIT = "[A-Fa-f\\p{Nd}]";
+      const SHORT_HEX = new RegExp(`^#${WORD}{3}$`, "u");
+      const HEX = new RegExp(`^#${HEX_DIGIT}{3}(?:${HEX_DIGIT}{3}(?:${HEX_DIGIT}{2})?)?$`, "u");
+      const OPAQUE_HEX = new RegExp(`^#[Ff]{2}${HEX_DIGIT}{6}$`, "u");
+      const isDigits = text => /^[+-]?[0-9]+$/.test(text);
+
+      // ColorUtils.toString: #RRGGBB for an opaque color, #AARRGGBB otherwise.
+      function intHex(color) {
+        const text = (color >>> 0).toString(16).toUpperCase().padStart(8, "0");
+        return text.startsWith("FF") ? `#${text.slice(2)}` : `#${text}`;
+      }
+
+      // ColorValues.hexOf(text, alpha): null when the text is no color.
+      function textHex(text, alpha) {
+        let color = text;
+        if (color.startsWith("#")) {
+          if (SHORT_HEX.test(color)) color = `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`;
+        } else if (isDigits(color)) {
+          const value = BigInt(color);
+          if (value > 9223372036854775807n || value < -9223372036854775808n) return null;
+          return hexOf(Number(BigInt.asIntN(32, value)), alpha);
+        } else {
+          const named = colorOfName(color);
+          return named === null ? null : hexOf(named, alpha);
+        }
+        if (!HEX.test(color)) return null;
+        switch (alpha) {
+          case KEEP:
+            return (color.length === 7 ? `#FF${color.slice(1)}` : color).toUpperCase();
+          case NONE:
+            return `#${color.slice(-6)}`.toUpperCase();
+          default:
+            return OPAQUE_HEX.test(color) ? `#${color.slice(3)}`.toUpperCase() : color.toUpperCase();
+        }
+      }
+
+      const hexOf = (color, alpha) => textHex(intHex(color), alpha);
+
+      function shortHexOf(color) {
+        const channels = [redOf(color), greenOf(color), blueOf(color)];
+        if (channels.some(c => c % 17 !== 0)) return null;
+        return `#${channels.map(c => (c / 17).toString(16).toUpperCase()).join("")}`;
+      }
+
+      // ColorValues.parse: a hex code, a color int as text or a color name, or null.
+      function parseColorText(text) {
+        if (text.startsWith("#")) {
+          if (/[^\x00-\x7f]/.test(text)) {
+            const hex = textHex(text, AUTO);
+            if (hex === null) return null;
+            const value = parseLong(hex.slice(1), 16);
+            return Number(BigInt.asIntN(32, hex.length === 7 ? value | 0xff000000n : value));
+          }
+          if (text.length !== 4 && text.length !== 7 && text.length !== 9) return null;
+          const short = text.length === 4;
+          let value = 0;
+          for (let i = 1; i < text.length; i++) {
+            const digit = digitOf(text.charCodeAt(i));
+            if (digit < 0 || digit > 15) return null;
+            value = short ? value * 256 + digit * 0x11 : value * 16 + digit;
+          }
+          return text.length === 9 ? value | 0 : (value + 0xff000000) | 0;
+        }
+        if (isDigits(text)) {
+          const value = BigInt(text);
+          return value > 9223372036854775807n || value < -9223372036854775808n ? null : Number(BigInt.asIntN(32, value));
+        }
+        return colorOfName(text);
+      }
+
+      const THEME_COLOR = "org.autojs.autojs.theme.ThemeColor";
+      // A ThemeColor Java object: its colorPrimary from the snapshot of the handle, or null.
+      function themePrimary(v) {
+        if (!isHandle(v) || v.className !== THEME_COLOR) return null;
+        const primary = v.value && v.value.colorPrimary;
+        return typeof primary === "number" ? primary | 0 : null;
+      }
+
+      // ColorValues.toInt: an OmniColor (color int, hex code or name, Color object, ThemeColor) as a color int.
+      function int(value, fn, param = "color") {
+        if (isColor(value)) return colorOf(value);
+        const theme = themePrimary(value);
+        if (theme !== null) return theme;
+        if (isNumber(value)) return longToInt(value);
+        if (typeof value === "string") {
+          const color = parseColorText(value);
+          if (color === null) throw rangeError(fn, argumentType(param, OMNI_COLOR, quote(value)));
+          return color;
+        }
+        throw typeErrorOf(fn, param, OMNI_COLOR, value);
+      }
+
+      // Components (ColorValues).
+
+      function component(value, fn, param) {
+        const x = parseAny(value);
+        if (x !== x) throw typeErrorOf(fn, param, "ColorComponent", value);
+        return x;
+      }
+
+      function unit8(x, fn, param) {
+        if (x >= 1) return roundToInt(Math.min(255, x));
+        if (x < 0) throw rangeError(fn, argumentType(param, "ColorComponent >= 0", numberText(x)));
+        return roundToInt(x * 255);
+      }
+
+      // Red, green and blue: when all are at most 1 and not all are 1, 1 means 255.
+      function channels(values, fn, params) {
+        const xs = values.map((v, i) => component(v, fn, params[i]));
+        const fractions = xs.every(x => x <= 1) && xs.some(x => x !== 1);
+        return xs.map((x, i) => fractions && x === 1 ? 255 : unit8(x, fn, params[i]));
+      }
+
+      function alphaChannel(value, fn, param) {
+        const x = component(value, fn, param);
+        return x === 1 ? 255 : unit8(x, fn, param);
+      }
+
+      function fraction(value, fn, param) {
+        if (!isNumber(value)) throw typeErrorOf(fn, param, "number", value);
+        const x = Number(value);
+        if (x >= 0 && x <= 1) return x;
+        if (x >= 1 && x <= 255) return x / 255;
+        throw rangeError(fn, argumentType(param, "number in [0, 255]", numberText(x)));
+      }
+
+      // Numberx.clampTo(x, [0, 360], 360).
+      function wrapHue(x) {
+        if (x < 0) return x + Math.ceil((0 - x) / 360) * 360;
+        if (x > 360) return x - Math.ceil((x - 360) / 360) * 360;
+        return x;
+      }
+
+      function hue(value, fn, param) {
+        let x = component(value, fn, param);
+        if (Math.abs(x) < 1) x *= 360;
+        return f32(wrapHue(x));
+      }
+
+      function percentage(value, fn, param) {
+        const x = component(value, fn, param);
+        if (x < 0 || x > 100) throw rangeError(fn, argumentType(param, "number in [0, 100]", numberText(x)));
+        return f32(x <= 1 ? x : x / 100);
+      }
+
+      // HSV of Skia (SkRGBToHSV / SkHSVToColor) and HSL, luminance, contrast and blending of androidx ColorUtils.
+
+      function rgbToHsv(r, g, b) {
+        const min = Math.min(r, g, b);
+        const max = Math.max(r, g, b);
+        const delta = max - min;
+        const v = f32(max / 255);
+        if (delta === 0) return [0, 0, v];
+        const s = f32(delta / max);
+        let h;
+        if (max === r) h = f32((g - b) / delta);
+        else if (max === g) h = f32(2 + f32((b - r) / delta));
+        else h = f32(4 + f32((r - g) / delta));
+        h = f32(h * 60);
+        if (h < 0) h = f32(h + 360);
+        return [h, s, v];
+      }
+
+      const pin = x => {
+        const upper = 1 < x ? 1 : x;
+        return 0 < upper ? upper : 0;
+      };
+      const round2int = x => floatToInt(Math.floor(f32(x + 0.5)));
+
+      function hsvToColor(alpha, hsv) {
+        const s = pin(hsv[1]);
+        const v = pin(hsv[2]);
+        const vByte = round2int(f32(v * 255));
+        if (Math.abs(s) <= NEARLY_ZERO) return argb(alpha, vByte, vByte, vByte);
+        const hx = hsv[0] < 0 || hsv[0] >= 360 ? 0 : f32(hsv[0] / 60);
+        const w = Math.floor(hx);
+        const f = f32(hx - w);
+        const p = round2int(f32(f32(f32(1 - s) * v) * 255));
+        const q = round2int(f32(f32(f32(1 - f32(s * f)) * v) * 255));
+        const t = round2int(f32(f32(f32(1 - f32(s * f32(1 - f))) * v) * 255));
+        switch (floatToInt(w)) {
+          case 0:
+            return argb(alpha, vByte, t, p);
+          case 1:
+            return argb(alpha, q, vByte, p);
+          case 2:
+            return argb(alpha, p, vByte, t);
+          case 3:
+            return argb(alpha, p, q, vByte);
+          case 4:
+            return argb(alpha, t, p, vByte);
+          default:
+            return argb(alpha, vByte, p, q);
+        }
+      }
+
+      function rgbToHsl(r, g, b) {
+        const rf = f32(r / 255);
+        const gf = f32(g / 255);
+        const bf = f32(b / 255);
+        const max = Math.max(rf, gf, bf);
+        const min = Math.min(rf, gf, bf);
+        const deltaMaxMin = f32(max - min);
+        const l = f32(f32(max + min) / 2);
+        let h = 0;
+        let s = 0;
+        if (max !== min) {
+          if (max === rf) h = f32(f32(gf - bf) / deltaMaxMin) % 6;
+          else if (max === gf) h = f32(f32(f32(bf - rf) / deltaMaxMin) + 2);
+          else h = f32(f32(f32(rf - gf) / deltaMaxMin) + 4);
+          s = f32(deltaMaxMin / f32(1 - Math.abs(f32(f32(2 * l) - 1))));
+        }
+        h = f32(h * 60) % 360;
+        if (h < 0) h = f32(h + 360);
+        return [coerce(h, 0, 360), coerce(s, 0, 1), coerce(l, 0, 1)];
+      }
+
+      function hslToColor(hsl) {
+        const [h, s, l] = hsl;
+        const c = f32(f32(1 - Math.abs(f32(f32(2 * l) - 1))) * s);
+        const m = f32(l - f32(0.5 * c));
+        const x = f32(c * f32(1 - Math.abs(f32((f32(h / 60) % 2) - 1))));
+        const round = y => Math.round(f32(255 * y)) + 0;
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        switch (Math.trunc(floatToInt(h) / 60)) {
+          case 0:
+            [r, g, b] = [round(f32(c + m)), round(f32(x + m)), round(m)];
+            break;
+          case 1:
+            [r, g, b] = [round(f32(x + m)), round(f32(c + m)), round(m)];
+            break;
+          case 2:
+            [r, g, b] = [round(m), round(f32(c + m)), round(f32(x + m))];
+            break;
+          case 3:
+            [r, g, b] = [round(m), round(f32(x + m)), round(f32(c + m))];
+            break;
+          case 4:
+            [r, g, b] = [round(f32(x + m)), round(m), round(f32(c + m))];
+            break;
+          case 5:
+          case 6:
+            [r, g, b] = [round(f32(c + m)), round(m), round(f32(x + m))];
+            break;
+        }
+        return rgb(coerce(r, 0, 255), coerce(g, 0, 255), coerce(b, 0, 255));
+      }
+
+      const linear = channel => {
+        const s = channel / 255;
+        return s < 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+      };
+      const luminanceOf = c => 100 * (linear(redOf(c)) * 0.2126 + linear(greenOf(c)) * 0.7152 + linear(blueOf(c)) * 0.0722) / 100;
+
+      function composite(fg, bg) {
+        const bgAlpha = alphaOf(bg);
+        const fgAlpha = alphaOf(fg);
+        const a = 0xff - Math.trunc(((0xff - bgAlpha) * (0xff - fgAlpha)) / 0xff);
+        const channel = (f, b) => a === 0 ? 0 : Math.trunc((0xff * f * fgAlpha + b * bgAlpha * (0xff - fgAlpha)) / (a * 0xff));
+        return argb(a, channel(redOf(fg), redOf(bg)), channel(greenOf(fg), greenOf(bg)), channel(blueOf(fg), blueOf(bg)));
+      }
+
+      function contrastOf(fg, bg) {
+        const fore = alphaOf(fg) < 255 ? composite(fg, bg) : fg;
+        const l1 = luminanceOf(fore) + 0.05;
+        const l2 = luminanceOf(bg) + 0.05;
+        return Math.max(l1, l2) / Math.min(l1, l2);
+      }
+
+      function blendOf(c1, c2, ratio) {
+        const inverse = f32(1 - ratio);
+        const mix = (x, y) => floatToInt(f32(f32(x * inverse) + f32(y * ratio)));
+        return argb(mix(alphaOf(c1), alphaOf(c2)), mix(redOf(c1), redOf(c2)), mix(greenOf(c1), greenOf(c2)), mix(blueOf(c1), blueOf(c2)));
+      }
+
+      const alphaText = (fraction, keep) => {
+        const text = decimal(fraction, 1);
+        return keep && text === "1" ? "1.0" : text;
+      };
+      const hueText = h => decimal(h, 0);
+      const percentText = x => `${decimal(x * 100, 1)}%`;
+
+      // OKLab and OKLCH (theme.color.OkColor). java.lang.Math.toDegrees / toRadians multiply by a constant since
+      // OpenJDK 9 (Android 13 libcore); earlier versions use 180 / PI.
+      const modernMath = !(host && host.device && host.device.sdkInt < 33);
+      const toDegrees = modernMath ? x => x * 57.29577951308232 : x => x * 180 / Math.PI;
+      const toRadians = modernMath ? x => x * 0.017453292519943295 : x => x / 180 * Math.PI;
+      const ACHROMATIC_CHROMA = 1e-4;
+      const GAMUT_EPSILON = 1e-7;
+      const srgbToLinear = c => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+      const linearToSrgb = l => l <= 0.0031308 ? l * 12.92 : 1.055 * Math.pow(l, 1 / 2.4) - 0.055;
+
+      function toOkLab(c) {
+        const r = srgbToLinear(redOf(c) / 255);
+        const g = srgbToLinear(greenOf(c) / 255);
+        const b = srgbToLinear(blueOf(c) / 255);
+        const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+        const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+        const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+        return {
+          l: 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+          a: 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+          b: 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s,
+        };
+      }
+
+      function normalizeHue(degrees) {
+        let wrapped = degrees % 360;
+        if (wrapped < 0) wrapped += 360;
+        return wrapped >= 360 ? 0 : wrapped;
+      }
+
+      function labToLch(lab) {
+        const c = Math.sqrt(lab.a * lab.a + lab.b * lab.b);
+        const h = normalizeHue(toDegrees(Math.atan2(lab.b, lab.a)));
+        return {l: lab.l, c, h: c < ACHROMATIC_CHROMA ? 0 : h};
+      }
+
+      const toOkLch = c => labToLch(toOkLab(c));
+
+      function lchToLab(lch) {
+        const radians = toRadians(lch.h);
+        return {l: lch.l, a: lch.c * Math.cos(radians), b: lch.c * Math.sin(radians)};
+      }
+
+      function toLinearRgb(lab) {
+        const cube = x => x * x * x;
+        const l = cube(lab.l + 0.3963377774 * lab.a + 0.2158037573 * lab.b);
+        const m = cube(lab.l - 0.1055613458 * lab.a - 0.0638541728 * lab.b);
+        const s = cube(lab.l - 0.0894841775 * lab.a - 1.2914855480 * lab.b);
+        return [
+          +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+          -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+          -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
+        ];
+      }
+
+      const isInGamut = lab => toLinearRgb(lab).every(x => x >= -GAMUT_EPSILON && x <= 1 + GAMUT_EPSILON);
+      const to8Bit = x => coerce(roundToInt(linearToSrgb(x < 0 ? 0 : x > 1 ? 1 : x) * 255), 0, 255);
+
+      function fromOkLab(lab, alpha = 0xff) {
+        const [r, g, b] = toLinearRgb(lab).map(to8Bit);
+        return argb(coerce(alpha, 0, 0xff), r, g, b);
+      }
+
+      function gamutMap(lch) {
+        const l = lch.l;
+        const c = Math.max(lch.c, 0);
+        const h = normalizeHue(lch.h);
+        if (l >= 1) return {l: 1, c: 0, h};
+        if (l <= 0) return {l: 0, c: 0, h};
+        if (isInGamut(lchToLab({l, c, h}))) return {l, c, h};
+        let low = 0;
+        let high = c;
+        for (let i = 0; i < 32; i++) {
+          const mid = (low + high) / 2;
+          if (isInGamut(lchToLab({l, c: mid, h}))) low = mid;
+          else high = mid;
+        }
+        return {l, c: low, h};
+      }
+
+      const fromOkLch = (lch, alpha = 0xff) => fromOkLab(lchToLab(gamutMap(lch)), alpha);
+
+      // theme.color: ColorMetrics, ColorHarmony, ColorVisionSimulation, ThemeColorDerivation.
+
+      const relativeLuminance = c => 0.2126 * srgbToLinear(redOf(c) / 255) + 0.7152 * srgbToLinear(greenOf(c) / 255) +
+        0.0722 * srgbToLinear(blueOf(c) / 255);
+      const contrastOfLuminance = (x, y) => (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+      const contrastRatio = (x, y) => contrastOfLuminance(relativeLuminance(x), relativeLuminance(y));
+      // Kotlin maxBy: the first of the largest.
+      const maxBy = (items, selector) => items.reduce((best, item) => selector(item) > selector(best) ? item : best);
+
+      const HARMONIES = [
+        ["complementary", [0, 180]],
+        ["analogous", [0, -30, 30]],
+        ["triadic", [0, 120, 240]],
+        ["splitComplementary", [0, 150, 210]],
+        ["tetradic", [0, 90, 180, 270]],
+      ];
+      const TONE_LIGHTNESS = [0.97, 0.92, 0.85, 0.77, 0.69, 0.62, 0.55, 0.48, 0.40, 0.32];
+      const NEAR_ACHROMATIC_CHROMA = 0.015;
+
+      function harmonyOf(seed, offsets) {
+        const opaque = seed | OPAQUE;
+        const lch = toOkLch(opaque);
+        return offsets.map(offset => offset === 0 || lch.c < NEAR_ACHROMATIC_CHROMA ? opaque : fromOkLch({...lch, h: normalizeHue(lch.h + offset)}));
+      }
+
+      function tonesOf(seed, count) {
+        const lch = toOkLch(seed | OPAQUE);
+        const first = TONE_LIGHTNESS[0];
+        const last = TONE_LIGHTNESS[TONE_LIGHTNESS.length - 1];
+        const lightness = count === TONE_LIGHTNESS.length ? TONE_LIGHTNESS : Array.from({length: count}, (_, i) => first + (last - first) * i / (count - 1));
+        return lightness.map(l => {
+          let chroma;
+          if (lch.c < NEAR_ACHROMATIC_CHROMA) chroma = lch.c;
+          else if (l > lch.l) chroma = lch.c * Math.max(0.25, 1 - (l - lch.l) / Math.max(1 - lch.l, 1e-6) * (1 - 0.25));
+          else chroma = lch.c * Math.max(0.7, 1 - (lch.l - l) / Math.max(lch.l, 1e-6) * (1 - 0.7));
+          return fromOkLch({l, c: chroma, h: lch.h});
+        });
+      }
+
+      const DEFICIENCIES = [
+        ["protanopia", [0.152286, 1.052583, -0.204868, 0.114503, 0.786281, 0.099216, -0.003882, -0.048116, 1.051998]],
+        ["deuteranopia", [0.367322, 0.860646, -0.227968, 0.280085, 0.672501, 0.047413, -0.011820, 0.042940, 0.968881]],
+        ["tritanopia", [1.255528, -0.076749, -0.178779, -0.078411, 0.930809, 0.147602, 0.004733, 0.691367, 0.303900]],
+      ];
+
+      function simulateOf(c, matrix) {
+        const r = srgbToLinear(redOf(c) / 255);
+        const g = srgbToLinear(greenOf(c) / 255);
+        const b = srgbToLinear(blueOf(c) / 255);
+        const channel = row => {
+          const value = coerce(matrix[row * 3] * r + matrix[row * 3 + 1] * g + matrix[row * 3 + 2] * b, 0, 1);
+          return coerce(Math.round(linearToSrgb(value) * 255) + 0, 0, 255);
+        };
+        return (c & OPAQUE) | (channel(0) << 16) | (channel(1) << 8) | channel(2);
+      }
+
+      const WINDOW_BACKGROUND_LIGHT = 0xfffafafa | 0;
+      const WINDOW_BACKGROUND_NIGHT = 0xff212121 | 0;
+
+      // The color along the lightness axis nearest to the original that passes, refined by bisection; null when none does.
+      function nearestByLightness(color, accepts) {
+        const opaque = color | OPAQUE;
+        if (accepts(opaque)) return opaque;
+        const lch = toOkLch(opaque);
+        let best = null;
+        let bestDistance = Number.MAX_VALUE;
+        for (const direction of [-1, 1]) {
+          let failing = lch.l;
+          let lightness = lch.l;
+          for (;;) {
+            lightness += direction * 0.01;
+            const last = lightness <= 0 || lightness >= 1;
+            const step = lightness <= 0 ? 0 : lightness >= 1 ? 1 : lightness;
+            if (Math.abs(step - lch.l) >= bestDistance) break;
+            if (!accepts(fromOkLch({...lch, l: step}))) {
+              failing = step;
+              if (last) break;
+              continue;
+            }
+            let passing = step;
+            for (let i = 0; i < 20; i++) {
+              const middle = (failing + passing) / 2;
+              if (accepts(fromOkLch({...lch, l: middle}))) passing = middle;
+              else failing = middle;
+            }
+            best = fromOkLch({...lch, l: passing});
+            bestDistance = Math.abs(passing - lch.l);
+            break;
+          }
+        }
+        return best;
+      }
+
+      function ensureContrastOf(color, background, ratio) {
+        const backgroundLuminance = relativeLuminance(background);
+        const found = nearestByLightness(color, c => contrastOfLuminance(relativeLuminance(c), backgroundLuminance) >= ratio);
+        return found !== null ? found : maxBy([0xff000000 | 0, -1], c => contrastRatio(c, background));
+      }
+
+      function ensureContrastAgainstBoth(color, light, dark, ratio) {
+        const lightLuminance = relativeLuminance(light);
+        const darkLuminance = relativeLuminance(dark);
+        const weaker = c => {
+          const luminance = relativeLuminance(c);
+          return Math.min(contrastOfLuminance(luminance, lightLuminance), contrastOfLuminance(luminance, darkLuminance));
+        };
+        const found = nearestByLightness(color, c => weaker(c) >= ratio);
+        if (found !== null) return found;
+        const lch = toOkLch(color);
+        return maxBy(Array.from({length: 101}, (_, i) => fromOkLch({...lch, l: i / 100})), weaker);
+      }
+
+      function deriveAccent(primary) {
+        const lch = toOkLch(primary);
+        const chroma = lch.c < NEAR_ACHROMATIC_CHROMA ? lch.c : Math.max(lch.c * 1.25, 0.12);
+        return ensureContrastAgainstBoth(fromOkLch({...lch, c: chroma}), WINDOW_BACKGROUND_LIGHT, WINDOW_BACKGROUND_NIGHT, 3);
+      }
+
+      function deriveDark(primary) {
+        const lch = toOkLch(primary);
+        return fromOkLch({...lch, l: Math.max(lch.l - 0.08, 0)});
+      }
+
+      function nightVariantOf(day) {
+        const lch = toOkLch(day);
+        const lightness = Math.min(lch.l, 0.25 + 0.25 * lch.l);
+        const chroma = lch.c < NEAR_ACHROMATIC_CHROMA ? lch.c : Math.max(lch.c, Math.min(lch.c * 4, 0.10));
+        return fromOkLch({l: lightness, c: chroma, h: lch.h});
+      }
+
+      // Color detection (core.image.ColorDetector): distance on the 0..255 threshold scale.
+      function hueFromRgb(r, g, b) {
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const delta = max - min;
+        if (delta === 0) return 0;
+        const h = (max === r ? (g - b) / delta : max === g ? 2 + (b - r) / delta : 4 + (r - g) / delta) * 60;
+        return h < 0 ? h + 360 : h;
+      }
+
+      function saturationPercent(r, g, b) {
+        const max = Math.max(r, g, b);
+        return max === 0 ? 0 : (max - Math.min(r, g, b)) * 100 / max;
+      }
+
+      let linearTable = null;
+      function detectorOf(color, name, threshold) {
+        const R = redOf(color);
+        const G = greenOf(color);
+        const B = blueOf(color);
+        let distance;
+        switch (name) {
+          case "diff":
+            distance = (r, g, b) => (Math.abs(r - R) + Math.abs(g - G) + Math.abs(b - B)) / 3;
+            break;
+          case "rgb+":
+            distance = (r, g, b) => {
+              const meanR = (R + r) / 2;
+              const wR = 2 + meanR / 256;
+              const wB = 2 + (255 - meanR) / 256;
+              return Math.sqrt(wR * (r - R) * (r - R) + 4 * (g - G) * (g - G) + wB * (b - B) * (b - B)) / 3;
+            };
+            break;
+          case "rgb":
+            distance = (r, g, b) => Math.sqrt((r - R) * (r - R) + (g - G) * (g - G) + (b - B) * (b - B)) / 3;
+            break;
+          case "hs": {
+            const h0 = hueFromRgb(R, G, B);
+            const s0 = saturationPercent(R, G, B);
+            distance = (r, g, b) => {
+              const diff = Math.abs(hueFromRgb(r, g, b) - h0);
+              const dH = Math.min(diff, 360 - diff) / 180;
+              const dS = Math.abs(saturationPercent(r, g, b) - s0) / 100;
+              return Math.sqrt((dH * dH + dS * dS) / 2) * 255;
+            };
+            break;
+          }
+          case "h": {
+            const h0 = hueFromRgb(R, G, B);
+            distance = (r, g, b) => {
+              const h = hueFromRgb(r, g, b);
+              return Math.min(Math.abs(h0 - h), 360 - Math.abs(h0 - h)) / 180 * 255;
+            };
+            break;
+          }
+          case "equal":
+            return {
+              distance: (r, g, b) => Math.max(Math.abs(r - R), Math.abs(g - G), Math.abs(b - B)),
+              detect: (r, g, b) => r === R && g === G && b === B,
+            };
+          case "oklab": {
+            const reference = toOkLab(rgb(R, G, B));
+            if (linearTable === null) linearTable = Array.from({length: 256}, (_, i) => srgbToLinear(i / 255));
+            distance = (r, g, b) => {
+              const lr = linearTable[r & 0xff];
+              const lg = linearTable[g & 0xff];
+              const lb = linearTable[b & 0xff];
+              const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
+              const m = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
+              const s = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
+              const dL = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s - reference.l;
+              const dA = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s - reference.a;
+              const dB = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s - reference.b;
+              return Math.sqrt(dL * dL + dA * dA + dB * dB) * 255;
+            };
+            break;
+          }
+          default:
+            throw illegalArgument(`Unknown color detection algorithm "${name}", expected one of: diff, rgb, rgb+, hs, h, equal, oklab`);
+        }
+        return {distance, detect: (r, g, b) => distance(r, g, b) <= threshold};
+      }
+
+      // Java objects through the facade.
+
+      const java = () => host.java();
+      const release = handles => Promise.all(handles.map(h => java().release(h).catch(() => {})));
+
+      async function colorStateList(ints) {
+        if (ints.length === 1) {
+          return java().callStatic("android.content.res.ColorStateList", "valueOf", [ints[0]], {parameterTypes: ["int"]});
+        }
+        const empty = await java().newArray("int", 0);
+        const states = await java().newArray("int[]", 1);
+        await java().setArrayItem(states, 0, empty);
+        const values = await java().newArray("int", ints);
+        try {
+          return await java().new("android.content.res.ColorStateList", [states, values], {parameterTypes: ["int[][]", "int[]"]});
+        } finally {
+          await release([empty, states, values]);
+        }
+      }
+
+      async function writeFloats(target, values) {
+        for (let i = 0; i < values.length; i++) await java().setArrayItem(target, i, values[i]);
+      }
+
+      const androidObjects = () => {
+        if (!host || !host.android) throw new TypeError("The Android objects of the main thread are not available here");
+        return host.android;
+      };
+      const isNodePaint = v => v !== null && typeof v === "object" && v.__autojs6AndroidObject === "paint";
+
+      async function paintColor(paint, c) {
+        if (isNodePaint(paint)) return androidObjects().setPaintColor(paint, c);
+        await java().call(paint, "setARGB", [alphaOf(c), redOf(c), greenOf(c), blueOf(c)], {parameterTypes: ["int", "int", "int", "int"]});
+      }
+
+      // The colors module (ColorsModule).
+
+      const fnName = name => `colors.${name}`;
+
+      function maxIsOne(fn, options, key) {
+        const max = isNativeObject(options) ? options[key] : undefined;
+        if (isNullish(max)) return false;
+        const x = Number(max);
+        if (x === 255) return false;
+        if (x === 1) return true;
+        const cause = argumentType(`options.${key}`, "1 | 255", quote(max));
+        throw x !== x ? typeError(fn, cause) : rangeError(fn, cause);
+      }
+
+      const channel = (fn, ch, options, key = "max") => maxIsOne(fn, options, key) ? ch / 255 : ch;
+      const channelFraction = (fn, ch, options) => {
+        maxIsOne(fn, options, "max");
+        return ch / 255;
+      };
+      const setter = (fn, param, value) => unit8(component(value, fn, param), fn, param);
+
+      function relative(fn, color, percentageValue, shift) {
+        const c = int(color, fn);
+        const p = component(percentageValue, fn, "percentage");
+        if (p < 0) throw rangeError(fn, argumentType("percentage", "number >= 0", numberText(p)));
+        return withChannel(c, shift, roundToInt(Math.min(255, ((c >>> shift) & 0xff) * p)));
+      }
+
+      function componentsOf(fn, value, length, param = "components") {
+        if (!Array.isArray(value)) throw typeErrorOf(fn, param, "Array", value);
+        if (value.length !== length) throw typeError(fn, argumentLength(param, length, value.length));
+        return Array.from({length}, (_, i) => own(value, i));
+      }
+
+      function hex(fn, color, mode) {
+        const c = int(color, fn);
+        if (isNullish(mode)) return hexOf(c, AUTO);
+        if (typeof mode === "boolean") return hexOf(c, mode ? KEEP : NONE);
+        if (isNumber(mode)) {
+          switch (numberToInt(mode)) {
+            case 8:
+              return hexOf(c, KEEP);
+            case 6:
+              return hexOf(c, NONE);
+            case 3: {
+              const short = shortHexOf(c);
+              if (short === null) throw rangeError(fn, argumentType("color", "color of #RGB", hexOf(c, NONE)));
+              return short;
+            }
+            default:
+              throw rangeError(fn, argumentType("alphaOrLength", HEX_MODES, numberText(Number(mode))));
+          }
+        }
+        if (typeof mode === "string") {
+          if (mode === "auto") return hexOf(c, AUTO);
+          if (mode === "keep") return hexOf(c, KEEP);
+          if (mode === "none") return hexOf(c, NONE);
+          throw rangeError(fn, argumentType("alphaOrLength", HEX_MODES, quote(mode)));
+        }
+        throw typeErrorOf(fn, "alphaOrLength", HEX_MODES, mode);
+      }
+
+      const rgbOf3 = (fn, r, g, b) => {
+        const [red, green, blue] = channels([r, g, b], fn, RGB);
+        return rgb(red, green, blue);
+      };
+
+      function rgbOf(fn, color, param = "color") {
+        if (Array.isArray(color)) {
+          const [r, g, b] = componentsOf(fn, color, 3, param);
+          return rgbOf3(fn, r, g, b);
+        }
+        return OPAQUE | (int(color, fn, param) & 0xffffff);
+      }
+
+      function argbOf(fn, alpha, r, g, b) {
+        const [red, green, blue] = channels([r, g, b], fn, RGB);
+        return argb(alphaChannel(alpha, fn, "alpha"), red, green, blue);
+      }
+
+      function rgbaOf(fn, color) {
+        if (Array.isArray(color)) {
+          const [r, g, b, a] = componentsOf(fn, color, 4);
+          return argbOf(fn, a, r, g, b);
+        }
+        if (typeof color === "string" && kotlinTrim(color).startsWith("#")) {
+          const full = textHex(color, KEEP);
+          if (full === null) throw rangeError(fn, argumentType("color", OMNI_COLOR, quote(color)));
+          // "#RRGGBBAA" moves its alpha to the front; "#RRGGBB" and "#RGB" are opaque.
+          return int(color.length === 9 ? `#${full.slice(7, 9)}${full.slice(1, 7)}` : full, fn);
+        }
+        return int(color, fn);
+      }
+
+      const hsvOf = (fn, alpha, h, s, v) => hsvToColor(alpha, [hue(h, fn, "hue"), percentage(s, fn, "saturation"), percentage(v, fn, "value")]);
+      const hsvaOf = (fn, h, s, v, a) => {
+        const alpha = alphaChannel(a, fn, "alpha");
+        return hsvOf(fn, alpha, h, s, v);
+      };
+      const hslOf = (fn, h, s, l) => hslToColor([hue(h, fn, "hue"), percentage(s, fn, "saturation"), percentage(l, fn, "lightness")]);
+      const hslaOf = (fn, h, s, l, a) => {
+        const c = hslOf(fn, h, s, l);
+        return (c & 0xffffff) | (alphaChannel(a, fn, "alpha") << 24);
+      };
+
+      // A Java float[] for the result forms of toHsv / toHsva / toHsl. Its length is known only through the facade, so a
+      // short array rejects the Promise instead of throwing.
+      function floats(fn, value) {
+        if (!isHandle(value) || value.className !== "[F") throw typeErrorOf(fn, "result", "float[]", value);
+        return value;
+      }
+
+      // Writes values into target and resolves to all its elements (toHsv, toHsl) or to values (toHsva).
+      async function withResult(fn, target, min, values, whole = true) {
+        const length = Number(await java().arrayLength(target));
+        if (length < min) throw rangeError(fn, argumentLength("result", min, length));
+        await writeFloats(target, values);
+        if (!whole || length === values.length) return values;
+        return Array.from(await java().toArray(target), Number);
+      }
+
+      const hsvList = c => rgbToHsv(redOf(c), greenOf(c), blueOf(c));
+      const hslList = c => rgbToHsl(redOf(c), greenOf(c), blueOf(c));
+      const hsvaList = c => [...hsvList(c), alphaOf(c) / 255];
+      const hsvBody = c => {
+        const [h, s, v] = hsvList(c);
+        return `${hueText(h)}, ${percentText(s)}, ${percentText(v)}`;
+      };
+      const hslBody = c => {
+        const [h, s, l] = hslList(c);
+        return `${hueText(h)}, ${percentText(s)}, ${percentText(l)}`;
+      };
+
+      function alphaTextOf(c, options) {
+        let keep = true;
+        if (isNativeObject(options)) {
+          const value = options.keepTrailingZeroForFullAlpha;
+          keep = isNullish(value) || Boolean(value);
+        } else if (typeof options === "boolean") {
+          keep = options;
+        }
+        return alphaText(alphaOf(c) / 255, keep);
+      }
+
+      function detector(fn, color, algorithm, threshold) {
+        const name = isNullish(algorithm) ? DEFAULT_ALGORITHM : str(algorithm);
+        const key = kotlinTrim(name).toLowerCase();
+        if (!ALGORITHMS.includes(key)) {
+          throw rangeError(fn, argumentType("algorithm", ALGORITHMS.map(a => `'${a}'`).join(" | "), quote(algorithm)));
+        }
+        return detectorOf(color, key, threshold);
+      }
+
+      function opaque(fn, background) {
+        const c = int(background, fn, "background");
+        if (alphaOf(c) !== 255) throw rangeError(fn, argumentType("background", "opaque color", hexOf(c, KEEP)));
+        return c;
+      }
+
+      function finite(fn, param, value) {
+        const x = component(value, fn, param);
+        if (x === Infinity || x === -Infinity) throw rangeError(fn, argumentType(param, "finite number", numberText(x)));
+        return x;
+      }
+
+      function integer(fn, param, value, min, max) {
+        const x = finite(fn, param, value);
+        if (x !== Math.floor(x) || x < min || x > max) {
+          throw rangeError(fn, argumentType(param, max === 2147483647 ? `integer >= ${min}` : `integer in [${min}, ${max}]`, numberText(x)));
+        }
+        return x;
+      }
+
+      // A hole of a components array: Rhino passes NOT_FOUND on, which is no number and not nullish.
+      const HOLE = {toString: () => "NOT_FOUND"};
+
+      function perceptual(fn, components, build) {
+        if (!Array.isArray(components)) throw typeErrorOf(fn, "components", "Array", components);
+        const n = components.length;
+        if (n < 3 || n > 4) throw typeError(fn, argumentLength("components", 3, n));
+        return build(...Array.from({length: 4}, (_, i) => i < n ? (Object.hasOwn(components, i) ? components[i] : HOLE) : null));
+      }
+
+      function lightness(fn, value) {
+        const x = finite(fn, "L", value);
+        if (!(x >= 0 && x <= 1)) throw rangeError(fn, argumentType("L", "number in [0, 1]", numberText(x)));
+        return x;
+      }
+
+      const withAlpha = (fn, c, alpha) => isNullish(alpha) ? c | OPAQUE : (c & 0xffffff) | (alphaChannel(alpha, fn, "alpha") << 24);
+
+      function oklabOf(l, a, b, alpha) {
+        const fn = "colors.oklab";
+        const lab = {l: lightness(fn, l), a: finite(fn, "a", a), b: finite(fn, "b", b)};
+        const c = isInGamut(lab) ? fromOkLab(lab) : fromOkLch(labToLch(lab));
+        return withAlpha(fn, c, alpha);
+      }
+
+      function oklchOf(l, c, h, alpha) {
+        const fn = "colors.oklch";
+        const chroma = finite(fn, "C", c);
+        if (chroma < 0) throw rangeError(fn, argumentType("C", "number >= 0", numberText(chroma)));
+        const lch = {l: lightness(fn, l), c: chroma, h: normalizeHue(finite(fn, "h", h))};
+        return withAlpha(fn, fromOkLch(lch), alpha);
+      }
+
+      function harmonyType(fn, type) {
+        const key = isNullish(type) ? null : str(type);
+        const entry = HARMONIES.find(([name]) => name === key);
+        if (!entry) throw rangeError(fn, argumentType("type", HARMONIES.map(([name]) => `'${name}'`).join(" | "), quote(type)));
+        return entry[1];
+      }
+
+      function deficiencyOf(fn, deficiency) {
+        const key = isNullish(deficiency) ? null : str(deficiency);
+        const entry = DEFICIENCIES.find(([name]) => name === key);
+        if (!entry) throw rangeError(fn, argumentType("deficiency", DEFICIENCIES.map(([name]) => `'${name}'`).join(" | "), quote(deficiency)));
+        return entry[1];
+      }
+
+      function isSimilar(colorA, colorB, thresholdOrOptions, algorithm) {
+        const fn = "colors.isSimilar";
+        const a = int(colorA, fn, "colorA");
+        const b = int(colorB, fn, "colorB");
+        if (isNativeObject(thresholdOrOptions) && isNullish(algorithm)) {
+          const options = thresholdOrOptions;
+          let threshold = DEFAULT_THRESHOLD;
+          if ("threshold" in options) {
+            if ("similarity" in options) throw typeError(fn, `Argument "options" cannot be { threshold, similarity }`);
+            threshold = roundToInt(component(options.threshold, fn, "options.threshold"));
+          } else if ("similarity" in options) {
+            threshold = roundToInt((1 - component(options.similarity, fn, "options.similarity")) * 255);
+          }
+          const name = isNullish(options.algorithm) ? null : options.algorithm;
+          return detector(fn, a, name, threshold).detect(redOf(b), greenOf(b), blueOf(b));
+        }
+        const x = parseAny(thresholdOrOptions);
+        const threshold = x !== x ? DEFAULT_THRESHOLD : roundToInt(x);
+        return detector(fn, a, algorithm, threshold).detect(redOf(b), greenOf(b), blueOf(b));
+      }
+
+      // Color(...), new Color(...) and colors.build(...): the arguments as given (trailing undefined included).
+      function buildColor(fn, args) {
+        switch (args.length) {
+          case 0:
+            return newColor(OPAQUE);
+          case 1:
+            return newColor(int(args[0], fn));
+          case 3:
+            return newColor(rgbOf3(fn, args[0], args[1], args[2]));
+          case 4:
+            return newColor(argbOf(fn, args[3], args[0], args[1], args[2]));
+          default:
+            throw typeError(fn, `No overload accepts the arguments (${args.map(describe).join(", ")}). Candidates: ${SIGNATURES}`);
+        }
+      }
+
+      // Image regions of colors.extract: nullish or [x, y, width, height] in pixels (missing values as in images.findColor).
+      function regionOf(fn, region, width, height) {
+        if (isNullish(region)) return [0, 0, width, height];
+        if (!Array.isArray(region)) throw internalError(`Invalid region ${safeText(region)} for Images#buildRegionInternal`);
+        const values = Array.from({length: 4}, (_, i) => {
+          const v = own(region, i);
+          return isNullish(v) ? null : Math.trunc(Number(v));
+        });
+        const x = values[0] === null ? 0 : values[0];
+        const y = values[1] === null ? 0 : values[1];
+        const w = values[2] === null ? width - x : values[2];
+        const h = values[3] === null ? height - y : values[3];
+        if (![x, y, w, h].every(Number.isFinite) || x < 0 || y < 0 || w < 0 || h < 0 || x + w > width || y + h > height) {
+          throw illegalArgument(`Out of region: region = [${x}, ${y}, ${w}, ${h}], image.size = [${width}, ${height}]`);
+        }
+        return [x, y, w, h];
+      }
+
+      // The image is an ImageWrapper or android.graphics.Bitmap handle (Java facade), or pixels as images.readPixels gives
+      // them ({ data: ARGB values, width, height }; Node scripts have no ImageWrapper, which needs a host ScriptRuntime).
+      // The samples are quantized by the host's ColorQuantizer through the Java facade.
+      const isPixels = v => isNativeObject(v) && Array.isArray(v.data) && Number.isInteger(v.width) && Number.isInteger(v.height) &&
+        v.width >= 0 && v.height >= 0 && v.data.length >= v.width * v.height;
+      async function extract(image, options, count) {
+        const fn = "colors.extract";
+        const pixels = isPixels(image) ? image : null;
+        const wrapper = !pixels && await java().instanceOf(image, "org.autojs.autojs.core.image.ImageWrapper");
+        if (!pixels && !wrapper && !await java().instanceOf(image, "android.graphics.Bitmap")) {
+          throw typeErrorOf(fn, "image", "ImageWrapper, Bitmap or pixels", image);
+        }
+        const handles = [];
+        try {
+          const bitmap = pixels ? null : wrapper ? await java().call(image, "getBitmap") : image;
+          if (wrapper) handles.push(bitmap);
+          const width = pixels ? pixels.width : Number(await java().call(bitmap, "getWidth"));
+          const height = pixels ? pixels.height : Number(await java().call(bitmap, "getHeight"));
+          const [x0, y0, w, h] = regionOf(fn, options ? options.region : null, width, height);
+          const stepValue = options && !isNullish(options.step) ? options.step : null;
+          const step = stepValue === null ? Math.max(1, Math.ceil(Math.sqrt(w * h / 65536))) : integer(fn, "options.step", stepValue, 1, 2147483647);
+          const row = pixels ? null : await java().newArray("int", Math.max(w, 1));
+          if (row) handles.push(row);
+          const samples = [];
+          for (let y = y0; y < y0 + h; y += step) {
+            let line;
+            if (pixels) {
+              line = pixels.data.slice(y * width + x0, y * width + x0 + w);
+            } else {
+              await java().call(bitmap, "getPixels", [row, 0, w, x0, y, w, 1], {parameterTypes: ["int[]", "int", "int", "int", "int", "int", "int"]});
+              line = await java().toArray(row);
+            }
+            for (let x = 0; x < w; x += step) samples.push(Number(line[x]) | 0);
+          }
+          const input = await java().newArray("int", samples);
+          const quantizer = await java().getStatic("org.autojs.autojs.theme.color.ColorQuantizer", "INSTANCE");
+          handles.push(input, quantizer);
+          const swatches = await java().call(quantizer, "quantize", [input, count], {parameterTypes: ["int[]", "int"]});
+          handles.push(swatches);
+          const result = [];
+          for (const swatch of await java().call(swatches, "toArray", [], {parameterTypes: []})) {
+            result.push(Number(await java().call(swatch, "getColor")) | 0);
+            if (isHandle(swatch)) handles.push(swatch);
+          }
+          return result;
+        } finally {
+          await release(handles);
+          if (wrapper) await java().call(image, "shoot").catch(() => {});
+        }
+      }
+
+      // [name, length, min, max (-1: no limit), accepted counts or null, body(args, n, function name)], in the order of
+      // the host module.
+      const FUNCTIONS = [
+        ["toString", 0, 0, 2, null, (a, n, fn) => n === 0 || a[0] === undefined ? "[object Object]" : hex(fn, a[0], n > 1 ? a[1] : null)],
+        ["toInt", 1, 1, 1, null, (a, n, fn) => int(a[0], fn)],
+        ["toHex", 1, 1, 2, null, (a, n, fn) => hex(fn, a[0], n > 1 ? a[1] : null)],
+        ["toFullHex", 1, 1, 1, null, (a, n, fn) => hexOf(int(a[0], fn), KEEP)],
+        ["alpha", 1, 1, 2, null, (a, n, fn) => channel(fn, alphaOf(int(a[0], fn)), a[1])],
+        ["getAlpha", 1, 1, 2, null, (a, n, fn) => channel(fn, alphaOf(int(a[0], fn)), a[1])],
+        ["alphaDouble", 1, 1, 2, null, (a, n, fn) => channelFraction(fn, alphaOf(int(a[0], fn)), a[1])],
+        ["getAlphaDouble", 1, 1, 2, null, (a, n, fn) => channelFraction(fn, alphaOf(int(a[0], fn)), a[1])],
+        ["setAlpha", 2, 2, 2, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          return withChannel(c, 24, alphaChannel(a[1], fn, "alpha"));
+        }],
+        ["setAlphaRelative", 2, 2, 2, null, (a, n, fn) => relative(fn, a[0], a[1], 24)],
+        ["removeAlpha", 1, 1, 1, null, (a, n, fn) => withChannel(int(a[0], fn), 24, 0)],
+        ["red", 1, 1, 2, null, (a, n, fn) => channel(fn, redOf(int(a[0], fn)), a[1])],
+        ["getRed", 1, 1, 2, null, (a, n, fn) => channel(fn, redOf(int(a[0], fn)), a[1])],
+        ["redDouble", 1, 1, 2, null, (a, n, fn) => channelFraction(fn, redOf(int(a[0], fn)), a[1])],
+        ["getRedDouble", 1, 1, 2, null, (a, n, fn) => channelFraction(fn, redOf(int(a[0], fn)), a[1])],
+        ["setRed", 2, 2, 2, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          return withChannel(c, 16, setter(fn, "red", a[1]));
+        }],
+        ["setRedRelative", 2, 2, 2, null, (a, n, fn) => relative(fn, a[0], a[1], 16)],
+        ["removeRed", 1, 1, 1, null, (a, n, fn) => withChannel(int(a[0], fn), 16, 0)],
+        ["green", 1, 1, 2, null, (a, n, fn) => channel(fn, greenOf(int(a[0], fn)), a[1])],
+        ["getGreen", 1, 1, 2, null, (a, n, fn) => channel(fn, greenOf(int(a[0], fn)), a[1])],
+        ["greenDouble", 1, 1, 2, null, (a, n, fn) => channelFraction(fn, greenOf(int(a[0], fn)), a[1])],
+        ["getGreenDouble", 1, 1, 2, null, (a, n, fn) => channelFraction(fn, greenOf(int(a[0], fn)), a[1])],
+        ["setGreen", 2, 2, 2, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          return withChannel(c, 8, setter(fn, "green", a[1]));
+        }],
+        ["setGreenRelative", 2, 2, 2, null, (a, n, fn) => relative(fn, a[0], a[1], 8)],
+        ["removeGreen", 1, 1, 1, null, (a, n, fn) => withChannel(int(a[0], fn), 8, 0)],
+        ["blue", 1, 1, 2, null, (a, n, fn) => channel(fn, blueOf(int(a[0], fn)), a[1])],
+        ["getBlue", 1, 1, 2, null, (a, n, fn) => channel(fn, blueOf(int(a[0], fn)), a[1])],
+        ["blueDouble", 1, 1, 2, null, (a, n, fn) => channelFraction(fn, blueOf(int(a[0], fn)), a[1])],
+        ["getBlueDouble", 1, 1, 2, null, (a, n, fn) => channelFraction(fn, blueOf(int(a[0], fn)), a[1])],
+        ["setBlue", 2, 2, 2, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          return withChannel(c, 0, setter(fn, "blue", a[1]));
+        }],
+        ["setBlueRelative", 2, 2, 2, null, (a, n, fn) => relative(fn, a[0], a[1], 0)],
+        ["removeBlue", 1, 1, 1, null, (a, n, fn) => withChannel(int(a[0], fn), 0, 0)],
+        ["rgb", 1, 1, 3, [1, 3], (a, n, fn) => n === 1 ? rgbOf(fn, a[0]) : rgbOf3(fn, a[0], a[1], a[2])],
+        ["argb", 1, 1, 4, [1, 4], (a, n, fn) => {
+          if (n === 4) return argbOf(fn, a[0], a[1], a[2], a[3]);
+          if (!Array.isArray(a[0])) return int(a[0], fn);
+          const [alpha, r, g, b] = componentsOf(fn, a[0], 4);
+          return argbOf(fn, alpha, r, g, b);
+        }],
+        ["rgba", 1, 1, 4, [1, 2, 4], (a, n, fn) => {
+          if (n === 1) return rgbaOf(fn, a[0]);
+          if (n === 4) return argbOf(fn, a[3], a[0], a[1], a[2]);
+          const [r, g, b] = componentsOf(fn, a[0], 3, "rgb");
+          return argbOf(fn, a[1], r, g, b);
+        }],
+        ["hsv", 1, 1, 3, [1, 3], (a, n, fn) => {
+          const [h, s, v] = n === 1 ? componentsOf(fn, a[0], 3) : a;
+          return hsvOf(fn, 255, h, s, v);
+        }],
+        ["hsva", 1, 1, 4, [1, 2, 4], (a, n, fn) => {
+          if (n === 4) return hsvaOf(fn, a[0], a[1], a[2], a[3]);
+          if (n === 1) {
+            const [h, s, v, alpha] = componentsOf(fn, a[0], 4);
+            return hsvaOf(fn, h, s, v, alpha);
+          }
+          const [h, s, v] = componentsOf(fn, a[0], 3, "hsv");
+          return hsvaOf(fn, h, s, v, a[1]);
+        }],
+        ["hsl", 1, 1, 3, [1, 3], (a, n, fn) => {
+          const [h, s, l] = n === 1 ? componentsOf(fn, a[0], 3) : a;
+          return hslOf(fn, h, s, l);
+        }],
+        ["hsla", 1, 1, 4, [1, 2, 4], (a, n, fn) => {
+          if (n === 4) return hslaOf(fn, a[0], a[1], a[2], a[3]);
+          if (n === 1) {
+            const [h, s, l, alpha] = componentsOf(fn, a[0], 4);
+            return hslaOf(fn, h, s, l, alpha);
+          }
+          const [h, s, l] = componentsOf(fn, a[0], 3, "hsl");
+          return hslaOf(fn, h, s, l, a[1]);
+        }],
+        ["toRgb", 1, 1, 3, [1, 3], (a, n, fn) => {
+          const c = n === 1 ? int(a[0], fn) : rgbOf3(fn, a[0], a[1], a[2]);
+          return [redOf(c), greenOf(c), blueOf(c)];
+        }],
+        ["toRgba", 1, 1, 2, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          return [redOf(c), greenOf(c), blueOf(c), channel(fn, alphaOf(c), a[1], "maxAlpha")];
+        }],
+        ["toArgb", 1, 1, 2, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          return [channel(fn, alphaOf(c), a[1], "maxAlpha"), redOf(c), greenOf(c), blueOf(c)];
+        }],
+        ["toHsv", 1, 1, 4, null, (a, n, fn) => {
+          switch (n) {
+            case 1:
+              return hsvList(rgbOf(fn, a[0]));
+            case 2: {
+              const c = int(a[0], fn);
+              return withResult(fn, floats(fn, a[1]), 3, hsvList(c));
+            }
+            case 3:
+              return hsvList(rgbOf3(fn, a[0], a[1], a[2]));
+            default: {
+              const c = rgbOf3(fn, a[0], a[1], a[2]);
+              return withResult(fn, floats(fn, a[3]), 3, hsvList(c));
+            }
+          }
+        }],
+        ["toHsva", 1, 1, 5, [1, 2, 4, 5], (a, n, fn) => {
+          switch (n) {
+            case 1:
+              return hsvaList(int(a[0], fn));
+            case 2: {
+              const c = int(a[0], fn);
+              return withResult(fn, floats(fn, a[1]), 4, hsvaList(c), false);
+            }
+            case 4:
+              return hsvaList(argbOf(fn, a[3], a[0], a[1], a[2]));
+            default: {
+              const c = argbOf(fn, a[3], a[0], a[1], a[2]);
+              return withResult(fn, floats(fn, a[4]), 4, hsvaList(c), false);
+            }
+          }
+        }],
+        ["toHsl", 1, 1, 4, null, (a, n, fn) => {
+          switch (n) {
+            case 1:
+              return hslList(rgbOf(fn, a[0]));
+            case 2: {
+              const c = int(a[0], fn);
+              return withResult(fn, floats(fn, a[1]), 3, hslList(c));
+            }
+            case 3:
+              return hslList(rgbOf3(fn, a[0], a[1], a[2]));
+            default: {
+              const c = rgbOf3(fn, a[0], a[1], a[2]);
+              return withResult(fn, floats(fn, a[3]), 3, hslList(c));
+            }
+          }
+        }],
+        ["toHsla", 1, 1, 4, [1, 4], (a, n, fn) => {
+          if (n === 1) {
+            const c = int(a[0], fn);
+            return [...hslList(c), alphaOf(c) / 255];
+          }
+          const hsl = hslList(rgbOf3(fn, a[0], a[1], a[2]));
+          return [...hsl, fraction(a[3], fn, "alpha")];
+        }],
+        ["toRgbString", 1, 1, 3, [1, 3], (a, n, fn) => {
+          const c = n === 1 ? int(a[0], fn) : rgbOf3(fn, a[0], a[1], a[2]);
+          return `rgb(${redOf(c)}, ${greenOf(c)}, ${blueOf(c)})`;
+        }],
+        ["toRgbaString", 1, 1, 2, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          return `rgba(${redOf(c)}, ${greenOf(c)}, ${blueOf(c)}, ${alphaTextOf(c, a[1])})`;
+        }],
+        ["toArgbString", 1, 1, 2, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          return `argb(${alphaTextOf(c, a[1])}, ${redOf(c)}, ${greenOf(c)}, ${blueOf(c)})`;
+        }],
+        ["toHsvString", 1, 1, 3, [1, 3], (a, n, fn) => `hsv(${hsvBody(n === 1 ? int(a[0], fn) : rgbOf3(fn, a[0], a[1], a[2]))})`],
+        ["toHsvaString", 1, 1, 2, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          return `hsva(${hsvBody(c)}, ${alphaTextOf(c, a[1])})`;
+        }],
+        ["toHslString", 1, 1, 3, [1, 3], (a, n, fn) => `hsl(${hslBody(n === 1 ? int(a[0], fn) : rgbOf3(fn, a[0], a[1], a[2]))})`],
+        ["toHslaString", 1, 1, 2, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          return `hsla(${hslBody(c)}, ${alphaTextOf(c, a[1])})`;
+        }],
+        ["isSimilar", 2, 2, 4, null, a => isSimilar(a[0], a[1], a[2], a[3])],
+        ["isEqual", 2, 2, 3, null, (a, n, fn) => {
+          const alphaMatters = n > 2 && !isNullish(a[2]) ? a[2] : null;
+          if (alphaMatters !== null && typeof alphaMatters !== "boolean") throw typeErrorOf(fn, "alphaMatters", "boolean", alphaMatters);
+          if (alphaMatters === true) return int(a[0], fn, "colorA") === int(a[1], fn, "colorB");
+          return rgbOf(fn, a[0], "colorA") === rgbOf(fn, a[1], "colorB");
+        }],
+        ["distance", 2, 2, 3, null, (a, n, fn) => {
+          const name = isNativeObject(a[2]) ? (isNullish(a[2].algorithm) ? null : a[2].algorithm) : a[2];
+          const b = int(a[1], fn, "colorB");
+          return detector(fn, int(a[0], fn, "colorA"), name, 0).distance(redOf(b), greenOf(b), blueOf(b));
+        }],
+        ["invert", 1, 1, 1, null, (a, n, fn) => int(a[0], fn) ^ 0x00ffffff],
+        ["blend", 2, 2, 3, null, (a, n, fn) => {
+          let weight = 0.5;
+          if (!isNullish(a[2])) {
+            weight = component(a[2], fn, "ratio");
+            if (!(weight >= 0 && weight <= 1)) throw rangeError(fn, argumentType("ratio", "number in [0, 1]", numberText(weight)));
+          }
+          return blendOf(int(a[0], fn, "colorA"), int(a[1], fn, "colorB"), f32(weight));
+        }],
+        ["contrast", 2, 2, 2, null, (a, n, fn) => {
+          const bg = opaque(fn, a[1]);
+          return contrastOf(int(a[0], fn, "foreground"), bg);
+        }],
+        ["toColorStateList", 1, 1, -1, null, (a, n, fn) => {
+          const ints = [int(a[0], fn), ...a.slice(1).map((c, i) => int(c, fn, `colors[${i}]`))];
+          return colorStateList(ints);
+        }],
+        ["setPaintColor", 2, 2, 2, null, (a, n, fn) => {
+          const paint = a[0];
+          if (!isHandle(paint) && !isNodePaint(paint)) throw typeErrorOf(fn, "paint", "android.graphics.Paint", paint);
+          const c = int(a[1], fn);
+          if (isNodePaint(paint)) return paintColor(paint, c).then(() => undefined);
+          return (async () => {
+            if (!await java().instanceOf(paint, "android.graphics.Paint")) throw typeErrorOf(fn, "paint", "android.graphics.Paint", paint);
+            await paintColor(paint, c);
+          })();
+        }],
+        ["luminance", 1, 1, 1, null, (a, n, fn) => luminanceOf(int(a[0], fn))],
+        ["build", 0, 0, -1, null, (a, n, fn) => buildColor(fn, a)],
+        ["summary", 1, 1, 1, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          let alpha = (alphaOf(c) / 255).toFixed(2);
+          if (alpha.endsWith("0")) alpha = alpha.slice(0, -1);
+          return `hex(${hexOf(c, AUTO)}), rgba(${redOf(c)},${greenOf(c)},${blueOf(c)}/${alpha}), int(${c})`;
+        }],
+        ["toOklab", 1, 1, 1, null, (a, n, fn) => {
+          const lab = toOkLab(int(a[0], fn));
+          return [lab.l, lab.a, lab.b];
+        }],
+        ["oklab", 1, 1, 4, [1, 3, 4], (a, n, fn) => n === 1 ? perceptual(fn, a[0], oklabOf) : oklabOf(a[0], a[1], a[2], n > 3 ? a[3] : null)],
+        ["toOklch", 1, 1, 1, null, (a, n, fn) => {
+          const lch = toOkLch(int(a[0], fn));
+          return [lch.l, lch.c, lch.h];
+        }],
+        ["oklch", 1, 1, 4, [1, 3, 4], (a, n, fn) => n === 1 ? perceptual(fn, a[0], oklchOf) : oklchOf(a[0], a[1], a[2], n > 3 ? a[3] : null)],
+        ["ensureContrast", 2, 2, 3, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          const bg = opaque(fn, a[1]);
+          let target = 4.5;
+          if (!isNullish(a[2])) {
+            target = finite(fn, "ratio", a[2]);
+            if (!(target >= 1 && target <= 21)) throw rangeError(fn, argumentType("ratio", "number in [1, 21]", numberText(target)));
+          }
+          const result = ensureContrastOf(c | OPAQUE, bg, target);
+          return (result & 0xffffff) | (c & OPAQUE);
+        }],
+        ["harmony", 2, 2, 2, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          return harmonyOf(c, harmonyType(fn, a[1]));
+        }],
+        ["tones", 1, 1, 2, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          return tonesOf(c, isNullish(a[1]) ? 10 : integer(fn, "count", a[1], 2, 20));
+        }],
+        ["derive", 1, 1, 1, null, (a, n, fn) => {
+          const primary = int(a[0], fn) | OPAQUE;
+          return {primary, accent: deriveAccent(primary), dark: deriveDark(primary)};
+        }],
+        ["nightVariant", 1, 1, 1, null, (a, n, fn) => nightVariantOf(int(a[0], fn) | OPAQUE)],
+        ["simulate", 2, 2, 2, null, (a, n, fn) => {
+          const c = int(a[0], fn);
+          return simulateOf(c, deficiencyOf(fn, a[1]));
+        }],
+        ["extract", 1, 1, 2, null, (a, n, fn) => {
+          const image = a[0];
+          if (!isHandle(image) && !isPixels(image)) throw typeErrorOf(fn, "image", "ImageWrapper, Bitmap or pixels", image);
+          const options = a[1];
+          if (!isNullish(options) && !isNativeObject(options)) throw typeErrorOf(fn, "options", "Object", options);
+          const count = options && !isNullish(options.count) ? integer(fn, "options.count", options.count, 1, 16) : 5;
+          return extract(image, isNullish(options) ? null : options, count);
+        }],
+      ];
+
+      const named = (f, name, length) => Object.defineProperties(f, {name: {value: name}, length: {value: length}});
+      // ScriptAttributes.PERMANENT: writable and enumerable, not configurable.
+      const define = (target, name, value, enumerable = true) => Object.defineProperty(target, name, {value, writable: true, enumerable, configurable: false});
+
+      function moduleFunction([name, length, min, max, counts, body]) {
+        const fn = fnName(name);
+        return named((...args) => {
+          let n = args.length;
+          while (n > min && args[n - 1] === undefined) n--;
+          if (n < min || (max >= 0 && n > max) || (counts && !counts.includes(n))) throw arityError(fn, min, max);
+          return body(args, n, fn);
+        }, name, length);
+      }
+
+      // The prototype chain of colors (the four color tables, then core.image.Colors) and of Color (the four tables).
+      // Java's Object.equals of ColorTable.Android comes first in both, as in Rhino.
+      function javaMethod(className, name, overloads) {
+        return named((...args) => {
+          const body = overloads[args.length];
+          if (!body) throw internalError(`Can't find method ${className}.${name}(${args.map(describe).join(",")}).`);
+          return body(...args);
+        }, name, 0);
+      }
+
+      // A JS number as a Java int parameter (NativeJavaObject.coerceTypeImpl: truncated, NaN or out of range fails).
+      function javaInt(v) {
+        const d = Number(v);
+        const t = Math.trunc(d);
+        if (!Number.isFinite(d) || t < -2147483648 || t > 2147483647) throw internalError(`Cannot convert ${safeText(v)} to int`);
+        return t + 0;
+      }
+
+      function javaFloats(v) {
+        if (v === null) throw javaError("NullPointerException", "java.lang.NullPointerException");
+        if (!Array.isArray(v)) throw internalError(`Cannot convert ${safeText(v)} to float[]`);
+        if (v.length < 3) throw javaError("RuntimeException", "java.lang.RuntimeException: 3 components required for hsv");
+        return Array.from(v, x => f32(Number(x)));
+      }
+
+      // android.graphics.Color.parseColor.
+      const ANDROID_NAMES = new Map([
+        ["black", 0xff000000], ["darkgray", 0xff444444], ["gray", 0xff888888], ["lightgray", 0xffcccccc], ["white", 0xffffffff],
+        ["red", 0xffff0000], ["green", 0xff00ff00], ["blue", 0xff0000ff], ["yellow", 0xffffff00], ["cyan", 0xff00ffff],
+        ["magenta", 0xffff00ff], ["aqua", 0xff00ffff], ["fuchsia", 0xffff00ff], ["darkgrey", 0xff444444], ["grey", 0xff888888],
+        ["lightgrey", 0xffcccccc], ["lime", 0xff00ff00], ["maroon", 0xff800000], ["navy", 0xff000080], ["olive", 0xff808000],
+        ["purple", 0xff800080], ["silver", 0xffc0c0c0], ["teal", 0xff008080],
+      ]);
+
+      function androidParseColor(text) {
+        if (text === null) throw javaError("NullPointerException", "java.lang.NullPointerException");
+        if (text.length === 0) throw javaError("StringIndexOutOfBoundsException", "java.lang.StringIndexOutOfBoundsException: index=0 length=0");
+        if (text[0] === "#") {
+          let value = parseLong(text.slice(1), 16);
+          if (text.length === 7) value |= 0xff000000n;
+          else if (text.length !== 9) throw illegalArgument("Unknown color");
+          return Number(BigInt.asIntN(32, value));
+        }
+        const color = ANDROID_NAMES.get(text.toLowerCase());
+        if (color === undefined) throw illegalArgument("Unknown color");
+        return color | 0;
+      }
+
+      // A script value as a java.lang.String parameter.
+      const javaString = v => v === null ? null : str(v);
+
+      function hsvInto(target, hsv) {
+        if (isHandle(target)) return writeFloats(target, hsv).then(() => undefined);
+        javaFloats(target);
+        return undefined;
+      }
+
+      function tableLink(table, proto, extras) {
+        const link = Object.create(proto);
+        if (extras) for (const [name, value] of Object.entries(extras)) define(link, name, value, false);
+        for (const [name, color] of table.entries) define(link, name, color);
+        return link;
+      }
+
+      function chainOf(end, core) {
+        const tail = core ? Object.create(end) : end;
+        if (core) {
+          define(tail, "parseColor", javaMethod("org.autojs.autojs.core.image.Colors", "parseColor", {1: s => androidParseColor(javaString(s))}), false);
+          define(tail, "RGBToHSV", javaMethod("org.autojs.autojs.core.image.Colors", "RGBToHSV", {
+            4: (r, g, b, out) => hsvInto(out, rgbToHsv(javaInt(r) & 0xff, javaInt(g) & 0xff, javaInt(b) & 0xff)),
+          }), false);
+          define(tail, "colorToHSV", javaMethod("org.autojs.autojs.core.image.Colors", "colorToHSV", {
+            2: (c, out) => hsvInto(out, hsvList(javaInt(c))),
+          }), false);
+          define(tail, "HSVToColor", javaMethod("org.autojs.autojs.core.image.Colors", "HSVToColor", {
+            1: hsv => hsvToColor(255, javaFloats(hsv)),
+            2: (alpha, hsv) => hsvToColor(javaInt(alpha), javaFloats(hsv)),
+          }), false);
+        }
+        let link = tail;
+        for (let i = TABLES.length - 1; i >= 0; i--) {
+          const extras = i === 0 ? {equals: javaMethod("java.lang.Object", "equals", {1: () => false})} : null;
+          link = tableLink(TABLES[i], link, extras);
+        }
+        return link;
+      }
+
+      // Color objects (ColorNativeObject). Each member call reads the color of its receiver.
+
+      const colorSlots = new WeakMap();
+      const COLOR_PROTOTYPE = Object.create(Object.prototype);
+      const isColor = v => v !== null && typeof v === "object" && colorSlots.has(v);
+      const colorOf = v => colorSlots.get(v);
+
+      function newColor(c) {
+        const color = Object.create(COLOR_PROTOTYPE);
+        colorSlots.set(color, c | 0);
+        return color;
+      }
+
+      function receiver(self) {
+        if (!isColor(self)) throw new TypeError("Color member called on an object that is not a Color");
+        return self;
+      }
+
+      // The older Colors functions (runtime.api.modules.colors.Colors) that Color objects still run, with their own
+      // conversions: a missing argument is null (Kotlin destructuring), an explicit undefined stays undefined, and the
+      // elements of an array argument read undefined and holes as null (NativeArray as a java.util.List).
+      const at = (a, i) => i < a.length ? a[i] : null;
+      const wrapped = message => internalError(message);
+      const runtimeError = message => javaError("RuntimeException", `java.lang.RuntimeException: ${message}`);
+      const LEGACY_DIGITS = /^[+-]?\p{Nd}+$/u;
+      const LEGACY_PERCENT = /^([+-]?\p{Nd}+(?:\.\p{Nd}+)?)(%*)$/u;
+      const SHORT_HEX_GROUPS = new RegExp(`(#)(${WORD})(${WORD})(${WORD})`, "u");
+      const SHORT_HEX_PAIRS = new RegExp(`^#(?:(${HEX_DIGIT}){2})?(${HEX_DIGIT})\\2(${HEX_DIGIT})\\3(${HEX_DIGIT})\\4$`, "iu");
+      const ALPHA_LAST = new RegExp(`^\\s*(#)(${WORD}{6})(${WORD}{2}\\s*$)`, "u");
+      const JAVA_FLOAT = /^[\x00-\x20]*[+-]?(?:NaN|Infinity|(?:\d+\.?\d*(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?|0[xX](?:[0-9a-fA-F]+\.?|[0-9a-fA-F]*\.[0-9a-fA-F]+)[pP][+-]?\d+)[fFdD]?)[\x00-\x20]*$/;
+
+      function legacyElements(array, length, desc) {
+        if (array.length !== length) throw runtimeError(`Array argument for ${desc} must be length of ${length}`);
+        return Array.from({length}, (_, i) => {
+          const v = own(array, i);
+          return v === undefined ? null : v;
+        });
+      }
+
+      // Kotlin String.toDoubleOrNull (java.lang.Double.parseDouble behind a format check), NaN instead of null.
+      function kotlinDouble(text) {
+        if (!JAVA_FLOAT.test(text)) return NaN;
+        const t = text.replace(/^[\x00-\x20]+|[\x00-\x20]+$/g, "").replace(/[fFdD]$/, "");
+        const hex = /^([+-]?)0[xX]([0-9a-fA-F]*)\.?([0-9a-fA-F]*)[pP]([+-]?\d+)$/.exec(t);
+        if (!hex) return Number(t);
+        const mantissa = Number(BigInt(`0x0${hex[2]}${hex[3]}`));
+        const value = mantissa * 2 ** (Number(hex[4]) - 4 * hex[3].length);
+        return hex[1] === "-" ? -value : value;
+      }
+
+      // Numberx.parseAnyRhino of the older module layer.
+      function legacyParseAny(v) {
+        if (isNullish(v)) return NaN;
+        if (isNumber(v)) return Number(v);
+        const text = kotlinTrim(str(v));
+        if (text.includes(":")) {
+          const parts = text.split(":").map(kotlinTrim);
+          return kotlinDouble(parts[0]) / kotlinDouble(parts[1]);
+        }
+        if (text.includes("%")) {
+          const match = LEGACY_PERCENT.exec(text);
+          if (!match) return NaN;
+          if (/[^\x00-\x7f]/.test(match[1])) throw javaError("NumberFormatException", `java.lang.NumberFormatException: For input string: "${match[1]}"`);
+          return +match[1] / 100 ** match[2].length;
+        }
+        return +text;
+      }
+
+      // ColorTable.getColorByName: the INSTANCE field of the first table is an object, which Field.getInt rejects.
+      function legacyColorOfName(name) {
+        const key = name.replace(/-/g, "_").toUpperCase().replace(/_/g, "");
+        if (key === "INSTANCE") throw illegalArgument("Expected a primitive int field: INSTANCE");
+        return colorOfName(key);
+      }
+
+      // ColorUtils.toHex(String, alpha).
+      function legacyHex(text, alpha) {
+        let color = text;
+        if (color.startsWith("#")) {
+          if (color.length === 4) color = color.replace(SHORT_HEX_GROUPS, "$1$2$2$3$3$4$4");
+        } else if (LEGACY_DIGITS.test(color)) {
+          return legacyHex(intHex(Number(BigInt.asIntN(32, parseLong(color, 10)))), alpha);
+        } else {
+          const named = legacyColorOfName(color);
+          if (named !== null) return legacyHex(intHex(named), alpha);
+        }
+        if (!HEX.test(color)) throw illegalArgument(`Invalid color string format: ${color}`);
+        if (alpha === "keep") return (color.length === 7 ? `#FF${color.slice(1)}` : color).toUpperCase();
+        if (alpha === "none") return `#${color.slice(-6)}`.toUpperCase();
+        return OPAQUE_HEX.test(color) ? `#${color.slice(3)}`.toUpperCase() : color.toUpperCase();
+      }
+
+      // ColorUtils.toHex(String, resultLength).
+      function legacyHexOfLength(text, length) {
+        switch (length) {
+          case 3:
+            if (!SHORT_HEX_PAIRS.test(text)) throw illegalArgument(`Cannot convert color ${text} to #RGB with unexpected color format.`);
+            return `#${text[text.length - 6]}${text[text.length - 4]}${text[text.length - 2]}`;
+          case 6:
+            return legacyHex(text, "none");
+          case 8:
+            return legacyHex(text, "keep");
+          default:
+            throw illegalArgument(`Unknown length "${length}" for converting a color into ColorHex`);
+        }
+      }
+
+      const notColor = v => wrapped(`Argument "${safeText(v)}" cannot be converted as a color int`);
+
+      // Colors.toHexRhino: mode null (missing) is the default, undefined is no mode.
+      function legacyToHex(color, mode) {
+        let text;
+        if (isColor(color)) text = intHex(colorOf(color));
+        else if (themePrimary(color) !== null) text = intHex(themePrimary(color));
+        else if (isNumber(color)) text = intHex(longToInt(color));
+        else if (typeof color === "string") text = color;
+        else throw notColor(color);
+        if (mode === null) return legacyHex(text, "auto");
+        if (typeof mode === "boolean") return legacyHexOfLength(text, mode ? 8 : 6);
+        if (isNumber(mode)) return legacyHexOfLength(text, numberToInt(mode));
+        throw wrapped(`Argument "${safeText(mode)}" for toHex is invalid`);
+      }
+
+      // Colors.toIntRhino; text goes through ColorUtils.toInt, which reports every failure as java.lang.Exception.
+      function legacyInt(color) {
+        if (isColor(color)) return colorOf(color);
+        const theme = themePrimary(color);
+        if (theme !== null) return theme;
+        if (isNumber(color)) return longToInt(color);
+        if (typeof color === "string") {
+          try {
+            return androidParseColor(legacyHex(color, "auto"));
+          } catch (e) {
+            throw javaError("Exception", `java.lang.Exception: ${e.message}`, e);
+          }
+        }
+        throw notColor(color);
+      }
+
+      // toDoubleComponent: 0..1 as is, above 1 up to 255 divided by 255 (so 1 stays 1).
+      function legacyFraction(x) {
+        if (!isNumber(x)) throw wrapped("Argument o must be of type number");
+        const d = Number(x);
+        if (d >= 0 && d <= 1) return d;
+        if (d >= 1 && d <= 255) return d / 255;
+        throw wrapped("Argument o must be in the range 0..255");
+      }
+
+      function legacyChannel(color, options, shift) {
+        const c = legacyInt(color);
+        const max = isNativeObject(options) ? options.max : undefined;
+        const channel = (c >> shift) & 0xff;
+        if (isNullish(max)) return channel;
+        const x = Number(max);
+        if (x === 255) return channel;
+        if (x === 1) return legacyFraction(channel);
+        throw wrapped(`Option "max" specified must be either 1 or 255 instead of ${safeText(max)}`);
+      }
+
+      const legacyAlpha = (color, options = null) => legacyChannel(color, options, 24);
+      const legacyRed = (color, options = null) => legacyChannel(color, options, 16);
+      const legacyGreen = (color, options = null) => legacyChannel(color, options, 8);
+      const legacyBlue = (color, options = null) => legacyChannel(color, options, 0);
+      const legacyAlphaDouble = color => legacyFraction(legacyAlpha(color));
+
+      function legacyUnit8(x) {
+        if (x >= 1) return Math.min(255, roundToInt(x));
+        if (x < 0) throw wrapped("Number should not be negative.");
+        return roundToInt(x * 255);
+      }
+
+      // parseDoubleComponent: a number, 1 meaning 255.
+      function legacyComponent(v) {
+        if (!isNumber(v)) throw wrapped("Component is not a number");
+        const x = Number(v);
+        return x === 1 ? 255 : legacyUnit8(x);
+      }
+
+      // toUnit8RgbList: when all are at most 1 and not all are 1, 1 means 255.
+      function legacyRgbList(values) {
+        const xs = values.map(v => {
+          const x = legacyParseAny(v);
+          if (x !== x) throw illegalArgument(`Cannot convert ${safeText(v)} into a color component`);
+          return x;
+        });
+        const fractions = xs.every(x => x <= 1) && xs.some(x => x !== 1);
+        return xs.map(x => fractions && x === 1 ? 255 : legacyUnit8(x));
+      }
+
+      function legacyHue(v) {
+        let x = legacyParseAny(v);
+        if (x !== x) throw wrapped(`Argument ${safeText(v)} cannot be converted to a hue component`);
+        if (Math.abs(x) < 1) x *= 360;
+        return f32(wrapHue(x));
+      }
+
+      function legacyPercentage(v) {
+        const x = legacyParseAny(v);
+        if (x !== x) throw wrapped(`Argument ${safeText(v)} cannot be converted to a percentage object`);
+        if (x < 0) throw wrapped("Number to be converted into a percentage must be positive");
+        if (x > 100) throw wrapped("Number to be converted into a percentage must be less than 100");
+        return f32(x <= 1 ? x : x / 100);
+      }
+
+      function legacyRelative(p) {
+        const x = legacyParseAny(p);
+        if (!(x >= 0)) throw illegalArgument(`Relative percentage must be in range 0..255, instead of ${safeText(p)}`);
+        return x;
+      }
+
+      const legacyFullHex = color => legacyToHex(color, 8);
+      const legacyRgb3 = (r, g, b) => {
+        const [red, green, blue] = legacyRgbList([r, g, b]);
+        return rgb(red, green, blue);
+      };
+      const legacyArgb4 = (alpha, r, g, b) => {
+        const [red, green, blue] = legacyRgbList([r, g, b]);
+        return argb(legacyComponent(alpha), red, green, blue);
+      };
+      const legacyRgba4 = (r, g, b, alpha) => legacyArgb4(alpha, r, g, b);
+      const legacyRgb1 = o => Array.isArray(o) ? legacyRgb3(...legacyElements(o, 3, "colors.rgb")) : legacyInt(legacyToHex(o, 6));
+      const legacyArgb1 = o => Array.isArray(o) ? legacyArgb4(...legacyElements(o, 4, "colors.argb")) : legacyInt(legacyToHex(o, 8));
+
+      function legacyRgba2(rgbComponents, alpha) {
+        if (!Array.isArray(rgbComponents)) throw wrapped("Components argument \"rgb\" must be a JavaScript Array for colors.rgba(rgb, alpha)");
+        const [r, g, b] = legacyElements(rgbComponents, 3, "colors.rgba");
+        return legacyRgba4(r, g, b, alpha);
+      }
+
+      // rgbaRhino(o): a hex code reads its last two digits as the alpha, so "#RRGGBB" (taken as "#FFRRGGBB") turns
+      // into "#BBFFRRGG".
+      function legacyRgba1(o) {
+        if (Array.isArray(o)) {
+          const [r, g, b, a] = legacyElements(o, 4, "colors.rgba");
+          return legacyRgba4(r, g, b, a);
+        }
+        if (typeof o === "string" && kotlinTrim(o).startsWith("#")) return legacyInt(legacyFullHex(o).replace(ALPHA_LAST, "$1$3$2"));
+        return legacyArgb1(legacyFullHex(o));
+      }
+
+      function legacyArray(value, length, desc) {
+        if (!Array.isArray(value)) throw wrapped(`Components argument must be a JavaScript Array for ${desc}`);
+        return legacyElements(value, length, desc);
+      }
+
+      const legacyHsvParts = (h, s, v) => [legacyHue(h), legacyPercentage(s), legacyPercentage(v)];
+      const legacyHsv3 = (h, s, v) => hsvToColor(255, legacyHsvParts(h, s, v));
+      const legacyHsva4 = (h, s, v, a) => {
+        const hsv = legacyHsvParts(h, s, v);
+        return hsvToColor(legacyComponent(a), hsv);
+      };
+      const legacyHsl3 = (h, s, l) => hslToColor([legacyHue(h), legacyPercentage(s), legacyPercentage(l)]);
+      const legacyHsla4 = (h, s, l, a) => {
+        const c = legacyHsl3(h, s, l);
+        return legacyRgba4(redOf(c), greenOf(c), blueOf(c), legacyComponent(a));
+      };
+
+      const legacyToRgb1 = color => [legacyRed(color), legacyGreen(color), legacyBlue(color)];
+      const legacyToRgb3 = (r, g, b) => legacyToRgb1(legacyRgb3(r, g, b));
+      const legacyMaxAlpha = options => ({max: (isNativeObject(options) ? options : {}).maxAlpha});
+      const legacyToHsv1 = color => hsvList(legacyRgb1(color));
+      const legacyToHsv3 = (r, g, b) => hsvList(legacyRgb3(r, g, b));
+      const legacyToHsl1 = color => hslList(legacyRgb1(color));
+      const legacyToHsl3 = (r, g, b) => hslList(legacyRgb3(r, g, b));
+
+      function legacyContainer(value) {
+        if (!isHandle(value) || value.className !== "[F") throw illegalArgument("Container argument must be a Java Float Array");
+        return value;
+      }
+
+      // Writes values into a Java float[]; resolves to all its elements, or to values only (toHsva).
+      async function legacyFill(target, values, whole) {
+        const length = Number(await java().arrayLength(target));
+        if (length < values.length) {
+          throw values.length === 3 && whole ? runtimeError("3 components required for hsv") : javaError("ArrayIndexOutOfBoundsException", `length=${length}; index=${length}`);
+        }
+        await writeFloats(target, values);
+        if (!whole || length === values.length) return values;
+        return Array.from(await java().toArray(target), Number);
+      }
+
+      const legacyChannelList = color => [legacyRed(color), legacyGreen(color), legacyBlue(color)].map(x => roundToInt(x));
+
+      function legacyHsva(color, container) {
+        const [r, g, b] = legacyChannelList(color);
+        const a = legacyAlpha(color);
+        const values = [...rgbToHsv(r, g, b), f32(legacyFraction(a))];
+        return container === null ? values : legacyFill(container, values, false);
+      }
+
+      function legacyToHsla4(r, g, b, a) {
+        const hsl = hslList(legacyRgb3(r, g, b));
+        return [...hsl, legacyFraction(a === null ? 1 : a)];
+      }
+
+      function legacyIsSimilar(colorA, colorB, threshold, algorithm) {
+        const c = legacyInt(colorA);
+        const name = isNullish(algorithm) ? DEFAULT_ALGORITHM : str(algorithm);
+        const x = legacyParseAny(threshold);
+        const detect = detectorOf(c, kotlinTrim(name).toLowerCase(), x !== x ? DEFAULT_THRESHOLD : roundToInt(x));
+        const [r, g, b] = legacyChannelList(colorB);
+        return detect.detect(r, g, b);
+      }
+
+      function legacyIsSimilarOptions(colorA, colorB, options) {
+        if (!isNativeObject(options)) return legacyIsSimilar(colorA, colorB, options, DEFAULT_ALGORITHM);
+        let threshold = DEFAULT_THRESHOLD;
+        if (Object.hasOwn(options, "threshold")) {
+          if (Object.hasOwn(options, "similarity")) throw illegalArgument("Properties threshold and similarity cannot be specified at the same time");
+          const x = legacyParseAny(options.threshold);
+          if (x !== x) throw illegalArgument("Property threshold must be a number or number-like type");
+          threshold = roundToInt(x);
+        } else if (Object.hasOwn(options, "similarity")) {
+          const x = legacyParseAny(options.similarity);
+          if (x !== x) throw illegalArgument("Property similarity must be a number or number-like type");
+          threshold = roundToInt((1 - x) * 255);
+        }
+        return legacyIsSimilar(colorA, colorB, threshold, options.algorithm);
+      }
+
+      function legacyIsEqual(colorA, colorB, alphaMatters = false) {
+        if (alphaMatters === true) return legacyInt(colorA) === legacyInt(colorB);
+        if (alphaMatters === false || isNullish(alphaMatters)) return legacyRgb1(colorA) === legacyRgb1(colorB);
+        throw wrapped(`Invalid argument alphaMatters (value: ${safeText(alphaMatters)}) for colors.isEqual`);
+      }
+
+      function legacyFinite(v, label) {
+        const x = legacyParseAny(v);
+        if (x !== x || x === Infinity || x === -Infinity) throw illegalArgument(`Argument "${label}" ${safeText(v)} must be a finite number`);
+        return x;
+      }
+
+      function legacyLightness(v) {
+        const x = legacyFinite(v, "L");
+        if (!(x >= 0 && x <= 1)) throw illegalArgument(`Argument "L" ${safeText(v)} must be in range 0..1`);
+        return x;
+      }
+
+      const legacyWithAlpha = (c, alpha) => isNullish(alpha) ? c | OPAQUE : (c & 0xffffff) | (legacyComponent(alpha) << 24);
+
+      function legacyPerceptual(args, name) {
+        let components;
+        if (args.length === 1) {
+          if (!Array.isArray(args[0])) throw wrapped(`Components argument for ${name} must be a JavaScript Array`);
+          components = Array.from({length: args[0].length}, (_, i) => {
+            const v = own(args[0], i);
+            return v === undefined ? null : v;
+          });
+        } else {
+          components = args.slice();
+        }
+        if (components.length < 3 || components.length > 4) throw illegalArgument(`${name} needs 3 components and an optional alpha instead of ${components.length} values`);
+        return [...components, null];
+      }
+
+      function legacyOklab(l, a, b, alpha) {
+        const lab = {l: legacyLightness(l), a: legacyFinite(a, "a"), b: legacyFinite(b, "b")};
+        return legacyWithAlpha(isInGamut(lab) ? fromOkLab(lab) : fromOkLch(labToLch(lab)), alpha);
+      }
+
+      function legacyOklch(l, c, h, alpha) {
+        const chroma = legacyFinite(c, "C");
+        if (chroma < 0) throw illegalArgument(`Argument "C" ${safeText(c)} for colors.oklch must not be negative`);
+        const lch = {l: legacyLightness(l), c: chroma, h: normalizeHue(legacyFinite(h, "h"))};
+        return legacyWithAlpha(fromOkLch(lch), alpha);
+      }
+
+      function legacyKeep(options) {
+        if (isNativeObject(options)) {
+          const value = options.keepTrailingZeroForFullAlpha;
+          return isNullish(value) || Boolean(value);
+        }
+        return typeof options === "boolean" ? options : true;
+      }
+
+      const legacyRgbText = channels => channels.map(x => coerce(roundToInt(x), 0, 255)).join(", ");
+      const legacyHsvText = ([h, s, v]) => `${hueText(h)}, ${percentText(s)}, ${percentText(v)}`;
+      const legacyRgbString1 = color => `rgb(${legacyRgbText(legacyToRgb1(color))})`;
+      const legacyHsvString3 = (r, g, b) => `hsv(${legacyHsvText(legacyToHsv3(r, g, b))})`;
+      const legacyHslString3 = (r, g, b) => `hsl(${legacyHsvText(legacyToHsl3(r, g, b))})`;
+      const legacyHsvString1 = color => legacyHsvString3(...legacyToRgb1(color));
+      const legacyHslString1 = color => legacyHslString3(...legacyToRgb1(color));
+
+      function legacyRgbaString(color, options) {
+        const keep = legacyKeep(options);
+        const channels = legacyRgbText([legacyRed(color), legacyGreen(color), legacyBlue(color)]);
+        return `rgba(${channels}, ${alphaText(legacyAlphaDouble(color), keep)})`;
+      }
+
+      function legacyHsvaString(color, options) {
+        const hsv = legacyToHsv1(color);
+        const keep = legacyKeep(options);
+        return `hsva(${legacyHsvText(hsv)}, ${alphaText(legacyAlphaDouble(color), keep)})`;
+      }
+
+      function legacyHslaString(color, options) {
+        const hsl = legacyToHsl1(color);
+        const keep = legacyKeep(options);
+        return `hsla(${legacyHsvText(hsl)}, ${alphaText(legacyAlphaDouble(color), keep)})`;
+      }
+
+      // Colors.summaryRhino (Color#toStringReadable); an alpha of 1 counts as opaque, as alphaDouble reads it.
+      function oldSummary(color) {
+        const opaqueColor = legacyAlphaDouble(color) === 1;
+        const hex = legacyToHex(color, null);
+        const int = legacyInt(color);
+        if (opaqueColor) return `Color { ${hex} | ${legacyRgbString1(color)} | ${legacyHslString1(color)} | ${legacyHsvString1(color)} | int(${int}) }`;
+        return `Color { ${hex} | ${legacyRgbaString(color, null)} | ${legacyHslaString(color, null)} | ${legacyHsvaString(color, null)} | int(${int}) }`;
+      }
+
+      const oldIsEqual = legacyIsEqual;
+
+      // Color.invoke of the older module (Color#build): a new Color object.
+      function legacyBuild(a) {
+        switch (a.length) {
+          case 0:
+            return newColor(OPAQUE);
+          case 1:
+            return newColor(legacyInt(a[0]));
+          case 3:
+            return newColor(legacyRgb3(a[0], a[1], a[2]));
+          case 4:
+            return newColor(legacyRgba4(a[0], a[1], a[2], a[3]));
+          default:
+            throw wrapped(`Invalid arguments length ${a.length} for Color`);
+        }
+      }
+
+      // [name, min, max (-1: no limit), accepted counts or null, body]; the arguments start with the color.
+      const LEGACY = Object.create(null);
+      const LEGACY_FUNCTIONS = [
+        ["toInt", 1, 1, null, a => legacyInt(a[0])],
+        ["toHex", 1, 2, null, a => legacyToHex(a[0], at(a, 1))],
+        ["toFullHex", 1, 1, null, a => legacyFullHex(a[0])],
+        ["toString", 1, 2, null, a => legacyToHex(a[0], at(a, 1))],
+        ["alpha", 1, 2, null, a => legacyAlpha(a[0], at(a, 1))],
+        ["getAlpha", 1, 2, null, a => legacyAlpha(a[0], at(a, 1))],
+        ["alphaDouble", 1, 2, null, a => legacyFraction(legacyAlpha(a[0], at(a, 1)))],
+        ["getAlphaDouble", 1, 2, null, a => legacyFraction(legacyAlpha(a[0], at(a, 1)))],
+        ["red", 1, 2, null, a => legacyRed(a[0], at(a, 1))],
+        ["getRed", 1, 2, null, a => legacyRed(a[0], at(a, 1))],
+        ["redDouble", 1, 2, null, a => legacyFraction(legacyRed(a[0], at(a, 1)))],
+        ["getRedDouble", 1, 2, null, a => legacyFraction(legacyRed(a[0], at(a, 1)))],
+        ["green", 1, 2, null, a => legacyGreen(a[0], at(a, 1))],
+        ["getGreen", 1, 2, null, a => legacyGreen(a[0], at(a, 1))],
+        ["greenDouble", 1, 2, null, a => legacyFraction(legacyGreen(a[0], at(a, 1)))],
+        ["getGreenDouble", 1, 2, null, a => legacyFraction(legacyGreen(a[0], at(a, 1)))],
+        ["blue", 1, 2, null, a => legacyBlue(a[0], at(a, 1))],
+        ["getBlue", 1, 2, null, a => legacyBlue(a[0], at(a, 1))],
+        ["blueDouble", 1, 2, null, a => legacyFraction(legacyBlue(a[0], at(a, 1)))],
+        ["getBlueDouble", 1, 2, null, a => legacyFraction(legacyBlue(a[0], at(a, 1)))],
+        ["toRgb", 1, 3, [1, 3], a => a.length === 1 ? legacyToRgb1(a[0]) : legacyToRgb3(a[0], a[1], a[2])],
+        ["toRgba", 1, 2, null, a => {
+          const options = legacyMaxAlpha(at(a, 1));
+          return [...legacyToRgb1(a[0]), legacyAlpha(a[0], options)];
+        }],
+        ["toArgb", 1, 2, null, a => {
+          const options = legacyMaxAlpha(at(a, 1));
+          return [legacyAlpha(a[0], options), ...legacyToRgb1(a[0])];
+        }],
+        ["toHsv", 1, 4, null, a => {
+          switch (a.length) {
+            case 1:
+              return legacyToHsv1(a[0]);
+            case 2: {
+              const container = legacyContainer(a[1]);
+              return legacyFill(container, rgbToHsv(...legacyChannelList(a[0])), true);
+            }
+            case 3:
+              return legacyToHsv3(a[0], a[1], a[2]);
+            default: {
+              const container = legacyContainer(a[3]);
+              return legacyFill(container, rgbToHsv(...legacyChannelList(legacyRgb3(a[0], a[1], a[2]))), true);
+            }
+          }
+        }],
+        ["toHsva", 1, 5, [1, 2, 4, 5], a => {
+          switch (a.length) {
+            case 1:
+              return legacyHsva(a[0], null);
+            case 2:
+              return legacyHsva(a[0], legacyContainer(a[1]));
+            case 4:
+              return legacyHsva(legacyRgba4(a[0], a[1], a[2], a[3]), null);
+            default: {
+              const container = legacyContainer(a[4]);
+              return legacyHsva(legacyRgba4(a[0], a[1], a[2], a[3]), container);
+            }
+          }
+        }],
+        ["toHsl", 1, 4, null, a => {
+          switch (a.length) {
+            case 1:
+              return legacyToHsl1(a[0]);
+            case 2: {
+              const container = legacyContainer(a[1]);
+              return legacyFill(container, rgbToHsl(...legacyChannelList(a[0])), true);
+            }
+            case 3:
+              return legacyToHsl3(a[0], a[1], a[2]);
+            default: {
+              const container = legacyContainer(a[3]);
+              return legacyFill(container, rgbToHsl(...legacyChannelList(legacyRgb3(a[0], a[1], a[2]))), true);
+            }
+          }
+        }],
+        ["toHsla", 1, 4, [1, 4], a => a.length === 1 ?
+          legacyToHsla4(legacyRed(a[0]), legacyGreen(a[0]), legacyBlue(a[0]), legacyAlpha(a[0])) : legacyToHsla4(a[0], a[1], a[2], a[3])],
+        ["isSimilar", 2, 4, null, a => {
+          if (a.length === 2) return legacyIsSimilar(a[0], a[1], DEFAULT_THRESHOLD, DEFAULT_ALGORITHM);
+          if (a.length === 3) return legacyIsSimilarOptions(a[0], a[1], a[2]);
+          return legacyIsSimilar(a[0], a[1], a[2], a[3]);
+        }],
+        ["isEqual", 2, 3, null, a => a.length === 2 ? legacyIsEqual(a[0], a[1]) : legacyIsEqual(a[0], a[1], a[2])],
+        ["distance", 2, 3, null, a => {
+          const algorithm = at(a, 2);
+          let name = DEFAULT_ALGORITHM;
+          if (isNativeObject(algorithm)) name = isNullish(algorithm.algorithm) ? DEFAULT_ALGORITHM : str(algorithm.algorithm);
+          else if (!isNullish(algorithm)) name = str(algorithm);
+          const detect = detectorOf(legacyInt(a[0]), kotlinTrim(name).toLowerCase(), 0);
+          const [r, g, b] = legacyChannelList(a[1]);
+          return detect.distance(r, g, b);
+        }],
+        ["invert", 1, 1, null, a => legacyInt(a[0]) ^ 0x00ffffff],
+        ["blend", 2, 3, null, a => {
+          const ratio = at(a, 2);
+          let weight = 0.5;
+          if (!isNullish(ratio)) {
+            weight = legacyParseAny(ratio);
+            if (!(weight >= 0 && weight <= 1)) throw illegalArgument(`Argument "ratio" ${safeText(ratio)} for colors.blend must be a number in range 0..1 or a percentage`);
+          }
+          return blendOf(legacyInt(a[0]), legacyInt(a[1]), f32(weight));
+        }],
+        ["contrast", 2, 2, null, a => {
+          const background = legacyInt(a[1]);
+          if (legacyAlpha(background) !== 255) throw illegalArgument(`Argument "background" for colors.contrast must be an opaque color`);
+          return contrastOf(legacyInt(a[0]), background);
+        }],
+        ["toColorStateList", 1, -1, null, a => colorStateList(a.map(legacyInt))],
+        ["luminance", 1, 1, null, a => luminanceOf(legacyInt(a[0]))],
+        ["build", 0, 4, null, legacyBuild],
+        ["summary", 1, 1, null, a => oldSummary(a[0])],
+        ["toOklab", 1, 1, null, a => {
+          const lab = toOkLab(legacyInt(a[0]));
+          return [lab.l, lab.a, lab.b];
+        }],
+        ["oklab", 1, 4, null, a => legacyOklab(...legacyPerceptual(a, "colors.oklab"))],
+        ["toOklch", 1, 1, null, a => {
+          const lch = toOkLch(legacyInt(a[0]));
+          return [lch.l, lch.c, lch.h];
+        }],
+        ["oklch", 1, 4, null, a => legacyOklch(...legacyPerceptual(a, "colors.oklch"))],
+        ["ensureContrast", 2, 3, null, a => {
+          const c = legacyInt(a[0]);
+          const background = legacyInt(a[1]);
+          if (alphaOf(background) !== 0xff) throw illegalArgument(`Argument "background" ${intHex(background)} for colors.ensureContrast must be an opaque color`);
+          const ratio = at(a, 2);
+          let target = 4.5;
+          if (!isNullish(ratio)) {
+            target = legacyFinite(ratio, "ratio");
+            if (!(target >= 1 && target <= 21)) throw illegalArgument(`Argument "ratio" ${safeText(ratio)} for colors.ensureContrast must be in range 1..21`);
+          }
+          return (ensureContrastOf(c | OPAQUE, background, target) & 0xffffff) | (c & OPAQUE);
+        }],
+        ["harmony", 2, 2, null, a => {
+          const c = legacyInt(a[0]);
+          const key = isNullish(a[1]) ? null : str(a[1]);
+          const entry = HARMONIES.find(([name]) => name === key);
+          if (!entry) throw wrapped(`Argument "type" for colors.harmony must be one of: ${HARMONIES.map(([name]) => name).join(", ")}`);
+          return harmonyOf(c, entry[1]);
+        }],
+        ["tones", 1, 2, null, a => {
+          const c = legacyInt(a[0]);
+          const count = at(a, 1);
+          let n = 10;
+          if (!isNullish(count)) {
+            const value = legacyFinite(count, "count");
+            n = roundToInt(value);
+            if (value !== n || n < 2 || n > 20) throw illegalArgument(`Argument "count" ${safeText(count)} for colors.tones must be an integer in range 2..20`);
+          }
+          return tonesOf(c, n);
+        }],
+        ["derive", 1, 1, null, a => {
+          const primary = legacyInt(a[0]) | OPAQUE;
+          return {primary, accent: deriveAccent(primary), dark: deriveDark(primary)};
+        }],
+        ["nightVariant", 1, 1, null, a => nightVariantOf(legacyInt(a[0]) | OPAQUE)],
+        ["simulate", 2, 2, null, a => {
+          const c = legacyInt(a[0]);
+          const key = isNullish(a[1]) ? null : str(a[1]);
+          const entry = DEFICIENCIES.find(([name]) => name === key);
+          if (!entry) throw wrapped(`Argument "deficiency" for colors.simulate must be one of: ${DEFICIENCIES.map(([name]) => name).join(", ")}`);
+          return simulateOf(c, entry[1]);
+        }],
+        // The receiver color is the image argument, which is never an ImageWrapper.
+        ["extract", 1, 2, null, a => {
+          throw illegalArgument(`Argument "image" ${safeText(a[0])} for colors.extract must be an ImageWrapper`);
+        }],
+        ["toRgbString", 1, 3, [1, 3], a => a.length === 1 ? legacyRgbString1(a[0]) : `rgb(${legacyRgbText(legacyToRgb3(a[0], a[1], a[2]))})`],
+        ["toRgbaString", 0, 2, null, a => legacyRgbaString(at(a, 0), at(a, 1))],
+        ["toArgbString", 0, 2, null, a => {
+          const keep = legacyKeep(at(a, 1));
+          const color = at(a, 0);
+          const alpha = alphaText(legacyAlphaDouble(color), keep);
+          return `argb(${alpha}, ${legacyRgbText([legacyRed(color), legacyGreen(color), legacyBlue(color)])})`;
+        }],
+        ["toHsvString", 1, 3, [1, 3], a => a.length === 1 ? legacyHsvString1(a[0]) : legacyHsvString3(a[0], a[1], a[2])],
+        ["toHsvaString", 0, 2, null, a => legacyHsvaString(at(a, 0), at(a, 1))],
+        ["toHslString", 1, 3, [1, 3], a => a.length === 1 ? legacyHslString1(a[0]) : legacyHslString3(a[0], a[1], a[2])],
+        ["toHslaString", 0, 2, null, a => legacyHslaString(at(a, 0), at(a, 1))],
+      ];
+      for (const [name, min, max, counts, body] of LEGACY_FUNCTIONS) {
+        LEGACY[name] = a => {
+          if (a.length < min || (max >= 0 && a.length > max) || (counts && !counts.includes(a.length))) {
+            throw wrapped(`Invalid arguments length ${a.length} for colors.${name}`);
+          }
+          return body(a);
+        };
+      }
+
+      // ColorNativeObject.Setter: the setters change the color and return the Color object; their errors keep their
+      // Java names (Rhino's FunctionObject unwraps the reflection).
+      function only1(args) {
+        if (args.length === 0) throw wrapped("Arguments cannot be empty");
+        if (args.length > 1) throw wrapped("Method only accepts 1 argument");
+      }
+
+      function noArguments(args) {
+        if (args.length !== 0) throw wrapped("Arguments must be empty");
+      }
+
+      function argumentsIn(args, min, max) {
+        if (args.length < min || args.length > max) throw wrapped(`Method only accepts a number of arguments in the range [${min}..${max}]`);
+      }
+
+      const legacySetAlpha = (color, alpha) => {
+        const [r, g, b] = legacyToRgb1(color);
+        return legacyInt(legacyArgb4(alpha, r, g, b));
+      };
+      const legacySetRed = (color, red) => {
+        const [a, , g, b] = [legacyAlpha(color, legacyMaxAlpha(null)), ...legacyToRgb1(color)];
+        return legacyInt(legacyArgb4(a, red, g, b));
+      };
+      const legacySetGreen = (color, green) => {
+        const [a, r, , b] = [legacyAlpha(color, legacyMaxAlpha(null)), ...legacyToRgb1(color)];
+        return legacyInt(legacyArgb4(a, r, green, b));
+      };
+      const legacySetBlue = (color, blue) => {
+        const [a, r, g] = [legacyAlpha(color, legacyMaxAlpha(null)), ...legacyToRgb1(color)];
+        return legacyInt(legacyArgb4(a, r, g, blue));
+      };
+
+      function paintSetter(c, args) {
+        only1(args);
+        const paint = args[0];
+        if (isNodePaint(paint)) return Promise.resolve(androidObjects().setPaintColor(paint, c));
+        if (!isHandle(paint)) throw illegalArgument(`Argument "paint" ${safeText(paint)} for colors.setPaintColor must be a Paint`);
+        return (async () => {
+          if (!await java().instanceOf(paint, "android.graphics.Paint")) throw illegalArgument(`Argument "paint" for colors.setPaintColor must be a Paint`);
+          await paintColor(paint, c);
+        })();
+      }
+
+      const SETTERS = {
+        setAlpha: (c, a) => (only1(a), legacySetAlpha(c, a[0])),
+        setAlphaRelative: (c, a) => (only1(a), legacySetAlpha(c, legacyAlpha(c) * legacyRelative(a[0]))),
+        removeAlpha: (c, a) => (noArguments(a), legacySetAlpha(c, 0)),
+        setRed: (c, a) => (only1(a), legacySetRed(c, a[0])),
+        setRedRelative: (c, a) => (only1(a), legacySetRed(c, legacyRed(c) * legacyRelative(a[0]))),
+        removeRed: (c, a) => (noArguments(a), legacySetRed(c, 0)),
+        setGreen: (c, a) => (only1(a), legacySetGreen(c, a[0])),
+        setGreenRelative: (c, a) => (only1(a), legacySetGreen(c, legacyGreen(c) * legacyRelative(a[0]))),
+        removeGreen: (c, a) => (noArguments(a), legacySetGreen(c, 0)),
+        setBlue: (c, a) => (only1(a), legacySetBlue(c, a[0])),
+        setBlueRelative: (c, a) => (only1(a), legacySetBlue(c, legacyBlue(c) * legacyRelative(a[0]))),
+        removeBlue: (c, a) => (noArguments(a), legacySetBlue(c, 0)),
+        setRgb: (c, a) => {
+          argumentsIn(a, 1, 3);
+          if (a.length === 2) throw wrapped("Invalid arguments length 2 for Color#setRgb");
+          return legacySetAlpha(a.length === 1 ? legacyRgb1(a[0]) : legacyRgb3(a[0], a[1], a[2]), legacyAlpha(c));
+        },
+        setRgba: (c, a) => {
+          argumentsIn(a, 1, 4);
+          if (a.length === 1) return legacyRgba1(a[0]);
+          if (a.length === 4) return legacyRgba4(a[0], a[1], a[2], a[3]);
+          throw wrapped(`Invalid arguments length ${a.length} for Color#setRgba`);
+        },
+        setArgb: (c, a) => {
+          argumentsIn(a, 1, 4);
+          if (a.length === 1) return legacyArgb1(a[0]);
+          if (a.length === 4) return legacyArgb4(a[0], a[1], a[2], a[3]);
+          throw wrapped(`Invalid arguments length ${a.length} for Color#setArgb`);
+        },
+        setHsv: (c, a) => {
+          argumentsIn(a, 1, 3);
+          if (a.length === 2) throw wrapped("Invalid arguments length 2 for Color#setHsv");
+          return legacySetAlpha(a.length === 1 ? legacyHsv3(...legacyArray(a[0], 3, "colors.hsv")) : legacyHsv3(a[0], a[1], a[2]), legacyAlpha(c));
+        },
+        setHsva: (c, a) => {
+          argumentsIn(a, 4, 4);
+          return legacyHsva4(a[0], a[1], a[2], a[3]);
+        },
+        setHsl: (c, a) => {
+          argumentsIn(a, 1, 3);
+          if (a.length === 2) throw wrapped("Invalid arguments length 2 for Color#setHsl");
+          return legacySetAlpha(a.length === 1 ? legacyHsl3(...legacyArray(a[0], 3, "colors.hsl")) : legacyHsl3(a[0], a[1], a[2]), legacyAlpha(c));
+        },
+        setHsla: (c, a) => {
+          argumentsIn(a, 4, 4);
+          return legacyHsla4(a[0], a[1], a[2], a[3]);
+        },
+        setPaintColor: paintSetter,
+      };
+
+      // ColorNativeObject.get: argb / hsl / hsla / hsv / hsva / rgb / rgba go to toArgb ... toRgba; other names call the
+      // Colors function of that name through reflection, so its errors reach scripts as InvocationTargetException.
+      const PROXY_TOWARDS = ["argb", "hsl", "hsla", "hsv", "hsva", "rgb", "rgba"];
+      const PROXIED = ["toInt", "toHex", "toFullHex", "toString", "alpha", "getAlpha", "alphaDouble", "getAlphaDouble", "red", "getRed",
+        "redDouble", "getRedDouble", "green", "getGreen", "greenDouble", "getGreenDouble", "blue", "getBlue", "blueDouble",
+        "getBlueDouble", "toRgb", "toRgba", "toArgb", "toHsv", "toHsva", "toHsl", "toHsla", "isSimilar", "isEqual", "distance",
+        "invert", "blend", "contrast", "toColorStateList", "luminance", "build", "summary", "toOklab", "oklab", "toOklch", "oklch",
+        "ensureContrast", "harmony", "tones", "derive", "nightVariant", "simulate", "extract", "toRgbString", "toRgbaString",
+        "toArgbString", "toHsvString", "toHsvaString", "toHslString", "toHslaString"];
+
+      function invocationTarget(e) {
+        return javaError("InvocationTargetException", "java.lang.reflect.InvocationTargetException", e);
+      }
+
+      function proxied(target) {
+        return named(function (...args) {
+          const c = colorOf(receiver(this));
+          let result;
+          try {
+            result = LEGACY[target]([c, ...args]);
+          } catch (e) {
+            throw invocationTarget(e);
+          }
+          return result instanceof Promise ? result.catch(e => {
+            throw invocationTarget(e);
+          }) : result;
+        }, target, 0);
+      }
+
+      for (const name of PROXIED) define(COLOR_PROTOTYPE, name, proxied(name), false);
+      for (const name of PROXY_TOWARDS) define(COLOR_PROTOTYPE, name, proxied(`to${name[0].toUpperCase()}${name.slice(1)}`), false);
+      for (const [name, body] of Object.entries(SETTERS)) {
+        define(COLOR_PROTOTYPE, name, named(function (...args) {
+          const self = receiver(this);
+          const result = body(colorOf(self), args, self);
+          if (result && typeof result.then === "function") return result.then(() => self);
+          colorSlots.set(self, result | 0);
+          return self;
+        }, name, 0), false);
+      }
+      define(COLOR_PROTOTYPE, "equals", named(function (...args) {
+        const c = colorOf(receiver(this));
+        only1(args);
+        try {
+          return oldIsEqual(c, args[0], false);
+        } catch {
+          return false;
+        }
+      }, "equals", 0), false);
+      define(COLOR_PROTOTYPE, "toStringReadable", named(function (...args) {
+        const c = colorOf(receiver(this));
+        if (args.length !== 0) throw internalError("Arguments must be empty");
+        return oldSummary(c);
+      }, "toStringReadable", 0), false);
+
+      // The module objects.
+
+      const colors = Object.create(chainOf(Object.prototype, true));
+      for (const spec of FUNCTIONS) define(colors, spec[0], moduleFunction(spec));
+      const tableObject = table => Object.freeze(Object.fromEntries(table.entries));
+      define(colors, "android", tableObject(TABLES[0]));
+      define(colors, "css", tableObject(TABLES[1]));
+      define(colors, "web", tableObject(TABLES[2]));
+      define(colors, "material", tableObject(TABLES[3]));
+      Object.defineProperty(colors, "all", {get: allColors, enumerable: false, configurable: false});
+      Object.defineProperty(colors, "themeColor", {
+        get() {
+          const result = Promise.resolve().then(() => java().callStatic("org.autojs.autojs.theme.ThemeColorManager", "getCurrentThemeColor"));
+          result.catch(() => {});
+          return result;
+        },
+        enumerable: true,
+        configurable: false,
+      });
+      // The ESM wrappers leave the getter out of the named exports (no Java call on import).
+      Object.getOwnPropertyDescriptor(colors, "themeColor").get.__autojs6LazyExport = true;
+      // Members of the earlier Node module the host does not have, hidden from enumeration.
+      define(colors, "createColorStateList", (descriptor, options) => androidObjects().createColorStateList(descriptor, options), false);
+      define(colors, "createPaint", (options, control) => androidObjects().createPaint(options, control), false);
+      define(colors, "getThemeColor", options => androidObjects().getThemeColor(options), false);
+
+      const Color = named(function Color(...args) {
+        return buildColor(new.target ? "new Color" : "Color", args);
+      }, "Color", 0);
+      Object.setPrototypeOf(Color, chainOf(Function.prototype, false));
+
+      return {colors, Color};
+    }
     const { Mathx, Arrayx, Numberx, jsox } = __autojs6_js_tools_jsox();
     // The earlier Node jsox also carried the three modules; kept and not enumerable, so its exports stay the host's.
     for (const [key, value] of [["mathx", Mathx], ["Mathx", Mathx], ["arrayx", Arrayx], ["Arrayx", Arrayx], ["numberx", Numberx], ["Numberx", Numberx]]) {
@@ -14166,11 +19443,39 @@ std::string buildEmbeddedScriptExecutionSource(
     global.randomInt = Mathx.randomInt;
     global.randomFloat = Mathx.randomFloat;
     if (host.axios) Object.defineProperty(global, "axios", { get: host.axios, enumerable: true });
-    return Object.freeze({
+    const libraries = __autojs6_js_tools_libraries(host);
+    // The getters are marked so that the ESM wrappers leave them out of the named exports (no library load on import).
+    for (const name of ["cheerio", "dayjs", "i18n", "pangu"]) {
+      Object.defineProperty(global, name, { get: Object.assign(libraries[name], { __autojs6LazyExport: true }), enumerable: true });
+    }
+    // colors, files, zip, mime and the timing recorder (api-coverage P3.2b) are created on first use.
+    const once = create => { let value; return () => value || (value = create()); };
+    const files = once(() => __autojs6_js_tools_files({ fs: host.fs, cwd: host.cwd, sdcardPath: host.sdcardPath, java: host.java,
+      TextDecoder: globalThis.TextDecoder, filesDir: host.filesDir, cacheDir: host.cacheDir, dataDir: host.dataDir }));
+    const zip = once(() => Object.freeze(__autojs6_js_tools_zip({ java: host.java, cwd: host.cwd })));
+    const mimeRecorder = once(() => __autojs6_js_tools_mime_recorder({ device: host.device }));
+    const colors = once(() => {
+      const result = __autojs6_js_tools_colors({ java: host.java, device: host.device, get android() { return host.android && host.android(); } });
+      Object.freeze(result.colors);
+      return result;
+    });
+    // Rhino's global Color, built with colors on first use.
+    Object.defineProperty(global, "Color", { get: Object.assign(() => colors().Color, { __autojs6LazyExport: true }), enumerable: true });
+    // Rhino's global open is files.open.
+    const open = (...args) => files().open(...args);
+    Object.defineProperty(global, "open", { value: open, writable: true, enumerable: true, configurable: true });
+    return Object.freeze(Object.defineProperties({
       util: Object.freeze(util), species: Object.freeze(species), global: Object.freeze(global),
       s13n: Object.freeze({ ...bytes.s13n, point: java.point, throwable: java.throwable }),
       formatter: bytes.fmt, converter: bytes.cvt, jsox, "jsox.mathx": Mathx, "jsox.arrayx": Arrayx, "jsox.numberx": Numberx
-    });
+    }, {
+      files: { get: () => Object.freeze(files()), enumerable: true },
+      zip: { get: zip, enumerable: true },
+      colors: { get: () => colors().colors, enumerable: true },
+      mime: { get: () => mimeRecorder().mime, enumerable: true },
+      // Not frozen: the main thread and Workers add the audio recorder's members.
+      recorder: { get: () => mimeRecorder().recorder, enumerable: true }
+    }));
   }
   // End shared JS tools core.
   // The main thread's JS tools modules.
@@ -14182,10 +19487,44 @@ std::string buildEmbeddedScriptExecutionSource(
         java: __autojs6_limited_java,
         log: text => globalThis.console.log(text),
         warn: text => globalThis.console.warn(text),
-        axios: __autojs6_limited_axios
+        axios: __autojs6_limited_axios,
+        fs: __autojs6_builtin_module("fs"),
+        path: __autojs6_builtin_module("path"),
+        cwd: () => process.cwd(),
+        sdcardPath: __autojs6_sdcard_path(),
+        ...__autojs6_host_app_dirs(),
+        android: __autojs6_limited_android,
+        require: __autojs6_library_require,
+        librarySource: __autojs6_library_source
       });
     }
     return __autojs6_js_tools_cache;
+  }
+  // Environment.getExternalStorageDirectory() of the host, the primary emulated storage of this Android user.
+  function __autojs6_sdcard_path() {
+    return "/storage/emulated/" + __autojs6_android_user_id();
+  }
+  // The host app's Context.getDataDir / getFilesDir / getCacheDir, for files.getSimplifiedPath.
+  function __autojs6_host_app_dirs() {
+    const dataDir = "/data/user/" + __autojs6_android_user_id() + "/" + __autojs6_host_app_info().packageName;
+    return { dataDir, filesDir: dataDir + "/files", cacheDir: dataDir + "/cache" };
+  }
+  function __autojs6_android_user_id() {
+    return typeof process.getuid === "function" ? Math.floor(process.getuid() / 100000) : 0;
+  }
+  // The libraries the runtime service extracted from the APK (NodeJsLibraries.java, api-coverage Q61).
+  function __autojs6_library_source(file) {
+    const directory = __autojs6_internal_request_env_value("AUTOJS6_NODE_JS_LIBRARIES_DIR");
+    if (!directory) {
+      const reason = __autojs6_internal_request_env_value("AUTOJS6_NODE_JS_LIBRARIES_ERROR") || "the runtime service did not prepare them";
+      throw new Error("The bundled JS libraries are unavailable: " + reason + ".");
+    }
+    return __autojs6_builtin_module("fs").readFileSync(__autojs6_builtin_module("path").join(directory, file), "utf8");
+  }
+  function __autojs6_library_require(id) {
+    const value = __autojs6_builtin_module(String(id).replace(/^node:/, ""));
+    if (!value) throw new Error("Cannot find module '" + id + "'");
+    return value;
   }
   function __autojs6_limited_jsox() { return __autojs6_js_tools().jsox; }
   function __autojs6_limited_jsox_mathx() { return __autojs6_js_tools()["jsox.mathx"]; }
@@ -18002,6 +23341,8 @@ std::string buildEmbeddedScriptExecutionSource(
         catch (error) { closed = epoch !== generation; throw error; }
       };
       for (const name of ["text", "textAll", "cover", "resource", "search", "annotations"]) book[name + "Async"] = book[name];
+      // Rhino's EpubBook toString (api-coverage Q31).
+      book.toString = () => "EpubBook { path: " + descriptor.path + (book.isClosed ? ", closed" : "") + " }";
       return book;
     }
     function deliver(record, message) {
@@ -18933,7 +24274,7 @@ std::string buildEmbeddedScriptExecutionSource(
       java: __autojs6_autojs_java_facade()
     };
     // The JS tools modules are built on first use.
-    for (const [key, name] of [["util", "util"], ["species", "species"], ["global", "global"], ["jsox", "jsox"], ["s13n", "s13n"], ["fmt", "formatter"], ["cvt", "converter"]]) {
+    for (const [key, name] of [["util", "util"], ["species", "species"], ["global", "global"], ["jsox", "jsox"], ["s13n", "s13n"], ["fmt", "formatter"], ["cvt", "converter"], ["zip", "zip"]]) {
       Object.defineProperty(value, key, { get: () => __autojs6_js_tools()[name], enumerable: true });
     }
     __autojs6_autojs_global_cache = Object.freeze(value);
@@ -23956,14 +29297,28 @@ std::string buildEmbeddedScriptExecutionSource(
         __autojs6_media_bridge_options("mediainfo", "capabilities", options, 5000)
       ).then(__autojs6_media_freeze_record);
     }
+    // Rhino's snapshot (api-coverage P3.2b): the plugin's snapshot in the asked schema, or in the plugin's default schema
+    // when none is asked for (read without a schema gives the Node v1 form, with the path, instead).
+    function snapshot(path, options) {
+      const input = __autojs6_media_options(options);
+      if (input.schema !== undefined && input.schema !== null && typeof input.schema !== "string") {
+        return Promise.reject(new TypeError("MediaInfo snapshot schema must be a string."));
+      }
+      const schema = input.schema ? Promise.resolve(input.schema)
+        : capabilities(options).then(value => value && value.defaultSnapshotSchema || "autojs6-plugin-mediainfo-snapshot-v1");
+      return schema.then(value => read(path, { ...input, schema: value }));
+    }
     const facade = function(path, options) {
       return read(path, options);
     };
     Object.defineProperties(facade, {
       read: { value: read, enumerable: true },
+      snapshot: { value: snapshot, enumerable: true },
       get: { value: get, enumerable: true },
       countGet: { value: countGet, enumerable: true },
-      capabilities: { value: capabilities, enumerable: true }
+      capabilities: { value: capabilities, enumerable: true },
+      SNAPSHOT_SCHEMA_V1: { value: "autojs6-plugin-mediainfo-snapshot-v1", enumerable: true },
+      SNAPSHOT_SCHEMA_V2: { value: "autojs6-plugin-mediainfo-snapshot-v2", enumerable: true }
     });
     __autojs6_limited_mediainfo_cache = Object.freeze(facade);
     return __autojs6_limited_mediainfo_cache;
@@ -24001,11 +29356,12 @@ std::string buildEmbeddedScriptExecutionSource(
         __autojs6_media_bridge_options("recorder", "stop", options, 5000)
       );
     }
-    __autojs6_limited_recorder_cache = Object.freeze({
-      getStatus,
-      start,
-      stop
-    });
+    // Rhino's recorder is the timing recorder (shared JS tools core, api-coverage P3.2b); the audio members join it.
+    const recorder = __autojs6_js_tools().recorder;
+    for (const [name, value] of [["getStatus", getStatus], ["start", start], ["stop", stop]]) {
+      Object.defineProperty(recorder, name, { value, writable: true, enumerable: true });
+    }
+    __autojs6_limited_recorder_cache = Object.freeze(recorder);
     return __autojs6_limited_recorder_cache;
   }
   function __autojs6_media_file_path(moduleName, methodName, value) {
@@ -24264,6 +29620,8 @@ std::string buildEmbeddedScriptExecutionSource(
       permissions: ["storage"]
     };
   }
+  const __autojs6_storage_registry_name = "__autojs6_storage_names__";
+  const __autojs6_storage_registered = new Set();
   function __autojs6_limited_storage(moduleName) {
     if (moduleName === "storages" && __autojs6_limited_storages_cache) {
       return __autojs6_limited_storages_cache;
@@ -24294,6 +29652,8 @@ std::string buildEmbeddedScriptExecutionSource(
         const checkedKey = __autojs6_storage_name(moduleName, "put", key, "key");
         const checkedValue = __autojs6_storage_json_value(moduleName, "put", value);
         return call("put", [checkedKey, checkedValue], options, 5000).then(function() {
+          return register(storeName, options);
+        }).then(function() {
           return undefined;
         });
       }
@@ -24322,8 +29682,15 @@ std::string buildEmbeddedScriptExecutionSource(
       function selfRemove(options) {
         return removeStorage(storeName, options);
       }
+      // Rhino's size is a property (the number of keys); here it is asked for like the other members.
+      function size(options) {
+        return keys(options).then(function(result) {
+          return result.length;
+        });
+      }
       return Object.freeze({
         name: storeName,
+        size,
         get,
         put,
         putSync: put,
@@ -24347,17 +29714,35 @@ std::string buildEmbeddedScriptExecutionSource(
       const storeName = __autojs6_storage_name(moduleName, "remove", name, "storage name");
       return createStore(storeName).clear(options);
     }
-    function names() {
-      throw __autojs6_rhino_compat_unsupported(
-        "storages.names",
-        "The controlled Node storage bridge is scoped by package and working directory and does not expose storage namespace enumeration."
-      );
+    // storages.names / all (api-coverage D-5, Q79): the host keeps a store under a sanitized file name, so the runtime
+    // records the names it writes to in a registry store of the same package and working directory, and lists the
+    // registered stores that are not empty, as Rhino lists the non-empty stores.
+    function registryCall(methodName, args, options) {
+      return __autojs6_call_autojs(moduleName, methodName, [__autojs6_storage_registry_name].concat(args),
+        __autojs6_storage_bridge_options(options, 5000));
     }
-    function all() {
-      throw __autojs6_rhino_compat_unsupported(
-        "storages.all",
-        "The controlled Node storage bridge is scoped by package and working directory and does not expose storage namespace enumeration."
-      );
+    function register(storeName, options) {
+      if (__autojs6_storage_registered.has(storeName)) return Promise.resolve();
+      return registryCall("put", [storeName, true], options).then(function() {
+        __autojs6_storage_registered.add(storeName);
+      });
+    }
+    function names(options) {
+      return registryCall("keys", [], options).then(function(registered) {
+        const candidates = (Array.isArray(registered) ? registered.map(String) : []).filter(function(name) {
+          return name !== __autojs6_storage_registry_name;
+        }).sort();
+        return Promise.all(candidates.map(function(name) {
+          return createStore(name).keys(options).then(function(keys) { return keys.length > 0; });
+        })).then(function(present) {
+          return Object.freeze(candidates.filter(function(_, index) { return present[index]; }));
+        });
+      });
+    }
+    function all(options) {
+      return names(options).then(function(result) {
+        return Object.freeze(result.map(createStore));
+      });
     }
     const moduleValue = Object.freeze({
       create,
@@ -30903,6 +36288,7 @@ std::string buildEmbeddedScriptExecutionSource(
     species: function() { return __autojs6_js_tools().species; },
     "autojs6:util": function() { return __autojs6_js_tools().util; },
     "autojs6:global": function() { return __autojs6_js_tools().global; },
+    "autojs6:zip": function() { return __autojs6_js_tools().zip; },
     toast: function() { return __autojs6_limited_toast(); },
     app: function() { return __autojs6_limited_app(); },
     engines: function() { return __autojs6_limited_engines(); },
@@ -31286,6 +36672,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (exportsValue !== null && (typeof exportsValue === "object" || typeof exportsValue === "function")) {
       for (const key of Object.keys(exportsValue)) {
         if (key === "default" || !/^[A-Za-z_$][0-9A-Za-z_$]*$/.test(key)) continue;
+        if (Object.getOwnPropertyDescriptor(exportsValue, key).get?.__autojs6LazyExport) continue;
         const binding = "__autojs6_export_" + lines.length;
         lines.push("const " + binding + " = __autojs6_module[" + JSON.stringify(key) + "]; export { " + binding + " as " + key + " };");
       }

@@ -158,7 +158,7 @@ Worker 中使用 `require("autojs6:bridge").callAutoJs("device", "info", [], {ti
 
 ## 四. 本地工具与宿主桥接模块
 
-`files` (Node fs 便捷封装), `base64`, `colors`, `formatter`/`fmt`, `converter`/`cvt`, `s13n`, `mime`, `nanoid`, `jsox` (+.mathx/.arrayx/.numberx), `autojs6:util`, `species`, `autojs6:global`, `plugins` (本地 ./plugins 目录扫描) 由插件本地实现. `autojs6:opencc` 通过真实宿主插件提供异步转换, 需要 `opencc` 能力; 裸名 `opencc` 仍可被已安装的同名 npm 包覆盖.
+`files` (Rhino 的 files, 见 "文件与数据族的 Rhino 对照"), `base64`, `colors`, `formatter`/`fmt`, `converter`/`cvt`, `s13n`, `mime`, `nanoid`, `jsox` (+.mathx/.arrayx/.numberx), `autojs6:util`, `species`, `autojs6:global`, `plugins` (本地 ./plugins 目录扫描) 由插件本地实现. `autojs6:opencc` 通过真实宿主插件提供异步转换, 需要 `opencc` 能力; 裸名 `opencc` 仍可被已安装的同名 npm 包覆盖.
 
 宿主还提供显式桥调用 `files.list/stat/read/write/mkdir/rename/delete`, `console.tail`, 用于宿主工作区和日志读取. 它们分别使用 `files` (+ 写入时 `files.write`, 删除时 `files.delete`), `console` 声明. 原生 Node fs 仍使用插件 UID.
 
@@ -170,7 +170,21 @@ Worker 中使用 `require("autojs6:bridge").callAutoJs("device", "info", [], {ti
 
 `util.dpToPx` / `pxToDp` / `spToPx` / `pxToSp` 与 `util.version.sdkInt` 使用插件进程启动时的屏幕密度与 SDK 版本 (与宿主同一台设备), 按宿主 DisplayUtils 的 float 运算. sp 换算按 scaledDensity 线性计算: Android 14 起系统字体放大时宿主使用非线性曲线, 此时结果与 Rhino 有差异 (api-coverage Q60). `jsox.extend` / `extendAll` 与 Rhino 一样把成员装到当前线程的 Math / Array.prototype / Number.prototype / Number 上 (api-coverage Q59); 不再接受目标对象参数.
 
-Rhino 全局的 dayjs / pangu / cheerio / i18n 以及 Worker 中的 axios 尚无入口 (api-coverage Q61), 可用同名 npm 包代替.
+### 文件与数据族的 Rhino 对照 (2026-10-29, api-coverage P3.2b)
+
+colors (含 Color), files, mime, 计时 recorder 与 zip 也移入共享核心, 主线程与 Worker (CJS, ESM, 嵌套 Worker) 一致, 每个线程首次访问时创建. 入口: `colors` / `autojs6:colors`, `files`, `mime`, `recorder` (计时成员与音频的 getStatus / start / stop 合为一个模块), `autojs6:zip` (裸名 `zip` 仍留给同名 npm 包) 与主线程 `$autojs.zip`; Rhino 全局的 `open` (即 files.open) 与 `Color` 在 `autojs6:global` 中. 实现按宿主 `runtime/api/modules/**` 与 ScriptArgs 移植, 参数个数, 转换与错误相同; Java 异常是以简单类名为 name 的 Error (Rhino 为 JavaException, 经 `e.javaException` 取类), 找不到重载为 InternalError. Rhino 的结果记录在 `tools/nodejs/api/files-data/rhino-expected.json`, `tools/nodejs/api/files-data/device_files_data.py` 在真机上对照主线程, ESM 与嵌套 Worker. 旧的 Node files / mime / colors 实现被替换: files 不再接受 file: URL 与 Buffer 路径, mime 不再转小写也不再默认 application/octet-stream, colors 的 isEqual / isSimilar / luminance / summary / build / to*String 改按宿主.
+
+- files: 文件操作在插件进程用 node:fs 同步执行 (插件 UID 与 Android 存储权限), 相对路径按执行工作目录 (`process.cwd()`) 解析, 路径规范化按 java.io.File; `sdcardPath` 为当前 Android 用户的 `/storage/emulated/<user>`. open / toFile / readAssets 经 Java 门面 (`java_interop`) 在宿主进程执行并返回 Promise, 句柄由调用方释放 (`java.release`). readBytes 返回 Uint8Array (Rhino 为有符号的 byte[]), writeBytes / appendBytes 另接受 Uint8Array / Int8Array / Uint8ClampedArray; 内置 UTF-8, UTF-16 (BE / LE), ISO-8859-1 与 US-ASCII, 其他字符集只能读 (TextDecoder); 字符集名称与 Android 一样先按 ICU 的宽松规则查找 (忽略大小写与字母数字以外的字符, `"utf 8"` 即 UTF-8), 查不到时才检查名称是否合法; formatSizeWithUnit 总用 "." 作小数点 (Rhino 随设备区域); listDir 的顺序按 libuv. files.batchRename 尚无入口 (api-coverage Q82).
+- colors / Color: 75 个模块函数, 四张颜色表 (android / css / web / material, 冻结的普通对象), parseColor / RGBToHSV / colorToHSV / HSVToColor. 需要 Java 对象的成员 (toColorStateList, setPaintColor, extract, themeColor, 以及传入 float[] 句柄的 toHsv / toHsva / toHsl) 返回 Promise; extract 的图像可以是 ImageWrapper 或 android.graphics.Bitmap 句柄, 也可以是 images.readPixels 给出的像素对象 (`{ data, width, height }`; Node 脚本拿不到需要宿主 ScriptRuntime 的 ImageWrapper), 区域只接受 `[x, y, w, h]`, 取色经宿主的 ColorQuantizer (`java_interop`). 宿主 Rhino 中 Color 的部分成员 (toInt / toHex / alpha / toHsv / isSimilar / blend / build / oklab 等) 出错时抛出未包装的 InvocationTargetException, Rhino 解释器因此失败而 try / catch 接不住; Node 中这些调用照常抛出可捕获的错误. Color 的成员在共享原型上, 脱离实例调用抛 TypeError. 旧 Node 成员 createColorStateList / createPaint / getThemeColor 保留 (不可枚举). colors.theme 尚无入口 (api-coverage Q80).
+- mime: `mime(mimeString)` (参数分隔与键名判断按 Android ICU 正则的 `\s` / `\w`, 即 Unicode 空白与各文种的字母数字) 与 getMediaType / parseMediaType / fromFile / fromFileOr / fromFileOrWildcard / getType / getSubtype. fromFile 只按扩展名查 Android MimeTypeMap 的表 (Android 10 - 14 一张, Android 15 起另一张, 按 SDK 版本选择), 不读取文件; MediaType 为脚本对象, charset() 返回字符集名称. 2540 个类型常量与 Rhino 一样不可枚举 (ESM 只导出方法); 旧的 parse 保留.
+- recorder: 计时的 recorder(key?, ts?) 与 save / load / isLessThan / isGreaterThan / has / remove / clear 同步执行, 记录按线程保存 (Rhino 按脚本运行时); recorder(fn) 中 fn 抛出的错误原样传出 (Rhino 包装为 WrappedRuntimeException).
+- zip: zip4j 经 Java 门面在宿主进程执行, 文件由宿主打开 (宿主 UID). 相对路径按执行工作目录解析, 而 Node 的工作目录是插件私有目录中的项目副本 (`.../cache/node-plugin-workspaces/<id>/sandbox`), 宿主进程无法读写, 因此 zip 与 files.open / toFile 应使用绝对路径 (例如以 `files.sdcardPath` 开头). 模块函数 resolve 一个 Zip; Rhino 在开工前就做的参数检查同步抛出, 其余 reject. zip4j 调用不设超时, 同一个 Zip 的调用依次执行. Zip 的 zipFile / zipParameters / unzipParameters 改为返回句柄的异步方法 (D-12), getZipFile() 每次返回新句柄, FileHeader 等句柄由调用方释放; getFileHeader 找不到条目时与 Rhino 一样以 NullPointerException 拒绝.
+- storages / storage: names / all 列出本包与本工作目录下由 Node 脚本写入过且非空的存储 (运行时在同一作用域的登记存储 `__autojs6_storage_names__` 中记录名称; api-coverage Q79); Storage#size 是返回 Promise 的方法 (Rhino 为属性). Worker 新增 storages / storage, 调用经主线程执行.
+- mediainfo: snapshot(path, options?) 返回 Rhino 的插件快照 (未指定 schema 时用插件的默认 schema), 常量 SNAPSHOT_SCHEMA_V1 / SNAPSHOT_SCHEMA_V2; Worker 同样可用. EpubBook#toString 与 Rhino 相同 (`EpubBook { path: ... }`).
+- dayjs / pangu / cheerio / i18n (api-coverage Q61 (b)): 与宿主相同的构建 (dayjs, pangu.js 10.1.0, cheerio 单文件构建, banana-i18n) 随插件 APK 发布 (`assets/nodejs/libraries`, 运行时服务在执行前解出到应用私有目录), 是 `autojs6:global` 上的 getter, 每个线程首次访问时编译; i18n 载入工作目录的 `./i18n` (或 `./assets/i18n`) 中的 JSON. APK 增量见下.
+- Worker 的 axios (api-coverage Q61): Worker 中 `autojs6:global` 的 axios 经主线程的 axios 发出请求 (网络策略相同), 状态检查在 Worker 内完成; diagnostics() 返回 Promise; 没有 interceptors, 也不接受 adapter 选项.
+
+APK 增量 (P3.2b, 按 arm64 调试包计): 四个库文件 716 KB (APK 中压缩后约 196 KB), 内嵌脚本 (`libautojs6-node.so`) 增加约 333 KB (压缩后约 110 KB), 单 ABI 包合计约增加 0.3 MB, universal 包约增加 0.5 MB; 首次执行后应用私有目录另有约 0.7 MB 解出的库文件.
 
 ### 拼音, 控制台与坐标 (2026-10-17)
 

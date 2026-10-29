@@ -40,6 +40,8 @@ The [24.21.0 bridge headers](app/src/main/cpp/node-v24.21.0/README.md) come from
 
 Kotlin standard library and JetBrains annotations use Apache License 2.0. AndroidX components use Apache License 2.0. The common plugin API is the AutoJs6 `common-plugin-api.aar`, whose source is maintained in the [AutoJs6 repository](https://github.com/SuperMonster003/AutoJs6/tree/master/plugin-api/common-plugin-api) under that project's MPL 2.0 license. The Node plugin API is maintained in this repository. npm ecosystem fixtures and their individual license files are Android test assets, not application runtime dependencies.
 
+The Rhino global libraries of AutoJs6 (api-coverage Q61) ship in `app/src/main/assets/nodejs/libraries`, copied unchanged from the AutoJs6 host's `app/src/main/assets/modules`: dayjs (MIT, Copyright (c) 2018-present iamkun; `dayjs.LICENSE.txt`), pangu.js 10.1.0 (MIT, Copyright (c) 2013 Vinta; `pangu.LICENSE.txt`), cheerio as the single-file build used by AutoX (aiselp), with the htmlparser2 / domhandler / domutils / css-select / entities modules it bundles (MIT, the Cheerio and fb55 contributors) and banana-i18n (MIT, the Wikimedia Foundation and contributors).
+
 ## 16 KB page-size validation
 
 ELF segment alignment, APK ZIP alignment and execution on a device with 16 KB pages are separate checks. This plugin uses `jniLibs.useLegacyPackaging = true`, so native libraries are compressed in the APK and extracted on installation. Direct memory mapping of uncompressed ZIP entries does not apply; ELF alignment still matters after extraction. Release APKs must nevertheless pass `zipalign -c -P 16 -v 4` for their actual entries.

@@ -137,6 +137,15 @@ final class NodePluginScriptExecution {
                     env.put("AUTOJS6_NODE_COMPILE_CACHE_PREPARE_ERROR", error.getMessage());
                 }
             }
+            if (!env.containsKey(NodeJsLibraries.ENV_DIRECTORY)) {
+                env = new LinkedHashMap<>(env);
+                try {
+                    env.put(NodeJsLibraries.ENV_DIRECTORY, NodeJsLibraries.prepare(service));
+                } catch (java.io.IOException error) {
+                    // Only the global dayjs / pangu / cheerio / i18n getters depend on the libraries.
+                    env.put(NodeJsLibraries.ENV_ERROR, String.valueOf(error.getMessage()));
+                }
+            }
             boolean permissionMetadataRequired = nonBlank(
                     runtimeModuleSources.get(NodeBridgePermissionManifest.RUNTIME_MODULE_NAME),
                     null

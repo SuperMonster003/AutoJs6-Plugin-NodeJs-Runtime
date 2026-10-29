@@ -6,12 +6,14 @@ const constructor=part('  function __autojs6_worker_constructor(','  // The work
 const modules=part('  function __autojs6_worker_host_modules(','  async function __autojs6_worker_invoke(');
 const preload=part('  function __autojs6_worker_preload(','  function __autojs6_limited_worker_threads(');
 const facades=part('  // Shared native Android helpers, colors and calendar task facades.','  // Main-thread native Android and calendar modules.');
+// colors is the shared JS tools core's (api-coverage P3.2b).
+const core=part('  // Shared JS tools core.','  // End shared JS tools core.');
 const createWorker=new Function('return ('+constructor+')')();
 const directory=path.resolve(__dirname,'../../../build/worker-android-tasks-tests');fs.mkdirSync(directory,{recursive:true});
-const preloadPath=path.join(directory,'preload.cjs');fs.writeFileSync(preloadPath,facades+`\n(${preload})(require,${constructor},()=>{},${modules},${Array(10).fill('undefined').join(',')},__autojs6_create_android,__autojs6_create_tasks,__autojs6_create_colors);`);
+const preloadPath=path.join(directory,'preload.cjs');fs.writeFileSync(preloadPath,facades+core+`\n(${preload})(require,${constructor},()=>{},${modules},${Array(10).fill('undefined').join(',')},__autojs6_create_android,__autojs6_create_tasks,undefined,${Array(7).fill('undefined').join(',')},__autojs6_create_js_tools);`);
 function fixture(hook){
   const objects=new Map([['parent',{}]]),tasks=new Map(),calls=[];let next=0;
-  const config={preloadPath,entryUrl:pathToFileURL(path.join(directory,'entry.cjs')).href,gatedBuiltins:[],moduleSources:{},typeScriptSources:{},resourceLimits:{},hostModuleMethods:{android:['createPaint','createColorStateList','getThemeColor'],colors:['toInt','createPaint','setPaintColor','themeColor'],tasks:['addCountdownTask','removeTimedTask']}};
+  const config={preloadPath,entryUrl:pathToFileURL(path.join(directory,'entry.cjs')).href,gatedBuiltins:[],moduleSources:{},typeScriptSources:{},resourceLimits:{},hostModuleMethods:{util:[],android:['createPaint','createColorStateList','getThemeColor'],colors:['toInt','createPaint','setPaintColor','themeColor'],tasks:['addCountdownTask','removeTimedTask']}};
   const Worker=createWorker(require,()=>config,async(module,method,args)=>{
     calls.push({module,method,args});if(hook)await hook(module,method);
     if(method==='getThemeColor')return {colorPrimary:1,colorPrimaryDark:2,colorAccent:3};
