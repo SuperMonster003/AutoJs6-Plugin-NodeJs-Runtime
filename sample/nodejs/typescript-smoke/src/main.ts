@@ -218,7 +218,7 @@ async function smoke(): Promise<void> {
   const compatShellAccess: shell.ShellAccessReport = rhinoCompat.shell.checkAccess({ shizuku: true });
 
   const currentEngine: engines.EngineSnapshot = engines.myEngine();
-  const allEngines: readonly engines.EngineSnapshot[] = await engines.all({ timeoutMs: 1000 });
+  const allEngines: readonly engines.HostExecution[] = await engines.all({ timeoutMs: 1000 });
   const childEngine: engines.EngineSnapshot = await engines.execScript("child", "\"rhino\";", {
     timeoutMs: 1000,
     cwd: ".",
