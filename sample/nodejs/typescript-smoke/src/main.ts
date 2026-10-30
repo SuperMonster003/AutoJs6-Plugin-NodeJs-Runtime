@@ -311,7 +311,8 @@ async function smoke(): Promise<void> {
   const compatImagesRequested: boolean = await rhinoCompat.images.requestScreenCapture({ orientation: "portrait", timeoutMs: 1000 });
   const compatCapturedToFile: boolean = await rhinoCompat.images.captureScreen("out/rhino-screen.png", { format: "png", timeoutMs: 1000 });
   const compatScreenStopped: boolean = await rhinoCompat.images.stopScreenCapture({ timeoutMs: 1000 });
-  const ocrResults: readonly ocr.OcrResult[] = await ocr.recognize(capture, { lang: "auto", timeoutMs: 1000 });
+  const ocrResults: readonly ocr.OcrResult[] = await ocr.recognize(capture, { lang: "auto", useOpenCL: true, timeoutMs: 1000 });
+  const ocrQuad: readonly number[] | undefined = ocrResults[0]?.extras.quad;
   const ocrText: string = await ocr.recognizeText(capture, { timeoutMs: 1000 });
   const ocrBounds: readonly ocr.OcrResult[] = await ocr.detectTextBounds(capture, {
     region: [0, 0, 10, 10],
@@ -1080,6 +1081,7 @@ async function smoke(): Promise<void> {
   void compatCapturedToFile;
   void compatScreenStopped;
   void ocrResults;
+  void ocrQuad;
   void ocrText;
   void ocrBounds;
   void compatOcrTexts;

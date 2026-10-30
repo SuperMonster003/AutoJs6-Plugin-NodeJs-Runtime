@@ -32042,6 +32042,9 @@ std::string buildEmbeddedScriptExecutionSource(
     if (bounds) {
       normalized.bounds = bounds;
     }
+    // An older host sends no extras.
+    const extras = source.extras;
+    normalized.extras = __autojs6_deep_freeze_json(extras && typeof extras === "object" && !Array.isArray(extras) ? extras : {});
     return Object.freeze(normalized);
   }
   function __autojs6_ocr_normalize_results(value) {
