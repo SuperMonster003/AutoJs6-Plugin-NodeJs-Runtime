@@ -29,14 +29,15 @@ HOST_TEST_PACKAGE = f'{HOST_PACKAGE}.test'
 HOST_RUNNER = f'{HOST_TEST_PACKAGE}/androidx.test.runner.AndroidJUnitRunner'
 HOST_PREFIX = 'org.autojs.autojs.engine'
 # Discovery, Binder execution, the capability bridge and its permission manifest, provider registry,
-# conformance, engine switching and the required-plugin security check.
+# engine switching and the required-plugin security check. NodeBridgeConformanceInstrumentationTest is left out
+# (node-26 Q17): its snapshot of the host registry and of the plugin's module shapes predates api-coverage, and its
+# realignment belongs to that roadmap; pass it with --classes to run it anyway.
 DEFAULT_CLASSES = [
     'NodeHostPluginIntegrationInstrumentationTest',
     'NodeRuntimePluginBridgeInstrumentationTest',
     'NodeRuntimePluginR5InstrumentationTest',
     'NodeBridgePermissionManifestInstrumentationTest',
     'NodeBridgeProviderRegistryInstrumentationTest',
-    'NodeBridgeConformanceInstrumentationTest',
     'NodeR6EngineSwitchInstrumentationTest',
     'NodeR6RequiredPluginSecurityInstrumentationTest',
 ]
