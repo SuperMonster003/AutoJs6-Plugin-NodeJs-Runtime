@@ -5,7 +5,7 @@
     <img src="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/app/src/main/res/mipmap/ic_launcher.png?raw=true" alt="autojs6-plugin-nodejs-runtime-ic-launcher" border="0" width="128" />
   </p>
 
-  <p>ملحق تشغيل Node.js 24.21.0 الاصلي ل AutoJs6</p>
+  <p>ملحق تشغيل Node.js 26.13.0 الاصلي ل AutoJs6</p>
 
   <p>
     <a href="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/releases"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime?label=Release"/></a>
@@ -41,7 +41,7 @@
 
 ******
 
-يوفر ملحق AutoJs6 Node.js Runtime بيئة تشغيل Node.js 24.21.0 اصلية مدمجة ل AutoJs6 من اجل سكربتات Node.js ومهام تشغيل الملحقات. على Android 17 أو أحدث, اسمح بالأجهزة القريبة قبل تفعيل هذا الملحق في مركز ملحقات AutoJs6. يمكنك أيضا إدارة إذن الشبكة المحلية من صفحة إعدادات الملحق. دون الإذن يبقى الملحق معطلا ويتم تخطي التشغيل التلقائي بصمت. يخص الإذن هذا الملحق وهو مستقل عن إذن AutoJs6.
+يوفر ملحق AutoJs6 Node.js Runtime بيئة تشغيل Node.js 26.13.0 اصلية مدمجة ل AutoJs6 من اجل سكربتات Node.js ومهام تشغيل الملحقات. على Android 17 أو أحدث, اسمح بالأجهزة القريبة قبل تفعيل هذا الملحق في مركز ملحقات AutoJs6. يمكنك أيضا إدارة إذن الشبكة المحلية من صفحة إعدادات الملحق. دون الإذن يبقى الملحق معطلا ويتم تخطي التشغيل التلقائي بصمت. يخص الإذن هذا الملحق وهو مستقل عن إذن AutoJs6.
 
 ******
 
@@ -99,11 +99,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
-- فتحة بيئة التشغيل: `node24_21`.
+- فتحة بيئة التشغيل: `node26_13`.
 - معرف الملحق: `nodejs`, المحرك: `nodejs`.
 - اجراء خدمة بيئة التشغيل: `org.autojs.plugin.nodejs.RUNTIME`.
 - مكتبات بيئة التشغيل الاصلية: `libnode.so`, `libautojs6-node.so` و `libnodexe.so`.
 - Intl: ICU 78 مع بيانات اللغات المحلية الكاملة (`--with-intl=full-icu` منذ 1.6.0؛ من 1.5.1 إلى 1.5.7 كان small-icu بالإنجليزية فقط)؛ تتطابق `Intl` وتنسيقات اللغات المحلية وهروب خصائص Unicode في التعبيرات النمطية ومخرجات أخطاء Node على stderr مع Node المكتبي، دون الحاجة إلى `NODE_ICU_DATA`.
+- Temporal: منذ 2.0.0 يتيح الكائن العام `Temporal` المدمج في Node.js 26 التعامل مع التواريخ والأوقات والمناطق الزمنية والتقويمات دون مكتبات إضافية.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, و `universal`.
 - نظام الملفات: وحدة fs الأصلية في Node.js؛ يمكن الوصول إلى أي مسار على الجهاز تسمح به أذونات Android ولا يحتفظ وقت التشغيل بأي رفض خاص به.
 - TypeScript: يقبل مخرجات المضيف ويطابق اللقطات مسبقة التجميع ويمكنه طلب تجميع provider v3؛ وتُحمَّل وحدات TypeScript الخام على القرص عبر إزالة الأنواع الأصلية في Node، بينما يظل مدخل TypeScript الخام المرسل مباشرة يعيد `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -115,12 +116,31 @@ console.log("AutoJs6 Node.js runtime");
 - يمكن للسكربت الرئيسي و Worker تحميل إضافات Android الأصلية عبر Node; تستخدم process.dlopen وامتداد .node السلوك الأصلي دون قوائم توقيعات أو بصمات خاصة بالإضافة; يوفر native-addon ملفات Node-API لثلاث واجهات ABI بمحاذاة 16 KB وبناء NDK/CMake دون اتصال; تعيد الملفات التالفة أو ABI غير المتوافقة أخطاء Node مثل ERR_DLOPEN_FAILED, ولا يتم تضمين NDK أو Python على الجهاز
 - يدعم Inspector إصدارات Debug وRelease بعد إذن صريح من المضيف; يحتفظ inspector وinspector/promises بوحدات Node الأصلية ويدعمان Session في النصوص الرئيسية وWorker, مع الاستماع على 127.0.0.1 فقط ودون انتظار حاجب; دون إذن تعيد url() القيمة undefined ويظل التفعيل وإنشاء Session معطلين
 - تقبل install/update/remove في package_manager مواصفات حزم npm وتشغل npm المرفق في مساحة العمل; تستخدم npm.cli/exec/runScript/pack سطر الأوامر الفعلي وتتبع إعدادات registry والوكيل ودورة الحياة npm وملف .npmrc للمشروع, مع بث المخرجات والاحتفاظ برموز أخطاء npm; تجهز ملفات CLI عند أول استخدام وتحتفظ طلبات الكائنات بعقد التخزين المحلي للمضيف
+- إصدارات Node.js 24: تتم صيانة الإضافة 1.x (Node.js 24.21.0) في الفرع `release/1.x` بتحديثات الأمان فقط حتى 2028-04-30 (نهاية دعم Node.js 24).
 
 ******
 
 ### سجل الاصدارات
 
 ******
+
+# v2.0.0
+
+###### 2026/10/30
+
+* `تلميح` بدءا من الإضافة 2.0.0 تعمل السكربتات على Node.js 26 الذي أزال بعض الواجهات المهملة في Node.js 24 (مثل SlowBuffer وخيار recursive في fs.rmdir والثوابت مثل fs.F_OK و assert.CallTracker و node:_stream_wrap), لذا يجب تعديل السكربتات التي تستخدمها; للبقاء على Node.js 24 أزل تثبيت الإصدار 2.x ثم ثبت إصدارا من 1.x (تحديثات أمنية فقط, مع الصيانة حتى 2028-04-30)
+* `تلميح` يجب إعادة بناء ملفات native addon (.node) المبنية مباشرة على واجهات V8 من أجل Node.js 26, ولا تتأثر الملفات المبنية على Node-API
+* `ميزة` كائن Temporal العام المدمج في Node.js 26 للتعامل مع التواريخ والأوقات والمناطق الزمنية والتقويمات دون مكتبات إضافية
+* `ميزة` وحدات app و shell و shizuku المطابقة لسكربتات AutoJs6 في Node.js و Worker, بما في ذلك تشغيل التطبيقات المزدوجة (المستنسخة) وإزالة تثبيتها وإيقافها; تنفذ الأوامر عبر Shizuku أو root أو shell العادي حسب أول طريقة متاحة وتعيد Promise
+* `ميزة` وحدات معلومات النظام المطابقة لسكربتات AutoJs6 في Node.js و Worker: autojs و installer و memory و settings و sysprops و power_manager و autojs6:system (يغير setScreenMetrics أيضا مقياس نقرات وإيماءات إمكانية الوصول), إضافة إلى مفاتيح الإشعارات وقنواتها و dialogs.build و engines لعرض سكربتات المضيف وإيقافها و plugins.extend و plugins.tools
+* `ميزة` وحدات device و sensors و media المطابقة لسكربتات AutoJs6 في Node.js و Worker: طراز الجهاز وفحوص الشاشة والشركة المصنعة وجميع خيارات الاهتزاز وإبقاء الشاشة مضاءة وأحداث المستشعرات وتشغيل الموسيقى وفحص الوسائط; تتطلب قراءة معرفات الجهاز التصريح بالقدرة الجديدة device.identifiers
+* `ميزة` colors/Color و files و zip و mime ومسجل التوقيت المطابقة لسكربتات AutoJs6 في Node.js و Worker; تتوفر dayjs و pangu.js و cheerio و banana-i18n عبر autojs6:global, ويعالج الخيط الرئيسي طلبات axios الصادرة من Worker
+* `اصلاح` كانت وكلاء Packages / java / android التي يثبتها rhino.install() تفشل عند قراءة الحقول الثابتة أو استدعاء describe() أو استدعاء الدوال الثابتة أو إنشاء الكائنات باستخدام new
+* `تحسين` لم يعد Node.js 26 يتضمن corepack, وتواصل الإضافة تضمين corepack 0.36.0 دون تغيير في استخدامه من الطرفية
+* `تحسين` تغطي تصريحات TypeScript لوحدة worker_threads خيارات WorkerPool والإلغاء والمهلات والتشخيص, فتتوفر الأنواع دون @types/node
+* `تحسين` تبنى مكتبة Node.js باستخدام NDK r29 مع الحفاظ على محاذاة صفحات 16 KB لمعمارية ABI الثلاث; يشغل سكربت قبول الإصدارات اختبار الانحدار الكامل على الجهاز ويكتب تقرير JSON ويقيس زمن التشغيل البارد
+* `اعتماد` ترقية Node.js من 24.21.0 إلى 26.13.0 (V8 14.6 و OpenSSL 3.5.9 و ICU 78.3) باستخدام مكتبات Android المبنية من المصدر لمعمارية ABI الثلاث
+* `اعتماد` ترقية npm من 11.19.0 إلى 11.20.0
 
 # v1.32.0
 
@@ -136,12 +156,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/22
 
 * `ميزة` توليد النصوص والبث وفهرس النماذج والجلسات المستمرة في Node.js وBun وWorkers, مع الإلغاء وموافقة مستقلة لكل تطبيق في 3-Stone AI
-
-# v1.30.0
-
-###### 2026/10/21
-
-* `ميزة` Flow within/scope في Node.js وBun وWorker مع وراثة جذور البحث والتنقل بالبوصلة وإسقاط النتائج ودعم صيغ press/swipe/gesture/gestures
 
 ##### لمزيد من سجل الاصدارات
 
@@ -163,7 +177,7 @@ console.log("AutoJs6 Node.js runtime");
 .\gradlew.bat :app:assembleRelease
 ```
 
-تاتي معاملات البناء من `version.properties`, الحد الادنى الحالي ل SDK هو 24 والهدف SDK هو 36.
+تاتي معاملات البناء من `version.properties`, الحد الادنى الحالي ل SDK هو 24 والهدف SDK هو 37.
 
 ******
 

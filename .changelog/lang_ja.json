@@ -5,6 +5,32 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v2.0.0": {
+      "released_date": "2026/10/30",
+      "hint": [
+        "プラグイン 2.0.0 から Node.js 26 で動作し, Node.js 24 で非推奨だった一部の API (SlowBuffer, fs.rmdir の recursive オプション, fs.F_OK などの定数, assert.CallTracker, node:_stream_wrap など) が削除されたため, これらを使うスクリプトは書き換えが必要; Node.js 24 を使い続けるには 2.x をアンインストールしてから 1.x 版をインストール (セキュリティ更新のみ, 2028-04-30 まで保守)",
+        "V8 の API を直接使ってビルドした native addon (.node) は Node.js 26 向けに再ビルドが必要, Node-API ベースの拡張は影響なし"
+      ],
+      "feature": [
+        "Node.js 26 組み込みの Temporal グローバルオブジェクトで, 追加ライブラリなしに日付, 時刻, タイムゾーン, 暦を扱える",
+        "Node.js/Worker に AutoJs6 スクリプトと同じ app, shell, shizuku モジュールを追加, デュアル (クローン) アプリの起動, アンインストール, 停止を含み, コマンドは Shizuku, root, 通常の shell のうち最初に使えるもので実行され Promise を返す",
+        "Node.js/Worker に AutoJs6 スクリプトと同じシステム情報モジュールを追加: autojs, installer, memory, settings, sysprops, power_manager, autojs6:system (setScreenMetrics はアクセシビリティのクリックとジェスチャー座標も拡大縮小), 通知のスイッチとチャネル, dialogs.build, ホストのスクリプトを一覧, 停止する engines, plugins.extend と plugins.tools",
+        "Node.js/Worker に AutoJs6 スクリプトと同じ device, sensors, media モジュールを追加: 端末モデル, 画面とメーカーの判定, 振動と画面点灯維持の全オプション, センサーイベント, 音楽再生とメディアスキャン; 端末識別子の読み取りには新しい device.identifiers 能力の宣言が必要",
+        "Node.js/Worker に AutoJs6 スクリプトと同じ colors/Color, files, zip, mime, 計時レコーダーを追加; autojs6:global から dayjs, pangu.js, cheerio, banana-i18n を利用でき, Worker の axios リクエストはメインスレッドが処理"
+      ],
+      "fix": [
+        "rhino.install() で導入した Packages / java / android プロキシで, 静的フィールドの読み取り, describe() の呼び出し, 静的メソッドの呼び出し, new によるオブジェクト生成がエラーになる問題"
+      ],
+      "improvement": [
+        "Node.js 26 は corepack を同梱しなくなったが, プラグインは引き続き corepack 0.36.0 を同梱し, ターミナルでの使い方は変わらない",
+        "worker_threads の TypeScript 宣言に WorkerPool のオプション, キャンセル, タイムアウト, 診断を追加, @types/node なしでも型が付く",
+        "Node.js ランタイムライブラリを NDK r29 でビルドし, 3 つの ABI で 16 KB ページアラインメントを維持; リリース受け入れスクリプトは端末での完全な回帰テスト, JSON レポート出力, コールドスタート計測に対応"
+      ],
+      "dependency": [
+        "Node.js 24.21.0 -> 26.13.0 に更新 (V8 14.6, OpenSSL 3.5.9, ICU 78.3), 3 つの ABI すべてで Android 向けにソースからビルドしたライブラリを使用",
+        "npm 11.19.0 -> 11.20.0 に更新"
+      ]
+    },
     "v1.32.0": {
       "released_date": "2026/10/29",
       "feature": [

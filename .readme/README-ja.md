@@ -5,7 +5,7 @@
     <img src="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/app/src/main/res/mipmap/ic_launcher.png?raw=true" alt="autojs6-plugin-nodejs-runtime-ic-launcher" border="0" width="128" />
   </p>
 
-  <p>AutoJs6 向け Node.js 24.21.0 ネイティブランタイムプラグイン</p>
+  <p>AutoJs6 向け Node.js 26.13.0 ネイティブランタイムプラグイン</p>
 
   <p>
     <a href="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/releases"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime?label=Release"/></a>
@@ -41,7 +41,7 @@
 
 ******
 
-AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 24.21.0 ネイティブランタイムを提供し, Node.js スクリプトとプラグインランタイムタスクを実行します. Android 17 以降では, AutoJs6 プラグインセンターで有効にする前に, このプラグインに付近のデバイスへのアクセスを許可してください. プラグインの設定ページでもローカルネットワーク権限を管理できます. 未許可の場合は無効のままとなり, 自動起動は通知せずにスキップされます. この権限はプラグインに属し, AutoJs6 の権限とは独立しています.
+AutoJs6 Node.js Runtime プラグインは AutoJs6 に組み込み Node.js 26.13.0 ネイティブランタイムを提供し, Node.js スクリプトとプラグインランタイムタスクを実行します. Android 17 以降では, AutoJs6 プラグインセンターで有効にする前に, このプラグインに付近のデバイスへのアクセスを許可してください. プラグインの設定ページでもローカルネットワーク権限を管理できます. 未許可の場合は無効のままとなり, 自動起動は通知せずにスキップされます. この権限はプラグインに属し, AutoJs6 の権限とは独立しています.
 
 ******
 
@@ -99,11 +99,12 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 
 ******
 
-- ランタイムスロット: `node24_21`.
+- ランタイムスロット: `node26_13`.
 - プラグイン ID: `nodejs`, エンジン: `nodejs`.
 - ランタイムサービスアクション: `org.autojs.plugin.nodejs.RUNTIME`.
 - ネイティブランタイムライブラリ: `libnode.so`, `libautojs6-node.so` と `libnodexe.so`.
 - Intl: 完全なロケールデータ付き ICU 78 (`--with-intl=full-icu`, 1.6.0 以降; 1.5.1 から 1.5.7 は英語のみの small-icu); `Intl`, ロケール書式, 正規表現の Unicode プロパティエスケープ, Node 自身の stderr へのエラー出力はデスクトップ版 Node と一致し, `NODE_ICU_DATA` は不要です.
+- Temporal: 2.0.0 から Node.js 26 組み込みの `Temporal` グローバルオブジェクトで, 日付, 時刻, タイムゾーン, 暦を追加ライブラリなしで扱えます.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, および `universal`.
 - ファイルシステム: Node.js 本来の fs モジュール, Android 権限で許可された任意のデバイスパスに到達でき, ランタイム独自の拒否はありません.
 - TypeScript: ホストの出力を受け入れ, プリコンパイル済みスナップショットを対応付け, provider v3 のコンパイルを要求可能; ディスク上の raw TypeScript モジュールは Node 自身の型除去で読み込まれ, 直接ディスパッチされた raw TypeScript エントリは引き続き `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED` を返します.
@@ -115,12 +116,31 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 - メインスクリプトと Worker で Android ネイティブアドオンを Node からロード可能; process.dlopen と .node はネイティブ動作となり, 独自の署名やハッシュ許可リストを設けない; native-addon は 3 ABI の 16 KB アラインメント済み Node-API バイナリとオフライン NDK/CMake ビルドを提供; ABI 不一致や破損は ERR_DLOPEN_FAILED などの Node エラーとなり, 端末用 NDK や Python は同梱しない
 - ホストの明示的な許可により Debug と Release ビルドで Inspector を利用可能; inspector と inspector/promises は Node のネイティブモジュールを維持し, メインスクリプトと Worker で Session を使用可能, 待受は 127.0.0.1 のみでブロッキング待機は不可; 未許可時は url() が undefined を返し, 有効化と Session 作成は無効
 - package_manager の install/update/remove が npm パッケージ指定を受け取り, 同梱 npm を作業領域で実行; npm.cli/exec/runScript/pack は実際の CLI を使用し, registry/プロキシ/ライフサイクル設定は npm とプロジェクトの .npmrc に従う, 出力を逐次転送して npm エラーコードを保持; CLI 資産は初回使用時のみ準備し, オブジェクト形式の要求は既存のホストローカルストア契約を維持
+- Node.js 24 系: プラグイン 1.x (Node.js 24.21.0) は `release/1.x` ブランチでセキュリティ更新のみを提供し, 2028-04-30 (Node.js 24 のサポート終了) まで保守します.
 
 ******
 
 ### リリース履歴
 
 ******
+
+# v2.0.0
+
+###### 2026/10/30
+
+* `ヒント` プラグイン 2.0.0 から Node.js 26 で動作し, Node.js 24 で非推奨だった一部の API (SlowBuffer, fs.rmdir の recursive オプション, fs.F_OK などの定数, assert.CallTracker, node:_stream_wrap など) が削除されたため, これらを使うスクリプトは書き換えが必要; Node.js 24 を使い続けるには 2.x をアンインストールしてから 1.x 版をインストール (セキュリティ更新のみ, 2028-04-30 まで保守)
+* `ヒント` V8 の API を直接使ってビルドした native addon (.node) は Node.js 26 向けに再ビルドが必要, Node-API ベースの拡張は影響なし
+* `追加` Node.js 26 組み込みの Temporal グローバルオブジェクトで, 追加ライブラリなしに日付, 時刻, タイムゾーン, 暦を扱える
+* `追加` Node.js/Worker に AutoJs6 スクリプトと同じ app, shell, shizuku モジュールを追加, デュアル (クローン) アプリの起動, アンインストール, 停止を含み, コマンドは Shizuku, root, 通常の shell のうち最初に使えるもので実行され Promise を返す
+* `追加` Node.js/Worker に AutoJs6 スクリプトと同じシステム情報モジュールを追加: autojs, installer, memory, settings, sysprops, power_manager, autojs6:system (setScreenMetrics はアクセシビリティのクリックとジェスチャー座標も拡大縮小), 通知のスイッチとチャネル, dialogs.build, ホストのスクリプトを一覧, 停止する engines, plugins.extend と plugins.tools
+* `追加` Node.js/Worker に AutoJs6 スクリプトと同じ device, sensors, media モジュールを追加: 端末モデル, 画面とメーカーの判定, 振動と画面点灯維持の全オプション, センサーイベント, 音楽再生とメディアスキャン; 端末識別子の読み取りには新しい device.identifiers 能力の宣言が必要
+* `追加` Node.js/Worker に AutoJs6 スクリプトと同じ colors/Color, files, zip, mime, 計時レコーダーを追加; autojs6:global から dayjs, pangu.js, cheerio, banana-i18n を利用でき, Worker の axios リクエストはメインスレッドが処理
+* `修正` rhino.install() で導入した Packages / java / android プロキシで, 静的フィールドの読み取り, describe() の呼び出し, 静的メソッドの呼び出し, new によるオブジェクト生成がエラーになる問題
+* `改善` Node.js 26 は corepack を同梱しなくなったが, プラグインは引き続き corepack 0.36.0 を同梱し, ターミナルでの使い方は変わらない
+* `改善` worker_threads の TypeScript 宣言に WorkerPool のオプション, キャンセル, タイムアウト, 診断を追加, @types/node なしでも型が付く
+* `改善` Node.js ランタイムライブラリを NDK r29 でビルドし, 3 つの ABI で 16 KB ページアラインメントを維持; リリース受け入れスクリプトは端末での完全な回帰テスト, JSON レポート出力, コールドスタート計測に対応
+* `依存関係` Node.js 24.21.0 -> 26.13.0 に更新 (V8 14.6, OpenSSL 3.5.9, ICU 78.3), 3 つの ABI すべてで Android 向けにソースからビルドしたライブラリを使用
+* `依存関係` npm 11.19.0 -> 11.20.0 に更新
 
 # v1.32.0
 
@@ -136,12 +156,6 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 ###### 2026/10/22
 
 * `追加` Node.js, Bun と Worker の AI テキスト生成, ストリーミング, モデル一覧と永続セッション, キャンセルと 3-Stone AI によるパッケージアプリごとの許可に対応
-
-# v1.30.0
-
-###### 2026/10/21
-
-* `追加` Node.js, Bun と Worker の Flow within/scope による検索範囲の継承, コンパス移動と結果の射影, および press/swipe/gesture/gestures のオーバーロード
 
 ##### その他のリリース履歴
 
@@ -163,7 +177,7 @@ Release ビルド:
 .\gradlew.bat :app:assembleRelease
 ```
 
-ビルドパラメータは `version.properties` から取得されます, 現在の最小 SDK は 24, ターゲット SDK は 36 です.
+ビルドパラメータは `version.properties` から取得されます, 現在の最小 SDK は 24, ターゲット SDK は 37 です.
 
 ******
 

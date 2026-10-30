@@ -5,7 +5,7 @@
     <img src="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/app/src/main/res/mipmap/ic_launcher.png?raw=true" alt="autojs6-plugin-nodejs-runtime-ic-launcher" border="0" width="128" />
   </p>
 
-  <p>用於 AutoJs6 的 Node.js 24.21.0 原生執行階段插件</p>
+  <p>用於 AutoJs6 的 Node.js 26.13.0 原生執行階段插件</p>
 
   <p>
     <a href="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/releases"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime?label=Release"/></a>
@@ -41,7 +41,7 @@
 
 ******
 
-AutoJs6 Node.js Runtime 插件為 AutoJs6 提供內嵌 Node.js 24.21.0 原生執行階段, 用於執行 Node.js 腳本和插件化執行階段任務. 在 Android 17 以上, 在 AutoJs6 外掛程式中心啟用此外掛程式前須允許存取附近的裝置. 也可在此外掛程式的設定頁面管理區域網路權限. 未獲授權時外掛程式保持關閉, 自動啟動將靜默略過. 此權限屬於外掛程式本身, 與 AutoJs6 的授權相互獨立.
+AutoJs6 Node.js Runtime 插件為 AutoJs6 提供內嵌 Node.js 26.13.0 原生執行階段, 用於執行 Node.js 腳本和插件化執行階段任務. 在 Android 17 以上, 在 AutoJs6 外掛程式中心啟用此外掛程式前須允許存取附近的裝置. 也可在此外掛程式的設定頁面管理區域網路權限. 未獲授權時外掛程式保持關閉, 自動啟動將靜默略過. 此權限屬於外掛程式本身, 與 AutoJs6 的授權相互獨立.
 
 ******
 
@@ -99,11 +99,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
-- 執行階段槽位: `node24_21`.
+- 執行階段槽位: `node26_13`.
 - 插件 ID: `nodejs`, 引擎: `nodejs`.
 - 執行階段服務動作: `org.autojs.plugin.nodejs.RUNTIME`.
 - 原生執行庫: `libnode.so`, `libautojs6-node.so` 和 `libnodexe.so`.
 - Intl: ICU 78 完整地區資料 (`--with-intl=full-icu`, 1.6.0 起; 1.5.1 至 1.5.7 為僅含英文資料的 small-icu); `Intl`, 地區格式化, 正規表示式的 Unicode 屬性跳脫以及 Node 自身寫到 stderr 的錯誤輸出均與桌面版一致, 無需 `NODE_ICU_DATA`.
+- Temporal: 2.0.0 起提供 Node.js 26 內建的 `Temporal` 全域物件, 可直接處理日期, 時間, 時區與曆法, 不需要另外安裝函式庫.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64`, 以及 `universal`.
 - 檔案系統: Node.js 原生 fs 模組, Android 權限允許範圍內可存取任意裝置路徑, 執行階段自身不保留拒絕邊界.
 - TypeScript: 接受宿主編譯產物, 對應預編譯快照並可請求 provider v3 隨需編譯; 磁碟上的 raw TypeScript 模組經 Node 自身的型別剝離載入, 直接派發的 raw TypeScript 入口仍回傳 `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -115,12 +116,31 @@ console.log("AutoJs6 Node.js runtime");
 - 主腳本與 Worker 可透過 Node 載入 Android native addon, process.dlopen 與 .node 副檔名恢復原生行為, 不設外掛自有簽章或雜湊允許清單; native-addon 範例提供三 ABI 的 16 KB 對齊 Node-API 產物和離線 NDK/CMake 建置; 錯誤 ABI 或損壞二進位檔回傳 ERR_DLOPEN_FAILED 等 Node 錯誤, 裝置端不隨附 NDK 或 Python
 - Inspector 在宿主明確允許後支援 Debug 和 Release 建置; inspector 與 inspector/promises 保留 Node 原生模組物件, 主腳本和 Worker 可使用 Session, 監聽僅綁定 127.0.0.1 且不支援阻塞等待; 未開啟時 url() 回傳 undefined, 啟用和 Session 建立保持關閉
 - package_manager 的 install/update/remove 支援 npm 套件規格, 在工作區呼叫隨附 npm; npm.cli/exec/runScript/pack 使用真實命令列, registry/代理/生命週期選項遵循 npm 與專案 .npmrc, 輸出串流回傳並保留 npm 錯誤碼; CLI 資產僅在首次呼叫時準備, 物件請求保留原宿主本機庫契約
+- Node.js 24 版本線: 插件 1.x (Node.js 24.21.0) 在 `release/1.x` 分支維護, 只接收安全性更新, 維護至 2028-04-30 (Node.js 24 停止維護).
 
 ******
 
 ### 發行歷史
 
 ******
+
+# v2.0.0
+
+###### 2026/10/30
+
+* `提示` 外掛程式 2.0.0 起使用 Node.js 26, 移除了 Node.js 24 中已棄用的部分介面 (例如 SlowBuffer, fs.rmdir 的 recursive 選項, fs.F_OK 等常數, assert.CallTracker 和 node:_stream_wrap), 依賴它們的指令碼需要改寫; 需要繼續使用 Node.js 24 時可以解除安裝 2.x 後安裝 1.x 版本 (只接收安全性更新, 維護到 2028-04-30)
+* `提示` 直接呼叫 V8 介面編譯的 native addon (.node) 需要針對 Node.js 26 重新編譯, 基於 Node-API 的擴充功能不受影響
+* `新增` Node.js 26 內建的 Temporal 全域物件, 可直接處理日期, 時間, 時區與曆法, 不需要額外安裝函式庫
+* `新增` Node.js 與 Worker 的 app, shell 和 shizuku 模組與 AutoJs6 指令碼一致, 包括分身應用程式的啟動, 解除安裝與停止, 指令按 Shizuku, root, 一般 shell 的順序選擇可用的方式執行, 結果以 Promise 傳回
+* `新增` Node.js 與 Worker 的系統資訊模組與 AutoJs6 指令碼一致: autojs, installer, memory, settings, sysprops, power_manager 和 autojs6:system (setScreenMetrics 同時縮放無障礙點擊與手勢座標), 以及通知開關與頻道, dialogs.build, engines 列出與停止宿主中的指令碼, plugins.extend 與 plugins.tools
+* `新增` Node.js 與 Worker 的 device, sensors 和 media 模組與 AutoJs6 指令碼一致: 裝置型號, 螢幕與製造商判斷, 震動與螢幕常亮的完整用法, 感測器事件, 音樂播放與媒體掃描; 讀取裝置識別碼需要宣告新增的 device.identifiers 能力
+* `新增` Node.js 與 Worker 的 colors/Color, files, zip, mime 和計時記錄器與 AutoJs6 指令碼一致; 可透過 autojs6:global 使用 dayjs, pangu.js, cheerio 和 banana-i18n, Worker 中的 axios 請求交由主執行緒執行
+* `修復` rhino.install() 裝入的 Packages / java / android 代理在讀取靜態欄位, 呼叫 describe(), 呼叫靜態方法或用 new 建立物件時報錯的問題
+* `優化` Node.js 26 不再內附 corepack, 外掛程式繼續隨附 corepack 0.36.0, 終端機用法不變
+* `優化` worker_threads 模組的 TypeScript 宣告補充 WorkerPool 的選項, 取消, 逾時與診斷, 不安裝 @types/node 也有型別提示
+* `優化` Node.js 執行階段函式庫改用 NDK r29 建置, 三個 ABI 繼續保持 16 KB 記憶體頁對齊; 發布驗收指令碼可執行完整裝置迴歸測試, 輸出 JSON 報告並測量冷啟動耗時
+* `依賴` 升級 Node.js 24.21.0 -> 26.13.0 (V8 14.6, OpenSSL 3.5.9, ICU 78.3), 三個 ABI 均使用自建 Android 原始碼產物
+* `依賴` 升級 npm 11.19.0 -> 11.20.0
 
 # v1.32.0
 
@@ -136,12 +156,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/22
 
 * `新增` Node.js, Bun 與 Worker 的 AI 文字生成, 串流結果, 模型目錄及持續工作階段, 支援取消與 3-Stone AI 對打包應用程式的個別授權
-
-# v1.30.0
-
-###### 2026/10/21
-
-* `新增` Node.js, Bun 與 Worker 的 Flow within/scope 範圍繼承, 羅盤導覽和結果投影, 以及 press/swipe/gesture/gestures 手勢多載
 
 ##### 更多發行歷史可參閱
 
@@ -163,7 +177,7 @@ Release 建置:
 .\gradlew.bat :app:assembleRelease
 ```
 
-建置參數來自 `version.properties`, 目前最低 SDK 為 24, 目標 SDK 為 36.
+建置參數來自 `version.properties`, 目前最低 SDK 為 24, 目標 SDK 為 37.
 
 ******
 

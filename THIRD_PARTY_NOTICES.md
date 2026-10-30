@@ -4,16 +4,21 @@ The plugin's own source is licensed under the [Mozilla Public License 2.0](LICEN
 
 ## Embedded Node.js
 
-The plugin builds `libnode.so` from official [Node.js 24.21.0](https://github.com/nodejs/node/tree/v24.21.0), source commit `955266bfdd854cd280dffd47548673914484e4c0`, with the Android patches described in [runtime-build/README.md](tools/nodejs/runtime-build/README.md). The Android port patch is derived from degaso/nodejs-mobile commit `116bad1dc919702d4a701d49df26d960403ee4a4`; a separate local patch supplies Linux host trap-handler sources for the cross-build tools. Since plugin 1.6.0 (M23.1) no Android-only policy patch is applied: the earlier OpenSSL STORE key URL patch was removed together with the runtime's own filesystem boundary. The complete official Node.js [LICENSE](https://github.com/nodejs/node/blob/v24.21.0/LICENSE) is preserved in [nodejs-mobile-LICENSE.txt](app/src/main/assets/licenses/nodejs-mobile-LICENSE.txt) and bundled in every APK under `assets/licenses/`. The existing asset filename is retained.
+The plugin builds `libnode.so` from official [Node.js 26.13.0](https://github.com/nodejs/node/tree/v26.13.0), source commit `18b32a3b1552e199a01f1a8d9fd64aa756d3b75b`, with the Android patches described in [runtime-build/README.md](tools/nodejs/runtime-build/README.md). The Android port patch is derived from degaso/nodejs-mobile commit `116bad1dc919702d4a701d49df26d960403ee4a4`; separate local patches supply Linux host trap-handler sources for the cross-build tools, keep fatal-error text on stderr, and cross-build the Rust crates and host tools. Since plugin 1.6.0 (M23.1) no Android-only policy patch is applied: the earlier OpenSSL STORE key URL patch was removed together with the runtime's own filesystem boundary. The complete official Node.js [LICENSE](https://github.com/nodejs/node/blob/v26.13.0/LICENSE) is preserved in [nodejs-mobile-LICENSE.txt](app/src/main/assets/licenses/nodejs-mobile-LICENSE.txt) and bundled in every APK under `assets/licenses/`. The existing asset filename is retained.
+
+Since plugin 2.0.0, V8's `Temporal` is compiled from the Rust crates vendored in the Node.js source (`deps/crates/vendor`, pinned by `deps/crates/Cargo.lock`: temporal_rs, ICU4X and their dependencies) and linked into `libnode.so`. The upstream LICENSE does not list these crates, so the license file of every vendored crate is bundled in [node-rust-crates-LICENSES.txt](app/src/main/assets/licenses/node-rust-crates-LICENSES.txt), together with each crate's version and license expression.
+
+Plugin 1.x (Node.js 24.21.0) is maintained on the `release/1.x` branch, whose notices describe that runtime.
 
 The following table summarizes major components. The bundled license file contains the full terms and notices, including the additional third-party components listed by upstream; this table does not replace them.
 
 | Component | License |
 |---|---|
 | Node.js | MIT |
-| V8 | BSD-style; additional third-party notices in the upstream license |
-| ICU 78 (linked as `full-icu` since 1.6.0; `small-icu` with English-only locale data from 1.5.1 to 1.5.7) | Unicode/ICU licenses and third-party data notices retained in the complete upstream license |
-| OpenSSL 3.5.9 (backported to Node 24.21.0) | Apache License 2.0 |
+| V8 14.6.202.34 | BSD-style; additional third-party notices in the upstream license |
+| ICU 78.3 (linked as `full-icu` since 1.6.0; `small-icu` with English-only locale data from 1.5.1 to 1.5.7) | Unicode/ICU licenses and third-party data notices retained in the complete upstream license |
+| OpenSSL 3.5.9 (shipped with Node 26.13.0; backported to Node 24.21.0 in 1.7.0 - 1.32.x) | Apache License 2.0 |
+| temporal_rs / temporal_capi / timezone_provider 0.2.3, ICU4X 2.2 and the other vendored Rust crates | MIT or Apache License 2.0 / Unicode License v3 / MIT / Apache License 2.0, per crate in `node-rust-crates-LICENSES.txt` |
 | zlib | zlib license |
 | libuv | MIT and incorporated third-party notices |
 | c-ares | MIT-style |
@@ -21,16 +26,17 @@ The following table summarizes major components. The bundled license file contai
 | simdjson / simdutf | Apache License 2.0 / MIT |
 | llhttp / undici / ada / uvwasi | MIT / MIT / Apache License 2.0 or MIT / MIT |
 | Brotli / Zstandard | MIT / BSD and GPL alternatives as described upstream |
+| npm 11.20.0 / corepack 0.36.0 (terminal archive `assets/nodejs/cli/node-cli-26.13.0.bin`) | Artistic License 2.0 / MIT; each package keeps its own license file inside the archive |
 
-Binary provenance is recorded in [runtime-build.lock.json](tools/nodejs/runtime-build/runtime-build.lock.json), including the official `node-v24.21.0.tar.xz` archive (SHA-256 `a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc`), the Android and OpenSSL patch hashes, and the exact Docker image and NDK used. Plugin 1.7.0 backports the OpenSSL 3.5.9 source and architecture updates from [Node PR 66396](https://github.com/nodejs/node/pull/66396); the build README records the two upstream commits and the omitted documentation-only hunk. The OpenSSL license is unchanged. The original Node 24.5 Android archive is retained in the lock as historical provenance and for reconstruction of that version.
+Binary provenance is recorded in [runtime-build.lock.json](tools/nodejs/runtime-build/runtime-build.lock.json), including the official `node-v26.13.0.tar.xz` archive (SHA-256 `263f639ecfa7a17b49438d76cdbf9aff73179e3c7cb789da69b900718427fa2e`), the Android patch hashes, and the exact Docker image, NDK and Rust toolchain used. Plugin 1.7.0 - 1.32.x backported the OpenSSL 3.5.9 source and architecture updates from [Node PR 66396](https://github.com/nodejs/node/pull/66396) to Node 24.21.0; Node 26.13.0 ships OpenSSL 3.5.9 itself, so 2.0.0 removed those patches, and their provenance stays in the lock and the `v1.32.*` tags. The OpenSSL license is unchanged. The original Node 24.5 Android archive is retained in the lock as historical provenance and for reconstruction of that version.
 
 | ABI | `libnode.so` SHA-256 |
 |---|---|
-| arm64-v8a | `b6bfbc7c5890244e25a9fad68e3f6a8c633badc1462409b8c36c9d4fc65cb91e` |
-| armeabi-v7a | `4559fb5cfedc31fbdf1000f06bbd4f63f35039bf6c59a815b1b7bb4ea82104c8` |
-| x86_64 | `69e3fd9e81917c6add91fe6534a3ed859c31a0383ea257e15603ffac5e75cfef` |
+| arm64-v8a | `95011070e6094a377682915faa3aa39706fa77b1fc7ca12c114735b7c7a4d430` |
+| armeabi-v7a | `5914bf96ffcb2600ce1db79556141091678263323ae433c50695d6a23b6dc098` |
+| x86_64 | `d258e619b2ac8b48a45affb14fe39de9210728ed92752c8e4d0d8b18a6495708` |
 
-The [24.21.0 bridge headers](app/src/main/cpp/node-v24.21.0/README.md) come from the official Node.js header archive, with its complete [upstream license](app/src/main/cpp/node-v24.21.0/LICENSE) preserved alongside them. All three runtime libraries are built from the same official source and patch set; since 1.6.0 they link ICU 78 as `full-icu` and retain the Inspector backend for explicit requests in Debug and Release.
+The [26.13.0 bridge headers](app/src/main/cpp/node-v26.13.0/README.md) come from the official Node.js header archive, with the complete [upstream license](app/src/main/cpp/node-v26.13.0/LICENSE) preserved alongside them. All three runtime libraries are built from the same official source and patch set; since 1.6.0 they link ICU as `full-icu` and retain the Inspector backend for explicit requests in Debug and Release.
 
 ## Android C++ runtime
 

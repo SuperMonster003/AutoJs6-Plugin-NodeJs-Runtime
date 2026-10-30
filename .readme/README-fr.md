@@ -5,7 +5,7 @@
     <img src="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/blob/master/app/src/main/res/mipmap/ic_launcher.png?raw=true" alt="autojs6-plugin-nodejs-runtime-ic-launcher" border="0" width="128" />
   </p>
 
-  <p>Plugin de runtime natif Node.js 24.21.0 pour AutoJs6</p>
+  <p>Plugin de runtime natif Node.js 26.13.0 pour AutoJs6</p>
 
   <p>
     <a href="https://github.com/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime/releases"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/SuperMonster003/AutoJs6-Plugin-NodeJs-Runtime?label=Release"/></a>
@@ -41,7 +41,7 @@ Le README.md actuel prend en charge les langues suivantes:
 
 ******
 
-Le plugin AutoJs6 Node.js Runtime fournit a AutoJs6 un runtime natif Node.js 24.21.0 embarque pour les scripts Node.js et les taches de runtime de plugins. Sous Android 17 ou version ultérieure, autorisez les appareils à proximité avant de permettre ce plugin dans le centre de plugins AutoJs6. Cette autorisation se gère aussi dans les paramètres du plugin. Sans autorisation, le plugin reste désactivé et le démarrage automatique est ignoré sans message. Cette autorisation appartient au plugin et est indépendante de celle de AutoJs6.
+Le plugin AutoJs6 Node.js Runtime fournit a AutoJs6 un runtime natif Node.js 26.13.0 embarque pour les scripts Node.js et les taches de runtime de plugins. Sous Android 17 ou version ultérieure, autorisez les appareils à proximité avant de permettre ce plugin dans le centre de plugins AutoJs6. Cette autorisation se gère aussi dans les paramètres du plugin. Sans autorisation, le plugin reste désactivé et le démarrage automatique est ignoré sans message. Cette autorisation appartient au plugin et est indépendante de celle de AutoJs6.
 
 ******
 
@@ -99,11 +99,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
-- Slot de runtime: `node24_21`.
+- Slot de runtime: `node26_13`.
 - ID de plugin: `nodejs`, moteur: `nodejs`.
 - Action du service runtime: `org.autojs.plugin.nodejs.RUNTIME`.
 - Bibliotheques natives de runtime: `libnode.so`, `libautojs6-node.so` et `libnodexe.so`.
 - Intl : ICU 78 avec les données régionales complètes (`--with-intl=full-icu` depuis 1.6.0 ; de 1.5.1 à 1.5.7, small-icu en anglais uniquement) ; `Intl`, le formatage régional, les échappements de propriétés Unicode dans les expressions régulières et la sortie d'erreur de Node sur stderr correspondent au Node de bureau, sans `NODE_ICU_DATA`.
+- Temporal : depuis 2.0.0, l'objet global `Temporal` intégré à Node.js 26 gère dates, heures, fuseaux horaires et calendriers sans bibliothèque supplémentaire.
 - ABI: `arm64-v8a`, `armeabi-v7a`, `x86_64` et `universal`.
 - Système de fichiers : module fs natif de Node.js ; tout chemin de l'appareil autorisé par les permissions Android est accessible et le runtime ne conserve aucun refus propre.
 - TypeScript : accepte la sortie de l'hôte, applique les instantanés précompilés et peut demander une compilation provider v3 ; les modules TypeScript bruts sur disque se chargent via la suppression de types native de Node, tandis qu'une entrée TypeScript brute envoyée directement renvoie toujours `ERR_AUTOJS6_TYPESCRIPT_COMPILER_REQUIRED`.
@@ -115,12 +116,31 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 - Les scripts principaux et Workers chargent les addons natifs Android avec Node; process.dlopen et .node sont natifs, sans liste propre au plugin de signatures ou de hachages; native-addon fournit trois ABI alignées sur 16 KB et une compilation NDK/CMake hors ligne; les incompatibilités ABI ou fichiers invalides produisent des erreurs Node telles que ERR_DLOPEN_FAILED, sans NDK ni Python embarqués sur l'appareil
 - Inspector fonctionne dans les versions Debug et Release après autorisation explicite de l'hôte; inspector et inspector/promises conservent les modules natifs Node, avec Session dans les scripts et Workers, écoute sur 127.0.0.1 uniquement et sans attente bloquante; sans autorisation url() renvoie undefined et l'activation ainsi que la création de Session restent désactivées
 - install/update/remove de package_manager acceptent les spécifications npm et exécutent npm fourni dans le projet; npm.cli/exec/runScript/pack utilisent la CLI réelle, avec registry/proxy/cycle de vie selon npm et le .npmrc du projet, sortie en continu et codes d'erreur npm; les fichiers CLI sont préparés au premier appel et les requêtes objet conservent le contrat du stockage local de l'hôte
+- Branche Node.js 24 : le plugin 1.x (Node.js 24.21.0) est maintenu sur la branche `release/1.x`, uniquement avec des mises à jour de sécurité, jusqu'au 2028-04-30 (fin de vie de Node.js 24).
 
 ******
 
 ### Historique Des Versions
 
 ******
+
+# v2.0.0
+
+###### 2026/10/30
+
+* `Note` À partir du plugin 2.0.0, les scripts s'exécutent sous Node.js 26, qui supprime certaines API obsolètes dans Node.js 24 (par exemple SlowBuffer, l'option recursive de fs.rmdir, les constantes comme fs.F_OK, assert.CallTracker et node:_stream_wrap); les scripts qui les utilisent doivent être adaptés. Pour rester sur Node.js 24, désinstallez la version 2.x puis installez une version 1.x (mises à jour de sécurité uniquement, maintenue jusqu'au 2028-04-30)
+* `Note` Les addons natifs (.node) compilés directement contre V8 doivent être recompilés pour Node.js 26; les addons Node-API ne sont pas concernés
+* `Ajout` L'objet global Temporal intégré à Node.js 26 gère les dates, les heures, les fuseaux horaires et les calendriers sans bibliothèque supplémentaire
+* `Ajout` Modules app, shell et shizuku pour Node.js et Workers conformes aux scripts AutoJs6, y compris le lancement, la désinstallation et l'arrêt des applications dupliquées (clones); les commandes passent par Shizuku, root ou le shell ordinaire, selon le premier disponible, et renvoient des Promises
+* `Ajout` Modules d'informations système pour Node.js et Workers conformes aux scripts AutoJs6 : autojs, installer, memory, settings, sysprops, power_manager et autojs6:system (setScreenMetrics met aussi à l'échelle les clics et gestes d'accessibilité), ainsi que les interrupteurs et canaux de notification, dialogs.build, engines pour lister et arrêter les scripts de l'hôte, plugins.extend et plugins.tools
+* `Ajout` Modules device, sensors et media pour Node.js et Workers conformes aux scripts AutoJs6 : modèle de l'appareil, vérifications d'écran et de fabricant, toutes les options de vibration et d'écran allumé, événements des capteurs, lecture de musique et analyse des médias; la lecture des identifiants de l'appareil exige la nouvelle capacité device.identifiers
+* `Ajout` colors/Color, files, zip, mime et l'enregistreur de durées pour Node.js et Workers conformes aux scripts AutoJs6; dayjs, pangu.js, cheerio et banana-i18n sont disponibles via autojs6:global, et les requêtes axios des Workers sont traitées par le thread principal
+* `Correction` Les proxys Packages / java / android installés par rhino.install() échouaient à la lecture des champs statiques, à l'appel de describe(), à l'appel de méthodes statiques ou à la création d'objets avec new
+* `Amelioration` Node.js 26 ne fournit plus corepack; le plugin continue d'embarquer corepack 0.36.0 et son usage dans le terminal ne change pas
+* `Amelioration` Les déclarations TypeScript de worker_threads couvrent les options, l'annulation, les délais et les diagnostics de WorkerPool, typées sans @types/node
+* `Amelioration` La bibliothèque Node.js est compilée avec le NDK r29 et garde l'alignement de page 16 KB sur les trois ABI; le script de recette des versions exécute la régression complète sur appareil, écrit un rapport JSON et mesure le démarrage à froid
+* `Dependance` Mise à jour de Node.js 24.21.0 -> 26.13.0 (V8 14.6, OpenSSL 3.5.9, ICU 78.3) avec des bibliothèques Android compilées depuis les sources pour les trois ABI
+* `Dependance` Mise à jour de npm 11.19.0 -> 11.20.0
 
 # v1.32.0
 
@@ -136,12 +156,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 ###### 2026/10/22
 
 * `Ajout` Génération de texte IA, flux, catalogue de modèles et sessions persistantes pour Node.js, Bun et Workers, avec annulation et consentement par application dans 3-Stone AI
-
-# v1.30.0
-
-###### 2026/10/21
-
-* `Ajout` Flow within/scope pour Node.js, Bun et les Workers, avec racines de recherche héritées, navigation par boussole, projections typées et surcharges press/swipe/gesture/gestures
 
 ##### Pour plus d'historique des versions
 
@@ -163,7 +177,7 @@ Build Release:
 .\gradlew.bat :app:assembleRelease
 ```
 
-Les parametres de build viennent de `version.properties`, le SDK minimal actuel est 24 et le SDK cible est 36.
+Les parametres de build viennent de `version.properties`, le SDK minimal actuel est 24 et le SDK cible est 37.
 
 ******
 

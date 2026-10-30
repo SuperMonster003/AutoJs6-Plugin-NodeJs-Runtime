@@ -4,6 +4,24 @@
 
 ******
 
+# v2.0.0
+
+###### 2026/10/30
+
+* `Hint` From plugin 2.0.0 on, scripts run on Node.js 26, which removes some APIs deprecated in Node.js 24 (for example SlowBuffer, the recursive option of fs.rmdir, constants such as fs.F_OK, assert.CallTracker and node:_stream_wrap); scripts that use them need updating. To stay on Node.js 24, uninstall 2.x and install a 1.x version (security updates only, maintained until 2028-04-30)
+* `Hint` Native addons (.node) built directly against V8 must be rebuilt for Node.js 26; Node-API addons are not affected
+* `Feature` The Temporal global built into Node.js 26 handles dates, times, time zones and calendars without extra libraries
+* `Feature` app, shell and shizuku modules for Node.js and Workers matching AutoJs6 scripts, including launching, uninstalling and stopping dual (cloned) apps; commands run through Shizuku, root or the plain shell, whichever is available first, and return Promises
+* `Feature` System information modules for Node.js and Workers matching AutoJs6 scripts: autojs, installer, memory, settings, sysprops, power_manager and autojs6:system (setScreenMetrics also scales accessibility clicks and gestures), plus notification switches and channels, dialogs.build, engines listing and stopping host scripts, plugins.extend and plugins.tools
+* `Feature` device, sensors and media modules for Node.js and Workers matching AutoJs6 scripts: device model, screen and manufacturer checks, the full vibration and keep-screen-on options, sensor events, music playback and media scanning; reading device identifiers requires the new device.identifiers capability
+* `Feature` colors/Color, files, zip, mime and the timing recorder for Node.js and Workers matching AutoJs6 scripts; dayjs, pangu.js, cheerio and banana-i18n are available through autojs6:global, and axios requests in Workers are handled by the main thread
+* `Fix` The Packages / java / android proxies installed by rhino.install() threw errors when reading static fields, calling describe(), calling static methods or creating objects with new
+* `Improvement` Node.js 26 no longer ships corepack; the plugin keeps bundling corepack 0.36.0 and the terminal usage is unchanged
+* `Improvement` TypeScript declarations of worker_threads cover WorkerPool options, cancellation, timeouts and diagnostics, so the module is typed without @types/node
+* `Improvement` The Node.js runtime library is built with NDK r29 and keeps 16 KB page alignment on all three ABIs; the release acceptance script runs the full device regression, writes a JSON report and measures cold start
+* `Dependency` Upgraded Node.js 24.21.0 -> 26.13.0 (V8 14.6, OpenSSL 3.5.9, ICU 78.3) using source-built Android libraries for all three ABIs
+* `Dependency` Upgraded npm 11.19.0 -> 11.20.0
+
 # v1.32.0
 
 ###### 2026/10/29

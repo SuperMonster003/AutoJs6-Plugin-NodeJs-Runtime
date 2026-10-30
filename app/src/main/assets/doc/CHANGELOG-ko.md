@@ -4,6 +4,24 @@
 
 ******
 
+# v2.0.0
+
+###### 2026/10/30
+
+* `힌트` 플러그인 2.0.0부터 Node.js 26에서 실행되며, Node.js 24에서 지원 중단된 일부 API (SlowBuffer, fs.rmdir의 recursive 옵션, fs.F_OK 등의 상수, assert.CallTracker, node:_stream_wrap 등) 가 제거되어 이를 사용하는 스크립트는 수정해야 함; Node.js 24를 계속 사용하려면 2.x를 제거한 뒤 1.x 버전을 설치 (보안 업데이트만 제공, 2028-04-30까지 유지)
+* `힌트` V8 API를 직접 사용해 빌드한 native addon (.node) 은 Node.js 26용으로 다시 빌드해야 하며, Node-API 기반 확장은 영향 없음
+* `추가` Node.js 26에 내장된 Temporal 전역 객체로 추가 라이브러리 없이 날짜, 시간, 시간대, 달력을 처리
+* `추가` Node.js/Worker에 AutoJs6 스크립트와 같은 app, shell, shizuku 모듈 추가, 듀얼 (복제) 앱의 실행, 제거, 중지를 포함하며 명령은 Shizuku, root, 일반 shell 중 먼저 사용 가능한 방식으로 실행되고 Promise를 반환
+* `추가` Node.js/Worker에 AutoJs6 스크립트와 같은 시스템 정보 모듈 추가: autojs, installer, memory, settings, sysprops, power_manager, autojs6:system (setScreenMetrics는 접근성 클릭과 제스처 좌표도 조정), 알림 스위치와 채널, dialogs.build, 호스트 스크립트를 나열하고 중지하는 engines, plugins.extend 및 plugins.tools
+* `추가` Node.js/Worker에 AutoJs6 스크립트와 같은 device, sensors, media 모듈 추가: 기기 모델, 화면 및 제조사 판별, 진동과 화면 켜짐 유지의 전체 옵션, 센서 이벤트, 음악 재생과 미디어 스캔; 기기 식별자를 읽으려면 새 device.identifiers 기능을 선언해야 함
+* `추가` Node.js/Worker에 AutoJs6 스크립트와 같은 colors/Color, files, zip, mime, 타이밍 기록기 추가; autojs6:global로 dayjs, pangu.js, cheerio, banana-i18n을 사용할 수 있고 Worker의 axios 요청은 메인 스레드가 처리
+* `수정` rhino.install()로 설치한 Packages / java / android 프록시에서 정적 필드 읽기, describe() 호출, 정적 메서드 호출, new로 객체 생성 시 오류가 발생하던 문제
+* `개선` Node.js 26은 더 이상 corepack을 포함하지 않지만 플러그인은 계속 corepack 0.36.0을 포함하며 터미널 사용법은 그대로
+* `개선` worker_threads의 TypeScript 선언에 WorkerPool 옵션, 취소, 시간 제한, 진단을 추가하여 @types/node 없이도 타입 지원
+* `개선` Node.js 런타임 라이브러리를 NDK r29로 빌드하고 세 ABI 모두 16 KB 페이지 정렬 유지; 릴리스 검수 스크립트가 기기 전체 회귀 테스트, JSON 보고서 작성, 콜드 스타트 측정을 지원
+* `의존성` Node.js 24.21.0 -> 26.13.0 업그레이드 (V8 14.6, OpenSSL 3.5.9, ICU 78.3), 세 ABI 모두 소스에서 빌드한 Android 라이브러리 사용
+* `의존성` npm 11.19.0 -> 11.20.0 업그레이드
+
 # v1.32.0
 
 ###### 2026/10/29

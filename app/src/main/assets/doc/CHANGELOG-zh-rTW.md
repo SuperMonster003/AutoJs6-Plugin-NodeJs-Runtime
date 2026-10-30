@@ -4,6 +4,24 @@
 
 ******
 
+# v2.0.0
+
+###### 2026/10/30
+
+* `提示` 外掛程式 2.0.0 起使用 Node.js 26, 移除了 Node.js 24 中已棄用的部分介面 (例如 SlowBuffer, fs.rmdir 的 recursive 選項, fs.F_OK 等常數, assert.CallTracker 和 node:_stream_wrap), 依賴它們的指令碼需要改寫; 需要繼續使用 Node.js 24 時可以解除安裝 2.x 後安裝 1.x 版本 (只接收安全性更新, 維護到 2028-04-30)
+* `提示` 直接呼叫 V8 介面編譯的 native addon (.node) 需要針對 Node.js 26 重新編譯, 基於 Node-API 的擴充功能不受影響
+* `新增` Node.js 26 內建的 Temporal 全域物件, 可直接處理日期, 時間, 時區與曆法, 不需要額外安裝函式庫
+* `新增` Node.js 與 Worker 的 app, shell 和 shizuku 模組與 AutoJs6 指令碼一致, 包括分身應用程式的啟動, 解除安裝與停止, 指令按 Shizuku, root, 一般 shell 的順序選擇可用的方式執行, 結果以 Promise 傳回
+* `新增` Node.js 與 Worker 的系統資訊模組與 AutoJs6 指令碼一致: autojs, installer, memory, settings, sysprops, power_manager 和 autojs6:system (setScreenMetrics 同時縮放無障礙點擊與手勢座標), 以及通知開關與頻道, dialogs.build, engines 列出與停止宿主中的指令碼, plugins.extend 與 plugins.tools
+* `新增` Node.js 與 Worker 的 device, sensors 和 media 模組與 AutoJs6 指令碼一致: 裝置型號, 螢幕與製造商判斷, 震動與螢幕常亮的完整用法, 感測器事件, 音樂播放與媒體掃描; 讀取裝置識別碼需要宣告新增的 device.identifiers 能力
+* `新增` Node.js 與 Worker 的 colors/Color, files, zip, mime 和計時記錄器與 AutoJs6 指令碼一致; 可透過 autojs6:global 使用 dayjs, pangu.js, cheerio 和 banana-i18n, Worker 中的 axios 請求交由主執行緒執行
+* `修復` rhino.install() 裝入的 Packages / java / android 代理在讀取靜態欄位, 呼叫 describe(), 呼叫靜態方法或用 new 建立物件時報錯的問題
+* `優化` Node.js 26 不再內附 corepack, 外掛程式繼續隨附 corepack 0.36.0, 終端機用法不變
+* `優化` worker_threads 模組的 TypeScript 宣告補充 WorkerPool 的選項, 取消, 逾時與診斷, 不安裝 @types/node 也有型別提示
+* `優化` Node.js 執行階段函式庫改用 NDK r29 建置, 三個 ABI 繼續保持 16 KB 記憶體頁對齊; 發布驗收指令碼可執行完整裝置迴歸測試, 輸出 JSON 報告並測量冷啟動耗時
+* `依賴` 升級 Node.js 24.21.0 -> 26.13.0 (V8 14.6, OpenSSL 3.5.9, ICU 78.3), 三個 ABI 均使用自建 Android 原始碼產物
+* `依賴` 升級 npm 11.19.0 -> 11.20.0
+
 # v1.32.0
 
 ###### 2026/10/29

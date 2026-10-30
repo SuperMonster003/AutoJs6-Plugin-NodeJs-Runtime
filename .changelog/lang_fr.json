@@ -5,6 +5,32 @@
   "changelog_label_improvement": "Amelioration",
   "changelog_label_dependency": "Dependance",
   "$data": {
+    "v2.0.0": {
+      "released_date": "2026/10/30",
+      "hint": [
+        "À partir du plugin 2.0.0, les scripts s'exécutent sous Node.js 26, qui supprime certaines API obsolètes dans Node.js 24 (par exemple SlowBuffer, l'option recursive de fs.rmdir, les constantes comme fs.F_OK, assert.CallTracker et node:_stream_wrap); les scripts qui les utilisent doivent être adaptés. Pour rester sur Node.js 24, désinstallez la version 2.x puis installez une version 1.x (mises à jour de sécurité uniquement, maintenue jusqu'au 2028-04-30)",
+        "Les addons natifs (.node) compilés directement contre V8 doivent être recompilés pour Node.js 26; les addons Node-API ne sont pas concernés"
+      ],
+      "feature": [
+        "L'objet global Temporal intégré à Node.js 26 gère les dates, les heures, les fuseaux horaires et les calendriers sans bibliothèque supplémentaire",
+        "Modules app, shell et shizuku pour Node.js et Workers conformes aux scripts AutoJs6, y compris le lancement, la désinstallation et l'arrêt des applications dupliquées (clones); les commandes passent par Shizuku, root ou le shell ordinaire, selon le premier disponible, et renvoient des Promises",
+        "Modules d'informations système pour Node.js et Workers conformes aux scripts AutoJs6 : autojs, installer, memory, settings, sysprops, power_manager et autojs6:system (setScreenMetrics met aussi à l'échelle les clics et gestes d'accessibilité), ainsi que les interrupteurs et canaux de notification, dialogs.build, engines pour lister et arrêter les scripts de l'hôte, plugins.extend et plugins.tools",
+        "Modules device, sensors et media pour Node.js et Workers conformes aux scripts AutoJs6 : modèle de l'appareil, vérifications d'écran et de fabricant, toutes les options de vibration et d'écran allumé, événements des capteurs, lecture de musique et analyse des médias; la lecture des identifiants de l'appareil exige la nouvelle capacité device.identifiers",
+        "colors/Color, files, zip, mime et l'enregistreur de durées pour Node.js et Workers conformes aux scripts AutoJs6; dayjs, pangu.js, cheerio et banana-i18n sont disponibles via autojs6:global, et les requêtes axios des Workers sont traitées par le thread principal"
+      ],
+      "fix": [
+        "Les proxys Packages / java / android installés par rhino.install() échouaient à la lecture des champs statiques, à l'appel de describe(), à l'appel de méthodes statiques ou à la création d'objets avec new"
+      ],
+      "improvement": [
+        "Node.js 26 ne fournit plus corepack; le plugin continue d'embarquer corepack 0.36.0 et son usage dans le terminal ne change pas",
+        "Les déclarations TypeScript de worker_threads couvrent les options, l'annulation, les délais et les diagnostics de WorkerPool, typées sans @types/node",
+        "La bibliothèque Node.js est compilée avec le NDK r29 et garde l'alignement de page 16 KB sur les trois ABI; le script de recette des versions exécute la régression complète sur appareil, écrit un rapport JSON et mesure le démarrage à froid"
+      ],
+      "dependency": [
+        "Mise à jour de Node.js 24.21.0 -> 26.13.0 (V8 14.6, OpenSSL 3.5.9, ICU 78.3) avec des bibliothèques Android compilées depuis les sources pour les trois ABI",
+        "Mise à jour de npm 11.19.0 -> 11.20.0"
+      ]
+    },
     "v1.32.0": {
       "released_date": "2026/10/29",
       "feature": [

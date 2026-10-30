@@ -5,6 +5,32 @@
   "changelog_label_improvement": "تحسين",
   "changelog_label_dependency": "اعتماد",
   "$data": {
+    "v2.0.0": {
+      "released_date": "2026/10/30",
+      "hint": [
+        "بدءا من الإضافة 2.0.0 تعمل السكربتات على Node.js 26 الذي أزال بعض الواجهات المهملة في Node.js 24 (مثل SlowBuffer وخيار recursive في fs.rmdir والثوابت مثل fs.F_OK و assert.CallTracker و node:_stream_wrap), لذا يجب تعديل السكربتات التي تستخدمها; للبقاء على Node.js 24 أزل تثبيت الإصدار 2.x ثم ثبت إصدارا من 1.x (تحديثات أمنية فقط, مع الصيانة حتى 2028-04-30)",
+        "يجب إعادة بناء ملفات native addon (.node) المبنية مباشرة على واجهات V8 من أجل Node.js 26, ولا تتأثر الملفات المبنية على Node-API"
+      ],
+      "feature": [
+        "كائن Temporal العام المدمج في Node.js 26 للتعامل مع التواريخ والأوقات والمناطق الزمنية والتقويمات دون مكتبات إضافية",
+        "وحدات app و shell و shizuku المطابقة لسكربتات AutoJs6 في Node.js و Worker, بما في ذلك تشغيل التطبيقات المزدوجة (المستنسخة) وإزالة تثبيتها وإيقافها; تنفذ الأوامر عبر Shizuku أو root أو shell العادي حسب أول طريقة متاحة وتعيد Promise",
+        "وحدات معلومات النظام المطابقة لسكربتات AutoJs6 في Node.js و Worker: autojs و installer و memory و settings و sysprops و power_manager و autojs6:system (يغير setScreenMetrics أيضا مقياس نقرات وإيماءات إمكانية الوصول), إضافة إلى مفاتيح الإشعارات وقنواتها و dialogs.build و engines لعرض سكربتات المضيف وإيقافها و plugins.extend و plugins.tools",
+        "وحدات device و sensors و media المطابقة لسكربتات AutoJs6 في Node.js و Worker: طراز الجهاز وفحوص الشاشة والشركة المصنعة وجميع خيارات الاهتزاز وإبقاء الشاشة مضاءة وأحداث المستشعرات وتشغيل الموسيقى وفحص الوسائط; تتطلب قراءة معرفات الجهاز التصريح بالقدرة الجديدة device.identifiers",
+        "colors/Color و files و zip و mime ومسجل التوقيت المطابقة لسكربتات AutoJs6 في Node.js و Worker; تتوفر dayjs و pangu.js و cheerio و banana-i18n عبر autojs6:global, ويعالج الخيط الرئيسي طلبات axios الصادرة من Worker"
+      ],
+      "fix": [
+        "كانت وكلاء Packages / java / android التي يثبتها rhino.install() تفشل عند قراءة الحقول الثابتة أو استدعاء describe() أو استدعاء الدوال الثابتة أو إنشاء الكائنات باستخدام new"
+      ],
+      "improvement": [
+        "لم يعد Node.js 26 يتضمن corepack, وتواصل الإضافة تضمين corepack 0.36.0 دون تغيير في استخدامه من الطرفية",
+        "تغطي تصريحات TypeScript لوحدة worker_threads خيارات WorkerPool والإلغاء والمهلات والتشخيص, فتتوفر الأنواع دون @types/node",
+        "تبنى مكتبة Node.js باستخدام NDK r29 مع الحفاظ على محاذاة صفحات 16 KB لمعمارية ABI الثلاث; يشغل سكربت قبول الإصدارات اختبار الانحدار الكامل على الجهاز ويكتب تقرير JSON ويقيس زمن التشغيل البارد"
+      ],
+      "dependency": [
+        "ترقية Node.js من 24.21.0 إلى 26.13.0 (V8 14.6 و OpenSSL 3.5.9 و ICU 78.3) باستخدام مكتبات Android المبنية من المصدر لمعمارية ABI الثلاث",
+        "ترقية npm من 11.19.0 إلى 11.20.0"
+      ]
+    },
     "v1.32.0": {
       "released_date": "2026/10/29",
       "feature": [
