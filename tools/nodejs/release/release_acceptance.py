@@ -11,7 +11,11 @@ Prints the device facts, the installed version before and after, and one line pe
 fail, test count, assumption skips, seconds). Instrumentation output is kept only for failing
 classes, cut to the failure summary. `--classes full` runs every `*SmokeTest` class plus the
 conformance, manifest and PluginInfo classes (the full device regression). `--skip-install` reuses
-the installed pair and `--report` writes the per-class results as JSON. `--cold-start N` then
+the installed pair and `--report` writes the per-class results as JSON. `--detached` starts each
+class without -w and reads the TestRunner logcat lines instead, for rental-device adb proxies that
+drop long instrumentation streams (Samsung Remote Test Lab); such a run has no UiAutomation, so
+NpmEcosystemSmokeTest and UnrestrictedFsSmokeTest fail there with a null UiAutomation and are rerun
+without it (their short -w runs, like the cold-start runs, survive the proxy). `--cold-start N` then
 force-stops the app N times and runs RuntimeColdStartMeasurementTest after each stop, printing
 the cold first output per run with its P50/P95, and the warm first output / environment /
 bootstrap P50/P95 as medians over the runs (the M23.8 table columns; M23.8 used 5 Debug and 3
@@ -105,6 +109,37 @@ def run_class(serial: str, name: str) -> dict:
             'detail': f'{summary}, {seconds}s; failed: {", ".join(failures) or "-"}; ' + ' | '.join(detail)}
 
 
+def run_class_detached(serial: str, name: str) -> dict:
+    # Rental-device proxies (Samsung Remote Test Lab) drop long `am instrument -w` streams, so the class starts
+    # without -w and the outcome comes from the TestRunner logcat lines, read with short commands. Without -w the
+    # runner gets no UiAutomation connection.
+    adb(serial, 'logcat', '-c')
+    started = time.monotonic()
+    adb(serial, 'shell', 'am', 'instrument', '-r', '-e', 'class', f'{PACKAGE}.{name}', RUNNER, timeout=120)
+    lines: dict[str, None] = {}  # Polled repeatedly so lines survive a rotating logcat buffer.
+    while True:
+        time.sleep(5)
+        _, log = adb(serial, 'logcat', '-d', '-v', 'tag', '-s', 'TestRunner:*', timeout=120)
+        lines.update(dict.fromkeys(log.splitlines()))
+        out = '\n'.join(lines)
+        finished = re.search(r'run finished: (\d+) tests?, (\d+) failed', out)
+        crashed = 'Process crashed' in out
+        elapsed = time.monotonic() - started
+        if finished or crashed or elapsed > 3600 or (elapsed > 180 and 'run started' not in out):
+            break
+    seconds = round(elapsed)
+    skips = len(re.findall(r'assumption failed: |ignored: ', out))
+    failures = re.findall(r'(?<!assumption )failed: (\S+)', out)
+    stacks = [stack[:4000] for stack in re.findall(r'----- begin exception -----\n(.*?)----- end exception -----', out, re.S)]
+    result = {'class': name, 'seconds': seconds, 'skips': skips, 'tests': int(finished.group(1)) if finished else 0}
+    if finished and finished.group(2) == '0' and not crashed:
+        return {**result, 'passed': True, 'detail': f'{finished.group(1)} tests, {skips} skipped, {seconds}s'}
+    summary = f'run {finished.group(1)}, failures {finished.group(2)}' if finished else \
+        'process crashed' if crashed else f'no run finished line ({" ".join(out.split())[-160:] or "no output"})'
+    return {**result, 'passed': False, 'failed': failures, 'stacks': stacks,
+            'detail': f'{summary}, {seconds}s; failed: {", ".join(failures) or "-"}'}
+
+
 def cold_start(serial: str, runs: int) -> dict:
     samples = []
     for _ in range(runs):
@@ -135,6 +170,8 @@ def main() -> int:
     parser.add_argument('--apk')
     parser.add_argument('--test-apk')
     parser.add_argument('--skip-install', action='store_true', help='run against the installed app and test APK')
+    parser.add_argument('--detached', action='store_true',
+                        help='start each class without -w and read TestRunner logcat (rental-device adb proxies)')
     parser.add_argument('--expect-version', help='versionName the installed app must report')
     parser.add_argument('--classes', default=','.join(DEFAULT_CLASSES),
                         help='comma-separated simple class names, or "full"')
@@ -170,7 +207,7 @@ def main() -> int:
 
     results = []
     for name in class_names(args.classes):
-        result = run_class(serial, name)
+        result = (run_class_detached if args.detached else run_class)(serial, name)
         results.append(result)
         failed |= not result['passed']
         print(f'{"ok  " if result["passed"] else "FAIL"}     {name}: {result["detail"]}', flush=True)
