@@ -10251,7 +10251,8 @@ std::string buildEmbeddedScriptExecutionSource(
       session.then(sub=>{if(sub)sub.close().catch(()=>{});});
     }
     const broadcast=Object.freeze({
-      emit:(name,...args)=>invoke("sendScriptBroadcast",[String(name),args]).then(Boolean),
+      // Waits for a session that is opening, so a broadcast right after the first on() reaches this script too (as Rhino's synchronous registration).
+      emit:(name,...args)=>Promise.resolve(broadcastSession).catch(()=>{}).then(()=>invoke("sendScriptBroadcast",[String(name),args])).then(Boolean),
       on(name,listener){broadcastEmitter.on(name,listener);broadcastListen();return broadcast;},
       addListener(name,listener){return broadcast.on(name,listener);},
       once(name,listener){broadcastEmitter.once(name,listener);broadcastListen();return broadcast;},

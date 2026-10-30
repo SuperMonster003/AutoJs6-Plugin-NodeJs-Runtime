@@ -283,6 +283,22 @@ test('touches follow the touch event timeout and broadcasts reach every script',
  await events.close();
 });
 
+test('a broadcast emitted right after the first on() waits for the opening session',async()=>{
+ const order=[];
+ const call=async(module,method,args)=>{
+  order.push(method);
+  if(method==='observeScriptBroadcasts'){await tick(50);order.push('observed');return {id:'b1',source:'scriptBroadcast'};}
+  if(method==='drainEvents')return [];
+  return true;
+ };
+ const events=createHostEvents(call,EventEmitter);
+ events.broadcast.on('x',()=>{});
+ assert.equal(await events.broadcast.emit('x',1),true);
+ assert.deepEqual(order.slice(0,3),['observeScriptBroadcasts','observed','sendScriptBroadcast']);
+ events.broadcast.removeAllListeners();
+ await events.close();
+});
+
 test('auto.registerEvent and stateListener open accessibility sessions with Rhino\'s distinct / debounce',async()=>{
  const host=eventsHost();
  const events=createHostEvents(host.call,EventEmitter);
