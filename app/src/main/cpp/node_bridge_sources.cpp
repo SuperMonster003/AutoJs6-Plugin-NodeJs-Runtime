@@ -3078,6 +3078,8 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_limited_images_cache = null;
   const __autojs6_recycled_image_handles = new Set();
   let __autojs6_limited_ocr_cache = null;
+  let __autojs6_limited_ocr_base_cache = null;
+  let __autojs6_limited_qrcode_cache = null;
   let __autojs6_limited_barcode_cache = null;
   let __autojs6_limited_media_cache = null;
   let __autojs6_limited_mediainfo_cache = null;
@@ -5326,6 +5328,10 @@ std::string buildEmbeddedScriptExecutionSource(
       return ["engines"];
     }
     if (moduleName === "accessibility") return ["accessibility"];
+    // api-coverage P3.4: the facades pass each call's capabilities; these are the routes' least ones (the host checks the rest).
+    if (moduleName === "automator") return methodName === "press" || methodName === "gestures" ? ["accessibility", "accessibility.gesture"] : ["accessibility"];
+    if (moduleName === "auto") return ["start", "stop", "launchSettings", "clearCache"].includes(methodName) ? ["accessibility", "accessibility.service"] : ["accessibility"];
+    if (moduleName === "yolo") return methodName === "close" ? ["yolo"] : ["yolo", "image"];
     if (moduleName === "compose") return ["ui"];
     if (moduleName === "media_projection" || moduleName === "screen_recorder") return ["screen_capture"];
     if (moduleName === "image" || moduleName === "images") {
@@ -5372,7 +5378,9 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     if (moduleName === "clipboard") return ["clipboard"];
     if (moduleName === "events") {
-      const capability = {observeNotification: "events.notification", observeToast: "events.toast", observeKey: "events.key"}[methodName];
+      if (methodName === "observeAccessibility" || methodName === "observeAccessibilityState") return ["accessibility"];
+      if (methodName === "interceptKeys") return ["events", "events.key", "events.key.intercept"];
+      const capability = {observeNotification: "events.notification", observeToast: "events.toast", observeKey: "events.key", observeTouch: "events.touch"}[methodName];
       return capability ? ["events", capability] : ["events"];
     }
     if (moduleName === "opencc" || moduleName === "pinyin" || moduleName === "pinyin4j" || moduleName === "console") return [moduleName];
@@ -5441,7 +5449,11 @@ std::string buildEmbeddedScriptExecutionSource(
       required === "memory.dump" ||
       required === "installer.mutate" ||
       // api-coverage P3.1c (Q146 (a)): the hardware identifiers are declared on their own.
-      required === "device.identifiers"
+      required === "device.identifiers" ||
+      // api-coverage P3.4 (Q178 (a)): service management, key interception and touches are declared on their own.
+      required === "accessibility.service" ||
+      required === "events.key.intercept" ||
+      required === "events.touch"
     ) {
       return declared.indexOf(required) >= 0;
     }
@@ -8655,7 +8667,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire, createApp, createSystem) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire, createApp, createSystem, createAutomation) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8856,14 +8868,22 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       modules.set("engines", Object.freeze(engines));
     }
+    // api-coverage P3.4: Rhino's automation family in Workers, from the main thread's factory (host routes called directly).
+    let systemKit = null, automationKit = null;
+    const automation = () => automationKit || (automationKit = createAutomation(bridgeCall, {
+      scale: () => systemKit ? systemKit.scale : { x: value => value, y: value => value },
+      system: () => modules.get("system"), flow: () => modules.get("flow"), events: () => modules.get("events"),
+      AsyncLocalStorage: JavaAsyncContext, console: nativeConsole, isMainThread: false, threadId: nativeRequire("worker_threads").threadId }));
     if (createSystem && methods.autojs) {
       let stopped = false;
       const system = createSystem(bridgeCall, { engine: constants.engineRecord || {}, device: constants.device || {}, EventEmitter: SensorEmitter,
         jsox: () => modules.get("jsox"), shell: () => modules.get("shell"), shizuku: () => modules.get("shizuku"),
+        automation: createAutomation ? automation : undefined,
         lifecycle: { isStopped: () => stopped, exit(error) {
           stopped = true;
           return forwardTo("system", "exit")(error === undefined ? undefined : { name: error && error.name, message: error && error.message !== undefined ? String(error.message) : String(error), stack: error && error.stack });
         } } });
+      systemKit = system;
       for (const name of ["autojs", "installer", "memory", "settings", "sysprops", "power_manager", "system"]) if (methods[name]) modules.set(name, system[name]);
       if (methods.system) system.installGlobals(globalThis);
       if (methods.plugins) modules.set("plugins", Object.freeze({ extend: system.plugins.extend, extendAll: system.plugins.extendAll,
@@ -8872,6 +8892,18 @@ std::string buildEmbeddedScriptExecutionSource(
     if (createSensors && methods.sensors) modules.set("sensors", createSensors(bridgeCall, SensorEmitter, undefined, undefined,
       { sensors: (constants.device || {}).sensors, missing: () => constants.sensorsMissing || [] }));
     if (createDatabase && methods.database) for (const [name, value] of Object.entries(createDatabase(bridgeCall))) modules.set(name, value);
+    if (createAutomation) {
+      for (const name of ["automator", "auto", "threads", "continuation", "timers", "yolo", "selector"]) if (methods[name]) modules.set(name, automation()[name]);
+      // keys: the KeyEvent codes here, the global actions on the main thread's facade; ocr: Rhino's modes over the main thread's base.
+      if (methods.keys) {
+        const keys = { ...automation().keys };
+        for (const method of methods.keys) if (!(method in keys)) keys[method] = (...args) => forwardTo("keys", method)(...args).then(Boolean);
+        modules.set("keys", Object.freeze(keys));
+      }
+      if (methods.ocr) modules.set("ocr", automation().rhinoOcr({ recognize: forwardTo("ocr", "recognize"), recognizeText: forwardTo("ocr", "recognizeText"),
+        detectTextBounds: forwardTo("ocr", "detectTextBounds") }));
+      if (methods.automator) automation().installGlobals(globalThis);
+    }
     for (const [module, names] of Object.entries(methods)) {
       if (modules.has(module)) continue;
       const value = module === "opencc" || module === "pinyin" ? (text, options) => value.convert(text, options)
@@ -8978,6 +9010,10 @@ std::string buildEmbeddedScriptExecutionSource(
       : name === "axios" ? __autojs6_worker_axios_target()
       : name === "engines" ? __autojs6_limited_engines()
       : name === "system" ? __autojs6_worker_system_target()
+      : name === "keys" ? __autojs6_keys()
+      : name === "ocr" ? __autojs6_limited_ocr_base()
+      : name === "barcode" ? __autojs6_limited_barcode()
+      : name === "qrcode" ? __autojs6_limited_qrcode()
       : name === "storages" || name === "storage" ? __autojs6_worker_storage_target(name) : null;
     if (!target || !Object.prototype.hasOwnProperty.call(target, method) || typeof target[method] !== "function") {
       throw __autojs6_invalid_arg_type("Unknown worker host module operation.");
@@ -9047,7 +9083,7 @@ std::string buildEmbeddedScriptExecutionSource(
       diagnostics: () => __autojs6_limited_axios().diagnostics()
     };
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, createApp, createSystem) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, createApp, createSystem, createAutomation) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -9139,7 +9175,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire, createApp, createSystem);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire, createApp, createSystem, createAutomation);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -9177,7 +9213,8 @@ std::string buildEmbeddedScriptExecutionSource(
         if (specifier === "autojs6:bridge") return { url: specifier, shortCircuit: true };
         const hostName = specifier === "node:console" ? "console" : specifier.startsWith("autojs6:") ? specifier.slice(8) : specifier;
         // events, util, global and zip answer only to their autojs6: names (bare util is node:util).
-        if (hostModules.has(hostName) && (!["events", "util", "global", "zip", "autojs", "installer", "memory", "settings", "sysprops", "power_manager", "system"].includes(hostName) ||
+        if (hostModules.has(hostName) && (!["events", "util", "global", "zip", "autojs", "installer", "memory", "settings", "sysprops", "power_manager", "system",
+            "automator", "auto", "threads", "continuation", "timers", "yolo", "selector", "qrcode"].includes(hostName) ||
             specifier === "autojs6:" + hostName)) {
           // Match the main thread: an installed npm opencc package shadows only the bare name.
           if (specifier === "opencc") {
@@ -9268,7 +9305,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", undefined, " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ", " + __autojs6_create_flow.toString() + ", " + __autojs6_create_ai.toString() + ", " + __autojs6_create_js_tools.toString() + ", " + __autojs6_create_app.toString() + ", " + __autojs6_create_system.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", undefined, " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ", " + __autojs6_create_flow.toString() + ", " + __autojs6_create_ai.toString() + ", " + __autojs6_create_js_tools.toString() + ", " + __autojs6_create_app.toString() + ", " + __autojs6_create_system.toString() + ", " + __autojs6_create_automation.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -9338,7 +9375,12 @@ std::string buildEmbeddedScriptExecutionSource(
             memory: Object.keys(__autojs6_limited_system().memory), settings: Object.keys(__autojs6_limited_system().settings),
             sysprops: Object.keys(__autojs6_limited_system().sysprops), power_manager: Object.keys(__autojs6_limited_system().power_manager),
             system: Object.keys(__autojs6_limited_system().system), plugins: ["extend", "extendAll", "extendAllBut", "tools"],
-            engines: Object.keys(__autojs6_limited_engines())
+            engines: Object.keys(__autojs6_limited_engines()),
+            automator: Object.keys(__autojs6_limited_automation().automator), auto: Object.keys(__autojs6_limited_automation().auto),
+            threads: Object.keys(__autojs6_limited_automation().threads), continuation: Object.keys(__autojs6_limited_automation().continuation),
+            timers: Object.keys(__autojs6_limited_automation().timers), yolo: Object.keys(__autojs6_limited_automation().yolo),
+            selector: Object.keys(__autojs6_limited_automation().selector), keys: Object.keys(__autojs6_keys()), ocr: Object.keys(__autojs6_limited_ocr()),
+            barcode: Object.keys(__autojs6_limited_barcode()), qrcode: Object.keys(__autojs6_limited_qrcode())
           },
           hostModuleConstants: {
             appInfo:__autojs6_host_app_info(), engineRecord: { ...__autojs6_host_app_info(), ...__autojs6_engine_record() }, engineInfo: __autojs6_current_engine_info(), appMissing:__autojs6_bridge_missing_capabilities(["app.launch","app.settings","app.activity","app.query","shell","shell.root","shell.shizuku"]),
@@ -10011,7 +10053,10 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return Math.min(10000, Math.trunc(duration));
   }
-  function __autojs6_create_host_events(call, EventEmitter, attachEvents, createError) {
+  // api-coverage P3.4: the module is also Rhino's events module (EventEmitter members, emitSticky, emitter, getTimer from
+  // rhino.timer, broadcast, the key / touch / notification / toast listeners and key interception); auto's accessibility
+  // sessions open through the hidden __autojs6Observe.
+  function __autojs6_create_host_events(call, EventEmitter, attachEvents, createError, rhino = {}) {
     const moduleEmitter = new EventEmitter(), subscriptions = new Map();
     const error = message => createError ? createError(message, "ERR_AUTOJS6_BRIDGE_INVALID_REQUEST", "events") : Object.assign(new TypeError(message), {code:"ERR_AUTOJS6_BRIDGE_INVALID_REQUEST"});
     const abortError = () => Object.assign(new Error("Event observation was aborted."), {name:"AbortError",code:"ABORT_ERR"});
@@ -10022,30 +10067,45 @@ std::string buildEmbeddedScriptExecutionSource(
       if (value.drainIntervalMs !== undefined && (!Number.isInteger(value.drainIntervalMs) || value.drainIntervalMs < 25 || value.drainIntervalMs > 60000)) throw error("drainIntervalMs must be an integer in 25..60000.");
       return value;
     };
-    const required = method => ["events", ...({observeNotification:["events.notification"],observeToast:["events.toast"],observeKey:["events.key"]}[method] || [])];
+    const required = method => method === "observeAccessibility" || method === "observeAccessibilityState" ? ["accessibility"]
+      : ["events", ...({observeNotification:["events.notification"],observeToast:["events.toast"],observeKey:["events.key"],
+        observeTouch:["events.touch"],interceptKeys:["events.key","events.key.intercept"]}[method] || [])];
+    // Names of other sources; any other module listener of a key session is a Rhino key name (volume_up, __key_down__#back, ...).
+    const RESERVED = new Set(["event","error","close","overflow","newListener","removeListener","notification","toast","screen_on","screen_off",
+      "battery_changed","touch","exit","accessibility","connected","disconnected","broadcast"]);
+    let touchTimeout = 10, lastTouch = 0;
     const invoke = (method,args,opts={}) => call("events",method,args,{timeoutMs:5000,...opts,permissions:required(method)});
     let closing = false, generation = 0;
-    function observe(method, input) {
+    function observe(method, input, params, cacheKey = method) {
       let opts;
       try { opts=options(input); if(opts.signal?.aborted)throw abortError(); if(closing)throw error("Event observers are closing."); }
       catch(e){return Promise.reject(e);}
-      if(subscriptions.has(method))return subscriptions.get(method).promise;
+      if(subscriptions.has(cacheKey))return subscriptions.get(cacheKey).promise;
       const entry={promise:null,refresh:()=>{}}, current=generation;
       entry.promise=(async()=>{
         // Keep late replies deliverable, so abort/Worker shutdown can release the native observer.
-        const record=await invoke(method,[],{...opts,signal:undefined,events:!!attachEvents});
+        const record=await invoke(method,params?[params]:[],{...opts,signal:undefined,events:!!attachEvents});
         if(opts.signal?.aborted || current!==generation){await invoke("close",[record.id]).catch(()=>{});throw abortError();}
         const emitter=new EventEmitter(), buffered=[];
         let closed=false,timer=null,draining=null,stopEvents=null,closePromise=null,dropped=0;
-        const kinds={broadcast:["screen_on","screen_off","battery_changed"],notification:["notification"],toast:["toast"],key:["key"]};
+        const kinds={broadcast:["screen_on","screen_off","battery_changed"],notification:["notification"],toast:["toast"],key:["key"],touch:["touch"]};
         const names=["event","error","close","overflow",...(kinds[record.source]||[])];
-        const count=()=>emitter.eventNames().reduce((n,key)=>n+emitter.listenerCount(key),0)+names.reduce((n,key)=>n+moduleEmitter.listenerCount(key),0);
+        const rhinoNames=()=>record.source==="key"?moduleEmitter.eventNames().filter(name=>typeof name==="string"&&!names.includes(name)&&!RESERVED.has(name)):[];
+        const count=()=>emitter.eventNames().reduce((n,key)=>n+emitter.listenerCount(key),0)+[...names,...rhinoNames()].reduce((n,key)=>n+moduleEmitter.listenerCount(key),0);
         const detach=()=>{if(timer!==null){clearTimeout(timer);timer=null;}if(stopEvents){stopEvents();stopEvents=null;}opts.signal?.removeEventListener("abort",onAbort);};
-        function forget(){closed=true;detach();if(subscriptions.get(method)===entry)subscriptions.delete(method);}
+        function forget(){closed=true;detach();if(subscriptions.get(cacheKey)===entry)subscriptions.delete(cacheKey);}
         const emit=(target,name,value)=>{if(name!=="error"||target.listenerCount("error"))target.emit(name,value);};
         function publish(event){
+          // Rhino's touch event timeout: at most one touch per getTouchEventTimeout() ms.
+          if(event.type==="touch"){const now=Date.now();if(now-lastTouch<touchTimeout)return;lastTouch=now;}
           emit(emitter,"event",event);emit(moduleEmitter,"event",event);
           if(event.type!=="event"){emit(emitter,event.type,event);emit(moduleEmitter,event.type,event);}
+          // Rhino's key events: the key name and __key_down__# / __key_up__# + name with the event, key_down / key_up with (keyCode, event).
+          if(event.type==="key"&&event.key){
+            moduleEmitter.emit(event.key,event);
+            moduleEmitter.emit("__key_"+event.action+"__#"+event.key,event);
+            moduleEmitter.emit("key_"+event.action,event.keyCode,event);
+          }
         }
         function receive(raw){
           if(closed)return;
@@ -10109,16 +10169,71 @@ std::string buildEmbeddedScriptExecutionSource(
         opts.signal?.addEventListener("abort",onAbort,{once:true});
         if(opts.signal?.aborted){await api.close();throw abortError();}
         refresh();return api;
-      })().catch(e=>{if(subscriptions.get(method)===entry)subscriptions.delete(method);throw e;});
-      subscriptions.set(method,entry);return entry.promise;
+      })().catch(e=>{if(subscriptions.get(cacheKey)===entry)subscriptions.delete(cacheKey);throw e;});
+      subscriptions.set(cacheKey,entry);return entry.promise;
     }
-    function listen(name,listener,once){
-      moduleEmitter[once?"once":"on"](name,listener);
+    const sticky=new Map();
+    // As Rhino's EventEmitter, a sticky event reaches a later listener at once (a once listener is then not added).
+    function listen(name,listener,once,prepend){
+      const args=sticky.get(String(name));
+      if(args&&typeof listener==="function"){listener.apply(api,args);if(once)return api;}
+      moduleEmitter[prepend?(once?"prependOnceListener":"prependListener"):(once?"once":"on")](name,listener);
       if(["screen_on","screen_off","battery_changed"].includes(name))observe("observeBroadcasts").catch(e=>{if(moduleEmitter.listenerCount("error"))moduleEmitter.emit("error",e);});
       for(const sub of subscriptions.values())sub.refresh();
       return api;
     }
-    const api=Object.freeze({
+    const refreshAll=()=>{for(const sub of subscriptions.values())sub.refresh();};
+    async function closeSource(cacheKey){
+      const entry=subscriptions.get(cacheKey);
+      if(!entry)return;
+      subscriptions.delete(cacheKey);
+      await entry.promise.then(sub=>sub.close(),()=>false);
+    }
+    function rhinoEmitter(target){
+      const stickyArgs=new Map(),proto=EventEmitter.prototype;
+      const add=(method,once)=>function(name,listener){
+        const args=stickyArgs.get(String(name));
+        if(args&&typeof listener==="function")listener.apply(target,args);
+        if(!args||!once)proto[method].call(target,name,listener);
+        return target;
+      };
+      Object.assign(target,{on:add("on",false),addListener:add("addListener",false),prependListener:add("prependListener",false),
+        once:add("once",true),prependOnceListener:add("prependOnceListener",true),
+        emitSticky(name,...args){const result=target.emit(name,...args);stickyArgs.set(String(name),args);return result;},
+        getTimer:()=>rhino.timer?rhino.timer():undefined});
+      return target;
+    }
+    // Rhino's events.broadcast: emit reaches every script's broadcast listeners (this one's too); listening opens the session.
+    const broadcastEmitter=new EventEmitter();
+    let broadcastSession=null;
+    function broadcastListen(){
+      if(!broadcastSession)broadcastSession=observe("observeScriptBroadcasts",undefined,undefined,"observeScriptBroadcasts").then(sub=>{
+        sub.on("broadcast",event=>broadcastEmitter.emit(String(event.name),...(Array.isArray(event.args)?event.args:[])));return sub;
+      }).catch(e=>{broadcastSession=null;if(broadcastEmitter.listenerCount("error"))broadcastEmitter.emit("error",e);});
+    }
+    const broadcast=Object.freeze({
+      emit:(name,...args)=>invoke("sendScriptBroadcast",[String(name),args]).then(Boolean),
+      on(name,listener){broadcastEmitter.on(name,listener);broadcastListen();return broadcast;},
+      addListener(name,listener){return broadcast.on(name,listener);},
+      once(name,listener){broadcastEmitter.once(name,listener);broadcastListen();return broadcast;},
+      off(name,listener){broadcastEmitter.off(name,listener);return broadcast;},
+      removeListener(name,listener){broadcastEmitter.off(name,listener);return broadcast;},
+      removeAllListeners(name){if(name===undefined)broadcastEmitter.removeAllListeners();else broadcastEmitter.removeAllListeners(name);return broadcast;},
+      listenerCount:name=>broadcastEmitter.listenerCount(name),eventNames:()=>broadcastEmitter.eventNames()
+    });
+    // Rhino's setKeyInterceptionEnabled(enabled) / (key, enabled): consumed keys while the host session lives.
+    let interceptAll=false;const interceptedKeys=new Set();
+    async function setKeyInterceptionEnabled(key,enabled){
+      if(typeof key==="boolean"&&enabled===undefined)interceptAll=key;
+      else{
+        if(key===undefined||key===null)throw error("The key of setKeyInterceptionEnabled must be a key name.");
+        if(enabled)interceptedKeys.add(String(key).toLowerCase());else interceptedKeys.delete(String(key).toLowerCase());
+      }
+      await closeSource("interceptKeys");
+      if(interceptAll||interceptedKeys.size)await observe("interceptKeys",undefined,{all:interceptAll,keys:[...interceptedKeys]});
+    }
+    const keyName=(prefix,key)=>{if(key===undefined||key===null)throw error("A key name is required.");return prefix+String(key);};
+    const api={
       observeNotification:opts=>observe("observeNotification",opts),observeToast:opts=>observe("observeToast",opts),
       observeKey:opts=>observe("observeKey",opts),observeBroadcasts:opts=>observe("observeBroadcasts",opts),
       on:(name,listener)=>listen(name,listener,false),once:(name,listener)=>listen(name,listener,true),
@@ -10128,10 +10243,43 @@ std::string buildEmbeddedScriptExecutionSource(
         try{
           const results=await Promise.allSettled([...subscriptions.values()].map(entry=>entry.promise.then(sub=>sub.close(opts))));
           const failed=results.find(row=>row.status==="rejected"&&row.reason?.code!=="ABORT_ERR");if(failed)throw failed.reason;
-        }finally{moduleEmitter.removeAllListeners();closing=false;}
-      }
-    });
-    return api;
+        }finally{moduleEmitter.removeAllListeners();sticky.clear();broadcastEmitter.removeAllListeners();broadcastSession=null;closing=false;}
+      },
+      addListener:(name,listener)=>listen(name,listener,false),
+      prependListener:(name,listener)=>listen(name,listener,false,true),
+      prependOnceListener:(name,listener)=>listen(name,listener,true,true),
+      removeListener(name,listener){return api.off(name,listener);},
+      removeAllListeners(name){if(name===undefined)moduleEmitter.removeAllListeners();else moduleEmitter.removeAllListeners(name);refreshAll();return api;},
+      // As Rhino, an error event without listeners is not thrown.
+      emit:(name,...args)=>name==="error"&&!moduleEmitter.listenerCount("error")?false:moduleEmitter.emit(name,...args),
+      emitSticky(name,...args){const result=api.emit(name,...args);sticky.set(String(name),args);return result;},
+      eventNames:()=>moduleEmitter.eventNames(),
+      getMaxListeners:()=>moduleEmitter.getMaxListeners(),
+      setMaxListeners(value){moduleEmitter.setMaxListeners(value);return api;},
+      listenerCount:name=>moduleEmitter.listenerCount(name),
+      listeners:name=>moduleEmitter.listeners(name),
+      emitter:()=>rhinoEmitter(new EventEmitter()),
+      getTimer:()=>rhino.timer?rhino.timer():undefined,
+      broadcast,
+      onKeyDown:(key,listener)=>listen(keyName("__key_down__#",key),listener,false),
+      onceKeyDown:(key,listener)=>listen(keyName("__key_down__#",key),listener,true),
+      removeAllKeyDownListeners:key=>api.removeAllListeners(keyName("__key_down__#",key)),
+      onKeyUp:(key,listener)=>listen(keyName("__key_up__#",key),listener,false),
+      onceKeyUp:(key,listener)=>listen(keyName("__key_up__#",key),listener,true),
+      removeAllKeyUpListeners:key=>api.removeAllListeners(keyName("__key_up__#",key)),
+      setKeyInterceptionEnabled:(key,enabled)=>setKeyInterceptionEnabled(key,enabled),
+      observeTouch:opts=>observe("observeTouch",opts,{timeout:0}),
+      onTouch:listener=>listen("touch",listener,false),
+      removeAllTouchListeners:()=>api.removeAllListeners("touch"),
+      getTouchEventTimeout:()=>touchTimeout,
+      setTouchEventTimeout(value){const millis=Number(value);if(!Number.isFinite(millis)||millis<0)throw error("The touch event timeout must be a non-negative number.");touchTimeout=millis;},
+      onNotification:listener=>listen("notification",listener,false),
+      onToast:listener=>listen("toast",listener,false),
+      removeNotificationObserver:()=>closeSource("observeNotification"),
+      removeToastObserver:()=>closeSource("observeToast")
+    };
+    Object.defineProperty(api,"__autojs6Observe",{value:(method,input,params,cacheKey)=>observe(method,input,params,cacheKey)});
+    return Object.freeze(api);
   }
   function __autojs6_create_notifications(call, createError, scope="notifications-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2), java, engine) {
     const error=message=>createError?createError(message,"ERR_AUTOJS6_BRIDGE_INVALID_REQUEST","notifications"):Object.assign(new TypeError(message),{code:"ERR_AUTOJS6_BRIDGE_INVALID_REQUEST"});
@@ -10223,7 +10371,7 @@ std::string buildEmbeddedScriptExecutionSource(
   // Main-thread event and notification facades.
   function __autojs6_host_events() {
     return __autojs6_host_events_cache ||= __autojs6_create_host_events(__autojs6_call_autojs,
-      __autojs6_events_module().EventEmitter,__autojs6_bridge_attach_events,__autojs6_bridge_error);
+      __autojs6_events_module().EventEmitter,__autojs6_bridge_attach_events,__autojs6_bridge_error,{timer:()=>__autojs6_limited_sensors().getTimer()});
   }
   // Shared device and dialog facades for Node main threads, Workers and Bun.
   function __autojs6_create_device(call, snapshot = {}, scope = "device-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2), extras = {}) {
@@ -25264,7 +25412,17 @@ std::string buildEmbeddedScriptExecutionSource(
       return result;
     }
     const metrics = { width: 0, height: 0 };
+    // api-coverage P3.4 (Q179): Rhino's global sleep (a Promise in main threads and Workers) and wait (wait.async is
+    // flow.waitAsync) come from the automation family's factory.
+    const automation = () => {
+      if (!host.automation) throw Object.assign(new Error("sleep and wait need the automation family of this runtime."), { code: "ERR_AUTOJS6_RHINO_COMPAT_UNSUPPORTED" });
+      return host.automation();
+    };
+    const wait = (...args) => { try { return automation().wait(...args); } catch (error) { return Promise.reject(error); } };
+    wait.async = (...args) => automation().wait.async(...args);
     const system = {
+      sleep: (...args) => { try { return automation().sleep(...args); } catch (error) { return Promise.reject(error); } },
+      wait,
       currentPackage: mode => current("currentPackage", "package", mode),
       currentActivity: mode => current("currentActivity", "activity", mode),
       currentComponent: mode => current("currentComponent", "component", mode),
@@ -26454,6 +26612,8 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_system_global_names = [];
   function __autojs6_install_system_globals() {
     try { __autojs6_system_global_names = __autojs6_limited_system().installGlobals(globalThis); } catch (_) {}
+    // api-coverage P3.4 (Q177 (a)): the automation family's globals join them.
+    try { __autojs6_system_global_names = __autojs6_system_global_names.concat(__autojs6_limited_automation().installGlobals(globalThis)); } catch (_) {}
   }
   let __autojs6_system_stopped = false;
   let __autojs6_system_stop_watch = false;
@@ -26465,6 +26625,7 @@ std::string buildEmbeddedScriptExecutionSource(
       jsox: () => __autojs6_js_tools().jsox,
       shell: () => __autojs6_limited_shell(),
       shizuku: () => __autojs6_limited_shizuku(),
+      automation: () => __autojs6_limited_automation(),
       lifecycle: {
         isStopped() {
           if (!__autojs6_system_stop_watch) {
@@ -26482,6 +26643,850 @@ std::string buildEmbeddedScriptExecutionSource(
           process.exit();
         }
       }
+    });
+  }
+  // api-coverage P3.4: Rhino's automation family for Node main threads and Workers (the Bun client copies the factory).
+  // automator / auto reach the host's RuntimeAutomationBridge (bridge modules automator, auto, yolo) and the events
+  // sessions of auto.registerEvent / stateListener; threads, continuation, timers and the global functions are local
+  // (Q175 (a) / Q176 (a) / Q179). Coordinates follow setScreenMetrics through host.scale (Rhino ScreenMetrics.scaleX / scaleY).
+  // host: scale() -> {x, y}, system(), flow(), events() (the host events module), timer() (the thread's Rhino timer),
+  // AsyncLocalStorage, console, isMainThread, threadId.
+  function __autojs6_create_automation(call, host = {}) {
+    const nullish = value => value === undefined || value === null;
+    const plain = value => value !== null && typeof value === "object" && !Array.isArray(value);
+    const isNumber = value => typeof value === "number" && !Number.isNaN(value);
+    const int = value => Math.trunc(Number(value));
+    const invalid = (fn, message) => Object.assign(new TypeError(fn + ": " + message), { code: "ERR_AUTOJS6_BRIDGE_INVALID_REQUEST" });
+    const outOfRange = (fn, message) => Object.assign(new RangeError(fn + ": " + message), { code: "ERR_AUTOJS6_BRIDGE_INVALID_REQUEST" });
+    const abortError = () => Object.assign(new Error("The operation was aborted."), { name: "AbortError", code: "ABORT_ERR" });
+    const delay = (ms, signal) => new Promise((resolve, reject) => {
+      if (signal && signal.aborted) return reject(abortError());
+      const timer = setTimeout(() => { if (signal) signal.removeEventListener("abort", onAbort); resolve(); }, Math.max(0, ms));
+      function onAbort() { clearTimeout(timer); reject(abortError()); }
+      if (signal) signal.addEventListener("abort", onAbort, { once: true });
+    });
+    const logger = () => host.console || globalThis.console;
+    // The host's YOLO failures start with Rhino's code (YOLO_*), copied to error.code.
+    function coded(error) {
+      const match = error && typeof error.message === "string" && /\b(YOLO_[A-Z_]+): /.exec(error.message);
+      if (match) try { error.code = match[1]; } catch (_) { /* A frozen error keeps its code. */ }
+      return error;
+    }
+    function invoke(module, method, args, permissions, timeoutMs = 30000, options) {
+      const value = plain(options) ? options : {};
+      try {
+        return Promise.resolve(call(module, method, args, { timeoutMs: value.timeoutMs !== undefined ? value.timeoutMs : timeoutMs, signal: value.signal, permissions }))
+          .catch(error => { throw coded(error); });
+      } catch (error) {
+        return Promise.reject(coded(error));
+      }
+    }
+    const rejecting = fn => (...args) => { try { return fn(...args); } catch (error) { return Promise.reject(error); } };
+    const A11Y = ["accessibility"], GESTURE = ["accessibility", "accessibility.gesture"], KEYS = ["keys"];
+    const SERVICE = ["accessibility", "accessibility.service"], YOLO = ["yolo", "image"];
+    const scale = () => host.scale ? host.scale() : { x: value => value, y: value => value };
+    const point = (x, y) => { const s = scale(); return [s.x(int(x)), s.y(int(y))]; };
+
+    // automator
+    const ACCESSIBILITY_ACTIONS = ["back", "home", "recents"];
+    const globalAction = name => options => invoke("automator", "globalAction", [name], ACCESSIBILITY_ACTIONS.includes(name) ? A11Y : KEYS, 10000, options).then(Boolean);
+    const tap = (kind, x, y) => invoke("automator", "tap", [...point(x, y), kind], A11Y, 10000).then(Boolean);
+    // A bounds object ({left, top, right, bottom}, an Android Rect's fields) or a node snapshot's bounds.
+    function boundsOf(value) {
+      const b = plain(value) && plain(value.bounds) ? value.bounds : value;
+      return plain(b) && ["left", "top", "right", "bottom"].every(key => isNumber(b[key])) ? b : null;
+    }
+    // Rhino's single-argument points: [x, y], [x] (both x), or {x, y}.
+    function pointOf(value) {
+      if (Array.isArray(value) && isNumber(value[0])) {
+        if (isNumber(value[1])) return [value[0], value[1]];
+        if (nullish(value[1])) return [value[0], value[0]];
+      }
+      if (plain(value) && !nullish(value.x) && !nullish(value.y)) return [value.x, value.y];
+      return null;
+    }
+    // Rhino performAction: (text, index?) or (left, top, right, bottom).
+    function targetOf(fn, args) {
+      if (args.length === 4 && args.every(isNumber)) return { bounds: args.map(int) };
+      if (args.length === 1 || args.length === 2) {
+        if (nullish(args[0])) throw invalid(fn, "text must not be null or undefined");
+        return { text: String(args[0]), index: args.length === 2 ? int(args[1]) : -1 };
+      }
+      throw invalid(fn, "arguments must be (x, y), (point), (bounds), (text, index?) or (left, top, right, bottom), got " + args.length);
+    }
+    const clickLike = (kind, fn) => rejecting((...args) => {
+      if (args.length === 0) throw invalid(fn, "arguments cannot be empty");
+      if (args.length === 1) {
+        const bounds = boundsOf(args[0]);
+        if (bounds) return tap(kind, Math.trunc((bounds.left + bounds.right) / 2), Math.trunc((bounds.top + bounds.bottom) / 2));
+        const p = pointOf(args[0]);
+        if (p) return tap(kind, p[0], p[1]);
+      }
+      if (args.length === 2 && isNumber(args[0]) && isNumber(args[1])) return tap(kind, args[0], args[1]);
+      return invoke("automator", "targetAction", [kind, targetOf(fn, args)], A11Y, 10000).then(Boolean);
+    });
+    // Android's tap timeout, Rhino's press duration when none is given.
+    const TAP_TIMEOUT = 100;
+    const press = rejecting((...args) => {
+      let x, y, duration = TAP_TIMEOUT;
+      if (args.length === 1 && Array.isArray(args[0])) [x, y] = args[0];
+      else if (args.length === 2 && isNumber(args[0]) && Array.isArray(args[1])) { duration = args[0]; [x, y] = args[1]; }
+      else if (args.length === 2 && Array.isArray(args[0]) && isNumber(args[1])) { [x, y] = args[0]; duration = args[1]; }
+      else if (args.length === 2 && isNumber(args[0]) && isNumber(args[1])) [x, y] = args;
+      else if (args.length === 3) [x, y, duration] = args;
+      else throw invalid("automator.press", "arguments must be (x, y, duration?), (point, duration?) or (duration, point)");
+      return invoke("automator", "press", [...point(x, y), int(duration)], GESTURE, int(duration) + 10000).then(Boolean);
+    });
+    // Rhino toPointsGroup: [x1, y1, x2, y2, ...], [[x, y], ...], [x, y] arguments, or [x] for (x, x).
+    function pointsGroup(fn, args) {
+      const list = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+      if (list.length > 0 && list.every(item => typeof item === "number")) {
+        if (list.length % 2 !== 0) throw invalid(fn, "the amount of point coordinates must be even");
+        const result = [];
+        for (let i = 0; i < list.length; i += 2) result.push([list[i], list[i + 1]]);
+        return result;
+      }
+      const result = [];
+      for (const item of list) {
+        if (!Array.isArray(item) || item.length === 0) throw invalid(fn, "a point must be a non-empty array");
+        if (item.every(Array.isArray)) result.push(...pointsGroup(fn, [item]));
+        else if (item.length === 1) result.push([item[0], item[0]]);
+        else if (item.length === 2) result.push([item[0], item[1]]);
+        else throw invalid(fn, "a point has too many elements");
+      }
+      return result;
+    }
+    const stroke = (start, duration, points) => [int(start), int(duration), points.map(([x, y]) => point(x, y))];
+    // Rhino toStrokes: [start, duration, [x, y], ...] or [duration, [x, y], ...].
+    function strokesOf(fn, list) {
+      if (list.length === 0) throw invalid(fn, "at least one stroke is required");
+      return list.map(item => {
+        if (!Array.isArray(item)) throw invalid(fn, "a stroke must be an array");
+        const timed = typeof item[1] === "number";
+        const points = item.slice(timed ? 2 : 1);
+        if (points.length === 0 || !points.every(Array.isArray)) throw invalid(fn, "a stroke needs [x, y] points");
+        return stroke(timed ? item[0] : 0, timed ? item[1] : item[0], points.map(p => [p[0], p[1]]));
+      });
+    }
+    const gestureTimeout = strokes => Math.max(...strokes.map(([start, duration]) => start + duration)) + 10000;
+    const sendStrokes = (strokes, async) => invoke("automator", "gestures", [strokes, async], GESTURE, gestureTimeout(strokes)).then(Boolean);
+    const isCallback = value => typeof value === "function" || plain(value) && (typeof value.onCompleted === "function" || typeof value.onCancelled === "function");
+    function notify(callback, ok) {
+      if (typeof callback === "function") callback(ok);
+      else if (ok && typeof callback.onCompleted === "function") callback.onCompleted();
+      else if (!ok && typeof callback.onCancelled === "function") callback.onCancelled();
+    }
+    // Rhino's *Async gestures return at once; a callback hears the result (true / onCompleted, false / onCancelled).
+    function dispatchAsync(strokes, callback) {
+      if (!callback) return sendStrokes(strokes, true).then(() => undefined);
+      sendStrokes(strokes, false).then(ok => queueMicrotask(() => notify(callback, ok)), () => queueMicrotask(() => notify(callback, false)));
+      return Promise.resolve();
+    }
+    const swipe = rejecting((...args) => {
+      const fn = "automator.swipe";
+      let a, b, duration;
+      if (args.length === 5) { a = [args[0], args[1]]; b = [args[2], args[3]]; duration = args[4]; }
+      else if (args.length === 2 || args.length === 3) {
+        const numberFirst = isNumber(args[0]);
+        duration = numberFirst ? args[0] : args[args.length - 1];
+        [a, b] = pointsGroup(fn, numberFirst ? args.slice(1) : args.slice(0, -1));
+      } else throw invalid(fn, "arguments length (" + args.length + ") is unacceptable");
+      if (!a || !b || !isNumber(Number(duration))) throw invalid(fn, "two points and a duration are required");
+      return sendStrokes([stroke(0, duration, [a, b])], false);
+    });
+    const gesture = rejecting((duration, ...points) => {
+      if (nullish(duration)) throw invalid("automator.gesture", "arguments cannot be empty");
+      return sendStrokes([stroke(0, duration, pointsGroup("automator.gesture", points))], false);
+    });
+    const gestureAsync = rejecting((duration, ...rest) => {
+      if (nullish(duration)) throw invalid("automator.gestureAsync", "arguments cannot be empty");
+      const callback = rest.length > 0 && isCallback(rest[rest.length - 1]) ? rest.pop() : null;
+      return dispatchAsync([stroke(0, duration, pointsGroup("automator.gestureAsync", rest))], callback);
+    });
+    const gestures = rejecting((...list) => sendStrokes(strokesOf("automator.gestures", list), false));
+    const gesturesAsync = rejecting((...list) => {
+      const callback = list.length > 0 && isCallback(list[list.length - 1]) ? list.pop() : null;
+      const strokes = list.length === 1 && Array.isArray(list[0]) && list[0].every(Array.isArray) && Array.isArray(list[0][0]) && list[0][0].some(Array.isArray) ? list[0] : list;
+      return dispatchAsync(strokesOf("automator.gesturesAsync", strokes), callback);
+    });
+    const scroll = (direction, fn) => rejecting((...args) => {
+      if (args.length === 0) return invoke("automator", "scroll", [direction, -1], A11Y, 10000).then(Boolean);
+      if (args.length === 1 && isNumber(args[0])) return invoke("automator", "scroll", [direction, int(args[0])], A11Y, 10000).then(Boolean);
+      return invoke("automator", "targetAction", [direction === "up" ? "scrollUp" : "scrollDown", targetOf(fn, args)], A11Y, 10000).then(Boolean);
+    });
+    // Rhino's input appends to, setText replaces the text of the index-th editable node (all of them without an index).
+    const edit = (mode, fn) => rejecting((...args) => {
+      if (args.length < 1 || args.length > 2) throw invalid(fn, "arguments must be (text) or (index, text)");
+      const [index, text] = args.length === 2 ? [int(args[0]), args[1]] : [-1, args[0]];
+      return invoke("automator", "editText", [mode, index, String(text)], A11Y, 10000).then(Boolean);
+    });
+    const isServiceRunning = options => invoke("automator", "isServiceRunning", [], A11Y, 5000, options).then(Boolean);
+    const ensureService = options => invoke("automator", "ensureService", [], A11Y, 30000, options).then(() => undefined);
+    // D-1 (Q179): the wait of auto.waitFor / automator.waitForService. The service is enabled when it can be (no settings
+    // page), then polled every 200 ms; a timeout rejects with ERR_AUTOJS6_TIMEOUT (Rhino ends the script).
+    async function waitForService(timeout, options) {
+      const limit = nullish(timeout) ? -1 : Number(timeout);
+      if (Number.isNaN(limit)) throw invalid("auto.waitFor", "timeout must be a number");
+      const signal = plain(options) ? options.signal : undefined;
+      const start = Date.now();
+      await invoke("accessibility", "ensureEnabled", [{ prompt: false }], A11Y, 30000, options).catch(error => {
+        if (error && (error.code === "ERR_AUTOJS6_CAPABILITY_NOT_DECLARED" || error.name === "AbortError")) throw error;
+      });
+      for (;;) {
+        if (await invoke("accessibility", "isEnabled", [], A11Y, 5000, options) === true) return;
+        if (limit >= 0 && Date.now() - start >= limit) {
+          throw Object.assign(new Error("The accessibility service did not start within " + limit + " ms."), { code: "ERR_AUTOJS6_TIMEOUT" });
+        }
+        await delay(200, signal);
+      }
+    }
+    // Rhino's retry(fn, options | times): reruns fn(attempt) after a failure, times 3, delay 500 ms, backoff 1 by default.
+    async function retry(fn, options) {
+      if (typeof fn !== "function") throw invalid("retry", "fn must be a function");
+      const o = isNumber(options) ? { times: options } : plain(options) ? options : {};
+      const times = nullish(o.times) ? 3 : int(o.times), pause = nullish(o.delay) ? 500 : Number(o.delay), backoff = nullish(o.backoff) ? 1 : Number(o.backoff);
+      if (!(times >= 0)) throw outOfRange("retry", "times must not be negative");
+      if (!(pause >= 0)) throw outOfRange("retry", "delay must not be negative");
+      if (!(backoff >= 1)) throw outOfRange("retry", "backoff must be at least 1");
+      for (let attempt = 0; ; attempt++) {
+        try {
+          return await fn(attempt);
+        } catch (error) {
+          if (attempt >= times || error && (error.name === "AbortError" || error.code === "CANCELLED")) throw error;
+          const wait = Math.round(pause * Math.pow(backoff, attempt));
+          if (wait > 0) await delay(wait, o.signal);
+        }
+      }
+    }
+    const headsetHook = globalAction("headsetHook");
+    const automator = {
+      click: clickLike("click", "automator.click"), longClick: clickLike("longClick", "automator.longClick"), press, swipe,
+      gesture, gestureAsync, gestures, gesturesAsync,
+      scrollUp: scroll("up", "automator.scrollUp"), scrollDown: scroll("down", "automator.scrollDown"),
+      input: edit("append", "automator.input"), setText: edit("set", "automator.setText"),
+      back: globalAction("back"), home: globalAction("home"), recents: globalAction("recents"),
+      notifications: globalAction("notifications"), quickSettings: globalAction("quickSettings"), powerDialog: globalAction("powerDialog"),
+      splitScreen: globalAction("splitScreen"), lockScreen: globalAction("lockScreen"), takeScreenshot: globalAction("takeScreenshot"),
+      headsetHook, headsethook: headsetHook, accessibilityButton: globalAction("accessibilityButton"),
+      accessibilityButtonChooser: globalAction("accessibilityButtonChooser"), accessibilityShortcut: globalAction("accessibilityShortcut"),
+      accessibilityAllApps: globalAction("accessibilityAllApps"), dismissNotificationShade: globalAction("dismissNotificationShade"),
+      switchToInputMethod: (packageName, options) => invoke("automator", "switchToInputMethod", [String(packageName)], A11Y, 10000, options).then(Boolean),
+      switchToInputMethodWithId: (id, options) => invoke("automator", "switchToInputMethodWithId", [String(id)], A11Y, 10000, options).then(Boolean),
+      isServiceRunning, ensureService, waitForService,
+      // Rhino's accessibility screenshot (Android 11+): an image handle of the images module.
+      captureScreen: options => invoke("accessibility", "captureScreenImage", [], ["accessibility", "screen_capture", "image"], 30000, options).then(Object.freeze),
+      retry
+    };
+
+    // auto
+    const MODES = ["normal", "fast"];
+    const FLAGS = ["findOnUiThread", "useUsageStats", "useShell", "appWindowsFallback", "eventAssistedPolling", "noFastPath", "noRefreshOnHit"];
+    let mode = "normal", windowFilter = null;
+    const flags = new Set();
+    function modeOf(fn, value) {
+      if (typeof value !== "string") throw invalid(fn, "mode must be a string");
+      const lower = value.toLowerCase();
+      if (!MODES.includes(lower)) throw outOfRange(fn, "mode must be one of " + MODES.join(", ") + ", got \"" + value + "\"");
+      return lower;
+    }
+    function flagNames(fn, names) {
+      const list = typeof names === "string" ? [names] : Array.isArray(names) ? names : null;
+      if (!list) throw invalid(fn, "flags must be a string or an array of strings");
+      return list.map(String);
+    }
+    const policy = () => [mode, flags.has("appWindowsFallback")];
+    // Rhino WindowMatchArguments: type (a name or names), packageName / title (a string or a RegExp), displayId, active, focused, id, layer.
+    function windowMatch(fn, options) {
+      if (nullish(options)) return () => true;
+      if (!plain(options)) throw invalid(fn, "options must be an object");
+      const KEYS = ["type", "packageName", "title", "displayId", "active", "focused", "id", "layer"];
+      for (const key of Object.keys(options)) if (!KEYS.includes(key)) throw outOfRange(fn, "unknown key \"" + key + "\"; expected " + KEYS.join(", "));
+      const text = (pattern, value) => pattern instanceof RegExp ? pattern.test(String(value ?? "")) : String(pattern) === String(value ?? "");
+      return window => KEYS.every(key => {
+        const expected = options[key];
+        if (nullish(expected)) return true;
+        if (key === "type") return (Array.isArray(expected) ? expected : [expected]).map(String).includes(String(window.type));
+        if (key === "packageName" || key === "title") return text(expected, window[key]);
+        return window[key] === expected;
+      });
+    }
+    const snapshot = value => nullish(value) ? null : Object.freeze(value);
+    const list = value => Object.freeze((Array.isArray(value) ? value : []).map(item => Object.freeze(item)));
+    const windowsOf = options => invoke("auto", "windows", [], A11Y, 10000, options).then(list);
+    async function filteredRoots(match, options) {
+      const ids = (await windowsOf(options)).filter(match).map(window => window.id);
+      return list(await invoke("auto", "roots", [...policy(), ids], A11Y, 10000, options));
+    }
+    function windowFilterOf(filter) {
+      if (nullish(filter)) return null;
+      if (typeof filter === "boolean") return () => filter;
+      if (typeof filter === "function") return window => !!filter(window);
+      if (plain(filter)) return windowMatch("auto.setWindowFilter", filter);
+      throw invalid("auto.setWindowFilter", "filter must be a function, a boolean or a window filter object");
+    }
+    const state = options => invoke("auto", "state", [], A11Y, 5000, options).then(value => Object.freeze({ ...value }));
+    const stateField = name => options => state(options).then(value => value[name] === true);
+    const eventSessions = new Map();
+    let stateSession = null;
+    const observe = (method, params, key) => {
+      const events = host.events && host.events();
+      if (!events || typeof events.__autojs6Observe !== "function") return Promise.reject(invalid("auto." + method, "event sessions are unavailable in this runtime"));
+      return events.__autojs6Observe(method, {}, params, key);
+    };
+    async function removeEvent(name) {
+      if (nullish(name)) throw invalid("auto.removeEvent", "name cannot be null or undefined");
+      const key = String(name), session = eventSessions.get(key);
+      eventSessions.delete(key);
+      if (session) await session.close().catch(() => false);
+    }
+    // auto.registerEvent(name, listener, options?): the host delivers the events of name; distinct ('window' / 'source' /
+    // true / key function, within 500 ms by default) and debounce run here, as Rhino's A11yEventBus options.
+    async function registerEvent(name, listener, options) {
+      const fn = "auto.registerEvent";
+      if (nullish(name)) throw invalid(fn, "name cannot be null or undefined");
+      const handler = typeof listener === "function" ? listener
+        : plain(listener) && typeof listener.onAccessibilityEvent === "function" ? event => listener.onAccessibilityEvent(event)
+          : nullish(listener) ? null : (() => { throw invalid(fn, "listener must be a function or an object with onAccessibilityEvent"); })();
+      const o = nullish(options) ? {} : plain(options) ? options : (() => { throw invalid(fn, "options must be an object"); })();
+      const windowKey = event => event.packageName + "/" + event.className;
+      const distinct = o.distinct;
+      const keyOf = nullish(distinct) || distinct === false ? null : distinct === true || distinct === "window" ? windowKey
+        : distinct === "source" ? event => windowKey(event) + "#" + JSON.stringify(event.source && event.source.bounds)
+          : typeof distinct === "function" ? distinct : (() => { throw outOfRange(fn, "option distinct must be 'window', 'source', a boolean or a function"); })();
+      const within = nullish(o.within) ? keyOf ? 500 : 0 : Number(o.within), debounce = nullish(o.debounce) ? 0 : Number(o.debounce);
+      if (!(within >= 0) || !(debounce >= 0)) throw outOfRange(fn, "options within and debounce cannot be negative");
+      const key = String(name);
+      await removeEvent(key);
+      if (!handler) return;
+      const session = await observe("observeAccessibility", { names: [key] }, "observeAccessibility:" + key);
+      let lastKey, lastTime = 0, pending = null, timer = null;
+      const deliver = event => {
+        if (keyOf) {
+          const value = keyOf(event), now = Date.now();
+          if (now - lastTime <= within && value === lastKey) return;
+          lastKey = value; lastTime = now;
+        }
+        handler(event);
+      };
+      session.on("accessibility", event => {
+        if (debounce <= 0) return deliver(event);
+        pending = event;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => { timer = null; const value = pending; pending = null; deliver(value); }, debounce);
+      });
+      session.on("close", () => { if (timer) clearTimeout(timer); if (eventSessions.get(key) === session) eventSessions.delete(key); });
+      eventSessions.set(key, session);
+    }
+    // auto.stateListener(listener?): onConnected / onDisconnected of the service (a function hears "connected" / "disconnected").
+    async function stateListener(listener) {
+      if (!nullish(listener) && typeof listener !== "function" && !plain(listener)) throw invalid("auto.stateListener", "listener must be an object or a function");
+      const previous = stateSession;
+      stateSession = null;
+      if (previous) await previous.close().catch(() => false);
+      if (nullish(listener)) return;
+      const session = await observe("observeAccessibilityState", null, "observeAccessibilityState");
+      const relay = type => () => {
+        if (typeof listener === "function") listener(type);
+        else if (typeof listener["on" + type[0].toUpperCase() + type.slice(1)] === "function") listener["on" + type[0].toUpperCase() + type.slice(1)]();
+      };
+      session.on("connected", relay("connected")).on("disconnected", relay("disconnected"));
+      stateSession = session;
+    }
+    const current = (part, fn) => options => host.system ? host.system()[fn]("accessibility", options)
+      : invoke("accessibility", "flowForeground", [], A11Y, 10000, options).then(answer => {
+        const info = answer && answer.value || {};
+        return part === "package" ? String(info.packageName || "") : part === "activity" ? String(info.activityName || "")
+          : info.packageName && info.activityName ? info.packageName + "/" + info.activityName : "";
+      });
+    // auto.explain(selector, options?) / auto.dump(options?) over the accessibility diagnostics (selector descriptors of the accessibility module).
+    async function explain(selector, options) {
+      if (!plain(selector)) throw invalid("auto.explain", "selector must be a selector descriptor object");
+      const result = await invoke("accessibility", "explain", [selector, plain(options) ? options : {}], A11Y, 30000, options);
+      const text = String(result && result.text || "");
+      return Object.freeze(Object.defineProperty({ ...result }, "toString", { value: () => text }));
+    }
+    async function dump(options) {
+      const o = nullish(options) ? {} : typeof options === "string" ? { format: options } : plain(options) ? options : null;
+      if (!o) throw invalid("auto.dump", "options must be a format name or an object");
+      const { signal, timeoutMs, ...rest } = o;
+      const result = await invoke("accessibility", "dump", [rest], A11Y, 30000, { signal, timeoutMs });
+      return typeof result.text === "string" ? result.text : JSON.stringify(result.nodes || []);
+    }
+    async function ensure(forceRestart, options) {
+      if (forceRestart === true) {
+        await invoke("auto", "stop", [], SERVICE, 30000, options);
+        await invoke("auto", "start", [], SERVICE, 30000, options);
+      }
+      await ensureService(options);
+    }
+    // auto() / auto(forceRestart) / auto(mode) / auto(mode, forceRestart): sets the mode, then makes sure the service runs.
+    const auto = rejecting(function auto(first, second) {
+      if (typeof first === "string") {
+        mode = modeOf("auto", first);
+        if (second !== undefined && typeof second !== "boolean") throw invalid("auto", "forceRestart must be a boolean");
+        return ensure(second === true);
+      }
+      if (first !== undefined && typeof first !== "boolean") throw invalid("auto", "the argument must be a mode or a boolean");
+      return ensure(first === true);
+    });
+    const autoMembers = {
+      start: options => invoke("auto", "start", [], SERVICE, 30000, options).then(Boolean),
+      stop: options => invoke("auto", "stop", [], SERVICE, 30000, options).then(Boolean),
+      hasInstance: stateField("hasInstance"), hasService: stateField("hasService"), exists: stateField("hasService"),
+      isRunning: stateField("isRunning"), isOperational: stateField("isOperational"),
+      stateListener: rejecting(stateListener), registerEvent: rejecting(registerEvent), registerEvents: rejecting(registerEvent),
+      removeEvent: rejecting(removeEvent), removeEvents: rejecting(removeEvent),
+      waitFor: rejecting(waitForService), wait: (...args) => host.flow().wait(...args),
+      setMode(value) { mode = modeOf("auto.setMode", value); },
+      setFlags(names) {
+        const set = new Set(), cleared = new Set();
+        for (const name of flagNames("auto.setFlags", names)) {
+          const negated = name.startsWith("!"), flag = negated ? name.slice(1) : name;
+          if (!FLAGS.includes(flag)) throw outOfRange("auto.setFlags", "unknown flag \"" + name + "\"");
+          (negated ? cleared : set).add(flag);
+        }
+        const both = [...set].filter(flag => cleared.has(flag));
+        if (both.length) throw outOfRange("auto.setFlags", "flags both set and cleared: " + both.join(", "));
+        flags.clear();
+        for (const flag of set) flags.add(flag);
+      },
+      clearFlags(names) {
+        for (const name of flagNames("auto.clearFlags", names)) {
+          if (!FLAGS.includes(name)) throw outOfRange("auto.clearFlags", "unknown flag \"" + name + "\"");
+          flags.delete(name);
+        }
+      },
+      getWindowRoot: rejecting((window, options) => {
+        const id = isNumber(window) ? window : plain(window) && isNumber(window.id) ? window.id : null;
+        if (id === null) throw invalid("auto.getWindowRoot", "window must be a window snapshot or a window id");
+        return invoke("auto", "windowRoot", [id], A11Y, 10000, options).then(snapshot);
+      }),
+      setWindowFilter(filter) { windowFilter = windowFilterOf(filter); },
+      findWindows: rejecting((options, callOptions) => {
+        const match = windowMatch("auto.findWindows", options);
+        return windowsOf(callOptions).then(windows => Object.freeze(windows.filter(match)));
+      }),
+      findWindowRoots: rejecting((options, callOptions) => filteredRoots(windowMatch("auto.findWindowRoots", options), callOptions)),
+      launchSettings: options => invoke("auto", "launchSettings", [], SERVICE, 10000, options).then(() => undefined),
+      clearCache: options => invoke("auto", "clearCache", [], SERVICE, 10000, options).then(Boolean),
+      currentPackage: current("package", "currentPackage"), currentActivity: current("activity", "currentActivity"),
+      currentComponent: current("component", "currentComponent"),
+      explain: rejecting(explain), dump: rejecting(dump)
+    };
+    for (const [name, value] of Object.entries(autoMembers)) Object.defineProperty(auto, name, { value, enumerable: true });
+    // Rhino's getters: a new Promise per read, left out of the ESM named exports.
+    const getters = {
+      service: () => invoke("auto", "service", [], A11Y, 5000).then(snapshot),
+      services: () => invoke("auto", "services", [], A11Y, 5000).then(list),
+      windows: () => windowsOf(),
+      root: () => invoke("auto", "activeRoot", policy(), A11Y, 10000).then(snapshot),
+      rootInActiveWindow: () => invoke("auto", "activeRoot", ["normal", false], A11Y, 10000).then(snapshot),
+      windowRoots: () => windowFilter ? filteredRoots(windowFilter) : invoke("auto", "roots", policy(), A11Y, 10000).then(list),
+      state: () => state(),
+      // Node: the service state with this thread's mode, flags and event registrations (Rhino's node lookup counters stay in the host).
+      stats: () => state().then(value => Object.freeze({ ...value, mode, flags: Object.freeze([...flags]), windowFilter: !!windowFilter,
+        events: Object.freeze([...eventSessions.keys()]), stateListener: !!stateSession }))
+    };
+    for (const [name, get] of Object.entries(getters)) Object.defineProperty(auto, name, { get: Object.assign(get, { __autojs6LazyExport: true }), enumerable: true });
+
+    // keys: KeyEvent codes of Rhino's keys module.
+    const keys = Object.freeze({ home: 3, HOME: 3, back: 4, BACK: 4, menu: 82, MENU: 82, volumeUp: 24, volume_up: 24, VOLUME_UP: 24,
+      volumeDown: 25, volume_down: 25, VOLUME_DOWN: 25 });
+
+    // threads (D-6, Q175 (a) / Q176 (a)): threads.start runs the function as an asynchronous task of this thread; atomic and
+    // lock live in a SharedArrayBuffer that postMessage hands to Workers (threads.atomic(buffer) / threads.lock(buffer)).
+    const context = typeof host.AsyncLocalStorage === "function" ? new host.AsyncLocalStorage() : null;
+    const thisThread = Object.freeze({ id: Number(host.threadId) || 0, name: host.isMainThread === false ? "worker-" + (Number(host.threadId) || 0) : "main",
+      isMainThread: host.isMainThread !== false, toString() { return "Thread[" + this.name + "]"; } });
+    const tasks = new Set(), pools = new Set();
+    let sequence = 0;
+    const currentSignal = () => { const task = context && context.getStore(); return task ? task.signal : undefined; };
+    function start(action) {
+      const run = typeof action === "function" ? action : action && typeof action.run === "function" ? () => action.run() : null;
+      if (!run) throw invalid("threads.start", "action must be a function or an object with run()");
+      const controller = new AbortController(), id = ++sequence, name = "Thread-" + id;
+      let alive = true, markStarted, finish;
+      const started = new Promise(resolve => { markStarted = resolve; }), done = new Promise(resolve => { finish = resolve; });
+      const handle = Object.freeze({
+        id, name, signal: controller.signal,
+        isAlive: () => alive, isInterrupted: () => controller.signal.aborted, interrupt() { controller.abort(); },
+        getId: () => id, getName: () => name,
+        join: timeout => nullish(timeout) || !(Number(timeout) > 0) ? done.then(() => true)
+          : Promise.race([done.then(() => true), delay(Number(timeout)).then(() => !alive)]),
+        waitFor: () => started,
+        toString() { return "Thread[" + name + "]"; }
+      });
+      tasks.add(handle);
+      setImmediate(async () => {
+        markStarted();
+        try {
+          if (!controller.signal.aborted) await (context ? context.run(handle, () => run(controller.signal)) : run(controller.signal));
+        } catch (error) {
+          if (!(controller.signal.aborted && error && error.name === "AbortError")) logger().error(name + ": " + (error && error.stack || error));
+        } finally {
+          alive = false; tasks.delete(handle); finish();
+        }
+      });
+      return handle;
+    }
+    function pool(options) {
+      const fn = "threads.pool";
+      if (!nullish(options) && !plain(options)) throw invalid(fn, "options must be an object");
+      const o = options || {};
+      const count = (key, fallback) => {
+        if (nullish(o[key])) return fallback;
+        const value = Number(o[key]);
+        if (!Number.isFinite(value)) throw invalid(fn, "options." + key + " must be a number");
+        if (value < 0) throw outOfRange(fn, "options." + key + " must not be negative");
+        return Math.trunc(value);
+      };
+      const core = count("corePoolSize", 0), max = count("maxPoolSize", 0);
+      count("keepAliveTime", 60000);
+      const limit = max > 0 ? max : core > 0 ? core : Infinity;
+      const queue = [], running = new Set();
+      let shutdown = false, idle;
+      const drained = () => new Promise(resolve => { idle = resolve; if (!running.size && !queue.length) resolve(); });
+      function pump() {
+        while (running.size < limit && queue.length) {
+          const job = queue.shift(), task = start(job.run);
+          running.add(task);
+          task.join().then(() => { running.delete(task); pump(); });
+          job.resolve(task);
+        }
+        if (!running.size && !queue.length && idle) idle();
+      }
+      function enqueue(action) {
+        if (shutdown) throw Object.assign(new Error("The pool is shut down."), { name: "RejectedExecutionException" });
+        if (typeof action !== "function") throw invalid(fn + ".submit", "the task must be a function");
+        let settle, fail;
+        const result = new Promise((resolve, reject) => { settle = resolve; fail = reject; });
+        const job = { run: signal => Promise.resolve().then(() => action(signal)).then(settle, error => { fail(error); throw error; }), resolve: () => {} };
+        queue.push(job);
+        pump();
+        return result;
+      }
+      const executor = Object.freeze({
+        submit(action) { const result = enqueue(action); result.catch(() => {}); return result; },
+        execute(action) { enqueue(action).catch(() => {}); },
+        shutdown() { shutdown = true; pump(); },
+        shutdownNow() { shutdown = true; const pending = queue.splice(0).length; for (const task of running) task.interrupt(); return pending; },
+        isShutdown: () => shutdown,
+        isTerminated: () => shutdown && !running.size && !queue.length,
+        awaitTermination: timeout => Promise.race([drained().then(() => true), nullish(timeout) ? new Promise(() => {}) : delay(Number(timeout)).then(() => !running.size && !queue.length)]),
+        getActiveCount: () => running.size, getQueueSize: () => queue.length
+      });
+      pools.add(executor);
+      return executor;
+    }
+    const sharedOf = (fn, value, bytes) => {
+      const buffer = value instanceof SharedArrayBuffer ? value : plain(value) && value.buffer instanceof SharedArrayBuffer ? value.buffer : null;
+      if (buffer && buffer.byteLength < bytes) throw invalid(fn, "the shared buffer is too small");
+      return buffer;
+    };
+    function atomic(initial) {
+      const shared = sharedOf("threads.atomic", initial, 8);
+      const buffer = shared || new SharedArrayBuffer(8), cell = new BigInt64Array(buffer, 0, 1);
+      if (!shared) {
+        const value = nullish(initial) ? 0 : Number(initial);
+        if (!Number.isFinite(value)) throw invalid("threads.atomic", "the initial value must be a number");
+        Atomics.store(cell, 0, BigInt(Math.trunc(value)));
+      }
+      const n = value => BigInt(Math.trunc(Number(value)));
+      const get = () => Number(Atomics.load(cell, 0));
+      return Object.freeze({
+        buffer, get, valueOf: get, toString: () => String(get()),
+        set(value) { Atomics.store(cell, 0, n(value)); },
+        getAndSet: value => Number(Atomics.exchange(cell, 0, n(value))),
+        compareAndSet: (expected, value) => Atomics.compareExchange(cell, 0, n(expected), n(value)) === n(expected),
+        getAndAdd: delta => Number(Atomics.add(cell, 0, n(delta))),
+        addAndGet: delta => Number(Atomics.add(cell, 0, n(delta)) + n(delta)),
+        getAndIncrement: () => Number(Atomics.add(cell, 0, 1n)), incrementAndGet: () => Number(Atomics.add(cell, 0, 1n) + 1n),
+        getAndDecrement: () => Number(Atomics.sub(cell, 0, 1n)), decrementAndGet: () => Number(Atomics.sub(cell, 0, 1n) - 1n)
+      });
+    }
+    // A non-reentrant mutex (asynchronous tasks have no owner thread to re-enter with).
+    function lock(sharedBuffer) {
+      const shared = sharedOf("threads.lock", sharedBuffer, 4);
+      const buffer = shared || new SharedArrayBuffer(4), cell = new Int32Array(buffer, 0, 1);
+      const tryOnce = () => Atomics.compareExchange(cell, 0, 0, 1) === 0;
+      async function acquire(deadline) {
+        while (!tryOnce()) {
+          const wait = deadline === Infinity ? undefined : deadline - Date.now();
+          if (wait !== undefined && wait <= 0) return false;
+          const result = Atomics.waitAsync(cell, 0, 1, wait);
+          if (result.async) await result.value;
+        }
+        return true;
+      }
+      return Object.freeze({
+        buffer,
+        lock: () => acquire(Infinity).then(() => undefined),
+        tryLock: timeout => nullish(timeout) ? Promise.resolve(tryOnce()) : acquire(Date.now() + Math.max(0, Number(timeout) || 0)),
+        unlock() {
+          if (Atomics.compareExchange(cell, 0, 1, 0) !== 1) throw Object.assign(new Error("The lock is not locked."), { name: "IllegalMonitorStateException" });
+          Atomics.notify(cell, 0, 1);
+        },
+        isLocked: () => Atomics.load(cell, 0) === 1
+      });
+    }
+    // VolatileDispose: blockedGet resolves with the value set by setAndNotify, or null after the timeout.
+    function disposable() {
+      let set = false, value, waiters = [];
+      const settle = () => { const list = waiters; waiters = []; for (const waiter of list) waiter(); };
+      function wait(timeout) {
+        if (set) return Promise.resolve(true);
+        const signal = currentSignal();
+        return new Promise((resolve, reject) => {
+          let timer = null;
+          const done = ok => { if (timer) clearTimeout(timer); if (signal) signal.removeEventListener("abort", onAbort); resolve(ok); };
+          function onAbort() { waiters = waiters.filter(waiter => waiter !== wake); if (timer) clearTimeout(timer); reject(abortError()); }
+          const wake = () => done(true);
+          waiters.push(wake);
+          if (!nullish(timeout) && Number(timeout) > 0) timer = setTimeout(() => { waiters = waiters.filter(waiter => waiter !== wake); done(false); }, Number(timeout));
+          if (signal) signal.addEventListener("abort", onAbort, { once: true });
+        });
+      }
+      return Object.freeze({
+        setAndNotify(next) { value = next; set = true; settle(); },
+        blockedGet: timeout => wait(timeout).then(ok => ok ? value : null),
+        async blockedGetOrThrow(ErrorClass, timeout, defaultValue) {
+          try {
+            return await wait(timeout) ? value : defaultValue;
+          } catch (error) {
+            if (typeof ErrorClass === "function") throw new ErrorClass(error.message);
+            throw error;
+          }
+        }
+      });
+    }
+    // sync(fn, lock?): calls of the returned function on the same lock (a threads.lock, any object, else the call's this,
+    // else fn) run one after another.
+    const chains = new WeakMap();
+    function sync(fn, key) {
+      if (typeof fn !== "function") throw invalid("sync", "fn must be a function");
+      const wrapped = function(...args) {
+        const target = key !== undefined && key !== null ? key : (this !== undefined && this !== null && this !== globalThis ? this : fn);
+        if (target && typeof target.lock === "function" && typeof target.unlock === "function" && target.buffer instanceof SharedArrayBuffer) {
+          return target.lock().then(async () => { try { return await fn.apply(this, args); } finally { target.unlock(); } });
+        }
+        const previous = chains.get(target) || Promise.resolve();
+        const result = previous.then(() => fn.apply(this, args));
+        chains.set(target, result.catch(() => {}));
+        return result;
+      };
+      return wrapped;
+    }
+    const threads = Object.freeze({
+      start: action => start(action),
+      pool, atomic, lock, disposable,
+      interrupt(thread) { if (thread && typeof thread.interrupt === "function") thread.interrupt(); },
+      shutDownAll() { for (const executor of pools) executor.shutdownNow(); for (const task of tasks) task.interrupt(); },
+      currentThread: () => (context && context.getStore()) || thisThread,
+      sync
+    });
+
+    // continuation: Node awaits natively (enabled is true); create() is a resumable promise.
+    const continuation = Object.freeze({
+      enabled: true,
+      create() {
+        let state = null, resolveValue, rejectValue;
+        const promise = new Promise((resolve, reject) => { resolveValue = resolve; rejectValue = reject; });
+        promise.catch(() => {});
+        return Object.freeze({
+          await: () => promise,
+          resume(value) { if (state === null) { state = "resumed"; resolveValue(value); } },
+          resumeError(error) { if (state === null) { state = "failed"; rejectValue(error); } }
+        });
+      },
+      await: value => Promise.resolve(value),
+      delay: millis => delay(Number(millis) || 0)
+    });
+
+    // timers (D-8, Q179): keepAlive keeps the event loop busy with an empty Node timer; setIntervalExt is Rhino's (Q5 local-shim).
+    let loopWarned = false;
+    const timers = Object.freeze({
+      keepAlive(timeout) {
+        const millis = nullish(timeout) ? 0 : Math.max(0, Math.trunc(Number(timeout)));
+        if (Number.isNaN(millis)) throw invalid("timers.keepAlive", "timeout must be a number");
+        return millis === 0 ? setInterval(() => {}, 10000) : setTimeout(() => {}, millis);
+      },
+      setIntervalExt(listener, interval, timeoutOrCondition, callback) {
+        if (typeof listener !== "function") throw invalid("timers.setIntervalExt", "listener must be a function");
+        const every = nullish(interval) ? 0 : Number(interval);
+        if (Number.isNaN(every)) throw invalid("timers.setIntervalExt", "interval must be a number");
+        const condition = typeof timeoutOrCondition === "function" ? timeoutOrCondition : null;
+        const total = condition || nullish(timeoutOrCondition) ? 0 : Number(timeoutOrCondition);
+        if (Number.isNaN(total)) throw invalid("timers.setIntervalExt", "timeoutOrCondition must be a number or a function");
+        const pause = every > 0 ? every : 200, limit = total > 0 ? total : Infinity, begin = Date.now();
+        const record = { interval: pause, timeout: limit, initTimestamp: begin };
+        const tick = () => {
+          listener();
+          const result = condition ? condition.call(record) : Date.now() - begin > limit;
+          if (result === false || nullish(result)) record.handle = setTimeout(tick, pause);
+          else if (typeof callback === "function") callback.call(record, result);
+        };
+        record.handle = setTimeout(tick, pause);
+        return record.handle;
+      },
+      loop() {
+        if (!loopWarned) { loopWarned = true; logger().warn("Method loop has been abandoned and should not be used"); }
+      }
+    });
+
+    // yolo: detector sessions of the host (Rhino's yolo.load / YoloDetector); an image is an images handle.
+    const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
+    function detector(record) {
+      let closed = false;
+      return Object.freeze({
+        id: record.id, component: record.component,
+        get closed() { return closed; },
+        detect: rejecting((image, options) => {
+          const id = handleId(image);
+          if (!id) throw Object.assign(invalid("YoloDetector.detect", "an image handle is required"), { code: "YOLO_INVALID_ARGUMENT" });
+          const { signal, timeoutMs, ...rest } = plain(options) ? options : {};
+          return invoke("yolo", "detect", [record.id, String(id), rest], YOLO, (Number(rest.timeoutMillis) || 10000) + 5000, { signal, timeoutMs })
+            .then(items => Object.freeze((items || []).map(item => Object.freeze({ ...item, bounds: Object.freeze({ ...item.bounds }) }))));
+        }),
+        close(options) {
+          if (closed) return Promise.resolve(false);
+          closed = true;
+          return invoke("yolo", "close", [record.id], ["yolo"], 10000, options).then(Boolean);
+        },
+        toString() { return "YoloDetector{component=" + record.component + (closed ? ", closed" : "") + "}"; }
+      });
+    }
+    const yolo = Object.freeze({
+      load: rejecting((modelDir, options) => {
+        const { signal, timeoutMs, ...rest } = plain(options) ? options : {};
+        return invoke("yolo", "load", [nullish(modelDir) ? "" : String(modelDir), rest], YOLO, (Number(rest.timeoutMillis) || 30000) + 5000, { signal, timeoutMs }).then(detector);
+      })
+    });
+
+    // ocr: Rhino's mode (tap / mode / options.mode), detect, summary and the fixed-engine ocr.mlkit / paddle / rapid over the
+    // base recognize / recognizeText / detectTextBounds of a thread. Node's recognizeText still resolves with one string.
+    const ENGINES = { mlkit: "mlkit-ocr", paddle: "paddle-ocr", rapid: "rapid-ocr" };
+    function ocrModeOf(fn, value) {
+      const name = nullish(value) || value === "" ? "auto" : String(value).toLowerCase();
+      if (name !== "auto" && !ENGINES[name]) throw outOfRange(fn, "mode must be one of auto, mlkit, paddle, rapid, got \"" + value + "\"");
+      return name;
+    }
+    function rhinoOcr(base) {
+      let ocrMode = "auto";
+      const withEngine = (fn, options, fixed) => {
+        const o = plain(options) ? { ...options } : {};
+        const selected = fixed || (o.mode !== undefined ? ocrModeOf(fn, o.mode) : ocrMode);
+        delete o.mode;
+        if (selected !== "auto" && nullish(o.engine) && nullish(o.engineId)) o.engine = ENGINES[selected];
+        return o;
+      };
+      const bound = fixed => ({
+        recognize: rejecting((image, options) => base.recognize(image, withEngine("ocr.recognize", options, fixed))),
+        recognizeText: rejecting((image, options) => base.recognizeText(image, withEngine("ocr.recognizeText", options, fixed))),
+        detect: rejecting((image, options) => base.detectTextBounds(image, withEngine("ocr.detect", options, fixed))),
+        detectTextBounds: rejecting((image, options) => base.detectTextBounds(image, withEngine("ocr.detectTextBounds", options, fixed)))
+      });
+      const summary = () => ["[ OCR summary ]", "Current mode: " + ocrMode, "Available modes: [ " + Object.keys(ENGINES).join(", ") + " ] (the installed OCR plugins answer at call time)"].join("\n");
+      const ocr = { ...bound(null), tap(value) { ocrMode = ocrModeOf("ocr.tap", value); }, summary, toString: summary };
+      for (const name of Object.keys(ENGINES)) {
+        const fixed = bound(name);
+        ocr[name] = Object.freeze({ recognize: fixed.recognize, recognizeText: fixed.recognizeText, detect: fixed.detect, toString: () => "[ OCR " + name + " ]" });
+      }
+      Object.defineProperty(ocr, "mode", { get: () => ocrMode, set: value => { ocrMode = ocrModeOf("ocr.mode", value); }, enumerable: true });
+      return Object.freeze(ocr);
+    }
+
+    // Rhino's global sleep and wait (wait.async = flow.waitAsync), and the selector module's pickup / detect / existsOne /
+    // existsAll over flow's one-probe wait.
+    function sleep(min, max) {
+      const a = Number(min), b = nullish(max) ? a : Number(max);
+      if (nullish(min) || Number.isNaN(a) || Number.isNaN(b)) return Promise.reject(invalid("sleep", "millis must be numbers"));
+      if (a < 0 || b < 0) return Promise.reject(outOfRange("sleep", "millis must not be negative"));
+      const low = Math.min(a, b), high = Math.max(a, b);
+      return delay(Math.round(low + Math.random() * (high - low)), currentSignal());
+    }
+    async function probe(target, compass, resultType) {
+      try {
+        return await host.flow().wait(target, { timeout: 0, compass: nullish(compass) ? null : String(compass), resultType: nullish(resultType) ? null : resultType }).toPromise();
+      } catch (error) {
+        if (error && error.code === "TIMEOUT") return null;
+        throw error;
+      }
+    }
+    const isSatisfied = value => !(nullish(value) || value === false || typeof value === "number" && Number.isNaN(value));
+    // Rhino's global wait: a function (sync or async) or a selector checked until satisfied; a limit below 100 counts checks,
+    // otherwise it is a timeout in milliseconds (10000 by default), interval 200 ms; callback.then / else get the last check.
+    async function wait(condition, limit, interval, callback) {
+      if (plain(limit)) { callback = limit; limit = null; interval = null; }
+      else if (plain(interval)) { callback = interval; interval = null; }
+      if (!nullish(callback) && !plain(callback)) throw invalid("wait", "callback must be an Object");
+      const check = typeof condition === "function" ? () => condition() : () => probe(condition);
+      const limitValue = isNumber(limit) ? limit : 10000;
+      if (limitValue < 0) throw outOfRange("wait", "limit must be a non-negative number");
+      const rounded = Math.round(limitValue), pause = isNumber(interval) ? Math.round(interval) : 200;
+      if (pause < 0) throw outOfRange("wait", "interval must be a non-negative number");
+      let times = rounded < 100 ? rounded : Infinity;
+      const timeout = rounded < 100 ? Infinity : rounded, signal = currentSignal(), begin = Date.now();
+      let checked, satisfied = false;
+      while (times > 0) {
+        checked = await check();
+        satisfied = isSatisfied(checked);
+        times -= 1;
+        if (satisfied || times <= 0 || Date.now() - begin > timeout) break;
+        await delay(pause, signal);
+      }
+      let result = satisfied;
+      const handler = callback ? callback[satisfied ? "then" : "else"] : undefined;
+      if (!nullish(handler)) {
+        if (typeof handler !== "function") throw invalid("wait", "callback." + (satisfied ? "then" : "else") + " must be a function");
+        const value = await handler(checked);
+        if (value !== undefined) result = value;
+      }
+      return result;
+    }
+    Object.defineProperty(wait, "async", { value: (...args) => host.flow().waitAsync(...args), enumerable: true });
+    const selector = Object.freeze({
+      pickup: rejecting((target, compass, resultType) => probe(target, compass, resultType)),
+      detect: rejecting((node, compass, resultType) => {
+        if (!plain(node) || !plain(node.bounds)) throw invalid("detect", "node must be a node snapshot");
+        return probe(node, compass, resultType);
+      }),
+      existsOne: rejecting(async (...targets) => { for (const target of targets.flat()) if (await probe(target, null, "exists") !== null) return true; return false; }),
+      existsAll: rejecting(async (...targets) => { for (const target of targets.flat()) if (await probe(target, null, "exists") === null) return false; return true; })
+    });
+    // sleep and wait are members of autojs6:system, whose globals carry them (system.installGlobals).
+    const globals = { keepAlive: timers.keepAlive, loop: timers.loop, sync, ...selector };
+    for (const name of ["back", "click", "gesture", "gestureAsync", "gestures", "gesturesAsync", "home", "input", "longClick", "notifications",
+      "powerDialog", "press", "quickSettings", "recents", "retry", "scrollDown", "scrollUp", "setText", "splitScreen", "swipe"]) globals[name] = automator[name];
+
+    // Q177 (a): the family's Rhino globals on a global object (main threads and Workers), as accessors over these members;
+    // assigning one replaces it with a plain value. Names the target already has are left alone.
+    function installGlobals(target) {
+      const names = Object.keys(globals).filter(name => !Object.prototype.hasOwnProperty.call(target, name));
+      for (const name of names) {
+        Object.defineProperty(target, name, {
+          configurable: true, enumerable: false,
+          get: () => globals[name],
+          set(value) { Object.defineProperty(target, name, { value, writable: true, configurable: true, enumerable: false }); }
+        });
+      }
+      return names;
+    }
+
+    return Object.freeze({
+      automator: Object.freeze(automator), auto: Object.freeze(auto), keys, threads, continuation, timers, yolo, selector,
+      sleep, wait, globals: Object.freeze(globals), rhinoOcr, installGlobals
+    });
+  }
+  // api-coverage P3.4: the main thread's automation family.
+  let __autojs6_limited_automation_cache = null;
+  function __autojs6_limited_automation() {
+    return __autojs6_limited_automation_cache ||= __autojs6_create_automation(__autojs6_call_autojs, {
+      scale: () => __autojs6_limited_system().scale,
+      system: () => __autojs6_limited_system().system,
+      flow: () => __autojs6_limited_flow(),
+      events: () => __autojs6_host_events(),
+      AsyncLocalStorage: __autojs6_builtin_module("async_hooks").AsyncLocalStorage,
+      isMainThread: true
     });
   }
   function __autojs6_engine_timeout_from_options(options, fallbackMs) {
@@ -26842,6 +27847,8 @@ std::string buildEmbeddedScriptExecutionSource(
       for (const method of ["notifications", "quickSettings", "lockScreen", "takeScreenshot", "splitScreen", "powerDialog"]) {
         api[method] = options => __autojs6_call_autojs("keys", method, [], options).then(Boolean);
       }
+      // api-coverage P3.4: Rhino's keys module, the KeyEvent codes.
+      Object.assign(api, __autojs6_limited_automation().keys);
       __autojs6_keys_cache = Object.freeze(api);
     }
     return __autojs6_keys_cache;
@@ -30123,12 +31130,18 @@ std::string buildEmbeddedScriptExecutionSource(
     function detectTextBounds(image, options) {
       return callOcr("detectTextBounds", image, options);
     }
-    __autojs6_limited_ocr_cache = Object.freeze({
+    // api-coverage P3.4: Rhino's mode, detect, summary and ocr.mlkit / paddle / rapid over these (Workers forward to the base).
+    __autojs6_limited_ocr_base_cache = Object.freeze({
       recognize,
       recognizeText,
       detectTextBounds
     });
+    __autojs6_limited_ocr_cache = __autojs6_limited_automation().rhinoOcr(__autojs6_limited_ocr_base_cache);
     return __autojs6_limited_ocr_cache;
+  }
+  function __autojs6_limited_ocr_base() {
+    __autojs6_limited_ocr();
+    return __autojs6_limited_ocr_base_cache;
   }
   function __autojs6_barcode_bridge_options(options, fallbackMs) {
     return {
@@ -30276,6 +31289,21 @@ std::string buildEmbeddedScriptExecutionSource(
     }, function(error) {
       return recycle().then(function() { throw error; });
     });
+  }
+  // api-coverage P3.4: Rhino's qrcode module, barcode limited to QR codes (as autojs6:compat qrcode).
+  function __autojs6_limited_qrcode() {
+    if (__autojs6_limited_qrcode_cache) {
+      return __autojs6_limited_qrcode_cache;
+    }
+    const barcode = __autojs6_limited_barcode();
+    const qr = options => ({ ...(options && typeof options === "object" && !Array.isArray(options) ? options : {}), qrOnly: true });
+    __autojs6_limited_qrcode_cache = Object.freeze({
+      detect: (image, options) => barcode.detect(image, qr(options)),
+      detectAll: (image, options) => barcode.detectAll(image, qr(options)),
+      recognizeText: (image, options) => barcode.recognizeText(image, qr(options)),
+      recognizeTexts: (image, options) => barcode.recognizeTexts(image, qr(options))
+    });
+    return __autojs6_limited_qrcode_cache;
   }
   function __autojs6_limited_barcode() {
     if (__autojs6_limited_barcode_cache) {
@@ -37917,6 +38945,14 @@ std::string buildEmbeddedScriptExecutionSource(
     "autojs6:sysprops": function() { return __autojs6_limited_system().sysprops; },
     "autojs6:power_manager": function() { return __autojs6_limited_system().power_manager; },
     "autojs6:system": function() { return __autojs6_limited_system().system; },
+    "autojs6:automator": function() { return __autojs6_limited_automation().automator; },
+    "autojs6:auto": function() { return __autojs6_limited_automation().auto; },
+    "autojs6:threads": function() { return __autojs6_limited_automation().threads; },
+    "autojs6:continuation": function() { return __autojs6_limited_automation().continuation; },
+    "autojs6:timers": function() { return __autojs6_limited_automation().timers; },
+    "autojs6:yolo": function() { return __autojs6_limited_automation().yolo; },
+    "autojs6:selector": function() { return __autojs6_limited_automation().selector; },
+    "autojs6:qrcode": function() { return __autojs6_limited_qrcode(); },
     java: function() { return __autojs6_limited_java(); },
     // Builtin facades: console keeps stdout capture; the worker and
     // child_process facades wrap the native modules while a request enables them.

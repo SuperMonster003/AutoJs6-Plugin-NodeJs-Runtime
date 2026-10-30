@@ -887,6 +887,21 @@
         "id": "plugin_tools",
         "aliases": [],
         "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "automator",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "auto",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "yolo",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
       }
     ],
     "operations": [
@@ -4323,6 +4338,234 @@
           "engines",
           "engines.exec"
         ]
+      },
+      {
+        "module": "automator",
+        "method": "globalAction",
+        "requiredCapabilities": [
+          "keys"
+        ]
+      },
+      {
+        "module": "automator",
+        "method": "tap",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "automator",
+        "method": "press",
+        "requiredCapabilities": [
+          "accessibility",
+          "accessibility.gesture"
+        ]
+      },
+      {
+        "module": "automator",
+        "method": "gestures",
+        "requiredCapabilities": [
+          "accessibility",
+          "accessibility.gesture"
+        ]
+      },
+      {
+        "module": "automator",
+        "method": "targetAction",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "automator",
+        "method": "editText",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "automator",
+        "method": "scroll",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "automator",
+        "method": "switchToInputMethod",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "automator",
+        "method": "switchToInputMethodWithId",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "automator",
+        "method": "isServiceRunning",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "automator",
+        "method": "ensureService",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "auto",
+        "method": "start",
+        "requiredCapabilities": [
+          "accessibility",
+          "accessibility.service"
+        ]
+      },
+      {
+        "module": "auto",
+        "method": "stop",
+        "requiredCapabilities": [
+          "accessibility",
+          "accessibility.service"
+        ]
+      },
+      {
+        "module": "auto",
+        "method": "launchSettings",
+        "requiredCapabilities": [
+          "accessibility",
+          "accessibility.service"
+        ]
+      },
+      {
+        "module": "auto",
+        "method": "clearCache",
+        "requiredCapabilities": [
+          "accessibility",
+          "accessibility.service"
+        ]
+      },
+      {
+        "module": "auto",
+        "method": "state",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "auto",
+        "method": "service",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "auto",
+        "method": "services",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "auto",
+        "method": "windows",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "auto",
+        "method": "windowRoot",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "auto",
+        "method": "roots",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "auto",
+        "method": "activeRoot",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "yolo",
+        "method": "load",
+        "requiredCapabilities": [
+          "yolo",
+          "image"
+        ]
+      },
+      {
+        "module": "yolo",
+        "method": "detect",
+        "requiredCapabilities": [
+          "yolo",
+          "image"
+        ]
+      },
+      {
+        "module": "yolo",
+        "method": "close",
+        "requiredCapabilities": [
+          "yolo"
+        ]
+      },
+      {
+        "module": "events",
+        "method": "observeAccessibility",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "events",
+        "method": "observeAccessibilityState",
+        "requiredCapabilities": [
+          "accessibility"
+        ]
+      },
+      {
+        "module": "events",
+        "method": "observeTouch",
+        "requiredCapabilities": [
+          "events",
+          "events.touch"
+        ]
+      },
+      {
+        "module": "events",
+        "method": "interceptKeys",
+        "requiredCapabilities": [
+          "events",
+          "events.key",
+          "events.key.intercept"
+        ]
+      },
+      {
+        "module": "events",
+        "method": "observeScriptBroadcasts",
+        "requiredCapabilities": [
+          "events"
+        ]
+      },
+      {
+        "module": "events",
+        "method": "sendScriptBroadcast",
+        "requiredCapabilities": [
+          "events"
+        ]
       }
     ],
     "permissionCapabilities": [
@@ -4858,6 +5101,26 @@
       },
       {
         "id": "plugin_tools.user_granted",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "accessibility.service",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "events.key.intercept",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "events.touch",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "yolo",
         "aliases": [],
         "androidPermissions": []
       }

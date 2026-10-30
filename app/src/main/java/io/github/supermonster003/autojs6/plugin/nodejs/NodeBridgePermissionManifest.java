@@ -87,6 +87,12 @@ public final class NodeBridgePermissionManifest {
     private static final String EVENTS_TOAST = "events.toast";
     private static final String EVENTS_KEY = "events.key";
     private static final String KEYS = "keys";
+    // api-coverage P3.4 (Q178 (a)): Rhino's automation family. Managing the accessibility service, intercepting keys and
+    // observing touches are never implied by their parent capability; YOLO detector sessions need yolo.
+    private static final String ACCESSIBILITY_SERVICE = "accessibility.service";
+    private static final String EVENTS_KEY_INTERCEPT = "events.key.intercept";
+    private static final String EVENTS_TOUCH = "events.touch";
+    private static final String YOLO = "yolo";
     // api-coverage P3.1b (Q133 (b)): the system information family, one capability per module.
     private static final String AUTOJS = "autojs";
     private static final String AUTOJS_CONTROL = "autojs.control";
@@ -190,6 +196,10 @@ public final class NodeBridgePermissionManifest {
             EVENTS_TOAST,
             EVENTS_KEY,
             KEYS,
+            ACCESSIBILITY_SERVICE,
+            EVENTS_KEY_INTERCEPT,
+            EVENTS_TOUCH,
+            YOLO,
             AUTOJS,
             AUTOJS_CONTROL,
             SETTINGS,
