@@ -122,6 +122,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.32.1
+
+###### 2026/10/30
+
+* `Fix` The Packages / java / android proxies installed by rhino.install() threw errors when reading static fields, calling describe(), calling static methods or creating objects with new
+
 # v1.32.0
 
 ###### 2026/10/29
@@ -136,12 +142,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 ###### 2026/10/22
 
 * `Feature` AI text generation, streaming, model catalog and persistent sessions for Node.js, Bun and Workers, with cancellation and per-app consent in 3-Stone AI for packaged apps
-
-# v1.30.0
-
-###### 2026/10/21
-
-* `Feature` Flow within/scope with inherited search roots, compass navigation and typed result projections, plus press/swipe/gesture/gestures overloads for Node.js, Bun and Workers
 
 ##### For more release history
 

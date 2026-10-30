@@ -4,6 +4,12 @@
 
 ******
 
+# v1.32.1
+
+###### 2026/10/30
+
+* `Correccion` Los proxies Packages / java / android que instala rhino.install() fallaban al leer campos estáticos, llamar a describe(), llamar a métodos estáticos o crear objetos con new
+
 # v1.32.0
 
 ###### 2026/10/29

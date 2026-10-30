@@ -5,6 +5,12 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v1.32.1": {
+      "released_date": "2026/10/30",
+      "fix": [
+        "rhino.install() で導入した Packages / java / android プロキシで, 静的フィールドの読み取り, describe() の呼び出し, 静的メソッドの呼び出し, new によるオブジェクト生成がエラーになる問題"
+      ]
+    },
     "v1.32.0": {
       "released_date": "2026/10/29",
       "feature": [

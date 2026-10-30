@@ -5,6 +5,12 @@
   "changelog_label_improvement": "개선",
   "changelog_label_dependency": "의존성",
   "$data": {
+    "v1.32.1": {
+      "released_date": "2026/10/30",
+      "fix": [
+        "rhino.install()로 설치한 Packages / java / android 프록시에서 정적 필드 읽기, describe() 호출, 정적 메서드 호출, new로 객체 생성 시 오류가 발생하던 문제"
+      ]
+    },
     "v1.32.0": {
       "released_date": "2026/10/29",
       "feature": [

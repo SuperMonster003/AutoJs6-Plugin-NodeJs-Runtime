@@ -4,6 +4,12 @@
 
 ******
 
+# v1.32.1
+
+###### 2026/10/30
+
+* `Fix` The Packages / java / android proxies installed by rhino.install() threw errors when reading static fields, calling describe(), calling static methods or creating objects with new
+
 # v1.32.0
 
 ###### 2026/10/29

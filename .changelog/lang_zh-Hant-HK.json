@@ -5,6 +5,12 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v1.32.1": {
+      "released_date": "2026/10/30",
+      "fix": [
+        "rhino.install() 裝入的 Packages / java / android 代理在讀取靜態欄位, 呼叫 describe(), 呼叫靜態方法或用 new 建立物件時報錯的問題"
+      ]
+    },
     "v1.32.0": {
       "released_date": "2026/10/29",
       "feature": [

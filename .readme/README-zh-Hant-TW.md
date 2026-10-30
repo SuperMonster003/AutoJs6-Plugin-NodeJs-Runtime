@@ -122,6 +122,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.32.1
+
+###### 2026/10/30
+
+* `修復` rhino.install() 裝入的 Packages / java / android 代理在讀取靜態欄位, 呼叫 describe(), 呼叫靜態方法或用 new 建立物件時報錯的問題
+
 # v1.32.0
 
 ###### 2026/10/29
@@ -136,12 +142,6 @@ console.log("AutoJs6 Node.js runtime");
 ###### 2026/10/22
 
 * `新增` Node.js, Bun 與 Worker 的 AI 文字生成, 串流結果, 模型目錄及持續工作階段, 支援取消與 3-Stone AI 對打包應用程式的個別授權
-
-# v1.30.0
-
-###### 2026/10/21
-
-* `新增` Node.js, Bun 與 Worker 的 Flow within/scope 範圍繼承, 羅盤導覽和結果投影, 以及 press/swipe/gesture/gestures 手勢多載
 
 ##### 更多發行歷史可參閱
 

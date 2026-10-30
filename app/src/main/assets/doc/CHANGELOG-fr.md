@@ -4,6 +4,12 @@
 
 ******
 
+# v1.32.1
+
+###### 2026/10/30
+
+* `Correction` Les proxys Packages / java / android installés par rhino.install() échouaient à la lecture des champs statiques, à l'appel de describe(), à l'appel de méthodes statiques ou à la création d'objets avec new
+
 # v1.32.0
 
 ###### 2026/10/29

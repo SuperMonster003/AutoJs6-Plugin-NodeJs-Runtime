@@ -122,6 +122,12 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v1.32.1
+
+###### 2026/10/30
+
+* `Correccion` Los proxies Packages / java / android que instala rhino.install() fallaban al leer campos estáticos, llamar a describe(), llamar a métodos estáticos o crear objetos con new
+
 # v1.32.0
 
 ###### 2026/10/29
@@ -136,12 +142,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 ###### 2026/10/22
 
 * `Nuevo` Generación de texto con IA, transmisión, catálogo de modelos y sesiones persistentes para Node.js, Bun y Workers, con cancelación y consentimiento por aplicación en 3-Stone AI
-
-# v1.30.0
-
-###### 2026/10/21
-
-* `Nuevo` Flow within/scope para Node.js, Bun y Workers, con raíces de búsqueda heredadas, navegación por brújula, proyecciones tipadas y sobrecargas press/swipe/gesture/gestures
 
 ##### Para mas historial de versiones
 

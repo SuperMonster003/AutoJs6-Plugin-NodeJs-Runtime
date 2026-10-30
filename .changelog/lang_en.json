@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.32.1": {
+      "released_date": "2026/10/30",
+      "fix": [
+        "The Packages / java / android proxies installed by rhino.install() threw errors when reading static fields, calling describe(), calling static methods or creating objects with new"
+      ]
+    },
     "v1.32.0": {
       "released_date": "2026/10/29",
       "feature": [
