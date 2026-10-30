@@ -160,12 +160,14 @@ declare module "gallery" {
             reason: CloseReason;
         }
 
+        type SessionEmitter = import("events").EventEmitter;
+
         /**
          * The event emitter returned by {@link API.view}. The script keeps running while the
          * session is open; `close` is the terminal event.
          * @see https://docs.autojs6.com/#/galleryViewSessionType
          */
-        interface ViewSession extends import("events").EventEmitter {
+        interface ViewSession extends SessionEmitter {
             /** Absolute image paths in page order. */
             readonly paths: string[];
             readonly count: number;
