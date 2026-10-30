@@ -18,6 +18,24 @@ declare module "ocr" {
       region?: Region;
       /** PP-OCRv3 on ONNX Runtime: run on NNAPI, falling back to the CPU; extras.executionProvider tells which ran. */
       useOpenCL?: boolean;
+      /** Paddle OCR: CPU threads, 4 by default. */
+      cpuThreadNum?: number;
+      /** Paddle OCR: use the slim models, true by default. */
+      useSlim?: boolean;
+      /** Paddle OCR: run the text direction classifier; the plugin decides when this is not set. */
+      useCls?: boolean;
+      /** Paddle OCR: limit of the detection side, passed on when above 0 and preferred to detLongSize. */
+      detLimitSideLen?: number;
+      /** Paddle OCR: join the results of a text line (extras keeps the keys all parts agree on); recognizeText does not merge. */
+      mergeLine?: boolean;
+      /** Long side of the detection input: 0 by default on Paddle OCR, the fallback of maxSideLen on Rapid OCR. */
+      detLongSize?: number;
+      /** Confidence threshold: -1 by default on Paddle OCR (the plugin decides), boxScoreThresh on Rapid OCR. */
+      scoreThreshold?: number;
+      /** Rapid OCR: long side of the detection input, detLongSize by default; 1024 when neither is above 0. */
+      maxSideLen?: number;
+      /** Rapid OCR: the default of scoreThreshold, 0.5 by default. */
+      boxScoreThresh?: number;
       /** Rhino's mode for this call: auto, mlkit, paddle or rapid (an engine is then chosen unless engine / engineId is set). */
       mode?: OcrMode;
     }

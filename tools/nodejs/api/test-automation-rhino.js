@@ -442,6 +442,17 @@ test('ocr keeps Rhino\'s mode, tap and the fixed-engine modules over a base',asy
  assert.match(ocr.summary(),/Current mode: auto/);assert.equal(String(ocr),ocr.summary());
 });
 
+test('compat ocr.recognizeText does not send mergeLine, as Rhino\'s recognizeText does not merge lines',async()=>{
+ const calls=[];
+ const compat=new Function('__autojs6_rhino_compat_ocr_cache','__autojs6_limited_ocr','__autojs6_rhino_compat_ocr_with_image','__autojs6_rhino_compat_ocr_texts',
+  'return ('+part('  function __autojs6_rhino_compat_ocr() {','\n  function __autojs6_rhino_compat_barcode_image_source(')+')()')(
+   null,()=>({recognize:async(image,options)=>{calls.push(options);return [];}}),(name,image,options,run)=>run(image,options),()=>['text']);
+ assert.deepEqual(await compat.recognizeText('img',{mergeLine:true,useSlim:false}),['text']);
+ assert.deepEqual(calls.pop(),{useSlim:false});
+ await compat.recognize('img',{mergeLine:true});
+ assert.deepEqual(calls.pop(),{mergeLine:true});
+});
+
 test('sleep, wait and the selector functions follow Rhino; system carries sleep / wait',async()=>{
  let probes=0;
  const flow={waitAsync:(...args)=>['async',...args],wait:(target,options)=>({toPromise:async()=>{probes++;

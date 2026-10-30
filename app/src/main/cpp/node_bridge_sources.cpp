@@ -21178,7 +21178,9 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     function recognizeText(imageOrOptions, maybeOptions) {
       return __autojs6_rhino_compat_ocr_with_image("ocr.recognizeText", imageOrOptions, maybeOptions, function(image, options) {
-        return ocrModule.recognize(image, options).then(__autojs6_rhino_compat_ocr_texts);
+        // Rhino's recognizeText does not merge lines, and this one reads the results of recognize.
+        const { mergeLine, ...lineOptions } = options || {};
+        return ocrModule.recognize(image, lineOptions).then(__autojs6_rhino_compat_ocr_texts);
       });
     }
     function detectTextBounds(imageOrOptions, maybeOptions) {
