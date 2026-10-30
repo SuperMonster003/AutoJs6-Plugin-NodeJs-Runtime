@@ -4,7 +4,10 @@
    "ok": 128
   },
   "colors/Color.alpha.err.max": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "Option \"max\" specified must be either 1 or 255 instead of 2.0 for colors.alpha.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.modules.colors.Colors.alphaRhino(Colors.kt:209)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.alpha$lambda$0(Colors.kt:190)\n    org.autojs.autojs.runtime.api.modules.colors.Colors$$ExternalSyntheticLambda45.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeAll(ArgumentGuards.kt:73)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLengthInRange(ArgumentGuards.kt:53)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.alpha(Colors.kt:188)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_a3836d8d.js#800(eval)#1)",
+    "name": "InternalError"
+   }
   },
   "colors/Color.alpha.max1": {
    "ok": 0.5019607843137255
@@ -30,7 +33,10 @@
    "ok": -8454017
   },
   "colors/Color.blend.err.ratio": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Argument \"ratio\" 2 (Number) for colors.blend must be a number in range 0..1 or a percentage",
+    "name": "JavaException IllegalArgumentException"
+   }
   },
   "colors/Color.blend.ratio": {
    "ok": -4259777
@@ -45,7 +51,10 @@
    "ok": -65536
   },
   "colors/Color.build.err.negative": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "Number should not be negative.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toUnit8(Colors.kt:1719)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toUnit8RgbList$app(Colors.kt:1706)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.rgbRhino(Colors.kt:569)\n    org.autojs.autojs.runtime.api.modules.colors.ColorNativeObject.<init>(ColorNativeObject.kt:51)\n    org.autojs.autojs.runtime.api.modules.colors.Color.invoke$lambda$0(Color.kt:15)\n    org.autojs.autojs.runtime.api.modules.colors.Color$$ExternalSyntheticLambda0.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeAll(ArgumentGuards.kt:73)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLengthInRange(ArgumentGuards.kt:53)\n    org.autojs.autojs.runtime.api.modules.colors.Color.invoke(Color.kt:11)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.build$lambda$0(Colors.kt:1366)\n    org.autojs.autojs.runtime.api.modules.colors.Colors$$ExternalSyntheticLambda57.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeAll(ArgumentGuards.kt:73)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLengthInRange(ArgumentGuards.kt:53)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.build(Colors.kt:1365)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_a3836d8d.js#800(eval)#1)",
+    "name": "InternalError"
+   }
   },
   "colors/Color.build.rgb": {
    "ok": -16449536
@@ -57,7 +66,10 @@
    "ok": 3.998476771
   },
   "colors/Color.contrast.err.background": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Argument \"background\" #80ffffff (String) for colors.contrast must be an opaque color",
+    "name": "JavaException IllegalArgumentException"
+   }
   },
   "colors/Color.ctor.color": {
    "ok": -65536
@@ -159,7 +171,10 @@
    "ok": true
   },
   "colors/Color.extract.err": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Argument \"image\" -65536 (Number) for colors.extract must be an ImageWrapper",
+    "name": "JavaException IllegalArgumentException"
+   }
   },
   "colors/Color.getAlpha": {
    "ok": 64
@@ -238,7 +253,10 @@
    "ok": false
   },
   "colors/Color.isEqual.err.color": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Invalid color string format: x",
+    "name": "JavaException IllegalArgumentException"
+   }
   },
   "colors/Color.isSimilar": {
    "ok": true
@@ -247,7 +265,10 @@
    "ok": true
   },
   "colors/Color.isSimilar.err.none": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "Method only accepts a number of arguments in the range [2..4].\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLengthInRange(ArgumentGuards.kt:55)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.isSimilar(Colors.kt:1147)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_a3836d8d.js#800(eval)#1)",
+    "name": "InternalError"
+   }
   },
   "colors/Color.isSimilar.options": {
    "ok": true
@@ -262,13 +283,19 @@
    "ok": -16303974
   },
   "colors/Color.oklab.err.receiver": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "Components argument -65536 (Number) for colors.oklab must be a JavaScript Array.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.modules.colors.Colors.perceptualComponents(Colors.kt:1657)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.oklab$lambda$0(Colors.kt:1406)\n    org.autojs.autojs.runtime.api.modules.colors.Colors$$ExternalSyntheticLambda53.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeAll(ArgumentGuards.kt:73)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLengthInRange(ArgumentGuards.kt:53)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.oklab(Colors.kt:1405)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_a3836d8d.js#800(eval)#1)",
+    "name": "InternalError"
+   }
   },
   "colors/Color.oklab.zeroLightness": {
    "ok": -16777216
   },
   "colors/Color.oklch.err.receiver": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "Components argument -65536 (Number) for colors.oklch must be a JavaScript Array.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.modules.colors.Colors.perceptualComponents(Colors.kt:1657)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.oklch$lambda$0(Colors.kt:1440)\n    org.autojs.autojs.runtime.api.modules.colors.Colors$$ExternalSyntheticLambda56.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeAll(ArgumentGuards.kt:73)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLengthInRange(ArgumentGuards.kt:53)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.oklch(Colors.kt:1439)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_a3836d8d.js#800(eval)#1)",
+    "name": "InternalError"
+   }
   },
   "colors/Color.red": {
    "ok": 18
@@ -548,13 +575,22 @@
    "ok": "#80FF0000"
   },
   "colors/Color.toHex.err.keep": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "Argument \"keep\" for toHex(color: Number, alphaOrLength: class java.lang.String) is invalid.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toHexRhino(Colors.kt:147)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toHex$lambda$0(Colors.kt:127)\n    org.autojs.autojs.runtime.api.modules.colors.Colors$$ExternalSyntheticLambda25.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeAll(ArgumentGuards.kt:73)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLengthInRange(ArgumentGuards.kt:53)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toHex(Colors.kt:125)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_a3836d8d.js#800(eval)#1)",
+    "name": "InternalError"
+   }
   },
   "colors/Color.toHex.err.len3": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Cannot convert color #AABBCD to #RGB with unexpected color format.",
+    "name": "JavaException IllegalArgumentException"
+   }
   },
   "colors/Color.toHex.err.undefined": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "Argument \"org.mozilla.javascript.Undefined@6c65f29\" for toHex(color: Number, alphaOrLength: class org.mozilla.javascript.Undefined) is invalid.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toHexRhino(Colors.kt:147)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toHex$lambda$0(Colors.kt:127)\n    org.autojs.autojs.runtime.api.modules.colors.Colors$$ExternalSyntheticLambda25.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeAll(ArgumentGuards.kt:73)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLengthInRange(ArgumentGuards.kt:53)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toHex(Colors.kt:125)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_a3836d8d.js#800(eval)#1)",
+    "name": "InternalError"
+   }
   },
   "colors/Color.toHex.false": {
    "ok": "#FF0000"
@@ -611,7 +647,10 @@
    ]
   },
   "colors/Color.toHsv.err.result": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "java.lang.IllegalArgumentException: Container argument \"hsvResultContainer\" must be a Java Float Array for colors.toHsv(r, g, b, hsvResultContainer)",
+    "name": "JavaException IllegalArgumentException"
+   }
   },
   "colors/Color.toHsv.result": {
    "ok": [
@@ -636,7 +675,10 @@
    ]
   },
   "colors/Color.toHsva.err.count": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "Invalid arguments [ -65536 (Number), 1 (Number), 2 (Number) ] for colors.toHsva.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toHsva$lambda$0(Colors.kt:983)\n    org.autojs.autojs.runtime.api.modules.colors.Colors$$ExternalSyntheticLambda37.invoke(D8$$SyntheticClass:0)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.unwrapAndInvokeAll(ArgumentGuards.kt:73)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsLengthInRange(ArgumentGuards.kt:53)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toHsva(Colors.kt:977)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_a3836d8d.js#800(eval)#1)",
+    "name": "InternalError"
+   }
   },
   "colors/Color.toHsva.oneQuirk": {
    "ok": [
@@ -661,7 +703,10 @@
    "ok": -2146290602
   },
   "colors/Color.toInt.err.extra": {
-   "rhinoCrash": "java.lang.ClassCastException"
+   "th": {
+    "message": "Method only accepts 1 argument.\n\nStack trace (partial):\n\n    ... ...\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:31)\n    org.autojs.autojs.rhino.ArgumentGuards$Companion.ensureArgumentsOnlyOne(ArgumentGuards.kt:25)\n    org.autojs.autojs.runtime.api.modules.colors.Colors.toInt(Colors.kt:109)\n    ... ...\n (/storage/emulated/0/Download/aj6-p32b/p32b_rhino_a3836d8d.js#800(eval)#1)",
+    "name": "InternalError"
+   }
   },
   "colors/Color.toOklab": {
    "ok": [

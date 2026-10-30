@@ -206,8 +206,7 @@ test("source shape", () => {
     assert.ok(!SOURCE.includes("\0"));
     assert.ok(!/\brequire\(|\bprocess\.|\bBuffer\b/.test(SOURCE));
     assert.equal(typeof factory, "function");
-    assert.ok(!Object.keys(colors).includes("theme"));
-    assert.ok(!("theme" in colors));
+    assert.ok(Object.isFrozen(colors.theme));
 });
 
 test("toInt", () => {
@@ -433,8 +432,8 @@ test("Color construction", () => {
 
 test("Color members of the older module", () => {
     assert.equal(Color("red").toHex(null), "#FF0000");
-    assert.equal(nameOf(() => Color("red").toHex("keep")), "InvocationTargetException");
-    assert.equal(nameOf(() => Color("red").toHex(undefined)), "InvocationTargetException");
+    assert.equal(nameOf(() => Color("red").toHex("keep")), "InternalError");
+    assert.equal(nameOf(() => Color("red").toHex(undefined)), "InternalError");
     assert.equal(String(Color("#80ff0000")), "#80FF0000");
     assert.equal(Color("#01000000").alpha({max: 1}), 1);
     assert.equal(Color("#01000000").alphaDouble(), 1);
@@ -442,9 +441,9 @@ test("Color members of the older module", () => {
     assert.deepEqual(Color(0xff010000).toHsla(), [0, 1, 0.5, 1]);
     assert.equal(Color("#01ff0000").toHsva()[3], 1);
     assert.equal(Color(5).build(0, 0).toInt(), int(0xff050000));
-    assert.equal(nameOf(() => Color("red").build(0, 0)), "InvocationTargetException");
+    assert.equal(nameOf(() => Color("red").build(0, 0)), "InternalError");
     assert.equal(Color(0).oklab(0, 0), -16777216);
-    assert.equal(nameOf(() => Color("red").extract()), "InvocationTargetException");
+    assert.equal(nameOf(() => Color("red").extract()), "IllegalArgumentException");
     assert.equal(Color("#000100").toHslString(), "hsl(120, 100%, 50%)");
     assert.equal(colors.toHslString("#000100"), "hsl(120, 100%, 0.2%)");
     assert.equal(Color("red").toStringReadable(), "Color { #FF0000 | rgb(255, 0, 0) | hsl(0, 100%, 50%) | hsv(0, 100%, 100%) | int(-65536) }");
@@ -496,7 +495,7 @@ test("members through the Java facade", async () => {
     assert.equal(await rejection(colors.toHsv("red", await java.newArray("float", 2))), "RangeError");
     assert.equal(nameOf(() => colors.toHsv("red", [0, 0, 0])), "TypeError");
     assert.deepEqual(await Color("red").toHsv(await java.newArray("float", 4)), [0, 1, 1, 0]);
-    assert.equal(nameOf(() => Color("red").toHsv("x")), "InvocationTargetException");
+    assert.equal(nameOf(() => Color("red").toHsv("x")), "IllegalArgumentException");
     assert.equal(await (await colors.toColorStateList("red")).call("getDefaultColor"), -65536);
     assert.equal(await (await colors.toColorStateList("blue", "red")).call("getDefaultColor"), int(0xff0000ff));
     assert.equal(nameOf(() => colors.toColorStateList()), "TypeError");

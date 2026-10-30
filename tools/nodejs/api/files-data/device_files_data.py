@@ -62,32 +62,19 @@ function p32bJavaInfo(v) {
     }
     return null;
 }
-// Each case runs in a Runnable called from the script, so that an interpreter failure stays within the case.
-var p32bCase = null, p32bResult = null;
-var p32bRunner = new java.lang.Runnable({run: function () {
-    try {
-        p32bResult = {ok: jsToolsEncode(p32bCase(), p32bJavaInfo)};
-    } catch (e) {
-        p32bResult = {th: jsToolsThrown(e)};
-    }
-}});
 (function (G) {
     var index = 0;
     for (var g = 0; g < P32B_GROUPS.length; g++) {
         var D = P32B_DIRS[g], cases = P32B_GROUPS[g];
         for (var i = 0; i < cases.length; i++, index++) {
             var source = cases[i][1];
-            p32bCase = function () { return eval('(' + source + ')'); };
-            p32bResult = null;
+            var result;
             try {
-                p32bRunner.run();
+                result = {ok: jsToolsEncode(eval('(' + source + ')'), p32bJavaInfo)};
             } catch (e) {
-                // A Java exception that a host member rethrows unwrapped (a checked InvocationTargetException) makes
-                // the interpreter itself fail with a ClassCastException, past the case's try / catch; it arrives here
-                // through the Runnable, wrapped like any other Java exception.
-                p32bResult = {rhinoCrash: String(e && e.javaException ? e.javaException.getClass().getName() : e)};
+                result = {th: jsToolsThrown(e)};
             }
-            p32bEmit(P32B_RUN, index, p32bResult);
+            p32bEmit(P32B_RUN, index, result);
         }
     }
     p32bEmit(P32B_RUN, -1, {done: index, sdk: android.os.Build.VERSION.SDK_INT});
@@ -205,11 +192,7 @@ def phase_rhino(args):
     pathlib.Path(args.out).write_text(json.dumps(expected, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     got = sum(1 for i in range(len(ids)) if i in results)
     thrown = sum(1 for i in range(len(ids)) if i in results and "th" in results[i])
-    crashed = [ids[i] for i in range(len(ids)) if i in results and "rhinoCrash" in results[i]]
-    print(f"rhino: {got} / {len(ids)} cases ({thrown} throw, {len(crashed)} interpreter failures), host {host.get('versionCode')},"
-          f" {model} API {meta.get('sdk')}")
-    for case_id in crashed[:args.show]:
-        print(f"  interpreter failure: {case_id}")
+    print(f"rhino: {got} / {len(ids)} cases ({thrown} throw), host {host.get('versionCode')}, {model} API {meta.get('sdk')}")
     return 0 if got == len(ids) else 1
 
 
@@ -271,7 +254,7 @@ def phase_node(args):
         # run_script removes the project directory DEVICE_DIR/run, D included.
         results = base.run_script(args.serial, f"p32b_node_{form}_{run}.js", node_script(form, run, names, dirs), run, args.wait,
                                   NODE_PROJECT)
-        counts = {"pass": 0, "fail": 0, "skip": 0, "missing": 0, "async": 0, "rhinoCrash": 0}
+        counts = {"pass": 0, "fail": 0, "skip": 0, "missing": 0, "async": 0}
         failures = {}
         for i, case_id in enumerate(ids):
             actual = results.get(i)
@@ -280,13 +263,7 @@ def phase_node(args):
                 failures[case_id] = "missing" if actual is None else "no Rhino value"
                 continue
             counts["async"] += 1 if actual.get("async") else 0
-            if "rhinoCrash" in expected[case_id]:
-                # Rhino fails on the error itself (see RHINO_JS); Node must throw.
-                counts["rhinoCrash"] += 1
-                verdict = "pass" if "th" in actual or "skip" in actual else (
-                    "Rhino fails on this error, Node returned " + json.dumps(actual.get("ok"), ensure_ascii=False)[:120])
-            else:
-                verdict = base.compare(expected[case_id], actual)
+            verdict = base.compare(expected[case_id], actual)
             if verdict in ("pass", "skip"):
                 counts[verdict] += 1
             else:
@@ -296,7 +273,7 @@ def phase_node(args):
         per_group = {name: sum(1 for c in failures if c.startswith(name + "/")) for name in names}
         report[form] = {"counts": counts, "failuresPerGroup": per_group, "failures": failures}
         print(f"node {form}: pass {counts['pass']} / fail {counts['fail']} / skip {counts['skip']} / missing {counts['missing']}"
-              f" (async {counts['async']}, Rhino failures {counts['rhinoCrash']}); failing per group {per_group}")
+              f" (async {counts['async']}); failing per group {per_group}")
         for case_id, verdict in list(failures.items())[:args.show]:
             print(f"  {case_id}: {verdict}")
     if args.report:

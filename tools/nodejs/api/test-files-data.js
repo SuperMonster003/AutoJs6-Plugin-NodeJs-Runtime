@@ -3,8 +3,7 @@
 // P3.2b): the cases of files-data/cases-colors.js and cases-mime-recorder.js against the values Rhino gave on a device
 // (files-data/rhino-expected.json), on the main thread and in a nested Worker started with the real Worker preload. Cases
 // that need the host (Java handles, Paint, images, the theme) and the files / zip / storages / mediainfo groups run on a
-// device only (files-data/device_files_data.py). Cases on which Rhino's interpreter itself fails (a host Color member
-// rethrowing a checked exception) only require Node to throw.
+// device only (files-data/device_files_data.py).
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -49,8 +48,7 @@ function check(results) {
   let pass = 0;
   for (const [id, actual] of Object.entries(results)) {
     const wanted = expected[id];
-    const verdict = !wanted ? "no expected value" : wanted.rhinoCrash ? (actual.th ? "pass" : "Rhino fails on this error, Node returned " +
-      JSON.stringify(actual.ok)) : compare(wanted, actual);
+    const verdict = !wanted ? "no expected value" : compare(wanted, actual);
     if (verdict === "pass") pass += 1;
     else failures[id] = verdict;
   }

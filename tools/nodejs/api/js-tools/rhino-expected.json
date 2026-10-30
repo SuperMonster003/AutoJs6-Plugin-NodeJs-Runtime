@@ -792,6 +792,24 @@
     "0.1150 GB"
    ]
   },
+  "global.TODO.empty": {
+   "th": {
+    "message": "org.autojs.autojs.runtime.exception.NotImplementedError: An operation is not implemented",
+    "name": "JavaException NotImplementedError"
+   }
+  },
+  "global.TODO.none": {
+   "th": {
+    "message": "org.autojs.autojs.runtime.exception.NotImplementedError: An operation is not implemented",
+    "name": "JavaException NotImplementedError"
+   }
+  },
+  "global.TODO.reason": {
+   "th": {
+    "message": "org.autojs.autojs.runtime.exception.NotImplementedError: x",
+    "name": "JavaException NotImplementedError"
+   }
+  },
   "global.axios.type": {
    "ok": [
     "function",

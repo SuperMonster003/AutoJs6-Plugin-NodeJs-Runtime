@@ -530,7 +530,7 @@ var COLORS_CASES = [
     ["Color.ctor.err.undefined", "Color(undefined)"],
     ["Color.ctor.err.array", "Color([255, 0, 0])"],
 
-    // Color members that run the older Colors functions (errors reach scripts as InvocationTargetException)
+    // Color members that run the older Colors functions (their errors reach scripts unchanged, host Q116)
     ["Color.toInt", "Color('#80123456').toInt()"],
     ["Color.toInt.err.extra", "Color('red').toInt(1)"],
     ["Color.toHex", "Color('red').toHex()"],

@@ -350,6 +350,9 @@ var JS_TOOLS_CASES = [
     ["species.isXMLList.false", "species.isXMLList([])"],
 
     // global data functions
+    ["global.TODO.reason", "G.TODO('x')"],
+    ["global.TODO.none", "G.TODO()"],
+    ["global.TODO.empty", "G.TODO('')"],
     ["global.isInteger", "[G.isInteger(2), G.isInteger(2.5), G.isInteger('2')]"],
     ["global.isBigInt", "[G.isBigInt(BigInt(2)), G.isBigInt(2)]"],
     ["global.isPrimitive", "[G.isPrimitive(2), G.isPrimitive({}), G.isPrimitive(null)]"],

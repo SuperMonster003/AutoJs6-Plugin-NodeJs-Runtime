@@ -15,6 +15,9 @@ Phases (all take -s SERIAL):
   verify  --state FILE   compare the device with a recorded state
   compare [--forms main,esm,worker,undeclared] [--report FILE]
                          run the cases in Rhino and Node and compare them
+  timeout [--forms main,worker] [--report FILE]
+                         with the host's accessibility service off: auto.waitFor and automator.waitForService end the
+                         whole execution (Q179 (b)): nothing after the wait runs, not even a timer armed before it
 The pushed scripts are removed afterwards (/sdcard/Download/aj6-p34).
 """
 import argparse
@@ -225,9 +228,61 @@ def phase_compare(args):
     return 0 if failed == 0 else 1
 
 
+# The timeout run: index 0 before the wait, 1 after it, 2 from a timer armed before it; only 0 may arrive (Q179 (b)).
+TIMEOUT_SECONDS = 12
+TIMEOUT_MAIN_JS = """
+const auto = require('autojs6:auto'), automator = require('autojs6:automator');
+p34Emit(P34_RUN, 0, {ok: 'before'});
+setTimeout(() => { p34Emit(P34_RUN, 2, {ok: 'timer'}); p34Emit(P34_RUN, -1, {done: 1}); }, 6000);
+(async () => {
+    await P34_WAIT;
+    p34Emit(P34_RUN, 1, {ok: 'after'});
+    p34Emit(P34_RUN, -1, {done: 1});
+})().catch(e => { p34Emit(P34_RUN, 3, {error: String(e && e.stack || e)}); p34Emit(P34_RUN, -1, {done: 1}); });
+"""
+TIMEOUT_WORKER_JS = """
+const {Worker} = require('node:worker_threads');
+p34Emit(P34_RUN, 0, {ok: 'before'});
+setTimeout(() => { p34Emit(P34_RUN, 2, {ok: 'timer'}); p34Emit(P34_RUN, -1, {done: 1}); }, 6000);
+const worker = new Worker(`
+const auto = require('autojs6:auto'), automator = require('autojs6:automator');
+const {parentPort} = require('node:worker_threads');
+(async () => { await P34_WAIT; parentPort.postMessage({after: true}); })().catch(e => parentPort.postMessage({error: String(e && e.stack || e)}));
+`, {eval: true});
+worker.on('message', value => {
+    p34Emit(P34_RUN, value.after ? 1 : 3, value.after ? {ok: 'after'} : value);
+    p34Emit(P34_RUN, -1, {done: 1});
+});
+worker.on('error', e => { p34Emit(P34_RUN, 3, {error: String(e && e.stack || e)}); p34Emit(P34_RUN, -1, {done: 1}); });
+"""
+
+
+def phase_timeout(args):
+    serial = args.serial
+    enabled = base.adb(serial, "shell", "settings", "get", "secure", "enabled_accessibility_services").stdout
+    if base.HOST + "/" in enabled:
+        print(f"the accessibility service of {base.HOST} is enabled: the timeout run needs it off")
+        return 2
+    report, failed = {}, 0
+    forms = [form for form in args.forms.split(",") if form in ("main", "worker")]
+    for wait in ("auto.waitFor(1000)", "automator.waitForService(1000)"):
+        for form in forms:
+            run = uuid.uuid4().hex[:8]
+            body = (TIMEOUT_MAIN_JS if form == "main" else TIMEOUT_WORKER_JS).replace("P34_WAIT", wait)
+            text = f'"nodejs";\nconst P34_RUN = \'{run}\';\n' + EMIT_JS + body
+            results = base.run_script(serial, f"p34_timeout_{run}.js", text, run, TIMEOUT_SECONDS, project(CAPABILITIES))
+            verdict = "pass" if sorted(results) == [0] else f"got {sorted(results)} {json.dumps(results.get(3, ''))[:300]}"
+            report[f"{form} {wait}"] = verdict
+            failed += verdict != "pass"
+            print(f"{form} {wait}: {verdict}")
+    if args.report:
+        pathlib.Path(args.report).write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8")
+    return 1 if failed else 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("phase", choices=["state", "verify", "compare"])
+    parser.add_argument("phase", choices=["state", "verify", "compare", "timeout"])
     parser.add_argument("-s", "--serial", required=True)
     parser.add_argument("--state")
     parser.add_argument("--forms", default="main,esm,worker,undeclared")
@@ -238,6 +293,8 @@ def main():
     sys.stdout.reconfigure(errors="backslashreplace")
     if args.phase == "compare":
         return phase_compare(args)
+    if args.phase == "timeout":
+        return phase_timeout(args)
     state = base.package_state(args.serial)
     if args.phase == "state":
         pathlib.Path(args.state).write_text(json.dumps(state, indent=1) + "\n", encoding="utf-8")

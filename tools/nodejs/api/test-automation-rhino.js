@@ -499,7 +499,7 @@ test('main threads and Workers wire the family; capabilities are declared and ne
  }
  assert(source.includes('"automator", "auto", "threads", "continuation", "timers", "yolo", "selector", "qrcode"].includes(hostName)'),'Worker names answer only to autojs6:');
  for(const name of ['keys','ocr','barcode','qrcode']) assert(source.includes(`: name === "${name}" ? __autojs6_`),'Worker forwards '+name);
- assert(source.includes('__autojs6_create_system.toString() + ", " + __autojs6_create_automation.toString() + ");"'),'Worker preload carries the factory');
+ assert(source.includes('__autojs6_create_system.toString() + ", " + __autojs6_create_automation.toString() + ", "'),'Worker preload carries the factory');
  const declares=part('  function __autojs6_bridge_declares_capability(','\n  function __autojs6_process_permission_normalize_scope(');
  for(const name of ['accessibility.service','events.key.intercept','events.touch']) assert(declares.includes(`required === "${name}"`),name);
  const manifest=fs.readFileSync(path.join(root,'app/src/main/java/io/github/supermonster003/autojs6/plugin/nodejs/NodeBridgePermissionManifest.java'),'utf8');

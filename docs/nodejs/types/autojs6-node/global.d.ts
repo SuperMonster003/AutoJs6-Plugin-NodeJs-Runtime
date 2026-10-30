@@ -6,6 +6,8 @@ declare module "autojs6:global" {
      */
     export interface GlobalModule {
       /** A random number in [0, 1), or in [min, max] (NaN when only one bound is given). */
+      /** Always throws a NotImplementedError, as in Rhino. */
+      TODO(reason?: unknown): never;
       random(min?: number | null, max?: number | null): number;
       randomInt(...values: readonly unknown[]): number;
       randomFloat(...values: readonly unknown[]): number;
