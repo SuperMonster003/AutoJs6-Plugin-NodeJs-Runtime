@@ -34,7 +34,7 @@ The [24.21.0 bridge headers](app/src/main/cpp/node-v24.21.0/README.md) come from
 
 ## Android C++ runtime
 
-`libc++_shared.so` is supplied by the Android NDK selected by the Android Gradle Plugin. The runtime and bridge builds use NDK `28.2.13676358` (r28c). LLVM/libc++ uses Apache License 2.0 with LLVM exceptions and includes additional upstream notices. The installed NDK's `toolchains/llvm/prebuilt/windows-x86_64/NOTICE` is preserved in [android-ndk-llvm-NOTICE.txt](app/src/main/assets/licenses/android-ndk-llvm-NOTICE.txt) and bundled in every APK. This complete toolchain notice includes components beyond the shared C++ runtime; inclusion does not imply every toolchain component ships in the APK.
+`libc++_shared.so` is supplied by the Android NDK selected by the Android Gradle Plugin. The runtime libraries (`libnode.so`) are built with NDK `29.0.14206865` (r29, clang-r563880c); the bridge (`libautojs6-node.so`) and `libc++_shared.so` are built with the Android Gradle Plugin's default NDK `28.2.13676358` (r28c). LLVM/libc++ uses Apache License 2.0 with LLVM exceptions and includes additional upstream notices. The installed NDK's `toolchains/llvm/prebuilt/windows-x86_64/NOTICE` is preserved in [android-ndk-llvm-NOTICE.txt](app/src/main/assets/licenses/android-ndk-llvm-NOTICE.txt) and bundled in every APK. This complete toolchain notice includes components beyond the shared C++ runtime; inclusion does not imply every toolchain component ships in the APK.
 
 ## Other application dependencies
 
