@@ -31652,13 +31652,14 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     function register(name, delay = DELAY.normal) {
       if (name === undefined || name === null) throw new TypeError("sensors.register requires a sensor name.");
+      // The capability comes first: a runtime without it may not list the device's sensors.
+      const missing = typeof rhino.missing === "function" ? rhino.missing() : [];
+      if (missing.length) throw Object.assign(error("sensors.register requires the " + missing.join(", ") + " capability.", "ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED"), {missingCapabilities: Object.freeze([...missing])});
       const type = String(name).toLowerCase(), info = getSensor(type);
       if (!info) {
         if (api.ignoresUnsupportedSensor) { api.emit("unsupported_sensor", name); return noOpEmitter; }
         return null;
       }
-      const missing = typeof rhino.missing === "function" ? rhino.missing() : [];
-      if (missing.length) throw Object.assign(error("sensors.register requires the " + missing.join(", ") + " capability.", "ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED"), {missingCapabilities: Object.freeze([...missing])});
       const rate = Number(delay);
       if (!Number.isInteger(rate) || rate < 0) throw new TypeError("sensors.register delay must be one of sensors.delay or a sampling period in microseconds.");
       const subscription = subscribe(type, undefined, rate <= 3 ? {delay: rate, maxQueueSize: 64} : {samplingIntervalMs: Math.ceil(rate / 1000), maxQueueSize: 64});

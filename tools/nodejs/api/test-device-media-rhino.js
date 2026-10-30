@@ -209,9 +209,11 @@ test('sensors.register follows Rhino: unknown sensors, delays, change / accuracy
  assert(light);
 });
 
-test('sensors.register throws when the sensors capability is not declared; once keeps both forms',async()=>{
+test('sensors.register throws when the sensors capability is not declared, before looking up the sensor; once keeps both forms',async()=>{
  const {sensors}=sensorsHost({missing:['sensors']});
  assert.throws(()=>sensors.register('light'),error=>error.code==='ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED'&&error.missingCapabilities[0]==='sensors');
+ // The capability is checked before the sensor table, which a runtime without it may leave empty.
+ assert.throws(()=>sensors.register('pressure'),error=>error.code==='ERR_AUTOJS6_BRIDGE_CAPABILITY_NOT_DECLARED');
  const seen=[];
  assert.equal(sensors.once('e',value=>seen.push(value)),sensors);
  sensors.emit('e',1);
