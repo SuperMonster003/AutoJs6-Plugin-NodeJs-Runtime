@@ -20158,6 +20158,15 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_rhino_java_proxy_path(pathValue) {
     return pathValue === undefined || pathValue === null ? "" : String(pathValue);
   }
+  // The proxies forward to the shared Java facade; a disabled facade rejects like its async calls.
+  function __autojs6_rhino_java(method, args) {
+    try {
+      const java = __autojs6_limited_java();
+      return java[method].apply(java, args);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
   function __autojs6_rhino_java_proxy(pathValue) {
     const path = __autojs6_rhino_java_proxy_path(pathValue);
     const proxyTarget = function AutoJs6RhinoJavaProxy() {};
@@ -20183,12 +20192,12 @@ std::string buildEmbeddedScriptExecutionSource(
         // Batch-15 entry points: static fields and the host's table entry for this class path.
         if (property === "getStatic") {
           return function(fieldName, options) {
-            return __autojs6_java_get_static(path, fieldName, options);
+            return __autojs6_rhino_java("getStatic", [path, fieldName, options]);
           };
         }
         if (property === "describe") {
           return function(options) {
-            return __autojs6_java_describe(path, options);
+            return __autojs6_rhino_java("describe", [path, options]);
           };
         }
         if (property === "toString" || property === "valueOf") {
@@ -20212,10 +20221,10 @@ std::string buildEmbeddedScriptExecutionSource(
         }
         const methodName = segments.pop();
         const className = segments.join(".");
-        return __autojs6_java_call_static(className, methodName, Array.prototype.slice.call(args || []));
+        return __autojs6_rhino_java("callStatic", [className, methodName, Array.prototype.slice.call(args || [])]);
       },
       construct: function(_target, args) {
-        return __autojs6_java_new(path, Array.prototype.slice.call(args || []));
+        return __autojs6_rhino_java("new", [path, Array.prototype.slice.call(args || [])]);
       }
     });
   }
