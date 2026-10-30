@@ -26865,8 +26865,8 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     const isServiceRunning = options => invoke("automator", "isServiceRunning", [], A11Y, 5000, options).then(Boolean);
     const ensureService = options => invoke("automator", "ensureService", [], A11Y, 30000, options).then(() => undefined);
-    // D-1 (Q179): the wait of auto.waitFor / automator.waitForService. The service is enabled when it can be (no settings
-    // page), then polled every 200 ms; a timeout rejects with ERR_AUTOJS6_TIMEOUT (Rhino ends the script).
+    // D-1 (Q179 (b)): the wait of auto.waitFor / automator.waitForService. The service is enabled when it can be (no settings
+    // page), then polled every 200 ms; as in Rhino a timeout ends the whole execution, the promise stays pending meanwhile.
     async function waitForService(timeout, options) {
       const limit = nullish(timeout) ? -1 : Number(timeout);
       if (Number.isNaN(limit)) throw invalid("auto.waitFor", "timeout must be a number");
@@ -26878,7 +26878,8 @@ std::string buildEmbeddedScriptExecutionSource(
       for (;;) {
         if (await invoke("accessibility", "isEnabled", [], A11Y, 5000, options) === true) return;
         if (limit >= 0 && Date.now() - start >= limit) {
-          throw Object.assign(new Error("The accessibility service did not start within " + limit + " ms."), { code: "ERR_AUTOJS6_TIMEOUT" });
+          await host.system().exit();
+          return new Promise(() => {});
         }
         await delay(200, signal);
       }
@@ -27333,9 +27334,9 @@ std::string buildEmbeddedScriptExecutionSource(
       sync
     });
 
-    // continuation: Node awaits natively (enabled is true); create() is a resumable promise.
+    // continuation (Q179 (b)): enabled is false as in a Rhino engine without the feature, await is native here; create() is a resumable promise.
     const continuation = Object.freeze({
-      enabled: true,
+      enabled: false,
       create() {
         let state = null, resolveValue, rejectValue;
         const promise = new Promise((resolve, reject) => { resolveValue = resolve; rejectValue = reject; });
@@ -27350,13 +27351,14 @@ std::string buildEmbeddedScriptExecutionSource(
       delay: millis => delay(Number(millis) || 0)
     });
 
-    // timers (D-8, Q179): keepAlive keeps the event loop busy with an empty Node timer; setIntervalExt is Rhino's (Q5 local-shim).
+    // timers (D-8, Q179 (b)): keepAlive keeps the event loop busy with an empty timer and returns its numeric id, as in Rhino;
+    // clearTimeout / clearInterval take that id. setIntervalExt is Rhino's (Q5 local-shim).
     let loopWarned = false;
     const timers = Object.freeze({
       keepAlive(timeout) {
         const millis = nullish(timeout) ? 0 : Math.max(0, Math.trunc(Number(timeout)));
         if (Number.isNaN(millis)) throw invalid("timers.keepAlive", "timeout must be a number");
-        return millis === 0 ? setInterval(() => {}, 10000) : setTimeout(() => {}, millis);
+        return Number(millis === 0 ? setInterval(() => {}, 10000) : setTimeout(() => {}, millis));
       },
       setIntervalExt(listener, interval, timeoutOrCondition, callback) {
         if (typeof listener !== "function") throw invalid("timers.setIntervalExt", "listener must be a function");

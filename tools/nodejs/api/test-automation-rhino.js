@@ -92,7 +92,7 @@ test('global actions, scrolls, text input and the service calls reach the host w
  assert(Object.isFrozen(image));
 });
 
-test('auto.waitFor / automator.waitForService enable, then poll the service (D-1, Q179)',async()=>{
+test('auto.waitFor / automator.waitForService enable, poll the service and end the execution on a timeout (D-1, Q179 (b))',async()=>{
  let enabled=0;
  const {call,find}=fake({'accessibility.ensureEnabled':false,'accessibility.isEnabled':()=>++enabled>=3});
  const kit=createAutomation(call);
@@ -101,8 +101,12 @@ test('auto.waitFor / automator.waitForService enable, then poll the service (D-1
  assert.deepEqual(find('accessibility','ensureEnabled')[0].args,[{prompt:false}]);
  const never=fake({'accessibility.ensureEnabled':false,'accessibility.isEnabled':false});
  const started=Date.now();
- await assert.rejects(createAutomation(never.call).automator.waitForService(250),error=>error.code==='ERR_AUTOJS6_TIMEOUT');
- assert(Date.now()-started>=200);
+ const exits=[];let settled=false;
+ createAutomation(never.call,{system:()=>({exit(){exits.push(Date.now());}})}).automator.waitForService(250).finally(()=>{settled=true;});
+ await new Promise(resolve=>setTimeout(resolve,600));
+ assert.equal(exits.length,1);
+ assert(exits[0]-started>=200);
+ assert.equal(settled,false);
  await assert.rejects(createAutomation(never.call).auto.waitFor('x'),TypeError);
 });
 
@@ -380,10 +384,10 @@ test('threads: same-thread tasks, pools, shared atomic and lock, disposable and 
  threads.shutDownAll();
 });
 
-test('continuation and timers: resumable promises, keepAlive, setIntervalExt and loop (D-8, Q179)',async()=>{
+test('continuation and timers: resumable promises, keepAlive, setIntervalExt and loop (D-8, Q179 (b))',async()=>{
  const warnings=[];
  const {continuation,timers}=createAutomation(async()=>null,{console:{warn:message=>warnings.push(message),error(){}}});
- assert.equal(continuation.enabled,true);
+ assert.equal(continuation.enabled,false);
  const creator=continuation.create();
  setTimeout(()=>creator.resume(3),1);
  assert.equal(await creator.await(),3);
@@ -392,7 +396,7 @@ test('continuation and timers: resumable promises, keepAlive, setIntervalExt and
  assert.equal(await continuation.await(Promise.resolve(9)),9);
  await continuation.delay(1);
  const alive=timers.keepAlive();
- assert.equal(typeof alive.hasRef,'function');clearInterval(alive);
+ assert.equal(typeof alive,'number');clearInterval(alive);
  clearTimeout(timers.keepAlive(1000));
  let runs=0;
  const done=new Promise(resolve=>timers.setIntervalExt(()=>{runs++;},5,()=>runs>=3?'enough':false,value=>resolve(value)));
@@ -528,7 +532,7 @@ test('CJS, ESM and nested Workers get the automation family and its globals',asy
  const esm=`import {parentPort} from 'node:worker_threads';import auto from 'autojs6:auto';import threads from 'autojs6:threads';import continuation from 'autojs6:continuation';
   import timers from 'autojs6:timers';import yolo from 'autojs6:yolo';import selector from 'autojs6:selector';import keys from 'autojs6:keys';import ocr from 'autojs6:ocr';${body}`;
  const run=(code,opts)=>new Promise((resolve,reject)=>{const w=new Worker(code,{execArgv:[],...opts});w.on('message',async value=>{await w.terminate();resolve(value);});w.on('error',reject);});
- const expected={tapped:true,notified:true,home:3,text:'text',alive:false,counter:3,enabled:true,types:['function','function','function','function','function'],
+ const expected={tapped:true,notified:true,home:3,text:'text',alive:false,counter:3,enabled:false,types:['function','function','function','function','function'],
   globals:Array(8).fill('function')};
  for(const [code,opts] of [[cjs,{eval:true}],[new URL('data:text/javascript,'+encodeURIComponent(esm)),{}],[`const {Worker,parentPort}=require('node:worker_threads');const w=new Worker(${JSON.stringify(cjs)},{eval:true});w.on('message',x=>parentPort.postMessage(x));`,{eval:true}]])
   assert.deepEqual(await run(code,opts),expected);

@@ -80,17 +80,19 @@ var AUTOMATION_CASES = [
     ["threads.pool", "(function () { var p = threads.pool({corePoolSize: 1, maxPoolSize: 2}); var r = [typeof p.submit]; p.shutdown(); r.push(p.isShutdown()); return r; })()",
         "(() => { const p = threads.pool({corePoolSize: 1, maxPoolSize: 2}); const r = [typeof p.submit]; p.shutdown(); r.push(p.isShutdown()); return r; })()"],
     // Rhino's rule when a maximum is given; without maxPoolSize Rhino also rejects corePoolSize > 0 (Q180), Node does not.
+    ["threads.pool.noMax", "(function () { var p = threads.pool({corePoolSize: 3}); p.shutdown(); return 'ok'; })()",
+        "(() => { const p = threads.pool({corePoolSize: 3}); p.shutdown(); return 'ok'; })()"],
     ["threads.pool.sizes", "(function () { try { threads.pool({corePoolSize: 3, maxPoolSize: 2}); return 'ok'; } catch (e) { return 'threw'; } })()",
         "(() => { try { threads.pool({corePoolSize: 3, maxPoolSize: 2}); return 'ok'; } catch (e) { return 'threw'; } })()"],
     ["threads.sync", "sync(function (a) { return a + 1; })(1)", "threads.sync(a => a + 1)(1)"],
 
-    // continuation (Q179: Node awaits natively)
-    ["continuation.enabled", null, "continuation.enabled", true],
+    // continuation (Q179 (b): enabled is false as in Rhino, await is native here)
+    ["continuation.enabled", "continuation.enabled", "continuation.enabled"],
     ["continuation.create", null, "(async () => { const c = continuation.create(); setTimeout(() => c.resume(5), 10); return [await c.await(), await continuation.await(6)]; })()", [5, 6]],
 
-    // timers (D-8)
-    ["timers.keepAlive", null, "(() => { const t = timers.keepAlive(10); const r = [typeof t.ref, typeof t.unref]; clearTimeout(t); const u = timers.keepAlive(); clearInterval(u); return r; })()",
-        ["function", "function"]],
+    // timers (D-8, Q179 (b): keepAlive returns a numeric id)
+    ["timers.keepAlive", "(function () { var t = timers.keepAlive(10); var r = [typeof t]; clearTimeout(t); var u = timers.keepAlive(); r.push(typeof u); clearInterval(u); return r; })()",
+        "(() => { const t = timers.keepAlive(10); const r = [typeof t]; clearTimeout(t); const u = timers.keepAlive(); r.push(typeof u); clearInterval(u); return r; })()"],
 
     // yolo: no YOLO plugin answers a made-up component; the failure carries a YOLO_* code
     ["yolo.load.unknown", null, "yolo.load('/sdcard/Download/p34-none', {component: 'p34.none/p34.None', timeoutMillis: 3000}).then(() => 'ok', e => /^YOLO_/.test(String(e.code)))", true],
