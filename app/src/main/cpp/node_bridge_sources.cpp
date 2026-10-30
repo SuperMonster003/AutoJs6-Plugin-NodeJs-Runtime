@@ -29395,10 +29395,11 @@ std::string buildEmbeddedScriptExecutionSource(
         name: { value: "TerminalError", writable: true, configurable: true },
         toString: { value: function() { return this.name + " [" + this.code + "]: " + this.message; }, writable: true, configurable: true }
       });
-      // Host failures carry the plugin's code (PLUGIN_UNAVAILABLE, TIMEOUT, ...); bridge and capability errors (ERR_*) stay as
-      // they are. The session id comes from the call, the host does not repeat it.
+      // Host failures carry the plugin's code (PLUGIN_UNAVAILABLE, TIMEOUT, ...); bridge and capability errors (ERR_*, or with
+      // missingCapabilities like Bun's NOT_GRANTED) stay as they are. The session id comes from the call, the host does not repeat it.
       const terminalError = (error, id) => error && typeof error === "object" && !(error instanceof TerminalError)
         && /^[A-Z][A-Z0-9_]*$/.test(String(error.code || "")) && !String(error.code).startsWith("ERR_")
+        && !Array.isArray(error.missingCapabilities)
         ? Object.assign(new TerminalError(error.message, error.code, id), { cause: error }) : error;
       // exec / waitFor wait on the host up to 10 minutes by default; those calls pass their own timeout.
       const terminalCall = (method, args, timeoutMs, id) => call("terminal", method, args, { permissions: ["terminal"], ...(timeoutMs ? { timeoutMs } : {}) })
