@@ -71,9 +71,9 @@ var SYSTEM_CASES = [
         " const g = await notice.channel.get('p31b_channel'); const r = await notice.channel.remove('p31b_channel');" +
         " return [id, c, g ? g.name : null, r, await notice.channel.contains('p31b_channel')]; })()"],
     ["notice.channel.getAll", "systemCount(notice.channel.getAll())", "notice.channel.getAll().then(systemCount)"],
-    // An omitted id is the script's file name in both (p31b_rhino_<run>.js / p31b_node_<form>_<run>.js; Q135 (b)).
-    ["notice.channel.default", "(function () { var id = String(notice.channel.create({name: 'P31B'})); var r = notice.channel.remove(id); return [id.indexOf('p31b_') === 0 && id.slice(-3) === '.js', r]; })()",
-        "(async () => { const id = await notice.channel.create({name: 'P31B'}); const r = await notice.channel.remove(id); return [id.indexOf('p31b_') === 0 && id.slice(-3) === '.js', r]; })()"],
+    // An omitted id is the running file's full name in both (Q135 (b)): Rhino runs p31b_rhino_<run>.js, Node the main.js of a project.
+    ["notice.channel.default", "(function () { var id = String(notice.channel.create({name: 'P31B'})); var r = notice.channel.remove(id); return [id === 'p31b_rhino_' + P31B_RUN + '.js', r]; })()",
+        "(async () => { const id = await notice.channel.create({name: 'P31B'}); const r = await notice.channel.remove(id); return [id === 'main.js', r]; })()"],
 
     // engines (host view, Q131 (a)) and plugins
     ["engines.all", "engines.all().length >= 1", "engines.all().then(l => l.length >= 1)"],
