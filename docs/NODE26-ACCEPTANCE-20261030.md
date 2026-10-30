@@ -1,6 +1,6 @@
 # Node 26.13.0 设备验收 (M25.2d, 2026-10-30)
 
-本记录是 [Roadmap M25.2d](../Roadmap.md) 的验收证据: 入库的三个 ABI libnode 26.13.0 (M25.2a) 与 M25.2b / 2c 的 adapter, 槽位, 终端资产和 addon, 在四台设备上以 Debug 与配套混淆 Release 各跑一遍完整常规组. 被测构建仍是 1.32.0 (versionCode 322) 的开发构建, 不是发布产物; 版本号, changelog 与 2.0.0 发布归 M25.3. 开发 kit 仍为 `releaseReady=false`.
+本记录是 [Roadmap M25.2d](../Roadmap.md) 的验收证据: 入库的三个 ABI libnode 26.13.0 (M25.2a) 与 M25.2b / 2c 的 adapter, 槽位, 终端资产和 addon, 在四台设备与一台 16 KB arm64 租用实机上以 Debug 与配套混淆 Release 各跑一遍完整常规组. 被测构建仍是 1.32.0 (versionCode 322) 的开发构建, 不是发布产物; 版本号, changelog 与 2.0.0 发布归 M25.3. 开发 kit 仍为 `releaseReady=false`.
 
 ## 运行时事实
 
@@ -25,6 +25,9 @@
 | XQ-AT72 `QV710AF65F`, Android 12 / API 31, arm64, 4 KB | 36/37 类 (修复前构建, 唯一失败为下文 (1b)); 修复后 BridgeLatency, SimpleRun 与两个契约类 4/4 | 36/37 类; 唯一失败 DgramUdpSmokeTest 当次 instrumentation 未在设备上启动 (logcat 无该类的 TestRunner 记录, adb 传输中断), 单独重跑 1/1 |
 | G8441 `BH900ASK9E`, Android 9 / API 28, armeabi-v7a 包 | 37/37 类, 114 项, 1 项 Assume 跳过 | 37/37 类, 114 项, 1 项 Assume 跳过 |
 | AVD_API_35_16K `emulator-5590`, API 35, x86_64, `PAGE_SIZE=16384` | 37/37 类, 114 项 | 37/37 类, 114 项 |
+| SM-A566B `localhost:57135` (三星 Remote Test Lab 租用), Android 16 / API 36, arm64, `PAGE_SIZE=16384` | 37/37 类, 114 项 | 37/37 类, 114 项 |
+
+SM-A566B 的 adb 经租用平台的代理转发, 代理会掐断长时间的 `am instrument -w` 流, 因此用 `release_acceptance.py --detached` 不带 `-w` 启动各类, 从 TestRunner 的 logcat 行取结果. 这种方式没有 UiAutomation 连接, 用它的 NpmEcosystemSmokeTest (写 corpus 归档) 与 UnrestrictedFsSmokeTest (经 `appops` 授予全部文件访问) 在 detached 下以 UiAutomation 为 null 失败, 改用 `-w` 单独重跑均通过; 其余 35 类 detached 通过, Debug 与 Release 相同. 冷启动测量同样用短时的 `-w`. 该机的终端启动器 `libnodexe.so -p` 返回 `v26.13.0`, `typeof Temporal === "object"`, `fs.F_OK` 为 `undefined`. detached 每类开始前会清空 logcat, 没有保留全程的崩溃缓冲区; 最后一次清空之后 (Debug 冷启动 5 轮与两类重跑) crash 缓冲区为空.
 
 G8441 的跳过是既有的 `UnrestrictedFsSmokeTest` SDK 条件 (MANAGE_EXTERNAL_STORAGE 需 Android 11). 全部运行中没有 libc++ 相关的崩溃. 墓碑中只有测试有意触发的 SI_USER / OOM 处理器 SIGABRT; 另有一次在宿主并行构建时, 模拟器测试运行器进程的 ART JIT 代码 SIGSEGV (pc 0, androidx ActivityFinisher), 与插件原生库无关, 该类单独重跑 33/33.
 
@@ -45,12 +48,14 @@ G8441 的跳过是既有的 `UnrestrictedFsSmokeTest` SDK 条件 (MANAGE_EXTERNA
 |---|---|---:|---:|---:|---:|
 | Debug | arm64 / API35 (OPD2413) | 384/419 | 104/117 | 29/31 | 18/21 |
 | Debug | x86_64 / API35 / 16 KB | 807/874 | 131/176 | 40/55 | 28/36 |
+| Debug | arm64 / API36 / 16 KB (SM-A566B) | 591/600 | 164/171 | 49/53 | 30/31 |
 | Release | arm64 / API35 (OPD2413) | 222/243 | 93/110 | 27/33 | 16/20 |
 | Release | x86_64 / API35 / 16 KB | 303/696 | 133/416 | 42/132 | 31/82 |
+| Release | arm64 / API36 / 16 KB (SM-A566B) | 339/346 | 148/158 | 46/51 | 30/31 |
 | Release | arm64 / API31 (XQ-AT72) | 415/442 | 154/164 | 49/55 | 26/26 |
 | Release | armv7 / API28 (G8441) | 758/774 | 351/377 | 90/96 | 64/82 |
 
-对照 M23.8 (Node 24.21, arm64 / API35 同型号设备): Debug 586/714, 117/126, 40/46, 18/18; Release 475/477, 103/113, 42/45, 18/18. 26 的 arm64 冷首输出与环境创建都更快, 内嵌 JS 持平. x86_64 一行用的是 2 GB 内存的 API 35 16 KB AVD (M23.8 为 API 37), P95 波动大: 同一 Release 包在其他设备并行测试时测得 305/362, 157/366, 51/73, 35/63, 宿主空闲时为表中一行; 只作量级参考.
+对照 M23.8 (Node 24.21, arm64 / API35 同型号设备): Debug 586/714, 117/126, 40/46, 18/18; Release 475/477, 103/113, 42/45, 18/18. 26 的 arm64 冷首输出与环境创建都更快, 内嵌 JS 持平. 16 KB 实机 SM-A566B 是另一型号 (中端机, 经租用平台代理), 不与 M23.8 直接对照, 其 Release 冷首输出 339/346 与 4 KB 真机同一量级, 未见 16 KB 页带来的异常开销. x86_64 一行用的是 2 GB 内存的 API 35 16 KB AVD (M23.8 为 API 37), P95 波动大: 同一 Release 包在其他设备并行测试时测得 305/362, 157/366, 51/73, 35/63, 宿主空闲时为表中一行; 只作量级参考.
 
 ## 工件
 
@@ -70,5 +75,4 @@ Release 包由 `-PnodeAndroidTestBuildType=release :app:assembleRelease :app:ass
 
 ## 未覆盖
 
-- 原生 16 KB 内核的 arm64 实机: 本轮只有 x86_64 AVD 的用户空间 16 KB 模拟, 实机由维护者租用 RDB 后在 M25.3 补验 (附录 A D4).
 - 宿主在 1.32.x 与 2.0.0 两版插件下的契约测试, 签名收集后的最终安装验收: 归 M25.3.
