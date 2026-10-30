@@ -8794,7 +8794,7 @@ std::string buildEmbeddedScriptExecutionSource(
       themeCall: (method, args) => bridgeCall("theme", method, args, { permissions: ["theme"] }), batchRename: pluginFamily ? () => pluginFamily.batchRename : undefined, java: () => {
         if (!modules.has("java")) throw Object.assign(new Error("Java interop is unavailable in this Worker."), { code: "ERR_AUTOJS6_JAVA_INTEROP_DISABLED" });
         return modules.get("java");
-      }, fs, path, cwd: () => process.cwd(), hostCwd: () => constants.engineInfo?.cwd || process.cwd(), sdcardPath: constants.sdcardPath,
+      }, fs, path, cwd: () => process.cwd(), hostCwd: () => constants.engineInfo?.hostCwd || process.cwd(), sdcardPath: constants.sdcardPath,
       ...constants.hostAppDirs, android: () => modules.get("android"), require: nativeRequire, axios: () => axios || (axios = createWorkerAxios({})),
       librarySource: file => {
         if (!constants.librariesDir) throw new Error("The bundled JS libraries are unavailable: " + (constants.librariesError || "the runtime service did not prepare them") + ".");
@@ -20261,7 +20261,7 @@ std::string buildEmbeddedScriptExecutionSource(
         fs: __autojs6_builtin_module("fs"),
         path: __autojs6_builtin_module("path"),
         cwd: () => process.cwd(),
-        hostCwd: () => __autojs6_current_engine_info().cwd || process.cwd(),
+        hostCwd: () => __autojs6_current_engine_info().hostCwd || process.cwd(),
         sdcardPath: __autojs6_sdcard_path(),
         ...__autojs6_host_app_dirs(),
         android: __autojs6_limited_android,
@@ -27982,6 +27982,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const pid = Number(input.pid);
     const versionCode = Number(input.versionCode);
     const startedAt = Number(input.startedAt);
+    const cwd = input.cwd === undefined || input.cwd === null ? __autojs6_engine_info_fallback_cwd() : String(input.cwd);
     return Object.freeze({
       id: input.id === undefined || input.id === null ? "" : String(input.id),
       engineName: input.engineName === undefined || input.engineName === null ? "nodejs" : String(input.engineName),
@@ -27989,9 +27990,8 @@ std::string buildEmbeddedScriptExecutionSource(
       sourceName: input.sourceName === undefined || input.sourceName === null
         ? String(__autojs6_source_name || "")
         : String(input.sourceName),
-      cwd: input.cwd === undefined || input.cwd === null
-        ? __autojs6_engine_info_fallback_cwd()
-        : String(input.cwd),
+      cwd,
+      hostCwd: input.hostCwd === undefined || input.hostCwd === null ? cwd : String(input.hostCwd),
       spawnDepth: Number.isFinite(Number(input.spawnDepth))
         ? Math.max(0, Math.min(1, Math.trunc(Number(input.spawnDepth))))
         : 0,

@@ -681,6 +681,11 @@ final class PluginWorkspaceArchiveSession implements AutoCloseable {
         }
         try {
             JSONObject json = new JSONObject(engineInfoJson);
+            // Host-side calls resolve relative paths against the host's directory: the mirror is out of the host's reach.
+            String hostCwd = json.optString("cwd", "");
+            if (!hostCwd.isEmpty()) {
+                json.put("hostCwd", hostCwd);
+            }
             json.put("cwd", runtimeWorkingDirectory.getAbsolutePath());
             String sourceName = json.optString("sourceName", "");
             if (!sourceName.isEmpty()) {
