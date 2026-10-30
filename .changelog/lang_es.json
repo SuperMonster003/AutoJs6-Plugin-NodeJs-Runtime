@@ -19,7 +19,8 @@
         "colors/Color, files, zip, mime y el registro de tiempos para Node.js y Workers coherentes con los scripts de AutoJs6; dayjs, pangu.js, cheerio y banana-i18n están disponibles mediante autojs6:global, y las solicitudes axios de los Workers las atiende el hilo principal"
       ],
       "fix": [
-        "Los proxies Packages / java / android que instala rhino.install() fallaban al leer campos estáticos, llamar a describe(), llamar a métodos estáticos o crear objetos con new"
+        "Los proxies Packages / java / android que instala rhino.install() fallaban al leer campos estáticos, llamar a describe(), llamar a métodos estáticos o crear objetos con new",
+        "shell.exec fallaba ocasionalmente con ERR_STREAM_DESTROYED cuando el comando terminaba rápidamente"
       ],
       "improvement": [
         "Node.js 26 ya no incluye corepack; el plugin sigue incluyendo corepack 0.36.0 y su uso en el terminal no cambia",

@@ -16,6 +16,7 @@
 * `Feature` device, sensors and media modules for Node.js and Workers matching AutoJs6 scripts: device model, screen and manufacturer checks, the full vibration and keep-screen-on options, sensor events, music playback and media scanning; reading device identifiers requires the new device.identifiers capability
 * `Feature` colors/Color, files, zip, mime and the timing recorder for Node.js and Workers matching AutoJs6 scripts; dayjs, pangu.js, cheerio and banana-i18n are available through autojs6:global, and axios requests in Workers are handled by the main thread
 * `Fix` The Packages / java / android proxies installed by rhino.install() threw errors when reading static fields, calling describe(), calling static methods or creating objects with new
+* `Fix` shell.exec occasionally failed with ERR_STREAM_DESTROYED when the command finished quickly
 * `Improvement` Node.js 26 no longer ships corepack; the plugin keeps bundling corepack 0.36.0 and the terminal usage is unchanged
 * `Improvement` TypeScript declarations of worker_threads cover WorkerPool options, cancellation, timeouts and diagnostics, so the module is typed without @types/node
 * `Improvement` The Node.js runtime library is built with NDK r29 and keeps 16 KB page alignment on all three ABIs; the release acceptance script runs the full device regression, writes a JSON report and measures cold start

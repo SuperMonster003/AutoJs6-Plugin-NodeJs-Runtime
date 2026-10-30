@@ -136,6 +136,7 @@ console.log("AutoJs6 Node.js runtime");
 * `新增` Node.js 與 Worker 的 device, sensors 和 media 模組與 AutoJs6 指令碼一致: 裝置型號, 螢幕與製造商判斷, 震動與螢幕常亮的完整用法, 感測器事件, 音樂播放與媒體掃描; 讀取裝置識別碼需要宣告新增的 device.identifiers 能力
 * `新增` Node.js 與 Worker 的 colors/Color, files, zip, mime 和計時記錄器與 AutoJs6 指令碼一致; 可透過 autojs6:global 使用 dayjs, pangu.js, cheerio 和 banana-i18n, Worker 中的 axios 請求交由主執行緒執行
 * `修復` rhino.install() 裝入的 Packages / java / android 代理在讀取靜態欄位, 呼叫 describe(), 呼叫靜態方法或用 new 建立物件時報錯的問題
+* `修復` shell.exec 執行很快結束的指令時偶爾以 ERR_STREAM_DESTROYED 錯誤失敗的問題
 * `優化` Node.js 26 不再內附 corepack, 外掛程式繼續隨附 corepack 0.36.0, 終端機用法不變
 * `優化` worker_threads 模組的 TypeScript 宣告補充 WorkerPool 的選項, 取消, 逾時與診斷, 不安裝 @types/node 也有型別提示
 * `優化` Node.js 執行階段函式庫改用 NDK r29 建置, 三個 ABI 繼續保持 16 KB 記憶體頁對齊; 發布驗收指令碼可執行完整裝置迴歸測試, 輸出 JSON 報告並測量冷啟動耗時

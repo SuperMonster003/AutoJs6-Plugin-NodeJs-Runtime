@@ -3,7 +3,7 @@ const {EventEmitter}=require('node:events'),streams=require('node:stream');
 const source=fs.readFileSync(path.join(__dirname,'../../../app/src/main/cpp/node_bridge_sources.cpp'),'utf8');
 const a=source.indexOf('  function __autojs6_create_shell('),z=source.indexOf('  // Main-thread shell facade;',a);assert(a>=0&&z>a);
 const create=new Function('return ('+source.slice(a,z)+')')();
-function fixture({delay,denied=[]}={}){
+function fixture({delay,closeInputDelay,denied=[]}={}){
  const calls=[],live=new Map();let n=0;
  const api=create(async(module,method,args,options)=>{
   calls.push({module,method,args,options});
@@ -20,7 +20,7 @@ function fixture({delay,denied=[]}={}){
   const entry=live.get(args[0]);
   if(method==='close'){live.delete(args[0]);return {wasAlive:!!entry,code:137};}
   if(method==='write'){entry.queue.push({type:'stdout',data:args[1]});return null;}
-  if(method==='closeInput'){if(entry?.command==='cat')entry.queue.push({type:'exit',code:0,timedOut:false});return null;}
+  if(method==='closeInput'){if(closeInputDelay)await new Promise(r=>setTimeout(r,closeInputDelay));if(entry?.command==='cat')entry.queue.push({type:'exit',code:0,timedOut:false});return null;}
   if(method==='kill'){entry.queue.push({type:'exit',code:137,timedOut:false});return true;}
   if(method==='drain'){if(!entry)return [];const batch=entry.queue.splice(0,8);if(batch.some(e=>e.type==='exit'))live.delete(args[0]);if(!batch.length)await new Promise(r=>setTimeout(r,5));return batch;}
  },EventEmitter,streams,Buffer,required=>required.filter(x=>denied.includes(x)));
@@ -29,6 +29,9 @@ function fixture({delay,denied=[]}={}){
 test('exec captures binary transport, preserves nonzero exit, and bounds captured bytes',async()=>{
  const f=fixture(),r=await f.shell.exec('echo');assert.equal(r.code,7);assert.equal(r.stdout,'a\0中文\nlast');assert.equal(r.stderr,'err\n');assert.equal(r.truncated,false);assert(Object.isFrozen(r));assert.equal(f.live.size,0);
  const small=await f.shell.exec('echo',{maxOutputBytes:1});assert.equal(small.stdout,'a');assert.equal(small.truncated,true);
+});
+test('exec resolves when the command exits before the host acknowledges the end of input',async()=>{
+ const f=fixture({closeInputDelay:50}),r=await f.shell.exec('echo');assert.equal(r.code,7);assert.equal(r.stdout,'a\0中文\nlast');assert.equal(f.live.size,0);
 });
 test('open stdin, asynchronous line reads and EOF share a real writable/readable pair',async()=>{
  const f=fixture(),p=f.shell.open({cwd:'/system',env:{OWNED:'yes'}});await p.ready;await p.writeLine('你好');assert.equal(await p.readLine(),'你好');await p.closeInput();assert.equal(await p.readLine(),null);assert.equal(await p.waitFor(),0);assert(p.closed);assert.equal(await p.close(),false);

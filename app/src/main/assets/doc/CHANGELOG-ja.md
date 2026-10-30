@@ -16,6 +16,7 @@
 * `追加` Node.js/Worker に AutoJs6 スクリプトと同じ device, sensors, media モジュールを追加: 端末モデル, 画面とメーカーの判定, 振動と画面点灯維持の全オプション, センサーイベント, 音楽再生とメディアスキャン; 端末識別子の読み取りには新しい device.identifiers 能力の宣言が必要
 * `追加` Node.js/Worker に AutoJs6 スクリプトと同じ colors/Color, files, zip, mime, 計時レコーダーを追加; autojs6:global から dayjs, pangu.js, cheerio, banana-i18n を利用でき, Worker の axios リクエストはメインスレッドが処理
 * `修正` rhino.install() で導入した Packages / java / android プロキシで, 静的フィールドの読み取り, describe() の呼び出し, 静的メソッドの呼び出し, new によるオブジェクト生成がエラーになる問題
+* `修正` すぐに終了するコマンドで shell.exec がまれに ERR_STREAM_DESTROYED エラーで失敗する問題
 * `改善` Node.js 26 は corepack を同梱しなくなったが, プラグインは引き続き corepack 0.36.0 を同梱し, ターミナルでの使い方は変わらない
 * `改善` worker_threads の TypeScript 宣言に WorkerPool のオプション, キャンセル, タイムアウト, 診断を追加, @types/node なしでも型が付く
 * `改善` Node.js ランタイムライブラリを NDK r29 でビルドし, 3 つの ABI で 16 KB ページアラインメントを維持; リリース受け入れスクリプトは端末での完全な回帰テスト, JSON レポート出力, コールドスタート計測に対応

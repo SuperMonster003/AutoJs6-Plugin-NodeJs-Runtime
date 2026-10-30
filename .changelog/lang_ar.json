@@ -19,7 +19,8 @@
         "colors/Color و files و zip و mime ومسجل التوقيت المطابقة لسكربتات AutoJs6 في Node.js و Worker; تتوفر dayjs و pangu.js و cheerio و banana-i18n عبر autojs6:global, ويعالج الخيط الرئيسي طلبات axios الصادرة من Worker"
       ],
       "fix": [
-        "كانت وكلاء Packages / java / android التي يثبتها rhino.install() تفشل عند قراءة الحقول الثابتة أو استدعاء describe() أو استدعاء الدوال الثابتة أو إنشاء الكائنات باستخدام new"
+        "كانت وكلاء Packages / java / android التي يثبتها rhino.install() تفشل عند قراءة الحقول الثابتة أو استدعاء describe() أو استدعاء الدوال الثابتة أو إنشاء الكائنات باستخدام new",
+        "كان shell.exec يفشل أحيانا بالخطأ ERR_STREAM_DESTROYED عندما ينتهي الأمر بسرعة"
       ],
       "improvement": [
         "لم يعد Node.js 26 يتضمن corepack, وتواصل الإضافة تضمين corepack 0.36.0 دون تغيير في استخدامه من الطرفية",

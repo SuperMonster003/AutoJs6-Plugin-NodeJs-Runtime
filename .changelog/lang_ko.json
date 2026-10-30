@@ -19,7 +19,8 @@
         "Node.js/Worker에 AutoJs6 스크립트와 같은 colors/Color, files, zip, mime, 타이밍 기록기 추가; autojs6:global로 dayjs, pangu.js, cheerio, banana-i18n을 사용할 수 있고 Worker의 axios 요청은 메인 스레드가 처리"
       ],
       "fix": [
-        "rhino.install()로 설치한 Packages / java / android 프록시에서 정적 필드 읽기, describe() 호출, 정적 메서드 호출, new로 객체 생성 시 오류가 발생하던 문제"
+        "rhino.install()로 설치한 Packages / java / android 프록시에서 정적 필드 읽기, describe() 호출, 정적 메서드 호출, new로 객체 생성 시 오류가 발생하던 문제",
+        "빠르게 끝나는 명령에서 shell.exec가 가끔 ERR_STREAM_DESTROYED 오류로 실패하던 문제"
       ],
       "improvement": [
         "Node.js 26은 더 이상 corepack을 포함하지 않지만 플러그인은 계속 corepack 0.36.0을 포함하며 터미널 사용법은 그대로",

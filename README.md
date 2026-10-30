@@ -136,6 +136,7 @@ console.log("AutoJs6 Node.js runtime");
 * `新增` Node.js 与 Worker 的 device, sensors 和 media 模块与 AutoJs6 脚本一致: 设备型号, 屏幕与厂商判断, 振动与保持亮屏的完整用法, 传感器事件, 音乐播放与媒体扫描; 读取设备标识需要声明新增的 device.identifiers 能力
 * `新增` Node.js 与 Worker 的 colors/Color, files, zip, mime 和计时记录器与 AutoJs6 脚本一致; 可通过 autojs6:global 使用 dayjs, pangu.js, cheerio 和 banana-i18n, Worker 中的 axios 请求交给主线程执行
 * `修复` rhino.install() 装入的 Packages / java / android 代理在读取静态字段, 调用 describe(), 调用静态方法或用 new 创建对象时报错的问题
+* `修复` shell.exec 执行很快结束的命令时偶尔以 ERR_STREAM_DESTROYED 错误失败的问题
 * `优化` Node.js 26 不再自带 corepack, 插件继续随包提供 corepack 0.36.0, 终端用法不变
 * `优化` worker_threads 模块的 TypeScript 声明补充 WorkerPool 的选项, 取消, 超时与诊断, 不安装 @types/node 也有类型提示
 * `优化` Node.js 运行库改用 NDK r29 构建, 三个 ABI 继续保持 16 KB 内存页对齐; 发布验收脚本可运行完整设备回归, 输出 JSON 报告并测量冷启动耗时

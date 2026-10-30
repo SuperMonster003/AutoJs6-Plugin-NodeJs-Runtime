@@ -16,6 +16,7 @@
 * `추가` Node.js/Worker에 AutoJs6 스크립트와 같은 device, sensors, media 모듈 추가: 기기 모델, 화면 및 제조사 판별, 진동과 화면 켜짐 유지의 전체 옵션, 센서 이벤트, 음악 재생과 미디어 스캔; 기기 식별자를 읽으려면 새 device.identifiers 기능을 선언해야 함
 * `추가` Node.js/Worker에 AutoJs6 스크립트와 같은 colors/Color, files, zip, mime, 타이밍 기록기 추가; autojs6:global로 dayjs, pangu.js, cheerio, banana-i18n을 사용할 수 있고 Worker의 axios 요청은 메인 스레드가 처리
 * `수정` rhino.install()로 설치한 Packages / java / android 프록시에서 정적 필드 읽기, describe() 호출, 정적 메서드 호출, new로 객체 생성 시 오류가 발생하던 문제
+* `수정` 빠르게 끝나는 명령에서 shell.exec가 가끔 ERR_STREAM_DESTROYED 오류로 실패하던 문제
 * `개선` Node.js 26은 더 이상 corepack을 포함하지 않지만 플러그인은 계속 corepack 0.36.0을 포함하며 터미널 사용법은 그대로
 * `개선` worker_threads의 TypeScript 선언에 WorkerPool 옵션, 취소, 시간 제한, 진단을 추가하여 @types/node 없이도 타입 지원
 * `개선` Node.js 런타임 라이브러리를 NDK r29로 빌드하고 세 ABI 모두 16 KB 페이지 정렬 유지; 릴리스 검수 스크립트가 기기 전체 회귀 테스트, JSON 보고서 작성, 콜드 스타트 측정을 지원

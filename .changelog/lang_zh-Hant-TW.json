@@ -19,7 +19,8 @@
         "Node.js 與 Worker 的 colors/Color, files, zip, mime 和計時記錄器與 AutoJs6 指令碼一致; 可透過 autojs6:global 使用 dayjs, pangu.js, cheerio 和 banana-i18n, Worker 中的 axios 請求交由主執行緒執行"
       ],
       "fix": [
-        "rhino.install() 裝入的 Packages / java / android 代理在讀取靜態欄位, 呼叫 describe(), 呼叫靜態方法或用 new 建立物件時報錯的問題"
+        "rhino.install() 裝入的 Packages / java / android 代理在讀取靜態欄位, 呼叫 describe(), 呼叫靜態方法或用 new 建立物件時報錯的問題",
+        "shell.exec 執行很快結束的指令時偶爾以 ERR_STREAM_DESTROYED 錯誤失敗的問題"
       ],
       "improvement": [
         "Node.js 26 不再內附 corepack, 外掛程式繼續隨附 corepack 0.36.0, 終端機用法不變",
