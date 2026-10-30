@@ -29310,6 +29310,8 @@ std::string buildEmbeddedScriptExecutionSource(
             return true;
           },
           cancel() {
+            // As Rhino's OkHttp socket, a failed, closed or canceled socket stays quiet (a failure listener may cancel).
+            if (closed && !connection) { generation++; pending.length = 0; return; }
             const target = connection;
             generation++; closed = true; connection = null; pending.length = 0;
             if (target) target.close(1001, "").catch(() => {});

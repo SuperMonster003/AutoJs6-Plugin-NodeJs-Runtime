@@ -143,6 +143,12 @@ test('web: ByteString, WebSocket events and queue, injectable clients',async()=>
  assert.equal(ws.send('late'),false);
  const sticky=family.web.newWebSocket('wss://x');sticky.emitSticky('ready',1,2);let got;sticky.on('ready',(...a)=>{got=a;});assert.deepEqual(got,[1,2]);
  let max;sticky.on('max_rebuilds',value=>{max=value;});sticky.rebuild(0);assert.equal(max,0);
+ // A failure listener that cancels (the device case web.newWebSocket.failure~) is called once per failure, as Rhino's OkHttp.
+ const refused=createUi(fake().call).__autojs6Family({connectWebSocket:async()=>{throw Object.assign(new Error('refused'),{code:'ECONNREFUSED'});}}).web.newWebSocket('ws://127.0.0.1:9');
+ const failures=[];refused.on('failure',error=>{failures.push(error.message);refused.cancel();});await tick();
+ assert.deepEqual(failures,['refused']);refused.cancel();assert.deepEqual(failures,['refused']);
+ const canceling=family.web.newWebSocket('wss://cancel'),canceled=[];canceling.on('failure',error=>{canceled.push(error.code);canceling.cancel();});
+ await tick();canceling.cancel();canceling.cancel();assert.deepEqual(canceled,['ERR_AUTOJS6_WEBSOCKET_CANCELED']);
  // InjectableWebClient waits for the first page finished, then evaluates on that view.
  const client=family.web.newInjectableWebClient();assert.deepEqual(Object.keys(client),['onPageFinished']);
  const pending=client.injectAndWait('1+1');let callbackValue;client.inject('2+2',value=>{callbackValue=value;});
