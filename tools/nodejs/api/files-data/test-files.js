@@ -532,6 +532,17 @@ test("listDir filters through the interface adapter", t => {
   assert.equal(thrown(() => files.listDir(d, () => { throw new RangeError("stop"); })), "RangeError");
 });
 
+test("Java facade: open and toFile resolve against the script's source directory, the host process's view (Q120 (b))", async t => {
+  const { files, calls } = setup(t, { hostCwd: () => "/storage/emulated/0/Scripts/demo" });
+  assert.equal(files.path("a.txt"), "/work/cwd/a.txt", "the node:fs members keep the working directory");
+  await files.toFile("a.txt");
+  assert.deepEqual(calls.at(-1).args, ["/storage/emulated/0/Scripts/demo/a.txt"]);
+  await files.open("../b.txt").catch(() => {});
+  assert.equal(calls.at(-1).args[0], "/storage/emulated/0/Scripts/b.txt");
+  await files.toFile("/abs/c.txt");
+  assert.deepEqual(calls.at(-1).args, ["/abs/c.txt"]);
+});
+
 test("Java facade: toFile, open, readAssets", async t => {
   const { files, calls, java, javaAsked } = setup(t);
   assert.equal(javaAsked(), 0, "the facade is asked for on first use");

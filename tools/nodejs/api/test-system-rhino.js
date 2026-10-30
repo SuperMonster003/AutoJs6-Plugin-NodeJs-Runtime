@@ -122,6 +122,9 @@ test('memory, settings, sysprops and power_manager pass Rhino arguments and capa
  assert.deepEqual([last().args,last().options.permissions],[[null,null],['settings','files.write']]);
  assert.equal(await system.sysprops.get('ro.x','d'),'d');
  assert.equal(await system.sysprops.getInt('ro.y',1),7);
+ const missing=fake({'sysprops.getInt':null,'sysprops.getBoolean':null}).system.sysprops;
+ assert.equal(await missing.getInt('ro.none'),null);
+ assert.equal(await missing.getBoolean('ro.none'),null);
  await assert.rejects(system.sysprops.get(''),TypeError);
  assert.equal(await system.power_manager.isIgnoringBatteryOptimizations(),true);
  await system.power_manager.requestIgnoreBatteryOptimizations(true,'com.a');

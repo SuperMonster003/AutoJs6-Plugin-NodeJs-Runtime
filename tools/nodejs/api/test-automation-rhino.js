@@ -403,6 +403,8 @@ test('continuation and timers: resumable promises, keepAlive, setIntervalExt and
  assert.equal(await done,'enough');assert.equal(runs,3);
  const timed=new Promise(resolve=>timers.setIntervalExt(()=>{},5,30,value=>resolve(value)));
  assert.equal(await timed,true);
+ const id=timers.setIntervalExt(()=>assert.fail('cleared'),5);
+ assert.equal(typeof id,'number');clearTimeout(id);
  assert.throws(()=>timers.setIntervalExt(1),TypeError);
  timers.loop();timers.loop();
  assert.equal(warnings.length,1);

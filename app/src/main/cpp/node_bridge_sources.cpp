@@ -8769,7 +8769,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const tools = createJsTools({ device: constants.device || {}, log: text => nativeConsole.log(text), warn: text => nativeConsole.warn(text), java: () => {
         if (!modules.has("java")) throw Object.assign(new Error("Java interop is unavailable in this Worker."), { code: "ERR_AUTOJS6_JAVA_INTEROP_DISABLED" });
         return modules.get("java");
-      }, fs, path, cwd: () => process.cwd(), sdcardPath: constants.sdcardPath,
+      }, fs, path, cwd: () => process.cwd(), hostCwd: () => constants.engineInfo?.cwd || process.cwd(), sdcardPath: constants.sdcardPath,
       ...constants.hostAppDirs, android: () => modules.get("android"), require: nativeRequire, axios: () => axios || (axios = createWorkerAxios({})),
       librarySource: file => {
         if (!constants.librariesDir) throw new Error("The bundled JS libraries are unavailable: " + (constants.librariesError || "the runtime service did not prepare them") + ".");
@@ -11706,7 +11706,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   function __autojs6_create_tasks(call) {
     const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
-    const options=value=>{if(!value||typeof value!=='object'||Array.isArray(value))throw new TypeError('Task options must be an object.');return value;};
+    const options=value=>{if(value===null||value===undefined)return {};if(typeof value!=='object'||Array.isArray(value))throw new TypeError('Task options must be an object.');return value;};
     const payload=input=>{const {signal,timeoutMs,...value}=options(input);for(const key of ['time','date'])if(value[key] instanceof Date)value[key]=value[key].getTime();return value;};
     const invoke=(method,args,input={})=>call('tasks',method,args,{timeoutMs:5000,...input,permissions:['tasks']});
     const identity=value=>{
@@ -14559,11 +14559,14 @@ std::string buildEmbeddedScriptExecutionSource(
         return true;
       }
 
+      // The script's source directory: open and toFile run in the host process, which cannot read the plugin's private
+      // working directory (Q120 (b)); a runtime without it (Bun's core learns the host directory as its cwd) uses cwd.
+      const hostDirectory = () => (host.hostCwd || host.cwd)();
       // Files.path: an absolute path stays as it is, a relative one is resolved against the working directory by its
       // segments ("." and blank ones skipped, ".." above the root gives null), keeping a trailing separator.
-      function resolvePath(relativePath) {
+      function resolvePath(relativePath, directory = host.cwd) {
         if (relativePath === null) return null;
-        const cwd = host.cwd();
+        const cwd = directory();
         if (isNullish(cwd)) return null;
         if (relativePath.startsWith("/")) return relativePath;
         let file = normalize(`${cwd}`);
@@ -15252,7 +15255,7 @@ std::string buildEmbeddedScriptExecutionSource(
         const encoding = n > 2 && !isNullish(args[2]) ? string(fn, "encoding", args[2]) : null;
         const bufferSize = n > 3 && !isNullish(args[3]) ? int(fn, "bufferSize", args[3]) : null;
         // Files.open: PFiles.open with the resolved path (null above the root, an IllegalArgumentException there).
-        return javaCall(host.java().callStatic(PFILES, "open", [resolvePath(path), mode, encoding, bufferSize],
+        return javaCall(host.java().callStatic(PFILES, "open", [resolvePath(path, hostDirectory), mode, encoding, bufferSize],
           { parameterTypes: [STRING, STRING, STRING, "java.lang.Integer"] }));
       }
       function path(...args) {
@@ -15270,7 +15273,7 @@ std::string buildEmbeddedScriptExecutionSource(
       async function toFile(args) {
         const fn = "files.toFile";
         count(fn, args, 1, 1);
-        const p = resolvePath(string(fn, "path", args[0]));
+        const p = resolvePath(string(fn, "path", args[0]), hostDirectory);
         if (p === null) throw javaError("java.lang.IllegalArgumentException", `Resolved path for "%1$s" cannot be null`);
         return javaCall(host.java().create("java.io.File", [p], { parameterTypes: [STRING] }));
       }
@@ -20149,7 +20152,7 @@ std::string buildEmbeddedScriptExecutionSource(
     const once = create => { let value; return () => value || (value = create()); };
     const files = once(() => __autojs6_js_tools_files({ fs: host.fs, cwd: host.cwd, sdcardPath: host.sdcardPath, java: host.java,
       TextDecoder: globalThis.TextDecoder, filesDir: host.filesDir, cacheDir: host.cacheDir, dataDir: host.dataDir }));
-    const zip = once(() => Object.freeze(__autojs6_js_tools_zip({ java: host.java, cwd: host.cwd })));
+    const zip = once(() => Object.freeze(__autojs6_js_tools_zip({ java: host.java, cwd: host.hostCwd || host.cwd })));
     const mimeRecorder = once(() => __autojs6_js_tools_mime_recorder({ device: host.device }));
     const colors = once(() => {
       const result = __autojs6_js_tools_colors({ java: host.java, device: host.device, get android() { return host.android && host.android(); } });
@@ -20188,6 +20191,7 @@ std::string buildEmbeddedScriptExecutionSource(
         fs: __autojs6_builtin_module("fs"),
         path: __autojs6_builtin_module("path"),
         cwd: () => process.cwd(),
+        hostCwd: () => __autojs6_current_engine_info().cwd || process.cwd(),
         sdcardPath: __autojs6_sdcard_path(),
         ...__autojs6_host_app_dirs(),
         android: __autojs6_limited_android,
@@ -25373,8 +25377,14 @@ std::string buildEmbeddedScriptExecutionSource(
         const value = await invoke("sysprops", "get", [propName("get", name), nullish(defaultValue) ? null : String(defaultValue)], ["sysprops"], options);
         return nullish(value) ? (nullish(defaultValue) ? "" : String(defaultValue)) : String(value);
       },
-      getInt: async (name, defaultValue, options) => Number(await invoke("sysprops", "getInt", [propName("getInt", name), nullish(defaultValue) ? null : Math.trunc(Number(defaultValue))], ["sysprops"], options)),
-      getBoolean: async (name, defaultValue, options) => await invoke("sysprops", "getBoolean", [propName("getBoolean", name), nullish(defaultValue) ? null : !!defaultValue], ["sysprops"], options) === true,
+      getInt: async (name, defaultValue, options) => {
+        const value = await invoke("sysprops", "getInt", [propName("getInt", name), nullish(defaultValue) ? null : Math.trunc(Number(defaultValue))], ["sysprops"], options);
+        return nullish(value) ? null : Number(value);
+      },
+      getBoolean: async (name, defaultValue, options) => {
+        const value = await invoke("sysprops", "getBoolean", [propName("getBoolean", name), nullish(defaultValue) ? null : !!defaultValue], ["sysprops"], options);
+        return nullish(value) ? null : value === true;
+      },
       getAll: async options => freezeDeep(await invoke("sysprops", "getAll", [], ["sysprops"], options))
     };
     const power_manager = {
@@ -27376,7 +27386,7 @@ std::string buildEmbeddedScriptExecutionSource(
           else if (typeof callback === "function") callback.call(record, result);
         };
         record.handle = setTimeout(tick, pause);
-        return record.handle;
+        return Number(record.handle);
       },
       loop() {
         if (!loopWarned) { loopWarned = true; logger().warn("Method loop has been abandoned and should not be used"); }

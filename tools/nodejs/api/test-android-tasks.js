@@ -29,6 +29,16 @@ test('tasks preserve Date instants, freeze snapshots, update options and use num
   const intent=await api.addBroadcastIntentTask({path:'child.cjs',action:'owned'});await api.removeTask(intent);assert.equal(calls.at(-1).method,'removeIntentTask');
   assert.equal(api.daysToTimeFlag([0,1,1,6]),67);assert.deepEqual(api.timeFlagToDays(67),[0,1,6]);assert.throws(()=>api.daysToTimeFlag([7]));
 });
+test('null task options read as no options, as in Rhino (Q190 (b))',async()=>{
+  const calls=[],api=factory.tasks(async(module,method,args)=>{calls.push({method,args});return method.startsWith('query')?[]:{id:5,kind:'timed'};});
+  assert.deepEqual(await api.queryTimedTasks(null),[]);
+  assert.deepEqual(await api.queryIntentTasks(null),[]);
+  await api.addDailyTask(null);await api.addIntentTask(null);
+  await api.removeTimedTask(5,null);
+  assert.deepEqual(calls.map(call=>[call.method,call.args[0]]),[['queryTimedTasks',{}],['queryIntentTasks',{}],['addTimedTask',{repeatMode:'daily'}],['addIntentTask',{}],['removeTimedTask',5]]);
+  assert.throws(()=>api.addDailyTask(1),/Task options must be an object/);
+});
+
 test('aborted registrations close only the unconfirmed Android object or persistent task',async()=>{
   for(const kind of ['android','tasks']){
     const controller=new AbortController(),calls=[];
