@@ -844,6 +844,21 @@
         "providerOwner": "host_capability_provider"
       },
       {
+        "id": "theme",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "gallery",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
+        "id": "batch_rename",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
         "id": "websocket",
         "aliases": [],
         "providerOwner": "host_capability_provider"
@@ -3926,6 +3941,139 @@
         ]
       },
       {
+        "module": "theme",
+        "method": "get",
+        "requiredCapabilities": [
+          "theme"
+        ]
+      },
+      {
+        "module": "theme",
+        "method": "set",
+        "requiredCapabilities": [
+          "theme"
+        ]
+      },
+      {
+        "module": "theme",
+        "method": "reset",
+        "requiredCapabilities": [
+          "theme"
+        ]
+      },
+      {
+        "module": "theme",
+        "method": "libraries",
+        "requiredCapabilities": [
+          "theme"
+        ]
+      },
+      {
+        "module": "theme",
+        "method": "activate",
+        "requiredCapabilities": [
+          "theme"
+        ]
+      },
+      {
+        "module": "theme",
+        "method": "deactivate",
+        "requiredCapabilities": [
+          "theme"
+        ]
+      },
+      {
+        "module": "theme",
+        "method": "next",
+        "requiredCapabilities": [
+          "theme"
+        ]
+      },
+      {
+        "module": "theme",
+        "method": "state",
+        "requiredCapabilities": [
+          "theme"
+        ]
+      },
+      {
+        "module": "theme",
+        "method": "current",
+        "requiredCapabilities": [
+          "theme"
+        ]
+      },
+      {
+        "module": "gallery",
+        "method": "open",
+        "requiredCapabilities": [
+          "gallery"
+        ]
+      },
+      {
+        "module": "gallery",
+        "method": "start",
+        "requiredCapabilities": [
+          "gallery"
+        ]
+      },
+      {
+        "module": "gallery",
+        "method": "poll",
+        "requiredCapabilities": [
+          "gallery"
+        ]
+      },
+      {
+        "module": "gallery",
+        "method": "cancel",
+        "requiredCapabilities": [
+          "gallery"
+        ]
+      },
+      {
+        "module": "gallery",
+        "method": "close",
+        "requiredCapabilities": [
+          "gallery"
+        ]
+      },
+      {
+        "module": "batch_rename",
+        "method": "open",
+        "requiredCapabilities": [
+          "batch_rename"
+        ]
+      },
+      {
+        "module": "batch_rename",
+        "method": "start",
+        "requiredCapabilities": [
+          "batch_rename"
+        ]
+      },
+      {
+        "module": "batch_rename",
+        "method": "poll",
+        "requiredCapabilities": [
+          "batch_rename"
+        ]
+      },
+      {
+        "module": "batch_rename",
+        "method": "cancel",
+        "requiredCapabilities": [
+          "batch_rename"
+        ]
+      },
+      {
+        "module": "batch_rename",
+        "method": "close",
+        "requiredCapabilities": [
+          "batch_rename"
+        ]
+      },
+      {
         "module": "websocket",
         "method": "close",
         "requiredCapabilities": [
@@ -5249,6 +5397,21 @@
       },
       {
         "id": "terminal",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "theme",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "gallery",
+        "aliases": [],
+        "androidPermissions": []
+      },
+      {
+        "id": "batch_rename",
         "aliases": [],
         "androidPermissions": []
       },

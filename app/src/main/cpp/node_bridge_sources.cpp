@@ -4980,6 +4980,9 @@ std::string buildEmbeddedScriptExecutionSource(
       normalized === "ai" ||
       normalized === "ai.agent" ||
       normalized === "epub" ||
+      normalized === "theme" ||
+      normalized === "gallery" ||
+      normalized === "batch_rename" ||
       normalized === "speech" ||
       normalized === "tts" ||
       normalized === "java_interop" ||
@@ -5395,6 +5398,9 @@ std::string buildEmbeddedScriptExecutionSource(
     if (moduleName === "ai") return ["ai"];
     if (moduleName === "aiAgent") return ["ai.agent"];
     if (moduleName === "epub") return ["epub"];
+    if (moduleName === "theme") return ["theme"];
+    if (moduleName === "gallery") return ["gallery"];
+    if (moduleName === "batch_rename") return ["batch_rename"];
     if (moduleName === "speech") return ["speech"];
     if (moduleName === "tts") return ["tts"];
     if (moduleName === "screen_metrics") return ["device"];
@@ -8424,6 +8430,10 @@ std::string buildEmbeddedScriptExecutionSource(
         const closeMail=id=>invoke("mail","close",[id],{permissions:["mail"]}).catch(()=>{});
         const closeAi=id=>invoke("ai","close",[id],{permissions:["ai"]}).catch(()=>{});
         const closeEpub=id=>invoke("epub","close",[id],{permissions:["epub"]}).catch(()=>{});
+        const galleryClients=new Set();
+        const closeGallery=id=>invoke("gallery","close",[id],{permissions:["gallery"]}).catch(()=>{});
+        const batchRenameClients=new Set();
+        const closeBatchRename=id=>invoke("batch_rename","close",[id],{permissions:["batch_rename"]}).catch(()=>{});
         const speechClients=new Set();
         const closeSpeech=id=>invoke("speech","close",[id],{permissions:["speech"]}).catch(()=>{});
         const ttsClients=new Set();
@@ -8471,6 +8481,8 @@ std::string buildEmbeddedScriptExecutionSource(
           for(const id of aiClients)closeAi(id);aiClients.clear();
           for(const id of agentClients)closeAgent(id);agentClients.clear();
           for(const id of epubClients)closeEpub(id);epubClients.clear();
+          for(const id of galleryClients)closeGallery(id);galleryClients.clear();
+          for(const id of batchRenameClients)closeBatchRename(id);batchRenameClients.clear();
           for(const id of speechClients)closeSpeech(id);speechClients.clear();
           for(const id of ttsClients)closeTts(id);ttsClients.clear();
           for(const id of javaObjects)closeJava(id);javaObjects.clear();
@@ -8519,6 +8531,8 @@ std::string buildEmbeddedScriptExecutionSource(
             if(message.module==="aiAgent" && message.method==="requestAccess")agentClients.add(message.args[0]);
             const createsAi=message.module==="ai" && message.method==="open";
             const createsEpub=message.module==="epub" && message.method==="open";
+            const createsGallery=message.module==="gallery" && message.method==="open";
+            const createsBatchRename=message.module==="batch_rename" && message.method==="open";
             const createsSpeech=message.module==="speech" && message.method==="open";
             const createsTts=message.module==="tts" && message.method==="open";
             const createsAndroid=message.module==="android" && ["createPaint","createColorStateList"].includes(message.method);
@@ -8534,7 +8548,7 @@ std::string buildEmbeddedScriptExecutionSource(
             const createsWebRequest = ["configureWebClient", "chooseFiles", "beginWebEvaluation", "beginAsyncWebEvaluation", "enableDisplayCapture", "startBackgroundRecording", "stopBackgroundRecording", "subscribeViewEvents"].includes(webOperation);
             // Keep the bounded creation reply deliverable so an exited Worker can close its late window.
             const value = await invoke(message.module, message.method, message.args,
-              { ...message.options, signal: createsAgent || createsAi || createsFlow || createsMail || createsEpub || createsSpeech || createsTts || message.module === "java" || createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
+              { ...message.options, signal: createsAgent || createsAi || createsFlow || createsMail || createsEpub || createsGallery || createsBatchRename || createsSpeech || createsTts || message.module === "java" || createsAndroid || createsTask || keepsAwake || createsHostEvent || createsNotification || createsShell || createsSensor || createsDatabase || createsWindow || createsWebRequest || message.module === "ui" && message.method === "inflate" ? undefined : controller.signal });
             if (keepsAwake && (closed || controller.signal.aborted)) {
               await closeDevice(message.args[1]);
               throw Object.assign(new Error("Keeping the screen awake was aborted"),{code:"ABORT_ERR"});
@@ -8559,6 +8573,14 @@ std::string buildEmbeddedScriptExecutionSource(
               if(closed||controller.signal.aborted){await closeEpub(value.id);throw Object.assign(new Error("EPUB client creation was aborted"),{code:"ABORT_ERR"});}
               epubClients.add(value.id);
             }else if(message.module==="epub" && message.method==="close")epubClients.delete(message.args[0]);
+            if(createsGallery && value && value.id){
+              if(closed||controller.signal.aborted){await closeGallery(value.id);throw Object.assign(new Error("Gallery client creation was aborted"),{code:"ABORT_ERR"});}
+              galleryClients.add(value.id);
+            }else if(message.module==="gallery" && message.method==="close")galleryClients.delete(message.args[0]);
+            if(createsBatchRename && value && value.id){
+              if(closed||controller.signal.aborted){await closeBatchRename(value.id);throw Object.assign(new Error("Batch rename client creation was aborted"),{code:"ABORT_ERR"});}
+              batchRenameClients.add(value.id);
+            }else if(message.module==="batch_rename" && message.method==="close")batchRenameClients.delete(message.args[0]);
             if(createsSpeech && value && value.id){
               if(closed||controller.signal.aborted){await closeSpeech(value.id);throw Object.assign(new Error("Speech client creation was aborted"),{code:"ABORT_ERR"});}
               speechClients.add(value.id);
@@ -8669,7 +8691,7 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // The worker keeps synchronous metadata local; asynchronous operations use the same public
   // wrappers as the main thread, including descriptor uploads and their argument validation.
-  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire, createApp, createSystem, createAutomation) {
+  function __autojs6_worker_host_modules(bridgeCall, methods, constants = {}, consoleControls = [], nativeConsole = globalThis.console, createImageExtensions, createUi, createCompose, createDatabase, createSensors, SensorEmitter, createShell, shellStreams, shellBuffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, JavaAsyncContext, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire, createApp, createSystem, createAutomation, createPluginFamily) {
     const modules = new Map();
     const recycled = new Set();
     const handleId = image => image && (image.__autojs6ImageHandle ?? image.id);
@@ -8694,6 +8716,8 @@ std::string buildEmbeddedScriptExecutionSource(
     if(createMail && methods.mail) modules.set("mail",createMail(bridgeCall));
     if(createAi && methods.ai) modules.set("ai",createAi(bridgeCall));
     if(createEpub && methods.epub) modules.set("epub",createEpub(bridgeCall));
+    const pluginFamily = createPluginFamily ? createPluginFamily(bridgeCall, SensorEmitter) : null;
+    if(pluginFamily && methods.gallery) modules.set("gallery",pluginFamily.gallery);
     if(createSpeech && methods.speech) modules.set("speech",createSpeech(bridgeCall));
     if(createTts && methods.tts) modules.set("tts",createTts(bridgeCall));
     if(createJava && methods.java) modules.set("java",createJava(bridgeCall,constants.javaPolicy||{},constants.javaEnabled!==false,JavaAsyncContext));
@@ -8766,7 +8790,8 @@ std::string buildEmbeddedScriptExecutionSource(
     if (createJsTools && methods.util) {
       const fs = nativeRequire && nativeRequire("fs"), path = nativeRequire && nativeRequire("path");
       let axios;
-      const tools = createJsTools({ device: constants.device || {}, log: text => nativeConsole.log(text), warn: text => nativeConsole.warn(text), java: () => {
+      const tools = createJsTools({ device: constants.device || {}, log: text => nativeConsole.log(text), warn: text => nativeConsole.warn(text),
+      themeCall: (method, args) => bridgeCall("theme", method, args, { permissions: ["theme"] }), batchRename: pluginFamily ? () => pluginFamily.batchRename : undefined, java: () => {
         if (!modules.has("java")) throw Object.assign(new Error("Java interop is unavailable in this Worker."), { code: "ERR_AUTOJS6_JAVA_INTEROP_DISABLED" });
         return modules.get("java");
       }, fs, path, cwd: () => process.cwd(), hostCwd: () => constants.engineInfo?.cwd || process.cwd(), sdcardPath: constants.sdcardPath,
@@ -9091,7 +9116,7 @@ std::string buildEmbeddedScriptExecutionSource(
       diagnostics: () => __autojs6_limited_axios().diagnostics()
     };
   }
-  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, createApp, createSystem, createAutomation) {
+  function __autojs6_worker_preload(nativeRequire, createWorkerConstructor, installInspector, createHostModules, createImageExtensions, createUi, createCompose, createDatabase, createSensors, createShell, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, createApp, createSystem, createAutomation, createPluginFamily) {
     const threads = nativeRequire("worker_threads");
     const envelope = threads.getEnvironmentData("autojs6:worker-runtime");
     // Internal Node loader workers do not have a plugin bridge port.
@@ -9183,7 +9208,7 @@ std::string buildEmbeddedScriptExecutionSource(
     moduleApi.syncBuiltinESMExports();
     const sources = config.moduleSources;
     const hostModules = createHostModules(bridgeCall, config.hostModuleMethods, config.hostModuleConstants,
-      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire, createApp, createSystem, createAutomation);
+      config.consoleControls, nativeRequire("console"), createImageExtensions, createUi, createCompose, createDatabase, createSensors, nativeRequire("events").EventEmitter, createShell, nativeRequire("stream"), nativeRequire("buffer").Buffer, createHostEvents, createNotifications, createDevice, createDialogs, createAndroid, createTasks, createColors, createJava, nativeRequire("async_hooks").AsyncLocalStorage, createTts, createSpeech, createEpub, createMail, createFlow, createAi, createJsTools, nativeRequire, createApp, createSystem, createAutomation, createPluginFamily);
     if (hostModules.has("console")) Object.assign(globalThis.console, hostModules.get("console"));
     Object.defineProperty(globalThis, "__autojs6_worker_host_modules", { value: hostModules });
     function sourceKey(table, filename) {
@@ -9313,7 +9338,7 @@ std::string buildEmbeddedScriptExecutionSource(
     // through Node's native environment-data clone, never into the preload file.
     const preloadCode = "(" + __autojs6_worker_preload.toString() + ")(require, " +
       __autojs6_worker_constructor.toString() + ", " + __autojs6_install_inspector.toString() + ", " +
-      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", undefined, " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ", " + __autojs6_create_flow.toString() + ", " + __autojs6_create_ai.toString() + ", " + __autojs6_create_js_tools.toString() + ", " + __autojs6_create_app.toString() + ", " + __autojs6_create_system.toString() + ", " + __autojs6_create_automation.toString() + ");";
+      __autojs6_worker_host_modules.toString() + ", " + __autojs6_image_extensions.toString() + ", " + __autojs6_create_ui.toString() + ", " + __autojs6_create_compose.toString() + ", " + __autojs6_create_database.toString() + "," + __autojs6_create_sensors.toString() + ", " + __autojs6_create_shell.toString() + ", " + __autojs6_create_host_events.toString() + ", " + __autojs6_create_notifications.toString() + ", " + __autojs6_create_device.toString() + ", " + __autojs6_create_dialogs.toString() + ", " + __autojs6_create_android.toString() + ", " + __autojs6_create_tasks.toString() + ", undefined, " + __autojs6_create_java.toString() + ", " + __autojs6_create_tts.toString() + ", " + __autojs6_create_speech.toString() + ", " + __autojs6_create_epub.toString() + ", " + __autojs6_create_mail.toString() + ", " + __autojs6_create_flow.toString() + ", " + __autojs6_create_ai.toString() + ", " + __autojs6_create_js_tools.toString() + ", " + __autojs6_create_app.toString() + ", " + __autojs6_create_system.toString() + ", " + __autojs6_create_automation.toString() + ", " + __autojs6_create_plugin_family.toString() + ");";
     const preloadPath = __autojs6_path_module().join(
       __autojs6_path_module().dirname(__autojs6_sandbox_root), "node-worker-preload.cjs");
     __autojs6_fs_module().writeFileSync(preloadPath, preloadCode, "utf8");
@@ -9347,6 +9372,7 @@ std::string buildEmbeddedScriptExecutionSource(
             mail:Object.keys(__autojs6_create_mail(()=>{})),
             ai:Object.keys(__autojs6_create_ai(()=>{})),
             epub:Object.keys(__autojs6_create_epub(()=>{})),
+            gallery:Object.keys(__autojs6_limited_gallery()),
             speech:Object.keys(__autojs6_create_speech(()=>{})),
             tts:Object.keys(__autojs6_create_tts(()=>{})),
             java:Object.keys(__autojs6_create_java(()=>{})),
@@ -20130,6 +20156,56 @@ std::string buildEmbeddedScriptExecutionSource(
       Object.setPrototypeOf(Color, chainOf(Function.prototype, false));
 
       return {colors, Color};
+      // Rhino's colors.theme (api-coverage Q80 (a)). The theme color lives in the host, so every member returns a Promise; the
+      // arguments are checked here with Rhino's rules, the host answers what it refuses.
+      const themeOptions = (fn, options) => {
+        if (!isNullish(options) && !isNativeObject(options)) throw typeErrorOf(fn, "options", "Object", options);
+        return options ?? {};
+      };
+      function themeInteger(fn, param, value) {
+        const x = component(value, fn, param);
+        if (!Number.isFinite(x) || x !== Math.floor(x)) throw rangeError(fn, argumentType(param, "integer", numberText(x)));
+        return x;
+      }
+      const theme = {};
+      for (const [name, min, max, body] of [
+        ["get", 0, 0, () => host.themeCall("get", [])],
+        ["set", 1, 2, async (fn, color, options) => {
+          const given = themeOptions(fn, options);
+          const optional = key => isNullish(given[key]) ? null : int(given[key], fn, "options." + key) | OPAQUE;
+          await host.themeCall("set", [int(color, fn) | OPAQUE, optional("accent"), optional("dark")]);
+        }],
+        ["reset", 0, 0, async () => { await host.themeCall("reset", []); }],
+        ["libraries", 0, 0, () => host.themeCall("libraries", [])],
+        ["activate", 1, 2, async (fn, libraryId, options) => {
+          const given = themeOptions(fn, options);
+          const id = themeInteger(fn, "libraryId", libraryId);
+          const group = isNullish(given.group) ? null : themeInteger(fn, "options.group", given.group);
+          const answer = await host.themeCall("activate", [id, group]);
+          if (answer.library === false) throw rangeError(fn, argumentType("libraryId", "id of an intelligent color library", quote(libraryId)));
+          if (answer.group === false) throw rangeError(fn, argumentType("options.group", "id of a usable group of " + answer.name, quote(given.group)));
+        }],
+        ["deactivate", 0, 0, () => host.themeCall("deactivate", [])],
+        ["next", 0, 0, () => host.themeCall("next", [])],
+        ["state", 1, 1, async (fn, name) => {
+          if (isNullish(name)) throw typeError(fn, `Argument "name" cannot be ${quote(name)}`);
+          const answer = await host.themeCall("state", [String(name)]);
+          if (answer.error) throw rangeError(fn, answer.error);
+        }],
+        ["current", 0, 0, () => host.themeCall("current", [])]
+      ]) {
+        const fn = "colors.theme." + name;
+        define(theme, name, named(async (...args) => {
+          if (!host.themeCall) throw new Error("colors.theme needs the AutoJs6 host bridge");
+          let n = args.length;
+          while (n > min && args[n - 1] === undefined) n--;
+          if (n > max) throw arityError(fn, min, max);
+          if (n < min) throw arityError(fn, min, max);
+          return body(fn, ...args);
+        }, name, max));
+      }
+      define(colors, "theme", Object.freeze(theme));
+
     }
     const { Mathx, Arrayx, Numberx, jsox } = __autojs6_js_tools_jsox();
     // The earlier Node jsox also carried the three modules; kept and not enumerable, so its exports stay the host's.
@@ -20150,12 +20226,13 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     // colors, files, zip, mime and the timing recorder (api-coverage P3.2b) are created on first use.
     const once = create => { let value; return () => value || (value = create()); };
-    const files = once(() => __autojs6_js_tools_files({ fs: host.fs, cwd: host.cwd, sdcardPath: host.sdcardPath, java: host.java,
-      TextDecoder: globalThis.TextDecoder, filesDir: host.filesDir, cacheDir: host.cacheDir, dataDir: host.dataDir }));
+    const files = once(() => Object.assign(__autojs6_js_tools_files({ fs: host.fs, cwd: host.cwd, sdcardPath: host.sdcardPath, java: host.java,
+      TextDecoder: globalThis.TextDecoder, filesDir: host.filesDir, cacheDir: host.cacheDir, dataDir: host.dataDir }),
+      host.batchRename ? { batchRename: host.batchRename() } : {}));
     const zip = once(() => Object.freeze(__autojs6_js_tools_zip({ java: host.java, cwd: host.hostCwd || host.cwd })));
     const mimeRecorder = once(() => __autojs6_js_tools_mime_recorder({ device: host.device }));
     const colors = once(() => {
-      const result = __autojs6_js_tools_colors({ java: host.java, device: host.device, get android() { return host.android && host.android(); } });
+      const result = __autojs6_js_tools_colors({ java: host.java, device: host.device, themeCall: host.themeCall, get android() { return host.android && host.android(); } });
       Object.freeze(result.colors);
       return result;
     });
@@ -20201,6 +20278,8 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     return __autojs6_js_tools_cache;
   }
+        themeCall: (method, args) => __autojs6_call_autojs("theme", method, args, { permissions: ["theme"] }),
+        batchRename: () => __autojs6_limited_plugin_family().batchRename,
   // Environment.getExternalStorageDirectory() of the host, the primary emulated storage of this Android user.
   function __autojs6_sdcard_path() {
     return "/storage/emulated/" + __autojs6_android_user_id();
@@ -22037,6 +22116,7 @@ std::string buildEmbeddedScriptExecutionSource(
       requestScreenCaptureAsync: __autojs6_rhino_compat_request_screen_capture,
       captureScreen: __autojs6_rhino_compat_capture_screen
     });
+      gallery: __autojs6_limited_gallery(),
     return __autojs6_rhino_compat_facade_cache;
   }
   function __autojs6_rhino_compat_installed_global_names() {
@@ -22234,6 +22314,7 @@ std::string buildEmbeddedScriptExecutionSource(
       requestScreenCaptureAsync: __autojs6_rhino_compat_request_screen_capture,
       captureScreen: __autojs6_rhino_compat_capture_screen,
       unsupported: __autojs6_rhino_compat_unsupported,
+      gallery: __autojs6_limited_gallery(),
       blockedByDesign: __autojs6_rhino_compat_blocked_by_design,
       assertSupported: function(apiName) {
         throw __autojs6_rhino_compat_unsupported(apiName);
@@ -23911,6 +23992,317 @@ std::string buildEmbeddedScriptExecutionSource(
     const records = new Map(), pending = new Set();
     function EpubError(message = "", code = "INTERNAL") {
       const error = new Error(String(message));
+  // Shared plugin family facades: gallery and files.batchRename (api-coverage Q81 (a) / Q82 (a)). The Promise forms of Rhino's
+  // modules over the host's execution-owned clients: the host applies Rhino's argument rules and does the plugin and file work,
+  // an operation's events and outcome come back through poll. The execution's end closes the clients.
+  function __autojs6_create_plugin_family(call, EventEmitter) {
+    function codedError(name, prefix) {
+      const CodedError = {[name]: function (message, code) {
+        if (!(this instanceof CodedError)) return new CodedError(message, code);
+        const text = message === undefined || message === null ? "" : String(message);
+        Object.defineProperty(this, "message", {value: text, writable: true, configurable: true, enumerable: false});
+        this.code = code === undefined || code === null ? "INTERNAL" : String(code);
+        const stack = new Error(text).stack;
+        if (typeof stack === "string") Object.defineProperty(this, "stack", {value: stack, writable: true, configurable: true, enumerable: false});
+      }}[name];
+      CodedError.prototype = Object.create(Error.prototype, {
+        constructor: {value: CodedError, writable: true, configurable: true},
+        name: {value: name, writable: true, configurable: true},
+        toString: {value() { return this.name + " [" + this.code + "]: " + this.message; }, writable: true, configurable: true}
+      });
+      const failure = error => {
+        if (error instanceof CodedError) return error;
+        const code = String(error?.code || "INTERNAL");
+        const value = new CodedError(error?.message ?? String(error), code.startsWith(prefix) ? code.slice(prefix.length) : code);
+        for (const key of ["capability", "missingCapabilities"]) if (error?.[key] !== undefined) value[key] = error[key];
+        return value;
+      };
+      return {CodedError, failure};
+    }
+    // One client per thread and module, opened on first use. run settles with the operation's outcome; a hooks.answered
+    // operation (the viewer) stays registered for its events after it answered, until the hook's end is called.
+    function operations(module, capability, noun, {CodedError, failure}, invalid) {
+      let opening = null, generation = 0, pumping = false;
+      const records = new Map();
+      const raw = (method, args) => Promise.resolve().then(() =>
+        call(module, method, args, {timeoutMs: 10000, permissions: [capability]})).catch(error => { throw failure(error); });
+      function client() {
+        if (!opening) {
+          const value = raw("open", []).then(descriptor => descriptor.id);
+          opening = value;
+          value.catch(() => { if (opening === value) opening = null; });
+        }
+        return opening;
+      }
+      function forget(record) {
+        if (record.key) records.delete(record.key);
+        record.cleanup?.(); record.fragments = [];
+      }
+      function settle(record, error, value) {
+        if (record.settled) return;
+        record.settled = true;
+        forget(record);
+        error ? record.reject(error) : record.resolve(value);
+      }
+      function deliver(record, message) {
+        if (message.type === "progress") record.hooks.progress?.(message.value);
+        else if (message.type === "event") record.hooks.event?.(message.value);
+        else if (message.type === "reject") settle(record, failure(message.value));
+        else if (message.type === "resolve" && !record.hooks.answered) settle(record, null, message.value);
+        else if (message.type === "resolve") {
+          record.settled = true; record.clearDeadline();
+          record.resolve(record.hooks.answered(message.value, () => forget(record)));
+        }
+      }
+      async function pump() {
+        if (pumping || !records.size) return;
+        pumping = true;
+        const epoch = generation;
+        let delay = 25;
+        try {
+          const id = await client();
+          while (epoch === generation && records.size) {
+            const parts = await raw("poll", [id, [...records.keys()]]);
+            for (const part of parts) {
+              const record = records.get(part.id);
+              if (!record) continue;
+              record.fragments.push(Buffer.from(part.data, "base64"));
+              if (part.last) {
+                const message = JSON.parse(Buffer.concat(record.fragments).toString("utf8"));
+                record.fragments = [];
+                deliver(record, message);
+              }
+            }
+            if (parts.length) delay = 25;
+            else {
+              await new Promise(resolve => setTimeout(resolve, delay));
+              delay = Math.min(delay * 2, 200);
+            }
+          }
+        } catch (error) {
+          if (epoch === generation) {
+            generation++;
+            const old = opening;
+            opening = null;
+            for (const record of [...records.values()]) {
+              if (record.settled) record.hooks.failed?.(failure(error));
+              else settle(record, failure(error));
+            }
+            old?.then(id => raw("close", [id])).catch(() => {});
+          }
+        } finally {
+          pumping = false;
+          if (records.size) setTimeout(pump, 0);
+        }
+      }
+      function run(method, args, options, hooks = {}) {
+        return new Promise((resolve, reject) => {
+          let timer;
+          const record = {resolve, reject, hooks, key: null, client: null, fragments: [], settled: false, cancelError: null,
+            cleanup: null, clearDeadline: () => clearTimeout(timer)};
+          const cancel = error => {
+            record.cancelError ||= error;
+            if (record.key) raw("cancel", [record.client, record.key]).catch(() => {});
+            if (record.settled) hooks.cancelled?.();
+            else settle(record, error);
+          };
+          try {
+            if (options !== undefined && options !== null && (typeof options !== "object" || Array.isArray(options)))
+              throw new CodedError("Call options must be an object", invalid);
+            const timeout = options?.timeoutMs, signal = options?.signal;
+            if (timeout !== undefined && timeout !== null && (!Number.isFinite(timeout) || timeout <= 0))
+              throw new CodedError("timeoutMs must be positive and finite", invalid);
+            if (signal !== undefined && signal !== null && (typeof signal.addEventListener !== "function" || typeof signal.removeEventListener !== "function"))
+              throw new CodedError("signal must be an AbortSignal", invalid);
+            const abort = () => cancel(new CodedError(noun + " operation cancelled", "CANCELLED"));
+            record.cleanup = () => { clearTimeout(timer); signal?.removeEventListener("abort", abort); };
+            signal?.addEventListener("abort", abort, {once: true});
+            if (signal?.aborted) { abort(); return; }
+            if (timeout !== undefined && timeout !== null) {
+              const deadline = Date.now() + timeout;
+              const watchDeadline = () => {
+                const remaining = deadline - Date.now();
+                if (remaining <= 0) cancel(new CodedError(noun + " operation timed out", "TIMEOUT"));
+                else timer = setTimeout(watchDeadline, Math.min(remaining, 2147483647));
+              };
+              watchDeadline();
+            }
+            (async () => {
+              record.client = await client();
+              if (record.cancelError) return;
+              record.key = (await raw("start", [record.client, method, args])).id;
+              if (record.cancelError) { await raw("cancel", [record.client, record.key]).catch(() => {}); return; }
+              records.set(record.key, record);
+              pump();
+            })().catch(error => settle(record, failure(error)));
+          } catch (error) { settle(record, failure(error)); }
+        });
+      }
+      return run;
+    }
+    const members = (errors, invalid) => {
+      const argumentsText = n => n === 1 ? "1 argument" : n + " arguments";
+      const arity = (min, max) => max === 0 ? "Arguments must be empty" : min === max ? "Method only accepts " + argumentsText(min) :
+        min === 0 ? "Method only accepts no more than " + argumentsText(max) : `Method only accepts a number of arguments in the range [${min}..${max}]`;
+      // Rhino's parameters, then this runtime's call options. Every form is a Promise, so a bad argument rejects.
+      const member = (name, min, max, work) => Object.defineProperty(async (...args) => {
+        let n = args.length;
+        while (n > 0 && args[n - 1] === undefined) n--;
+        if (n < min || n > max + 1) throw new errors.CodedError(arity(min, max), invalid);
+        return work(args.slice(0, max), args[max]);
+      }, "name", {value: name});
+      // Plain data as Rhino's JSON conversion gives it: functions and undefined members are left out.
+      const plain = value => {
+        try {
+          const text = JSON.stringify(value);
+          return text === undefined ? null : JSON.parse(text);
+        } catch (error) { throw new errors.CodedError(error.message, invalid); }
+      };
+      return {member, plain};
+    };
+
+    const galleryErrors = codedError("GalleryError", "ERR_AUTOJS6_GALLERY_");
+    const GalleryError = galleryErrors.CodedError;
+    const galleryRun = operations("gallery", "gallery", "Gallery", galleryErrors, "INVALID_ARGUMENT");
+    const {member: galleryMember, plain: galleryPlain} = members(galleryErrors, "INVALID_ARGUMENT");
+    // Rhino's GalleryViewSession: an emitter whose open, page, error and close events follow the plugin's viewer.
+    class GalleryViewSession extends EventEmitter {
+      #view;
+      constructor(view) { super(); this.#view = view; }
+      get paths() { return this.#view.paths; }
+      get count() { return this.#view.paths.length; }
+      get index() { return this.#view.index; }
+      get path() { return this.#view.path; }
+      get state() { return this.#view.state; }
+      get isOpen() { return this.#view.state === "open"; }
+      get isClosed() { return this.#view.state === "closed"; }
+      get reason() { return this.#view.reason; }
+      async close(options) {
+        if (!this.isClosed) await galleryRun("view.close", [this.#view.id, galleryPlain(options)]);
+        return this;
+      }
+      toString() {
+        return "GalleryViewSession { count: " + this.count + ", state: " + this.state + (this.index >= 0 ? ", index: " + this.index : "") +
+          (this.reason === null ? "" : ", reason: " + this.reason) + " }";
+      }
+    }
+    function view(method, paths, options, callOptions) {
+      const state = {id: null, paths: [], index: -1, path: null, state: "pending", reason: null};
+      const waiting = [];
+      let session = null, end = null, ready = false;
+      function emit(event) {
+        const {type, ...payload} = event;
+        try {
+          if (type !== "error") session.emit(type, payload);
+          else if (session.listenerCount("error")) session.emit("error", new GalleryError(event.message, event.code));
+        } catch (error) { setTimeout(() => { throw error; }, 0); }
+      }
+      function arrive(event) {
+        if (state.state === "closed") return;
+        if (event.type === "open") state.state = "open";
+        else if (event.type === "page") { state.index = event.index; state.path = event.path; }
+        else if (event.type === "close") { state.state = "closed"; state.reason = event.reason; end?.(); }
+        if (ready) emit(event);
+        else waiting.push(event);
+      }
+      return galleryRun(method, [galleryPlain(paths), galleryPlain(options)], callOptions, {
+        event: arrive,
+        answered(value, finish) {
+          state.id = value.id; state.paths = Object.freeze([...value.paths]); end = finish;
+          session = new GalleryViewSession(state);
+          if (state.state === "closed") end();
+          // The caller's listeners arrive with its await: the events so far wait for them.
+          setTimeout(() => { ready = true; for (const event of waiting.splice(0)) emit(event); }, 0);
+          return session;
+        },
+        cancelled: () => arrive({type: "close", reason: "cancelled"}),
+        failed(error) {
+          arrive({type: "error", code: error.code, message: error.message});
+          arrive({type: "close", reason: "error"});
+        }
+      });
+    }
+    const gallery = {GalleryError};
+    for (const [name, min, max, work] of [
+      ["pick", 0, 1, ([options], callOptions) => galleryRun("pick", [galleryPlain(options)], callOptions)],
+      ["view", 1, 2, ([paths, options], callOptions) => view("view", paths, options, callOptions)],
+      ["edit", 1, 2, ([path, options], callOptions) => galleryRun("edit", [galleryPlain(path), galleryPlain(options)], callOptions)],
+      ["convert", 1, 2, ([path, options], callOptions) => galleryRun("convert", [galleryPlain(path), galleryPlain(options)], callOptions)],
+      ["isAvailable", 0, 0, (_, callOptions) => galleryRun("isAvailable", [], callOptions)]
+    ]) {
+      gallery[name] = galleryMember(name, min, max, work);
+      gallery[name + "Async"] = galleryMember(name + "Async", min, max, name === "view" ?
+        ([paths, options], callOptions) => view("viewAsync", paths, options, callOptions) : work);
+    }
+
+    const renameErrors = codedError("BatchRenameError", "ERR_AUTOJS6_BATCH_RENAME_");
+    const BatchRenameError = renameErrors.CodedError;
+    const renameRun = operations("batch_rename", "batch_rename", "Batch rename", renameErrors, "INVALID_OPTIONS");
+    const {member: renameMember, plain: renamePlain} = members(renameErrors, "INVALID_OPTIONS");
+    const refused = message => new BatchRenameError(message, "INVALID_OPTIONS");
+    const brief = value => String(value) + " (" + Object.prototype.toString.call(value).slice(8, -1) + ")";
+    const isObject = value => value !== null && (typeof value === "object" || typeof value === "function");
+    function progressOf(options) {
+      const value = isObject(options) ? options.onProgress : null;
+      if (value === undefined || value === null) return null;
+      if (typeof value !== "function") throw refused("onProgress must be a function, got " + brief(value));
+      return value;
+    }
+    function regExpOf(options) {
+      const search = isObject(options) ? options.search : null;
+      return Object.prototype.toString.call(search) === "[object RegExp]" ? {source: search.source, flags: search.flags} : null;
+    }
+    const namedOptions = options => [renamePlain(options), regExpOf(options)];
+    const plan = (paths, options, callOptions) => renameRun("plan", [renamePlain(paths), ...namedOptions(options)], callOptions);
+    // A throwing onProgress does not interrupt the batch: it finishes and is journaled, then the call rejects with the error.
+    async function applied(id, excluded, conflict, progress, callOptions) {
+      const thrown = [];
+      const hooks = progress ? {progress([done, total, item]) {
+        if (thrown.length) return;
+        try { progress(done, total, item); } catch (error) { thrown.push(error); }
+      }} : {};
+      let result;
+      try { result = await renameRun("apply", [id, excluded, conflict, Boolean(progress)], callOptions, hooks); }
+      catch (error) { if (!thrown.length) throw error; }
+      if (thrown.length) throw thrown[0];
+      return result;
+    }
+    const batchRename = renameMember("batchRename", 2, 2, async ([paths, options], callOptions) => {
+      const progress = progressOf(options);
+      const planned = await plan(paths, options, callOptions);
+      return applied(planned.id, planned.items.map(item => item.excluded === true), null, progress, callOptions);
+    });
+    batchRename.BatchRenameError = BatchRenameError;
+    for (const [name, min, max, asyncForm, work] of [
+      ["plan", 2, 2, true, ([paths, options], callOptions) => plan(paths, options, callOptions)],
+      ["preview", 2, 2, true, ([items, options], callOptions) => renameRun("preview", [renamePlain(items), ...namedOptions(options)], callOptions)],
+      ["apply", 1, 2, true, ([planned, options], callOptions) => {
+        if (!isObject(planned)) throw refused("apply needs a plan returned by plan(), got " + brief(planned));
+        if (typeof planned.id !== "string") throw refused("apply needs a plan returned by plan(): the plan has no id");
+        if (!Array.isArray(planned.items)) throw refused("apply needs a plan returned by plan(): the plan has no items");
+        const excluded = planned.items.map(item => isObject(item) && item.excluded === true);
+        return applied(planned.id, excluded, renamePlain(options), progressOf(options), callOptions);
+      }],
+      ["undo", 1, 1, true, ([target], callOptions) => renameRun("undo", [renamePlain(target)], callOptions)],
+      ["history", 0, 1, false, ([limit], callOptions) => renameRun("history", [renamePlain(limit)], callOptions)],
+      ["presets", 0, 0, true, (_, callOptions) => renameRun("presets", [], callOptions)],
+      ["importPresets", 1, 2, true, ([document, options], callOptions) => {
+        if (typeof document !== "string" && !isObject(document))
+          throw refused("importPresets needs a JSON string or an object of exported presets, got " + brief(document));
+        const text = typeof document === "string" ? document : JSON.stringify(renamePlain(document));
+        return renameRun("importPresets", [text, renamePlain(options)], callOptions);
+      }],
+      ["deleteHistory", 1, 1, false, ([target], callOptions) => renameRun("deleteHistory", [renamePlain(target)], callOptions)],
+      ["clearHistory", 0, 1, false, ([options], callOptions) => renameRun("clearHistory", [renamePlain(options)], callOptions)],
+      ["isAvailable", 0, 0, false, (_, callOptions) => renameRun("isAvailable", [], callOptions)]
+    ]) {
+      batchRename[name] = renameMember(name, min, max, work);
+      if (asyncForm) batchRename[name + "Async"] = renameMember(name + "Async", min, max, work);
+    }
+    return {gallery: Object.freeze(gallery), batchRename: Object.freeze(batchRename)};
+  }
+  // End shared plugin family facades.
+
       Object.setPrototypeOf(error, EpubError.prototype);
       error.name = "EpubError"; error.code = String(code ?? "INTERNAL");
       return error;
@@ -24187,6 +24579,11 @@ std::string buildEmbeddedScriptExecutionSource(
     let opening = null, generation = 0, pumping = false;
     const records = new Map();
     function SpeechError(message = "", code = "INTERNAL") {
+  let __autojs6_plugin_family_cache = null;
+  function __autojs6_limited_plugin_family() {
+    return __autojs6_plugin_family_cache ||= __autojs6_create_plugin_family(__autojs6_call_autojs, __autojs6_builtin_module("events").EventEmitter);
+  }
+  function __autojs6_limited_gallery() { return __autojs6_limited_plugin_family().gallery; }
       const failure = new Error(String(message));
       Object.setPrototypeOf(failure, SpeechError.prototype);
       failure.name = "SpeechError"; failure.code = code == null ? "INTERNAL" : String(code);
@@ -24461,6 +24858,22 @@ std::string buildEmbeddedScriptExecutionSource(
       synthesizeAsync: (text, path, options, callOptions) => start("synthesizeAsync", [text, path, json(options)], callOptions),
       speak: (text, options, callOptions) => start("speak", [text, json(options)], callOptions),
       models: Object.freeze({
+      diarize: (file, options, callOptions) => start("diarize", [file, json(options, true)], callOptions, options?.onProgress),
+      diarizeAsync: (file, options, callOptions) => start("diarizeAsync", [file, json(options, true)], callOptions, options?.onProgress),
+      detectLanguage: (file, options, callOptions) => start("detectLanguage", [file, json(options, true)], callOptions, options?.onProgress),
+      detectLanguageAsync: (file, options, callOptions) => start("detectLanguageAsync", [file, json(options, true)], callOptions, options?.onProgress),
+      tag: (file, options, callOptions) => start("tag", [file, json(options, true)], callOptions, options?.onProgress),
+      tagAsync: (file, options, callOptions) => start("tagAsync", [file, json(options, true)], callOptions, options?.onProgress),
+      speaker: Object.freeze({
+        enroll: (name, files, options, callOptions) => start("speaker.enroll", [name, files, json(options, true)], callOptions, options?.onProgress),
+        enrollAsync: (name, files, options, callOptions) => start("speaker.enrollAsync", [name, files, json(options, true)], callOptions, options?.onProgress),
+        verify: (name, file, options, callOptions) => start("speaker.verify", [name, file, json(options, true)], callOptions, options?.onProgress),
+        verifyAsync: (name, file, options, callOptions) => start("speaker.verifyAsync", [name, file, json(options, true)], callOptions, options?.onProgress),
+        identify: (file, options, callOptions) => start("speaker.identify", [file, json(options, true)], callOptions, options?.onProgress),
+        identifyAsync: (file, options, callOptions) => start("speaker.identifyAsync", [file, json(options, true)], callOptions, options?.onProgress),
+        list: options => start("speaker.list", [], options),
+        remove: (name, options) => start("speaker.remove", [name], options)
+      }),
         list: (filter, callOptions) => start("models.list", [json(filter)], callOptions),
         install: (id, options, callOptions) => start("models.install", [id, json(options, true)], callOptions, options?.onProgress),
         installAsync: (id, options, callOptions) => start("models.installAsync", [id, json(options, true)], callOptions, options?.onProgress),
@@ -39922,6 +40335,7 @@ std::string buildEmbeddedScriptExecutionSource(
     work_manager: function() { return __autojs6_limited_work_manager(); },
     package_manager: function() { return __autojs6_limited_package_manager(); },
     npm: function() { return __autojs6_limited_npm(); },
+    gallery: function() { return __autojs6_limited_gallery(); },
     plugins: function() { return __autojs6_limited_plugins(); },
     "autojs6:autojs": function() { return __autojs6_limited_system().autojs; },
     "autojs6:installer": function() { return __autojs6_limited_system().installer; },

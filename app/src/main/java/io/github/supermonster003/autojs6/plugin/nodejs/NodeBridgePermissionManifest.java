@@ -64,6 +64,10 @@ public final class NodeBridgePermissionManifest {
     private static final String SHELL_SHIZUKU = "shell.shizuku";
     // api-coverage P3.3 (Q167 (a)): 3-Shell Terminal sessions, never implied by shell or shell.root.
     private static final String TERMINAL = "terminal";
+    // api-coverage Q195 (a): colors.theme, gallery and files.batchRename, one capability each.
+    private static final String THEME = "theme";
+    private static final String GALLERY = "gallery";
+    private static final String BATCH_RENAME = "batch_rename";
     private static final String NETWORK = "network";
     private static final String RAW_NETWORK = "raw_network";
     private static final String WORK_MANAGER = "work_manager";
@@ -174,6 +178,9 @@ public final class NodeBridgePermissionManifest {
             SHELL_ROOT,
             SHELL_SHIZUKU,
             TERMINAL,
+            THEME,
+            GALLERY,
+            BATCH_RENAME,
             NETWORK,
             RAW_NETWORK,
             WORK_MANAGER,

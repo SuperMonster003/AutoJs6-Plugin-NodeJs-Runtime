@@ -459,6 +459,7 @@ declare module "autojs6:compat" {
     readonly ai: typeof import("ai");
     readonly mail: typeof import("mail");
       readonly epub: typeof import("epub");
+      readonly gallery: typeof import("gallery");
       readonly speech: typeof import("speech");
       readonly tts: typeof import("tts");
       requestScreenCapture(options?: ScreenCaptureRequestOptions): Promise<boolean>;

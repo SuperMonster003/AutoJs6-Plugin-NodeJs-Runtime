@@ -119,6 +119,7 @@ getSize/getWidth/getHeight/isRecycled 同步读取线程内信息. isRecycled �
 | `media_store` | capabilities, query, get, insert, update, delete, scanFile, exportFile | 读需 media + media.library (Android 13+ 为 READ_MEDIA_AUDIO/IMAGES/VIDEO, 更早为 READ_EXTERNAL_STORAGE); insert/update/delete 另需 media.library.mutate, Android 10+ 只能改本应用创建的记录, Android 9- 需 WRITE_EXTERNAL_STORAGE; 需含媒体 provider 的宿主 (2026-09-17 已合并进宿主 master) |
 | `ui.overlay` | show, update, drainEvents, close, closeAll, hasPermission, openPermissionSettings | 需 SYSTEM_ALERT_WINDOW; 真实窗口、属性更新、拖动、推送与退出清理 |
 | `package_manager` / `npm` | 字符串/字符串数组 install/update/remove 通过随包 npm 在工作区运行, 支持 registry 下载与生命周期脚本; npm.cli/exec/runScript/pack 提供原生命令行; 对象请求及 list/verify/prune/plan* 保留宿主本地库兼容路径 | 设备未内置 node-gyp/NDK; 下载后文件的执行由 Android 裁决 |
+| `gallery` | open, start, poll, cancel, close (操作 pick, view, viewAsync, view.close, edit, convert, isAvailable) | 需 3-Maple Image 3.4.0 或以上; 插件缺失时 GalleryError 为 PLUGIN_UNAVAILABLE |
 | `input_observer` | observeKeys, drainEvents, close, getAvailableSources (fake/accessibility) | 实源需可运行的无障碍服务; 不拦截按键, touch/intercept 仍拒绝 |
 
 截屏需声明 `screen_capture` 与 `image`。`await images.requestScreenCapture()` 打开宿主既有 Android 授权流程, 授权后才启动 mediaProjection 前台服务; `captureScreen` / `media_projection.nextImage` 返回宿主图片句柄。`saveImage(handle, path, {format, quality})` 保存 PNG/JPEG/WebP, 默认 PNG, quality 为 0..100。`images.stopScreenCapture()` / capturer.stop、系统撤销和脚本结束释放会话; 未授权捕获返回 `permission-denied`。图片延续每次执行默认 32 个活跃句柄的既有限制, recycle 或执行结束释放。M14.1 未授权回归与真实授权链均已验收: 2026-09-10 Sony XQ-DQ72 返回 1096x2560 截图, PNG 尺寸与设备分辨率一致, 裁剪模板回读匹配到 (468,1220), 偏差 0 px。
@@ -217,6 +218,17 @@ await console.hide();
 `setBrightness(0..255)` / `setBrightnessMode(0|1)` 需 `device.power` 和宿主的 [Android 修改系统设置权限](https://developer.android.com/reference/android/provider/Settings.System#canWrite(android.content.Context)); 未授权时返回 permission-denied, 不自动跳转设置页。`keepScreenOn(timeoutMs)` 要求正整数, 持有当前脚本独立的定时屏幕 WakeLock, 超时、cancelKeepingAwake 或脚本退出释放。`media.setAudioStreamVolume(stream, volume)` 接受该流 minVolume..maxVolume 的整数且不播放提示音; device 的 get/setMusicVolume, NotificationVolume, AlarmVolume 便捷方法委托该桥。设置同一流音量仍受 Android DND 权限限制。
 
 注意 (M2.4 语义, 2026-09-18 收窄): 只有代替真实 npm 包的运行时模块 (`axios`、`colors`、`mime`、`nanoid`、`opencc`、`undici`) 会被工作区 node_modules 里安装的同名包覆盖 (桌面 Node 语义, 未安装时 shim 照常回答); 其余运行时模块与宿主能力 facade (`java`、`fetch`、`websocket`、`device`、`files` 等)、Node builtin 以及 `node:` / `autojs6:` 前缀不受同名包影响, `require` / `require.resolve` / ESM `import` 三处规则一致 (ESM 裸名 import 现覆盖全部运行时模块名); 策略经 `autojs6:profile` 的 `moduleResolutionProfile` 公布 (`npmPrecedence: "npm_shims_only"`, `npmShadowableModules`)。
+
+## 主题色, 相册与批量重命名 (2026-10-30, api-coverage P3.5 / P4.5)
+
+三个新桥接模块, 主线程与 Worker (CJS, ESM, 嵌套 Worker) 成员相同, Bun 经 host client 共用同一门面. 各需声明自己的能力: `theme` / `gallery` / `batch_rename` (Q195 (a)).
+
+- colors.theme (Q80 (a), 模块 `theme`): get / set / reset / libraries / activate / deactivate / next / state / current, 全部返回 Promise. 参数检查与错误文本同 Rhino (TypeError / RangeError, 在门面完成), 宿主记录为 "脚本: 名称" 并在 500 ms 内合并.
+- gallery / `autojs6:gallery` (Q81 (a), 模块 `gallery`): pick / edit / convert / isAvailable 及其 Async 形态经操作客户端 (open, start, poll, cancel, close), 参数规则同 Rhino 的 GalleryScriptArguments. 没有默认期限 (选择器与编辑器等待用户), callOptions 的 signal / timeoutMs 可结束等待. view 返回 Promise<GalleryViewSession>: 监听器在 await 之后添加也能收到已发生的事件, 执行保持到 close 事件; signal 也结束活动的查看器 (reason 为 cancelled). 执行结束时查看器留给用户, 等待中的选择器与编辑器结束.
+- files.batchRename (Q82 (a), 模块 `batch_rename`): 可调用的 files.batchRename(paths, options) 与 plan / preview / apply / undo / history / presets / importPresets / deleteHistory / clearHistory / isAvailable, Async 形态同 Rhino 的 6 个. 方案属于本次执行, Worker 可以执行主线程的方案. onProgress 在调用方 JS 线程运行, 抛错不中断批次, 完成后以该错误 reject; 进度事件在脚本不取时丢弃, 批次照常记入日志.
+- speech (Q114): 补 diarize / detectLanguage / tag 及其 Async 形态, 与 speech.speaker 的 enroll / verify / identify (含 Async) / list / remove, 需 3-Macaw Speech 1.3.0 或以上.
+
+回归: `node --test tools/nodejs/api/test-plugin-family.js`.
 
 ## 五. 文件访问与工作区传输
 
