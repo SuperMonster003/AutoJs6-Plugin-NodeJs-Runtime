@@ -62,6 +62,8 @@ public final class NodeBridgePermissionManifest {
     private static final String SHELL = "shell";
     private static final String SHELL_ROOT = "shell.root";
     private static final String SHELL_SHIZUKU = "shell.shizuku";
+    // api-coverage P3.3 (Q167 (a)): 3-Shell Terminal sessions, never implied by shell or shell.root.
+    private static final String TERMINAL = "terminal";
     private static final String NETWORK = "network";
     private static final String RAW_NETWORK = "raw_network";
     private static final String WORK_MANAGER = "work_manager";
@@ -171,6 +173,7 @@ public final class NodeBridgePermissionManifest {
             SHELL,
             SHELL_ROOT,
             SHELL_SHIZUKU,
+            TERMINAL,
             NETWORK,
             RAW_NETWORK,
             WORK_MANAGER,

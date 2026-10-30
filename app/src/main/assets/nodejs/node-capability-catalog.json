@@ -839,6 +839,11 @@
         "providerOwner": "host_capability_provider"
       },
       {
+        "id": "terminal",
+        "aliases": [],
+        "providerOwner": "host_capability_provider"
+      },
+      {
         "id": "websocket",
         "aliases": [],
         "providerOwner": "host_capability_provider"
@@ -1405,6 +1410,97 @@
       {
         "module": "console",
         "method": "tail",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "isShowing",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "resetBackgroundAlpha",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "resetContentBackgroundAlpha",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "resetTitleBackgroundAlpha",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setAvoidStatusBar",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setColorful",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setInputVisible",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setTimeVisible",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setTouchThrough",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setGravity",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "setTimeFormat",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "configure",
+        "requiredCapabilities": [
+          "console"
+        ]
+      },
+      {
+        "module": "console",
+        "method": "rawInput",
         "requiredCapabilities": [
           "console"
         ]
@@ -3634,6 +3730,13 @@
         ]
       },
       {
+        "module": "toast",
+        "method": "dismissAll",
+        "requiredCapabilities": [
+          "toast"
+        ]
+      },
+      {
         "module": "ui",
         "method": "batchUpdate",
         "requiredCapabilities": [
@@ -3715,6 +3818,111 @@
         "method": "update",
         "requiredCapabilities": [
           "ui.overlay"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "state",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "isAvailable",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "open",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "sessions",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "session",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "close",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "closeAll",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "show",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "exec",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "env",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "npmRun",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "write",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "waitFor",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "transcript",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "isAlive",
+        "requiredCapabilities": [
+          "terminal"
         ]
       },
       {
@@ -3909,6 +4117,52 @@
       {
         "module": "ui",
         "method": "viewCommand",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "windowControl",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "barHeight",
+        "requiredCapabilities": [
+          "ui"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "floatyWindow",
+        "requiredCapabilities": [
+          "ui",
+          "ui.overlay"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "floatyRawWindow",
+        "requiredCapabilities": [
+          "ui",
+          "ui.overlay",
+          "floaty.raw"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "floatyControl",
+        "requiredCapabilities": [
+          "ui",
+          "ui.overlay"
+        ]
+      },
+      {
+        "module": "ui",
+        "method": "floatyCloseAll",
         "requiredCapabilities": [
           "ui"
         ]
@@ -4991,6 +5245,11 @@
           "shell-shizuku",
           "shell:shizuku"
         ],
+        "androidPermissions": []
+      },
+      {
+        "id": "terminal",
+        "aliases": [],
         "androidPermissions": []
       },
       {

@@ -1,4 +1,4 @@
-  function __autojs6_create_ui(__autojs6_call_autojs, __autojs6_bridge_attach_events = () => null) {
+  function __autojs6_create_ui(__autojs6_call_autojs, __autojs6_bridge_attach_events = () => null, __autojs6_family_call = __autojs6_call_autojs) {
     const writableViewProperties = ["text", "hint", "textSize", "textColor", "textStyle", "singleLine", "maxLines", "inputType",
       "checked", "enabled", "visible", "visibility", "alpha", "contentDescription", "clickable", "focusable",
       "width", "height", "padding", "margin", "backgroundColor", "gravity", "layoutGravity", "weight", "orientation",
@@ -773,6 +773,869 @@
       close
     });
   }
+    // api-coverage P3.3 (appendix C Q164 (a)): Rhino's Activity content view and window members. The execution has one
+    // content window (the host keeps it across threads: showLayout with contentView replaces its root in the same
+    // Activity); this thread remembers the root and the XML ids of the layouts it set, so root / findById /
+    // findByStringId answer synchronously. Custom widgets (registerWidget / Widget) and {{expressions}} (bindingContext)
+    // are expanded here before the XML goes to the host; widget hooks and attribute setters receive native View handles.
+    function __autojs6_ui_emitter() {
+      const events = new Map(); let maxListeners = 10; const hooks = new Set();
+      const list = name => events.get(name) || [];
+      const changed = name => hooks.forEach(hook => { try { hook(name); } catch (_) {} });
+      const emitter = {
+        on(name, listener) { return emitter.addListener(name, listener); },
+        addListener(name, listener) {
+          if (typeof listener !== "function") throw new TypeError("The listener must be a function");
+          events.set(name, list(name).concat({ listener, once: false })); changed(name); return emitter;
+        },
+        prependListener(name, listener) {
+          if (typeof listener !== "function") throw new TypeError("The listener must be a function");
+          events.set(name, [{ listener, once: false }].concat(list(name))); changed(name); return emitter;
+        },
+        once(name, listener) {
+          if (typeof listener !== "function") throw new TypeError("The listener must be a function");
+          events.set(name, list(name).concat({ listener, once: true })); changed(name); return emitter;
+        },
+        prependOnceListener(name, listener) {
+          if (typeof listener !== "function") throw new TypeError("The listener must be a function");
+          events.set(name, [{ listener, once: true }].concat(list(name))); changed(name); return emitter;
+        },
+        off(name, listener) { return emitter.removeListener(name, listener); },
+        removeListener(name, listener) {
+          const entries = list(name), index = entries.findIndex(entry => entry.listener === listener);
+          if (index >= 0) { events.set(name, entries.slice(0, index).concat(entries.slice(index + 1))); changed(name); }
+          return emitter;
+        },
+        removeAllListeners(name) {
+          if (name === undefined) { const names = [...events.keys()]; events.clear(); names.forEach(changed); }
+          else { events.delete(name); changed(name); }
+          return emitter;
+        },
+        emit(name, ...args) {
+          const entries = list(name);
+          if (entries.length === 0) {
+            if (name === "error") throw args[0] instanceof Error ? args[0] : new Error("Unhandled error event");
+            return false;
+          }
+          for (const entry of entries) {
+            if (entry.once) emitter.removeListener(name, entry.listener);
+            entry.listener.apply(emitter, args);
+          }
+          return true;
+        },
+        listeners(name) { return list(name).map(entry => entry.listener); },
+        rawListeners(name) { return emitter.listeners(name); },
+        listenerCount(name) { return list(name).length; },
+        eventNames() { return [...events.keys()].filter(name => list(name).length > 0); },
+        setMaxListeners(value) { maxListeners = Number(value); return emitter; },
+        getMaxListeners() { return maxListeners; }
+      };
+      Object.defineProperty(emitter, "__autojs6Watch", { value: hook => { hooks.add(hook); return () => hooks.delete(hook); } });
+      return emitter;
+    }
+    // A small XML reader for layouts: elements, attributes, text, comments and the XML declaration; values stay raw.
+    function __autojs6_ui_parse_xml(source, methodName) {
+      const text = String(source), root = { tag: "#root", attrs: [], children: [] }, stack = [root];
+      let index = 0;
+      const fail = message => { throw __autojs6_ui_invalid_argument_error(methodName, "ui." + methodName + ": " + message); };
+      while (index < text.length) {
+        if (text.startsWith("<!--", index)) { const end = text.indexOf("-->", index + 4); if (end < 0) fail("unterminated comment"); index = end + 3; continue; }
+        if (text.startsWith("<?", index)) { const end = text.indexOf("?>", index + 2); if (end < 0) fail("unterminated declaration"); index = end + 2; continue; }
+        if (text.startsWith("<![CDATA[", index)) {
+          const end = text.indexOf("]]>", index); if (end < 0) fail("unterminated CDATA");
+          stack[stack.length - 1].children.push({ text: text.slice(index, end + 3) }); index = end + 3; continue;
+        }
+        if (text.startsWith("</", index)) {
+          const end = text.indexOf(">", index); if (end < 0) fail("unterminated end tag");
+          const name = text.slice(index + 2, end).trim(), open = stack.pop();
+          if (!open || open.tag !== name) fail("mismatched end tag </" + name + ">");
+          index = end + 1; continue;
+        }
+        if (text[index] === "<") {
+          const match = /^<([A-Za-z_][\w.:-]*)/.exec(text.slice(index, index + 256)); if (!match) fail("invalid tag at " + index);
+          const element = { tag: match[1], attrs: [], children: [] }; index += match[0].length;
+          for (;;) {
+            const rest = /^\s*/.exec(text.slice(index))[0]; index += rest.length;
+            if (text.startsWith("/>", index)) { index += 2; stack[stack.length - 1].children.push(element); break; }
+            if (text[index] === ">") { index += 1; stack[stack.length - 1].children.push(element); stack.push(element); break; }
+            const attr = /^([A-Za-z_][\w.:-]*)\s*=\s*("([^"]*)"|'([^']*)')/.exec(text.slice(index, index + 65536));
+            if (!attr) fail("invalid attribute in <" + element.tag + ">");
+            element.attrs.push([attr[1], attr[3] !== undefined ? attr[3] : attr[4]]); index += attr[0].length;
+          }
+          if (stack.length > 33) fail("layout is nested too deeply");
+          continue;
+        }
+        const next = text.indexOf("<", index), end = next < 0 ? text.length : next;
+        const chunk = text.slice(index, end);
+        if (chunk.trim()) { if (stack.length === 1) fail("text outside the root element"); stack[stack.length - 1].children.push({ text: chunk }); }
+        index = end;
+      }
+      if (stack.length !== 1) fail("unterminated element <" + stack[stack.length - 1].tag + ">");
+      const elements = root.children.filter(child => child.tag);
+      if (elements.length !== 1) fail("a layout needs exactly one root element");
+      return elements[0];
+    }
+    function __autojs6_ui_xml_text(node) {
+      if (node.text !== undefined) return node.text;
+      const attrs = node.attrs.map(([name, value]) => " " + name + "=\"" + String(value).replace(/"/g, "&quot;") + "\"").join("");
+      return node.children.length === 0 ? "<" + node.tag + attrs + "/>"
+        : "<" + node.tag + attrs + ">" + node.children.map(__autojs6_ui_xml_text).join("") + "</" + node.tag + ">";
+    }
+    const __autojs6_ui_xml_escape = value => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+    const __autojs6_ui_widgets = new Map();
+    let __autojs6_ui_binding_context = globalThis;
+    let __autojs6_ui_android_layout = true;
+    let __autojs6_ui_widget_serial = 0;
+    // Rhino's ui.Widget: render() returns the widget's XML, defineAttr(name, alias? | getter, setter? | applier) declares
+    // attributes whose setters / appliers run with the created View (a native View handle here).
+    function Widget() {
+      if (!(this instanceof Widget)) return new Widget();
+      Object.defineProperty(this, "__attrs__", { value: Object.create(null), writable: true, configurable: true });
+    }
+    Widget.prototype.render = function() { return "< />"; };
+    Widget.prototype.defineAttr = function(attrName, aliasOrGetter, setterOrApplier) {
+      if (attrName === undefined || attrName === null) throw new TypeError("Widget.defineAttr requires an attribute name");
+      const name = String(attrName), self = this;
+      let alias = name, applier = null, getter, setter;
+      if (typeof aliasOrGetter === "string") { alias = aliasOrGetter; applier = typeof setterOrApplier === "function" ? setterOrApplier : null; }
+      else if (typeof aliasOrGetter === "function" && typeof setterOrApplier !== "function") applier = aliasOrGetter;
+      if (typeof aliasOrGetter === "function" && typeof setterOrApplier === "function") { getter = aliasOrGetter; setter = setterOrApplier; }
+      else {
+        getter = () => self[alias];
+        setter = function(view, attr, value, defineSetter) {
+          self[alias] = value;
+          if (applier) return applier.call(self, view, attr, value, defineSetter);
+          return undefined;
+        };
+      }
+      if (!this.__attrs__) Widget.call(this);
+      this.__attrs__[name] = { getter, setter };
+    };
+    Widget.prototype.hasAttr = function(attrName) { return !!(this.__attrs__ && this.__attrs__[String(attrName)]); };
+    Widget.prototype.getAttr = function(view, attrName, ...args) {
+      const attr = this.__attrs__ && this.__attrs__[String(attrName)];
+      return attr ? attr.getter.call(this, view, String(attrName), ...args) : undefined;
+    };
+    Widget.prototype.setAttr = function(view, attrName, value) {
+      const attr = this.__attrs__ && this.__attrs__[String(attrName)];
+      return attr ? attr.setter.call(this, view, String(attrName), value, () => {}) : undefined;
+    };
+    function registerWidget(name, widget) {
+      const niceName = typeof name === "string" ? name : name === undefined || name === null ? "" : String(name);
+      if (!niceName) throw new RangeError("ui.registerWidget: name must be a non-empty string");
+      if (typeof widget !== "function") throw new TypeError("ui.registerWidget: widget must be a function");
+      __autojs6_ui_widgets.set(niceName, widget);
+    }
+    function __autojs6_ui_evaluate(expression) {
+      // eslint-disable-next-line no-new-func
+      return new Function("__autojs6_scope", "with (__autojs6_scope) { return (" + expression + "); }")(__autojs6_ui_binding_context);
+    }
+    function __autojs6_ui_bind_value(value) {
+      const whole = /^\s*\{\{([\s\S]+?)\}\}\s*$/.exec(value);
+      if (whole) { const result = __autojs6_ui_evaluate(whole[1]); return result === undefined || result === null ? "" : String(result); }
+      return value.replace(/\{\{([\s\S]+?)\}\}/g, (_, expression) => { const result = __autojs6_ui_evaluate(expression); return result === undefined || result === null ? "" : String(result); });
+    }
+    // Expands widgets and {{expressions}} and lists the XML ids with their ancestors (for findByStringId).
+    function __autojs6_ui_prepare_xml(source, methodName) {
+      const hooks = [], ids = new Map();
+      function expand(node, depth) {
+        if (node.text !== undefined) return node;
+        if (depth > 8) throw __autojs6_ui_invalid_argument_error(methodName, "ui." + methodName + ": widgets are nested too deeply");
+        node.attrs = node.attrs.map(([name, value]) => [name, value.indexOf("{{") >= 0 ? __autojs6_ui_bind_value(value) : value]);
+        const Ctor = __autojs6_ui_widgets.get(node.tag);
+        if (!Ctor) { node.children = node.children.map(child => expand(child, depth)); return node; }
+        const instance = new Ctor();
+        const markup = typeof instance.render === "function" ? instance.render() : undefined;
+        if (markup === undefined || markup === null) throw new TypeError("Function render must return a non-null value");
+        const rendered = __autojs6_ui_parse_xml(String(markup), methodName), defined = [];
+        for (const [name, value] of node.attrs) {
+          const bare = name.replace(/^[\w-]+:/, "");
+          if (instance.__attrs__ && instance.__attrs__[bare]) defined.push([bare, value]);
+          else rendered.attrs = rendered.attrs.filter(([other]) => other !== name).concat([[name, value]]);
+        }
+        let id = (rendered.attrs.find(([name]) => name.replace(/^[\w-]+:/, "") === "id") || [])[1];
+        if (!id) { id = "__autojs6_widget_" + (++__autojs6_ui_widget_serial); rendered.attrs.push(["id", id]); }
+        rendered.children = rendered.children.concat(node.children);
+        hooks.push({ instance, id: String(id).replace(/^@\+?id\//, ""), attrs: defined });
+        return expand(rendered, depth + 1);
+      }
+      function collect(node, ancestors) {
+        if (node.text !== undefined) return;
+        const id = (node.attrs.find(([name]) => name.replace(/^[\w-]+:/, "") === "id") || [])[1];
+        const own = id ? String(id).replace(/^@\+?id\//, "") : null;
+        if (own && !ids.has(own)) ids.set(own, ancestors);
+        node.children.forEach(child => collect(child, own ? ancestors.concat(own) : ancestors));
+      }
+      const tree = expand(__autojs6_ui_parse_xml(source, methodName), 0);
+      collect(tree, []);
+      return { xml: __autojs6_ui_xml_text(tree), hooks, ids };
+    }
+    async function __autojs6_ui_run_hooks(hooks, find) {
+      for (const hook of hooks) {
+        const view = await find(hook.id);
+        if (typeof hook.instance.onViewCreated === "function") await hook.instance.onViewCreated(view);
+        for (const [name, value] of hook.attrs) await hook.instance.__attrs__[name].setter.call(hook.instance, view, name, value, () => {});
+      }
+      for (const hook of hooks) if (typeof hook.instance.onFinishInflation === "function") await hook.instance.onFinishInflation(await find(hook.id));
+    }
+    function __autojs6_ui_layout_source(value, methodName) {
+      if (typeof value === "string") return value;
+      if (value && typeof value.toXMLString === "function") return String(value.toXMLString());
+      throw new TypeError("ui." + methodName + " requires an XML string");
+    }
+    const __autojs6_ui_emitter_value = __autojs6_ui_emitter();
+    const __autojs6_ui_window_options = new Map();
+    let __autojs6_ui_content = null;
+    let __autojs6_ui_content_tail = Promise.resolve();
+    const __autojs6_ui_wants_back = () => __autojs6_ui_emitter_value.listenerCount("back_pressed") > 0;
+    function __autojs6_ui_window_control(op, value) {
+      const content = __autojs6_ui_content;
+      return content ? nativeCall("windowControl", [content.id, op, value]).then(() => undefined) : Promise.resolve(undefined);
+    }
+    __autojs6_ui_emitter_value.__autojs6Watch(name => {
+      if (name !== "back_pressed" || !__autojs6_ui_content) return;
+      const wanted = __autojs6_ui_wants_back();
+      if (__autojs6_ui_content.interceptBack !== wanted) {
+        __autojs6_ui_content.interceptBack = wanted;
+        __autojs6_ui_window_control("interceptBack", wanted).catch(() => {});
+      }
+    });
+    function __autojs6_ui_lifecycle(event) {
+      const name = String(event && event.name || "");
+      if (!name) return;
+      if (name === "back_pressed") {
+        const value = { consumed: false };
+        try { __autojs6_ui_emitter_value.emit("back_pressed", value); }
+        finally { if (!value.consumed) finish().catch(() => {}); }
+        return;
+      }
+      __autojs6_ui_emitter_value.emit(name, event);
+    }
+    async function __autojs6_ui_set_content(layout, prepared) {
+      const run = __autojs6_ui_content_tail.then(async () => {
+        // A replaced root keeps the window and its event subscription.
+        const live = __autojs6_ui_content && !__autojs6_ui_content.closed;
+        const result = await __autojs6_call_autojs("ui", "showLayout", [layout, { contentView: true }], { permissions: ["ui"], ...(live ? { events: false } : {}), timeoutMs: 10000 });
+        const rootView = wrapView(result.rootView);
+        let content = __autojs6_ui_content;
+        if (!content || content.id !== result.id || content.closed) {
+          const handle = __autojs6_ui_handle(result, {}, []);
+          content = { id: result.id, handle, closed: false, interceptBack: false };
+          handle.on("lifecycle", __autojs6_ui_lifecycle);
+          handle.on("close", () => { content.closed = true; if (__autojs6_ui_content === content) __autojs6_ui_content = null; });
+          __autojs6_ui_content = content;
+        }
+        content.root = rootView;
+        content.views = new Map(); content.ancestors = prepared ? prepared.ids : new Map();
+        const ids = [...content.ancestors.keys()].slice(0, 512);
+        const found = await Promise.all(ids.map(id => findView(result.id, id).catch(() => null)));
+        ids.forEach((id, index) => { if (found[index]) content.views.set(id, found[index]); });
+        content.interceptBack = __autojs6_ui_wants_back();
+        if (content.interceptBack) await nativeCall("windowControl", [content.id, "interceptBack", true]);
+        for (const [op, value] of __autojs6_ui_window_options) await nativeCall("windowControl", [content.id, op, value]);
+        if (prepared) await __autojs6_ui_run_hooks(prepared.hooks, async id => content.views.get(id) || await findView(result.id, id));
+      });
+      __autojs6_ui_content_tail = run.catch(() => {});
+      return run;
+    }
+    function layout(xml) {
+      let prepared;
+      try { prepared = __autojs6_ui_prepare_xml(__autojs6_ui_layout_source(xml, "layout"), "layout"); }
+      catch (error) { return Promise.reject(error); }
+      return __autojs6_ui_set_content(prepared.xml, prepared);
+    }
+    function layoutFile(path) {
+      if (typeof path !== "string" || !path) return Promise.reject(new TypeError("ui.layoutFile requires a file path"));
+      let source;
+      try {
+        const fs = typeof process === "object" && process && typeof process.getBuiltinModule === "function" ? process.getBuiltinModule("fs") : null;
+        if (!fs) throw new Error("ui.layoutFile needs the runtime's file system module");
+        source = fs.readFileSync(path, "utf8");
+      } catch (error) { return Promise.reject(error); }
+      return layout(source);
+    }
+    function setContentView(view) {
+      try { viewToken(view); } catch (error) { return Promise.reject(error); }
+      return __autojs6_ui_set_content(view, null);
+    }
+    function finish() {
+      const content = __autojs6_ui_content;
+      if (!content || content.closed) return Promise.resolve(undefined);
+      content.closed = true; __autojs6_ui_content = null;
+      return content.handle.close();
+    }
+    function findById(id) {
+      const content = __autojs6_ui_content;
+      if (id === undefined || id === null || !content) return null;
+      return content.views.get(String(id).replace(/^@\+?id\//, "")) || null;
+    }
+    function findByStringId(view, id) {
+      const content = __autojs6_ui_content;
+      if (!view) throw new TypeError("ui.findByStringId requires a View");
+      if (!content || id === undefined || id === null) return null;
+      const target = String(id).replace(/^@\+?id\//, ""), found = content.views.get(target) || null;
+      if (!found || view === content.root || view === found) return found;
+      const owner = [...content.views].find(([, handle]) => handle === view);
+      return owner && (content.ancestors.get(target) || []).includes(owner[0]) ? found : null;
+    }
+    function run(action) {
+      if (typeof action !== "function") throw new TypeError("ui.run requires a function");
+      try { return Promise.resolve(action()); } catch (error) { return Promise.reject(error); }
+    }
+    function post(action, delay) {
+      if (typeof action !== "function") throw new TypeError("ui.post requires a function");
+      if (delay !== undefined && delay !== null && !(Number.isFinite(Number(delay)) && Number(delay) >= 0)) throw new RangeError("ui.post delay must be a non-negative number");
+      setTimeout(action, delay === undefined || delay === null ? 0 : Number(delay));
+      return true;
+    }
+    function useAndroidLayout(enabled) {
+      __autojs6_ui_android_layout = enabled === null ? null : enabled === undefined ? true : (() => {
+        if (typeof enabled !== "boolean") throw new TypeError("ui.useAndroidLayout requires a boolean");
+        return enabled;
+      })();
+    }
+    function __autojs6_ui_remember(op, value) {
+      __autojs6_ui_window_options.set(op, value);
+      return __autojs6_ui_window_control(op, value);
+    }
+    const __autojs6_ui_color = (method, value) => {
+      if (typeof value !== "string" && typeof value !== "number") throw new TypeError("ui." + method + " requires a color string or number");
+      return value;
+    };
+    function __autojs6_ui_bar_options(method, options) {
+      if (options === undefined || options === null) return {};
+      if (typeof options !== "object" || Array.isArray(options)) throw new TypeError("ui." + method + " options must be an object");
+      const output = {};
+      for (const key of ["withComputed", "withDimen", "ignoreVisibility"]) if (options[key] !== undefined) output[key] = Boolean(options[key]);
+      return output;
+    }
+    const __autojs6_ui_bar = (method, kind, visible) => options => {
+      try { return nativeCall("barHeight", [kind, visible, __autojs6_ui_bar_options(method, options)]); }
+      catch (error) { return Promise.reject(error); }
+    };
+    const __autojs6_ui_promise = fn => (...args) => { try { return fn(...args); } catch (error) { return Promise.reject(error); } };
+    const __autojs6_ui_resources = Object.freeze(Object.fromEntries(["anim", "animator", "array", "attr", "bool", "color", "dimen", "drawable", "font",
+      "fraction", "id", "integer", "interpolator", "layout", "menu", "mipmap", "plurals", "raw", "string", "style", "styleable", "transition", "xml"]
+      .map(type => [type, new Proxy(Object.freeze({}), {
+        get: (_, name) => typeof name === "symbol" ? undefined : "@" + type + "/" + name,
+        has: () => true
+      })])));
+    const __autojs6_ui_rhino_members = {
+      layout, layoutFile, setContentView, finish, findById, findByStringId, run, post, registerWidget, useAndroidLayout,
+      isUiThread: () => false,
+      keepScreenOn: __autojs6_ui_promise(() => __autojs6_ui_remember("keepScreenOn", true)),
+      backgroundColor: __autojs6_ui_promise(color => __autojs6_ui_remember("backgroundColor", __autojs6_ui_color("backgroundColor", color))),
+      statusBarColor: __autojs6_ui_promise(color => __autojs6_ui_remember("statusBarColor", __autojs6_ui_color("statusBarColor", color))),
+      statusBarIconLight: __autojs6_ui_promise(isLight => __autojs6_ui_remember("statusBarIconLight", isLight === undefined || isLight === null ? true : Boolean(isLight))),
+      statusBarIconLightBy: __autojs6_ui_promise(color => __autojs6_ui_remember("statusBarIconLightBy", __autojs6_ui_color("statusBarIconLightBy", color))),
+      navigationBarColor: __autojs6_ui_promise(color => __autojs6_ui_remember("navigationBarColor", __autojs6_ui_color("navigationBarColor", color))),
+      navigationBarIconLight: __autojs6_ui_promise(isLight => __autojs6_ui_remember("navigationBarIconLight", isLight === undefined || isLight === null ? true : Boolean(isLight))),
+      navigationBarIconLightBy: __autojs6_ui_promise(color => __autojs6_ui_remember("navigationBarIconLightBy", __autojs6_ui_color("navigationBarIconLightBy", color))),
+      getStatusBarHeight: __autojs6_ui_bar("getStatusBarHeight", "status", false),
+      getVisibleStatusBarHeight: __autojs6_ui_bar("getVisibleStatusBarHeight", "status", true),
+      getNavigationBarHeight: __autojs6_ui_bar("getNavigationBarHeight", "navigation", false),
+      getVisibleNavigationBarHeight: __autojs6_ui_bar("getVisibleNavigationBarHeight", "navigation", true)
+    };
+    // Lazy exports (ESM named bindings skip them): the root and the bar heights change, a binding would freeze the first value.
+    const __autojs6_ui_lazy = get => Object.assign(get, { __autojs6LazyExport: true });
+    const __autojs6_ui_rhino_getters = {
+      root: { get: __autojs6_ui_lazy(() => __autojs6_ui_content ? __autojs6_ui_content.root || null : null), enumerable: true },
+      emitter: { get: () => __autojs6_ui_emitter_value, enumerable: true },
+      R: { get: () => __autojs6_ui_resources, enumerable: true },
+      Widget: { value: Widget, enumerable: true },
+      bindingContext: { get: __autojs6_ui_lazy(() => __autojs6_ui_binding_context), set: value => { __autojs6_ui_binding_context = value === undefined || value === null ? globalThis : Object(value); }, enumerable: true },
+      statusBarHeight: { get: __autojs6_ui_lazy(() => __autojs6_ui_rhino_members.getStatusBarHeight()), enumerable: true },
+      visibleStatusBarHeight: { get: __autojs6_ui_lazy(() => __autojs6_ui_rhino_members.getVisibleStatusBarHeight()), enumerable: true },
+      navigationBarHeight: { get: __autojs6_ui_lazy(() => __autojs6_ui_rhino_members.getNavigationBarHeight()), enumerable: true },
+      visibleNavigationBarHeight: { get: __autojs6_ui_lazy(() => __autojs6_ui_rhino_members.getVisibleNavigationBarHeight()), enumerable: true }
+    };
+    // api-coverage P3.3 (appendix C Q165 - Q168): Rhino's floaty, web and terminal modules and console.build, shared by the
+    // Node and Bun facades. `deps.call` reaches any host module (default: this facade's call); `deps.exit` ends the
+    // execution (exitOnClose); `deps.connectWebSocket(url, options)` opens the runtime's controlled WebSocket (a connection
+    // with on / send / close), without it the host websocket routes are polled here.
+    function __autojs6_ui_family(deps = {}) {
+      const call = deps.call || __autojs6_family_call;
+      const exit = () => { if (typeof deps.exit === "function") deps.exit(); };
+      const options = (method, value) => {
+        if (value === undefined || value === null) return {};
+        if (typeof value !== "object" || Array.isArray(value)) throw new TypeError(method + " options must be an object");
+        return value;
+      };
+      const finite = (method, value) => {
+        const number = Number(value);
+        if (!Number.isFinite(number)) throw new TypeError(method + " requires finite numbers");
+        return Math.round(number);
+      };
+      const settle = fn => (...args) => { try { return Promise.resolve(fn(...args)); } catch (error) { return Promise.reject(error); } };
+      const done = () => undefined;
+
+      // floaty: window (resizable frame) and rawWindow; XML ids resolve to native View handles before the Promise settles.
+      const floatyWindows = new Set();
+      function floatyWindow(handle, raw, rootView, views) {
+        let closed = false, exitOnClose = false;
+        const control = (op, ...args) => closed || handle.closed
+          ? Promise.resolve(op === "geometry" ? { x: -1, y: -1, width: 0, height: 0 } : op === "isAdjustEnabled" ? false : null)
+          : call("ui", "floatyControl", [handle.id, op, ...args], { permissions: op === "setTouchable" ? ["ui", "ui.overlay", "floaty.touch"] : ["ui", "ui.overlay"] });
+        const geometry = key => control("geometry").then(value => Number(value && value[key]));
+        const markClosed = () => { if (closed) return false; closed = true; floatyWindows.delete(window); return true; };
+        const window = {
+          id: handle.id, rootView,
+          findView: id => id === undefined || id === null ? null : views.get(String(id).replace(/^@\+?id\//, "")) || null,
+          setPosition: settle((x, y) => control("setPosition", finite("setPosition", x), finite("setPosition", y)).then(done)),
+          setSize: settle((width, height) => control("setSize", finite("setSize", width), finite("setSize", height)).then(done)),
+          requestFocus: () => control("requestFocus").then(done),
+          disableFocus: () => control("disableFocus").then(done),
+          exitOnClose() { exitOnClose = true; },
+          close() {
+            if (!markClosed()) return Promise.resolve(undefined);
+            return handle.close().then(() => { if (exitOnClose) exit(); });
+          }
+        };
+        if (raw) window.setTouchable = touchable => control("setTouchable", touchable === undefined ? true : Boolean(touchable)).then(done);
+        else {
+          window.isAdjustEnabled = () => control("isAdjustEnabled").then(Boolean);
+          window.setAdjustEnabled = enabled => control("setAdjustEnabled", enabled === undefined ? true : Boolean(enabled)).then(done);
+        }
+        for (const key of ["x", "y", "width", "height"]) Object.defineProperty(window, key, { get: () => geometry(key), enumerable: true });
+        Object.defineProperty(window, "closed", { get: () => closed || handle.closed, enumerable: true });
+        // Rhino reads the views of the layout as window properties (`w.text` for id="text").
+        for (const [id, view] of views) if (!(id in window)) Object.defineProperty(window, id, { value: view, enumerable: true });
+        handle.on("close", () => { if (markClosed() && exitOnClose) exit(); });
+        floatyWindows.add(window);
+        return Object.freeze(window);
+      }
+      function openFloaty(method, raw) {
+        const label = "floaty." + method;
+        return function(layout, windowOptions) {
+          let prepared = null, source, opts;
+          try {
+            opts = options(label, windowOptions);
+            if (layout && typeof layout === "object" && typeof layout.__autojs6ViewHandle === "string") source = viewToken(layout);
+            else { prepared = __autojs6_ui_prepare_xml(__autojs6_ui_layout_source(layout, label), label); source = prepared.xml; }
+          } catch (error) { return Promise.reject(error); }
+          const permissions = raw ? ["ui", "ui.overlay", "floaty.raw"] : ["ui", "ui.overlay"];
+          return call("ui", raw ? "floatyRawWindow" : "floatyWindow", [source, opts], { permissions, timeoutMs: 10000 }).then(async result => {
+            const handle = __autojs6_ui_handle(result, {}, []), rootView = result.rootView ? wrapView(result.rootView) : null, views = new Map();
+            if (prepared && rootView) {
+              const ids = [...prepared.ids.keys()].slice(0, 512);
+              const found = await Promise.all(ids.map(id => findView(rootView, id).catch(() => null)));
+              ids.forEach((id, index) => { if (found[index]) views.set(id, found[index]); });
+              await __autojs6_ui_run_hooks(prepared.hooks, async id => views.get(id) || await findView(rootView, id));
+            }
+            return floatyWindow(handle, raw, rootView, views);
+          });
+        };
+      }
+      const overlayPermission = () => call("ui.overlay", "hasPermission", [], { permissions: ["ui.overlay.permission"], timeoutMs: 5000 })
+        .then(value => Boolean(value && typeof value === "object" ? value.granted : value));
+      const requestOverlayPermission = () => call("ui.overlay", "openPermissionSettings", [], { permissions: ["ui.overlay.permission"], timeoutMs: 5000 }).then(done);
+      const floaty = Object.freeze({
+        window: openFloaty("window", false),
+        rawWindow: openFloaty("rawWindow", true),
+        closeAll: () => call("ui", "floatyCloseAll", [], { permissions: ["ui"] }).then(count => {
+          for (const window of [...floatyWindows]) floatyWindows.delete(window);
+          return Number(count) || 0;
+        }),
+        hasPermission: overlayPermission,
+        checkPermission: overlayPermission,
+        requestPermission: requestOverlayPermission,
+        async ensurePermission() {
+          if (await overlayPermission()) return;
+          await requestOverlayPermission();
+          throw Object.assign(new Error("floaty.ensurePermission: the overlay (draw over other apps) permission is not granted"), { code: "ERR_AUTOJS6_FLOATY_PERMISSION" });
+        },
+        // Rhino reads the clip through a focused floating window; the host clipboard route does that itself.
+        getClip: () => call("clipboard", "getText", [], { permissions: ["clipboard"], timeoutMs: 5000 })
+          .then(value => value === undefined || value === null ? "" : String(value))
+      });
+
+      // web: ByteString (okio's immutable bytes), WebSocket with Rhino's event names, injectable WebView / WebViewClient.
+      // Binary payloads: a ByteString (of any facade instance), an ArrayBuffer or a view; anything else is sent as text.
+      const bytesOf = value => value && typeof value === "object" && typeof value.toByteArray === "function" && typeof value.hex === "function" ? value.toByteArray()
+        : value instanceof ArrayBuffer ? new Uint8Array(value) : ArrayBuffer.isView(value) ? new Uint8Array(value.buffer, value.byteOffset, value.byteLength) : null;
+      const toBase64 = bytes => {
+        let binary = "";
+        for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode.apply(null, bytes.subarray(index, index + 0x8000));
+        return btoa(binary);
+      };
+      const fromBase64 = text => Uint8Array.from(atob(text), char => char.charCodeAt(0));
+      class ByteString {
+        constructor(bytes) { Object.defineProperty(this, "bytes", { value: Uint8Array.from(bytes || []) }); Object.freeze(this); }
+        static of(...bytes) { return new ByteString(bytes.map(byte => Number(byte) & 0xff)); }
+        static encodeUtf8(text) { return new ByteString(new TextEncoder().encode(String(text))); }
+        static encodeString(text, charset) {
+          if (charset !== undefined && charset !== null && !/^utf-?8$/i.test(String(charset))) throw new RangeError("ByteString.encodeString supports UTF-8 only");
+          return ByteString.encodeUtf8(text);
+        }
+        static decodeHex(hex) {
+          const text = String(hex);
+          if (text.length % 2 || /[^0-9a-f]/i.test(text)) throw new RangeError("Unexpected hex string: " + text);
+          return new ByteString(text.match(/../g)?.map(pair => parseInt(pair, 16)) || []);
+        }
+        static decodeBase64(text) {
+          try { return new ByteString(fromBase64(String(text).replace(/[-_]/g, char => char === "-" ? "+" : "/").replace(/\s+/g, ""))); }
+          catch (_) { return null; }
+        }
+        static from(value) {
+          if (value instanceof ByteString) return value;
+          if (typeof value === "string") return ByteString.encodeUtf8(value);
+          if (value instanceof ArrayBuffer) return new ByteString(new Uint8Array(value));
+          if (ArrayBuffer.isView(value)) return new ByteString(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
+          if (Array.isArray(value)) return new ByteString(value.map(byte => Number(byte) & 0xff));
+          throw new TypeError("ByteString.from requires a string, bytes or a byte array");
+        }
+        utf8() { return new TextDecoder().decode(this.bytes); }
+        string(charset) {
+          if (charset !== undefined && charset !== null && !/^utf-?8$/i.test(String(charset))) throw new RangeError("ByteString.string supports UTF-8 only");
+          return this.utf8();
+        }
+        hex() { return Array.from(this.bytes, byte => byte.toString(16).padStart(2, "0")).join(""); }
+        base64() { return toBase64(this.bytes); }
+        base64Url() { return this.base64().replace(/[+/]/g, char => char === "+" ? "-" : "_"); }
+        size() { return this.bytes.length; }
+        getSize() { return this.bytes.length; }
+        getByte(index) { const value = this.bytes[index]; if (value === undefined) throw new RangeError("ByteString index out of range"); return value << 24 >> 24; }
+        toByteArray() { return Uint8Array.from(this.bytes); }
+        toAsciiLowercase() { return new ByteString(this.bytes.map(byte => byte >= 65 && byte <= 90 ? byte + 32 : byte)); }
+        toAsciiUppercase() { return new ByteString(this.bytes.map(byte => byte >= 97 && byte <= 122 ? byte - 32 : byte)); }
+        substring(begin = 0, end = this.bytes.length) { return new ByteString(this.bytes.subarray(begin, end)); }
+        startsWith(prefix) { const bytes = ByteString.from(prefix).bytes; return bytes.every((byte, index) => this.bytes[index] === byte); }
+        endsWith(suffix) { const bytes = ByteString.from(suffix).bytes, offset = this.bytes.length - bytes.length; return offset >= 0 && bytes.every((byte, index) => this.bytes[offset + index] === byte); }
+        indexOf(other, fromIndex = 0) { const bytes = ByteString.from(other).bytes; for (let index = Math.max(0, fromIndex); index + bytes.length <= this.bytes.length; index++) if (bytes.every((byte, offset) => this.bytes[index + offset] === byte)) return index; return -1; }
+        equals(other) { return other instanceof ByteString && other.bytes.length === this.bytes.length && other.bytes.every((byte, index) => this.bytes[index] === byte); }
+        toString() {
+          if (this.bytes.length === 0) return "[size=0]";
+          const text = this.utf8(), replacement = String.fromCharCode(0xfffd);
+          const control = this.bytes.some(byte => byte < 0x20 && byte !== 0x09 && byte !== 0x0a && byte !== 0x0d);
+          return !control && !text.includes(replacement) ? "[text=" + text + "]" : "[hex=" + this.hex() + "]";
+        }
+      }
+      // Without a runtime connection: the host websocket routes, events drained here.
+      async function hostConnect(url, socketOptions) {
+        const descriptor = { url, headers: Object.entries(socketOptions.headers || {}).map(([name, value]) => [String(name), String(value)]),
+          protocols: Array.isArray(socketOptions.protocols) ? socketOptions.protocols.map(String) : [], timeoutMs: Number(socketOptions.timeoutMs) || 30000 };
+        const record = await call("websocket", "connect", [descriptor], { permissions: ["network"], timeoutMs: descriptor.timeoutMs, events: false });
+        const listeners = new Map(), id = String(record && record.id || "");
+        let closed = false;
+        const emit = (name, ...args) => (listeners.get(name) || []).slice().forEach(listener => listener(...args));
+        (async () => {
+          while (!closed) {
+            const events = await call("websocket", "drainEvents", [{ id }], { permissions: ["network"], timeoutMs: 5000 });
+            for (const event of Array.isArray(events) ? events : []) {
+              if (event.type === "message") emit("message", event.message || {});
+              else if (event.type === "error") emit("error", Object.assign(new Error(event.error && event.error.message || "WebSocket failed"), { code: event.error && event.error.code }));
+              else if (event.type === "close") { closed = true; emit("close", { code: event.code === undefined ? 1000 : event.code, reason: event.reason || "" }); }
+            }
+            if (!closed) await new Promise(resolve => setTimeout(resolve, 50));
+          }
+        })().catch(error => { if (!closed) { closed = true; emit("error", error); emit("close", { code: 1006, reason: String(error && error.message || error) }); } });
+        return {
+          on(name, listener) { listeners.set(name, (listeners.get(name) || []).concat(listener)); return this; },
+          send(data) {
+            const payload = typeof data === "string" ? { id, text: data } : { id, dataBase64: toBase64(data) };
+            return call("websocket", "send", [payload], { permissions: ["network"], timeoutMs: 30000 }).then(done);
+          },
+          close(code, reason) {
+            return call("websocket", "close", [{ id, code: code === undefined ? 1000 : Number(code), reason: reason === undefined ? "" : String(reason) }],
+              { permissions: ["network"], timeoutMs: 30000 }).then(done);
+          }
+        };
+      }
+      function newWebSocket(url, socketOptions) {
+        if (typeof url !== "string" || !url) throw new TypeError("web.newWebSocket requires a URL string");
+        const opts = options("web.newWebSocket", socketOptions);
+        const emitter = __autojs6_ui_emitter(), sticky = new Map();
+        let connection = null, generation = 0, closed = false, rebuilds = 0, maxRebuilds = Infinity, exitOnClose = false, exitTimeout = 0, queued = 0;
+        const pending = [];
+        const emit = (name, ...args) => {
+          try { return emitter.emit(name, ...args); }
+          catch (error) { setTimeout(() => { throw error; }, 0); return true; }
+        };
+        const fail = error => emit("failure", error, null, socket);
+        function deliver(payload) {
+          const bytes = typeof payload === "string" ? payload.length : payload.length;
+          queued += bytes;
+          connection.send(payload).catch(fail).finally(() => { queued -= bytes; });
+        }
+        function connect() {
+          const current = ++generation;
+          closed = false; connection = null;
+          (deps.connectWebSocket || hostConnect)(url, opts).then(value => {
+            if (current !== generation) { value.close(1000, "").catch(() => {}); return; }
+            connection = value;
+            value.on("message", message => {
+              if (current !== generation) return;
+              if (message && typeof message.text === "string") { emit("message", message.text, socket); emit("text", message.text, socket); return; }
+              const data = message && (message.dataBase64 !== undefined ? fromBase64(String(message.dataBase64)) : message.data);
+              const bytes = new ByteString(data instanceof ArrayBuffer ? new Uint8Array(data) : data || []);
+              emit("message", bytes, socket); emit("bytes", bytes, socket);
+            });
+            value.on("error", error => { if (current === generation) fail(error); });
+            value.on("close", event => {
+              if (current !== generation) return;
+              closed = true; connection = null;
+              const code = event && event.code !== undefined ? Number(event.code) : 1000, reason = event && event.reason || "";
+              emit("closing", code, reason, socket);
+              emit("closed", code, reason, socket);
+              if (exitOnClose) setTimeout(exit, exitTimeout);
+            });
+            emit("open", Object.freeze({ url, protocol: value.protocol || "" }), socket);
+            pending.splice(0).forEach(deliver);
+          }, error => {
+            if (current !== generation) return;
+            closed = true; pending.length = 0;
+            fail(error);
+          });
+        }
+        const socket = {
+          get url() { return url; },
+          get client() { return null; },
+          request: () => Object.freeze({ url, method: "GET", headers: Object.freeze({ ...(opts.headers || {}) }) }),
+          send(data) {
+            if (closed) return false;
+            const bytes = bytesOf(data), payload = bytes || String(data);
+            if (connection) deliver(payload); else pending.push(payload);
+            return true;
+          },
+          close(code, reason) {
+            if (closed) return false;
+            if (typeof code === "string" && reason === undefined) { reason = code; code = 1000; }
+            closed = true;
+            const target = connection;
+            if (target) target.close(code === undefined ? 1000 : Number(code), reason === undefined || reason === null ? "" : String(reason)).catch(fail);
+            else { generation++; pending.length = 0; emit("closed", code === undefined ? 1000 : Number(code), reason || "", socket); }
+            return true;
+          },
+          cancel() {
+            const target = connection;
+            generation++; closed = true; connection = null; pending.length = 0;
+            if (target) target.close(1001, "").catch(() => {});
+            fail(Object.assign(new Error("Canceled"), { code: "ERR_AUTOJS6_WEBSOCKET_CANCELED" }));
+          },
+          queueSize: () => queued + pending.reduce((total, item) => total + item.length, 0),
+          rebuild(max) {
+            if (max !== undefined) maxRebuilds = Math.max(0, Number(max) || 0);
+            const target = connection;
+            generation++; connection = null;
+            if (target) target.close(1001, "").catch(() => {});
+            if (rebuilds < maxRebuilds) { rebuilds++; connect(); }
+            else { closed = true; emit("max_rebuilds", maxRebuilds, socket); }
+          },
+          exitOnClose(value) {
+            if (typeof value === "number") { exitOnClose = true; exitTimeout = Math.max(0, value); }
+            else exitOnClose = value === undefined ? true : Boolean(value);
+          },
+          getTimer: () => Object.freeze({ setTimeout, clearTimeout, setInterval, clearInterval }),
+          emitSticky(name, ...args) { sticky.set(name, args); return emit(name, ...args); }
+        };
+        // EventEmitter members return the socket; a listener added after emitSticky receives the sticky arguments at once.
+        for (const name of ["on", "addListener", "once", "prependListener", "prependOnceListener"]) {
+          socket[name] = (eventName, listener) => {
+            emitter[name](eventName, listener);
+            if (sticky.has(eventName)) { const args = sticky.get(eventName); if (name.toLowerCase().includes("once")) emitter.removeListener(eventName, listener); listener.apply(socket, args); }
+            return socket;
+          };
+        }
+        for (const name of ["off", "removeListener", "removeAllListeners", "setMaxListeners"]) socket[name] = (...args) => { emitter[name](...args); return socket; };
+        for (const name of ["emit", "listeners", "listenerCount", "eventNames", "getMaxListeners"]) socket[name] = (...args) => emitter[name](...args);
+        connect();
+        return Object.freeze(socket);
+      }
+      // InjectableWebClient: a WebView client whose inject() waits for the first page finished, as Rhino's does.
+      function newInjectableWebClient() {
+        let view = null;
+        const waiting = [];
+        const evaluate = (target, script) => target.evaluateJavascript(String(script)).then(value => value === undefined || value === null ? null : typeof value === "string" ? value : JSON.stringify(value));
+        const client = {
+          onPageFinished() {
+            view = this;
+            for (const task of waiting.splice(0)) evaluate(view, task.script).then(task.resolve, task.reject);
+          }
+        };
+        function injectAndWait(script) {
+          if (view) return evaluate(view, script);
+          return new Promise((resolve, reject) => waiting.push({ script, resolve, reject }));
+        }
+        Object.defineProperties(client, {
+          inject: { value: (script, callback) => {
+            const result = injectAndWait(script);
+            if (typeof callback === "function") result.then(value => callback(value), () => callback(null));
+            else result.catch(() => {});
+            return result;
+          } },
+          injectAndWait: { value: injectAndWait }
+        });
+        return Object.freeze(client);
+      }
+      async function newInjectableWebView(first, url) {
+        const target = url !== undefined ? url : typeof first === "string" ? first : undefined;
+        if (target !== undefined && target !== null && typeof target !== "string") throw new TypeError("web.newInjectableWebView url must be a string");
+        const client = newInjectableWebClient();
+        const view = await inflate({ type: "WebView", javaScriptEnabled: true, domStorageEnabled: true });
+        await view.setWebViewClient(client);
+        if (target) await view.loadUrl(target);
+        return new Proxy(view, { get: (object, key) => key === "inject" ? client.inject : Reflect.get(object, key), has: (object, key) => key === "inject" || key in object });
+      }
+      const web = Object.freeze({ ByteString, newWebSocket, newInjectableWebView, newInjectableWebClient });
+
+      // terminal: the 3-Shell Terminal plugin through the host (capability terminal); the Async forms are the same calls.
+      function TerminalError(message, code, sessionId) {
+        if (!(this instanceof TerminalError)) return new TerminalError(message, code, sessionId);
+        const text = message === undefined || message === null ? "" : String(message);
+        Object.defineProperty(this, "message", { value: text, writable: true, configurable: true });
+        this.code = code === undefined || code === null ? "INTERNAL" : String(code);
+        if (sessionId !== undefined && sessionId !== null) this.sessionId = String(sessionId);
+        Object.defineProperty(this, "stack", { value: new Error(text).stack, writable: true, configurable: true });
+      }
+      TerminalError.prototype = Object.create(Error.prototype, {
+        constructor: { value: TerminalError, writable: true, configurable: true },
+        name: { value: "TerminalError", writable: true, configurable: true },
+        toString: { value: function() { return this.name + " [" + this.code + "]: " + this.message; }, writable: true, configurable: true }
+      });
+      // Host failures carry the plugin's code (PLUGIN_UNAVAILABLE, TIMEOUT, ...); bridge and capability errors (ERR_*) stay as
+      // they are. The session id comes from the call, the host does not repeat it.
+      const terminalError = (error, id) => error && typeof error === "object" && !(error instanceof TerminalError)
+        && /^[A-Z][A-Z0-9_]*$/.test(String(error.code || "")) && !String(error.code).startsWith("ERR_")
+        ? Object.assign(new TerminalError(error.message, error.code, id), { cause: error }) : error;
+      // exec / waitFor wait on the host up to 10 minutes by default; those calls pass their own timeout.
+      const terminalCall = (method, args, timeoutMs, id) => call("terminal", method, args, { permissions: ["terminal"], ...(timeoutMs ? { timeoutMs } : {}) })
+        .catch(error => { throw terminalError(error, id); });
+      const sessionId = value => value && typeof value === "object" ? String(value.id) : String(value);
+      function terminalSession(json) {
+        if (!json || typeof json !== "object") return null;
+        const id = String(json.id);
+        const session = { ...json,
+          isAlive: () => terminalCall("isAlive", [id], 0, id).then(Boolean),
+          write(text) { return terminalCall("write", [id, text === undefined || text === null ? "" : String(text)], 0, id).then(() => session); },
+          waitFor(pattern, timeout) {
+            const value = pattern instanceof RegExp ? { regex: pattern.source, flags: pattern.flags } : String(pattern);
+            const ms = timeout === undefined || timeout === null ? undefined : Number(timeout);
+            return terminalCall("waitFor", ms === undefined ? [id, value] : [id, value, ms], ms === undefined ? 2147483647 : ms + 5000, id);
+          },
+          transcript: maxBytes => terminalCall("transcript", maxBytes === undefined ? [id] : [id, Number(maxBytes)], 0, id).then(String),
+          show() { return terminalCall("show", [id], 0, id).then(() => session); },
+          close: () => terminalCall("close", [id], 0, id).then(Boolean)
+        };
+        for (const name of ["write", "waitFor", "transcript", "show", "close"]) session[name + "Async"] = session[name];
+        session.isAliveAsync = session.isAlive;
+        session.toString = () => "TerminalSession { id: " + id + ", cwd: " + json.cwd + ", state: " + json.state + " }";
+        return Object.freeze(session);
+      }
+      const execTimeout = execOptions => execOptions && typeof execOptions === "object" && Number(execOptions.timeout) > 0 ? Number(execOptions.timeout) + 10000 : 2147483647;
+      const terminal = {
+        TerminalError,
+        open: settle(openOptions => terminalCall("open", openOptions === undefined ? [] : [openOptions], 60000).then(terminalSession)),
+        sessions: () => terminalCall("sessions", []).then(list => (Array.isArray(list) ? list : []).map(terminalSession)),
+        session: settle(id => terminalCall("session", [sessionId(id)], 0, sessionId(id)).then(terminalSession)),
+        close: settle(id => terminalCall("close", [sessionId(id)], 0, sessionId(id)).then(Boolean)),
+        closeAll: () => terminalCall("closeAll", []).then(Number),
+        show: settle(id => id === undefined || id === null ? terminalCall("show", []).then(done) : terminalCall("show", [sessionId(id)], 0, sessionId(id)).then(done)),
+        state: () => terminalCall("state", []).then(String),
+        isAvailable: () => terminalCall("isAvailable", []).then(Boolean),
+        exec: settle((command, execOptions) => terminalCall("exec", execOptions === undefined ? [command] : [command, execOptions], execTimeout(execOptions))),
+        env: () => terminalCall("env", [])
+      };
+      for (const name of ["open", "sessions", "close", "closeAll", "show", "isAvailable", "exec", "env"]) terminal[name + "Async"] = terminal[name];
+      const npmRun = settle((script, dir, runOptions) => terminalCall("npmRun", [script, ...(dir === undefined && runOptions === undefined ? [] : [dir === undefined ? null : dir]),
+        ...(runOptions === undefined ? [] : [runOptions])], execTimeout(runOptions)));
+      terminal.npm = Object.freeze({ run: npmRun, runAsync: npmRun });
+
+      // console.build: Rhino's ConsoleImpl.Configurator recorded here; show() applies it in one host call (console.configure).
+      const consoleSetters = {
+        setSize: (state, width, height) => { state.size = Object.freeze({ width: Number(width), height: Number(height) }); },
+        setPosition: (state, x, y) => { state.position = Object.freeze({ x: Number(x), y: Number(y) }); },
+        setGravity: (state, gravity) => { state.gravity = gravity === undefined || gravity === null ? 0 : Number(gravity); },
+        setTitle: (state, title) => { state.title = title === undefined || title === null ? "" : String(title); },
+        setTitleTextSize: (state, size) => { state.titleTextSize = Number(size); },
+        setTitleTextColor: (state, color) => { state.titleTextColor = color === undefined ? null : color; },
+        setTitleBackgroundColor: (state, color) => { state.titleBackgroundColor = color === undefined ? null : color; },
+        setTitleBackgroundTint: (state, color) => { state.titleBackgroundTint = color === undefined ? null : color; },
+        setTitleBackgroundAlpha: (state, alpha) => { state.titleBackgroundAlpha = alpha === undefined || alpha === null ? 1 : Number(alpha); },
+        setTitleIconsTint: (state, color) => { state.titleIconsTint = color === undefined ? null : color; },
+        setContentTextSize: (state, size) => { state.contentTextSize = Number(size); },
+        setContentTextColors: (state, ...colors) => { const list = Array.isArray(colors[0]) ? colors[0] : colors; state.contentTextColors = Object.freeze(list.slice(0, 6)); },
+        setContentBackgroundColor: (state, color) => { state.contentBackgroundColor = color === undefined ? null : color; },
+        setContentBackgroundTint: (state, color) => { state.contentBackgroundTint = color === undefined ? null : color; },
+        setContentBackgroundAlpha: (state, alpha) => { state.contentBackgroundAlpha = alpha === undefined || alpha === null ? 1 : Number(alpha); },
+        setTextSize: (state, size) => { consoleSetters.setTitleTextSize(state, size); consoleSetters.setContentTextSize(state, size); },
+        setTextColor: (state, color) => { consoleSetters.setTitleTextColor(state, color); state.contentTextColors = Object.freeze(Array(6).fill(color)); },
+        setBackgroundColor: (state, color) => { consoleSetters.setTitleBackgroundColor(state, color); consoleSetters.setContentBackgroundColor(state, color); },
+        setBackgroundTint: (state, color) => { consoleSetters.setTitleBackgroundTint(state, color); consoleSetters.setContentBackgroundTint(state, color); },
+        setBackgroundAlpha: (state, alpha) => { consoleSetters.setTitleBackgroundAlpha(state, alpha); consoleSetters.setContentBackgroundAlpha(state, alpha); },
+        setExitOnClose: (state, value) => {
+          if (typeof value === "number") { state.isExitOnClose = true; state.exitOnCloseTimeout = value; }
+          else state.isExitOnClose = value === undefined ? true : Boolean(value);
+        },
+        setTouchable: (state, value) => { state.isTouchable = value === undefined ? true : Boolean(value); },
+        setTouchThrough: (state, value) => { state.isTouchable = !(value === undefined ? true : Boolean(value)); },
+        setTimeVisible: (state, value) => { state.isTimeVisible = value === undefined ? false : Boolean(value); },
+        setTimeFormat: (state, pattern) => { state.timeFormat = pattern === undefined || pattern === null ? null : String(pattern); },
+        setColorful: (state, value) => { state.isColorful = value === undefined ? true : Boolean(value); },
+        setAvoidStatusBar: (state, value) => { state.isAvoidStatusBar = value === undefined ? true : Boolean(value); },
+        setInputVisible: (state, value) => { state.isInputVisible = value === undefined ? true : Boolean(value); }
+      };
+      const consoleValues = ["size", "position", "gravity", "title", "titleTextSize", "titleTextColor", "titleBackgroundColor", "titleBackgroundTint",
+        "titleBackgroundAlpha", "titleIconsTint", "contentTextSize", "contentTextColors", "contentBackgroundColor", "contentBackgroundTint",
+        "contentBackgroundAlpha", "exitOnCloseTimeout", "timeFormat"];
+      const consoleFlags = ["isTouchable", "isExitOnClose", "isTimeVisible", "isColorful", "isAvoidStatusBar", "isInputVisible"];
+      const consoleOptionKeys = { isTouchable: "touchable", isTimeVisible: "timeVisible", isColorful: "colorful", isAvoidStatusBar: "avoidStatusBar", isInputVisible: "inputVisible" };
+      function ConsoleConfigurator() {
+        if (!(this instanceof ConsoleConfigurator)) return new ConsoleConfigurator();
+        Object.defineProperty(this, "__autojs6ConsoleState", { value: Object.create(null) });
+      }
+      for (const [name, setter] of Object.entries(consoleSetters)) {
+        ConsoleConfigurator.prototype[name] = function(...args) { setter(this.__autojs6ConsoleState, ...args); return this; };
+      }
+      for (const name of consoleValues) {
+        Object.defineProperty(ConsoleConfigurator.prototype, name, { get() { const value = this.__autojs6ConsoleState[name]; return value === undefined ? null : value; }, enumerable: true });
+      }
+      for (const name of consoleFlags) {
+        ConsoleConfigurator.prototype[name] = function() { const value = this.__autojs6ConsoleState[name]; return value === undefined ? null : value; };
+      }
+      // The recorded values as console.configure options (keys of Rhino's Configurator fields); unset keys keep the window's.
+      ConsoleConfigurator.prototype.toOptions = function() {
+        const state = this.__autojs6ConsoleState, output = {};
+        for (const name of consoleValues) if (state[name] !== undefined && name !== "exitOnCloseTimeout") output[name] = state[name];
+        for (const name of consoleFlags) if (state[name] !== undefined && consoleOptionKeys[name]) output[consoleOptionKeys[name]] = state[name];
+        if (state.isExitOnClose !== undefined) output.exitOnClose = state.isExitOnClose && state.exitOnCloseTimeout !== undefined ? state.exitOnCloseTimeout : state.isExitOnClose;
+        return output;
+      };
+      ConsoleConfigurator.prototype.show = function(isReset) {
+        return call("console", "configure", [{ ...this.toOptions(), ...(isReset ? { reset: true } : {}) }], { permissions: ["console"] }).then(done);
+      };
+      // Rhino's console.build(options): each key names a setter (size -> setSize, touchable -> setTouchable / isTouchable).
+      function build(buildOptions) {
+        const configurator = new ConsoleConfigurator(), opts = options("console.build", buildOptions);
+        for (const [key, value] of Object.entries(opts)) {
+          const setter = /^set[A-Z]/.test(key) ? key : "set" + key.charAt(0).toUpperCase() + key.slice(1);
+          if (!consoleSetters[setter]) throw new TypeError("Unknown key \"" + key + "\" of options for console.build");
+          configurator[setter](...(Array.isArray(value) && setter !== "setContentTextColors" ? value : [value]));
+        }
+        return configurator;
+      }
+      // Rhino's UI-family globals as accessors over the facades (`sources.toast()` / `sources.compose()`, read on first use; the
+      // system globals' precedent, Q135 (b)); assigning one replaces it with a plain value, names the target has stay.
+      function installGlobals(target, sources) {
+        const entries = {
+          isUiThread: () => () => false,
+          newWebSocket: () => newWebSocket, newInjectableWebView: () => newInjectableWebView, newInjectableWebClient: () => newInjectableWebClient,
+          ComposeError: () => sources.compose().ComposeError
+        };
+        for (const level of ["Log", "Info", "Warn", "Error", "Verbose"]) {
+          entries["toast" + level] = () => sources.toast()["toast" + level];
+          entries["toast" + level.toLowerCase()] = entries["toast" + level];
+        }
+        const names = Object.keys(entries).filter(name => !Object.prototype.hasOwnProperty.call(target, name));
+        for (const name of names) {
+          Object.defineProperty(target, name, {
+            configurable: true, enumerable: false, get: () => entries[name](),
+            set(value) { Object.defineProperty(target, name, { value, writable: true, configurable: true, enumerable: false }); }
+          });
+        }
+        return names;
+      }
+      return Object.freeze({ floaty, web, terminal, console: Object.freeze({ build, ConsoleConfigurator }), installGlobals });
+    }
   function __autojs6_limited_ui() {
     if (__autojs6_limited_ui_cache) {
       return __autojs6_limited_ui_cache;
@@ -800,11 +1663,16 @@
         return __autojs6_ui_handle(result, bridgeOptions, prepared.bindings);
       });
     }
-    __autojs6_limited_ui_cache = Object.freeze({
+    const api = {
       showLayout, inflate, createView, context, view: wrapView, findView,
       state: __autojs6_ui_state,
-      bind: __autojs6_ui_bind
-    });
+      bind: __autojs6_ui_bind,
+      ...__autojs6_ui_rhino_members
+    };
+    Object.defineProperties(api, __autojs6_ui_rhino_getters);
+    // Not enumerable: the runtime facades build their floaty / web / terminal modules and console.build from it.
+    Object.defineProperty(api, "__autojs6Family", { value: __autojs6_ui_family });
+    __autojs6_limited_ui_cache = Object.freeze(api);
     return __autojs6_limited_ui_cache;
   }
     return __autojs6_limited_ui();
@@ -822,7 +1690,26 @@
     const open = new Set();
     let nextNode = 1, nextCallback = 1, active = null, batchDepth = 0, revision = 0, defaultTheme;
     const dirty = new Set();
-    const error = message => Object.assign(new Error(message), { code: "ERR_AUTOJS6_COMPOSE_INVALID_ARGUMENT" });
+    // api-coverage P3.3: Rhino's ComposeError (ComposeJsErrors), thrown by this facade with the code INVALID_ARGUMENT.
+    function ComposeError(message, code, nodeId, prop, cause) {
+      if (!(this instanceof ComposeError)) return new ComposeError(message, code, nodeId, prop, cause);
+      Object.defineProperty(this, "message", { value: String(message || ""), writable: true, configurable: true });
+      this.code = code || "INVALID_ARGUMENT";
+      this.nodeId = nodeId == null ? null : nodeId;
+      this.prop = prop == null ? null : prop;
+      this.cause = cause == null ? null : cause;
+      this.retryable = ["PLUGIN_UNAVAILABLE", "PLUGIN_DISABLED", "PLUGIN_UNAUTHORIZED", "PLUGIN_INCOMPATIBLE"].includes(this.code);
+      Object.defineProperty(this, "stack", { value: new Error(this.message).stack, configurable: true });
+    }
+    ComposeError.prototype = Object.create(Error.prototype, {
+      constructor: { value: ComposeError, writable: true, configurable: true },
+      name: { value: "ComposeError", configurable: true }
+    });
+    const error = message => new ComposeError(message, "INVALID_ARGUMENT");
+    // The shortcut props Rhino's ComposeNode reads and writes as properties (Q104).
+    const shortcutProps = ["w", "h", "padding", "bg", "weight", "alpha", "testTag", "contentDescription"];
+    const adopt = (parent, values) => { for (const value of values) if (value && value[nodeTag]) value[nodeTag].parent = parent; return values; };
+    const release = values => { for (const value of values) if (value && value[nodeTag]) value[nodeTag].parent = null; return values; };
     const notify = session => { if (!session.closed) { dirty.add(session); if (!batchDepth) queueMicrotask(flushDirty); } };
     function flushDirty() { if (batchDepth) return; for (const session of dirty) { dirty.delete(session); session.schedule(); } }
     function children(values) {
@@ -836,7 +1723,7 @@
       if (!names.includes(type)) throw error("Unsupported Compose component: " + type);
       if (props && props[nodeTag] || typeof props === "string" || Array.isArray(props)) { args.unshift(props); props = {}; }
       props = { ...(props || {}) };
-      const state = { nodeId: nextNode++, type, props, children: children(args.length ? args : [props.children]), owners: new Set(), listeners: new Map(), editSeq: 0 };
+      const state = { nodeId: nextNode++, type, props, children: children(args.length ? args : [props.children]), owners: new Set(), listeners: new Map(), editSeq: 0, parent: null };
       delete props.children;
       const change = () => { revision++; for (const owner of state.owners) notify(owner); return node; };
       const command = async (type, value = {}) => {
@@ -848,12 +1735,12 @@
         [nodeTag]: state,
         set(value) { Object.assign(props, value); return change(); },
         get(name) { return props[name]; },
-        append(value) { state.children.push(...children([value])); return change(); },
-        insert(index, value) { if (!Number.isInteger(index) || index < 0 || index > state.children.length) throw error("Invalid child index"); state.children.splice(index, 0, ...children([value])); return change(); },
-        remove(value) { const index = typeof value === "number" ? value : state.children.indexOf(value); if (index < 0 || index >= state.children.length) throw error("Child not found"); state.children.splice(index, 1); return change(); },
-        replace(value) { state.children = children([value]); return change(); },
-        clear() { state.children = []; return change(); },
-        slot(name, child) { props.slots = { ...props.slots, [name]: child }; return change(); },
+        append(value) { state.children.push(...adopt(node, children([value]))); return change(); },
+        insert(index, value) { if (!Number.isInteger(index) || index < 0 || index > state.children.length) throw error("Invalid child index"); state.children.splice(index, 0, ...adopt(node, children([value]))); return change(); },
+        remove(value) { const index = typeof value === "number" ? value : state.children.indexOf(value); if (index < 0 || index >= state.children.length) throw error("Child not found"); release(state.children.splice(index, 1)); return change(); },
+        replace(value) { release(state.children); state.children = adopt(node, children([value])); return change(); },
+        clear() { release(state.children); state.children = []; return change(); },
+        slot(name, child) { props.slots = { ...props.slots, [name]: child }; adopt(node, [child]); return change(); },
         on(name, callback) { if (typeof callback !== "function") throw error("Callback must be a function"); const event = name.replace(/^on([A-Z])/, (_, c) => c.toLowerCase()); state.listeners.set(event, [...state.listeners.get(event) || [], callback]); return change(); },
         off(name, callback) { const event = name.replace(/^on([A-Z])/, (_, c) => c.toLowerCase()); state.listeners.set(event, callback ? (state.listeners.get(event) || []).filter(fn => fn !== callback) : []); return change(); },
         focus: () => command("focus"), blur: () => command("blur"),
@@ -861,6 +1748,17 @@
         edit: value => command("edit", { ...value, editSeq: state.editSeq }),
         toString: () => "[Compose " + type + "]"
       };
+      // Rhino ComposeNode's own read-only members and the shortcut accessors (a write goes through set, Q104 / Q106).
+      Object.defineProperties(node, {
+        type: { get: () => type, enumerable: true },
+        key: { get: () => props.key === undefined ? null : props.key, enumerable: true },
+        nodeId: { get: () => state.nodeId, enumerable: true },
+        // Not enumerable: parent / children link the tree both ways (JSON.stringify of a node stays acyclic).
+        parent: { get: () => state.parent },
+        children: { get: () => Object.freeze(state.children.slice()) }
+      });
+      for (const name of shortcutProps) Object.defineProperty(node, name, { get: () => props[name], set: value => { node.set({ [name]: value }); } });
+      adopt(node, state.children);
       return Object.freeze(node);
     }
     function modifier(operations = []) {
@@ -1014,6 +1912,8 @@
           getY: async () => (await call("compose", "window", [session.id, {}])).y,
           getWidth: async () => (await call("compose", "window", [session.id, {}])).width,
           getHeight: async () => (await call("compose", "window", [session.id, {}])).height,
+          // The window has no adjustment frame (Rhino's raw windows): disabling it is a no-op, enabling it is refused.
+          setAdjustEnabled: async enabled => { if (enabled) throw error("Compose floating windows of the runtimes have no adjustment controls (as Rhino raw windows)"); },
         } : {}),
         post(fn, delay) { const timer = post(() => { session.timers.delete(timer); if (!session.closed) fn(); }, delay); session.timers.add(timer); },
         on(name, fn) { if (typeof fn !== "function") throw error("Listener must be a function"); session.listeners.set(name, [...session.listeners.get(name) || [], fn]); return handle; },
@@ -1041,7 +1941,7 @@
       } catch (failure) { if (session.id) await call("compose", "close", [session.id]).catch(() => {}); finish(); throw failure; }
     }
     const api = (root, options) => mount(root, options);
-    Object.assign(api, { createElement, modifier, state, ref: () => ({ current: null }), batch, memo, post,
+    Object.assign(api, { createElement, modifier, state, ref: () => ({ current: null }), batch, memo, post, ComposeError,
       mount, attach: (container, root, options) => mount(root, options, "attach", container), dialog: (root, options) => mount(root, options, "dialog"), floaty: (root, options) => mount(root, options, "floaty"),
       isAvailable: () => call("compose", "isAvailable", []), version: () => call("compose", "version", []),
       theme(value) { if (arguments.length) defaultTheme = value; return defaultTheme; }
