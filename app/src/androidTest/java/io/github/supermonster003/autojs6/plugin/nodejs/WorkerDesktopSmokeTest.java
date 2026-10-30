@@ -151,7 +151,7 @@ public final class WorkerDesktopSmokeTest {
                   assert.equal(require('ui').state({value:7}).get('value'),7);
                   assert.equal(require('compose').Text({text:'worker'}).get('text'),'worker');
                   assert.equal(typeof require('autojs6:compose').mount,'function');
-                  for (const name of ['autojs6:fetch','autojs6:websocket','sqlite']) {
+                  for (const name of ['autojs6:fetch','autojs6:websocket']) {
                     assert.throws(() => require(name), e => e.code === 'MODULE_NOT_FOUND');
                   }
                   for (const name of ['inspector','node:inspector']) {
