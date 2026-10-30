@@ -253,7 +253,12 @@ worker.on('message', value => {
     p34Emit(P34_RUN, value.after ? 1 : 3, value.after ? {ok: 'after'} : value);
     p34Emit(P34_RUN, -1, {done: 1});
 });
-worker.on('error', e => { p34Emit(P34_RUN, 3, {error: String(e && e.stack || e)}); p34Emit(P34_RUN, -1, {done: 1}); });
+worker.on('error', e => {
+    // The Worker's end when the wait ends the execution.
+    if (String(e && e.message).includes('during process.exit')) return;
+    p34Emit(P34_RUN, 3, {error: String(e && e.stack || e)});
+    p34Emit(P34_RUN, -1, {done: 1});
+});
 """
 
 

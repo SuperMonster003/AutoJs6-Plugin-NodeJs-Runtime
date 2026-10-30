@@ -27296,7 +27296,12 @@ std::string buildEmbeddedScriptExecutionSource(
       for (;;) {
         if (await invoke("accessibility", "isEnabled", [], A11Y, 5000, options) === true) return;
         if (limit >= 0 && Date.now() - start >= limit) {
-          await host.system().exit();
+          // The exit has happened by the time its signal is thrown: a script's catch must not see it.
+          try {
+            await host.system().exit();
+          } catch (error) {
+            if (!error || error.autojs6ProcessExit !== true) throw error;
+          }
           return new Promise(() => {});
         }
         await delay(200, signal);
