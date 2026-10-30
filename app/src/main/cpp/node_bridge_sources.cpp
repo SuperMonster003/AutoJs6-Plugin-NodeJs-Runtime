@@ -2938,6 +2938,7 @@ std::string buildEmbeddedScriptExecutionSource(
   function __autojs6_pending_timer_count(kind) {
     return __autojs6_timer_bucket(kind).length;
   }
+  let __autojs6_clear_pending_timers = function() {};
   function __autojs6_install_timer_diagnostics() {
     const nativeSetTimeout = typeof globalThis.setTimeout === "function" ? globalThis.setTimeout : null;
     const nativeClearTimeout = typeof globalThis.clearTimeout === "function" ? globalThis.clearTimeout : null;
@@ -2992,6 +2993,12 @@ std::string buildEmbeddedScriptExecutionSource(
         return nativeClearImmediate.apply(this, arguments);
       });
     }
+    // process.exit ends the execution: what is still armed must not run while the event loop drains.
+    __autojs6_clear_pending_timers = function() {
+      for (const [kind, clear] of [["timeout", nativeClearTimeout], ["interval", nativeClearInterval], ["immediate", nativeClearImmediate]]) {
+        if (typeof clear === "function") __autojs6_timer_bucket(kind).splice(0).forEach(function(handle) { clear(handle); });
+      }
+    };
   }
   // M23.2: Node's own builtin inventory (module.builtinModules) is the only list of builtins.
   // A request can still gate worker_threads, child_process, inspector and the raw network
@@ -41028,6 +41035,7 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_complete_script_execution_timing("process_exit");
     const normalizedExitCode = Number.isFinite(Number(exitCode)) ? Math.trunc(Number(exitCode)) : 0;
     const succeeded = normalizedExitCode === 0;
+    __autojs6_clear_pending_timers();
     __autojs6_terminate_all_worker_threads("process.exit");
     __autojs6_destroy_all_zlib_streams("process.exit");
     __autojs6_flush_compile_cache("process.exit");

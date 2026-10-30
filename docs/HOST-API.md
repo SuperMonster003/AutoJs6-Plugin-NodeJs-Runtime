@@ -24,7 +24,7 @@ M23.3 (2026-10-08) 起, 模块加载由 Node 自身的 CommonJS / ESM loader 承
 
 `os` 自 M23.2 起为原生模块 (`require("os") === process.getBuiltinModule("os")`): 运行时在引导时把执行环境变量 `HOME` / `TMPDIR` 设为工作目录 (请求提供的 env 优先), `os.homedir()` 经 libuv 读取 `HOME`; `os.tmpdir()` 在 Node 中经 `safeGetenv` 读取, 而 Android 应用进程带 AT_SECURE 标志, Node 会拒绝读取并回答不存在的 `/tmp`, 因此运行时在检测到这种情况时把 Node 自己模块对象上的 `tmpdir` 绑定为 `TMPDIR` (不是 Proxy, 模块身份不变); `os.userInfo()` 返回真实的 Android 应用用户。`process` 仅保留 `exit` 的生命周期映射 (槽进程跨执行复用), `dlopen` / `abort` / `kill` / `umask` / `binding` / `_linkedBinding` / `report` / `features` 及 POSIX 身份调用均为 Node 原生 (Android 决定它们能做什么; `process.abort` 会结束当前槽进程并走 M12.5 崩溃报告)。`fs` / `fs/promises` 自 M23.1 (2026-10-07) 起直接返回 Node 原生模块 (`require("fs") === process.getBuiltinModule("fs")`): 没有包装层, 没有 `/proc`、`/sys`、`/dev` 边界, 异步 API 经 libuv 线程池执行而非在 `setImmediate` 中同步完成; 执行开始时以原生 `process.chdir` 进入工作目录, `process.cwd()` / `process.chdir()` 为原生行为; `url.pathToFileURL` / `fileURLToPath` 均为原生。`process`、`module`、子进程、worker、网络和 inspector 的请求级策略见对应章节。
 
-成功结果在 Node 事件循环完成、触发最终 `exit` 时生成, 因此原生异步工作及 `beforeExit` 中追加的任务均可完成, 最终 stdout/stderr 与 `process.exitCode` 会正确回传。
+成功结果在 Node 事件循环完成、触发最终 `exit` 时生成, 因此原生异步工作及 `beforeExit` 中追加的任务均可完成, 最终 stdout/stderr 与 `process.exitCode` 会正确回传。`process.exit()` 则结束执行: 尚未触发的定时器不再运行, Worker 被终止; 打开的 socket 等其他句柄要到关闭后事件循环才结束。
 
 文件流、gzip/deflate/Brotli 压缩流和基础 VM 脚本/上下文能力已正式化; 显式启用的 Inspector 在 Debug/Release 的 localhost 范围内均可用。可运行项目见 `sample/nodejs/streams-compression` 和 `sample/nodejs/vm-context`。这里的 stable 表示插件对文档范围内能力的支持, 不改变 Node 上游 API 稳定性; VM Modules 仍属于上游实验 API。
 
