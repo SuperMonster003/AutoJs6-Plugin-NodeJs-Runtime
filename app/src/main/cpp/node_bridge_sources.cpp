@@ -5415,7 +5415,6 @@ std::string buildEmbeddedScriptExecutionSource(
     if (
       required === "shell.root" ||
       required === "shell.shizuku" ||
-      required === "plugin_tools.user_granted" ||
       required === "notifications.settings" ||
       required === "device.power" ||
       required === "events.notification" ||
@@ -8832,7 +8831,7 @@ std::string buildEmbeddedScriptExecutionSource(
     if (createNotifications && methods.notifications) modules.set("notifications",createNotifications(bridgeCall,undefined,undefined,()=>{
       if (!modules.has("java")) throw Object.assign(new Error("Java interop is unavailable in this Worker."), { code: "ERR_AUTOJS6_JAVA_INTEROP_DISABLED" });
       return modules.get("java");
-    }));
+    },()=>constants.engineRecord||{}));
     // api-coverage P3.1b: the system family in Workers. exit / stop end the main thread's execution; isStopped reports
     // this Worker's own exit. engines forwards to the main thread's facade, myEngine is the main execution's snapshot.
     const forwardTo = (name, method) => (...args) => {
@@ -8858,12 +8857,12 @@ std::string buildEmbeddedScriptExecutionSource(
       let stopped = false;
       const system = createSystem(bridgeCall, { engine: constants.engineRecord || {}, device: constants.device || {}, EventEmitter: SensorEmitter,
         jsox: () => modules.get("jsox"), shell: () => modules.get("shell"), shizuku: () => modules.get("shizuku"),
-        userGrantedTools: () => constants.pluginToolsUserGranted === true,
         lifecycle: { isStopped: () => stopped, exit(error) {
           stopped = true;
           return forwardTo("system", "exit")(error === undefined ? undefined : { name: error && error.name, message: error && error.message !== undefined ? String(error.message) : String(error), stack: error && error.stack });
         } } });
       for (const name of ["autojs", "installer", "memory", "settings", "sysprops", "power_manager", "system"]) if (methods[name]) modules.set(name, system[name]);
+      if (methods.system) system.installGlobals(globalThis);
       if (methods.plugins) modules.set("plugins", Object.freeze({ extend: system.plugins.extend, extendAll: system.plugins.extendAll,
         extendAllBut: system.plugins.extendAllBut, tools: system.plugins.tools }));
     }
@@ -9322,7 +9321,7 @@ std::string buildEmbeddedScriptExecutionSource(
             engines: Object.keys(__autojs6_limited_engines())
           },
           hostModuleConstants: {
-            appInfo:__autojs6_host_app_info(), engineRecord: { ...__autojs6_host_app_info(), ...__autojs6_engine_record() }, engineInfo: __autojs6_current_engine_info(), pluginToolsUserGranted: __autojs6_bridge_missing_capabilities(["plugin_tools.user_granted"]).length === 0, appMissing:__autojs6_bridge_missing_capabilities(["app.launch","app.settings","app.activity","app.query","shell","shell.root","shell.shizuku"]),
+            appInfo:__autojs6_host_app_info(), engineRecord: { ...__autojs6_host_app_info(), ...__autojs6_engine_record() }, engineInfo: __autojs6_current_engine_info(), appMissing:__autojs6_bridge_missing_capabilities(["app.launch","app.settings","app.activity","app.query","shell","shell.root","shell.shizuku"]),
             librariesDir: __autojs6_internal_request_env_value("AUTOJS6_NODE_JS_LIBRARIES_DIR"),
             librariesError: __autojs6_internal_request_env_value("AUTOJS6_NODE_JS_LIBRARIES_ERROR"), axiosPolicy: __autojs6_fetch_policy_snapshot(),
             hostAppDirs: __autojs6_host_app_dirs(), sdcardPath: __autojs6_sdcard_path(),
@@ -10106,7 +10105,7 @@ std::string buildEmbeddedScriptExecutionSource(
     });
     return api;
   }
-  function __autojs6_create_notifications(call, createError, scope="notifications-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2), java) {
+  function __autojs6_create_notifications(call, createError, scope="notifications-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2), java, engine) {
     const error=message=>createError?createError(message,"ERR_AUTOJS6_BRIDGE_INVALID_REQUEST","notifications"):Object.assign(new TypeError(message),{code:"ERR_AUTOJS6_BRIDGE_INVALID_REQUEST"});
     const options=value=>{if(value===undefined)return {};if(!value||typeof value!=="object"||Array.isArray(value))throw error("Notification options must be an object.");if(value.signal!==undefined&&(typeof value.signal?.addEventListener!=="function"||typeof value.signal?.removeEventListener!=="function"))throw error("signal must be an AbortSignal.");return value;};
     const id=value=>{const n=Number(value);if(!Number.isInteger(n)||n<1||n>2147483647)throw error("Notification id must be an integer in 1..2147483647.");return n;};
@@ -10143,7 +10142,11 @@ std::string buildEmbeddedScriptExecutionSource(
         return notificationId;
       }finally{for(const handle of handles)if(handle&&typeof handle.__autojs6JavaHandle==="string")j.release(handle).catch(()=>{});}
     }
-    const channelId=(fn,value)=>{if(value===undefined||value===null)return "script_channel";if(typeof value!=="string"&&typeof value!=="number")throw error("notice.channel."+fn+": channelId must be string | number.");return String(value);};
+    // Rhino's default channel id (Q135 (b)): preset defaultChannelId, else the script's full name (source.fullName), or
+    // "script_channel" when useScriptNameAsDefaultChannelId is false or the name is unknown.
+    function scriptFullName(){const record=engine?engine()||{}:{};const base=String(record.sourcePath||record.sourceName||"").split("/").pop();return base===""?"":/[.][^.]+$/.test(base)?base:base+".js";}
+    const defaultChannelId=()=>preset.useScriptNameAsDefaultChannelId===false?"script_channel":preset.defaultChannelId!==undefined?preset.defaultChannelId:scriptFullName()||"script_channel";
+    const channelId=(fn,value)=>{if(value===undefined||value===null)return defaultChannelId();if(typeof value!=="string"&&typeof value!=="number")throw error("notice.channel."+fn+": channelId must be string | number.");return String(value);};
     function channelArgs(fn,first,second,idKey){
       if(first&&typeof first==="object"&&!Array.isArray(first)){
         if(second!==undefined&&second!==null)throw error("notice.channel."+fn+": no overload matches (options, options).");
@@ -21749,7 +21752,7 @@ std::string buildEmbeddedScriptExecutionSource(
       const facade = __autojs6_rhino_compat_facade();
       const overwrite = input.overwrite === true;
       __autojs6_rhino_compat_basic_global_names.forEach(function(name) {
-        if (!overwrite && Object.prototype.hasOwnProperty.call(globalThis, name) && globalThis[name] !== facade[name]) {
+        if (!overwrite && Object.prototype.hasOwnProperty.call(globalThis, name) && globalThis[name] !== facade[name] && !__autojs6_system_global_names.includes(name)) {
           warnings.push("global " + name + " already exists; pass overwrite: true to replace it.");
           return;
         }
@@ -24832,7 +24835,20 @@ std::string buildEmbeddedScriptExecutionSource(
     const autojsCall = (method, args, options, control) => invoke("autojs", method, args, control ? ["autojs", "autojs.control"] : ["autojs"], options);
     const screen = options => autojsCall("screen", [], options);
     const ROOT_MODES = "RootMode | 1 | 0 | -1 | true | false | 'root' | 'non-root' | 'auto'";
+    // Rhino's RootUtils.RootMode (Q135 (b)): key and description (English, as the host's), name() / ordinal() / toString()
+    // of the enum; one frozen object per mode.
+    const ROOT_MODE_VALUES = Object.freeze(Object.fromEntries([
+      ["FORCE_ROOT", "key_$_root_mode_force_root", "Force set root mode"],
+      ["FORCE_NON_ROOT", "key_$_root_mode_force_non_root", "Force set non-root mode"],
+      ["AUTO_DETECT", "key_$_root_mode_auto_detect", "Auto detect root access"]
+    ].map(([name, key, description], index) => [name, Object.freeze({ key, description, name: () => name, ordinal: () => index,
+      toString: () => "RootMode{key=" + key + ", description='" + description + "'}" })])));
     function rootMode(value) {
+      if (value && typeof value === "object" && typeof value.key === "string") {
+        const name = Object.keys(ROOT_MODE_VALUES).find(item => ROOT_MODE_VALUES[item].key === value.key);
+        if (name) return name;
+        throw outOfRange("autojs.setRootMode", "rootMode must be " + ROOT_MODES + ", got RootMode with key \"" + value.key + "\"");
+      }
       if (typeof value === "number") {
         if (value === 1) return "FORCE_ROOT";
         if (value === 0) return "FORCE_NON_ROOT";
@@ -24886,7 +24902,10 @@ std::string buildEmbeddedScriptExecutionSource(
     const autojs = {
       versionCode, versionName, versionDate, name: text(engine.appName || "AutoJs6"), packageName: text(engine.packageName), version,
       isRootAvailable: async options => await autojsCall("isRootAvailable", [], options) === true,
-      getRootMode: async options => String(await autojsCall("getRootMode", [], options)),
+      async getRootMode(options) {
+        const name = String(await autojsCall("getRootMode", [], options));
+        return ROOT_MODE_VALUES[name] || name;
+      },
       async setRootMode(mode, isWriteIntoPreference, options) {
         const write = typeof isWriteIntoPreference === "boolean" ? isWriteIntoPreference
           : typeof isWriteIntoPreference === "string" && isWriteIntoPreference.trim().toLowerCase() === "write_into_pref";
@@ -25186,9 +25205,10 @@ std::string buildEmbeddedScriptExecutionSource(
     const BUILT_INS = ["Mathx", "Arrayx", "Numberx"];
     const builtInName = name => { const s = String(name); const base = s.endsWith("x") ? s.slice(0, -1) : s; return base.charAt(0).toUpperCase() + base.slice(1) + "x"; };
     let invocation = 0;
-    // The host lists and runs the tools of USER_GRANTED providers only for requests that carry plugin_tools.user_granted.
+    // As Rhino, the tools of USER_GRANTED providers are listed and run too (Q135 (b)): the host serves them to requests that
+    // carry plugin_tools.user_granted, which plugin_tools implies.
     const toolsCall = (method, args, options, timeoutMs = 60000) => invoke("plugin_tools", method, args,
-      host.userGrantedTools && host.userGrantedTools() ? ["plugin_tools", "plugin_tools.user_granted"] : ["plugin_tools"], options, timeoutMs);
+      ["plugin_tools", "plugin_tools.user_granted"], options, timeoutMs);
     async function callTool(name, args, options) {
       const value = options && typeof options === "object" ? options : {};
       const invocationId = value.invocationId || "node-" + Date.now().toString(36) + "-" + (++invocation);
@@ -25221,9 +25241,23 @@ std::string buildEmbeddedScriptExecutionSource(
       })
     };
 
+    // Rhino's global system functions and R on a global object (Q135 (b)), as accessors over these members; assigning one
+    // replaces it with a plain value. Names the target already has are left alone.
+    function installGlobals(target) {
+      const names = [...Object.keys(system), "R"].filter(name => !Object.prototype.hasOwnProperty.call(target, name));
+      for (const name of names) {
+        Object.defineProperty(target, name, {
+          configurable: true, enumerable: false,
+          get: name === "R" ? () => autojs.R : () => system[name],
+          set(value) { Object.defineProperty(target, name, { value, writable: true, configurable: true, enumerable: false }); }
+        });
+      }
+      return names;
+    }
+
     return {
       autojs: Object.freeze(autojs), installer: Object.freeze(installer), memory: Object.freeze(memory), settings: Object.freeze(settings),
-      sysprops: Object.freeze(sysprops), power_manager: Object.freeze(power_manager), system: Object.freeze(system), plugins, scale
+      sysprops: Object.freeze(sysprops), power_manager: Object.freeze(power_manager), system: Object.freeze(system), plugins, scale, installGlobals
     };
   }
   function __autojs6_create_app(__autojs6_call_autojs, __autojs6_host_app_info, __autojs6_bridge_error, __autojs6_bridge_signal_from_options, __autojs6_limited_android, __autojs6_app_shell, __autojs6_app_missing_capabilities, __autojs6_app_autojs) {
@@ -26293,6 +26327,11 @@ std::string buildEmbeddedScriptExecutionSource(
   // printed first and sets exit code 1, as Rhino's exit(e) reports it); isStopped also turns true when the host asks
   // the execution to stop (the lifecycle stop handler, registered on first use).
   let __autojs6_limited_system_cache = null;
+  // Q135 (b): the names installed on globalThis; autojs6:compat install({globals: true}) may replace them.
+  let __autojs6_system_global_names = [];
+  function __autojs6_install_system_globals() {
+    try { __autojs6_system_global_names = __autojs6_limited_system().installGlobals(globalThis); } catch (_) {}
+  }
   let __autojs6_system_stopped = false;
   let __autojs6_system_stop_watch = false;
   function __autojs6_limited_system() {
@@ -26303,7 +26342,6 @@ std::string buildEmbeddedScriptExecutionSource(
       jsox: () => __autojs6_js_tools().jsox,
       shell: () => __autojs6_limited_shell(),
       shizuku: () => __autojs6_limited_shizuku(),
-      userGrantedTools: () => __autojs6_bridge_missing_capabilities(["plugin_tools.user_granted"]).length === 0,
       lifecycle: {
         isStopped() {
           if (!__autojs6_system_stop_watch) {
@@ -31281,7 +31319,7 @@ std::string buildEmbeddedScriptExecutionSource(
     return moduleName === "sqlite" ? __autojs6_limited_sqlite_cache : __autojs6_limited_database_cache;
   }
   function __autojs6_limited_notifications() {
-    return __autojs6_limited_notifications_cache ||= __autojs6_create_notifications(__autojs6_call_autojs,__autojs6_bridge_error,undefined,()=>__autojs6_limited_java());
+    return __autojs6_limited_notifications_cache ||= __autojs6_create_notifications(__autojs6_call_autojs,__autojs6_bridge_error,undefined,()=>__autojs6_limited_java(),()=>__autojs6_engine_record());
   }
   // One implementation for main threads, Workers and the Bun SDK.
   function __autojs6_create_sensors(call, EventEmitter, attachEvents, createError) {
@@ -38373,6 +38411,7 @@ std::string buildEmbeddedScriptExecutionSource(
     __autojs6_install_native_loader();
     __autojs6_pin_entry_source(__autojs6_main_filename);
     __autojs6_install_autojs_global();
+    __autojs6_install_system_globals();
     __autojs6_install_error_handlers();
     __autojs6_start_script_execution_timing();
     const __autojs6_user_result = __autojs6_run_entry_as_esm

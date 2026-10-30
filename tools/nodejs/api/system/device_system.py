@@ -73,7 +73,7 @@ async function p31bRun(env, emit) {
 }
 """
 CAPABILITIES = ["autojs", "autojs.control", "settings", "files.write", "sysprops", "memory", "installer", "device", "device.power", "notifications",
-                "engines", "plugin_tools", "plugin_tools.user_granted", "clipboard", "accessibility", "app.query", "shell", "shell.root", "shell.shizuku"]
+                "engines", "plugin_tools", "clipboard", "accessibility", "app.query", "shell", "shell.root", "shell.shizuku"]
 MODULES = [("autojs", "autojs"), ("installer", "installer"), ("memory", "memory"), ("settings", "settings"), ("sysprops", "sysprops"),
            ("powerManager", "power_manager"), ("system", "system"), ("notice", "notifications"), ("engines", "engines"),
            ("plugins", "plugins"), ("app", "app"), ("dialogs", "dialogs")]

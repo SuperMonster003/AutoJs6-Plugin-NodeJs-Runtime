@@ -45,7 +45,15 @@ test('autojs constants, R, root mode, language and script names follow Rhino',as
  assert.equal(await autojs.R.strings.app_name,42);
  assert.deepEqual(last().args,['string','app_name']);
  assert.equal(autojs.R.then,undefined);
- assert.equal(await autojs.getRootMode(),'AUTO_DETECT');
+ // Rhino's RootUtils.RootMode: one frozen object per mode, accepted by setRootMode (Q135 (b)).
+ const mode=await autojs.getRootMode();
+ assert.deepEqual([mode.key,mode.description,mode.name(),mode.ordinal(),String(mode)],
+  ['key_$_root_mode_auto_detect','Auto detect root access','AUTO_DETECT',2,"RootMode{key=key_$_root_mode_auto_detect, description='Auto detect root access'}"]);
+ assert.equal(await autojs.getRootMode(),mode);
+ assert(Object.isFrozen(mode));
+ await autojs.setRootMode(mode);
+ assert.deepEqual(last().args,['AUTO_DETECT',false]);
+ await assert.rejects(autojs.setRootMode({key:'key_$_root_mode_su'}),RangeError);
  for(const [mode,name] of [[1,'FORCE_ROOT'],[0,'FORCE_NON_ROOT'],[-1,'AUTO_DETECT'],[true,'FORCE_ROOT'],[false,'FORCE_NON_ROOT'],[' Non-Root ','FORCE_NON_ROOT'],['auto','AUTO_DETECT']]){
   await autojs.setRootMode(mode);
   assert.deepEqual(last().args,[name,false]);
@@ -173,7 +181,7 @@ test('plugins.extend* use the shared jsox, plugins.tools the host plugin tools',
  assert.deepEqual(await system.plugins.tools.list(),[{name:'a'}]);
  assert.deepEqual(await system.plugins.tools.providers(),[{packageName:'p'}]);
  assert.deepEqual(await system.plugins.tools.call('a',{x:1},{timeoutMs:1000}),{ok:true});
- assert.deepEqual([last().args[0],last().args[1],last().args[2].timeoutMs,last().options.permissions],['a',{x:1},1000,['plugin_tools']]);
+ assert.deepEqual([last().args[0],last().args[1],last().args[2].timeoutMs,last().options.permissions],['a',{x:1},1000,['plugin_tools','plugin_tools.user_granted']]);
 });
 
 test('notice config, switches, builder and channels',async()=>{
@@ -201,6 +209,41 @@ test('notice config, switches, builder and channels',async()=>{
  assert.deepEqual(calls.at(-1),['static','org.autojs.autojs.util.NotificationUtils','getSimpleBuilder']);
  assert.equal(await notifications.notify(builder,{id:5}),5);
  assert.deepEqual(calls.filter(c=>c[0]==='call').map(c=>c[2]),['getSystemService','build','notify']);
+});
+
+test('notice.channel defaults to the script full name as Rhino (Q135 (b))',async()=>{
+ const ids=[];
+ const channels=engine=>createNotifications(async(module,method,args)=>{ids.push(args[0]);return false;},undefined,'scope',undefined,engine);
+ for(const [record,expected] of [[{sourcePath:'/sdcard/Scripts/demo.js',sourceName:'x'},'demo.js'],[{sourceName:'demo'},'demo.js'],[{sourceName:'demo.mjs'},'demo.mjs'],[{},'script_channel']]){
+  await channels(()=>record).channel.contains();
+  assert.equal(ids.at(-1),expected);
+ }
+ await channels(undefined).channel.get();
+ assert.equal(ids.at(-1),'script_channel');
+ const configured=channels(()=>({sourceName:'demo.js'}));
+ configured.config({defaultChannelId:'ch'});
+ await configured.channel.remove();
+ assert.equal(ids.at(-1),'ch');
+ configured.config({useScriptNameAsDefaultChannelId:false});
+ await configured.channel.contains(null);
+ assert.equal(ids.at(-1),'script_channel');
+ assert.equal(await configured.channel.contains('given')===false&&ids.at(-1),'given');
+});
+
+test('installGlobals puts the global system functions and R on a global object (Q135 (b))',async()=>{
+ const {system,calls}=fake({'autojs.resourceId':()=>7});
+ const target={};
+ const names=system.installGlobals(target);
+ assert.deepEqual(names,[...Object.keys(system.system),'R']);
+ assert.deepEqual(Object.keys(target),[]);
+ assert.deepEqual([typeof target.currentPackage,target.WIDTH,target.HEIGHT,target.isAutoJs6,target.exit===system.system.exit],['function',1080,2400,true,true]);
+ assert.equal(await target.R.string.app_name,7);
+ assert.deepEqual(calls.at(-1).args,['string','app_name']);
+ target.exit=1;
+ assert.deepEqual([target.exit,Object.getOwnPropertyDescriptor(target,'exit').writable,typeof target.stop],[1,true,'function']);
+ const existing={stop:5};
+ assert(!system.installGlobals(existing).includes('stop'));
+ assert.equal(existing.stop,5);
 });
 
 test('dialogs.build takes the route from the properties and emits Rhino events',async()=>{
@@ -242,11 +285,12 @@ test('CJS, ESM and nested Workers get the system modules and engines',async()=>{
  const calls=[];
  const Worker=createWorker(require,()=>config,async(module,method,args)=>{calls.push([module,method,args]);return method==='isRootAvailable'?true:method==='all'?[{id:'x'}]:null;});
  const body=`(async()=>{parentPort.postMessage({code:autojs.versionCode,atLeast:autojs.version.isAtLeast('6.8'),root:await autojs.isRootAvailable(),width:system.WIDTH,
-  engine:engines.myEngine().id,all:(await engines.all()).length,members:[typeof system.currentPackage,typeof installer.install,typeof installer.InstallerError]});})();`;
+  engine:engines.myEngine().id,all:(await engines.all()).length,members:[typeof system.currentPackage,typeof installer.install,typeof installer.InstallerError],
+  globals:[typeof currentPackage,WIDTH,isAutoJs6,typeof R,exit===system.exit]});})();`;
  const cjs=`const {parentPort}=require('node:worker_threads'),autojs=require('autojs6:autojs'),system=require('autojs6:system'),installer=require('autojs6:installer'),engines=require('engines');${body}`;
  const esm=`import {parentPort} from 'node:worker_threads';import autojs from 'autojs6:autojs';import system from 'autojs6:system';import installer from 'autojs6:installer';import engines from 'autojs6:engines';${body}`;
  const run=(code,opts)=>new Promise((resolve,reject)=>{const w=new Worker(code,{execArgv:[],...opts});w.on('message',async value=>{await w.terminate();resolve(value);});w.on('error',reject);});
- const expected={code:5935,atLeast:true,root:true,width:1080,engine:'e1',all:1,members:['function','function','function']};
+ const expected={code:5935,atLeast:true,root:true,width:1080,engine:'e1',all:1,members:['function','function','function'],globals:['function',1080,true,'object',true]};
  for(const [code,opts] of [[cjs,{eval:true}],[new URL('data:text/javascript,'+encodeURIComponent(esm)),{}],[`const {Worker,parentPort}=require('node:worker_threads');const w=new Worker(${JSON.stringify(cjs)},{eval:true});w.on('message',x=>parentPort.postMessage(x));`,{eval:true}]])
   assert.deepEqual(await run(code,opts),expected);
  assert(calls.some(c=>c[0]==='autojs'&&c[1]==='isRootAvailable'));

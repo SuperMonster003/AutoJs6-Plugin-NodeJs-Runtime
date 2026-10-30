@@ -17,10 +17,12 @@ var SYSTEM_CASES = [
         " autojs.version.isAtLeast('6.6.0'), autojs.version.isAtLeast(String(autojs.versionName) + '-alpha'), autojs.version.isLowerThan('6.8.0-rc1')]",
         "[autojs.version.isHigherThan('6.0.0'), autojs.version.isLowerThan('99.0.0'), autojs.version.isEqual(autojs.versionName)," +
         " autojs.version.isAtLeast('6.6.0'), autojs.version.isAtLeast(autojs.versionName + '-alpha'), autojs.version.isLowerThan('6.8.0-rc1')]"],
-    ["autojs.root", "[autojs.isRootAvailable(), String(autojs.getRootMode().name())]", "Promise.all([autojs.isRootAvailable(), autojs.getRootMode()])"],
-    // Node gives the RootMode name (Q135). The mode is set without writing the preference and restored.
+    // Rhino's RootMode object in both (Q135 (b)).
+    ["autojs.root", "(function () { var m = autojs.getRootMode(); return [autojs.isRootAvailable(), String(m.key), String(m.description), String(m), String(m.name()), m.ordinal()]; })()",
+        "(async () => { const m = await autojs.getRootMode(); return [await autojs.isRootAvailable(), m.key, m.description, String(m), m.name(), m.ordinal()]; })()"],
+    // The mode is set without writing the preference and restored (setRootMode takes the RootMode object).
     ["autojs.setRootMode", "(function () { var m = autojs.getRootMode(); autojs.setRootMode('non-root'); var r = String(autojs.getRootMode().name()); autojs.setRootMode(m); return [r, autojs.getRootMode() === m]; })()",
-        "(async () => { const m = await autojs.getRootMode(); await autojs.setRootMode('non-root'); const r = await autojs.getRootMode(); await autojs.setRootMode(m); return [r, await autojs.getRootMode() === m]; })()"],
+        "(async () => { const m = await autojs.getRootMode(); await autojs.setRootMode('non-root'); const r = (await autojs.getRootMode()).name(); await autojs.setRootMode(m); return [r, await autojs.getRootMode() === m]; })()"],
     ["autojs.setRootMode.bad", "autojs.setRootMode('p31b')", "autojs.setRootMode('p31b')"],
     ["autojs.permissions", "[autojs.canModifySystemSettings(), autojs.canWriteSecureSettings(), autojs.canDisplayOverOtherApps()]",
         "Promise.all([autojs.canModifySystemSettings(), autojs.canWriteSecureSettings(), autojs.canDisplayOverOtherApps()])"],
@@ -69,6 +71,9 @@ var SYSTEM_CASES = [
         " const g = await notice.channel.get('p31b_channel'); const r = await notice.channel.remove('p31b_channel');" +
         " return [id, c, g ? g.name : null, r, await notice.channel.contains('p31b_channel')]; })()"],
     ["notice.channel.getAll", "systemCount(notice.channel.getAll())", "notice.channel.getAll().then(systemCount)"],
+    // An omitted id is the script's file name in both (p31b_rhino_<run>.js / p31b_node_<form>_<run>.js; Q135 (b)).
+    ["notice.channel.default", "(function () { var id = String(notice.channel.create({name: 'P31B'})); var r = notice.channel.remove(id); return [id.indexOf('p31b_') === 0 && id.slice(-3) === '.js', r]; })()",
+        "(async () => { const id = await notice.channel.create({name: 'P31B'}); const r = await notice.channel.remove(id); return [id.indexOf('p31b_') === 0 && id.slice(-3) === '.js', r]; })()"],
 
     // engines (host view, Q131 (a)) and plugins
     ["engines.all", "engines.all().length >= 1", "engines.all().then(l => l.length >= 1)"],
@@ -93,6 +98,17 @@ var SYSTEM_CASES = [
     ["global.requiresAutojsVersion.high", "requiresAutojsVersion('99.0.0')", "system.requiresAutojsVersion('99.0.0')"],
     ["global.requiresAutojsVersion.low", "requiresAutojsVersion(100)", "system.requiresAutojsVersion(100)"],
     ["global.metrics", "[WIDTH, HEIGHT, isAutoJs6]", "[system.WIDTH, system.HEIGHT, system.isAutoJs6]"],
+    // The same members are globals in Node too (Q135 (b)): the same expressions in both.
+    ["global.names", "[typeof currentPackage, typeof currentActivity, typeof currentComponent, typeof exit, typeof stop, typeof isRunning, typeof isStopped," +
+        " typeof isShuttingDown, typeof notStopped, typeof requiresApi, typeof requiresAutojsVersion, typeof waitForActivity, typeof waitForPackage," +
+        " typeof setScreenMetrics, typeof getClip, typeof setClip, typeof R, typeof WIDTH, typeof HEIGHT, isAutoJs6]",
+        "[typeof currentPackage, typeof currentActivity, typeof currentComponent, typeof exit, typeof stop, typeof isRunning, typeof isStopped," +
+        " typeof isShuttingDown, typeof notStopped, typeof requiresApi, typeof requiresAutojsVersion, typeof waitForActivity, typeof waitForPackage," +
+        " typeof setScreenMetrics, typeof getClip, typeof setClip, typeof R, typeof WIDTH, typeof HEIGHT, isAutoJs6]"],
+    ["global.values", "[isStopped(), notStopped(), isRunning(), WIDTH > 0, HEIGHT > 0, requiresApi(24)]",
+        "[isStopped(), notStopped(), isRunning(), WIDTH > 0, HEIGHT > 0, requiresApi(24)]"],
+    ["global.currentPackage.global", "currentPackage()", "currentPackage()"],
+    ["global.R", "R.strings.app_name", "R.strings.app_name"],
     // Android 10+ lets only a focused app read the clipboard: Rhino borrows the focus of a floating window (with the overlay
     // permission), Node reads it directly and gets "" while AutoJs6 is in the background (Q135); only the type is compared.
     ["global.clip", null, "system.setClip('p31b-clip').then(() => system.getClip()).then(t => typeof t)", "string"]
