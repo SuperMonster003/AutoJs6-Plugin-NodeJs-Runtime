@@ -20219,7 +20219,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     // colors, files, zip, mime and the timing recorder (api-coverage P3.2b) are created on first use.
     const once = create => { let value; return () => value || (value = create()); };
-    const files = once(() => Object.assign(__autojs6_js_tools_files({ fs: host.fs, cwd: host.cwd, sdcardPath: host.sdcardPath, java: host.java,
+    const files = once(() => Object.assign(__autojs6_js_tools_files({ fs: host.fs, cwd: host.cwd, hostCwd: host.hostCwd, sdcardPath: host.sdcardPath, java: host.java,
       TextDecoder: globalThis.TextDecoder, filesDir: host.filesDir, cacheDir: host.cacheDir, dataDir: host.dataDir }),
       host.batchRename ? { batchRename: host.batchRename() } : {}));
     const zip = once(() => Object.freeze(__autojs6_js_tools_zip({ java: host.java, cwd: host.hostCwd || host.cwd })));

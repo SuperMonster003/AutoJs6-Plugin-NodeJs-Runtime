@@ -263,6 +263,10 @@ def phase_timeout(args):
     if base.HOST + "/" in enabled:
         print(f"the accessibility service of {base.HOST} is enabled: the timeout run needs it off")
         return 2
+    # With this permission auto.waitFor enables the service itself, so the wait never times out.
+    if "WRITE_SECURE_SETTINGS: granted=true" in base.adb(serial, "shell", "dumpsys", "package", base.HOST).stdout:
+        print(f"{base.HOST} holds WRITE_SECURE_SETTINGS: the timeout run needs a device where it does not")
+        return 2
     report, failed = {}, 0
     forms = [form for form in args.forms.split(",") if form in ("main", "worker")]
     for wait in ("auto.waitFor(1000)", "automator.waitForService(1000)"):
