@@ -84,6 +84,19 @@ declare module "media" {
       stop(options?: PlaybackControlOptions): Promise<PlaybackStatus>;
       seekTo(positionMs: number, options?: PlaybackControlOptions): Promise<PlaybackStatus>;
       getPlaybackStatus(options?: PlaybackControlOptions): Promise<PlaybackStatus>;
+      /** Rhino's media members (also in autojs6:compat media): the music player over play / pause / resume / stop / seekTo. */
+      playMusic(path: string, volume?: number, looping?: boolean, options?: AutoJs6Node.BridgeCallOptions): Promise<PlaybackSession>;
+      musicSeekTo(positionMs: number, options?: PlaybackControlOptions): Promise<void>;
+      isMusicPlaying(options?: PlaybackControlOptions): Promise<boolean>;
+      pauseMusic(options?: PlaybackControlOptions): Promise<void>;
+      resumeMusic(options?: PlaybackControlOptions): Promise<void>;
+      stopMusic(options?: PlaybackControlOptions): Promise<void>;
+      /** 0 without an active session. */
+      getMusicDuration(options?: PlaybackControlOptions): Promise<number>;
+      /** -1 without an active session. */
+      getMusicCurrentPosition(options?: PlaybackControlOptions): Promise<number>;
+      /** media_store.scanFile (media + media.library); resolves whether the host scanned the file. */
+      scanFile(path: string, options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;
     }
   }
 

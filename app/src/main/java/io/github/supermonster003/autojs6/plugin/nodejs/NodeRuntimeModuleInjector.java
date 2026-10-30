@@ -196,10 +196,8 @@ final class NodeRuntimeModuleInjector {
                 ? 1.0d
                 : metrics.density;
         try {
-            return new JSONObject()
+            JSONObject info = new JSONObject()
                     .put("sdkInt", Build.VERSION.SDK_INT)
-                    .put("width", metrics == null ? 0 : Math.max(0, metrics.widthPixels))
-                    .put("height", metrics == null ? 0 : Math.max(0, metrics.heightPixels))
                     .put("density", density)
                     .put("densityDpi", metrics == null ? 0 : metrics.densityDpi)
                     // util.spToPx / pxToSp of the JS tools convert linearly with it.
@@ -212,8 +210,10 @@ final class NodeRuntimeModuleInjector {
                     .put("bootloader", Build.BOOTLOADER)
                     .put("hardware", Build.HARDWARE)
                     .put("fingerprint", Build.FINGERPRINT)
-                    .put("buildId", Build.ID)
-                    .toString();
+                    .put("buildId", Build.ID);
+            // width / height (the whole display's short and long side), Rhino's other device fields and the sensors (api-coverage P3.1c).
+            NodeDeviceProfile.put(context, info, metrics);
+            return info.toString();
         } catch (Throwable ignored) {
             return null;
         }

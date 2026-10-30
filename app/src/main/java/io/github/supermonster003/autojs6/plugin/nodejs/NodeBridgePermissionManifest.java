@@ -57,6 +57,8 @@ public final class NodeBridgePermissionManifest {
     private static final String CLIPBOARD = "clipboard";
     private static final String DEVICE = "device";
     private static final String DEVICE_POWER = "device.power";
+    // api-coverage P3.1c (Q146 (a)): Rhino's device hardware identifiers (IMEI, serial, Android ID, MAC, shared device id); never implied by device.
+    private static final String DEVICE_IDENTIFIERS = "device.identifiers";
     private static final String SHELL = "shell";
     private static final String SHELL_ROOT = "shell.root";
     private static final String SHELL_SHIZUKU = "shell.shizuku";
@@ -159,6 +161,7 @@ public final class NodeBridgePermissionManifest {
             CLIPBOARD,
             DEVICE,
             DEVICE_POWER,
+            DEVICE_IDENTIFIERS,
             SHELL,
             SHELL_ROOT,
             SHELL_SHIZUKU,

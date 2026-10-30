@@ -1453,7 +1453,124 @@
       },
       {
         "module": "device",
+        "method": "cancelVibration",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "ensureReadPhoneStatePermission",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "getAndroidId",
+        "requiredCapabilities": [
+          "device",
+          "device.identifiers"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "getGatewayAddress",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "getIMEI",
+        "requiredCapabilities": [
+          "device",
+          "device.identifiers"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "getIpAddress",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "getIpv6Address",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "getMacAddress",
+        "requiredCapabilities": [
+          "device",
+          "device.identifiers"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "getOrientation",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "getRotation",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "getSerial",
+        "requiredCapabilities": [
+          "device",
+          "device.identifiers"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "getSharedDeviceId",
+        "requiredCapabilities": [
+          "device",
+          "device.identifiers"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "hasReadPhoneStatePermission",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
         "method": "info",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isActiveNetworkMetered",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isBackgroundStartGranted",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isConnectedOrConnecting",
         "requiredCapabilities": [
           "device"
         ]
@@ -1468,9 +1585,87 @@
       },
       {
         "module": "device",
+        "method": "isPointerLocationDisabled",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isPointerLocationEnabled",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isPowerSourceAC",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isPowerSourceDock",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isPowerSourceUSB",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isPowerSourceWireless",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isScreenLandscape",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isScreenOff",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
         "method": "isScreenOn",
         "requiredCapabilities": [
           "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isScreenPortrait",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "isWifiAvailable",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "keepAwake",
+        "requiredCapabilities": [
+          "device",
+          "device.power"
         ]
       },
       {
@@ -1500,6 +1695,29 @@
       {
         "module": "device",
         "method": "setBrightnessMode",
+        "requiredCapabilities": [
+          "device",
+          "device.power"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "setPointerLocation",
+        "requiredCapabilities": [
+          "device",
+          "device.power"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "summary",
+        "requiredCapabilities": [
+          "device"
+        ]
+      },
+      {
+        "module": "device",
+        "method": "togglePointerLocation",
         "requiredCapabilities": [
           "device",
           "device.power"
@@ -4205,6 +4423,11 @@
           "power-manager",
           "power_manager"
         ],
+        "androidPermissions": []
+      },
+      {
+        "id": "device.identifiers",
+        "aliases": [],
         "androidPermissions": []
       },
       {
