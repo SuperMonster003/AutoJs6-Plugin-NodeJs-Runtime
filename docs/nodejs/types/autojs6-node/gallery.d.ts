@@ -160,14 +160,12 @@ declare module "gallery" {
             reason: CloseReason;
         }
 
-        type SessionEmitter = import("events").EventEmitter;
-
         /**
          * The event emitter returned by {@link API.view}. The script keeps running while the
          * session is open; `close` is the terminal event.
          * @see https://docs.autojs6.com/#/galleryViewSessionType
          */
-        interface ViewSession extends SessionEmitter {
+        interface ViewSession {
             /** Absolute image paths in page order. */
             readonly paths: string[];
             readonly count: number;
@@ -198,6 +196,11 @@ declare module "gallery" {
             once(eventName: 'error', listener: (error: GalleryError) => void): this;
             once(eventName: 'close', listener: (event: CloseEvent) => void): this;
             once(eventName: string, listener: (...args: any[]) => void): this;
+
+            off(eventName: string, listener: (...args: any[]) => void): this;
+            removeListener(eventName: string, listener: (...args: any[]) => void): this;
+            removeAllListeners(eventName?: string): this;
+            listenerCount(eventName: string): number;
         }
   }
   const gallery: gallery.API;
