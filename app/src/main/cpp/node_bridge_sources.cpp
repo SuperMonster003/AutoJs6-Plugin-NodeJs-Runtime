@@ -27073,6 +27073,9 @@ std::string buildEmbeddedScriptExecutionSource(
       currentComponent: current("component", "currentComponent"),
       explain: rejecting(explain), dump: rejecting(dump)
     };
+    // Rhino's enable / disable are start / stop.
+    autoMembers.enable = autoMembers.start;
+    autoMembers.disable = autoMembers.stop;
     for (const [name, value] of Object.entries(autoMembers)) Object.defineProperty(auto, name, { value, enumerable: true });
     // Rhino's getters: a new Promise per read, left out of the ESM named exports.
     const getters = {

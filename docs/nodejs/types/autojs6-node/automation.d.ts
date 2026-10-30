@@ -172,6 +172,10 @@ declare module "autojs6:auto" {
       readonly stats: Promise<Stats>;
       start(options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;
       stop(options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;
+      /** start. */
+      enable(options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;
+      /** stop. */
+      disable(options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;
       launchSettings(options?: AutoJs6Node.BridgeCallOptions): Promise<void>;
       clearCache(options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;
       hasInstance(options?: AutoJs6Node.BridgeCallOptions): Promise<boolean>;

@@ -154,10 +154,12 @@ test('auto keeps Rhino mode, flags and window filter for its window queries',asy
  assert.deepEqual([stats.mode,stats.flags,stats.hasService],['fast',[],true]);
  assert.equal(await auto.start(),true);
  assert.deepEqual(last().options.permissions,['accessibility','accessibility.service']);
+ assert.equal(await auto.enable(),true);assert.equal(last().method,'start');
+ assert.equal(await auto.disable(),true);assert.deepEqual([last().method,last().options.permissions],['stop',['accessibility','accessibility.service']]);
  await auto();
  assert.equal(last().method,'ensureService');
  await auto('normal',true);
- assert.deepEqual(find('auto','stop').length+find('auto','start').length,3);
+ assert.deepEqual(find('auto','stop').length+find('auto','start').length,5);
  assert.equal(await auto.dump('json'),'tree');
  assert.deepEqual(find('accessibility','dump')[0].args,[{format:'json'}]);
  const explained=await auto.explain({text:'OK'});
