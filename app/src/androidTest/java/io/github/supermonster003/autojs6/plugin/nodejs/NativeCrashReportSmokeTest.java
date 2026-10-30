@@ -75,7 +75,7 @@ public final class NativeCrashReportSmokeTest {
             assertEquals(pid, crash.getLong("pid"));
             assertTrue(crash.getLong("heapLimitBytes") > 0);
             assertTrue(crash.getLong("heapUsedBytes") > 0);
-            assertTrue(crash.getString("nodejsVersion", "").startsWith("v24."));
+            assertTrue(crash.getString("nodejsVersion", "").startsWith("v26."));
             File file = new File(crash.getString("file", ""));
             assertEquals(executionId + ".json", file.getName());
             assertTrue(file.getAbsolutePath(), file.isFile());

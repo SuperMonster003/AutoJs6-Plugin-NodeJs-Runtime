@@ -175,7 +175,7 @@ bool ensureUnlocked(std::vector<std::string>& payload) {
             putPayload(payload, "process_runtime.initialize.symbol", initializeLookup.symbol);
             putPayload(payload, "process_runtime.shutdown.symbol", teardownLookup.symbol);
             if (!initializeLookup.found || initializeLookup.address == nullptr) {
-                poisonUnlocked("InitializeOncePerProcess Node 24 symbol is unavailable: " + initializeLookup.error);
+                poisonUnlocked("InitializeOncePerProcess symbol is unavailable: " + initializeLookup.error);
             } else if (!teardownLookup.found || teardownLookup.address == nullptr) {
                 poisonUnlocked("TearDownOncePerProcess symbol is unavailable: " + teardownLookup.error);
             } else {

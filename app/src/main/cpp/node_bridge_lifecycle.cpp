@@ -466,7 +466,7 @@ void runEmbeddedScriptNodeLifecycle(
     }
 
     if (!initializeLookup.found || initializeLookup.address == nullptr) {
-        const std::string detail = "InitializeOncePerProcess Node 24 symbol is missing: " + initializeLookup.error;
+        const std::string detail = "InitializeOncePerProcess symbol is missing: " + initializeLookup.error;
         putPayload(payload, "initialize.status", "failed");
         putPayload(payload, "initialize.detail", detail);
         putPayload(payload, "teardown.status", "skipped");

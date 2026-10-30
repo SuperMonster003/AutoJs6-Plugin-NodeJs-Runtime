@@ -124,7 +124,14 @@ extern const SymbolRequirement kEmbedderSymbols[] = {
         {"v8::String::NewFromUtf8(...)", {"_ZN2v86String11NewFromUtf8EPNS_7IsolateEPKcNS_13NewStringTypeEi", nullptr, nullptr}},
         {"v8::Object::Get(...)", {"_ZN2v86Object3GetENS_5LocalINS_7ContextEEENS1_INS_5ValueEEE", nullptr, nullptr}},
         {"v8::Value::ToString(...)", {"_ZNK2v85Value8ToStringENS_5LocalINS_7ContextEEE", nullptr, nullptr}},
-        {"v8::String::Utf8Value::Utf8Value(...)", {"_ZN2v86String9Utf8ValueC1EPNS_7IsolateENS_5LocalINS_5ValueEEENS0_12WriteOptionsE", nullptr, nullptr}},
+        {
+                "v8::String::Utf8Value::Utf8Value(...)",
+                {
+                        "_ZN2v86String9Utf8ValueC1EPNS_7IsolateENS_5LocalINS_5ValueEEENS0_12WriteOptionsE",
+                        "_ZN2v86String9Utf8ValueC1EPNS_7IsolateENS_5LocalINS_5ValueEEE",
+                        nullptr,
+                },
+        },
         {"v8::String::Utf8Value::~Utf8Value()", {"_ZN2v86String9Utf8ValueD1Ev", nullptr, nullptr}},
         {"uv_loop_init", {"uv_loop_init", nullptr, nullptr}},
         {"uv_run", {"uv_run", nullptr, nullptr}},
@@ -3747,7 +3754,7 @@ std::string buildEmbeddedScriptExecutionSource(
         status: "native_builtins_with_host_policies",
         defaultEnabled: true,
         targetProfiles: Object.freeze(["safe_default", "desktop_compat_opt_in"]),
-        conformanceSet: "node24_native_builtins",
+        conformanceSet: "node26_native_builtins",
         moduleStatus: Object.freeze({
           crypto: "native",
           stream: "native",

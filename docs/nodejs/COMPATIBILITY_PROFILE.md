@@ -6,7 +6,7 @@ capability catalog 1.6.0 and runtime-kit 1.6.0 are published. This checkout deve
 
 ## Runtime and routing
 
-The plugin supplies Node.js 24.21.0, V8 and libuv for arm64-v8a, armeabi-v7a and
+The plugin supplies Node.js 26.13.0, V8 and libuv for arm64-v8a, armeabi-v7a and
 x86_64, plus a universal APK. Full ICU locale data is included. AutoJs6 contains
 no embedded Node runtime. Node-marked scripts use this plugin; TypeScript first
 uses the host Compiler, including provider-v3 on-demand compilation. Raw

@@ -10,7 +10,7 @@ they are not a complete replacement for upstream Node type declarations.
 
 ## Execution and authority
 
-The runtime executes JavaScript using Node 24.21.0. The host Compiler converts
+The runtime executes JavaScript using Node 26.13.0. The host Compiler converts
 `.ts`, `.cts` and `.mts` projects into JavaScript; there is no runtime regex
 stripping fallback. TSX must be compiled before dispatch. Dynamic TypeScript
 modules require a host module-source provider supporting compilation (v3).
