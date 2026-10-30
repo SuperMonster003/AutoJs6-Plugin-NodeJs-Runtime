@@ -20150,12 +20150,6 @@ std::string buildEmbeddedScriptExecutionSource(
       define(colors, "createPaint", (options, control) => androidObjects().createPaint(options, control), false);
       define(colors, "getThemeColor", options => androidObjects().getThemeColor(options), false);
 
-      const Color = named(function Color(...args) {
-        return buildColor(new.target ? "new Color" : "Color", args);
-      }, "Color", 0);
-      Object.setPrototypeOf(Color, chainOf(Function.prototype, false));
-
-      return {colors, Color};
       // Rhino's colors.theme (api-coverage Q80 (a)). The theme color lives in the host, so every member returns a Promise; the
       // arguments are checked here with Rhino's rules, the host answers what it refuses.
       const themeOptions = (fn, options) => {
@@ -20206,6 +20200,12 @@ std::string buildEmbeddedScriptExecutionSource(
       }
       define(colors, "theme", Object.freeze(theme));
 
+      const Color = named(function Color(...args) {
+        return buildColor(new.target ? "new Color" : "Color", args);
+      }, "Color", 0);
+      Object.setPrototypeOf(Color, chainOf(Function.prototype, false));
+
+      return {colors, Color};
     }
     const { Mathx, Arrayx, Numberx, jsox } = __autojs6_js_tools_jsox();
     // The earlier Node jsox also carried the three modules; kept and not enumerable, so its exports stay the host's.
@@ -20272,14 +20272,14 @@ std::string buildEmbeddedScriptExecutionSource(
         sdcardPath: __autojs6_sdcard_path(),
         ...__autojs6_host_app_dirs(),
         android: __autojs6_limited_android,
+        themeCall: (method, args) => __autojs6_call_autojs("theme", method, args, { permissions: ["theme"] }),
+        batchRename: () => __autojs6_limited_plugin_family().batchRename,
         require: __autojs6_library_require,
         librarySource: __autojs6_library_source
       });
     }
     return __autojs6_js_tools_cache;
   }
-        themeCall: (method, args) => __autojs6_call_autojs("theme", method, args, { permissions: ["theme"] }),
-        batchRename: () => __autojs6_limited_plugin_family().batchRename,
   // Environment.getExternalStorageDirectory() of the host, the primary emulated storage of this Android user.
   function __autojs6_sdcard_path() {
     return "/storage/emulated/" + __autojs6_android_user_id();
@@ -22110,13 +22110,13 @@ std::string buildEmbeddedScriptExecutionSource(
       mail: __autojs6_limited_mail(),
       ai: __autojs6_limited_ai(),
       epub: __autojs6_limited_epub(),
+      gallery: __autojs6_limited_gallery(),
       speech: __autojs6_limited_speech(),
       tts: __autojs6_limited_tts(),
       requestScreenCapture: __autojs6_rhino_compat_request_screen_capture,
       requestScreenCaptureAsync: __autojs6_rhino_compat_request_screen_capture,
       captureScreen: __autojs6_rhino_compat_capture_screen
     });
-      gallery: __autojs6_limited_gallery(),
     return __autojs6_rhino_compat_facade_cache;
   }
   function __autojs6_rhino_compat_installed_global_names() {
@@ -22308,13 +22308,13 @@ std::string buildEmbeddedScriptExecutionSource(
       mail: __autojs6_limited_mail(),
       ai: __autojs6_limited_ai(),
       epub: __autojs6_limited_epub(),
+      gallery: __autojs6_limited_gallery(),
       speech: __autojs6_limited_speech(),
       tts: __autojs6_limited_tts(),
       requestScreenCapture: __autojs6_rhino_compat_request_screen_capture,
       requestScreenCaptureAsync: __autojs6_rhino_compat_request_screen_capture,
       captureScreen: __autojs6_rhino_compat_capture_screen,
       unsupported: __autojs6_rhino_compat_unsupported,
-      gallery: __autojs6_limited_gallery(),
       blockedByDesign: __autojs6_rhino_compat_blocked_by_design,
       assertSupported: function(apiName) {
         throw __autojs6_rhino_compat_unsupported(apiName);
@@ -23986,12 +23986,6 @@ std::string buildEmbeddedScriptExecutionSource(
   let __autojs6_ai_cache = null;
   function __autojs6_limited_ai() { return __autojs6_ai_cache ||= __autojs6_create_ai(__autojs6_call_autojs); }
 
-  // Shared EPUB facade. Operations and reader callbacks stay on the owning JS thread.
-  function __autojs6_create_epub(call) {
-    let opening = null, generation = 0, pumping = false;
-    const records = new Map(), pending = new Set();
-    function EpubError(message = "", code = "INTERNAL") {
-      const error = new Error(String(message));
   // Shared plugin family facades: gallery and files.batchRename (api-coverage Q81 (a) / Q82 (a)). The Promise forms of Rhino's
   // modules over the host's execution-owned clients: the host applies Rhino's argument rules and does the plugin and file work,
   // an operation's events and outcome come back through poll. The execution's end closes the clients.
@@ -24303,6 +24297,12 @@ std::string buildEmbeddedScriptExecutionSource(
   }
   // End shared plugin family facades.
 
+  // Shared EPUB facade. Operations and reader callbacks stay on the owning JS thread.
+  function __autojs6_create_epub(call) {
+    let opening = null, generation = 0, pumping = false;
+    const records = new Map(), pending = new Set();
+    function EpubError(message = "", code = "INTERNAL") {
+      const error = new Error(String(message));
       Object.setPrototypeOf(error, EpubError.prototype);
       error.name = "EpubError"; error.code = String(code ?? "INTERNAL");
       return error;
@@ -24573,17 +24573,17 @@ std::string buildEmbeddedScriptExecutionSource(
 
   let __autojs6_epub_cache = null;
   function __autojs6_limited_epub() { return __autojs6_epub_cache ||= __autojs6_create_epub(__autojs6_call_autojs); }
+  let __autojs6_plugin_family_cache = null;
+  function __autojs6_limited_plugin_family() {
+    return __autojs6_plugin_family_cache ||= __autojs6_create_plugin_family(__autojs6_call_autojs, __autojs6_builtin_module("events").EventEmitter);
+  }
+  function __autojs6_limited_gallery() { return __autojs6_limited_plugin_family().gallery; }
 
   // Shared speech facade. All runtimes keep their sessions and callbacks on their own JS thread.
   function __autojs6_create_speech(call) {
     let opening = null, generation = 0, pumping = false;
     const records = new Map();
     function SpeechError(message = "", code = "INTERNAL") {
-  let __autojs6_plugin_family_cache = null;
-  function __autojs6_limited_plugin_family() {
-    return __autojs6_plugin_family_cache ||= __autojs6_create_plugin_family(__autojs6_call_autojs, __autojs6_builtin_module("events").EventEmitter);
-  }
-  function __autojs6_limited_gallery() { return __autojs6_limited_plugin_family().gallery; }
       const failure = new Error(String(message));
       Object.setPrototypeOf(failure, SpeechError.prototype);
       failure.name = "SpeechError"; failure.code = code == null ? "INTERNAL" : String(code);
@@ -24852,12 +24852,6 @@ std::string buildEmbeddedScriptExecutionSource(
       recognize: (source, options, callOptions) => audio("recognize", source, options, callOptions),
       recognizeAsync: (source, options, callOptions) => audio("recognizeAsync", source, options, callOptions),
       detectVoice: (source, options, callOptions) => audio("detectVoice", source, options, callOptions),
-      listen: (options, callOptions) => start("listen", [json(options)], callOptions),
-      wake: (keywords, options, callOptions) => { const parsed = json(options); return start("wake", [keywords, parsed], callOptions, null, parsed); },
-      synthesize: (text, path, options, callOptions) => start("synthesize", [text, path, json(options)], callOptions),
-      synthesizeAsync: (text, path, options, callOptions) => start("synthesizeAsync", [text, path, json(options)], callOptions),
-      speak: (text, options, callOptions) => start("speak", [text, json(options)], callOptions),
-      models: Object.freeze({
       diarize: (file, options, callOptions) => start("diarize", [file, json(options, true)], callOptions, options?.onProgress),
       diarizeAsync: (file, options, callOptions) => start("diarizeAsync", [file, json(options, true)], callOptions, options?.onProgress),
       detectLanguage: (file, options, callOptions) => start("detectLanguage", [file, json(options, true)], callOptions, options?.onProgress),
@@ -24874,6 +24868,12 @@ std::string buildEmbeddedScriptExecutionSource(
         list: options => start("speaker.list", [], options),
         remove: (name, options) => start("speaker.remove", [name], options)
       }),
+      listen: (options, callOptions) => start("listen", [json(options)], callOptions),
+      wake: (keywords, options, callOptions) => { const parsed = json(options); return start("wake", [keywords, parsed], callOptions, null, parsed); },
+      synthesize: (text, path, options, callOptions) => start("synthesize", [text, path, json(options)], callOptions),
+      synthesizeAsync: (text, path, options, callOptions) => start("synthesizeAsync", [text, path, json(options)], callOptions),
+      speak: (text, options, callOptions) => start("speak", [text, json(options)], callOptions),
+      models: Object.freeze({
         list: (filter, callOptions) => start("models.list", [json(filter)], callOptions),
         install: (id, options, callOptions) => start("models.install", [id, json(options, true)], callOptions, options?.onProgress),
         installAsync: (id, options, callOptions) => start("models.installAsync", [id, json(options, true)], callOptions, options?.onProgress),
@@ -40329,13 +40329,13 @@ std::string buildEmbeddedScriptExecutionSource(
     mail: function() { return __autojs6_limited_mail(); },
     ai: function() { return __autojs6_limited_ai(); },
     epub: function() { return __autojs6_limited_epub(); },
+    gallery: function() { return __autojs6_limited_gallery(); },
     speech: function() { return __autojs6_limited_speech(); },
     tts: function() { return __autojs6_limited_tts(); },
     tasks: function() { return __autojs6_limited_tasks(); },
     work_manager: function() { return __autojs6_limited_work_manager(); },
     package_manager: function() { return __autojs6_limited_package_manager(); },
     npm: function() { return __autojs6_limited_npm(); },
-    gallery: function() { return __autojs6_limited_gallery(); },
     plugins: function() { return __autojs6_limited_plugins(); },
     "autojs6:autojs": function() { return __autojs6_limited_system().autojs; },
     "autojs6:installer": function() { return __autojs6_limited_system().installer; },
