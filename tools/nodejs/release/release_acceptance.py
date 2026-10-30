@@ -85,9 +85,9 @@ def install(serial: str, apk: str, package: str, replace_incompatible: bool) -> 
     return False, failure.group(1) if failure else out.strip()[-200:]
 
 
-def run_class(serial: str, name: str) -> dict:
+def run_class(serial: str, name: str, prefix: str = PACKAGE, runner: str = RUNNER) -> dict:
     started = time.monotonic()
-    _, out = adb(serial, 'shell', 'am', 'instrument', '-w', '-r', '-e', 'class', f'{PACKAGE}.{name}', RUNNER, timeout=3600)
+    _, out = adb(serial, 'shell', 'am', 'instrument', '-w', '-r', '-e', 'class', f'{prefix}.{name}', runner, timeout=3600)
     seconds = round(time.monotonic() - started)
     # -r reports every test; status -4 is an assumption failure, -3 an ignored test.
     skips = len(re.findall(r'^INSTRUMENTATION_STATUS_CODE: -[34]\s*$', out, re.M))
