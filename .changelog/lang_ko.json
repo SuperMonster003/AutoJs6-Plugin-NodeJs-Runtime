@@ -5,6 +5,12 @@
   "changelog_label_improvement": "개선",
   "changelog_label_dependency": "의존성",
   "$data": {
+    "v1.32.2": {
+      "released_date": "2026/10/30",
+      "fix": [
+        "빠르게 끝나는 명령에서 shell.exec가 가끔 ERR_STREAM_DESTROYED 오류로 실패하던 문제"
+      ]
+    },
     "v1.32.1": {
       "released_date": "2026/10/30",
       "fix": [

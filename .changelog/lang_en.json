@@ -5,6 +5,12 @@
   "changelog_label_improvement": "Improvement",
   "changelog_label_dependency": "Dependency",
   "$data": {
+    "v1.32.2": {
+      "released_date": "2026/10/30",
+      "fix": [
+        "shell.exec occasionally failed with ERR_STREAM_DESTROYED when the command finished quickly"
+      ]
+    },
     "v1.32.1": {
       "released_date": "2026/10/30",
       "fix": [

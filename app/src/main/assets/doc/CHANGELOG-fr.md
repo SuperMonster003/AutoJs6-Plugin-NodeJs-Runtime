@@ -4,6 +4,12 @@
 
 ******
 
+# v1.32.2
+
+###### 2026/10/30
+
+* `Correction` shell.exec échouait parfois avec ERR_STREAM_DESTROYED lorsque la commande se terminait rapidement
+
 # v1.32.1
 
 ###### 2026/10/30

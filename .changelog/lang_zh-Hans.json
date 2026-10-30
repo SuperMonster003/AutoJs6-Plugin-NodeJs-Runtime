@@ -5,6 +5,12 @@
   "changelog_label_improvement": "优化",
   "changelog_label_dependency": "依赖",
   "$data": {
+    "v1.32.2": {
+      "released_date": "2026/10/30",
+      "fix": [
+        "shell.exec 执行很快结束的命令时偶尔以 ERR_STREAM_DESTROYED 错误失败的问题"
+      ]
+    },
     "v1.32.1": {
       "released_date": "2026/10/30",
       "fix": [

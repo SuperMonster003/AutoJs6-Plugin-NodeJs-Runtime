@@ -122,6 +122,12 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 
 ******
 
+# v1.32.2
+
+###### 2026/10/30
+
+* `修正` すぐに終了するコマンドで shell.exec がまれに ERR_STREAM_DESTROYED エラーで失敗する問題
+
 # v1.32.1
 
 ###### 2026/10/30
@@ -136,12 +142,6 @@ AutoJs6 プラグインセンターでプラグインをインストールして
 * `追加` Node.js/Worker に AutoJs6 スクリプトと同じ util, species, s13n, fmt/cvt, jsox ツールモジュールとグローバルデータ関数を追加, autojs6:util などのモジュール名で読み込み
 * `修正` chooseFiles() の直後に web.cancelFileChooser() を呼ぶとファイル選択画面が閉じない場合がある問題
 * `改善` jsox とバイト単位換算の結果とエラーを AutoJs6 スクリプトと一致させ, jsox.extend/extendAll は現在のスレッドの Math, Array, Number を直接拡張
-
-# v1.31.0
-
-###### 2026/10/22
-
-* `追加` Node.js, Bun と Worker の AI テキスト生成, ストリーミング, モデル一覧と永続セッション, キャンセルと 3-Stone AI によるパッケージアプリごとの許可に対応
 
 ##### その他のリリース履歴
 

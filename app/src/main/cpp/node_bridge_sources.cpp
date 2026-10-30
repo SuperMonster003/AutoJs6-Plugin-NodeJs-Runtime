@@ -10071,7 +10071,7 @@ std::string buildEmbeddedScriptExecutionSource(
         readLine:()=>readLine("stdout"),readErrorLine:()=>readLine("stderr"),
         write(data){return new Promise((resolve,reject)=>stdin.write(data,error=>error?reject(error):resolve(emitter)));},
         writeLine(text){if(typeof text!=="string")return Promise.reject(fail("writeLine requires a string"));return emitter.write(text+"\n");},
-        closeInput(){return new Promise((resolve,reject)=>{if(closed||stdin.writableFinished)return resolve(emitter);stdin.end(error=>error?reject(error):resolve(emitter));});},
+        closeInput(){return new Promise((resolve,reject)=>{if(closed||stdin.writableFinished)return resolve(emitter);stdin.end(error=>error&&!closed?reject(error):resolve(emitter));});},
         async waitFor(timeoutMs){if(timeoutMs===undefined)return exited;const millis=duration(timeoutMs,0);let timeout;try{return await Promise.race([exited,new Promise(resolve=>timeout=setTimeout(()=>resolve(null),millis))]);}finally{clearTimeout(timeout);}},
         async kill(){await ready;if(closed)return false;killed=true;const alive=await invoke("kill",[id]);schedule();return alive;},
         close(){if(closePromise)return closePromise;closePromise=ready.catch(()=>{}).then(async()=>{if(closed)return false;killed=true;try{const status=await invoke("close",[id]);end(Number(status?.code??-1),aborted?abortError(signal):undefined);return status?.wasAlive===true;}catch(error){end(null,error);throw error;}});return closePromise;}

@@ -122,6 +122,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.32.2
+
+###### 2026/10/30
+
+* `修复` shell.exec 执行很快结束的命令时偶尔以 ERR_STREAM_DESTROYED 错误失败的问题
+
 # v1.32.1
 
 ###### 2026/10/30
@@ -136,12 +142,6 @@ console.log("AutoJs6 Node.js runtime");
 * `新增` Node.js 与 Worker 的 util, species, s13n, fmt/cvt 和 jsox 工具模块及全局数据函数, 与 AutoJs6 脚本一致, 以 autojs6:util 等模块名引入
 * `修复` chooseFiles() 之后立即调用 web.cancelFileChooser() 时文件选择器可能没有关闭的问题
 * `优化` jsox 与字节单位换算的结果和报错改为与 AutoJs6 脚本一致, jsox.extend/extendAll 直接扩展当前线程的 Math, Array 和 Number
-
-# v1.31.0
-
-###### 2026/10/22
-
-* `新增` Node.js, Bun 和 Worker 的 AI 文本生成, 流式结果, 模型目录与持久会话, 支持取消及 3-Stone AI 对打包应用的逐应用授权
 
 ##### 更多发行历史可参阅
 

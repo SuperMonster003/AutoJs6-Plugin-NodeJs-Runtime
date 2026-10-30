@@ -122,6 +122,12 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 
 ******
 
+# v1.32.2
+
+###### 2026/10/30
+
+* `수정` 빠르게 끝나는 명령에서 shell.exec가 가끔 ERR_STREAM_DESTROYED 오류로 실패하던 문제
+
 # v1.32.1
 
 ###### 2026/10/30
@@ -136,12 +142,6 @@ AutoJs6 플러그인 센터에서 플러그인을 설치하고 활성화한 뒤 
 * `추가` Node.js/Worker에 AutoJs6 스크립트와 같은 util, species, s13n, fmt/cvt, jsox 도구 모듈과 전역 데이터 함수 추가, autojs6:util 등의 모듈 이름으로 가져오기
 * `수정` chooseFiles() 직후 web.cancelFileChooser()를 호출하면 파일 선택기가 닫히지 않을 수 있는 문제
 * `개선` jsox와 바이트 단위 변환의 결과와 오류를 AutoJs6 스크립트와 일치시키고, jsox.extend/extendAll은 현재 스레드의 Math, Array, Number를 직접 확장
-
-# v1.31.0
-
-###### 2026/10/22
-
-* `추가` Node.js, Bun 및 Worker의 AI 텍스트 생성, 스트리밍, 모델 목록 및 영구 세션, 취소와 3-Stone AI의 패키지 앱별 접근 승인 지원
 
 ##### 더 많은 릴리스 기록
 

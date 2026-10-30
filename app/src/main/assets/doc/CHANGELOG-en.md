@@ -4,6 +4,12 @@
 
 ******
 
+# v1.32.2
+
+###### 2026/10/30
+
+* `Fix` shell.exec occasionally failed with ERR_STREAM_DESTROYED when the command finished quickly
+
 # v1.32.1
 
 ###### 2026/10/30

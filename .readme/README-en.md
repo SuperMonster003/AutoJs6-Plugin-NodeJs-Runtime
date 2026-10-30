@@ -122,6 +122,12 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 
 ******
 
+# v1.32.2
+
+###### 2026/10/30
+
+* `Fix` shell.exec occasionally failed with ERR_STREAM_DESTROYED when the command finished quickly
+
 # v1.32.1
 
 ###### 2026/10/30
@@ -136,12 +142,6 @@ Install and enable the plugin in the AutoJs6 plugin center, then start Node.js s
 * `Feature` util, species, s13n, fmt/cvt and jsox tool modules and global data functions for Node.js and Workers, matching AutoJs6 scripts and imported by module names such as autojs6:util
 * `Fix` web.cancelFileChooser() called right after chooseFiles() could leave the file chooser open
 * `Improvement` jsox and byte-unit conversion results and errors now match AutoJs6 scripts, and jsox.extend/extendAll extend Math, Array and Number of the current thread directly
-
-# v1.31.0
-
-###### 2026/10/22
-
-* `Feature` AI text generation, streaming, model catalog and persistent sessions for Node.js, Bun and Workers, with cancellation and per-app consent in 3-Stone AI for packaged apps
 
 ##### For more release history
 

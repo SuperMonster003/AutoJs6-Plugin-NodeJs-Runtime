@@ -122,6 +122,12 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v1.32.2
+
+###### 2026/10/30
+
+* `اصلاح` كان shell.exec يفشل أحيانا بالخطأ ERR_STREAM_DESTROYED عندما ينتهي الأمر بسرعة
+
 # v1.32.1
 
 ###### 2026/10/30
@@ -136,12 +142,6 @@ console.log("AutoJs6 Node.js runtime");
 * `ميزة` وحدات الأدوات util وspecies وs13n وfmt/cvt وjsox ودوال البيانات العامة المطابقة لسكربتات AutoJs6 في Node.js وWorker, مع الاستيراد بأسماء مثل autojs6:util
 * `اصلاح` قد لا يغلق منتقي الملفات عند استدعاء web.cancelFileChooser() مباشرة بعد chooseFiles()
 * `تحسين` أصبحت نتائج jsox وتحويل وحدات البايت وأخطاؤها مطابقة لسكربتات AutoJs6, وتوسع jsox.extend/extendAll كائنات Math وArray وNumber في الخيط الحالي مباشرة
-
-# v1.31.0
-
-###### 2026/10/22
-
-* `ميزة` توليد النصوص والبث وفهرس النماذج والجلسات المستمرة في Node.js وBun وWorkers, مع الإلغاء وموافقة مستقلة لكل تطبيق في 3-Stone AI
 
 ##### لمزيد من سجل الاصدارات
 

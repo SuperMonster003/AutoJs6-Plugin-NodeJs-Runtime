@@ -122,6 +122,12 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v1.32.2
+
+###### 2026/10/30
+
+* `Correction` shell.exec échouait parfois avec ERR_STREAM_DESTROYED lorsque la commande se terminait rapidement
+
 # v1.32.1
 
 ###### 2026/10/30
@@ -136,12 +142,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 * `Ajout` Modules d'outils util, species, s13n, fmt/cvt et jsox et fonctions globales de données pour Node.js et Workers, conformes aux scripts AutoJs6 et importables via des noms comme autojs6:util
 * `Correction` web.cancelFileChooser() appelé juste après chooseFiles() pouvait laisser le sélecteur de fichiers ouvert
 * `Amelioration` Les résultats et erreurs de jsox et de la conversion d'unités d'octets correspondent désormais aux scripts AutoJs6, et jsox.extend/extendAll étendent directement Math, Array et Number du thread courant
-
-# v1.31.0
-
-###### 2026/10/22
-
-* `Ajout` Génération de texte IA, flux, catalogue de modèles et sessions persistantes pour Node.js, Bun et Workers, avec annulation et consentement par application dans 3-Stone AI
 
 ##### Pour plus d'historique des versions
 
