@@ -103,3 +103,9 @@ declare module "media" {
   const media: media.MediaModule;
   export = media;
 }
+
+/** Available in main threads and CommonJS/ESM/nested Workers (Workers forward to the main thread). */
+declare module "autojs6:media" {
+  import media = require("media");
+  export = media;
+}
