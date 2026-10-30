@@ -266,6 +266,17 @@ test('touches follow the touch event timeout and broadcasts reach every script',
  host.push('s2',{type:'broadcast',name:'hi',args:[5,'x']});
  await tick(220);
  assert.deepEqual(heard,[[5,'x']]);
+ // No listener left: the session closes (it would keep the execution alive); listening again opens a new one.
+ events.broadcast.removeAllListeners('hi');
+ await tick(10);
+ assert(host.closed.includes('s2'));
+ events.broadcast.once('bye',(...args)=>heard.push(args));
+ await tick(10);
+ assert.equal(host.calls.filter(c=>c.method==='observeScriptBroadcasts').length,2);
+ host.push('s3',{type:'broadcast',name:'bye',args:[6]});
+ await tick(220);
+ assert.deepEqual(heard,[[5,'x'],[6]]);
+ assert(host.closed.includes('s3'));
  const notes=await events.observeNotification({drainIntervalMs:25});
  await events.removeNotificationObserver();
  assert(host.closed.includes(notes.id));
@@ -320,6 +331,8 @@ test('threads: same-thread tasks, pools, shared atomic and lock, disposable and 
  pool.shutdown();assert.equal(pool.isShutdown(),true);assert.equal(await pool.awaitTermination(100),true);
  assert.throws(()=>pool.submit(()=>1),/shut down/);
  assert.throws(()=>threads.pool({corePoolSize:-1}),RangeError);
+ assert.throws(()=>threads.pool({corePoolSize:3,maxPoolSize:2}),RangeError);
+ threads.pool({corePoolSize:1}).shutdown();
  const counter=threads.atomic(5);
  assert.deepEqual([counter.incrementAndGet(),counter.getAndAdd(10),counter.get(),counter.compareAndSet(16,1),counter.decrementAndGet(),String(counter)],[6,6,16,true,0,'0']);
  const {port1,port2}=new MessageChannel();

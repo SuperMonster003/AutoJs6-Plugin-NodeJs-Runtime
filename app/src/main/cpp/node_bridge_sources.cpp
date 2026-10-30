@@ -10233,22 +10233,31 @@ std::string buildEmbeddedScriptExecutionSource(
         getTimer:()=>rhino.timer?rhino.timer():undefined});
       return target;
     }
-    // Rhino's events.broadcast: emit reaches every script's broadcast listeners (this one's too); listening opens the session.
+    // Rhino's events.broadcast: emit reaches every script's broadcast listeners (this one's too); listening opens the session,
+    // which closes again once no listener is left (it would keep the execution alive). Each session has its own cache key, so
+    // listening again while the previous session closes opens a new one.
     const broadcastEmitter=new EventEmitter();
-    let broadcastSession=null;
+    let broadcastSession=null,broadcastSessions=0;
     function broadcastListen(){
-      if(!broadcastSession)broadcastSession=observe("observeScriptBroadcasts",undefined,undefined,"observeScriptBroadcasts").then(sub=>{
-        sub.on("broadcast",event=>broadcastEmitter.emit(String(event.name),...(Array.isArray(event.args)?event.args:[])));return sub;
-      }).catch(e=>{broadcastSession=null;if(broadcastEmitter.listenerCount("error"))broadcastEmitter.emit("error",e);});
+      if(broadcastSession)return;
+      const session=broadcastSession=observe("observeScriptBroadcasts",undefined,undefined,"observeScriptBroadcasts:"+(++broadcastSessions)).then(sub=>{
+        if(broadcastSession!==session){sub.close().catch(()=>{});return null;}
+        sub.on("broadcast",event=>{broadcastEmitter.emit(String(event.name),...(Array.isArray(event.args)?event.args:[]));broadcastRelease();});return sub;
+      }).catch(e=>{if(broadcastSession===session)broadcastSession=null;if(broadcastEmitter.listenerCount("error"))broadcastEmitter.emit("error",e);return null;});
+    }
+    function broadcastRelease(){
+      if(!broadcastSession||broadcastEmitter.eventNames().length)return;
+      const session=broadcastSession;broadcastSession=null;
+      session.then(sub=>{if(sub)sub.close().catch(()=>{});});
     }
     const broadcast=Object.freeze({
       emit:(name,...args)=>invoke("sendScriptBroadcast",[String(name),args]).then(Boolean),
       on(name,listener){broadcastEmitter.on(name,listener);broadcastListen();return broadcast;},
       addListener(name,listener){return broadcast.on(name,listener);},
       once(name,listener){broadcastEmitter.once(name,listener);broadcastListen();return broadcast;},
-      off(name,listener){broadcastEmitter.off(name,listener);return broadcast;},
-      removeListener(name,listener){broadcastEmitter.off(name,listener);return broadcast;},
-      removeAllListeners(name){if(name===undefined)broadcastEmitter.removeAllListeners();else broadcastEmitter.removeAllListeners(name);return broadcast;},
+      off(name,listener){broadcastEmitter.off(name,listener);broadcastRelease();return broadcast;},
+      removeListener(name,listener){return broadcast.off(name,listener);},
+      removeAllListeners(name){if(name===undefined)broadcastEmitter.removeAllListeners();else broadcastEmitter.removeAllListeners(name);broadcastRelease();return broadcast;},
       listenerCount:name=>broadcastEmitter.listenerCount(name),eventNames:()=>broadcastEmitter.eventNames()
     });
     // Rhino's setKeyInterceptionEnabled(enabled) / (key, enabled): consumed keys while the host session lives.
@@ -27177,6 +27186,8 @@ std::string buildEmbeddedScriptExecutionSource(
         return Math.trunc(value);
       };
       const core = count("corePoolSize", 0), max = count("maxPoolSize", 0);
+      // As Rhino's Threads.internalPool when a maximum is given (0 leaves the pool unbounded, Q180).
+      if (max > 0 && core > max) throw outOfRange(fn, "options.corePoolSize (" + core + ") must not be greater than options.maxPoolSize (" + max + ")");
       count("keepAliveTime", 60000);
       const limit = max > 0 ? max : core > 0 ? core : Infinity;
       const queue = [], running = new Set();
