@@ -17,6 +17,32 @@ test('Flow adoption, chaining, Promise assimilation and inspection', async () =>
   assert.equal(await new flow.Flow(Promise.resolve(7)), 7);
   assert.match(result.toString(), /fulfilled/); await delay(1); assert.equal(flow.pending, 0); assert.equal(flow.workers, 0);
 });
+test('await and sync answer with the Promise of the settlement (Q202)', async () => {
+  const flow = local(), chain = flow.of(4).sleep(1).map(value => value * 2);
+  assert.equal(chain.await(), chain.toPromise()); assert.equal(chain.sync(), chain.toPromise());
+  assert(chain.sync(1000) instanceof Promise); assert.equal(await chain.await(), 8); assert.equal(await chain.sync(), 8);
+  assert.equal(await chain.sync(1000), 8); assert.equal(await chain.sync(0), 8); assert.equal(await chain.sync(Infinity), 8);
+  assert.equal(await chain.sync(null), 8);
+  const failed = flow.of(1).map(() => { throw new RangeError('failed step'); });
+  await assert.rejects(failed.await(), RangeError); await assert.rejects(failed.sync(1000), RangeError);
+  const cancelled = flow.sleep(1000), syncing = cancelled.sync(1000); cancelled.cancel();
+  await assert.rejects(syncing, error => error.code === 'CANCELLED');
+  for (const timeout of [-1, NaN, '10', {}]) assert.throws(() => chain.sync(timeout), TypeError);
+  assert.throws(() => Object.create(flow.Flow.prototype).sync(), TypeError);
+  assert.throws(() => Object.create(flow.Flow.prototype).await(), TypeError);
+  assert.equal(Object.keys(flow.Flow.prototype).length, 0); assert.equal(flow.pending, 0);
+});
+test('sync(timeout) fails with TIMEOUT while the chain keeps running (Q202)', async () => {
+  const flow = local(), chain = flow.sleep(40).map(() => 'late');
+  const error = await chain.sync(5).then(() => assert.fail('A timeout is expected'), failure => failure);
+  assert.equal(error.name, 'FlowError'); assert(error instanceof flow.FlowError); assert.equal(error.code, 'TIMEOUT');
+  assert.equal(error.step, 'sync'); assert.equal(error.reason, 'sync'); assert.equal(error.selector, null);
+  assert.equal(error.elapsed, 5); assert.equal(error.attempts, 0);
+  assert.equal(chain.state, 'pending'); assert.equal(await chain, 'late'); assert.equal(chain.state, 'fulfilled');
+  // Nothing observes this one: a timed sync must not surface as an unhandled rejection.
+  flow.sleep(30).sync(1); await delay(10);
+  const running = flow.sleep(1000); await assert.rejects(running.sync(0), error => error.code === 'TIMEOUT'); running.cancel();
+});
 test('Condition truthiness keeps zero, empty strings and arrays, but not false, null or NaN', async () => {
   const flow = local();
   for (const value of [0, -0, '', [], {}]) assert.equal(await flow.wait(() => value), value);

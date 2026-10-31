@@ -34,6 +34,16 @@ test('CJS, ESM and nested Workers run isolated Flow chains and stop querying on 
   assert(queries >= 3);
 });
 
+test('A Worker Flow answers await and sync with Promises (Q202)', async () => {
+  const config = {preloadPath, entryUrl: pathToFileURL(path.join(directory, 'entry.cjs')).href, gatedBuiltins: [], moduleSources: {}, typeScriptSources: {}, resourceLimits: {}, hostModuleMethods: {flow: Object.keys(new Function(facade + ';return __autojs6_create_flow;')()(() => {}))}};
+  const Worker = createWorker(require, () => config, async () => ({available: true, value: null}));
+  const worker = new Worker("const {parentPort}=require('node:worker_threads'),flow=require('flow');(async()=>{const chain=flow.sleep(30).map(()=>'late');const code=await chain.sync(1).catch(e=>e.code+'/'+e.step+'/'+e.reason);parentPort.postMessage({code,state:chain.state,sync:await chain.sync(),waited:await flow.of(2).await(),timed:await flow.of(3).sync(1000)});})();", {eval: true, execArgv: []});
+  try {
+    const result = await new Promise((resolve, reject) => { worker.once('message', resolve); worker.once('error', reject); });
+    assert.deepEqual(result, {code: 'TIMEOUT/sync/sync', state: 'pending', sync: 'late', waited: 2, timed: 3});
+  } finally { await worker.terminate(); }
+});
+
 test('CJS, ESM and nested Worker termination close only their native Flow clients', async () => {
   const config = {preloadPath, entryUrl:pathToFileURL(path.join(directory,'entry.cjs')).href, gatedBuiltins:[],moduleSources:{},typeScriptSources:{},resourceLimits:{},hostModuleMethods:{flow:['waitForToast','of']}};
   const clients=new Map();let next=0;

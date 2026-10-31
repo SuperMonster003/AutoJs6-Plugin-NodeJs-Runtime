@@ -22605,6 +22605,26 @@ std::string buildEmbeddedScriptExecutionSource(
       });
     });
     method('toPromise', function() { return own(this).promise; });
+    // The script thread never blocks here: await and sync answer with a Promise. Like Rhino, sync(timeout) fails with TIMEOUT while the chain keeps running.
+    method('await', function() { return own(this).promise; });
+    method('sync', function(timeout) {
+      const r = own(this);
+      if (timeout == null) return r.promise;
+      number(timeout, 'timeout', true);
+      if (timeout === Infinity || r.state !== 'pending') return r.promise;
+      const bounded = new Promise((resolve, reject) => {
+        const started = clock(); let timer;
+        const tick = () => {
+          const left = timeout - (clock() - started);
+          if (left <= 0) reject(FlowError('TIMEOUT', 'sync', null, timeout, 0, 'sync'));
+          else timer = setTimeout(tick, Math.min(left, 2147483647));
+        };
+        r.promise.then(value => { clearTimeout(timer); resolve(value); }, error => { clearTimeout(timer); reject(error); });
+        timer = setTimeout(tick, Math.min(timeout, 2147483647));
+      });
+      bounded.catch(() => {});
+      return bounded;
+    });
     method('cancel', function() { const r = own(this); return stop(r, failure(r, 'CANCELLED')); });
     method('toString', function() { const r = own(this); return 'Flow(' + r.step + ', ' + r.state + ')'; });
     method('timeout', function(ms) {
