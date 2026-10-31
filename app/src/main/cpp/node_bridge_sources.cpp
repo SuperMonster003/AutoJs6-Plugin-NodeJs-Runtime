@@ -9310,7 +9310,8 @@ std::string buildEmbeddedScriptExecutionSource(
               : extension === ".json" ? "json" : context.format;
             if (!format) {
               const packagePath = moduleApi.findPackageJSON(url);
-              format = packagePath && JSON.parse(fs.readFileSync(packagePath, "utf8")).type === "module" ? "module" : "commonjs";
+              // Without a package.json above the script, findPackageJSON answers with the script itself.
+              format = packagePath && path.basename(packagePath) === "package.json" && JSON.parse(fs.readFileSync(packagePath, "utf8")).type === "module" ? "module" : "commonjs";
             }
             const suffix = format !== "json" && record.sourceURL && record.sourceURL !== filename
               ? "\n//# sourceURL=" + record.sourceURL.replace(/[\r\n]/g, " ") : "";
