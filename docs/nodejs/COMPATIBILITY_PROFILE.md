@@ -1,8 +1,10 @@
 # AutoJs6 Node.js Compatibility Profile
 
-Last reviewed: 2026-10-11. Runtime plugin v1.6.0 (build 240), SDK 1.7.0,
-capability catalog 1.6.0 and runtime-kit 1.6.0 are published. This checkout develops
-1.7.0; the packaged-client changes below are not yet published.
+Last reviewed: 2026-11-01. Runtime plugin v2.0.0 is the latest tag. This checkout
+develops 2.1.0 (build 370) together with host 6.8.0+6551. The plugin still declares
+the lowest host versionCode 3923; the modules added since 2.0.0 use routes that only
+host 6.8.0 has. SDK 1.7.0, capability catalog 1.6.0 and runtime-kit 1.6.0 were the
+published versions at the last review of those parts (2026-10-11).
 
 ## Runtime and routing
 
@@ -10,8 +12,8 @@ The plugin supplies Node.js 26.13.0, V8 and libuv for arm64-v8a, armeabi-v7a and
 x86_64, plus a universal APK. Full ICU locale data is included. AutoJs6 contains
 no embedded Node runtime. Node-marked scripts use this plugin; TypeScript first
 uses the host Compiler, including provider-v3 on-demand compilation. Raw
-TypeScript dispatch is rejected. The 1.7.0 development version supports packaged
-applications through the external runtime and a matching host/Builder Runtime Kit.
+TypeScript dispatch is rejected. Packaged applications run through the external
+runtime and a matching host/Builder Runtime Kit.
 
 ## Implemented behavior
 

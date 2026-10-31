@@ -124,6 +124,21 @@ console.log("AutoJs6 Node.js runtime");
 
 ******
 
+# v2.1.0
+
+###### 2026/11/01
+
+* `新增` Node.js 与 Worker 的 ui, floaty, web, compose, terminal, toast 模块及 console 的窗口控制, rawInput / input 与 AutoJs6 脚本一致, 界面在 AutoJs6 中显示, 结果以 Promise 返回; 使用 terminal 需要声明新增的 terminal 能力
+* `新增` Node.js 与 Worker 的 automator, auto, keys, ocr, barcode, qrcode, yolo, threads, continuation, timers, 全局选择器函数与 events 的按键, 触摸监听与 AutoJs6 脚本一致, 动作与查询以 Promise 返回; 控制无障碍服务, 按键拦截, 触摸监听和 yolo 需要分别声明新增的 accessibility.service, events.key.intercept, events.touch 和 yolo 能力
+* `新增` Node.js 与 Worker 的 colors.theme, gallery (需要 3-Maple Image), files.batchRename (需要 Batch Rename), speech.speaker, speech.diarize, speech.detectLanguage 和 speech.tag; 前三项需要分别声明新增的 theme, gallery 和 batch_rename 能力, 默认关闭; 独立签名的打包应用调用不到 3-Maple Image 与 Batch Rename
+* `新增` Flow 对象的 await() 和 sync(timeout), 两者都返回 Promise, 不会阻塞脚本线程, 写作 await chain.sync(); 超过 timeout (毫秒) 时以 TIMEOUT 错误拒绝, 流程继续运行, 与 AutoJs6 脚本相同
+* `修复` 项目没有 package.json 时 new Worker(__filename) 抛出 SyntaxError 的问题
+* `修复` files.open, files.toFile 和 zip 的相对路径没有按脚本所在目录解析, 找不到脚本旁边的文件的问题
+* `修复` Color 对象的方法出错时报错类型与 colors 模块不一致的问题
+* `优化` process.exit() 之后已排的 setTimeout, setInterval 和 setImmediate 不再运行, 与原生 Node.js 一致
+* `优化` sysprops.getInt / getBoolean 在属性不存在时返回 null, timers.setIntervalExt 返回数字 id, 任务函数的选项可传 null, 与 AutoJs6 脚本一致
+* `优化` ocr 的结果带有只读的 extras 对象, 选项声明补全 useOpenCL, mergeLine 等识别选项
+
 # v2.0.0
 
 ###### 2026/10/30
@@ -151,12 +166,6 @@ console.log("AutoJs6 Node.js runtime");
 * `新增` Node.js 与 Worker 的 util, species, s13n, fmt/cvt 和 jsox 工具模块及全局数据函数, 与 AutoJs6 脚本一致, 以 autojs6:util 等模块名引入
 * `修复` chooseFiles() 之后立即调用 web.cancelFileChooser() 时文件选择器可能没有关闭的问题
 * `优化` jsox 与字节单位换算的结果和报错改为与 AutoJs6 脚本一致, jsox.extend/extendAll 直接扩展当前线程的 Math, Array 和 Number
-
-# v1.31.0
-
-###### 2026/10/22
-
-* `新增` Node.js, Bun 和 Worker 的 AI 文本生成, 流式结果, 模型目录与持久会话, 支持取消及 3-Stone AI 对打包应用的逐应用授权
 
 ##### 更多发行历史可参阅
 

@@ -1023,6 +1023,10 @@ Node 1.30.0 and Bun 0.19.0 add Flow instance within/scope, inherited root/compas
 
 Node 2.1.0 and Bun 0.22.0 add the Rhino terminals await() and sync(timeout?) to the Flow handle, on main threads and in Workers (Q202). Neither blocks the script thread: both answer with the Promise of the settlement, so scripts write `await chain.sync()`. sync(timeout) rejects with a TIMEOUT FlowError (step and reason `sync`, elapsed the timeout) while the chain keeps running, as in Rhino; no timeout, null and Infinity wait without a limit. await() and sync() are the Promise of toPromise(), and a timed sync() left unobserved is not an unhandled rejection. Rhino's limits on the UI thread and the flow worker thread do not apply here.
 
+## 2026-11-01 Host build for Node 2.1.0
+
+Host 6.8.0+6551, Node 2.1.0 and Bun 0.22.0 are built and tested together. The plugin still declares the lowest host versionCode 3923, as 2.0.0 did (host Q206); the modules added since 2.0.0 use routes that only host 6.8.0 has.
+
 ## AI provider core
 
 `ai` / `autojs6:ai` and explicit `$autojs.ai` expose callable ask, chat, stream, catalog and native persistent sessions in Node main threads and CJS/ESM/nested Workers. Declare the `ai` capability. Streams return immediately with event listeners plus `ready` and `result` Promises; calls accept separate AbortSignal/timeoutMs controls. `close()` releases only this facade, and Worker exit releases its owned clients. Provider controls, explicit target selection and the existing single-provider admission remain in the host AI core.
