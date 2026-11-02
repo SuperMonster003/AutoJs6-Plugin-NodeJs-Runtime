@@ -159,7 +159,7 @@ test('web: ByteString, WebSocket events and queue, injectable clients',async()=>
 test('terminal routes, TerminalError and the Async forms',async()=>{
  const h=fake({'terminal.open':()=>({id:'s1',cwd:'/x',state:'running',alive:true,exitCode:null}),'terminal.state':'not_installed',
   'terminal.isAlive':()=>{throw Object.assign(new Error('Terminal plugin is not installed'),{code:'PLUGIN_UNAVAILABLE',name:'TerminalError'});},
-  'terminal.sessions':[{id:'a'},{id:'b'}],'terminal.exec':{exitCode:0}});
+  'terminal.sessions':[{id:'a'},{id:'b'}],'terminal.exec':{exitCode:0},'terminal.waitForStart':'w1','terminal.waitForResult':'matched line'});
  const {terminal}=createUi(h.call).__autojs6Family({});
  assert.equal(terminal.openAsync,terminal.open);assert.equal(terminal.npm.runAsync,terminal.npm.run);
  assert.deepEqual(Object.keys(terminal).sort(),['TerminalError','close','closeAll','closeAllAsync','closeAsync','env','envAsync','exec','execAsync','isAvailable','isAvailableAsync',
@@ -168,7 +168,8 @@ test('terminal routes, TerminalError and the Async forms',async()=>{
  assert.deepEqual(h.calls[0].options.permissions,['terminal']);
  assert.deepEqual([s.id,s.cwd,String(s)],['s1','/x','TerminalSession { id: s1, cwd: /x, state: running }']);
  await s.write('ls\n');assert.deepEqual(h.calls.at(-1).args,['s1','ls\n']);
- await s.waitFor(/\$ $/m,1000);assert.deepEqual(h.calls.at(-1).args,['s1',{regex:'\\$ $',flags:'m'},1000]);assert.equal(h.calls.at(-1).options.timeoutMs,6000);
+ assert.equal(await s.waitFor(/\$ $/m,1000),'matched line');assert.deepEqual(h.find('terminal','waitForStart').at(-1).args,['s1',{regex:'\\$ $',flags:'m'},1000]);
+ assert.deepEqual(h.calls.at(-1).args,['w1']);assert.equal(h.calls.at(-1).method,'waitForResult');assert.equal(h.calls.at(-1).options.timeoutMs,6000);
  const error=await s.isAlive().catch(e=>e);
  assert(error instanceof terminal.TerminalError);assert.deepEqual([error.name,error.code,error.sessionId],['TerminalError','PLUGIN_UNAVAILABLE','s1']);
  assert.equal(String(error),'TerminalError [PLUGIN_UNAVAILABLE]: Terminal plugin is not installed');
@@ -219,6 +220,27 @@ test('leveled toasts print the text at their console level and dismissAll goes t
  assert.deepEqual(calls.map(c=>c.slice(0,3)),[['toast','showToast',['i',{duration:'long',log:false}]],['toast','showToast',['v',{duration:'short',log:false}]],
   ['toast','showToast',['',{duration:'short',log:false}]],['toast','dismissAll',[]]]);
  assert.deepEqual(calls[3][3],['toast']);
+});
+
+test('a write to a session goes after the waitFor started before it is subscribed (Q227 (a))',async()=>{
+ const ready=[],tick=()=>new Promise(resolve=>setImmediate(resolve));
+ const h=fake({'terminal.open':()=>({id:'s1'}),'terminal.session':()=>({id:'s1'}),'terminal.waitForStart':()=>new Promise((resolve,reject)=>ready.push({resolve,reject})),'terminal.waitForResult':'line'});
+ const {terminal}=createUi(h.call).__autojs6Family({});
+ const s=await terminal.open({});
+ const wait=s.waitFor('p33',1000),written=s.write('echo p33\n');
+ await tick();assert.equal(h.find('terminal','write').length,0);
+ // Another object of the same session waits as well, and a second wait holds the write until both run.
+ const other=await terminal.session('s1'),second=other.waitFor('q',1000),otherWritten=other.write('echo q\n');
+ await tick();assert.equal(h.find('terminal','write').length,0);
+ ready[0].resolve('w1');await written;assert.equal(h.find('terminal','write').length,1);assert.equal(await wait,'line');
+ await tick();assert.equal(h.find('terminal','write').length,1);
+ ready[1].resolve('w2');await otherWritten;assert.equal(h.find('terminal','write').length,2);assert.equal(await second,'line');
+ // A failed subscription rejects its waitFor and lets the write go; no wait pending, a write goes at once.
+ const failed=s.waitFor('r'),after=s.write('x');
+ ready[2].reject(Object.assign(new Error('gone'),{code:'SESSION_NOT_FOUND'}));
+ const error=await failed.catch(e=>e);assert.deepEqual([error.name,error.code,error.sessionId],['TerminalError','SESSION_NOT_FOUND','s1']);
+ await after;assert.equal(h.find('terminal','write').length,3);assert.equal(h.find('terminal','waitForResult').length,2);
+ s.write('now');assert.equal(h.find('terminal','write').length,4);
 });
 
 test('CJS, ESM and nested Workers get floaty / web / terminal, toast, console input and the UI globals',async()=>{

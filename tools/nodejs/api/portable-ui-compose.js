@@ -1504,16 +1504,29 @@
       const terminalCall = (method, args, timeoutMs, id) => call("terminal", method, args, { permissions: ["terminal"], ...(timeoutMs ? { timeoutMs } : {}) })
         .catch(error => { throw terminalError(error, id); });
       const sessionId = value => value && typeof value === "object" ? String(value.id) : String(value);
+      // A waitFor reads the output from its subscription on, and it and a following write are concurrent host calls. The host
+      // answers waitForStart once the subscription runs; a write to the session goes after the waits started before it (Q227 (a)).
+      const terminalGates = new Map();
+      function terminalWait(id, args, timeoutMs) {
+        const started = terminalCall("waitForStart", args, 0, id);
+        const gate = Promise.all([terminalGates.get(id), started.catch(() => {})]).then(() => { if (terminalGates.get(id) === gate) terminalGates.delete(id); });
+        terminalGates.set(id, gate);
+        return started.then(token => terminalCall("waitForResult", [token], timeoutMs, id));
+      }
       function terminalSession(json) {
         if (!json || typeof json !== "object") return null;
         const id = String(json.id);
         const session = { ...json,
           isAlive: () => terminalCall("isAlive", [id], 0, id).then(Boolean),
-          write(text) { return terminalCall("write", [id, text === undefined || text === null ? "" : String(text)], 0, id).then(() => session); },
+          write(text) {
+            const send = () => terminalCall("write", [id, text === undefined || text === null ? "" : String(text)], 0, id).then(() => session);
+            const gate = terminalGates.get(id);
+            return gate ? gate.then(send) : send();
+          },
           waitFor(pattern, timeout) {
             const value = pattern instanceof RegExp ? { regex: pattern.source, flags: pattern.flags } : String(pattern);
             const ms = timeout === undefined || timeout === null ? undefined : Number(timeout);
-            return terminalCall("waitFor", ms === undefined ? [id, value] : [id, value, ms], ms === undefined ? 2147483647 : ms + 5000, id);
+            return terminalWait(id, ms === undefined ? [id, value] : [id, value, ms], ms === undefined ? 2147483647 : ms + 5000);
           },
           transcript: maxBytes => terminalCall("transcript", maxBytes === undefined ? [id] : [id, Number(maxBytes)], 0, id).then(String),
           show() { return terminalCall("show", [id], 0, id).then(() => session); },

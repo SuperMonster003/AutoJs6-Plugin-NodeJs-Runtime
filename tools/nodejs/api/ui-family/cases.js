@@ -38,12 +38,12 @@ var UI_FAMILY_CASES = [
 
     // terminal (3-Shell Terminal)
     ["terminal.state", "[terminal.state(), terminal.isAvailable()]", "Promise.all([terminal.state(), terminal.isAvailable()])"],
-    // waitFor subscribes from its call, so the command prints a second after the write: a fast echo comes before the
-    // subscription in Rhino, and in the runtimes write and waitFor are two host calls that may swap (0 / 8 and 6 / 8 on G8441).
+    // waitFor subscribes from its call: the Rhino case writes first, so the command prints a second later. The runtimes start
+    // the wait first and their write goes after the subscription (Q227 (a)), so a fast echo is not missed.
     ["terminal.session", "(function () { var s = terminal.open({cwd: terminal.env().home, show: false, title: 'p33'}); s.write('sleep 1; echo p33_$((6*7))\\n');" +
         " var m = s.waitFor(/p33_42/, 15000); var r = [typeof s.id, m !== null && m !== undefined, s.isAlive()]; s.close(); return r; })()",
         "(async () => { const s = await terminal.open({cwd: (await terminal.env()).home, show: false, title: 'p33'}); const wait = s.waitFor(/p33_42/, 15000);" +
-        " await s.write('sleep 1; echo p33_$((6*7))\\n'); const m = await wait; const r = [typeof s.id, m !== null && m !== undefined, await s.isAlive()]; await s.close(); return r; })()"],
+        " await s.write('echo p33_$((6*7))\\n'); const m = await wait; const r = [typeof s.id, m !== null && m !== undefined, await s.isAlive()]; await s.close(); return r; })()"],
     ["terminal.session.missing", "terminal.session('p33-none')", "terminal.session('p33-none')"],
 
     // console

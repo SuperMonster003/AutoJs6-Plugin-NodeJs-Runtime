@@ -3928,6 +3928,20 @@
       },
       {
         "module": "terminal",
+        "method": "waitForStart",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
+        "method": "waitForResult",
+        "requiredCapabilities": [
+          "terminal"
+        ]
+      },
+      {
+        "module": "terminal",
         "method": "transcript",
         "requiredCapabilities": [
           "terminal"
