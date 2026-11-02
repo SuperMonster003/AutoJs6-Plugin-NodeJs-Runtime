@@ -14,12 +14,36 @@ const { cases } = require("./cases-files.js");
 
 const SOURCE = require("./extract.js")("files");
 const createFiles = new Function(`${SOURCE}\nreturn __autojs6_js_tools_files;`)();
+const storageFs = new Function(`${require("./extract.js")("storage_fs")}\nreturn __autojs6_js_tools_storage_fs;`)();
 
 const CWD = "/work/cwd";
 const SDCARD = "/storage/emulated/0";
 const APP_DATA = "/data/user/0/org.autojs.autojs6";
 const ASSETS = { "init.js": "// init" + String.fromCharCode(10), "apk_builder_default_signer_certificate_sha256.txt": "c4".repeat(32) + String.fromCharCode(13, 10) };
 const ASSET_DIRECTORIES = new Set(["modules"]);
+
+test("a refused access reports one line on stderr and stays as it is (Q228 (b))", t => {
+  const denied = path => Object.assign(new Error(`EACCES: permission denied, open '${path}'`), { code: "EACCES", path });
+  const lines = [];
+  t.mock.method(process.stderr, "write", text => { lines.push(text); return true; });
+  const watched = storageFs({ fs: {
+    writeFileSync(path) { throw denied(path); },
+    existsSync: () => true,
+    readFileSync() { throw Object.assign(new Error("ENOENT"), { code: "ENOENT" }); },
+    constants: { F_OK: 0 },
+    createReadStream: () => "stream",
+  } });
+  assert.equal(watched.existsSync("/x"), true);
+  assert.throws(() => watched.readFileSync("/x"), { code: "ENOENT" });
+  assert.deepEqual(lines, []);
+  const first = (() => { try { watched.writeFileSync("/sdcard/a.txt"); } catch (e) { return e; } })();
+  assert.equal(first.path, "/sdcard/a.txt");
+  assert.throws(() => watched.writeFileSync("/sdcard/b.txt"), { code: "EACCES" });
+  t.mock.restoreAll();
+  assert.deepEqual(lines, ["EACCES: /sdcard/a.txt: this runtime plugin has no access to shared storage\n"]);
+  assert.equal(watched.constants.F_OK, 0);
+  assert.equal(watched.createReadStream(), "stream");
+});
 
 // node:fs with the absolute POSIX paths of the module below root.
 function mappedFs(root) {

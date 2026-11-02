@@ -14431,6 +14431,26 @@ std::string buildEmbeddedScriptExecutionSource(
         pangu: () => load("pangu.min.js"),
       };
     }
+    function __autojs6_js_tools_storage_fs(host) {
+      // Most files methods turn a refused access into false. One line on stderr tells the host, which offers the settings page of
+      // the plugin once per execution (Q228 (b)); the failure itself stays as it is.
+      let reported = false;
+      return new Proxy(host.fs, { get(target, name) {
+        const value = target[name];
+        if (typeof value !== "function" || typeof name !== "string" || !name.endsWith("Sync")) return value;
+        return (...args) => {
+          try {
+            return value.apply(target, args);
+          } catch (e) {
+            if (!reported && e && e.code === "EACCES") {
+              reported = true;
+              process.stderr.write(`EACCES: ${e.path ?? args[0]}: this runtime plugin has no access to shared storage\n`);
+            }
+            throw e;
+          }
+        };
+      } });
+    }
     function __autojs6_js_tools_files(host) {
       // The files module of AutoJs6 Rhino scripts (FilesModule: open, path, join and toFile; its prototype, the host's
       // Files object: the other members as Java methods), synchronous on host.fs like the host; open, toFile and
@@ -20227,7 +20247,7 @@ std::string buildEmbeddedScriptExecutionSource(
     }
     // colors, files, zip, mime and the timing recorder (api-coverage P3.2b) are created on first use.
     const once = create => { let value; return () => value || (value = create()); };
-    const files = once(() => Object.assign(__autojs6_js_tools_files({ fs: host.fs, cwd: host.cwd, hostCwd: host.hostCwd, sdcardPath: host.sdcardPath, java: host.java,
+    const files = once(() => Object.assign(__autojs6_js_tools_files({ fs: __autojs6_js_tools_storage_fs(host), cwd: host.cwd, hostCwd: host.hostCwd, sdcardPath: host.sdcardPath, java: host.java,
       TextDecoder: globalThis.TextDecoder, filesDir: host.filesDir, cacheDir: host.cacheDir, dataDir: host.dataDir }),
       host.batchRename ? { batchRename: host.batchRename() } : {}));
     const zip = once(() => Object.freeze(__autojs6_js_tools_zip({ java: host.java, cwd: host.hostCwd || host.cwd })));
