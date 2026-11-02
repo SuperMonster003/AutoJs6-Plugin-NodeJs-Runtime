@@ -4,6 +4,24 @@
 
 ******
 
+# v2.1.0
+
+###### 2026/11/01
+
+* `新增` Node.js 與 Worker 的 ui, floaty, web, compose, terminal, toast 模塊及 console 的窗口控制, rawInput / input 與 AutoJs6 腳本一致, 界面在 AutoJs6 中顯示, 結果以 Promise 返回; 使用 terminal 需要聲明新增的 terminal 能力
+* `新增` Node.js 與 Worker 的 automator, auto, keys, ocr, barcode, qrcode, yolo, threads, continuation, timers, 全局選擇器函數與 events 的按鍵, 觸摸監聽與 AutoJs6 腳本一致, 動作與查詢以 Promise 返回; 控制無障礙服務, 按鍵攔截, 觸摸監聽和 yolo 需要分別聲明新增的 accessibility.service, events.key.intercept, events.touch 和 yolo 能力
+* `新增` Node.js 與 Worker 的 colors.theme, gallery (需要 3-Maple Image), files.batchRename (需要 Batch Rename), speech.speaker, speech.diarize, speech.detectLanguage 和 speech.tag; 前三項需要分別聲明新增的 theme, gallery 和 batch_rename 能力, 默認關閉; 獨立簽名的打包應用調用不到 3-Maple Image 與 Batch Rename
+* `新增` Flow 對象的 await() 和 sync(timeout), 兩者都返回 Promise, 不會阻塞腳本線程, 寫作 await chain.sync(); 超過 timeout (毫秒) 時以 TIMEOUT 錯誤拒絕, 流程繼續運行, 與 AutoJs6 腳本相同
+* `修復` terminal 會話的 waitFor 之後緊跟 write 時, 回顯很快的輸出可能被 waitFor 錯過而超時的問題
+* `修復` 項目沒有 package.json 時 new Worker(__filename) 拋出 SyntaxError 的問題
+* `修復` files.open, files.toFile 和 zip 的相對路徑沒有按腳本所在目錄解析, 找不到腳本旁邊的文件的問題
+* `修復` Color 對象的方法出錯時報錯類型與 colors 模塊不一致的問題
+* `優化` files 模塊讀寫共享存儲被系統拒絕 (EACCES / EPERM) 時, AutoJs6 提示一次並可跳轉到系統設置為 Node.js Runtime 授權 (Android 11 起是 "所有文件訪問權限", 更早是 "存儲"), 未捕獲的 fs 錯誤同樣提示; 每次執行最多一次, 錯誤本身不變
+* `優化` process.exit() 之後已排的 setTimeout, setInterval 和 setImmediate 不再運行, 與原生 Node.js 一致
+* `優化` sysprops.getInt / getBoolean 在屬性不存在時返回 null, timers.setIntervalExt 返回數字 id, 任務函數的選項可傳 null, 與 AutoJs6 腳本一致
+* `優化` ocr 的結果帶有隻讀的 extras 對象, 選項聲明補全 useOpenCL, mergeLine 等識別選項
+* `優化` speech.models.list 的類型聲明補全 updateAvailable 和 latestVersionCode, 可據此判斷已安裝的模型有沒有新版本 (需要 3-Macaw Speech 1.4.0 或以上)
+
 # v2.0.0
 
 ###### 2026/10/30

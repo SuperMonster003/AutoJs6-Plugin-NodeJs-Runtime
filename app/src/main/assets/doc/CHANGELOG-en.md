@@ -4,6 +4,24 @@
 
 ******
 
+# v2.1.0
+
+###### 2026/11/01
+
+* `Feature` The Node.js and Worker ui, floaty, web, compose, terminal and toast modules, plus console window controls, rawInput / input, match AutoJs6 scripts, with interfaces displayed in AutoJs6 and results returned as Promise values; using terminal requires declaring the new terminal capability
+* `Feature` The Node.js and Worker automator, auto, keys, ocr, barcode, qrcode, yolo, threads, continuation, timers, global selector functions and events key/touch listeners match AutoJs6 scripts, with actions and queries returning Promise values; accessibility service control, key interception, touch listening and yolo require the new accessibility.service, events.key.intercept, events.touch and yolo capabilities respectively
+* `Feature` The Node.js and Worker colors.theme, gallery (requires 3-Maple Image), files.batchRename (requires Batch Rename), speech.speaker, speech.diarize, speech.detectLanguage and speech.tag; the first three require declaring the new theme, gallery and batch_rename capabilities respectively, disabled by default; independently signed packaged apps cannot call 3-Maple Image or Batch Rename
+* `Feature` Flow objects provide await() and sync(timeout), both returning Promise values without blocking the script thread, used as await chain.sync(); exceeding timeout (milliseconds) rejects with TIMEOUT while the flow continues, as in AutoJs6 scripts
+* `Fix` A terminal session waitFor immediately followed by write could miss rapidly echoed output and time out
+* `Fix` new Worker(__filename) threw SyntaxError when the project had no package.json
+* `Fix` Relative paths in files.open, files.toFile and zip were not resolved against the script directory, preventing files alongside the script from being found
+* `Fix` Errors from Color object methods used types inconsistent with the colors module
+* `Improvement` When the system denies shared storage reads or writes by the files module (EACCES / EPERM), AutoJs6 shows a prompt linking to system settings to authorize Node.js Runtime ("All files access" on Android 11 or later, "Storage" on earlier versions); uncaught fs errors also trigger the prompt, at most once per execution, without changing the error itself
+* `Improvement` Scheduled setTimeout, setInterval and setImmediate callbacks no longer run after process.exit(), matching native Node.js
+* `Improvement` sysprops.getInt / getBoolean return null for missing properties, timers.setIntervalExt returns a numeric id, and task function options accept null, matching AutoJs6 scripts
+* `Improvement` ocr results include a read-only extras object, and option declarations include recognition options such as useOpenCL and mergeLine
+* `Improvement` Type declarations for speech.models.list include updateAvailable and latestVersionCode to indicate whether an installed model has a newer version (requires 3-Macaw Speech 1.4.0 or later)
+
 # v2.0.0
 
 ###### 2026/10/30

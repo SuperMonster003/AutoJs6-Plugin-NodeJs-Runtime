@@ -124,6 +124,24 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 
 ******
 
+# v2.1.0
+
+###### 2026/11/01
+
+* `Ajout` Les modules Node.js et Worker ui, floaty, web, compose, terminal, toast, ainsi que le contrôle des fenêtres console, rawInput / input correspondent aux scripts AutoJs6, avec interfaces dans AutoJs6 et résultats sous forme de Promise; terminal nécessite de déclarer la nouvelle capacité terminal
+* `Ajout` Les membres Node.js et Worker automator, auto, keys, ocr, barcode, qrcode, yolo, threads, continuation, timers, les sélecteurs globaux et les écouteurs de touches/toucher de events correspondent aux scripts AutoJs6, avec actions et requêtes sous forme de Promise; le contrôle du service d'accessibilité, l'interception des touches, l'écoute tactile et yolo nécessitent respectivement les nouvelles capacités accessibility.service, events.key.intercept, events.touch et yolo
+* `Ajout` Les membres Node.js et Worker colors.theme, gallery (nécessite 3-Maple Image), files.batchRename (nécessite Batch Rename), speech.speaker, speech.diarize, speech.detectLanguage et speech.tag; les trois premiers nécessitent respectivement les nouvelles capacités theme, gallery et batch_rename, désactivées par défaut; les applications empaquetées avec une signature indépendante ne peuvent appeler ni 3-Maple Image ni Batch Rename
+* `Ajout` Les objets Flow proposent await() et sync(timeout), qui renvoient des Promise sans bloquer le thread du script et s'utilisent avec await chain.sync(); dépasser timeout (millisecondes) provoque un rejet TIMEOUT tandis que le flux continue, comme dans les scripts AutoJs6
+* `Correction` Un waitFor de session terminal immédiatement suivi de write pouvait manquer une sortie renvoyée très rapidement et expirer
+* `Correction` new Worker(__filename) levait SyntaxError si le projet ne contenait pas de package.json
+* `Correction` Les chemins relatifs de files.open, files.toFile et zip n'étaient pas résolus depuis le dossier du script, empêchant de trouver les fichiers voisins
+* `Correction` Les types d'erreur des méthodes des objets Color différaient de ceux du module colors
+* `Amelioration` Si le système refuse une lecture/écriture du stockage partagé par files (EACCES / EPERM), AutoJs6 propose d'ouvrir les paramètres pour autoriser Node.js Runtime ("Accès à tous les fichiers" à partir d'Android 11, "Stockage" auparavant); les erreurs fs non interceptées déclenchent aussi cette invite, au plus une fois par exécution, sans modifier l'erreur
+* `Amelioration` Les rappels setTimeout, setInterval et setImmediate déjà planifiés ne s'exécutent plus après process.exit(), comme dans Node.js natif
+* `Amelioration` sysprops.getInt / getBoolean renvoient null pour les propriétés absentes, timers.setIntervalExt renvoie un id numérique et les options des fonctions de tâche acceptent null, comme dans les scripts AutoJs6
+* `Amelioration` Les résultats ocr incluent un objet extras en lecture seule, et les déclarations d'options incluent useOpenCL, mergeLine et d'autres options de reconnaissance
+* `Amelioration` Les déclarations de speech.models.list incluent updateAvailable et latestVersionCode pour détecter une nouvelle version des modèles installés (nécessite 3-Macaw Speech 1.4.0 ou ultérieur)
+
 # v2.0.0
 
 ###### 2026/10/30
@@ -151,12 +169,6 @@ Installez et activez le plugin dans le centre de plugins AutoJs6, puis demarrez 
 * `Ajout` Modules d'outils util, species, s13n, fmt/cvt et jsox et fonctions globales de données pour Node.js et Workers, conformes aux scripts AutoJs6 et importables via des noms comme autojs6:util
 * `Correction` web.cancelFileChooser() appelé juste après chooseFiles() pouvait laisser le sélecteur de fichiers ouvert
 * `Amelioration` Les résultats et erreurs de jsox et de la conversion d'unités d'octets correspondent désormais aux scripts AutoJs6, et jsox.extend/extendAll étendent directement Math, Array et Number du thread courant
-
-# v1.31.0
-
-###### 2026/10/22
-
-* `Ajout` Génération de texte IA, flux, catalogue de modèles et sessions persistantes pour Node.js, Bun et Workers, avec annulation et consentement par application dans 3-Stone AI
 
 ##### Pour plus d'historique des versions
 

@@ -4,6 +4,24 @@
 
 ******
 
+# v2.1.0
+
+###### 2026/11/01
+
+* `추가` Node.js 및 Worker의 ui, floaty, web, compose, terminal, toast 모듈과 console 창 제어, rawInput / input이 AutoJs6 스크립트와 일치하며 화면은 AutoJs6에 표시되고 결과는 Promise로 반환; terminal 사용 시 새 terminal 기능 선언 필요
+* `추가` Node.js 및 Worker의 automator, auto, keys, ocr, barcode, qrcode, yolo, threads, continuation, timers, 전역 선택자 함수 및 events의 키/터치 리스너가 AutoJs6 스크립트와 일치하며 동작과 조회는 Promise로 반환; 접근성 서비스 제어, 키 가로채기, 터치 감지 및 yolo에는 각각 새 accessibility.service, events.key.intercept, events.touch 및 yolo 기능 선언 필요
+* `추가` Node.js 및 Worker의 colors.theme, gallery (3-Maple Image 필요), files.batchRename (Batch Rename 필요), speech.speaker, speech.diarize, speech.detectLanguage 및 speech.tag; 앞의 세 항목은 각각 새 theme, gallery 및 batch_rename 기능 선언이 필요하며 기본적으로 비활성화됨; 독립적으로 서명된 패키지 앱에서는 3-Maple Image 및 Batch Rename 호출 불가
+* `추가` Flow 객체의 await() 및 sync(timeout)은 모두 스크립트 스레드를 차단하지 않고 Promise를 반환하며 await chain.sync()로 사용; timeout (밀리초) 초과 시 TIMEOUT 오류로 거부하지만 흐름은 AutoJs6 스크립트처럼 계속 실행
+* `수정` terminal 세션에서 waitFor 직후 write를 호출하면 빠른 에코 출력을 waitFor가 놓쳐 시간 초과가 발생할 수 있던 문제
+* `수정` 프로젝트에 package.json이 없으면 new Worker(__filename)이 SyntaxError를 발생시키던 문제
+* `수정` files.open, files.toFile 및 zip의 상대 경로가 스크립트 디렉터리를 기준으로 해석되지 않아 스크립트 옆 파일을 찾지 못하던 문제
+* `수정` Color 객체 메서드의 오류 타입이 colors 모듈과 일치하지 않던 문제
+* `개선` files 모듈의 공유 저장소 읽기/쓰기가 시스템에서 거부되면 (EACCES / EPERM), AutoJs6가 Node.js Runtime 권한을 허용할 시스템 설정으로 이동하는 안내를 표시 (Android 11 이상은 "모든 파일 접근", 이전 버전은 "저장소"); 처리되지 않은 fs 오류에도 실행당 최대 한 번 안내하며 오류 자체는 유지
+* `개선` process.exit() 이후 예약된 setTimeout, setInterval 및 setImmediate가 더 이상 실행되지 않아 네이티브 Node.js와 일치
+* `개선` sysprops.getInt / getBoolean은 속성이 없으면 null을 반환하고, timers.setIntervalExt는 숫자 id를 반환하며, 작업 함수의 옵션은 null을 허용하여 AutoJs6 스크립트와 일치
+* `개선` ocr 결과에 읽기 전용 extras 객체를 포함하고 옵션 선언에 useOpenCL, mergeLine 등 인식 옵션 보완
+* `개선` speech.models.list 타입 선언에 updateAvailable 및 latestVersionCode를 추가하여 설치된 모델의 새 버전 여부 확인 가능 (3-Macaw Speech 1.4.0 이상 필요)
+
 # v2.0.0
 
 ###### 2026/10/30

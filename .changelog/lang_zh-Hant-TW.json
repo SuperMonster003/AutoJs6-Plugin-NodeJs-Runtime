@@ -5,6 +5,28 @@
   "changelog_label_improvement": "優化",
   "changelog_label_dependency": "依賴",
   "$data": {
+    "v2.1.0": {
+      "released_date": "2026/11/01",
+      "feature": [
+        "Node.js 與 Worker 的 ui, floaty, web, compose, terminal, toast 模組及 console 的視窗控制, rawInput / input 與 AutoJs6 指令碼一致, 介面在 AutoJs6 中顯示, 結果以 Promise 返回; 使用 terminal 需要宣告新增的 terminal 能力",
+        "Node.js 與 Worker 的 automator, auto, keys, ocr, barcode, qrcode, yolo, threads, continuation, timers, 全域性選擇器函式與 events 的按鍵, 觸控監聽與 AutoJs6 指令碼一致, 動作與查詢以 Promise 返回; 控制無障礙服務, 按鍵攔截, 觸控監聽和 yolo 需要分別宣告新增的 accessibility.service, events.key.intercept, events.touch 和 yolo 能力",
+        "Node.js 與 Worker 的 colors.theme, gallery (需要 3-Maple Image), files.batchRename (需要 Batch Rename), speech.speaker, speech.diarize, speech.detectLanguage 和 speech.tag; 前三項需要分別宣告新增的 theme, gallery 和 batch_rename 能力, 預設關閉; 獨立簽名的打包應用呼叫不到 3-Maple Image 與 Batch Rename",
+        "Flow 物件的 await() 和 sync(timeout), 兩者都返回 Promise, 不會阻塞指令碼執行緒, 寫作 await chain.sync(); 超過 timeout (毫秒) 時以 TIMEOUT 錯誤拒絕, 流程繼續執行, 與 AutoJs6 指令碼相同"
+      ],
+      "fix": [
+        "terminal 會話的 waitFor 之後緊跟 write 時, 回顯很快的輸出可能被 waitFor 錯過而超時的問題",
+        "專案沒有 package.json 時 new Worker(__filename) 丟擲 SyntaxError 的問題",
+        "files.open, files.toFile 和 zip 的相對路徑沒有按指令碼所在目錄解析, 找不到指令碼旁邊的檔案的問題",
+        "Color 物件的方法出錯時報錯型別與 colors 模組不一致的問題"
+      ],
+      "improvement": [
+        "files 模組讀寫共享儲存被系統拒絕 (EACCES / EPERM) 時, AutoJs6 提示一次並可跳轉到系統設定為 Node.js Runtime 授權 (Android 11 起是 \"所有檔案訪問許可權\", 更早是 \"儲存\"), 未捕獲的 fs 錯誤同樣提示; 每次執行最多一次, 錯誤本身不變",
+        "process.exit() 之後已排的 setTimeout, setInterval 和 setImmediate 不再執行, 與原生 Node.js 一致",
+        "sysprops.getInt / getBoolean 在屬性不存在時返回 null, timers.setIntervalExt 返回數字 id, 任務函式的選項可傳 null, 與 AutoJs6 指令碼一致",
+        "ocr 的結果帶有隻讀的 extras 物件, 選項宣告補全 useOpenCL, mergeLine 等識別選項",
+        "speech.models.list 的型別宣告補全 updateAvailable 和 latestVersionCode, 可據此判斷已安裝的模型有沒有新版本 (需要 3-Macaw Speech 1.4.0 或以上)"
+      ]
+    },
     "v2.0.0": {
       "released_date": "2026/10/30",
       "hint": [

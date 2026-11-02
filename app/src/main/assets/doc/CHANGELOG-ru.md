@@ -4,6 +4,24 @@
 
 ******
 
+# v2.1.0
+
+###### 2026/11/01
+
+* `Новое` Модули Node.js и Worker ui, floaty, web, compose, terminal, toast, управление окнами console и rawInput / input согласованы со скриптами AutoJs6, интерфейсы отображаются в AutoJs6, результаты возвращаются через Promise; для terminal нужно объявить новую возможность terminal
+* `Новое` Члены Node.js и Worker automator, auto, keys, ocr, barcode, qrcode, yolo, threads, continuation, timers, глобальные селекторы и обработчики клавиш/касаний events согласованы со скриптами AutoJs6, действия и запросы возвращают Promise; управление службой специальных возможностей, перехват клавиш, отслеживание касаний и yolo требуют новых возможностей accessibility.service, events.key.intercept, events.touch и yolo соответственно
+* `Новое` Члены Node.js и Worker colors.theme, gallery (требуется 3-Maple Image), files.batchRename (требуется Batch Rename), speech.speaker, speech.diarize, speech.detectLanguage и speech.tag; первые три требуют объявления новых возможностей theme, gallery и batch_rename соответственно, отключенных по умолчанию; упакованные приложения с независимой подписью не могут вызывать 3-Maple Image и Batch Rename
+* `Новое` Объекты Flow предоставляют await() и sync(timeout), оба возвращают Promise без блокировки потока скрипта и используются как await chain.sync(); превышение timeout (миллисекунды) отклоняет Promise с TIMEOUT, но поток продолжает работу, как в скриптах AutoJs6
+* `Исправление` waitFor сеанса terminal с последующим немедленным write мог пропустить быстрый эхо-вывод и завершиться по тайм-ауту
+* `Исправление` new Worker(__filename) выдавал SyntaxError, если в проекте не было package.json
+* `Исправление` Относительные пути files.open, files.toFile и zip не разрешались относительно каталога скрипта, поэтому соседние файлы не находились
+* `Исправление` Типы ошибок методов объектов Color отличались от модуля colors
+* `Улучшение` При системном отказе в чтении/записи общего хранилища через files (EACCES / EPERM) AutoJs6 предлагает открыть настройки разрешений Node.js Runtime ("Доступ ко всем файлам" начиная с Android 11, "Хранилище" ранее); необработанные ошибки fs также вызывают сообщение не более раза за запуск, без изменения самой ошибки
+* `Улучшение` Запланированные setTimeout, setInterval и setImmediate больше не выполняются после process.exit(), как в обычном Node.js
+* `Улучшение` sysprops.getInt / getBoolean возвращают null для отсутствующих свойств, timers.setIntervalExt возвращает числовой id, а параметры функций задач принимают null, как в скриптах AutoJs6
+* `Улучшение` Результаты ocr содержат объект extras только для чтения, а объявления параметров включают useOpenCL, mergeLine и другие параметры распознавания
+* `Улучшение` Объявления speech.models.list включают updateAvailable и latestVersionCode для проверки новых версий установленных моделей (требуется 3-Macaw Speech 1.4.0 или новее)
+
 # v2.0.0
 
 ###### 2026/10/30

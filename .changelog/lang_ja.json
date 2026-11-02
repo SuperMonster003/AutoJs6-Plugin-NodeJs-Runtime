@@ -5,6 +5,28 @@
   "changelog_label_improvement": "改善",
   "changelog_label_dependency": "依存関係",
   "$data": {
+    "v2.1.0": {
+      "released_date": "2026/11/01",
+      "feature": [
+        "Node.js と Worker の ui, floaty, web, compose, terminal, toast モジュールと console のウィンドウ制御, rawInput / input を AutoJs6 スクリプトと統一し, 画面を AutoJs6 に表示して結果を Promise で返す; terminal には新しい terminal 能力の宣言が必要",
+        "Node.js と Worker の automator, auto, keys, ocr, barcode, qrcode, yolo, threads, continuation, timers, グローバルセレクター関数と events のキー/タッチ監視を AutoJs6 スクリプトと統一し, 操作と照会を Promise で返す; アクセシビリティサービス制御, キーの遮断, タッチ監視, yolo にはそれぞれ新しい accessibility.service, events.key.intercept, events.touch, yolo 能力の宣言が必要",
+        "Node.js と Worker の colors.theme, gallery (3-Maple Image が必要), files.batchRename (Batch Rename が必要), speech.speaker, speech.diarize, speech.detectLanguage, speech.tag; 最初の 3 項目にはそれぞれ新しい theme, gallery, batch_rename 能力の宣言が必要で, 既定では無効; 独立署名されたパッケージアプリは 3-Maple Image と Batch Rename を呼び出せない",
+        "Flow オブジェクトの await() と sync(timeout) はどちらもスクリプトスレッドをブロックせず Promise を返し, await chain.sync() と記述; timeout (ミリ秒) を超えると TIMEOUT で拒否するが, フローは AutoJs6 スクリプトと同様に継続"
+      ],
+      "fix": [
+        "terminal セッションで waitFor の直後に write を呼ぶと, 高速なエコー出力を waitFor が見逃してタイムアウトすることがあった問題",
+        "プロジェクトに package.json がないと new Worker(__filename) が SyntaxError を発生させた問題",
+        "files.open, files.toFile, zip の相対パスがスクリプトのディレクトリを基準に解決されず, 同じ場所のファイルを見つけられなかった問題",
+        "Color オブジェクトのメソッドのエラー型が colors モジュールと一致しなかった問題"
+      ],
+      "improvement": [
+        "files モジュールの共有ストレージへの読み書きがシステムに拒否されると (EACCES / EPERM), AutoJs6 が Node.js Runtime に許可を与えるシステム設定への案内を表示 (Android 11 以降は \"すべてのファイルへのアクセス\", 以前は \"ストレージ\"); 未捕捉の fs エラーでも実行ごとに最大 1 回表示し, エラー自体は変更しない",
+        "process.exit() 後は登録済みの setTimeout, setInterval, setImmediate を実行せず, ネイティブの Node.js と一致",
+        "sysprops.getInt / getBoolean はプロパティがない場合に null を返し, timers.setIntervalExt は数値 id を返し, タスク関数のオプションは null を許容して AutoJs6 スクリプトと一致",
+        "ocr の結果に読み取り専用の extras オブジェクトを追加し, オプション宣言に useOpenCL, mergeLine などの認識オプションを追加",
+        "speech.models.list の型宣言に updateAvailable と latestVersionCode を追加し, インストール済みモデルの更新を判定可能 (3-Macaw Speech 1.4.0 以降が必要)"
+      ]
+    },
     "v2.0.0": {
       "released_date": "2026/10/30",
       "hint": [

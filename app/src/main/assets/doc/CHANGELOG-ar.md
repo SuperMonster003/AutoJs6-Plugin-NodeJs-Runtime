@@ -4,6 +4,24 @@
 
 ******
 
+# v2.1.0
+
+###### 2026/11/01
+
+* `ميزة` تطابق وحدات Node.js و Worker ui, floaty, web, compose, terminal, toast والتحكم بنوافذ console و rawInput / input سكربتات AutoJs6, وتعرض الواجهات في AutoJs6 وتعيد النتائج على هيئة Promise; يتطلب استخدام terminal إعلان القدرة الجديدة terminal
+* `ميزة` تطابق أعضاء Node.js و Worker automator, auto, keys, ocr, barcode, qrcode, yolo, threads, continuation, timers ودوال المحددات العامة ومستمعات المفاتيح واللمس في events سكربتات AutoJs6, وتعيد الإجراءات والاستعلامات Promise; يتطلب التحكم بخدمة تسهيل الاستخدام واعتراض المفاتيح ومراقبة اللمس و yolo إعلان القدرات الجديدة accessibility.service, events.key.intercept, events.touch و yolo على الترتيب
+* `ميزة` أعضاء Node.js و Worker colors.theme, gallery (يتطلب 3-Maple Image), files.batchRename (يتطلب Batch Rename), speech.speaker, speech.diarize, speech.detectLanguage و speech.tag; تتطلب العناصر الثلاثة الأولى إعلان القدرات الجديدة theme, gallery و batch_rename على الترتيب وهي معطلة افتراضيا; لا يمكن للتطبيقات المحزمة بتوقيع مستقل استدعاء 3-Maple Image أو Batch Rename
+* `ميزة` توفر كائنات Flow الدالتين await() و sync(timeout), وتعيد كلتاهما Promise دون حجب خيط السكربت وتستخدمان بصيغة await chain.sync(); يؤدي تجاوز timeout (بالمللي ثانية) إلى الرفض بخطأ TIMEOUT مع استمرار التدفق كما في سكربتات AutoJs6
+* `اصلاح` قد يفوت waitFor في جلسة terminal الإخراج المرتد بسرعة وينتهي بمهلة عند استدعاء write بعده مباشرة
+* `اصلاح` كان new Worker(__filename) يرمي SyntaxError عندما لا يحتوي المشروع على package.json
+* `اصلاح` لم تكن المسارات النسبية في files.open, files.toFile و zip تحل نسبة إلى دليل السكربت, مما منع العثور على الملفات المجاورة له
+* `اصلاح` اختلاف أنواع الأخطاء الصادرة من طرق كائنات Color عن وحدة colors
+* `تحسين` عندما يرفض النظام قراءة التخزين المشترك أو الكتابة فيه عبر files (EACCES / EPERM), يعرض AutoJs6 تنبيها يتيح فتح إعدادات النظام لمنح Node.js Runtime الإذن ("الوصول إلى جميع الملفات" بدءا من Android 11, و "التخزين" قبله); تظهر الرسالة أيضا لأخطاء fs غير الملتقطة, مرة واحدة كحد أقصى لكل تنفيذ, دون تغيير الخطأ نفسه
+* `تحسين` لم تعد استدعاءات setTimeout, setInterval و setImmediate المجدولة تعمل بعد process.exit(), بما يطابق Node.js الأصلي
+* `تحسين` تعيد sysprops.getInt / getBoolean القيمة null للخصائص الغائبة, وتعيد timers.setIntervalExt معرف id رقميا, وتقبل خيارات دوال المهام null, بما يطابق سكربتات AutoJs6
+* `تحسين` تتضمن نتائج ocr كائن extras للقراءة فقط, وتشمل تصريحات الخيارات إعدادات التعرف مثل useOpenCL و mergeLine
+* `تحسين` تتضمن تصريحات speech.models.list الحقلين updateAvailable و latestVersionCode لمعرفة توفر إصدار أحدث للنموذج المثبت (يتطلب 3-Macaw Speech 1.4.0 أو أحدث)
+
 # v2.0.0
 
 ###### 2026/10/30

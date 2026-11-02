@@ -124,6 +124,24 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 
 ******
 
+# v2.1.0
+
+###### 2026/11/01
+
+* `Nuevo` Los módulos Node.js y Worker ui, floaty, web, compose, terminal, toast, los controles de ventana de console y rawInput / input coinciden con los scripts AutoJs6, con interfaces en AutoJs6 y resultados como Promise; usar terminal requiere declarar la nueva capacidad terminal
+* `Nuevo` Los miembros Node.js y Worker automator, auto, keys, ocr, barcode, qrcode, yolo, threads, continuation, timers, selectores globales y oyentes de teclas/toques de events coinciden con los scripts AutoJs6, con acciones y consultas que devuelven Promise; controlar el servicio de accesibilidad, interceptar teclas, escuchar toques y usar yolo requiere declarar respectivamente las nuevas capacidades accessibility.service, events.key.intercept, events.touch y yolo
+* `Nuevo` Los miembros Node.js y Worker colors.theme, gallery (requiere 3-Maple Image), files.batchRename (requiere Batch Rename), speech.speaker, speech.diarize, speech.detectLanguage y speech.tag; los tres primeros requieren declarar respectivamente las nuevas capacidades theme, gallery y batch_rename, desactivadas de forma predeterminada; las aplicaciones empaquetadas con firma independiente no pueden llamar a 3-Maple Image ni Batch Rename
+* `Nuevo` Los objetos Flow ofrecen await() y sync(timeout), ambos devuelven Promise sin bloquear el hilo del script y se usan como await chain.sync(); superar timeout (milisegundos) rechaza con TIMEOUT mientras el flujo continúa, igual que en los scripts AutoJs6
+* `Correccion` Un waitFor de una sesión terminal seguido inmediatamente de write podía perder una salida reflejada muy rápidamente y agotar el tiempo de espera
+* `Correccion` new Worker(__filename) lanzaba SyntaxError cuando el proyecto no tenía package.json
+* `Correccion` Las rutas relativas de files.open, files.toFile y zip no se resolvían desde el directorio del script, impidiendo encontrar archivos junto a él
+* `Correccion` Los errores de métodos de objetos Color usaban tipos distintos a los del módulo colors
+* `Mejora` Si el sistema deniega la lectura/escritura de almacenamiento compartido por files (EACCES / EPERM), AutoJs6 muestra un aviso para abrir los ajustes y autorizar Node.js Runtime ("Acceso a todos los archivos" desde Android 11, "Almacenamiento" en versiones anteriores); los errores fs no capturados también activan el aviso, como máximo una vez por ejecución y sin cambiar el error
+* `Mejora` Las llamadas setTimeout, setInterval y setImmediate programadas dejan de ejecutarse tras process.exit(), igual que en Node.js nativo
+* `Mejora` sysprops.getInt / getBoolean devuelven null para propiedades inexistentes, timers.setIntervalExt devuelve un id numérico y las opciones de funciones de tareas aceptan null, igual que en los scripts AutoJs6
+* `Mejora` Los resultados ocr incluyen un objeto extras de solo lectura, y las declaraciones incluyen opciones de reconocimiento como useOpenCL y mergeLine
+* `Mejora` Las declaraciones de speech.models.list incluyen updateAvailable y latestVersionCode para detectar nuevas versiones de los modelos instalados (requiere 3-Macaw Speech 1.4.0 o posterior)
+
 # v2.0.0
 
 ###### 2026/10/30
@@ -151,12 +169,6 @@ Instala y activa el plugin en el centro de plugins de AutoJs6, luego inicia scri
 * `Nuevo` Módulos de herramientas util, species, s13n, fmt/cvt y jsox y funciones globales de datos para Node.js y Workers, coherentes con los scripts de AutoJs6 e importables con nombres como autojs6:util
 * `Correccion` web.cancelFileChooser() llamado justo después de chooseFiles() podía dejar abierto el selector de archivos
 * `Mejora` Los resultados y errores de jsox y de la conversión de unidades de bytes coinciden ahora con los scripts de AutoJs6, y jsox.extend/extendAll amplían directamente Math, Array y Number del hilo actual
-
-# v1.31.0
-
-###### 2026/10/22
-
-* `Nuevo` Generación de texto con IA, transmisión, catálogo de modelos y sesiones persistentes para Node.js, Bun y Workers, con cancelación y consentimiento por aplicación en 3-Stone AI
 
 ##### Para mas historial de versiones
 
