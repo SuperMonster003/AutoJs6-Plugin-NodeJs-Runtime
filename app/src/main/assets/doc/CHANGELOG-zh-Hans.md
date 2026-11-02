@@ -20,6 +20,7 @@
 * `优化` process.exit() 之后已排的 setTimeout, setInterval 和 setImmediate 不再运行, 与原生 Node.js 一致
 * `优化` sysprops.getInt / getBoolean 在属性不存在时返回 null, timers.setIntervalExt 返回数字 id, 任务函数的选项可传 null, 与 AutoJs6 脚本一致
 * `优化` ocr 的结果带有只读的 extras 对象, 选项声明补全 useOpenCL, mergeLine 等识别选项
+* `优化` speech.models.list 的类型声明补全 updateAvailable 和 latestVersionCode, 可据此判断已安装的模型有没有新版本 (需要 3-Macaw Speech 1.4.0 或以上)
 
 # v2.0.0
 
