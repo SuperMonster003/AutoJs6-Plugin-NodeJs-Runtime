@@ -132,9 +132,11 @@ console.log("AutoJs6 Node.js runtime");
 * `新增` Node.js 与 Worker 的 automator, auto, keys, ocr, barcode, qrcode, yolo, threads, continuation, timers, 全局选择器函数与 events 的按键, 触摸监听与 AutoJs6 脚本一致, 动作与查询以 Promise 返回; 控制无障碍服务, 按键拦截, 触摸监听和 yolo 需要分别声明新增的 accessibility.service, events.key.intercept, events.touch 和 yolo 能力
 * `新增` Node.js 与 Worker 的 colors.theme, gallery (需要 3-Maple Image), files.batchRename (需要 Batch Rename), speech.speaker, speech.diarize, speech.detectLanguage 和 speech.tag; 前三项需要分别声明新增的 theme, gallery 和 batch_rename 能力, 默认关闭; 独立签名的打包应用调用不到 3-Maple Image 与 Batch Rename
 * `新增` Flow 对象的 await() 和 sync(timeout), 两者都返回 Promise, 不会阻塞脚本线程, 写作 await chain.sync(); 超过 timeout (毫秒) 时以 TIMEOUT 错误拒绝, 流程继续运行, 与 AutoJs6 脚本相同
+* `修复` terminal 会话的 waitFor 之后紧跟 write 时, 回显很快的输出可能被 waitFor 错过而超时的问题
 * `修复` 项目没有 package.json 时 new Worker(__filename) 抛出 SyntaxError 的问题
 * `修复` files.open, files.toFile 和 zip 的相对路径没有按脚本所在目录解析, 找不到脚本旁边的文件的问题
 * `修复` Color 对象的方法出错时报错类型与 colors 模块不一致的问题
+* `优化` files 模块读写共享存储被系统拒绝 (EACCES) 时, AutoJs6 提示一次并可跳转到系统设置为 Node.js Runtime 授权 (Android 11 起是 "所有文件访问权限", 更早是 "存储"), 未捕获的 fs 错误同样提示; 每次执行最多一次, 错误本身不变
 * `优化` process.exit() 之后已排的 setTimeout, setInterval 和 setImmediate 不再运行, 与原生 Node.js 一致
 * `优化` sysprops.getInt / getBoolean 在属性不存在时返回 null, timers.setIntervalExt 返回数字 id, 任务函数的选项可传 null, 与 AutoJs6 脚本一致
 * `优化` ocr 的结果带有只读的 extras 对象, 选项声明补全 useOpenCL, mergeLine 等识别选项
