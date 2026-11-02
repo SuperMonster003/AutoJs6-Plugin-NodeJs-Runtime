@@ -32,8 +32,9 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
+      # mergeDebugNativeLibs links libnode.so through CMake, but here that file is an LFS pointer; JVM tests load no native code.
       - name: JVM tests (no native downloads)
-        run: bash ./gradlew --no-daemon :app:testDebugUnitTest
+        run: bash ./gradlew --no-daemon :app:testDebugUnitTest -x :app:mergeDebugNativeLibs
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
