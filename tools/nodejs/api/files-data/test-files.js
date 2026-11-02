@@ -43,6 +43,13 @@ test("a refused access reports one line on stderr and stays as it is (Q228 (b))"
   assert.deepEqual(lines, ["EACCES: /sdcard/a.txt: this runtime plugin has no access to shared storage\n"]);
   assert.equal(watched.constants.F_OK, 0);
   assert.equal(watched.createReadStream(), "stream");
+  // Android 11 and later answer EPERM to a new file at the top of shared storage.
+  lines.length = 0;
+  t.mock.method(process.stderr, "write", text => { lines.push(text); return true; });
+  const rooted = storageFs({ fs: { writeFileSync(path) { throw Object.assign(new Error("EPERM"), { code: "EPERM", path }); } } });
+  assert.throws(() => rooted.writeFileSync("/sdcard/a.txt"), { code: "EPERM" });
+  t.mock.restoreAll();
+  assert.deepEqual(lines, ["EPERM: /sdcard/a.txt: this runtime plugin has no access to shared storage\n"]);
 });
 
 // node:fs with the absolute POSIX paths of the module below root.

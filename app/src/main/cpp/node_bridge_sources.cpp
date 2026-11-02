@@ -14442,9 +14442,9 @@ std::string buildEmbeddedScriptExecutionSource(
           try {
             return value.apply(target, args);
           } catch (e) {
-            if (!reported && e && e.code === "EACCES") {
+            if (!reported && e && (e.code === "EACCES" || e.code === "EPERM")) {
               reported = true;
-              process.stderr.write(`EACCES: ${e.path ?? args[0]}: this runtime plugin has no access to shared storage\n`);
+              process.stderr.write(`${e.code}: ${e.path ?? args[0]}: this runtime plugin has no access to shared storage\n`);
             }
             throw e;
           }

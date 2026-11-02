@@ -20,7 +20,7 @@
         "Color 对象的方法出错时报错类型与 colors 模块不一致的问题"
       ],
       "improvement": [
-        "files 模块读写共享存储被系统拒绝 (EACCES) 时, AutoJs6 提示一次并可跳转到系统设置为 Node.js Runtime 授权 (Android 11 起是 \"所有文件访问权限\", 更早是 \"存储\"), 未捕获的 fs 错误同样提示; 每次执行最多一次, 错误本身不变",
+        "files 模块读写共享存储被系统拒绝 (EACCES / EPERM) 时, AutoJs6 提示一次并可跳转到系统设置为 Node.js Runtime 授权 (Android 11 起是 \"所有文件访问权限\", 更早是 \"存储\"), 未捕获的 fs 错误同样提示; 每次执行最多一次, 错误本身不变",
         "process.exit() 之后已排的 setTimeout, setInterval 和 setImmediate 不再运行, 与原生 Node.js 一致",
         "sysprops.getInt / getBoolean 在属性不存在时返回 null, timers.setIntervalExt 返回数字 id, 任务函数的选项可传 null, 与 AutoJs6 脚本一致",
         "ocr 的结果带有只读的 extras 对象, 选项声明补全 useOpenCL, mergeLine 等识别选项"

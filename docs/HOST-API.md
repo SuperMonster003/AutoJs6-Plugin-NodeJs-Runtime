@@ -238,7 +238,7 @@ await console.hide();
 - 异步文件操作由 libuv 线程池执行; stream, watch, glob, Dir/FileHandle/Stats/Dirent 保持原生对象和选项. 错误保留 `ENOENT`, `EACCES`, `ERR_INVALID_ARG_VALUE` 等 Node/Android 代码.
 - SQLite ATTACH, VACUUM INTO 和目录 PRAGMA 使用 SQLite 原生行为, 不设置运行时 authorizer 路径规则. `enableLoadExtension` 与 `allowExtension` 仍遵循 Node 的 API 配置.
 - Node 文件操作使用插件 UID; MediaInfo, 图片, 录音, 媒体播放等宿主桥使用宿主 UID. 一方有权限的路径不保证另一方可访问, `filesystemRoots` 等项目字段是兼容元数据, 不授予 Android 权限.
-- 读写共享存储 (如 `/sdcard`) 要在系统设置里给 Node.js Runtime 授权: Android 11 起是 "所有文件访问权限", 更早是 "存储". 未授权时 Android 报 EACCES, 错误原样抛出. `files` 模块内的拒绝 (包括返回 false 的方法) 向 stderr 写一行, 宿主看到 stderr 或未捕获错误里共享存储的 EACCES 后提示一次并可跳转到设置页 (每次执行最多一次, Q228 (b)). 脚本自己 catch 且不打印的 `fs` 错误不提示.
+- 读写共享存储 (如 `/sdcard`) 要在系统设置里给 Node.js Runtime 授权: Android 11 起是 "所有文件访问权限", 更早是 "存储". 未授权时 Android 报 EACCES 或 EPERM (Android 11 起在共享存储根目录新建文件是 EPERM), 错误原样抛出. `files` 模块内的拒绝 (包括返回 false 的方法) 向 stderr 写一行, 宿主看到 stderr 或未捕获错误里共享存储的这两种错误后提示一次并可跳转到设置页 (每次执行最多一次, Q228 (b)). 脚本自己 catch 且不打印的 `fs` 错误不提示.
 - 宿主私有项目通过工作区归档或 module-source provider 交付. 归档条目, 描述符, 字节数, tombstone 与输出提交校验属于跨进程传输契约, 不定义普通 `fs` 的访问范围. 输出归档当前不传递符号链接; npm 项目需要回传 bin 入口时使用 `bin-links=false` 或 `--no-bin-links`.
 - 大正文桥接使用 PFD: 宿主大响应可通过响应体描述符交付, 支持对应协议的宿主接收超过内联阈值的 fetch/WebSocket 上传描述符. 请求上限由实际宿主 provider 决定, 运行时不把这些桥协议上限套到 Node 原生网络或文件 API.
 
